@@ -33,4 +33,9 @@
                       WithCulture="false" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- Windows shows this as the file description, in properties and in Task Manager. -->
+    <AssemblyTitle>Better Windows Services (command line)</AssemblyTitle>
+  </PropertyGroup>
+
 </Project>

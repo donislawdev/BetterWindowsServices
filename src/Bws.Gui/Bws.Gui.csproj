@@ -9,4 +9,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- Windows shows this as the file description, in properties and in Task Manager. -->
+    <AssemblyTitle>Better Windows Services</AssemblyTitle>
+  </PropertyGroup>
+
 </Project>
