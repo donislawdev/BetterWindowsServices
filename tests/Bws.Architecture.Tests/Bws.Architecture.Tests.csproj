@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!--
+    These guards inspect BUILD OUTPUT, not linked assemblies.
+
+    Referencing the guarded projects would defeat the purpose. This project would
+    add exactly the kind of reference edge it exists to forbid, and it could not
+    inspect Bws.Gui at all, because WPF forces net10.0-windows while the test host
+    runs on net10.0.
+
+    ReferenceOutputAssembly="false" keeps the build ordering (guarded projects are
+    built first) without creating a compile-time reference.
+    SkipGetTargetFrameworkProperties="true" stops MSBuild from negotiating target
+    frameworks across the boundary, which is the step that fails for WPF.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bws.Core\Bws.Core.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\..\src\Bws.Cli\Bws.Cli.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\..\src\Bws.Gui\Bws.Gui.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+</Project>

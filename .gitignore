@@ -1,0 +1,63 @@
+# --------------------------------------------------------------------------
+# Overrides for the machine-wide gitignore.
+#
+# The global file at %USERPROFILE%\.gitignore is a Unity one, where .csproj and
+# .sln really are generated artifacts and are correctly excluded. For a normal
+# .NET repository that rule is fatal: without project files nobody who clones
+# this can build it. Repository rules are evaluated after global ones, so these
+# put the files back.
+#
+# The global file is left alone on purpose. It is right for what it was written
+# for.
+# --------------------------------------------------------------------------
+!*.csproj
+!*.sln
+!*.slnx
+!*.props
+!*.targets
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test and coverage output
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.trx
+
+# NuGet
+*.nupkg
+packages/
+
+# Local tooling and scratch
+.claude/
+_scratch/
+*.local.json
+
+# Working documentation. Deliberately outside version control: the owner keeps and
+# versions it separately. Consequences are spelled out in CLAUDE.md itself, section
+# "Dokumenty" - the short version is that git will never show you that a document
+# changed, so document changes have to be reported by hand.
+#
+# CLAUDE.md is excluded for the same reason. It still works: it is read from disk,
+# not from git.
+#
+# A public repository will eventually need its own README, written for contributors
+# and independent of these files.
+docs/
+CLAUDE.md
