@@ -12,18 +12,20 @@ namespace Bws.Cli;
 /// </summary>
 internal static class ListingTable
 {
-    /// <summary>
-    /// Shown where a value was refused. Deliberately not blank, and deliberately not a
-    /// dash either, because both read as "nothing here" at a glance.
-    /// </summary>
-    private const string Refused = "(no access)";
-
     private const string Nothing = "";
 
     internal static string Render(IReadOnlyList<ScmEntry> entries)
     {
         var rows = new List<string[]>(entries.Count + 1);
-        rows.Add(["NAME", "DISPLAY NAME", "TYPE", "STATUS", "START", "ACCOUNT", "PID"]);
+        rows.Add([
+            Texts.Of("cli.column.name"),
+            Texts.Of("cli.column.displayName"),
+            Texts.Of("cli.column.type"),
+            Texts.Of("cli.column.status"),
+            Texts.Of("cli.column.startType"),
+            Texts.Of("cli.column.account"),
+            Texts.Of("cli.column.processId")
+        ]);
 
         foreach (var entry in entries)
         {
@@ -45,7 +47,11 @@ internal static class ListingTable
     private static string Cell<T>(Reading<T> reading, Func<T, string> show) => reading.Outcome switch
     {
         ReadOutcome.Present => show(reading.Value!),
-        ReadOutcome.Denied => Refused,
+
+        // Deliberately not blank and deliberately not a dash. Both of those read as
+        // "nothing here", which is the one meaning this cell must never carry.
+        ReadOutcome.Denied => Texts.Of("cli.cell.noAccess"),
+
         _ => Nothing
     };
 

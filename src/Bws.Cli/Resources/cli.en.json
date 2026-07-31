@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "code": "en",
+    "name": "English",
+    "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
+  },
+
+  "cli.usage": "Usage: bws [--json] [--timing]",
+  "cli.unknownOption": "Unknown option: {0}",
+
+  "cli.column.name": "NAME",
+  "cli.column.displayName": "DISPLAY NAME",
+  "cli.column.type": "TYPE",
+  "cli.column.status": "STATUS",
+  "cli.column.startType": "START",
+  "cli.column.account": "ACCOUNT",
+  "cli.column.processId": "PID",
+
+  "cli.cell.noAccess": "(no access)",
+
+  "cli.warning.configurationRefused": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",
+  "cli.info.timing": "Read {0} entries in {1} ms."
+}

@@ -8,4 +8,29 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      User-facing text is embedded, not shipped next to the executable. One less way for
+      the tool to arrive broken, and it survives publishing as a single native file.
+    -->
+    <!--
+      WithCulture=false is load-bearing, not decoration.
+
+      MSBuild reads the ".en." in the file name as a culture and, left alone, compiles the
+      file into a satellite assembly under en\ instead of embedding it here, stripping the
+      culture out of the resource name on the way. The build stays green and the tool dies
+      on its first line saying the resource is missing.
+
+      Our language files are plain data we load and choose between ourselves. They are not
+      .NET satellite resources and must not be treated as such. The same applies to every
+      gui.<language>.json that follows.
+
+      LogicalName is spelled out for the same reason: the default is derived from the root
+      namespace and the folder, and implicit rules are what failed here in the first place.
+    -->
+    <EmbeddedResource Include="Resources\cli.en.json"
+                      LogicalName="Bws.Cli.Resources.cli.en.json"
+                      WithCulture="false" />
+  </ItemGroup>
+
 </Project>

@@ -24,8 +24,8 @@ if (unknown.Length > 0)
 {
     // Diagnostics go to the error channel even when the run fails. The data channel
     // stays clean so a failed run never drops a stray line into someone's pipe.
-    Console.Error.WriteLine($"Unknown option: {string.Join(", ", unknown)}");
-    Console.Error.WriteLine("Usage: bws [--json] [--timing]");
+    Console.Error.WriteLine(Texts.Of("cli.unknownOption", string.Join(", ", unknown)));
+    Console.Error.WriteLine(Texts.Of("cli.usage"));
     return ExitCode.Usage;
 }
 
@@ -45,14 +45,12 @@ try
     {
         // Never silent. A listing where part of the configuration could not be read looks
         // exactly like a complete one, and that is the worst failure this tool has.
-        Console.Error.WriteLine(
-            $"Configuration was refused for {refused} of {entries.Count} entries. " +
-            "Run elevated to read them.");
+        Console.Error.WriteLine(Texts.Of("cli.warning.configurationRefused", refused, entries.Count));
     }
 
     if (wantsTiming)
     {
-        Console.Error.WriteLine($"Read {entries.Count} entries in {stopwatch.ElapsedMilliseconds} ms.");
+        Console.Error.WriteLine(Texts.Of("cli.info.timing", entries.Count, stopwatch.ElapsedMilliseconds));
     }
 
     return ExitCode.Ok;
@@ -67,7 +65,15 @@ try
 // catch would be the silence that rule 8 forbids.
 catch (Exception failure)
 {
-    Console.Error.WriteLine(failure.Message);
+    // The whole chain, not just the top message. A wrapper such as
+    // TypeInitializationException says only "something threw", and the sentence that
+    // actually explains the failure sits underneath it. Printing one line and dropping
+    // the rest is the quiet kind of silence rule 8 forbids.
+    for (Exception? level = failure; level is not null; level = level.InnerException)
+    {
+        Console.Error.WriteLine(level.Message);
+    }
+
     return ExitCode.Runtime;
 }
 #pragma warning restore CA1031
