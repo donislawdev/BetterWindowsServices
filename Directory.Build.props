@@ -40,4 +40,16 @@
     <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
+  <!--
+    Identity of the product. One place, so the name never drifts between the executable,
+    the package metadata and the About window (ADR-12a).
+  -->
+  <PropertyGroup>
+    <Product>Better Windows Services</Product>
+    <Company>Better Windows Services</Company>
+    <Copyright>Copyright (C) 2026 Better Windows Services contributors</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Description>Service management for Windows administrators: search, bulk operations, audit and drift.</Description>
+  </PropertyGroup>
+
 </Project>
