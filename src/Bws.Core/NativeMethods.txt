@@ -1,0 +1,22 @@
+// Win32 surface used by this project. CsWin32 turns each name into a P/Invoke at
+// build time, so nothing here becomes a runtime dependency (ADR-2, ADR-15).
+//
+// Keeping the list explicit is deliberate: it is the honest inventory of what the
+// tool touches in the operating system, and it belongs under review like any other
+// contract.
+
+// Service control manager: opening, enumerating, reading configuration.
+OpenSCManager
+OpenService
+CloseServiceHandle
+EnumServicesStatusEx
+QueryServiceConfig
+
+// Constants and structures for the calls above.
+SC_MANAGER_CONNECT
+SC_MANAGER_ENUMERATE_SERVICE
+SERVICE_QUERY_CONFIG
+ENUM_SERVICE_TYPE
+ENUM_SERVICE_STATUS_PROCESSW
+SERVICE_STATUS_CURRENT_STATE
+WIN32_ERROR
