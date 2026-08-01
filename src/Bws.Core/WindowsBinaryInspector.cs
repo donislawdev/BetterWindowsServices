@@ -96,13 +96,28 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
 
             return ThroughCatalogue(file);
         }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+#pragma warning disable CA1031
+        // Broad on purpose, and it is not the silence rule 8 forbids: the failure becomes a
+        // refusal in the result, with its number and its sentence, and shows up in the
+        // listing like any other unreadable field.
+        //
+        // The alternative is worse than it looks. This runs over every binary a machine
+        // happens to have, none of which we chose, and the ways one file can be malformed
+        // are not a list anybody can finish - a truncated certificate, a path the platform
+        // rejects, a handle that goes away mid-read. Naming two exception types means the
+        // third one loses all 809 other entries and ends the run with exit code 1, on
+        // somebody's production server, because of one bad file.
+        //
+        // Second of exactly two broad catches in the project. The other is the entry point.
+        catch (Exception failure)
         {
-            // The file is there and will not open. That is a fact about our permissions and
-            // it is the one thing that must never render as "unsigned".
-            return Reading<BinarySignature>.Denied(
-                Marshal.GetLastWin32Error(), failure.Message);
+            // HResult rather than GetLastWin32Error: by the time an exception has been
+            // built and thrown, the thread's last error has usually been overwritten by
+            // whatever the runtime did on the way here. A managed IO failure carries the
+            // Win32 code in the low sixteen bits of its HResult.
+            return Reading<BinarySignature>.Denied(failure.HResult, failure.Message);
         }
+#pragma warning restore CA1031
     }
 
     public Reading<string> ReadFileVersion(string file)
@@ -121,10 +136,14 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
                 ? Reading<string>.Absent()
                 : Reading<string>.Present(version);
         }
-        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+#pragma warning disable CA1031
+        // Same reasoning as above: one file with a version resource nobody can parse must
+        // cost that file's answer and nothing else.
+        catch (Exception failure)
         {
-            return Reading<string>.Denied(Marshal.GetLastWin32Error(), failure.Message);
+            return Reading<string>.Denied(failure.HResult, failure.Message);
         }
+#pragma warning restore CA1031
     }
 
     /// <summary>
@@ -330,10 +349,16 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
 
             return string.IsNullOrWhiteSpace(name) ? null : name;
         }
-        catch (Exception failure) when (failure is CryptographicException or IOException)
+#pragma warning disable CA1031
+        // Null rather than a state of its own, and broad for the same reason as above. The
+        // verdict beside it already says whether there is a signature at all, so a file
+        // whose certificate will not parse reads as "trusted, and we could not put a name
+        // to it" - which is what happened, rather than an invented one.
+        catch (Exception)
         {
             return null;
         }
+#pragma warning restore CA1031
     }
 
     /// <summary>

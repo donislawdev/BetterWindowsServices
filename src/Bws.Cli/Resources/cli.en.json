@@ -5,8 +5,9 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.usage": "Usage:\n  bws list [--query TEXT] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json]",
+  "cli.usage": "Usage:\n  bws list [--query TEXT] [--signatures] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]\n\n  --signatures reads who signed each binary. Several seconds, so it is off unless asked.\n  A query about signatures turns it on by itself.",
   "cli.unknownOption": "Unknown option: {0}",
+  "cli.optionNeedsValue": "{0} needs a value after it.",
   "cli.optionNotForCommand": "{0} does not apply to {1}. It works with: {2}.",
   "cli.missingServiceName": "{0} needs the name of a service. Example: bws {0} Spooler --dry-run",
   "cli.badTimeout": "--timeout takes a whole number of seconds, at least 1. It got: {0}",

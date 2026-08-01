@@ -56,6 +56,16 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **A refusal carries the system's number as well as its sentence.** The sentence is in the
   language of the machine, so the number is the half a script should read.
 
+### Fixed
+
+- **The usage text lists every switch again.** `--signatures` was missing from it, and
+  `--timing` was shown only for `list` although it works everywhere.
+- **A switch given without its value says so**, instead of reporting itself as an unknown
+  option and sending you looking for a typo you did not make.
+- **One unreadable file no longer ends the whole run.** A binary whose certificate cannot
+  be parsed now costs its own answer, reported as unreadable, rather than the other eight
+  hundred entries and a failing exit code.
+
 ### Known limits
 
 - Local machine only. Remote management is not in this version.

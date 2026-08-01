@@ -65,8 +65,18 @@ internal sealed record CommandLine
     /// <summary>What was given to --timeout that could not be read as seconds. Null when fine.</summary>
     internal string? BadTimeout { get; private init; }
 
-    /// <summary>Options nobody knows, and options given without the value they need.</summary>
+    /// <summary>Options nobody knows, and bare words where none belongs.</summary>
     internal IReadOnlyList<string> Rejected { get; private init; } = [];
+
+    /// <summary>
+    /// Options that exist and were given without the value they need.
+    ///
+    /// Their own list, because "there is no such option" sends somebody looking for a typo
+    /// in a word they spelled correctly. These two used to share a message and the wrong
+    /// one was shown - found by a guard checking that every switch in the help is a switch
+    /// the tool accepts, which is not what it was written to look for.
+    /// </summary>
+    internal IReadOnlyList<string> Incomplete { get; private init; } = [];
 
     /// <summary>
     /// Options that exist but do not belong to this verb.
@@ -137,6 +147,7 @@ internal sealed record CommandLine
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
+        var incomplete = new List<string>();
         var given = new List<string>();
 
         for (var index = 0; index < arguments.Length; index++)
@@ -189,7 +200,7 @@ internal sealed record CommandLine
                 {
                     // An option that needs a value and did not get one is a mistake, not an
                     // empty query. Treating it as empty would quietly list everything.
-                    rejected.Add(argument);
+                    incomplete.Add("--query");
                     continue;
                 }
 
@@ -210,7 +221,7 @@ internal sealed record CommandLine
 
                 if (index + 1 >= arguments.Length)
                 {
-                    rejected.Add(argument);
+                    incomplete.Add("--timeout");
                     continue;
                 }
 
@@ -234,6 +245,7 @@ internal sealed record CommandLine
             Timeout = timeout,
             BadTimeout = badTimeout,
             Rejected = rejected,
+            Incomplete = incomplete,
 
             // In the order they were typed, each named once however many times it appeared.
             Misplaced =

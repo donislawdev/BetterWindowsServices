@@ -267,6 +267,29 @@ sense as answers to the one above them.
     **query language**, not through this property, so its count of ten is unchanged. The
     property has no consumer in shipping code yet - the first will be the machine overview.
 
+### Fixed
+
+- **One malformed file could end a whole run.** `WindowsBinaryInspector` caught two
+  exception types by name, so a third - a truncated certificate, a path the platform
+  rejects, a handle that goes away mid-read - escaped to the top level and lost all 809
+  other entries with exit code 1, on somebody's production machine. Now broad and reported
+  as a refusal with its number and sentence. Second of exactly two broad catches in the
+  project, and the comment in the other one saying it was the only one is corrected.
+  - `HResult` rather than `GetLastWin32Error` in that path: by the time an exception has
+    been built and thrown, the thread's last error is usually something else.
+
+- **`--signatures` was absent from the usage text**, and `--timing` was shown only under
+  `list` despite working on every verb. A switch has exactly one route to discovery, so an
+  accepted and unmentioned one may as well not exist.
+  - Guarded now by `UsageContractTests`: every accepted switch has to appear in the help,
+    and every switch in the help has to be accepted. Written after making the mistake, and
+    it immediately found a second one.
+
+- **A switch missing its value reported itself as unknown.** `bws list --query` answered
+  "Unknown option: --query", sending somebody to hunt for a typo in a word they had spelled
+  correctly. Its own list and its own message now. Found by the guard above, which was not
+  looking for it.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.

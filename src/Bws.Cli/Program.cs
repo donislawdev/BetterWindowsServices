@@ -19,6 +19,15 @@ if (options.Rejected.Count > 0)
     return ExitCode.Usage;
 }
 
+if (options.Incomplete.Count > 0)
+{
+    // A different mistake from an unknown option, and it used to be reported as one -
+    // sending somebody to hunt for a typo in a word they had spelled correctly.
+    Console.Error.WriteLine(Texts.Of("cli.optionNeedsValue", string.Join(", ", options.Incomplete)));
+    Console.Error.WriteLine(Texts.Of("cli.usage"));
+    return ExitCode.Usage;
+}
+
 if (options.Kind == CommandKind.None)
 {
     Console.Error.WriteLine(Texts.Of("cli.usage"));
@@ -174,8 +183,11 @@ try
 // ends with a failing code. The alternative is a stack trace in the user's face, which
 // tells them less and looks like a crash.
 //
-// This is the only suppression of this rule in the project. Anywhere else, a broad
-// catch would be the silence that rule 8 forbids.
+// One of exactly two suppressions of this rule in the project. The other is in
+// WindowsBinaryInspector, where one malformed file out of several hundred must cost its
+// own answer rather than the whole run. Anywhere else, a broad catch would be the silence
+// that rule 8 forbids - and the test of that is whether the failure still reaches the
+// person. In both places it does.
 catch (Exception failure)
 {
     // The whole chain, not just the top message. A wrapper such as
