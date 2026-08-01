@@ -34,10 +34,11 @@ public enum ReadOutcome
 /// </summary>
 public readonly record struct Reading<T>
 {
-    private Reading(ReadOutcome outcome, T? value, string? reason)
+    private Reading(ReadOutcome outcome, T? value, int errorCode, string? reason)
     {
         Outcome = outcome;
         Value = value;
+        ErrorCode = errorCode;
         Reason = reason;
     }
 
@@ -46,18 +47,35 @@ public readonly record struct Reading<T>
     /// <summary>Meaningful only when <see cref="Outcome"/> is <see cref="ReadOutcome.Present"/>.</summary>
     public T? Value { get; }
 
-    /// <summary>Why the read failed. Set only for <see cref="ReadOutcome.Denied"/>.</summary>
+    /// <summary>
+    /// The system's own number for the refusal, or zero. Set only for
+    /// <see cref="ReadOutcome.Denied"/>.
+    ///
+    /// Carried next to the sentence because the two are for different readers, and only one
+    /// of them keeps its meaning across machines. Measured on 2026-08-01: the same refusal
+    /// reads "The service cannot be started..." on one machine and "Nie można uruchomić
+    /// określonej usługi..." on another, because Windows answers in the language of the
+    /// machine. A script keying on the sentence works until it meets a different install.
+    /// </summary>
+    public int ErrorCode { get; }
+
+    /// <summary>
+    /// Why the read failed, in the system's own words. Set only for
+    /// <see cref="ReadOutcome.Denied"/>. For a person - see <see cref="ErrorCode"/> for the
+    /// half a script should read.
+    /// </summary>
     public string? Reason { get; }
 
     public bool IsPresent => Outcome == ReadOutcome.Present;
 
-    public static Reading<T> NotRead() => new(ReadOutcome.NotRead, default, null);
+    public static Reading<T> NotRead() => new(ReadOutcome.NotRead, default, 0, null);
 
-    public static Reading<T> Present(T value) => new(ReadOutcome.Present, value, null);
+    public static Reading<T> Present(T value) => new(ReadOutcome.Present, value, 0, null);
 
-    public static Reading<T> Absent() => new(ReadOutcome.Absent, default, null);
+    public static Reading<T> Absent() => new(ReadOutcome.Absent, default, 0, null);
 
-    public static Reading<T> Denied(string reason) => new(ReadOutcome.Denied, default, reason);
+    public static Reading<T> Denied(int errorCode, string reason) =>
+        new(ReadOutcome.Denied, default, errorCode, reason);
 
     /// <summary>
     /// The value, or the fallback. Deliberately makes the caller name what it wants shown,

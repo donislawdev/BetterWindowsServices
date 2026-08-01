@@ -62,7 +62,7 @@ internal sealed class FakeScmCatalog : IScmCatalog
 
         if (RefuseDependentsFor.Contains(serviceName))
         {
-            return Reading<IReadOnlyList<string>>.Denied("access denied");
+            return Reading<IReadOnlyList<string>>.Denied(Entries.AccessDenied, "access denied");
         }
 
         return _dependents.TryGetValue(serviceName, out var dependents)

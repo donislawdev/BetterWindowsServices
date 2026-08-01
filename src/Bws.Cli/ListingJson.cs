@@ -18,6 +18,16 @@ namespace Bws.Cli;
 /// was refused is named in "unreadable" together with the reason. A consumer that does
 /// not care sees null. A consumer that does care can tell the two cases apart.
 /// </summary>
+/// <summary>
+/// Why one field could not be read: the system's number and the system's sentence.
+///
+/// Both, because they are for different readers and only one of them survives a change of
+/// machine. Measured on 2026-08-01: the same refusal comes back in English on one install
+/// and in Polish on another, because Windows answers in the language of the machine. The
+/// number is what a script may key on, the sentence is what a person reads.
+/// </summary>
+internal sealed record UnreadableJson(int ErrorCode, string Message);
+
 internal sealed record EntryJson
 {
     public required string ServiceName { get; init; }
@@ -47,19 +57,19 @@ internal sealed record EntryJson
     /// </summary>
     public required IReadOnlyList<string>? DependsOn { get; init; }
 
-    /// <summary>Field name to reason, for everything that was refused. Omitted when empty.</summary>
+    /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Dictionary<string, string>? Unreadable { get; init; }
+    public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
 
     internal static EntryJson From(ScmEntry entry)
     {
-        var unreadable = new Dictionary<string, string>(StringComparer.Ordinal);
+        var unreadable = new Dictionary<string, UnreadableJson>(StringComparer.Ordinal);
 
-        Note(unreadable, nameof(entry.ProcessId), entry.ProcessId.Outcome, entry.ProcessId.Reason);
-        Note(unreadable, nameof(entry.StartType), entry.StartType.Outcome, entry.StartType.Reason);
-        Note(unreadable, nameof(entry.DelayedAuto), entry.DelayedAuto.Outcome, entry.DelayedAuto.Reason);
-        Note(unreadable, nameof(entry.Account), entry.Account.Outcome, entry.Account.Reason);
-        Note(unreadable, nameof(entry.DependsOn), entry.DependsOn.Outcome, entry.DependsOn.Reason);
+        Note(unreadable, nameof(entry.ProcessId), entry.ProcessId);
+        Note(unreadable, nameof(entry.StartType), entry.StartType);
+        Note(unreadable, nameof(entry.DelayedAuto), entry.DelayedAuto);
+        Note(unreadable, nameof(entry.Account), entry.Account);
+        Note(unreadable, nameof(entry.DependsOn), entry.DependsOn);
 
         return new EntryJson
         {
@@ -76,12 +86,17 @@ internal sealed record EntryJson
         };
     }
 
-    private static void Note(
-        Dictionary<string, string> unreadable, string field, ReadOutcome outcome, string? reason)
+    /// <summary>
+    /// Takes the whole reading rather than its pieces. The pieces used to be handed over
+    /// one by one, which needed a fallback for a reason that cannot be missing, and a
+    /// fallback for something impossible is a sentence nobody ever reads and nobody ever
+    /// checks.
+    /// </summary>
+    private static void Note<T>(Dictionary<string, UnreadableJson> unreadable, string field, Reading<T> reading)
     {
-        if (outcome == ReadOutcome.Denied)
+        if (reading.Outcome == ReadOutcome.Denied)
         {
-            unreadable[Camel(field)] = reason ?? "unreadable";
+            unreadable[Camel(field)] = new UnreadableJson(reading.ErrorCode, reading.Reason!);
         }
     }
 

@@ -53,6 +53,42 @@ public sealed class PlanContractTests
         Assert.Equal(string.Empty, run.StandardOutput.Trim());
     }
 
+    [Theory]
+    [InlineData("list", "--dry-run")]
+    [InlineData("list", "--dependents")]
+    [InlineData("list", "--timeout", "30")]
+    [InlineData("stop", "Spooler", "--query", "status:running")]
+    public void An_option_that_does_not_belong_to_the_verb_is_refused_rather_than_ignored(params string[] line)
+    {
+        // The whole point of the change: none of these used to be an error. They were taken,
+        // dropped, and the command carried on doing something other than what the line said.
+        // A runbook is read more often than it is run, and a switch that does nothing reads
+        // exactly like one that works.
+        var run = CommandLineTool.Run(line);
+
+        Assert.Equal(2, run.ExitCode);
+        Assert.Equal(string.Empty, run.StandardOutput.Trim());
+
+        // And the message says where the option does work, because "not here" alone leaves
+        // somebody guessing at the surface.
+        Assert.Contains("It works with:", run.StandardError);
+    }
+
+    [Fact]
+    public void The_diagnostic_switch_applies_to_every_command_because_every_command_reads()
+    {
+        // The same silence seen from the other side: --timing used to be accepted on a write
+        // command and honoured only when listing. Now it applies, and reports the half E4a
+        // asks for - the reading, which is the part that belongs to us.
+        var run = CommandLineTool.Run("stop", "Spooler", "--dry-run", "--timing");
+
+        Assert.Equal(0, run.ExitCode);
+        Assert.Contains("Read ", run.StandardError);
+
+        // Not the filtering line, which would be a measurement of something that never ran.
+        Assert.DoesNotContain("filtered in", run.StandardError);
+    }
+
     [Fact]
     public void A_timeout_that_is_not_a_number_of_seconds_is_a_mistake_rather_than_a_default()
     {

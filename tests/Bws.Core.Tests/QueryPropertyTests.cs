@@ -189,10 +189,10 @@ public sealed class QueryPropertyTests
         },
         Entries.Named("Locked", "Nothing readable here") with
         {
-            StartType = Reading<StartType>.Denied("access denied"),
-            DelayedAuto = Reading<bool>.Denied("access denied"),
-            Account = Reading<string>.Denied("access denied"),
-            ProcessId = Reading<int>.Denied("access denied")
+            StartType = Reading<StartType>.Denied(Entries.AccessDenied, "access denied"),
+            DelayedAuto = Reading<bool>.Denied(Entries.AccessDenied, "access denied"),
+            Account = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
+            ProcessId = Reading<int>.Denied(Entries.AccessDenied, "access denied")
         },
         Entries.Named("Empty", "No account at all") with
         {

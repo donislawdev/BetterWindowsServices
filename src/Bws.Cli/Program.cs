@@ -25,6 +25,23 @@ if (options.Kind == CommandKind.None)
     return ExitCode.Usage;
 }
 
+if (options.Misplaced.Count > 0)
+{
+    // An option that exists but not here. Refused rather than ignored: a switch that
+    // quietly does nothing turns a runbook line into something that looks right and behaves
+    // differently, and nobody finds out until it matters.
+    foreach (var option in options.Misplaced)
+    {
+        Console.Error.WriteLine(Texts.Of(
+            "cli.optionNotForCommand",
+            option,
+            options.Kind.ToString().ToLowerInvariant(),
+            string.Join(", ", CommandLine.Accepts(option))));
+    }
+
+    return ExitCode.Usage;
+}
+
 if (options.IsWrite && options.ServiceName.Length == 0)
 {
     Console.Error.WriteLine(Texts.Of("cli.missingServiceName", options.Action.ToString().ToLowerInvariant()));
@@ -117,6 +134,15 @@ try
         Report(entries, result, options, read, stopwatch.ElapsedMilliseconds);
     }
 
+    if (options.IsWrite)
+    {
+        // Every command reads the manager first, so everything the read has to admit to is
+        // owed on every command. It used to be said only when listing, which meant a plan
+        // built on entries whose configuration was refused looked exactly like one built on
+        // a complete reading.
+        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds);
+    }
+
     Console.Out.WriteLine(data);
 
     return exit;
@@ -201,7 +227,7 @@ static PlanRun Carry(OperationPlan plan, TimeSpan timeout)
 /// </summary>
 static void Report(
     IReadOnlyList<ScmEntry> entries,
-    QueryResult result,
+    QueryResult? result,
     CommandLine options,
     long readMilliseconds,
     long totalMilliseconds)
@@ -224,7 +250,7 @@ static void Report(
         Console.Error.WriteLine(Texts.Of("cli.warning.delayRefused", delayUnknown));
     }
 
-    if (result.Unreadable > 0)
+    if (result is not null && result.Unreadable > 0)
     {
         // The query asked about something that could not be read on some entries. They
         // were judged anyway, because a filter has to decide, so the result is an answer
@@ -232,18 +258,28 @@ static void Report(
         Console.Error.WriteLine(Texts.Of("cli.warning.queryIncomplete", result.Unreadable));
     }
 
-    if (result.TooCostly > 0)
+    if (result is not null && result.TooCostly > 0)
     {
         // An expression that ran out of time never answered. Showing the shorter list
         // without a word would be the silent absence of results the language forbids.
         Console.Error.WriteLine(Texts.Of("cli.warning.queryTooCostly", result.TooCostly));
     }
 
-    if (options.Timing)
+    if (!options.Timing)
     {
-        Console.Error.WriteLine(Texts.Of(
-            "cli.info.timing", entries.Count, readMilliseconds, totalMilliseconds - readMilliseconds));
+        return;
+    }
 
+    // E4a asks this switch for the time spent reading, which is the part that belongs to
+    // us. On a write command the rest of the clock is mostly the services taking their own
+    // time, and reporting that as though it were ours would be a measurement of the wrong
+    // thing wearing our label.
+    Console.Error.WriteLine(result is null
+        ? Texts.Of("cli.info.timingRead", entries.Count, readMilliseconds)
+        : Texts.Of("cli.info.timing", entries.Count, readMilliseconds, totalMilliseconds - readMilliseconds));
+
+    if (result is not null)
+    {
         Console.Error.WriteLine(Texts.Of("cli.info.matched", result.Entries.Count, entries.Count));
     }
 }

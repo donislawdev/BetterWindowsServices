@@ -357,7 +357,7 @@ public sealed class QueryMatchingTests
         // The reason the delay is a field of its own rather than a sixth start type. One
         // enumeration would have to call this plain automatic, which is a confident answer
         // about something nobody read.
-        var unknownDelay = Entries.Any with { DelayedAuto = Reading<bool>.Denied("access denied") };
+        var unknownDelay = Entries.Any with { DelayedAuto = Reading<bool>.Denied(Entries.AccessDenied, "access denied") };
 
         Assert.True(Matches("start:auto", unknownDelay));
 
@@ -470,7 +470,7 @@ public sealed class QueryMatchingTests
 
     private static ScmEntry Refused => Entries.Any with
     {
-        Account = Reading<string>.Denied("access denied")
+        Account = Reading<string>.Denied(Entries.AccessDenied, "access denied")
     };
 
     private static bool Matches(string text) => Matches(text, Entries.Any);

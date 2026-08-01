@@ -12,6 +12,14 @@ namespace Bws.Core.Tests;
 internal static class Entries
 {
     /// <summary>
+    /// ERROR_ACCESS_DENIED, the number every refusal in these fixtures carries.
+    ///
+    /// Named rather than repeated, because a bare 5 scattered through twenty fixtures is
+    /// the kind of thing that gets copied into a place where it means something else.
+    /// </summary>
+    internal const int AccessDenied = 5;
+
+    /// <summary>
     /// An ordinary running service. Deliberately not neutral: the service name and the
     /// display name differ, and the account is a real one, because a fixture where those
     /// are equal or empty lets a test about identity pass while checking nothing.

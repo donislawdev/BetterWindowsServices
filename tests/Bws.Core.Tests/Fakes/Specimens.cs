@@ -99,9 +99,9 @@ internal static class Specimens
         ServiceName = "Locked",
         DisplayName = "Nothing about this one could be read",
         Status = EntryStatus.Stopped,
-        StartType = Reading<StartType>.Denied("access denied"),
-        DelayedAuto = Reading<bool>.Denied("access denied"),
-        Account = Reading<string>.Denied("access denied"),
+        StartType = Reading<StartType>.Denied(Entries.AccessDenied, "access denied"),
+        DelayedAuto = Reading<bool>.Denied(Entries.AccessDenied, "access denied"),
+        Account = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
         ProcessId = Reading<int>.Absent()
     };
 
@@ -115,7 +115,7 @@ internal static class Specimens
         DisplayName = "Automatic, and nobody could tell whether it is delayed",
         Status = EntryStatus.Stopped,
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
-        DelayedAuto = Reading<bool>.Denied("access denied"),
+        DelayedAuto = Reading<bool>.Denied(Entries.AccessDenied, "access denied"),
         ProcessId = Reading<int>.Absent()
     };
 

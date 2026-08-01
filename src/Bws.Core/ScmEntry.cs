@@ -146,7 +146,10 @@ public sealed record ScmEntry
         {
             ReadOutcome.Present => Reading<bool>.Present(
                 StartType.Value == Core.StartType.Automatic && Status != EntryStatus.Running),
-            ReadOutcome.Denied => Reading<bool>.Denied(StartType.Reason ?? "start type unreadable"),
+            // Passes the refusal on whole, number and sentence together. A refusal always
+            // carries both, so there is nothing here to invent - and inventing a sentence
+            // was what the old fallback did, in English, in code.
+            ReadOutcome.Denied => Reading<bool>.Denied(StartType.ErrorCode, StartType.Reason!),
             _ => Reading<bool>.NotRead()
         };
 }

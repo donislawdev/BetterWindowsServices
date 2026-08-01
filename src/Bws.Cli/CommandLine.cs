@@ -59,6 +59,39 @@ internal sealed record CommandLine
     /// <summary>Options nobody knows, and options given without the value they need.</summary>
     internal IReadOnlyList<string> Rejected { get; private init; } = [];
 
+    /// <summary>
+    /// Options that exist but do not belong to this verb.
+    ///
+    /// Their own list rather than folded into <see cref="Rejected"/>, because the answer a
+    /// person needs is different: not "there is no such option" but "not with this command,
+    /// and here is where it works". Reported rather than ignored, because an option quietly
+    /// doing nothing is a runbook line that looks like it works and does something else.
+    /// </summary>
+    internal IReadOnlyList<string> Misplaced { get; private init; } = [];
+
+    /// <summary>Which verbs each option belongs to. The whole surface, in one readable place.</summary>
+    private static readonly (string Option, CommandKind[] Verbs)[] Surface =
+    [
+        ("--query", [CommandKind.List]),
+        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+
+        // Diagnostic, and every command reads the manager before doing anything, so it
+        // applies to every command. It used to be accepted everywhere and only honoured for
+        // the listing, which is the same silence from the other side.
+        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+
+        ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+        ("--dependents", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart])
+    ];
+
+    /// <summary>Where an option does work, for the message that says it does not work here.</summary>
+    internal static IReadOnlyList<string> Accepts(string option) =>
+    [
+        .. Surface.Single(entry => entry.Option == option).Verbs
+            .Select(verb => verb.ToString().ToLowerInvariant())
+    ];
+
     internal ActionKind Action => Kind switch
     {
         CommandKind.Stop => ActionKind.Stop,
@@ -80,6 +113,7 @@ internal sealed record CommandLine
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
+        var given = new List<string>();
 
         for (var index = 0; index < arguments.Length; index++)
         {
@@ -109,20 +143,23 @@ internal sealed record CommandLine
                 continue;
             }
 
-            if (Matches(argument, "--json")) { json = true; continue; }
-            if (Matches(argument, "--timing")) { timing = true; continue; }
-            if (Matches(argument, "--dry-run")) { dryRun = true; continue; }
-            if (Matches(argument, "--dependents")) { dependents = true; continue; }
+            if (Matches(argument, "--json")) { json = true; given.Add("--json"); continue; }
+            if (Matches(argument, "--timing")) { timing = true; given.Add("--timing"); continue; }
+            if (Matches(argument, "--dry-run")) { dryRun = true; given.Add("--dry-run"); continue; }
+            if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
             {
                 query = argument["--query=".Length..];
+                given.Add("--query");
                 continue;
             }
 
             if (Matches(argument, "--query"))
             {
+                given.Add("--query");
+
                 if (index + 1 >= arguments.Length)
                 {
                     // An option that needs a value and did not get one is a mistake, not an
@@ -137,12 +174,15 @@ internal sealed record CommandLine
 
             if (argument.StartsWith("--timeout=", StringComparison.OrdinalIgnoreCase))
             {
+                given.Add("--timeout");
                 badTimeout = Seconds(argument["--timeout=".Length..], ref timeout);
                 continue;
             }
 
             if (Matches(argument, "--timeout"))
             {
+                given.Add("--timeout");
+
                 if (index + 1 >= arguments.Length)
                 {
                     rejected.Add(argument);
@@ -167,7 +207,15 @@ internal sealed record CommandLine
             Query = query,
             Timeout = timeout,
             BadTimeout = badTimeout,
-            Rejected = rejected
+            Rejected = rejected,
+
+            // In the order they were typed, each named once however many times it appeared.
+            Misplaced =
+            [
+                .. given
+                    .Distinct(StringComparer.Ordinal)
+                    .Where(option => !Surface.Single(entry => entry.Option == option).Verbs.Contains(kind))
+            ]
         };
     }
 

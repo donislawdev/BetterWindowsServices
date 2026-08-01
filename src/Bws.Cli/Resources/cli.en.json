@@ -7,6 +7,7 @@
 
   "cli.usage": "Usage:\n  bws list [--query TEXT] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json]",
   "cli.unknownOption": "Unknown option: {0}",
+  "cli.optionNotForCommand": "{0} does not apply to {1}. It works with: {2}.",
   "cli.missingServiceName": "{0} needs the name of a service. Example: bws {0} Spooler --dry-run",
   "cli.badTimeout": "--timeout takes a whole number of seconds, at least 1. It got: {0}",
 
@@ -84,5 +85,6 @@
   "cli.warning.queryTooCostly": "The expression ran out of time on {0} entries, so they were never checked. Try a simpler one.",
 
   "cli.info.timing": "Read {0} entries in {1} ms, filtered in {2} ms.",
+  "cli.info.timingRead": "Read {0} entries in {1} ms.",
   "cli.info.matched": "{0} of {1} entries matched."
 }

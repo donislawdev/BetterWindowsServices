@@ -30,7 +30,7 @@ public sealed class ScmEntryTests
         // The dangerous shortcut would be returning false here. "I could not check" would
         // then be indistinguishable from "checked, nothing wrong", and a machine full of
         // unreadable entries would report a clean bill of health.
-        var entry = Entry(EntryStatus.Stopped, Reading<StartType>.Denied("access denied"));
+        var entry = Entry(EntryStatus.Stopped, Reading<StartType>.Denied(Entries.AccessDenied, "access denied"));
 
         Assert.Equal(ReadOutcome.Denied, entry.RunsAgainstItsStartType.Outcome);
         Assert.Equal("access denied", entry.RunsAgainstItsStartType.Reason);

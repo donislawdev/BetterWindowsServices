@@ -70,14 +70,14 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         if (manager.IsInvalid)
         {
-            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
         }
 
         using var service = PInvoke.OpenService(manager, serviceName, PInvoke.SERVICE_ENUMERATE_DEPENDENTS);
 
         if (service.IsInvalid)
         {
-            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
         }
 
         // Ask with an empty buffer first and let the call report how much room it wants.
@@ -94,7 +94,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
             // is a fact about the service rather than a failure to read one.
             return error is 0 or (int)WIN32_ERROR.ERROR_SUCCESS
                 ? Reading<IReadOnlyList<string>>.Absent()
-                : Reading<IReadOnlyList<string>>.Denied(DescribeError(error));
+                : Refused<IReadOnlyList<string>>(error);
         }
 
         var buffer = new byte[needed];
@@ -102,7 +102,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
         if (!PInvoke.EnumDependentServices(
                 service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, buffer, out _, out var returned))
         {
-            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
         }
 
         var names = ReadDependentNames(buffer, returned);
@@ -228,21 +228,21 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         if (service.IsInvalid)
         {
-            return Configuration.Refused(DescribeError(Marshal.GetLastWin32Error()));
+            return Configuration.Refused(Marshal.GetLastWin32Error());
         }
 
         PInvoke.QueryServiceConfig(service, default, out var needed);
 
         if (needed == 0)
         {
-            return Configuration.Refused(DescribeError(Marshal.GetLastWin32Error()));
+            return Configuration.Refused(Marshal.GetLastWin32Error());
         }
 
         var buffer = new byte[needed];
 
         if (!PInvoke.QueryServiceConfig(service, buffer, out _))
         {
-            return Configuration.Refused(DescribeError(Marshal.GetLastWin32Error()));
+            return Configuration.Refused(Marshal.GetLastWin32Error());
         }
 
         var configuration = ReadConfigurationBuffer(buffer);
@@ -301,7 +301,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
         if (!PInvoke.QueryServiceConfig2W(
                 service, SERVICE_CONFIG.SERVICE_CONFIG_DELAYED_AUTO_START_INFO, buffer, out _))
         {
-            return Reading<bool>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+            return Refused<bool>(Marshal.GetLastWin32Error());
         }
 
         fixed (byte* start = buffer)
@@ -338,9 +338,15 @@ public sealed class WindowsScmCatalog : IScmCatalog
         return values;
     }
 
-    // Both of these are shared with the half of the manager that writes, because two copies
-    // of the same sentence, or of the same mapping, drift.
-    private static string DescribeError(int code) => ManagerTerms.Describe(code);
+    /// <summary>
+    /// A refusal, carrying both halves: the system's number for a script and the system's
+    /// sentence for a person. Reading the last error once, here, so that no caller has to
+    /// remember that the next call would overwrite it.
+    /// </summary>
+    private static Reading<T> Refused<T>(int code) => Reading<T>.Denied(code, ManagerTerms.Describe(code));
+
+    // Shared with the half of the manager that writes, because two copies of the same
+    // mapping drift.
 
     private static EntryStatus MapStatus(SERVICE_STATUS_CURRENT_STATE state) => ManagerTerms.Status(state);
 
@@ -393,10 +399,10 @@ public sealed class WindowsScmCatalog : IScmCatalog
         Reading<string> Account,
         Reading<IReadOnlyList<string>> DependsOn)
     {
-        internal static Configuration Refused(string reason) => new(
-            Reading<StartType>.Denied(reason),
-            Reading<bool>.Denied(reason),
-            Reading<string>.Denied(reason),
-            Reading<IReadOnlyList<string>>.Denied(reason));
+        internal static Configuration Refused(int code) => new(
+            Refused<StartType>(code),
+            Refused<bool>(code),
+            Refused<string>(code),
+            Refused<IReadOnlyList<string>>(code));
     }
 }

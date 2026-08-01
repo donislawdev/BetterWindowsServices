@@ -295,7 +295,7 @@ public sealed class PlanBuilderTests
         // read outcomes have four states rather than two.
         var unreadable = Running("SmartConnect", "SmartConnect") with
         {
-            StartType = Reading<StartType>.Denied("access denied")
+            StartType = Reading<StartType>.Denied(Entries.AccessDenied, "access denied")
         };
 
         var catalog = new FakeScmCatalog([unreadable]);
