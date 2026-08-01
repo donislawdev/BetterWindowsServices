@@ -212,13 +212,38 @@ public sealed class PlanRunnerTests
         Assert.False(run.Completed);
         Assert.Equal(StepOutcome.Failed, Outcome(run, "MRxSmb20", StepOperation.Stop));
 
-        // The one forward step left, and it is honest about never having been tried.
-        Assert.Equal(SkipReason.EarlierStepFailed, Result(run, "MRxSmb20", StepOperation.Start).SkippedBecause);
+        // Its own start gives it back, so it is tried rather than abandoned - and finds
+        // nothing to do, because the stop that failed left it running.
+        Assert.Equal(SkipReason.AlreadyThere, Result(run, "MRxSmb20", StepOperation.Start).SkippedBecause);
 
         foreach (var name in (string[])["LanmanWorkstation", "Netlogon", "SessionEnv"])
         {
             Assert.Equal(StepOutcome.Succeeded, Outcome(run, name, StepOperation.Start));
         }
+    }
+
+    [Fact]
+    public void Interrupting_a_restart_does_not_leave_the_service_stopped()
+    {
+        // Found on a virtual machine on 2026-08-01, not by reasoning. Pressing Ctrl+C while
+        // a restart was stopping the service left it stopped, because bringing it back was
+        // classified as forward progress rather than as giving something back. A restart
+        // that leaves the thing it was restarting switched off is the worst outcome this
+        // command has.
+        using var interruption = new CancellationTokenSource();
+
+        var control = Running("MRxSmb20");
+
+        var run = new PlanRunner(control, new FakeClock()).Run(
+            Plan(ActionKind.Restart, "MRxSmb20", dependents: false),
+            Minute,
+            interruption.Token,
+            starting: (_, _) => interruption.Cancel());
+
+        Assert.True(run.Cancelled);
+        Assert.Equal(StepOutcome.Succeeded, Outcome(run, "MRxSmb20", StepOperation.Stop));
+        Assert.Equal(StepOutcome.Succeeded, Outcome(run, "MRxSmb20", StepOperation.Start));
+        Assert.True(run.Completed);
     }
 
     [Fact]
@@ -287,16 +312,16 @@ public sealed class PlanRunnerTests
         var announced = new List<int>();
 
         var control = Running("SessionEnv", "Netlogon", "LanmanWorkstation", "MRxSmb20")
-            .RefusingRequests("MRxSmb20", AccessDenied);
+            .RefusingRequests("Netlogon", AccessDenied);
 
         new PlanRunner(control, new FakeClock()).Run(
             Plan(ActionKind.Restart, "MRxSmb20"),
             Minute,
             starting: (_, number) => announced.Add(number));
 
-        // Five is missing because it was skipped, and the numbers that follow do not close
-        // the gap. That is the whole point.
-        Assert.Equal([1, 2, 3, 4, 6, 7, 8], announced);
+        // Three and four are missing, because the forward path stopped at the refusal, and
+        // the numbers that follow do not close the gap. That is the whole point.
+        Assert.Equal([1, 2, 5, 6, 7, 8], announced);
     }
 
     [Fact]

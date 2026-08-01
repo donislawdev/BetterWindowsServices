@@ -24,7 +24,14 @@ public enum StepReason
     /// <summary>Comes along because it breaks otherwise. Nobody asked for it.</summary>
     Cascade,
 
-    /// <summary>The second half of a restart, putting back what the first half took down.</summary>
+    /// <summary>
+    /// Gives back what an earlier step took down. The whole second half of a restart,
+    /// including the start of the service somebody actually asked about.
+    ///
+    /// This is the reason a run that fails or is interrupted still finishes: a step that
+    /// only gives something back can never make things worse by running, and skipping it
+    /// leaves a machine trimmed by a plan that did not finish.
+    /// </summary>
     Restore
 }
 

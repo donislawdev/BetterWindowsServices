@@ -81,8 +81,16 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 // C11 in four moves: take the dependents down, take the service down, bring
                 // it back, put the dependents back. The second half runs in the mirror of
                 // the first, because what stopped last has to start first.
+                //
+                // The service somebody asked about gets Restore for its own start, not
+                // Requested, and the difference is not cosmetic. Restore means "gives back
+                // what an earlier step took", and everything downstream keys on that: a run
+                // that is interrupted or fails still carries these out. Found on a virtual
+                // machine on 2026-08-01 by pressing Ctrl+C during a restart, which left the
+                // service stopped - the plan had taken it down and then classified putting
+                // it back as forward progress to be abandoned.
                 AddStops(steps, cascade, target);
-                steps.Add(Step(target, StepOperation.Start, StepReason.Requested));
+                steps.Add(Step(target, StepOperation.Start, StepReason.Restore));
 
                 for (var index = cascade.Count - 1; index >= 0; index--)
                 {

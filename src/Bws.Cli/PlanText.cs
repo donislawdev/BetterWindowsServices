@@ -27,9 +27,9 @@ internal static class PlanText
     /// comparing two things that look alike, which is the whole point of the pattern - a
     /// separate results table would leave the comparison to whoever remembered to make it.
     /// </summary>
-    internal static string Render(PlanRun run) => Render(run.Plan, run.Results);
+    internal static string Render(PlanRun run) => Render(run.Plan, run.Results, run.Cancelled);
 
-    private static string Render(OperationPlan plan, IReadOnlyList<StepResult>? results)
+    private static string Render(OperationPlan plan, IReadOnlyList<StepResult>? results, bool cancelled = false)
     {
         var text = new StringBuilder();
 
@@ -63,6 +63,17 @@ internal static class PlanText
                     step.ServiceName.PadRight(width),
                     Reason(step.Reason).PadRight(reasons),
                     Describe(results[index])));
+        }
+
+        // Said in the document itself, not only on the error channel as it happened. The
+        // message that goes out while somebody presses Ctrl+C scrolls away, and what is left
+        // on screen afterwards was a report that had finished without mentioning it. That is
+        // the quiet kind of incomplete answer rule 8 is about, and a run where every step
+        // still arrived is exactly where it is easiest to miss.
+        if (cancelled)
+        {
+            text.AppendLine();
+            text.AppendLine(Texts.Of("cli.run.wasInterrupted"));
         }
 
         if (plan.Warnings.Count > 0)
