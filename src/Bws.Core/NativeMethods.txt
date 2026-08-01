@@ -26,15 +26,32 @@ QueryServiceConfig2
 // authority. The API itself is fine when asked for the size first.
 EnumDependentServices
 
+// Carrying a plan out. These three are the only calls in the project that change
+// anything, and they are deliberately listed together: this short block is the whole
+// answer to "what can this tool do to my machine".
+//
+// Asking is not the same as arriving. Both calls return once the manager has taken the
+// request, and the entry then works its way to the state through START_PENDING or
+// STOP_PENDING. Knowing when it got there takes the third call, asked repeatedly.
+StartService
+ControlService
+QueryServiceStatusEx
+
 // Constants and structures for the calls above.
 SC_MANAGER_CONNECT
 SC_MANAGER_ENUMERATE_SERVICE
 SERVICE_QUERY_CONFIG
 SERVICE_ENUMERATE_DEPENDENTS
+SERVICE_QUERY_STATUS
+SERVICE_START
+SERVICE_STOP
+SERVICE_CONTROL_STOP
+SC_STATUS_TYPE
 ENUM_SERVICE_TYPE
 ENUM_SERVICE_STATUS_PROCESSW
 ENUM_SERVICE_STATUSW
 SERVICE_STATUS_CURRENT_STATE
+SERVICE_STATUS_PROCESS
 SERVICE_CONFIG
 SERVICE_DELAYED_AUTO_START_INFO
 WIN32_ERROR

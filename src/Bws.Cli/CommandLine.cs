@@ -43,6 +43,19 @@ internal sealed record CommandLine
     /// <summary>Null when no query was given, which selects everything.</summary>
     internal string? Query { get; private init; }
 
+    /// <summary>
+    /// The longest to watch any one step.
+    ///
+    /// A minute by default, which is the number E1 of the specification already uses in its
+    /// own example. It is a cap and not the deadline: an entry that keeps reporting progress
+    /// is given the time it asks for, and this only stops a plan sitting on a terminal
+    /// forever when the entry never finishes what it keeps saying it is doing.
+    /// </summary>
+    internal TimeSpan Timeout { get; private init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>What was given to --timeout that could not be read as seconds. Null when fine.</summary>
+    internal string? BadTimeout { get; private init; }
+
     /// <summary>Options nobody knows, and options given without the value they need.</summary>
     internal IReadOnlyList<string> Rejected { get; private init; } = [];
 
@@ -64,6 +77,8 @@ internal sealed record CommandLine
         var dryRun = false;
         var dependents = false;
         string? query = null;
+        string? badTimeout = null;
+        var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
 
         for (var index = 0; index < arguments.Length; index++)
@@ -120,6 +135,24 @@ internal sealed record CommandLine
                 continue;
             }
 
+            if (argument.StartsWith("--timeout=", StringComparison.OrdinalIgnoreCase))
+            {
+                badTimeout = Seconds(argument["--timeout=".Length..], ref timeout);
+                continue;
+            }
+
+            if (Matches(argument, "--timeout"))
+            {
+                if (index + 1 >= arguments.Length)
+                {
+                    rejected.Add(argument);
+                    continue;
+                }
+
+                badTimeout = Seconds(arguments[++index], ref timeout);
+                continue;
+            }
+
             rejected.Add(argument);
         }
 
@@ -132,8 +165,29 @@ internal sealed record CommandLine
             DryRun = dryRun,
             Dependents = dependents,
             Query = query,
+            Timeout = timeout,
+            BadTimeout = badTimeout,
             Rejected = rejected
         };
+    }
+
+    /// <summary>
+    /// Reads a number of seconds, or says what it got instead.
+    ///
+    /// Nothing below a second, and nothing at all rather than a default quietly standing in.
+    /// Somebody who writes --timeout 30s meant thirty seconds, and giving them sixty because
+    /// their spelling was not understood is the kind of quiet substitution that turns up in
+    /// a runbook months later.
+    /// </summary>
+    private static string? Seconds(string value, ref TimeSpan timeout)
+    {
+        if (!int.TryParse(value, out var seconds) || seconds < 1)
+        {
+            return value;
+        }
+
+        timeout = TimeSpan.FromSeconds(seconds);
+        return null;
     }
 
     private static bool TryVerb(string argument, out CommandKind kind)

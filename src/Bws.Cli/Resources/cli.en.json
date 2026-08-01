@@ -5,14 +5,15 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.usage": "Usage:\n  bws list [--query TEXT] [--json] [--timing]\n  bws stop|start|restart NAME --dry-run [--dependents] [--json]",
+  "cli.usage": "Usage:\n  bws list [--query TEXT] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json]",
   "cli.unknownOption": "Unknown option: {0}",
   "cli.missingServiceName": "{0} needs the name of a service. Example: bws {0} Spooler --dry-run",
-  "cli.executionNotBuilt": "This build can only show what would happen. Add --dry-run.",
+  "cli.badTimeout": "--timeout takes a whole number of seconds, at least 1. It got: {0}",
 
   "cli.plan.heading.one": "Plan: {0} {1}  (1 step)",
   "cli.plan.heading.many": "Plan: {0} {1}  ({2} steps)",
   "cli.plan.step": "  {0}. {1}  {2}   {3}",
+  "cli.plan.stepDone": "  {0}. {1}  {2}   {3}   {4}",
   "cli.plan.warnings": "Warnings:",
   "cli.plan.warningLine": "  - {0}",
 
@@ -20,7 +21,7 @@
   "cli.plan.action.start": "start",
   "cli.plan.action.restart": "restart",
 
-  "cli.plan.operation.stop": "stop ",
+  "cli.plan.operation.stop": "stop",
   "cli.plan.operation.start": "start",
 
   "cli.plan.reason.requested": "(asked for)",
@@ -35,6 +36,19 @@
   "cli.plan.warning.returnsAfterReboot": "{0} starts automatically, so this lasts until the next restart of the machine.",
   "cli.plan.warning.cascadeUnreadable": "Could not read what depends on {0}, so more may stop than this plan shows.",
   "cli.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
+
+  "cli.run.progress": "[{0}/{1}] {2} {3} ...",
+  "cli.run.interrupted": "Interrupted. Finishing the step in flight, then putting back what was taken down. Press Ctrl+C again to stop right now.",
+
+  "cli.run.outcome.succeeded": "done in {0}",
+  "cli.run.outcome.failed": "refused: {0} (error {1})",
+  "cli.run.outcome.timedOut": "gave up after {0}, still {1}",
+  "cli.run.outcome.alreadyThere": "already there, nothing to do",
+  "cli.run.outcome.earlierStepFailed": "not tried, an earlier step did not work",
+  "cli.run.outcome.cancelled": "not tried, the run was interrupted",
+
+  "cli.run.took.milliseconds": "{0} ms",
+  "cli.run.took.seconds": "{0} s",
 
   "cli.plan.problem.unknownService": "There is no service called {0}.",
   "cli.plan.problem.notOperable": "{0} is a driver. This tool shows drivers but does not start or stop them.",

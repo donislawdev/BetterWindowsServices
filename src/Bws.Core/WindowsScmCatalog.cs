@@ -338,10 +338,11 @@ public sealed class WindowsScmCatalog : IScmCatalog
         return values;
     }
 
-    private static string DescribeError(int code) =>
-        code == (int)WIN32_ERROR.ERROR_ACCESS_DENIED
-            ? "access denied"
-            : new Win32Exception(code).Message;
+    // Both of these are shared with the half of the manager that writes, because two copies
+    // of the same sentence, or of the same mapping, drift.
+    private static string DescribeError(int code) => ManagerTerms.Describe(code);
+
+    private static EntryStatus MapStatus(SERVICE_STATUS_CURRENT_STATE state) => ManagerTerms.Status(state);
 
     private static EntryType MapEntryType(ENUM_SERVICE_TYPE type)
     {
@@ -364,18 +365,6 @@ public sealed class WindowsScmCatalog : IScmCatalog
             ? EntryType.OwnProcess
             : EntryType.Unknown;
     }
-
-    private static EntryStatus MapStatus(SERVICE_STATUS_CURRENT_STATE state) => state switch
-    {
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_STOPPED => EntryStatus.Stopped,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_START_PENDING => EntryStatus.StartPending,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_STOP_PENDING => EntryStatus.StopPending,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_RUNNING => EntryStatus.Running,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_CONTINUE_PENDING => EntryStatus.ContinuePending,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_PAUSE_PENDING => EntryStatus.PausePending,
-        SERVICE_STATUS_CURRENT_STATE.SERVICE_PAUSED => EntryStatus.Paused,
-        _ => EntryStatus.Unknown
-    };
 
     private static StartType MapStartType(SERVICE_START_TYPE type) => type switch
     {

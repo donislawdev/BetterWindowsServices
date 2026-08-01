@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Bws.Core.Planning;
 
@@ -15,7 +16,20 @@ namespace Bws.Cli;
 /// </summary>
 internal static class PlanText
 {
-    internal static string Render(OperationPlan plan)
+    /// <summary>A plan that has not been carried out. The dry run, and nothing else.</summary>
+    internal static string Render(OperationPlan plan) => Render(plan, results: null);
+
+    /// <summary>
+    /// A plan that has been carried out, written out as the same lines with what came of
+    /// them alongside.
+    ///
+    /// The same lines on purpose. Somebody who read the preview and then reads this is
+    /// comparing two things that look alike, which is the whole point of the pattern - a
+    /// separate results table would leave the comparison to whoever remembered to make it.
+    /// </summary>
+    internal static string Render(PlanRun run) => Render(run.Plan, run.Results);
+
+    private static string Render(OperationPlan plan, IReadOnlyList<StepResult>? results)
     {
         var text = new StringBuilder();
 
@@ -26,17 +40,29 @@ internal static class PlanText
             : Texts.Of("cli.plan.heading.many", Verb(plan.Action.Kind), plan.Action.ServiceName, plan.Steps.Count));
 
         var width = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => step.ServiceName.Length);
+        var operations = plan.Steps.Max(step => Operation(step.Operation).Length);
+        var reasons = plan.Steps.Max(step => Reason(step.Reason).Length);
 
         for (var index = 0; index < plan.Steps.Count; index++)
         {
             var step = plan.Steps[index];
 
-            text.AppendLine(Texts.Of(
-                "cli.plan.step",
-                index + 1,
-                Operation(step.Operation),
-                step.ServiceName.PadRight(width),
-                Texts.Of($"cli.plan.reason.{Lower(step.Reason)}")));
+            // Padded only when something follows it. A preview line that ended in invisible
+            // spaces would arrive in a runbook carrying them.
+            text.AppendLine(results is null
+                ? Texts.Of(
+                    "cli.plan.step",
+                    index + 1,
+                    Operation(step.Operation).PadRight(operations),
+                    step.ServiceName.PadRight(width),
+                    Reason(step.Reason))
+                : Texts.Of(
+                    "cli.plan.stepDone",
+                    index + 1,
+                    Operation(step.Operation).PadRight(operations),
+                    step.ServiceName.PadRight(width),
+                    Reason(step.Reason).PadRight(reasons),
+                    Describe(results[index])));
         }
 
         if (plan.Warnings.Count > 0)
@@ -52,6 +78,40 @@ internal static class PlanText
 
         return text.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// What came of one step, in words.
+    ///
+    /// A timeout says where the entry was left, because that is the half somebody needs to
+    /// decide what to do next: an entry left stopping will probably arrive on its own, and
+    /// one left running never started to move.
+    /// </summary>
+    internal static string Describe(StepResult result) => result.Outcome switch
+    {
+        StepOutcome.Succeeded => Texts.Of("cli.run.outcome.succeeded", Took(result.Milliseconds)),
+
+        // Never without words: a refusal is only ever built from a code and the system's own
+        // sentence for it, together.
+        StepOutcome.Failed => Texts.Of("cli.run.outcome.failed", result.Error!, result.ErrorCode),
+
+        StepOutcome.TimedOut => Texts.Of(
+            "cli.run.outcome.timedOut", Took(result.Milliseconds), result.Status.ToString()),
+
+        _ => Texts.Of($"cli.run.outcome.{Camel(result.SkippedBecause ?? SkipReason.AlreadyThere)}")
+    };
+
+    /// <summary>The step being attempted, for the error channel while somebody waits.</summary>
+    internal static string Progress(PlanStep step, int number, int count) =>
+        Texts.Of("cli.run.progress", number, count, Operation(step.Operation), step.ServiceName);
+
+    /// <summary>
+    /// How long something took. Milliseconds up to a second, seconds above it - a stop that
+    /// took three quarters of a minute reads as 45 s, not as a five figure number nobody
+    /// converts in their head.
+    /// </summary>
+    private static string Took(long milliseconds) => milliseconds < 1000
+        ? Texts.Of("cli.run.took.milliseconds", milliseconds)
+        : Texts.Of("cli.run.took.seconds", (milliseconds / 1000d).ToString("0.#", CultureInfo.InvariantCulture));
 
     /// <summary>
     /// Turns a warning into words. The core reports a kind and the entries involved and
@@ -94,12 +154,27 @@ internal static class PlanText
     private static string Count(string key, PlanWarning warning) =>
         warning.Related.Count == 1 ? $"{key}.one" : $"{key}.many";
 
-    private static string Verb(ActionKind kind) => Texts.Of($"cli.plan.action.{Lower(kind)}");
+    private static string Verb(ActionKind kind) => Texts.Of($"cli.plan.action.{Camel(kind)}");
 
-    private static string Operation(StepOperation operation) => Texts.Of($"cli.plan.operation.{Lower(operation)}");
+    private static string Operation(StepOperation operation) => Texts.Of($"cli.plan.operation.{Camel(operation)}");
 
-    private static string Lower<T>(T value) where T : struct, Enum =>
-        value.ToString().ToLowerInvariant();
+    private static string Reason(StepReason reason) => Texts.Of($"cli.plan.reason.{Camel(reason)}");
+
+    /// <summary>
+    /// The tail of a text key, from the name of a value.
+    ///
+    /// Only the first letter, deliberately. Flattening the whole name to lower case works
+    /// for as long as every value is one word and then quietly stops: a two word value goes
+    /// looking for a key nobody wrote, and the missing text renders as the key itself. That
+    /// happened here, and the same camel spelling is what the machine readable output
+    /// already uses for these names.
+    /// </summary>
+    private static string Camel<T>(T value) where T : struct, Enum
+    {
+        var name = value.ToString();
+
+        return char.ToLowerInvariant(name[0]) + name[1..];
+    }
 
     private static string Join(IReadOnlyList<string> names) => string.Join(", ", names);
 }

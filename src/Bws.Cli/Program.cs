@@ -5,8 +5,8 @@ using Bws.Core.Planning;
 using Bws.Core.Querying;
 
 // Slices S1 to S3: read every entry the manager knows about, narrow the listing with a
-// query, and work out what a stop, a start or a restart would do. Working it out is all
-// this build does - carrying it out is the half that needs a machine to break.
+// query, and work out what a stop, a start or a restart would do - then carry it out and
+// say what came of every step.
 
 var options = CommandLine.Read(args);
 
@@ -31,12 +31,9 @@ if (options.IsWrite && options.ServiceName.Length == 0)
     return ExitCode.Usage;
 }
 
-if (options.IsWrite && !options.DryRun)
+if (options.BadTimeout is not null)
 {
-    // Refused out loud rather than quietly doing nothing. Carrying a plan out is the part
-    // that needs a machine somebody is willing to break, and until it exists the honest
-    // answer is that this build cannot do it.
-    Console.Error.WriteLine(Texts.Of("cli.executionNotBuilt"));
+    Console.Error.WriteLine(Texts.Of("cli.badTimeout", options.BadTimeout));
     return ExitCode.Usage;
 }
 
@@ -69,16 +66,17 @@ try
     // Not tidiness: it is what makes "could anything else have reached standard output"
     // answerable by looking, and a guard in the architecture tests holds it to one.
     string data;
+    var exit = ExitCode.Ok;
 
     if (options.IsWrite)
     {
         var plan = new PlanBuilder(entries, catalog)
             .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents));
 
-        stopwatch.Stop();
-
         if (!plan.IsRunnable)
         {
+            stopwatch.Stop();
+
             foreach (var problem in plan.Problems)
             {
                 Console.Error.WriteLine(PlanText.Describe(problem));
@@ -87,7 +85,23 @@ try
             return ExitCode.Usage;
         }
 
-        data = options.Json ? PlanJson.Render(plan) : PlanText.Render(plan);
+        if (options.DryRun)
+        {
+            stopwatch.Stop();
+            data = options.Json ? PlanJson.Render(plan) : PlanText.Render(plan);
+        }
+        else
+        {
+            var run = Carry(plan, options.Timeout);
+            stopwatch.Stop();
+
+            data = options.Json ? PlanJson.Render(run) : PlanText.Render(run);
+
+            // A plan that did not finish is neither a broken tool nor a mistyped command,
+            // so it is neither of the codes those two already have. Monitoring needs to
+            // tell "the stop was refused" from "bws itself fell over".
+            exit = run.Completed ? ExitCode.Ok : ExitCode.Incomplete;
+        }
     }
     else
     {
@@ -103,7 +117,7 @@ try
 
     Console.Out.WriteLine(data);
 
-    return ExitCode.Ok;
+    return exit;
 }
 #pragma warning disable CA1031
 // The entry point of a command line tool is the one place a broad catch is right.
@@ -127,6 +141,44 @@ catch (Exception failure)
     return ExitCode.Runtime;
 }
 #pragma warning restore CA1031
+
+/// <summary>
+/// Carries the plan out, with the waiting made visible.
+///
+/// Progress goes to the error channel while it happens, because a terminal that shows
+/// nothing for half a minute looks broken, and the data channel carries the finished
+/// document and nothing else. That split is the contract in 02-DECYZJE-TECHNICZNE, not a
+/// preference: progress belongs with warnings, not with the JSON somebody is piping.
+/// </summary>
+static PlanRun Carry(OperationPlan plan, TimeSpan timeout)
+{
+    using var interruption = new CancellationTokenSource();
+    var interrupted = false;
+
+    Console.CancelKeyPress += (_, key) =>
+    {
+        // The first press asks for a stop and says what that means. The second is left to
+        // end the process, which is what somebody pressing it twice is asking for - so the
+        // sentence promising exactly that is true.
+        if (interrupted)
+        {
+            return;
+        }
+
+        interrupted = true;
+        key.Cancel = true;
+        interruption.Cancel();
+
+        Console.Error.WriteLine(Texts.Of("cli.run.interrupted"));
+    };
+
+    return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
+        plan,
+        timeout,
+        interruption.Token,
+        starting: (step, number) => Console.Error.WriteLine(
+            PlanText.Progress(step, number, plan.Steps.Count)));
+}
 
 /// <summary>
 /// Everything the run has to admit to, on the error channel, with the exit code left
@@ -192,4 +244,13 @@ internal static class ExitCode
     internal const int Ok = 0;
     internal const int Runtime = 1;
     internal const int Usage = 2;
+
+    /// <summary>
+    /// The plan was good, it ran, and something in it did not get where it was going.
+    ///
+    /// Its own code rather than the runtime one. A monitor that cannot tell "the manager
+    /// refused to stop that service" from "bws could not start at all" has to treat both
+    /// as the same night-time page, and only one of them is about the tool.
+    /// </summary>
+    internal const int Incomplete = 3;
 }
