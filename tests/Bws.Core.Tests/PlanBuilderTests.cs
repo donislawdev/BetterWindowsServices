@@ -136,6 +136,91 @@ public sealed class PlanBuilderTests
         Assert.Equal(StepOperation.Start, step.Operation);
     }
 
+    [Fact]
+    public void Without_the_word_a_stop_leaves_the_others_alone_and_says_they_are_in_the_way()
+    {
+        // The safety property. Somebody asking to stop one service is not asking to stop
+        // four, and the manager refuses the stop anyway while they run - so the honest plan
+        // is the one step that was asked for, plus who is standing in front of it.
+        var plan = Plan(ActionKind.Stop, "MRxSmb20", includeDependents: false, Chain());
+
+        Assert.Equal(["MRxSmb20"], plan.Steps.Select(step => step.ServiceName));
+        Assert.Empty(plan.Cascade);
+
+        var warning = Warning(plan, PlanWarningKind.DependentsInTheWay);
+        Assert.Equal(["SessionEnv", "Netlogon", "LanmanWorkstation"], warning.Related);
+
+        // And no cascade warning, because nothing is going to cascade.
+        Assert.DoesNotContain(plan.Warnings, other => other.Kind == PlanWarningKind.Cascade);
+    }
+
+    [Fact]
+    public void A_cascade_that_would_need_a_driver_stopped_offers_no_plan_at_all()
+    {
+        // Found by reading a real plan rather than by reasoning. Stopping BFE on the owner's
+        // machine drags in two kernel drivers, and a plan that refuses a driver as its
+        // target while listing two of them as steps contradicts itself exactly where it has
+        // to be trusted. A problem rather than a warning, because the steps underneath
+        // would be a preview of something that was never going to happen.
+        var catalog = new FakeScmCatalog(
+            [
+                Running("Firewall", "Base filtering"),
+                Running("Inspector", "Network inspection"),
+                Entries.Named("InspectDrv", "Inspection driver") with
+                {
+                    EntryType = EntryType.KernelDriver,
+                    Status = EntryStatus.Running,
+                    StartType = Reading<StartType>.Present(Core.StartType.Manual),
+                    DelayedAuto = Reading<bool>.Absent()
+                }
+            ])
+            .DependedOnBy("Firewall", "InspectDrv", "Inspector");
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Stop, "Firewall", IncludeDependents: true));
+
+        Assert.False(plan.IsRunnable);
+        Assert.Empty(plan.Steps);
+
+        var problem = Assert.Single(plan.Problems);
+        Assert.Equal(PlanProblemKind.CascadeNotOperable, problem.Kind);
+        Assert.Equal(["InspectDrv"], problem.Related);
+    }
+
+    [Fact]
+    public void A_driver_in_the_way_is_only_a_problem_when_it_would_have_to_move()
+    {
+        // Without the word, nothing in the cascade is going to be touched, so a driver
+        // among them is somebody to name rather than a reason to refuse.
+        var catalog = new FakeScmCatalog(
+            [
+                Running("Firewall", "Base filtering"),
+                Entries.Named("InspectDrv", "Inspection driver") with
+                {
+                    EntryType = EntryType.KernelDriver,
+                    Status = EntryStatus.Running,
+                    StartType = Reading<StartType>.Present(Core.StartType.Manual),
+                    DelayedAuto = Reading<bool>.Absent()
+                }
+            ])
+            .DependedOnBy("Firewall", "InspectDrv");
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Stop, "Firewall"));
+
+        Assert.True(plan.IsRunnable);
+        Assert.Equal(["InspectDrv"], Warning(plan, PlanWarningKind.DependentsInTheWay).Related);
+    }
+
+    [Fact]
+    public void Without_the_word_a_stop_with_nothing_in_the_way_is_unremarkable()
+    {
+        var plan = Plan(ActionKind.Stop, "Spooler", includeDependents: false);
+
+        Assert.Single(plan.Steps);
+        Assert.DoesNotContain(plan.Warnings, warning => warning.Kind == PlanWarningKind.DependentsInTheWay);
+    }
+
     // -- warnings -------------------------------------------------------------------------
 
     [Fact]
@@ -253,11 +338,20 @@ public sealed class PlanBuilderTests
             .DependedOnBy("LanmanWorkstation", "SessionEnv", "Netlogon");
     }
 
-    private static OperationPlan Plan(ActionKind kind, string serviceName, FakeScmCatalog? catalog = null)
+    /// <summary>
+    /// Builds with the cascade included, which is what most of these are about. The plain
+    /// form, where it is not, has tests of its own.
+    /// </summary>
+    private static OperationPlan Plan(ActionKind kind, string serviceName, FakeScmCatalog? catalog = null) =>
+        Plan(kind, serviceName, includeDependents: true, catalog);
+
+    private static OperationPlan Plan(
+        ActionKind kind, string serviceName, bool includeDependents, FakeScmCatalog? catalog = null)
     {
         catalog ??= Specimens.Catalog();
 
-        return new PlanBuilder(catalog.ReadAll(), catalog).Build(new ServiceAction(kind, serviceName));
+        return new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(kind, serviceName, includeDependents));
     }
 
     private static PlanWarning Warning(OperationPlan plan, PlanWarningKind kind) =>

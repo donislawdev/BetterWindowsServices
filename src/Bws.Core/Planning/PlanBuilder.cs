@@ -36,9 +36,36 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         var warnings = new List<PlanWarning>();
         var steps = new List<PlanStep>();
 
-        var cascade = action.Kind == ActionKind.Start
+        var blocking = action.Kind == ActionKind.Start
             ? []
             : StoppingOrder(target, warnings);
+
+        // Asking to stop one service is not asking to stop seven. Without the word, the
+        // ones in the way are named and left alone, and the plan says plainly that the
+        // manager will refuse the stop while they run.
+        var cascade = action.IncludeDependents ? blocking : [];
+
+        // Found by looking at a real plan rather than by reasoning: stopping BFE on this
+        // machine drags in WdNisDrv and wtd, both kernel drivers. Refusing a driver as the
+        // target and then quietly listing two of them as steps would be the plan pattern
+        // contradicting itself in the one place it is meant to be trusted.
+        var driversInTheWay = cascade.Where(entry => entry.IsDriver).ToList();
+
+        if (driversInTheWay.Count > 0)
+        {
+            return Refuse(
+                action,
+                PlanProblemKind.CascadeNotOperable,
+                [.. driversInTheWay.Select(entry => entry.ServiceName)]);
+        }
+
+        if (!action.IncludeDependents && blocking.Count > 0)
+        {
+            warnings.Add(new PlanWarning(
+                PlanWarningKind.DependentsInTheWay,
+                target.ServiceName,
+                [.. blocking.Select(entry => entry.ServiceName)]));
+        }
 
         switch (action.Kind)
         {
@@ -228,11 +255,12 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
     private static PlanStep Step(ScmEntry entry, StepOperation operation, StepReason reason) =>
         new(entry.ServiceName, entry.DisplayName, operation, reason);
 
-    private static OperationPlan Refuse(ServiceAction action, PlanProblemKind kind) => new()
+    private static OperationPlan Refuse(
+        ServiceAction action, PlanProblemKind kind, IReadOnlyList<string>? related = null) => new()
     {
         Action = action,
         Steps = [],
         Warnings = [],
-        Problems = [new PlanProblem(kind, action.ServiceName)]
+        Problems = [new PlanProblem(kind, action.ServiceName, related ?? [])]
     };
 }

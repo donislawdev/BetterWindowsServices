@@ -52,7 +52,7 @@ public sealed class ListingContractTests
     [Fact]
     public void Data_goes_to_the_output_channel_and_nothing_else_does()
     {
-        var run = CommandLineTool.Run("--json");
+        var run = CommandLineTool.Run("list", "--json");
 
         Assert.Equal(0, run.ExitCode);
 
@@ -65,7 +65,7 @@ public sealed class ListingContractTests
     [Fact]
     public void A_failed_run_writes_nothing_to_the_data_channel()
     {
-        var run = CommandLineTool.Run("--no-such-option");
+        var run = CommandLineTool.Run("list", "--no-such-option");
 
         Assert.Equal(2, run.ExitCode);
         Assert.Empty(run.StandardOutput.Trim());
@@ -77,23 +77,23 @@ public sealed class ListingContractTests
     {
         // Reading it as "no query" would quietly list every entry on the machine, which is
         // the opposite of what somebody who typed --query wanted.
-        var run = CommandLineTool.Run("--query");
+        var run = CommandLineTool.Run("list", "--query");
 
         Assert.Equal(2, run.ExitCode);
         Assert.Empty(run.StandardOutput.Trim());
     }
 
     [Theory]
-    [InlineData(0, "--json")]
-    [InlineData(0, "--query", "status:running", "--json")]
-    [InlineData(0, "--query", "name:nothing-is-called-this", "--json")]
-    [InlineData(2, "--no-such-option")]
-    [InlineData(2, "--query")]
-    [InlineData(2, "--query", "stat:running")]
-    [InlineData(2, "--query", "status:runing")]
-    [InlineData(2, "--query", "pid:abc")]
-    [InlineData(2, "--query", "name:/[unclosed/")]
-    [InlineData(2, "stray-word")]
+    [InlineData(0, "list", "--json")]
+    [InlineData(0, "list", "--query", "status:running", "--json")]
+    [InlineData(0, "list", "--query", "name:nothing-is-called-this", "--json")]
+    [InlineData(2, "list", "--no-such-option")]
+    [InlineData(2, "list", "--query")]
+    [InlineData(2, "list", "--query", "stat:running")]
+    [InlineData(2, "list", "--query", "status:runing")]
+    [InlineData(2, "list", "--query", "pid:abc")]
+    [InlineData(2, "list", "--query", "name:/[unclosed/")]
+    [InlineData(2, "list", "stray-word")]
     public void Every_way_this_can_end_keeps_the_channels_apart(int expected, params string[] arguments)
     {
         // One case per way the tool can finish, because a stray write in the branch nobody
@@ -121,7 +121,7 @@ public sealed class ListingContractTests
     {
         // Reporting an ordinary lack of permissions as a failing run would make scripts stop
         // on something normal. The warning goes to the error channel and the code stays zero.
-        var run = CommandLineTool.Run("--query", "account:?", "--json");
+        var run = CommandLineTool.Run("list", "--query", "account:?", "--json");
 
         Assert.Equal(0, run.ExitCode);
         _ = JsonDocument.Parse(run.StandardOutput);

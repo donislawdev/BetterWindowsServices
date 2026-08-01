@@ -35,7 +35,15 @@ public enum StepReason
 /// would happen, and the whole value of the pattern is that those two are different
 /// objects a person can compare.
 /// </summary>
-public sealed record ServiceAction(ActionKind Kind, string ServiceName);
+/// <param name="IncludeDependents">
+/// Whether the entries that break may be taken down as well.
+///
+/// Off by default, and that is a safety property rather than a default worth arguing
+/// about. Asking to stop one service is not asking to stop seven, and the manager refuses
+/// the stop anyway when something running depends on it - so the honest answer to a plain
+/// stop is a plan of one step and a warning naming who is in the way.
+/// </param>
+public sealed record ServiceAction(ActionKind Kind, string ServiceName, bool IncludeDependents = false);
 
 /// <summary>One thing that will happen, to one entry.</summary>
 public sealed record PlanStep(
@@ -47,8 +55,14 @@ public sealed record PlanStep(
 /// <summary>Kinds of thing worth saying before somebody presses the button.</summary>
 public enum PlanWarningKind
 {
-    /// <summary>Stopping this takes others down with it.</summary>
+    /// <summary>Stopping this takes others down with it, because it was asked to.</summary>
     Cascade,
+
+    /// <summary>
+    /// Others are running that need this one, and they were not included. The manager
+    /// refuses a stop in that situation, so this plan will not get past its first step.
+    /// </summary>
+    DependentsInTheWay,
 
     /// <summary>The entry shares its process with others, so the process does not go away.</summary>
     SharedProcess,
@@ -88,11 +102,27 @@ public enum PlanProblemKind
     UnknownService,
 
     /// <summary>The entry is a driver, and operating on drivers is not something this does.</summary>
-    NotOperable
+    NotOperable,
+
+    /// <summary>
+    /// Getting to the entry would mean stopping a driver, which this does not do either.
+    ///
+    /// A problem rather than a warning, and the difference matters. Listing the steps and
+    /// noting an objection underneath would show eight things happening when the first of
+    /// them is one we have already said we will not do. A preview that does not match what
+    /// execution would do is the one thing this whole pattern exists to prevent.
+    /// </summary>
+    CascadeNotOperable
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>
-public sealed record PlanProblem(PlanProblemKind Kind, string ServiceName);
+public sealed record PlanProblem(PlanProblemKind Kind, string ServiceName, IReadOnlyList<string> Related)
+{
+    internal PlanProblem(PlanProblemKind kind, string serviceName)
+        : this(kind, serviceName, [])
+    {
+    }
+}
 
 /// <summary>
 /// Everything that would happen, worked out and frozen.

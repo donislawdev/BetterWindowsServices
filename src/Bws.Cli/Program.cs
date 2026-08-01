@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using Bws.Cli;
 using Bws.Core;
+using Bws.Core.Planning;
 using Bws.Core.Querying;
 
-// Slices S1 and S2: read every entry the service control manager knows about, narrow the
-// listing with a query, and print what is left. Still no writing and no expensive data.
+// Slices S1 to S3: read every entry the manager knows about, narrow the listing with a
+// query, and work out what a stop, a start or a restart would do. Working it out is all
+// this build does - carrying it out is the half that needs a machine to break.
 
 var options = CommandLine.Read(args);
 
@@ -14,6 +16,27 @@ if (options.Rejected.Count > 0)
     // clean so a failed run never drops a stray line into somebody's pipe.
     Console.Error.WriteLine(Texts.Of("cli.unknownOption", string.Join(", ", options.Rejected)));
     Console.Error.WriteLine(Texts.Of("cli.usage"));
+    return ExitCode.Usage;
+}
+
+if (options.Kind == CommandKind.None)
+{
+    Console.Error.WriteLine(Texts.Of("cli.usage"));
+    return ExitCode.Usage;
+}
+
+if (options.IsWrite && options.ServiceName.Length == 0)
+{
+    Console.Error.WriteLine(Texts.Of("cli.missingServiceName", options.Action.ToString().ToLowerInvariant()));
+    return ExitCode.Usage;
+}
+
+if (options.IsWrite && !options.DryRun)
+{
+    // Refused out loud rather than quietly doing nothing. Carrying a plan out is the part
+    // that needs a machine somebody is willing to break, and until it exists the honest
+    // answer is that this build cannot do it.
+    Console.Error.WriteLine(Texts.Of("cli.executionNotBuilt"));
     return ExitCode.Usage;
 }
 
@@ -38,17 +61,47 @@ if (!parsed.IsValid)
 try
 {
     var stopwatch = Stopwatch.StartNew();
-    var entries = new WindowsScmCatalog().ReadAll();
+    var catalog = new WindowsScmCatalog();
+    var entries = catalog.ReadAll();
     var read = stopwatch.ElapsedMilliseconds;
 
-    var result = parsed.Query!.Filter(entries);
-    stopwatch.Stop();
+    // Every command produces its text, and exactly one place puts text on the data channel.
+    // Not tidiness: it is what makes "could anything else have reached standard output"
+    // answerable by looking, and a guard in the architecture tests holds it to one.
+    string data;
 
-    Console.Out.WriteLine(options.Json
-        ? ListingJson.Render(result.Entries)
-        : ListingTable.Render(result.Entries));
+    if (options.IsWrite)
+    {
+        var plan = new PlanBuilder(entries, catalog)
+            .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents));
 
-    Report(entries, result, options, read, stopwatch.ElapsedMilliseconds);
+        stopwatch.Stop();
+
+        if (!plan.IsRunnable)
+        {
+            foreach (var problem in plan.Problems)
+            {
+                Console.Error.WriteLine(PlanText.Describe(problem));
+            }
+
+            return ExitCode.Usage;
+        }
+
+        data = options.Json ? PlanJson.Render(plan) : PlanText.Render(plan);
+    }
+    else
+    {
+        var result = parsed.Query!.Filter(entries);
+        stopwatch.Stop();
+
+        data = options.Json
+            ? ListingJson.Render(result.Entries)
+            : ListingTable.Render(result.Entries);
+
+        Report(entries, result, options, read, stopwatch.ElapsedMilliseconds);
+    }
+
+    Console.Out.WriteLine(data);
 
     return ExitCode.Ok;
 }

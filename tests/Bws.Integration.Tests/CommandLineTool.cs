@@ -19,7 +19,7 @@ internal static class CommandLineTool
 
     internal static JsonElement[] Listing(params string[] arguments)
     {
-        var run = Run([.. arguments, "--json"]);
+        var run = Run(["list", .. arguments, "--json"]);
 
         Assert.Equal(0, run.ExitCode);
 

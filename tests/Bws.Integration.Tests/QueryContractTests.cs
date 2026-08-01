@@ -135,7 +135,7 @@ public sealed class QueryContractTests
     [InlineData("pid:abc", "1234")]
     public void A_query_with_a_mistake_says_what_is_wrong_instead_of_answering(string query, string expectedHint)
     {
-        var run = CommandLineTool.Run("--query", query, "--json");
+        var run = CommandLineTool.Run("list", "--query", query, "--json");
 
         // Nothing on the data channel. Answering a typo with the unfiltered listing would
         // hand every entry on the machine to whatever comes next in the pipeline.
@@ -153,7 +153,7 @@ public sealed class QueryContractTests
         // machine the configuration query is never refused, so there is nothing partial to
         // observe, and a test named after behaviour it cannot see would be worse than none.
         // What it does check is that the reserved question mark runs and ends cleanly.
-        var run = CommandLineTool.Run("--query", "account:?", "--json");
+        var run = CommandLineTool.Run("list", "--query", "account:?", "--json");
 
         Assert.Equal(0, run.ExitCode);
         Assert.NotEmpty(run.StandardOutput.Trim());
