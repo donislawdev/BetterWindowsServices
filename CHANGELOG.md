@@ -99,9 +99,9 @@ Nothing has been released yet. Everything below is what the tool does today.
   differ in exactly one line - the time. Put them in a repository and `git diff` tells you
   what a patch Tuesday did. Without a file name it writes one into the current directory,
   named after the machine and the moment.
-  - **Always complete.** Signatures and a SHA-256 of every binary are read every time, which
-    takes a few seconds. A listing skips them for speed and a snapshot cannot: one without
-    them, compared against one with them, would report the whole machine as changed.
+  - **Always complete.** Signatures and a SHA-256 of every binary are read every time. A
+    listing skips them for speed and a snapshot cannot: one without them, compared against
+    one with them, would report the whole machine as changed.
   - **The file says how it was taken** - machine, operating system, time, who ran it, and
     whether they had administrator rights. That last one matters: without elevation Windows
     hands over fewer entries, so comparing such a snapshot against an elevated one would
@@ -119,6 +119,19 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **Non-English names print as themselves in `--json`.** Display names on a Polish or German
   install used to come out as escape sequences - correct JSON that nobody could check
   against `services.msc`.
+
+### Changed
+
+- **Taking a snapshot is about four times faster.** `bws snapshot create` measured
+  5.5-9.1 seconds and now measures 1.7-2.1 seconds on a machine with 810 entries and 544
+  distinct binaries. It reads exactly the same things and reports exactly the same answers -
+  a snapshot taken by the old version and one taken by this one differ only in their
+  timestamp. `bws list --signatures` and any query about signatures got the same speed-up,
+  since they do the same work.
+  - The gain comes from asking about several files at once rather than one after another.
+    How many at once follows the number of processors, so a small machine asks for less.
+  - Times will differ on your machine. The number of services, the speed of the disk and how
+    many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
 

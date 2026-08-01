@@ -417,6 +417,68 @@ sense as answers to the one above them.
     **query language**, not through this property, so its count of ten is unchanged. The
     property has no consumer in shipping code yet - the first will be the machine overview.
 
+- **S5a1: the second pass asks about several files at once.** No contract moves - same
+  fields, same JSON, same switches, same exit codes. `ADR-22` records the decision. This is
+  the first concurrency in the project, and it exists because the snapshot was over the
+  budget `8.1` of the specification promises.
+  - **Measured, five counted runs of each build, interleaved so both met the same weather:**
+    the whole `snapshot create` went from **5540-9113 ms to 1723-2141 ms** over 810 entries
+    and 544 distinct files, and the verification inside it from **4926-8500 ms to
+    1100-1245 ms**. The budget is 5 s, so it is met with the worst run at 2.1 s. Unlooked
+    for and worth as much: the spread fell from 73% to 24%, so the command became
+    predictable as well as quick.
+  - **The default degree is the logical processor count, and that came out of a sweep.**
+    Degrees 1, 2, 4, 8, 16 and 32, five counted runs each, every degree run once per pass so
+    none of them owned a good minute: fastest 4376, 2474, 1550, 1144, 1031, 1001 ms on a
+    16-processor machine. Sixteen beats eight measurably - `[1144, 1360]` and `[1031, 1107]`
+    do not touch. Thirty-two does not beat sixteen - `[1001, 1074]` overlaps `[1031, 1107]`,
+    and a spread wider than the difference means there is no difference.
+  - **The three questions `docs/04` said to close by measurement, closed by measurement.**
+    29 376 comparisons of a live machine's verdicts against the single-threaded answer - a
+    sweep, a pool run and a soak at the top degree - with **none differing**. And the one-off
+    proof the whole design allows: a snapshot from the unchanged build against one from this
+    build differ in **one line, the timestamp**, across 24 941 lines.
+  - **Measured apart on purpose, and it paid:** `Parallel.ForEach` asked for 32 at once
+    actually reached **18**, because the pool adds threads slowly. Had the sweep used the
+    pool, a flat curve above sixteen would have been ambiguous between "Windows serialises
+    this" and "the pool never got there" - opposite conclusions, one of which ends the slice.
+    It cost nothing here because the gain has already flattened by sixteen, which is why the
+    product uses the pool rather than threads of its own.
+  - **Three phases, not one parallel loop.** The obvious shape - go wide over the entries
+    with a concurrent dictionary sorting out the repeats - loses the property that makes this
+    affordable, because that dictionary may run its factory more than once per key. Settling
+    the distinct file set first makes one-question-per-file true by construction.
+  - **Found by breaking it, and it changed a test rather than only confirming one.**
+    Attaching every answer to the next file along left **all 289 unit tests and both halves
+    of the new comparison green**: two runs of the same wrong code agree perfectly. Comparing
+    runs only ever finds what wanders between runs. The gap is now covered by a guard with an
+    oracle of its own - it recomputes the SHA-256 of every file the machine names and asks
+    whether the answer hanging on that entry is that file's. Breaking the mapping again
+    reddens it.
+  - **A second break, a second lesson of the same shape.** Reordering the result left the
+    whole integration class green and reddened only the unit test written for it, for the
+    same reason. The comment claiming the integration test guarded order was corrected rather
+    than left to be believed.
+  - **The fake had to become thread-safe first.** It recorded questions in a plain list, so
+    every existing test counting questions would have become one that fails once a month and
+    passes on a re-run. A flaky guard teaches people to re-run instead of to look.
+  - **The suite got faster, not slower.** Estimated at +7 s when the work was scoped, it went
+    the other way: the integration project fell from **69 s to 29 s**, because the tests that
+    read signatures sped up with the product. Two new integration tests and four new unit
+    tests, 385 to 395.
+  - **Also measured, because nobody had:** the three questions the pass asks, apart. Over 544
+    files single-threaded and cold, signature **6186 ms**, file version **325 ms**, hash
+    **464 ms**. The signature is 89% of it, and the hash figure agrees with the 0.52 s
+    recorded when it was added.
+  - **NOT ESTABLISHED, and it matters for build agents:** whether the plateau follows the
+    processor count or is an absolute number that happened to be sixteen, which is also what
+    this machine's storage would queue. One machine cannot separate those.
+    `tools/signature-probe` on a machine with a different processor count settles it.
+  - **Deliberately left out:** a switch to set the degree, cancelling the pass mid-flight -
+    `snapshot create` installs no signal handler today, so the first Ctrl+C ends the process
+    exactly as before - caching between runs, which `ADR-13` warns against for an audit tool,
+    and parallelising the first pass, which fits its budget at 457-544 ms.
+
 ### Fixed
 
 - **One malformed file could end a whole run.** `WindowsBinaryInspector` caught two
@@ -540,12 +602,10 @@ Carried here rather than in a session's memory, because sessions end.
   produces the shape - no test project needed, only a way to run one from a test without
   the flakiness that costs.
 
-- **The snapshot is over its performance budget.** `8.1` of the specification promises under
-  5 s and it measures 6399-7156 ms over 810 entries, almost all of it signature verification.
-  Not a defect - the owner chose always-complete snapshots - but a promise the specification
-  still makes. Three ways out and none is chosen: parallelise the verification, allow a
-  snapshot without signatures as a deliberate variant, or raise the budget to a number that
-  came from a measurement. The 5 s was written before anybody had timed `WinVerifyTrust`.
+- ~~**The snapshot is over its performance budget.**~~ **Closed at S5a1**, by the first of
+  the three ways out. It measures 1723-2141 ms against the 5 s `8.1` promises. The other two
+  - a snapshot without signatures, and raising the budget - stay unspent, and `01` records
+  what would bring each of them back.
 - **A failed configuration read is always marked as a refusal**, including when the real
   cause is the service disappearing between enumeration and the configuration query. No
   consequence for the listing, a real one for snapshots.
