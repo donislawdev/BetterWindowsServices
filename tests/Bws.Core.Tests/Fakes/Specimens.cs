@@ -260,6 +260,47 @@ internal static class Specimens
         ProcessId = Reading<int>.Present(5984)
     };
 
+    // -- dependencies -----------------------------------------------------------------------
+
+    /// <summary>
+    /// The longest declared list on the machine, and the only one carrying a load order
+    /// group. The leading plus is the whole point: stopping one member of a group does not
+    /// necessarily break anything depending on the group, so a cascade that treats
+    /// "+NetBIOSGroup" as a service name would be planning around something that does not
+    /// exist.
+    /// </summary>
+    internal static ScmEntry GroupDependency => Entries.Any with
+    {
+        ServiceName = "RemoteAccess",
+        DisplayName = "Routing i dostęp zdalny",
+        EntryType = EntryType.SharedProcess,
+        Status = EntryStatus.Stopped,
+        StartType = Reading<StartType>.Present(Core.StartType.Disabled),
+        DelayedAuto = Reading<bool>.Absent(),
+
+        // Stored with a lower case first letter on the real machine, unlike every other
+        // entry in this catalogue. Account text is case-preserving and never an identity,
+        // which is exactly why ADR-14 compares SIDs.
+        Account = Reading<string>.Present("localSystem"),
+        ProcessId = Reading<int>.Absent(),
+        DependsOn = Reading<IReadOnlyList<string>>.Present(["RpcSS", "Bfe", "RasMan", "Http", "+NetBIOSGroup"])
+    };
+
+    /// <summary>
+    /// Declaring nothing at all. Ordinary rather than missing: 129 of 339 services on the
+    /// machine this came from declare no dependency, and every driver in the catalogue is
+    /// in the same position.
+    /// </summary>
+    internal static ScmEntry NoDependencies => Entries.Any with
+    {
+        ServiceName = "PlugPlayNoDeps",
+        DisplayName = "Nothing needs to be running first",
+        StartType = Reading<StartType>.Present(Core.StartType.Manual),
+        DelayedAuto = Reading<bool>.Absent(),
+        ProcessId = Reading<int>.Absent(),
+        DependsOn = Reading<IReadOnlyList<string>>.Absent()
+    };
+
     // -- cases the machine does not have --------------------------------------------------
 
     /// <summary>
@@ -302,6 +343,8 @@ internal static class Specimens
         SharedProcessSecond,
         PerUserTemplate,
         PerUserInstance,
+        GroupDependency,
+        NoDependencies,
         CaseOnlyDifferenceFirst,
         CaseOnlyDifferenceSecond
     ];

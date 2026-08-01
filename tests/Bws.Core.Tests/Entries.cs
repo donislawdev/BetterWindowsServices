@@ -25,7 +25,8 @@ internal static class Entries
         ProcessId = Reading<int>.Present(1234),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
-        Account = Reading<string>.Present("LocalSystem")
+        Account = Reading<string>.Present("LocalSystem"),
+        DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"])
     };
 
     internal static ScmEntry Named(string serviceName, string displayName) =>

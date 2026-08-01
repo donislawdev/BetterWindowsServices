@@ -118,6 +118,32 @@ public sealed class SpecimenTests
     }
 
     [Fact]
+    public void The_catalogue_carries_a_dependency_on_a_load_order_group()
+    {
+        // The one case that cannot be treated as a service name. Without a specimen, a
+        // cascade that resolves "+NetBIOSGroup" as a service would look right in every
+        // test and be wrong on the one machine that has one.
+        var withGroup = Specimens.All.Single(entry =>
+            entry.DependsOn.IsPresent && entry.DependsOn.Value!.Any(ScmEntry.IsGroup));
+
+        Assert.Equal("RemoteAccess", withGroup.ServiceName);
+        Assert.Contains("+NetBIOSGroup", withGroup.DependsOn.Value!);
+
+        // And the ordinary services in the same list are not mistaken for groups.
+        Assert.False(ScmEntry.IsGroup("RpcSS"));
+        Assert.True(ScmEntry.IsGroup("+NetBIOSGroup"));
+    }
+
+    [Fact]
+    public void The_catalogue_carries_an_entry_declaring_nothing_and_one_declaring_several()
+    {
+        // Declaring nothing is the ordinary case for well over a third of a real listing,
+        // so it has to be absent rather than an empty list somebody has to remember to check.
+        Assert.Contains(Specimens.All, entry => entry.DependsOn.Outcome == ReadOutcome.Absent);
+        Assert.Contains(Specimens.All, entry => entry.DependsOn.IsPresent && entry.DependsOn.Value!.Count > 1);
+    }
+
+    [Fact]
     public void The_double_hands_back_what_it_was_given_and_reads_once()
     {
         var catalog = Specimens.Catalog();

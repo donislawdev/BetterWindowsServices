@@ -104,6 +104,33 @@ public sealed record ScmEntry
     /// </summary>
     public required Reading<string> Account { get; init; }
 
+    /// <summary>
+    /// What this entry declares it needs before it can run.
+    ///
+    /// Free: it arrives in the same configuration structure the start type and the account
+    /// come from, so reading it costs no extra call. Measured on a real machine on
+    /// 2026-08-01: 210 of 339 services declare at least one, the longest list has five.
+    ///
+    /// Names are kept exactly as the manager returns them, including the leading plus that
+    /// marks a load order group rather than a service. RemoteAccess on that machine
+    /// declares "+NetBIOSGroup" alongside four ordinary services. Stripping the marker
+    /// would turn a group into a service that does not exist.
+    ///
+    /// This is what the entry declares, which is not the same question as what would break
+    /// if it stopped. The manager answers that one itself, and the cascade will ask it
+    /// rather than inverting this list, because the manager also knows which services are
+    /// in which group and this list does not.
+    /// </summary>
+    public required Reading<IReadOnlyList<string>> DependsOn { get; init; }
+
+    /// <summary>
+    /// True for a name in <see cref="DependsOn"/> that names a load order group rather
+    /// than a service. Stopping one member of a group does not necessarily break anything
+    /// that depends on the group, so the two cannot be treated alike when planning.
+    /// </summary>
+    public static bool IsGroup(string dependency) =>
+        dependency.StartsWith('+');
+
     public bool IsDriver => EntryType is EntryType.KernelDriver or EntryType.FileSystemDriver;
 
     /// <summary>

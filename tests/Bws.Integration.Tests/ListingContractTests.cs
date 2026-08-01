@@ -128,6 +128,80 @@ public sealed class ListingContractTests
     }
 
     [Fact]
+    public void Declared_dependencies_agree_with_sc_for_every_service_that_has_any()
+    {
+        // sc.exe is the authority. The multi-string the manager returns has to be walked to
+        // its second null, and reading only as far as the first would report one dependency
+        // for a service that declares five - quiet, plausible, and wrong.
+        var checkedEntries = 0;
+
+        foreach (var entry in CommandLineTool.Listing("--query", "!type:driver"))
+        {
+            if (entry.GetProperty("dependsOn").ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var name = CommandLineTool.Text(entry, "serviceName");
+            var ours = entry.GetProperty("dependsOn").EnumerateArray().Select(value => value.GetString()!);
+
+            var theirs = DeclaredBySc(name);
+
+            Assert.Equal(
+                string.Join('|', theirs).ToLowerInvariant(),
+                string.Join('|', ours).ToLowerInvariant());
+
+            checkedEntries++;
+        }
+
+        // Measured on 2026-08-01: 210 of 339 services declare at least one. A run that
+        // checked a handful would pass on a build that dropped all but the first name.
+        Assert.True(checkedEntries > 100, $"Only {checkedEntries} services had dependencies to check.");
+    }
+
+    /// <summary>
+    /// Pulls the dependency block out of sc qc, continuation lines included. They arrive
+    /// under a bare colon with no label, so reading only the labelled line loses everything
+    /// after the first.
+    /// </summary>
+    private static List<string> DeclaredBySc(string serviceName)
+    {
+        var declared = new List<string>();
+        var inside = false;
+
+        foreach (var line in CommandLineTool.ServiceControl("qc", serviceName).StandardOutput.Split('\n'))
+        {
+            var trimmed = line.TrimEnd('\r');
+
+            if (trimmed.Contains("DEPENDENCIES", StringComparison.Ordinal))
+            {
+                inside = true;
+                declared.AddRange(Values(trimmed));
+                continue;
+            }
+
+            if (!inside)
+            {
+                continue;
+            }
+
+            if (trimmed.TrimStart().StartsWith(':'))
+            {
+                declared.AddRange(Values(trimmed));
+                continue;
+            }
+
+            break;
+        }
+
+        return declared;
+    }
+
+    private static IEnumerable<string> Values(string line) =>
+        line[(line.IndexOf(':', StringComparison.Ordinal) + 1)..]
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    [Fact]
     public void Every_entry_carries_a_name_a_display_name_and_a_type()
     {
         foreach (var entry in CommandLineTool.Listing())

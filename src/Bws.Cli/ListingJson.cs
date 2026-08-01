@@ -40,6 +40,13 @@ internal sealed record EntryJson
 
     public required string? Account { get; init; }
 
+    /// <summary>
+    /// What the entry declares it needs, exactly as the manager returns it, including the
+    /// leading plus that marks a load order group. Null when it declares nothing, which is
+    /// the ordinary case for well over a third of the listing.
+    /// </summary>
+    public required IReadOnlyList<string>? DependsOn { get; init; }
+
     /// <summary>Field name to reason, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, string>? Unreadable { get; init; }
@@ -52,6 +59,7 @@ internal sealed record EntryJson
         Note(unreadable, nameof(entry.StartType), entry.StartType.Outcome, entry.StartType.Reason);
         Note(unreadable, nameof(entry.DelayedAuto), entry.DelayedAuto.Outcome, entry.DelayedAuto.Reason);
         Note(unreadable, nameof(entry.Account), entry.Account.Outcome, entry.Account.Reason);
+        Note(unreadable, nameof(entry.DependsOn), entry.DependsOn.Outcome, entry.DependsOn.Reason);
 
         return new EntryJson
         {
@@ -63,6 +71,7 @@ internal sealed record EntryJson
             StartType = entry.StartType.IsPresent ? entry.StartType.Value.ToString() : null,
             DelayedAuto = entry.DelayedAuto.IsPresent ? entry.DelayedAuto.Value : null,
             Account = entry.Account.IsPresent ? entry.Account.Value : null,
+            DependsOn = entry.DependsOn.IsPresent ? entry.DependsOn.Value : null,
             Unreadable = unreadable.Count == 0 ? null : unreadable
         };
     }
