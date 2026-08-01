@@ -182,7 +182,7 @@ sense as answers to the one above them.
     the path removed from the search entirely. Exactly the fixture trap `ADR-10` warns
     about.
 
-- **Signatures and provenance** (`S4`, family two). **[contract]** `signature` and
+- **Signatures and provenance** (`c5d008a`), `S4` family two. **[contract]** `signature` and
   `fileVersion` in the listing, `signed` and `publisher` in the query language,
   `--signatures` on `list`.
   - **The first family that actually needs ADR-13.** Measured over seven runs, first
@@ -222,7 +222,7 @@ sense as answers to the one above them.
     a property of the machine, and removing it would be fitting the code to the one machine
     it was measured on.
 
-- **The third family of S4: privileges, service SID type and the security descriptor.**
+- **The third family of S4: privileges, service SID type and the security descriptor** (`e2ff9a5`, specimens corrected in `234bf29`).
   **[contract]** Three fields added to `ScmEntry` and to the JSON: `requiredPrivileges`,
   `sidType`, `securityDescriptor`, plus `privilege`, `sidtype` and `sddl` in the query
   language. Names from the binding column of `docs/03`, except the query name `sddl`, which
@@ -267,7 +267,7 @@ sense as answers to the one above them.
     three change no existing column's meaning, unlike a trigger or a missing file. No SACL,
     no writes.
 
-- **S5 cut in two, and the first half built: `bws snapshot create`.** **[contract]** A new
+- **S5 cut in two, and the first half built: `bws snapshot create`** (`83d803e`). **[contract]** A new
   public contract, the snapshot schema, at version 1. `ADR-6` and `ADR-18` both go from
   written to built.
   - **Why it was cut.** S5 as planned holds the schema, metadata, deterministic writing, the
@@ -314,7 +314,7 @@ sense as answers to the one above them.
     export `ADR-6` mentions, and the fields the tool still does not read at all - the
     description and the recovery actions.
 
-- **The fourth family of S4, and the end of S4: process memory.** **[contract]** `memory`
+- **The fourth family of S4, and the end of S4: process memory** (`2865397`). **[contract]** `memory`
   on `ScmEntry` and in the JSON as `{workingSet, commit, sharedBy}`, a `MEMORY` column, a
   `--memory` switch, and `memory` in the query language.
   - **Measured:** the pass costs **5-8 ms over 810 entries and 110 processes**, six runs.
@@ -417,7 +417,7 @@ sense as answers to the one above them.
     **query language**, not through this property, so its count of ten is unchanged. The
     property has no consumer in shipping code yet - the first will be the machine overview.
 
-- **S5a1: the second pass asks about several files at once.** No contract moves - same
+- **S5a1: the second pass asks about several files at once** (`2f7e975`). No contract moves - same
   fields, same JSON, same switches, same exit codes. `ADR-22` records the decision. This is
   the first concurrency in the project, and it exists because the snapshot was over the
   budget `8.1` of the specification promises.
@@ -470,10 +470,26 @@ sense as answers to the one above them.
     files single-threaded and cold, signature **6186 ms**, file version **325 ms**, hash
     **464 ms**. The signature is 89% of it, and the hash figure agrees with the 0.52 s
     recorded when it was added.
-  - **NOT ESTABLISHED, and it matters for build agents:** whether the plateau follows the
-    processor count or is an absolute number that happened to be sixteen, which is also what
-    this machine's storage would queue. One machine cannot separate those.
-    `tools/signature-probe` on a machine with a different processor count settles it.
+  - **Established the same day, and without the virtual machine.** Whether the plateau
+    follows the processor count or the storage queue was separated by **pinning the process
+    to fewer processors**, which moves one of those two numbers and leaves the other alone.
+    Pinned to two, the plateau is at degree 2 with a floor of 3453 ms. Pinned to four, degree
+    4 and 2028 ms. Unpinned on sixteen, degree 16 and 1031 ms. **It follows the processor
+    count at all three points**, so the work is bound by computing rather than by waiting on
+    the disk, and `Environment.ProcessorCount` is the right number rather than a convenient
+    one. No verdict differed under pinning either.
+  - **The number for build agents, and it is not a comfortable one:** on **two processors**
+    the whole command measures **4496-4980 ms against a 5 s budget**, five counted runs. It
+    fits with **no margin** - the worst run is 99.6% of the promise. More services, a slower
+    disk or a busy processor will exceed it, and a build agent is exactly that environment.
+    That is the condition under which "raise the budget" comes back in `01`.
+  - **Checked separately because the default depends on it:** `Environment.ProcessorCount`
+    **does honour a limit imposed from outside** - under `start /affinity 3` it reports 2 and
+    the default degree becomes 2 - so a constrained agent gets the right degree with no code
+    change. It is cached at startup, so it does not see a process changing its own affinity
+    later. The probe's own header said `processors 16` while pinned to 4 for exactly that
+    reason, which looked like evidence of the opposite and would have bought a fix the
+    product does not need.
   - **Deliberately left out:** a switch to set the degree, cancelling the pass mid-flight -
     `snapshot create` installs no signal handler today, so the first Ctrl+C ends the process
     exactly as before - caching between runs, which `ADR-13` warns against for an audit tool,
@@ -481,7 +497,7 @@ sense as answers to the one above them.
 
 ### Fixed
 
-- **One malformed file could end a whole run.** `WindowsBinaryInspector` caught two
+- **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two
   exception types by name, so a third - a truncated certificate, a path the platform
   rejects, a handle that goes away mid-read - escaped to the top level and lost all 809
   other entries with exit code 1, on somebody's production machine. Now broad and reported
@@ -490,25 +506,25 @@ sense as answers to the one above them.
   - `HResult` rather than `GetLastWin32Error` in that path: by the time an exception has
     been built and thrown, the thread's last error is usually something else.
 
-- **`--signatures` was absent from the usage text**, and `--timing` was shown only under
+- **`--signatures` was absent from the usage text** (`b9831a7`), and `--timing` was shown only under
   `list` despite working on every verb. A switch has exactly one route to discovery, so an
   accepted and unmentioned one may as well not exist.
   - Guarded now by `UsageContractTests`: every accepted switch has to appear in the help,
     and every switch in the help has to be accepted. Written after making the mistake, and
     it immediately found a second one.
 
-- **A switch missing its value reported itself as unknown.** `bws list --query` answered
+- **A switch missing its value reported itself as unknown** (`b9831a7`). `bws list --query` answered
   "Unknown option: --query", sending somebody to hunt for a typo in a word they had spelled
   correctly. Its own list and its own message now. Found by the guard above, which was not
   looking for it.
 
-- **The binaries claimed to be version 1.0.0.** With no `Version` property anywhere the SDK
+- **The binaries claimed to be version 1.0.0** (`38ae53f`). With no `Version` property anywhere the SDK
   stamps `1.0.0.0`, so every build declared a first release while both changelogs held
   everything under `[Unreleased]`. **Set to `0.1.0` by the owner on 2026-08-01** in
   `Directory.Build.props`, which is the only place any project takes it from. Rule 11 keeps
   this the owner's decision, so the number is theirs and the plumbing is mine.
 
-- **The elevation check in `CLAUDE.md` answered `False` on an elevated session, and had
+- **The elevation check in `CLAUDE.md` answered `False` on an elevated session** (`38ae53f`), and had
   done so all along.** It asked `IsInRole('Administrators')`, which compares the *name* of
   the group. On this machine the group is `BUILTIN\Administratorzy`, so the answer was
   always no. Asking through `WindowsBuiltInRole.Administrator` compares the well-known SID
@@ -528,7 +544,7 @@ sense as answers to the one above them.
     disagreeing is the cheapest signal that one of them measures something other than its
     name.
 
-- **`666 of 869` was never a count of refusals** and it had been used in four documents and
+- **`666 of 869` was never a count of refusals** (`38ae53f`) and it had been used in four documents and
   two code comments as the empirical justification for the `Denied` state. Walking the same
   keys: **666 of them have no security value at all.** Of the rest, an elevated session
   reads 203 and is refused none, a restricted token reads 157 and is refused 46.
@@ -542,7 +558,7 @@ sense as answers to the one above them.
   - **First live specimens of a refused read on this machine**: `RoutePolicy`, `ZTDNS` and
     `ZTHELPER` refuse to open at all under a restricted token. `docs/05` records them.
 
-- **A review of every source file and every document, at the owner's request.** Nine things
+- **A review of every source file and every document, at the owner's request** (`0305c79`). Nine things
   found, three of them contradictions inside a single document, two of them user-visible.
   - **`snapshotcreate` was going out to users.** The message telling somebody where a switch
     does work spelled the command from its enumeration value, so the answer to "then where
@@ -575,7 +591,7 @@ sense as answers to the one above them.
   - Three memory files carried resolved questions as open ones, a tool list two entries
     short, and an interop inventory missing two families.
 
-- **A second pass over the comments, which have no guard at all.** Three claims in code
+- **A second pass over the comments, which have no guard at all** (`2395ba0`). Three claims in code
   were false and none of them could fail a build.
   - **"Around three seconds" for verifying signatures, in six places.** The real figure is
     4620-7656 ms over 810 entries and 544 files, measured over seven runs, and it has been
