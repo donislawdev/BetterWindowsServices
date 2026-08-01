@@ -35,9 +35,20 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     /// entry keeps reporting progress forever.
     /// </param>
     /// <param name="cancellation">
+    /// Stop going forward. The steps that put things back are still carried out.
+    ///
     /// Checked between steps, not during one. A step already asked for is watched to its
     /// end, because a service told to stop does not un-stop, and reporting a step we stopped
     /// looking at would be a claim about something nobody saw.
+    /// </param>
+    /// <param name="abandonment">
+    /// Stop altogether, putting nothing back.
+    ///
+    /// Separate from <paramref name="cancellation"/> because they are different asks and the
+    /// second one is expensive: it is how somebody ends up with half a cascade down. It
+    /// exists anyway, because the alternative is a caller with no way out except killing the
+    /// process, and a killed process reports nothing at all. Whatever this leaves behind is
+    /// still in the results.
     /// </param>
     /// <param name="starting">
     /// Called before each step that is actually attempted, with its position in the plan.
@@ -51,6 +62,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
         OperationPlan plan,
         TimeSpan timeout,
         CancellationToken cancellation = default,
+        CancellationToken abandonment = default,
         Action<PlanStep, int>? starting = null)
     {
         if (!plan.IsRunnable)
@@ -64,6 +76,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
         var results = new List<StepResult>(plan.Steps.Count);
         var cancelled = false;
+        var abandoned = false;
         var forwardFailed = false;
 
         for (var index = 0; index < plan.Steps.Count; index++)
@@ -71,6 +84,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
             var step = plan.Steps[index];
 
             cancelled |= cancellation.IsCancellationRequested;
+            abandoned |= abandonment.IsCancellationRequested;
 
             // Putting things back is not part of the forward path and does not stop when the
             // forward path does. Those steps exist to give back what earlier steps took, and
@@ -80,11 +94,11 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
             // needed.
             var putsBack = step.Reason == StepReason.Restore;
 
-            if ((forwardFailed || cancelled) && !putsBack)
+            if (abandoned || ((forwardFailed || cancelled) && !putsBack))
             {
                 results.Add(Skipped(
                     step,
-                    cancelled ? SkipReason.Cancelled : SkipReason.EarlierStepFailed,
+                    cancelled || abandoned ? SkipReason.Cancelled : SkipReason.EarlierStepFailed,
                     EntryStatus.Unknown,
                     milliseconds: 0));
 
@@ -107,7 +121,12 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
         {
             Plan = plan,
             Results = results,
-            Cancelled = cancelled || cancellation.IsCancellationRequested
+
+            // One flag for both asks. Which of the two it was is already written into the
+            // steps - a run that put things back and one that did not read differently
+            // there - so a second field would say the same thing in a second place.
+            Cancelled = cancelled || abandoned
+                || cancellation.IsCancellationRequested || abandonment.IsCancellationRequested
         };
     }
 

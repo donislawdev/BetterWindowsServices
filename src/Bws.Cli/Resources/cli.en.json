@@ -38,7 +38,8 @@
   "cli.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
 
   "cli.run.progress": "[{0}/{1}] {2} {3} ...",
-  "cli.run.interrupted": "Interrupted. Finishing the step in flight, then putting back what was taken down. Another Ctrl+C stops immediately, which skips the putting back and prints no report.",
+  "cli.run.interrupted": "Interrupted. Finishing the step in flight, then putting back what was taken down. Another Ctrl+C leaves it as it is.",
+  "cli.run.abandoned": "Leaving the rest undone. The report still follows, so you can see what was changed. Another Ctrl+C ends this without it.",
   "cli.run.wasInterrupted": "This run was interrupted. Steps that were never attempted say so above.",
 
   "cli.run.outcome.succeeded": "done in {0}",

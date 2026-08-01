@@ -325,6 +325,45 @@ public sealed class PlanRunnerTests
     }
 
     [Fact]
+    public void Asking_twice_leaves_things_as_they_are_and_still_reports_what_was_done()
+    {
+        // The second ask is expensive and exists anyway, because the alternative a person
+        // reaches for is killing the process - and a killed process says nothing at all
+        // about the half of a cascade it left switched off. Observed on a virtual machine
+        // on 2026-08-01, where exactly that left a service stopped with no report.
+        using var interruption = new CancellationTokenSource();
+        using var abandonment = new CancellationTokenSource();
+
+        var control = Running("SessionEnv", "Netlogon", "LanmanWorkstation", "MRxSmb20");
+
+        var run = new PlanRunner(control, new FakeClock()).Run(
+            Plan(ActionKind.Restart, "MRxSmb20"),
+            Minute,
+            interruption.Token,
+            abandonment.Token,
+            starting: (_, number) =>
+            {
+                if (number == 1)
+                {
+                    interruption.Cancel();
+                    abandonment.Cancel();
+                }
+            });
+
+        Assert.True(run.Cancelled);
+        Assert.False(run.Completed);
+
+        // Everything after the first step, the steps that put things back included.
+        Assert.All(
+            run.Results.Skip(1),
+            result => Assert.Equal(SkipReason.Cancelled, result.SkippedBecause));
+
+        // And there is still a result for every step, which is the whole difference between
+        // this and killing the process.
+        Assert.Equal(run.Plan.Steps.Count, run.Results.Count);
+    }
+
+    [Fact]
     public void A_plan_that_has_problems_is_never_carried_out()
     {
         // The plan already refuses drivers. A runner that would carry one out anyway would

@@ -100,7 +100,9 @@ try
             // A plan that did not finish is neither a broken tool nor a mistyped command,
             // so it is neither of the codes those two already have. Monitoring needs to
             // tell "the stop was refused" from "bws itself fell over".
-            exit = run.Completed ? ExitCode.Ok : ExitCode.Incomplete;
+            exit = run.Cancelled
+                ? ExitCode.Interrupted
+                : run.Completed ? ExitCode.Ok : ExitCode.Incomplete;
         }
     }
     else
@@ -153,29 +155,40 @@ catch (Exception failure)
 static PlanRun Carry(OperationPlan plan, TimeSpan timeout)
 {
     using var interruption = new CancellationTokenSource();
-    var interrupted = false;
+    using var abandonment = new CancellationTokenSource();
+    var presses = 0;
 
     Console.CancelKeyPress += (_, key) =>
     {
-        // The first press asks for a stop and says what that means. The second is left to
-        // end the process, which is what somebody pressing it twice is asking for - so the
-        // sentence promising exactly that is true.
-        if (interrupted)
+        // Three presses, three different asks, and each message says what the next one
+        // costs. The middle one was missing and it showed: pressing twice used to end the
+        // process outright, leaving a half stopped cascade and printing nothing about it.
+        // Somebody who wants a run to stop is not asking to be told nothing.
+        switch (++presses)
         {
-            return;
+            case 1:
+                key.Cancel = true;
+                interruption.Cancel();
+                Console.Error.WriteLine(Texts.Of("cli.run.interrupted"));
+                break;
+
+            case 2:
+                key.Cancel = true;
+                abandonment.Cancel();
+                Console.Error.WriteLine(Texts.Of("cli.run.abandoned"));
+                break;
+
+            // The third is left alone. The runtime ends the process, there is no report and
+            // the exit code is not one of ours - which is the honest meaning of pressing it
+            // a third time after being told twice what would happen.
         }
-
-        interrupted = true;
-        key.Cancel = true;
-        interruption.Cancel();
-
-        Console.Error.WriteLine(Texts.Of("cli.run.interrupted"));
     };
 
     return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
         plan,
         timeout,
         interruption.Token,
+        abandonment.Token,
         starting: (step, number) => Console.Error.WriteLine(
             PlanText.Progress(step, number, plan.Steps.Count)));
 }
@@ -253,4 +266,22 @@ internal static class ExitCode
     /// as the same night-time page, and only one of them is about the tool.
     /// </summary>
     internal const int Incomplete = 3;
+
+    /// <summary>
+    /// Somebody stopped the run by hand.
+    ///
+    /// Takes precedence over <see cref="Incomplete"/> when both apply, because it is the
+    /// cause and the other is the effect - a person reading one number wants to know that
+    /// the run was stopped, not that stopping it left work undone.
+    ///
+    /// Non-zero even when every step still arrived, which happens often now that the steps
+    /// putting things back are carried out anyway. A wrapper script must not treat a run
+    /// somebody stopped as a clean success. Ansible reserves a code for this too and the
+    /// reasoning is the same.
+    ///
+    /// Deliberately not 130, the shell convention of 128 plus the signal number. That
+    /// convention belongs to POSIX shells, means nothing on Windows, and mixing it into a
+    /// table of small numbers would make the table harder to read rather than easier.
+    /// </summary>
+    internal const int Interrupted = 4;
 }
