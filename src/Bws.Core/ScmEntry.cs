@@ -179,11 +179,21 @@ public sealed record ScmEntry
     /// <summary>
     /// The conditions under which the manager starts or stops this entry by itself.
     ///
-    /// The first piece of expensive data, and the first field whose ordinary state is
-    /// <see cref="ReadOutcome.NotRead"/>. That is what ADR-13 is about: a listing has to be
-    /// useful before everything is known, so "nobody asked for this yet" has to be a state
-    /// of its own and must never render like "there is nothing here". A stopped service
-    /// with no triggers is broken. A stopped service waiting for a trigger is working.
+    /// The first of the four families S4 was cut into, and the family that decided the
+    /// shape of the other three: it looked like a candidate for deferring under ADR-13 and
+    /// measured at 45-75 ms across 810 entries, which is nothing. So it is read on every
+    /// listing and its ordinary state is <see cref="ReadOutcome.Present"/> or
+    /// <see cref="ReadOutcome.Absent"/>, never NotRead.
+    ///
+    /// This comment said it was "the first field whose ordinary state is NotRead" and that
+    /// stopped being true the moment the measurement came back - while the same sentence
+    /// went on to appear, correctly, on the signature. Two fields cannot both be the first,
+    /// and nothing in a build notices a comment contradicting another comment.
+    ///
+    /// What does still hold is why the state exists at all: a listing has to be useful
+    /// before everything is known, so "nobody asked for this yet" must never render like
+    /// "there is nothing here". A stopped service with no triggers is broken. A stopped
+    /// service waiting for a trigger is working.
     ///
     /// Absent, not empty, when the entry has none - measured on a real machine on
     /// 2026-08-01: 122 entries of 810 have at least one, so having none is the ordinary
@@ -235,9 +245,11 @@ public sealed record ScmEntry
     ///
     /// The first field whose ordinary state in a plain listing is
     /// <see cref="ReadOutcome.NotRead"/>, and the first one that earns it. Measured on a
-    /// real machine on 2026-08-01: verifying 544 distinct files costs around three seconds
-    /// against 322-329 ms for everything the listing does otherwise, so reading this every
-    /// time would put the listing six times over its one second budget.
+    /// real machine on 2026-08-01, seven runs with the first discarded as cold: verifying
+    /// 544 distinct files costs 4620-7656 ms, median 4882, against 476-551 ms for everything
+    /// the listing does otherwise. Reading it every time would put the listing five to eight
+    /// times over its one second budget - a range rather than a figure, because the spread
+    /// of this one operation is wider than the whole of the rest of the listing.
     ///
     /// That is what ADR-13 was written for. Triggers and launch paths both looked like they
     /// would need it and both turned out cheap enough not to - this is the family where the

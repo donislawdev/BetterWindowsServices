@@ -204,8 +204,9 @@ try
     else
     {
         // The second pass, and the first thing in this tool that is asked for rather than
-        // simply done. Measured at roughly three seconds against 322-329 ms for everything
-        // above, so a listing does not verify signatures unless somebody wants them.
+        // simply done. Measured at 4620-7656 ms over 810 entries and 544 distinct files
+        // against 476-551 ms for everything above, so a listing does not verify signatures
+        // unless somebody wants them.
         //
         // A query about them counts as wanting them. Answering "signed:no" with an empty
         // list because nobody had looked would be a correct query returning what reads
@@ -270,11 +271,11 @@ try
 // ends with a failing code. The alternative is a stack trace in the user's face, which
 // tells them less and looks like a crash.
 //
-// One of exactly two suppressions of this rule in the project. The other is in
-// WindowsBinaryInspector, where one malformed file out of several hundred must cost its
-// own answer rather than the whole run. Anywhere else, a broad catch would be the silence
-// that rule 8 forbids - and the test of that is whether the failure still reaches the
-// person. In both places it does.
+// The only suppression of this rule outside WindowsBinaryInspector, which has four - one
+// per file it opens, because one malformed binary out of several hundred must cost its own
+// answer rather than the whole run. Anywhere else a broad catch would be the silence rule 8
+// forbids, and the test of that is whether the failure still reaches the person. In all
+// five places it does.
 catch (Exception failure)
 {
     // The whole chain, not just the top message. A wrapper such as

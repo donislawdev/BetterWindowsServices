@@ -513,6 +513,23 @@ sense as answers to the one above them.
   - Three memory files carried resolved questions as open ones, a tool list two entries
     short, and an interop inventory missing two families.
 
+- **A second pass over the comments, which have no guard at all.** Three claims in code
+  were false and none of them could fail a build.
+  - **"Around three seconds" for verifying signatures, in six places.** The real figure is
+    4620-7656 ms over 810 entries and 544 files, measured over seven runs, and it has been
+    in `docs/02` and `docs/04` since the day it was taken. The three-second estimate predates
+    that measurement and outlived it in every comment that quoted it.
+  - **"Exactly two broad catches in the project", when there are five.** The sentence was
+    already corrected once, on the way from one to two, and then three more were added under
+    it. Now it names where they are and what would make a sixth worth questioning, which is
+    a claim that survives being right.
+  - **Two different fields each called "the first whose ordinary state is not read".** They
+    cannot both be. Triggers stopped being one the moment they measured cheap enough to read
+    every time, and the sentence stayed. Nothing in a build notices a comment contradicting
+    another comment.
+  - Also corrected: the memory pass described itself as costing under a millisecond, which
+    is what its calls cost and not what it costs.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.

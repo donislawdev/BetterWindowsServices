@@ -108,7 +108,15 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
         // third one loses all 809 other entries and ends the run with exit code 1, on
         // somebody's production server, because of one bad file.
         //
-        // Second of exactly two broad catches in the project. The other is the entry point.
+        // One of five broad catches in the project, and four of them are in this file: the
+        // signature, the version, the hash and the publisher, each of which opens a file
+        // nobody here chose. The fifth is the entry point of the tool.
+        //
+        // The count was written as "exactly two" and stayed there through three more being
+        // added, which is what a number in a comment does - nothing counts it. If a sixth
+        // appears outside this file, that is worth a question rather than a line: every one
+        // here exists because a machine's own binaries cannot be enumerated for the ways
+        // they might be malformed, and that argument does not travel far.
         catch (Exception failure)
         {
             // HResult rather than GetLastWin32Error: by the time an exception has been

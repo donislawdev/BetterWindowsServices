@@ -4,10 +4,13 @@ namespace Bws.Core;
 /// Fills in what each entry's process is using.
 ///
 /// Its own pass rather than part of the listing, and the reason is not cost - measured on
-/// 2026-08-01, asking all 110 processes takes well under a millisecond, which is nothing
-/// beside the 476-551 ms the listing already spends. It is separate because it is the only
-/// thing here that is a measurement rather than a description: everything else reads the
-/// same twice in a row, and this does not. A plain listing therefore stays a statement
+/// 2026-08-01, the whole pass costs 5-8 ms over 810 entries and 110 processes, beside the
+/// 476-551 ms the listing already spends. The calls themselves are under a millisecond and
+/// the rest is building 810 new records, which is worth separating: the probe measured only
+/// the calls and the figure it gave was wrong by a factor of six.
+///
+/// It is a pass of its own because it is the only thing here that is a measurement rather
+/// than a description: everything else reads the same twice in a row, and this does not. A plain listing therefore stays a statement
 /// about how the machine is configured, and a number that goes stale the moment it is
 /// printed appears only when somebody asks for it.
 ///

@@ -53,9 +53,12 @@ internal sealed record CommandLine
     /// <summary>
     /// Read who signed each binary, which the listing does not do by default.
     ///
-    /// Measured at roughly three seconds against a third of a second for the rest of a
-    /// listing, so it is asked for rather than assumed. A query about signatures turns it
-    /// on by itself - somebody who wrote signed:no has already asked.
+    /// Measured at 4620-7656 ms over 810 entries and 544 distinct files, against 476-551 ms
+    /// for the rest of a listing, so it is asked for rather than assumed. A query about
+    /// signatures turns it on by itself - somebody who wrote signed:no has already asked.
+    ///
+    /// The spread is wider than most whole operations here, which is itself the point: one
+    /// run of this tells nobody anything.
     /// </summary>
     internal bool Signatures { get; private init; }
 
@@ -64,10 +67,10 @@ internal sealed record CommandLine
     /// default.
     ///
     /// Not for the reason <see cref="Signatures"/> is asked for. This one is measured at
-    /// under a millisecond, so the switch buys no time worth mentioning - it exists because
-    /// memory is the one thing here that is a measurement rather than a description of how
-    /// the machine is set up, and a plain listing stays the second of those. A query about
-    /// memory turns it on by itself.
+    /// 5-8 ms over 810 entries and 110 processes, so the switch buys no time worth
+    /// mentioning - it exists because memory is the one thing here that is a measurement
+    /// rather than a description of how the machine is set up, and a plain listing stays the
+    /// second of those. A query about memory turns it on by itself.
     /// </summary>
     internal bool Memory { get; private init; }
 
@@ -138,8 +141,8 @@ internal sealed record CommandLine
 
         // Listing only. A plan never asks who signed anything, so accepting it on a write
         // verb would be a switch that does nothing - the silence this table was built to
-        // end. Measured cost is around three seconds, which is why it is asked for rather
-        // than assumed.
+        // end. Measured at 4620-7656 ms over 810 entries and 544 files, which is why it is
+        // asked for rather than assumed.
         ("--signatures", [CommandKind.List]),
 
         // Listing only, for the same reason: a plan is about what will happen to a service,
