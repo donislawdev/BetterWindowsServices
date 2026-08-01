@@ -266,7 +266,14 @@ public static class QueryParser
 
         if (value.StartsWithSpecial('='))
         {
-            return new TextValue(TextOperator.Exact, value.Slice(1).Text, null);
+            var wanted = value.Slice(1);
+
+            // An equals sign with nothing after it is somebody mid-keystroke, the same as a
+            // colon with nothing after it. Taking it literally would ask for entries whose
+            // name is the empty string and answer with nothing at all.
+            return wanted.Length == 0
+                ? null
+                : new TextValue(TextOperator.Exact, wanted.Text, null);
         }
 
         if (value.HasSpecial('*') || value.HasSpecial('?'))
@@ -331,7 +338,15 @@ public static class QueryParser
 
         if (dash > 0)
         {
-            return TryNumber(text[..dash], out var low) && TryNumber(text[(dash + 1)..], out var high)
+            if (!TryNumber(text[..dash], out var low) || !TryNumber(text[(dash + 1)..], out var high))
+            {
+                return Reject(field, value, problems);
+            }
+
+            // A range that ends before it starts matches nothing, ever. Letting it through
+            // would answer a transposition with an empty list, and an empty list reads as
+            // "there are none" rather than "you wrote the ends the wrong way round".
+            return low <= high
                 ? new NumberValue(NumberOperator.Range, low, high)
                 : Reject(field, value, problems);
         }

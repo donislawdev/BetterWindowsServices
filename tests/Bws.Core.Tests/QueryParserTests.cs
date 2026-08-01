@@ -63,9 +63,33 @@ public sealed class QueryParserTests
     [InlineData("pid:>x")]
     [InlineData("pid:1-")]
     [InlineData("pid:-5")]
+    [InlineData("pid:2147483648")]
     public void A_number_that_is_not_one_is_refused(string text)
     {
         Assert.Equal(QueryProblemKind.BadNumber, OneProblem(text).Kind);
+    }
+
+    [Fact]
+    public void A_range_that_ends_before_it_starts_is_refused_rather_than_matching_nothing()
+    {
+        // The transposition is easy to make and impossible to spot in the answer: the range
+        // is satisfiable by no number at all, so the reply is an empty list, which reads as
+        // "there are none" instead of "you wrote the ends the wrong way round".
+        Assert.Equal(QueryProblemKind.BadNumber, OneProblem("pid:200-100").Kind);
+
+        Assert.True(QueryParser.Parse("pid:100-200").IsValid);
+        Assert.True(QueryParser.Parse("pid:100-100").IsValid);
+    }
+
+    [Fact]
+    public void An_equals_sign_with_nothing_after_it_is_unfinished_rather_than_a_search_for_emptiness()
+    {
+        // Same reasoning as a colon with nothing after it. Taken literally it asks for
+        // entries whose name is the empty string, which is an empty list dressed as an answer.
+        var query = Valid("name:=");
+
+        Assert.True(query.IsEmpty);
+        Assert.True(query.Match(Entries.Any).Matched);
     }
 
     [Fact]
