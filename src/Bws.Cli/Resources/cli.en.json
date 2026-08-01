@@ -79,6 +79,9 @@
   "cli.cell.startTrigger": "{0}, on trigger",
   "cli.cell.startFileMissing": "{0}, file missing",
   "cli.cell.signedBy": "{0} ({1})",
+  "cli.subcommandMissing": "snapshot needs a word after it. There is: {0}.",
+  "cli.unknownSubcommand": "There is no snapshot {0}. There is: {1}.",
+
   "cli.snapshot.written": "Wrote {0}, holding {1} entries.",
   "cli.snapshot.notElevated": "Taken without administrator rights. The manager hands over fewer entries that way, so comparing this against an elevated snapshot will show entries as removed that nobody removed.",
 

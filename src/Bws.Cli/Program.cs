@@ -11,6 +11,24 @@ using Bws.Core.Snapshots;
 
 var options = CommandLine.Read(args);
 
+if (options.BadSubcommand is not null)
+{
+    // Ahead of the unknown-option check, because "snapshot" on its own would otherwise be
+    // reported as an option nobody knows - and it is neither an option nor unknown.
+    //
+    // Two sentences rather than one, because the two cases are different and one wording
+    // has to lie about one of them. Snapshot on its own is a command that is half typed.
+    // Snapshot followed by a word we do not know is a command that does not exist.
+    var available = string.Join(", ", CommandLine.Subcommands);
+
+    Console.Error.WriteLine(options.BadSubcommand.Length == 0
+        ? Texts.Of("cli.subcommandMissing", available)
+        : Texts.Of("cli.unknownSubcommand", options.BadSubcommand, available));
+
+    Console.Error.WriteLine(Texts.Of("cli.usage"));
+    return ExitCode.Usage;
+}
+
 if (options.Rejected.Count > 0)
 {
     // Diagnostics go to the error channel even when the run fails. The data channel stays
@@ -45,7 +63,7 @@ if (options.Misplaced.Count > 0)
         Console.Error.WriteLine(Texts.Of(
             "cli.optionNotForCommand",
             option,
-            options.Kind.ToString().ToLowerInvariant(),
+            CommandLine.Spelling(options.Kind),
             string.Join(", ", CommandLine.Accepts(option))));
     }
 

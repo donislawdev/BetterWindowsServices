@@ -480,13 +480,55 @@ sense as answers to the one above them.
   - **First live specimens of a refused read on this machine**: `RoutePolicy`, `ZTDNS` and
     `ZTHELPER` refuse to open at all under a restricted token. `docs/05` records them.
 
+- **A review of every source file and every document, at the owner's request.** Nine things
+  found, three of them contradictions inside a single document, two of them user-visible.
+  - **`snapshotcreate` was going out to users.** The message telling somebody where a switch
+    does work spelled the command from its enumeration value, so the answer to "then where
+    do I use `--note`" was a word nobody can type. Guarded now by `UsageContractTests`, in
+    both directions: every command appears in the help, and no message names a spelling the
+    tool refuses.
+  - **`bws snapshot` on its own answered "Unknown option: snapshot".** It is neither an
+    option nor unknown - it is a command waiting for its verb. Two sentences now, because
+    one wording has to lie about one of the two cases: half-typed and non-existent are
+    different mistakes.
+  - **The guard's own switch list was stale**, so `--memory` and `--note` had never been
+    checked against the help at all. Both were in it, by luck rather than by guard.
+  - **`docs/06` said the user-facing text guard "was deliberately not built"** while
+    `UserFacingTextGuards.cs` exists and `docs/02` describes it working. A sentence that
+    outlived its own invalidation, which is the failure mode the rule about prose with an
+    expiry date names.
+  - **The same document still called refusal "two thirds of entries"** one screen below the
+    paragraph retracting that number.
+  - **The acceptance command in `01` and `04` was `bws --query ...`**, without the verb that
+    became mandatory at S3. It exits 2 today. Both fixed.
+  - **`01` promised `AND`/`OR`/parentheses and a `~` operator** in the same document that
+    records the decision to have none of them.
+  - **The frozen switch table in `02` had neither `--memory`, `--note`, nor the
+    `snapshot create` column**, and the list of listing fields stopped at signatures while
+    seven more had shipped. A contract table that is out of date misleads better than no
+    table at all.
+  - **The snapshot is over its performance budget and nobody had said so.** Recorded now,
+    against checklist point 7, which asks for exactly this to be reported rather than left
+    for a reader to notice.
+  - Three memory files carried resolved questions as open ones, a tool list two entries
+    short, and an interop inventory missing two families.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
-- **The `unreadable` JSON shape has no guard.** Reading configuration through the manager
-  is refused zero times on the machine available, so a live run produces no such entry. The
-  `Reading<T>` type behind it is guarded. Closing this needs a test project for the CLI or
-  a machine that refuses.
+- **The `unreadable` JSON shape has no guard.** An elevated session is refused nothing, so
+  an ordinary run produces no such entry. The `Reading<T>` type behind it is guarded.
+  Closing this is cheaper than it used to look: under a restricted token the manager refuses
+  to open `RoutePolicy`, `ZTDNS` and `ZTHELPER`, so a run under `runas /trustlevel:0x20000`
+  produces the shape - no test project needed, only a way to run one from a test without
+  the flakiness that costs.
+
+- **The snapshot is over its performance budget.** `8.1` of the specification promises under
+  5 s and it measures 6399-7156 ms over 810 entries, almost all of it signature verification.
+  Not a defect - the owner chose always-complete snapshots - but a promise the specification
+  still makes. Three ways out and none is chosen: parallelise the verification, allow a
+  snapshot without signatures as a deliberate variant, or raise the budget to a number that
+  came from a measurement. The 5 s was written before anybody had timed `WinVerifyTrust`.
 - **A failed configuration read is always marked as a refusal**, including when the real
   cause is the service disappearing between enumeration and the configuration query. No
   consequence for the listing, a real one for snapshots.
@@ -494,8 +536,9 @@ Carried here rather than in a session's memory, because sessions end.
 - **Nothing guards the descriptor staying on a handle of its own.** See the S4 permissions
   entry: the mistake is one word long and no test on an elevated machine sees it.
 - **An entry invisible without elevation has no representation anywhere.** Not in the four
-  states, not in the fake, not in the JSON. It is a missing row, and it will produce false
-  deletions in a diff until snapshots carry the privilege level they were taken at.
+  states, not in the fake, not in the JSON. It is a missing row. Snapshots now carry the
+  privilege level they were taken at, which is the half that was missing - the other half is
+  the diff actually using it, and that is S5b.
 - **Nothing guards that a snapshot is written atomically.** The window is microseconds wide.
   See the S5a entry: replacing the mechanism leaves every test green.
 - **No date on a signature, and no countersignature timestamp.** A certificate that has

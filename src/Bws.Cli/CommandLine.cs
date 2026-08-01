@@ -98,6 +98,16 @@ internal sealed record CommandLine
     /// <summary>What was given to --timeout that could not be read as seconds. Null when fine.</summary>
     internal string? BadTimeout { get; private init; }
 
+    /// <summary>
+    /// What followed <c>snapshot</c> when it was not a verb we know. Empty string when
+    /// nothing followed it at all, null when the question never came up.
+    ///
+    /// Its own field rather than a rejected word, because the two need different answers.
+    /// A rejected word is something nobody has heard of. This is a command that exists and
+    /// is half typed.
+    /// </summary>
+    internal string? BadSubcommand { get; private init; }
+
     /// <summary>Options nobody knows, and bare words where none belongs.</summary>
     internal IReadOnlyList<string> Rejected { get; private init; } = [];
 
@@ -163,9 +173,30 @@ internal sealed record CommandLine
     /// <summary>Where an option does work, for the message that says it does not work here.</summary>
     internal static IReadOnlyList<string> Accepts(string option) =>
     [
-        .. Surface.Single(entry => entry.Option == option).Verbs
-            .Select(verb => verb.ToString().ToLowerInvariant())
+        .. Surface.Single(entry => entry.Option == option).Verbs.Select(Spelling)
     ];
+
+    /// <summary>
+    /// How a command is written on the command line.
+    ///
+    /// Not the name of the enumeration value. <see cref="CommandKind.SnapshotCreate"/>
+    /// lower-cased reads "snapshotcreate", which is not a thing anybody can type - and it
+    /// was going out in the message telling people where a switch does work, so the answer
+    /// to "then where do I use it" was a word that does not exist. Same family as a switch
+    /// missing its value reporting itself as unknown.
+    /// </summary>
+    internal static string Spelling(CommandKind kind) => kind switch
+    {
+        CommandKind.SnapshotCreate => "snapshot create",
+        _ => kind.ToString().ToLowerInvariant()
+    };
+
+    /// <summary>
+    /// The words that can follow <c>snapshot</c>. E1 promises diff and restore as well and
+    /// neither is built, so this is one entry today and the message that offers it comes
+    /// from here rather than from a sentence somebody has to remember to update.
+    /// </summary>
+    internal static IReadOnlyList<string> Subcommands => ["create"];
 
     internal ActionKind Action => Kind switch
     {
@@ -189,6 +220,7 @@ internal sealed record CommandLine
         string? query = null;
         var path = string.Empty;
         string? note = null;
+        string? badSubcommand = null;
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
@@ -216,11 +248,12 @@ internal sealed record CommandLine
                             continue;
                         }
 
-                        // Reported as the pair the person typed rather than as one word of
-                        // it. "There is no such thing as snapshot" would be untrue, and
-                        // "there is no such thing as diff" would send them looking in the
-                        // wrong place.
-                        rejected.Add(next.Length == 0 ? argument : $"{argument} {next}");
+                        // Its own answer rather than "unknown option". Snapshot is not an
+                        // option and it is not unknown - it is a noun waiting for its verb,
+                        // and calling it an option sends somebody to check their spelling of
+                        // a word they spelled correctly. The same mistake this tool already
+                        // made once, with a switch given without its value.
+                        badSubcommand = next;
 
                         if (next.Length > 0)
                         {
@@ -353,6 +386,7 @@ internal sealed record CommandLine
             Query = query,
             Path = path,
             Note = note,
+            BadSubcommand = badSubcommand,
             Timeout = timeout,
             BadTimeout = badTimeout,
             Rejected = rejected,
