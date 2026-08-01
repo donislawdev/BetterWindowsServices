@@ -83,6 +83,50 @@ public sealed class ListingContractTests
         Assert.Empty(run.StandardOutput.Trim());
     }
 
+    [Theory]
+    [InlineData(0, "--json")]
+    [InlineData(0, "--query", "status:running", "--json")]
+    [InlineData(0, "--query", "name:nothing-is-called-this", "--json")]
+    [InlineData(2, "--no-such-option")]
+    [InlineData(2, "--query")]
+    [InlineData(2, "--query", "stat:running")]
+    [InlineData(2, "--query", "status:runing")]
+    [InlineData(2, "--query", "pid:abc")]
+    [InlineData(2, "--query", "name:/[unclosed/")]
+    [InlineData(2, "stray-word")]
+    public void Every_way_this_can_end_keeps_the_channels_apart(int expected, params string[] arguments)
+    {
+        // One case per way the tool can finish, because a stray write in the branch nobody
+        // ran is the one that reaches somebody's pipe. The exit codes are a public contract
+        // of their own: monitoring and CI branch on them, so they are pinned here rather
+        // than left to whatever the code happens to return.
+        var run = CommandLineTool.Run(arguments);
+
+        Assert.Equal(expected, run.ExitCode);
+
+        if (expected == 0)
+        {
+            // Valid JSON and nothing else mixed in, even when the query matched nothing.
+            _ = JsonDocument.Parse(run.StandardOutput);
+        }
+        else
+        {
+            Assert.Empty(run.StandardOutput);
+            Assert.NotEmpty(run.StandardError.Trim());
+        }
+    }
+
+    [Fact]
+    public void A_partial_answer_is_not_a_failure()
+    {
+        // Reporting an ordinary lack of permissions as a failing run would make scripts stop
+        // on something normal. The warning goes to the error channel and the code stays zero.
+        var run = CommandLineTool.Run("--query", "account:?", "--json");
+
+        Assert.Equal(0, run.ExitCode);
+        _ = JsonDocument.Parse(run.StandardOutput);
+    }
+
     [Fact]
     public void Every_entry_carries_a_name_a_display_name_and_a_type()
     {
