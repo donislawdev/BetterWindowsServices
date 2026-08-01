@@ -578,13 +578,19 @@ internal static class Specimens
     internal static ScmEntry RestrictedIdentity => Entries.Any with
     {
         ServiceName = "BFE",
-        DisplayName = "Aparat filtrowania bazowego",
+        DisplayName = "Podstawowy aparat filtrowania",
         EntryType = EntryType.SharedProcess,
         Status = EntryStatus.Running,
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present(@"NT AUTHORITY\LocalService"),
-        ProcessId = Reading<int>.Present(3268),
+        ProcessId = Reading<int>.Present(4296),
+        DependsOn = Reading<IReadOnlyList<string>>.Present(["RpcSs"]),
+
+        BinaryPath = Reading<string>.Present(
+            @"C:\WINDOWS\system32\svchost.exe -k LocalServiceNoNetworkFirewall -p"),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe"),
+        BinaryOnDisk = Reading<bool>.Present(true),
 
         RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeAuditPrivilege"]),
         SidType = Reading<ServiceSidType>.Present(ServiceSidType.Restricted),
@@ -611,12 +617,17 @@ internal static class Specimens
     internal static ScmEntry DescriptorRefused => Entries.Any with
     {
         ServiceName = "LSM",
-        DisplayName = "Menedżer sesji lokalnych",
+        DisplayName = "Menedżer sesji lokalnej",
         EntryType = EntryType.SharedProcess,
         Status = EntryStatus.Running,
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
-        ProcessId = Reading<int>.Present(1096),
+        Account = Reading<string>.Present("LocalSystem"),
+        ProcessId = Reading<int>.Present(1388),
+
+        BinaryPath = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe -k DcomLaunch -p"),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe"),
+        BinaryOnDisk = Reading<bool>.Present(true),
 
         RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
         SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
