@@ -4,9 +4,15 @@ namespace Bws.Core;
 /// What happened when we tried to read one piece of information.
 ///
 /// Four states, not two. Measured on a real machine on 2026-07-31: reading the
-/// security descriptor was refused for 666 of 869 entries on a shell without
-/// administrator rights. Refusal is the normal case, not an edge case, and it is
-/// a fact about our permissions rather than a fact about the service.
+/// security descriptor from the registry was refused for 666 of the 869 keys a script
+/// walked, on a shell without administrator rights. Refusal is a normal case rather
+/// than an edge case, and it is a fact about our permissions, not about the service.
+///
+/// That 869 is a count of registry keys and not of entries. The manager reports around
+/// 810, and the two are counted by different means over different things - said here
+/// because the number sitting next to the word "entries" is exactly how the two get
+/// confused. Configuration read through the manager, which is what this tool does, was
+/// refused zero times on that same machine.
 ///
 /// Collapsing <see cref="Denied"/> into <see cref="Absent"/> would make a snapshot
 /// taken without elevation look like a snapshot of a machine where those values do

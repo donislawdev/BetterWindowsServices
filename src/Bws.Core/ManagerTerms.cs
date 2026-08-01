@@ -55,7 +55,8 @@ internal static class ManagerTerms
         // Value seven, which this interop metadata does not name. Identified from the
         // machine rather than from memory: sc qtriggerinfo calls every trigger that landed
         // here "CUSTOM SYSTEM STATE CHANGE EVENT", and mapping it took the count of kinds
-        // we could not name from 89 to zero on a machine with 810 entries.
+        // we could not name from 89 to 1 on a machine with 810 entries. The one left is a
+        // kind sc.exe cannot name either - it prints the action and no type line at all.
         (SERVICE_TRIGGER_TYPE)7 => TriggerKind.CustomSystemStateChange,
 
         _ => TriggerKind.Unknown

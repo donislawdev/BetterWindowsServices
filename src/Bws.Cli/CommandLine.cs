@@ -81,7 +81,15 @@ internal sealed record CommandLine
         ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
-        ("--dependents", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+
+        // Not on start, and this one was missed the first time round. Starting is not the
+        // mirror of stopping: the manager brings up whatever the entry needs by itself, and
+        // nothing that merely depends on it has to move. The plan says so and ignores the
+        // word - so accepting it here would be the same silence one level further down,
+        // where somebody writing "start it and everything under it" gets one step and no
+        // hint that the rest of their sentence was dropped.
+        ("--dependents", [CommandKind.Stop, CommandKind.Restart]),
+
         ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart])
     ];
 

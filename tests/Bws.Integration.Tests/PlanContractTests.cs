@@ -58,6 +58,11 @@ public sealed class PlanContractTests
     [InlineData("list", "--dependents")]
     [InlineData("list", "--timeout", "30")]
     [InlineData("stop", "Spooler", "--query", "status:running")]
+
+    // Starting is not the mirror of stopping. The manager brings up whatever the entry
+    // needs by itself and nothing that depends on it has to move, so the plan ignores this
+    // word - and a word the plan ignores must not be one the command line takes.
+    [InlineData("start", "Spooler", "--dependents")]
     public void An_option_that_does_not_belong_to_the_verb_is_refused_rather_than_ignored(params string[] line)
     {
         // The whole point of the change: none of these used to be an error. They were taken,
