@@ -11,6 +11,16 @@ internal sealed record QueryTerm
     internal required IReadOnlyList<IQueryValue> Values { get; init; }
 
     internal bool Negated { get; init; }
+
+    /// <summary>
+    /// The values as they were written, before they were compiled into matchers.
+    ///
+    /// Kept so that something can ask whether a query contains a particular member without
+    /// re-reading the text - see <see cref="Query.Excludes"/>. A compiled value cannot answer
+    /// that: <c>type:driver</c> becomes two symbols and no longer knows it was spelled with
+    /// the word the person clicked.
+    /// </summary>
+    internal IReadOnlyList<string> Written { get; init; } = [];
 }
 
 /// <summary>What came of reading a query: either something that can filter, or what is wrong with it.</summary>
@@ -52,9 +62,25 @@ public static class QueryParser
     /// </summary>
     public const int SyntaxVersion = 1;
 
-    /// <summary>An empty query means everything, which has to be said out loud because the
-    /// alternative - an empty search box showing an empty list - would be absurd.</summary>
-    public static QueryParseResult Parse(string? query)
+    /// <summary>
+    /// An empty query means everything, which has to be said out loud because the
+    /// alternative - an empty search box showing an empty list - would be absurd.
+    /// </summary>
+    /// <param name="bareWordsAreExpressions">
+    /// Whether a member without a field reads as a regular expression rather than as text to
+    /// be contained. This is the regex switch beside the search box in <c>A2</c>, and it lives
+    /// here rather than being spelled out in the interface for one reason: working out which
+    /// parts of the text are bare words is the scanner's job, and a second copy of that in the
+    /// window would drift from this one silently.
+    ///
+    /// Only bare words change. <c>name:spool*</c> keeps its own operators either way, so the
+    /// switch decides how the search half behaves and leaves the language half alone.
+    ///
+    /// <b>Not part of the query text</b>, which matters later rather than now: a saved set is
+    /// stored text, so the day sets can be saved, this state has to be stored beside the text
+    /// or folded into it. Recorded as item 18 of the backlog.
+    /// </param>
+    public static QueryParseResult Parse(string? query, bool bareWordsAreExpressions = false)
     {
         var problems = new List<QueryProblem>();
 
@@ -78,7 +104,7 @@ public static class QueryParser
 
         foreach (var member in members)
         {
-            var term = ReadMember(member, problems);
+            var term = ReadMember(member, problems, bareWordsAreExpressions);
 
             if (term is not null)
             {
@@ -132,7 +158,7 @@ public static class QueryParser
         return folded;
     }
 
-    private static QueryTerm? ReadMember(ScannedText member, List<QueryProblem> problems)
+    private static QueryTerm? ReadMember(ScannedText member, List<QueryProblem> problems, bool asExpression)
     {
         var negated = member.StartsWithSpecial('!');
         var body = negated ? member.Slice(1) : member;
@@ -149,8 +175,13 @@ public static class QueryParser
         // is an attempt to name a field.
         if (colon <= 0)
         {
-            var free = ReadTextValue(body, forFreeSearch: true, problems);
-            return free is null ? null : new QueryTerm { Values = [free], Negated = negated };
+            var free = asExpression
+                ? ReadExpressionValue(body, problems)
+                : ReadTextValue(body, forFreeSearch: true, problems);
+
+            return free is null
+                ? null
+                : new QueryTerm { Values = [free], Negated = negated, Written = [body.Text] };
         }
 
         var fieldName = body.Slice(0, colon).Text;
@@ -169,6 +200,7 @@ public static class QueryParser
         }
 
         var values = new List<IQueryValue>();
+        var written = new List<string>();
 
         foreach (var part in body.Slice(colon + 1).SplitOnSpecial(','))
         {
@@ -182,12 +214,41 @@ public static class QueryParser
             if (value is not null)
             {
                 values.Add(value);
+                written.Add(part.Text);
             }
         }
 
         // Nothing after the colon at all. Half-typed, not wrong, so the rest of the query
         // still answers and the member waits for the person to finish.
-        return values.Count == 0 ? null : new QueryTerm { Field = field, Values = values, Negated = negated };
+        return values.Count == 0
+            ? null
+            : new QueryTerm { Field = field, Values = values, Negated = negated, Written = written };
+    }
+
+    /// <summary>
+    /// A bare word read as a regular expression, which is what the regex switch beside the
+    /// search box means.
+    ///
+    /// Nothing else is tried first - not the slashes, not the equals sign, not the wildcards.
+    /// With the switch on, the text is the expression and every character in it means what it
+    /// means to a regular expression, which is the only reading that does not need a person to
+    /// remember a second set of rules for when the switch is down.
+    /// </summary>
+    private static IQueryValue? ReadExpressionValue(ScannedText value, List<QueryProblem> problems)
+    {
+        if (QueryPatterns.TryPattern(value.Text, out var compiled, out var failure))
+        {
+            return new TextValue(TextOperator.Pattern, value.Text, compiled);
+        }
+
+        problems.Add(new QueryProblem
+        {
+            Kind = QueryProblemKind.BadPattern,
+            Text = value.Text,
+            Detail = failure
+        });
+
+        return null;
     }
 
     private static IQueryValue? ReadValue(QueryField field, ScannedText value, List<QueryProblem> problems)

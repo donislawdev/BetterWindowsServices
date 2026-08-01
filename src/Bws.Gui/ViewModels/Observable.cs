@@ -33,4 +33,14 @@ public abstract class Observable : INotifyPropertyChanged
 
         return true;
     }
+
+    /// <summary>
+    /// Says a property changed without there being a field behind it.
+    ///
+    /// For the ones worked out from something else. A switch standing for a member of the
+    /// query has no state of its own - it reads the query - so nothing sets it and the
+    /// mechanism above never fires for it.
+    /// </summary>
+    protected void Raise(string property) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 }

@@ -154,8 +154,26 @@ Nothing has been released yet. Everything below is what the tool does today.
     two facts say opposite things about a service and a blank cell cannot tell you which.
   - Read only. Every change to a service goes through a plan, so there is nothing here to
     type into.
-  - The list does not refresh itself yet, and cannot be searched or sorted. Those are the
-    next steps.
+  - The list does not refresh itself yet, and cannot be sorted. Those are the next steps.
+
+- **One box above the list, for searching and for the query language.** Type a word and the
+  list narrows as you type. Type `start:auto !status:running` and you get the same entries
+  as `bws list --query "start:auto !status:running"` - it is the same language, so anything
+  you work out in one can be pasted into the other.
+  - **A half-typed query is not a mistake.** Nothing turns red while you are still writing
+    `status:`. A real mistake is reported under the list, in words, naming what would have
+    worked - and the list you were looking at stays where it is rather than emptying.
+  - **When the answer is not the whole answer, it says so** under the count. That covers
+    entries judged on something the machine would not let us read, expressions that ran out
+    of time, and questions about things the window has not read.
+  - **Two switches beside the box.** `Regex` reads a word on its own as a regular
+    expression. `Drivers` puts kernel drivers in or out - and turning it off writes
+    `!type:driver` into the box where you can see it, edit it, or copy it into a terminal.
+    Type that yourself and the switch moves on its own.
+  - **Signatures and memory cannot be asked about here yet.** `signed:no` and
+    `memory:>100MB` are real questions and the window says plainly that nobody read those
+    for a listing, rather than answering with an empty list that reads like "there are
+    none". The command line answers them today with `--signatures` and `--memory`.
 
 ### Changed
 

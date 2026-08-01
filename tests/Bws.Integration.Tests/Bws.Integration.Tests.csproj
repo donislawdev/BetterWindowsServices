@@ -2,6 +2,19 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Deliberately NOT UseWPF, unlike the window's own test project.
+
+      Turning it on changes which namespaces are imported without being written down - it adds
+      the ones WPF needs and drops System.IO - and thirty two lines in this project stopped
+      compiling the moment it went in. That is a lot of noise to accept for a setting that is
+      not needed: the parity check touches the view model, and the view model knows nothing
+      about WPF. That is the entire reason it exists as a layer.
+
+      Which means this project also proves something by building: if the view model ever grows
+      a WPF type on its public surface, this stops compiling.
+    -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +30,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bws.Core\Bws.Core.csproj" />
+
+    <!--
+      The window, so that one query can be asked of both interfaces and the answers compared.
+      This is the only project that references both, and it is a test project - the shipped
+      ones are held apart by DeclaredReferenceGuards and stay that way.
+    -->
+    <ProjectReference Include="..\..\src\Bws.Gui\Bws.Gui.csproj" />
   </ItemGroup>
 
 </Project>

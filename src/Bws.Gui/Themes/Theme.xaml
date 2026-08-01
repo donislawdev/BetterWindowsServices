@@ -68,6 +68,15 @@
     <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
 
     <!--
+        What the person wrote and we cannot read - a query with a mistake in it.
+
+        Its own name rather than the untrusted one, even though the colour is the same today.
+        A brush borrowed for a second meaning is how the next session ends up changing the
+        colour of a rejected query by adjusting what an untrusted signature looks like.
+    -->
+    <SolidColorBrush x:Key="MeaningRejected">#E81123</SolidColorBrush>
+
+    <!--
         What nobody could read. Its own colour because it is its own state: this project
         spends most of its rules on not letting "unknown" look like "nothing", and the
         interface is the last place that could undo all of it.
@@ -95,6 +104,7 @@
     <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
 
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
+    <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
     <!--
         Default look per control type, so a control is consistent without anybody remembering
@@ -147,6 +157,40 @@
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
         <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
+        What the result has to admit about itself, and what is wrong with the question. Two
+        styles rather than one, because they answer different questions and a person glancing
+        at the window has to be able to tell "your query is broken" from "your query worked and
+        the answer has holes in it" without reading either sentence.
+    -->
+    <Style x:Key="NoticeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource MeaningWarning}" />
+    </Style>
+
+    <Style x:Key="ProblemText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+    </Style>
+
+    <!--
+        The one field. Its padding is named rather than left to the framework because the hint
+        sitting behind it has to line up with the text a person types, and the only way to be
+        sure of that is for both to come from this line.
+    -->
+    <Style TargetType="TextBox">
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <Style TargetType="CheckBox">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>
 
 </ResourceDictionary>

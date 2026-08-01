@@ -17,9 +17,75 @@
 
     <Grid Margin="{StaticResource PadPanel}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+
+        <!--
+            One field for all three of A1, A2 and A3, which is the point rather than a saving:
+            a person types a word, learns one operator, and never moves to a different box.
+            The same text handed to the query switch of bws list picks the same entries.
+
+            Both switches sit beside it because both are about how the text is read, and one
+            of them writes into it.
+        -->
+        <Grid Grid.Row="0" Margin="{StaticResource MarginBelowSearch}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
+                <!--
+                    Updated on every keystroke rather than when the field loses focus. The
+                    filtering is the feature, and a list that waits for Tab is a list that
+                    does not filter as you type.
+                -->
+                <TextBox x:Name="QueryBox"
+                         Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}" />
+
+                <!--
+                    The hint, behind the field and out of the way of the mouse. An empty box
+                    teaches nobody that the language exists, and this is the one place it can
+                    be shown without spending a line of the window on it.
+                -->
+                <TextBlock Text="{DynamicResource gui.search.hint}"
+                           Margin="{StaticResource PadCell}"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=QueryBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+
+            <CheckBox Grid.Column="1"
+                      Margin="{StaticResource MarginBetweenControls}"
+                      VerticalAlignment="Center"
+                      IsChecked="{Binding BareWordsAreExpressions}"
+                      Content="{DynamicResource gui.search.expressions}"
+                      ToolTip="{DynamicResource gui.search.expressionsHint}" />
+
+            <!--
+                This one has no state of its own - it reads the query and writes into it. Turn
+                it off and !type:driver appears in the box, which is A5's promise arriving
+                early: the filter you clicked is the query you can read.
+            -->
+            <CheckBox Grid.Column="2"
+                      VerticalAlignment="Center"
+                      IsChecked="{Binding ShowDrivers}"
+                      Content="{DynamicResource gui.search.showDrivers}"
+                      ToolTip="{DynamicResource gui.search.showDriversHint}" />
+        </Grid>
 
         <!--
             Read only, and it stays that way. Every change to a service goes through a plan,
@@ -30,8 +96,8 @@
             the slice that also answers what a sort does while the list refreshes underneath
             it, which A10 has five rules about.
         -->
-        <DataGrid Grid.Row="0"
-                  ItemsSource="{Binding Entries}"
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Rows}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserSortColumns="False"
@@ -59,8 +125,37 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginAboveStatus}">
+        <!--
+            Three lines and never fewer than one. The count is always there, the other two
+            appear only when they have something to say - and what they say is kept apart on
+            purpose: one is a fact about the answer, the other about the question.
+        -->
+        <StackPanel Grid.Row="2" Margin="{StaticResource MarginAboveStatus}">
             <TextBlock Text="{Binding Status}" Style="{StaticResource SubduedText}" />
+
+            <TextBlock Text="{Binding Notice}" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Notice}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <TextBlock Text="{Binding Problem}" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProblemText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Problem}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </StackPanel>
     </Grid>
 </Window>

@@ -670,6 +670,81 @@ sense as answers to the one above them.
     also has to answer what a sort does while the list refreshes underneath it, which `A10`
     has five rules about.
 
+- **S6b: one box for searching, expressions and the query language** (`A1` to `A3`), plus the
+  drivers switch (`A7`). 452 tests against 424, mutation 24 of 24, audit clean.
+  - **`QueryParser.Parse` takes a second argument** turning bare words into regular
+    expressions - the regex switch of `A2`. Members with a field keep their own operators
+    either way, so the switch decides how the search half reads and leaves the language half
+    alone. It lives in the parser rather than in the window because working out which part of
+    the text is a bare word is the scanner's job, and a second copy of that in the interface
+    would drift from this one in silence. **Not `[contract]`:** additive, default off, and the
+    command line does not pass it.
+  - **`Query.Excludes(field, value)` is new and public.** The drivers switch has no state of
+    its own - it reads the query and writes into it - so it needs to ask whether the member it
+    stands for is in the text. Asks about the value **as written**, because `type:driver`
+    compiles to two symbols and neither of them is the word that was clicked. `QueryTerm` now
+    keeps the written values alongside the compiled ones for exactly this.
+  - **The drivers switch is a member of the query, not a state beside it** - the third of the
+    three ways out named at the end of `docs/07`, chosen by the owner on 2026-08-02. Turning it
+    off writes `!type:driver` into the box. Default on, so the window still opens showing what
+    `bws list` shows, which is what S6a promised.
+  - **It appends and removes at the end of the text only.** Cutting a member out of the middle
+    means finding it in text that may hold quotes, which is the scanner's job again. Somebody
+    who typed the exclusion first keeps it and the switch goes back to where it was instead of
+    pretending. Pinned by `The_switch_will_not_undo_what_it_could_not_have_written`, so the
+    limit stays known rather than being rediscovered as a bug.
+  - **Signatures and memory are not read here, and the window says so in those words.** The
+    command line answers `signed:no` by verifying every binary, measured at 1100-1245 ms over
+    810 entries and 544 files - a price a listing pays once and a search box cannot pay per
+    keystroke. Reading it in the background belongs to S6c with the rest of `A10`.
+  - **One count, two meanings, and the sentence had to pick one.** `QueryResult.Unreadable`
+    folds "the machine refused" together with "nobody looked". The window shows the sentence
+    about the unread family **instead of** the one about a refusal, because the second would
+    turn "nobody asked" into "you were not allowed" - the distinction this project spends most
+    of its rules on. Cost: a query mixing an unread family with a genuinely refused field
+    reports only the first.
+  - **Measured, six process runs, first discarded as cold, eight queries interleaved per run:**
+    filtering costs **0.42-2.25 ms over 810 entries** against the 50 ms of section 8.1. The
+    worst case is a **bare word at 2.08-2.25 ms**, four free-search fields times 810 entries -
+    a member with a field sits at 0.42-0.96 ms. Worst run is 4.5% of the budget.
+  - **What that number does not cover, said plainly:** drawing the list. It measures the view
+    model - reading the query, judging every entry, building the rows that are left. **NOT
+    MEASURED:** what the grid costs when its source is replaced, which needs a window on a
+    screen and a person watching it.
+  - **The first measurement was worthless and the reason generalises.** In milliseconds it read
+    `0 ms` for seven of eight queries - not a fast measurement, a measurement below the
+    resolution of the instrument, and writing it down as zero would have been the instrument
+    lying quietly. It also printed the row count read **after** the loop, so every line made
+    the same claim about a different query. Both came out of looking at the output, not out of
+    writing the code.
+  - **Found by mutation, and the most valuable thing in this slice:** the parity test for
+    expressions asked about `^sql`, and on a machine with no SQL Server **both sides answered
+    with nothing**, so it passed while checking nothing. Turning the switch off in the view
+    model left it green. **Two empty results are equal** - so every comparison of two results
+    has to claim as well that the result is not empty, and for a switch, that it is not
+    everything. This is `ADR-10`'s fake-test trap in a form with no fake in it.
+  - **`QueryParityContractTests` is the only place that sees both interfaces**, and what it
+    cannot prove is worth writing down: both sides call the same code in `Bws.Core.Querying`,
+    so a bug in the engine agrees with itself. It proves the wiring, not the language. Two
+    concessions to a live machine: comparison runs over the **intersection** of the two
+    readings, and queries about running state compare with a tolerance, because the running
+    state moves on its own - measured at S5b2.
+  - **`Bws.Integration.Tests` now references `Bws.Gui`**, deliberately **without `UseWPF`**.
+    Turning that on changes which namespaces are implicitly imported - it adds the WPF ones and
+    drops `System.IO` - and thirty two lines of that project stopped compiling. It is not
+    needed, because the view model knows nothing about WPF, which means the project now proves
+    that by building at all. The shipped projects stay apart, held by `DeclaredReferenceGuards`.
+  - **The view model changed shape.** `Entries` became `Rows`, a plain list swapped in one
+    notification rather than an `ObservableCollection` refilled item by item, and the entries
+    are kept so every keystroke can filter them again. Rows are now built on the interface
+    thread with the filtering rather than off it with the reading - the cost measured above is
+    what makes that acceptable.
+  - **Deliberately left out, in the backlog with a destination:** match highlighting (item 14)
+    and field autocomplete (item 15), both handed to S6d because both need what the clickable
+    filters of `A5` need. Also **item 18**: the regex switch does not fit inside the query text,
+    and a saved set is text - Phase 4 has to store the state beside it or expand bare words into
+    `/expression/` when saving.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two

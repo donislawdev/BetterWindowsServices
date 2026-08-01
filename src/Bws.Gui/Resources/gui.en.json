@@ -14,11 +14,31 @@
   "gui.column.account": "Account",
   "gui.column.processId": "PID",
 
+  "gui.search.hint": "Search, or write a query: start:auto !status:running",
+  "gui.search.expressions": "Regex",
+  "gui.search.expressionsHint": "A word on its own is read as a regular expression. Members like name:spool* are unaffected.",
+  "gui.search.showDrivers": "Drivers",
+  "gui.search.showDriversHint": "Kernel and file system drivers, which services.msc never shows. Turning this off writes !type:driver into the box.",
+
   "gui.status.reading": "Reading the service control manager...",
   "gui.status.read": "{0} entries.",
+  "gui.status.matched": "{0} of {1} entries.",
   "gui.status.failed": "Could not read the service control manager. {0}",
+  "gui.status.partial": "{0} entries were judged on a field that could not be read, so this list may be missing entries, or holding ones that do not belong.",
+  "gui.status.tooCostly": "The expression ran out of time on {0} entries, so they were never checked. Try a simpler one.",
 
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
+
+  "gui.query.unreadSignatures": "This asks about signatures, which are not read for a listing, so no entry can answer it here. Ask the command line with --signatures.",
+  "gui.query.unreadMemory": "This asks about memory, which is not read for a listing, so no entry can answer it here. Ask the command line with --memory.",
+
+  "gui.query.unknownField": "There is no field called {0}. Fields you can use: {1}.",
+  "gui.query.unknownValue": "{1} has no value {0}. It accepts: {2}.",
+  "gui.query.unknownValueNearest": "{1} has no value {0}. Did you mean {2}? It accepts: {3}.",
+  "gui.query.badPattern": "The expression /{0}/ could not be read. {1}",
+  "gui.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
+  "gui.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
+  "gui.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "gui.cell.unknown": "unknown",
   "gui.cell.noAccess": "no access",

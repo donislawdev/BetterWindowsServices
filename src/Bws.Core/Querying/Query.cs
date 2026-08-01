@@ -66,6 +66,55 @@ public sealed class Query
     public ExtraRead Needs =>
         _terms.Aggregate(ExtraRead.None, (needs, term) => needs | (term.Field?.Needs ?? ExtraRead.None));
 
+    /// <summary>
+    /// Whether this query carries an exclusion of one value of one field, written the way a
+    /// person would write it.
+    /// </summary>
+    /// <remarks>
+    /// Exists so that a control standing for a member can tell whether that member is in the
+    /// text - the "show drivers" switch asks <c>Excludes("type", "driver")</c>. Without it the
+    /// window would have to find members in the text itself, which means a second copy of the
+    /// scanner living in the interface and drifting from this one without a sound.
+    ///
+    /// Asks about the value as written rather than about what it compiled to, and that is the
+    /// point: <c>type:driver</c> becomes two symbols, neither of them the word that was
+    /// clicked. Spelling is folded the same way the language folds it everywhere else, so
+    /// <c>!TYPE:Driver</c> answers yes.
+    ///
+    /// One member, one value. Deliberately not a general question about what a query contains:
+    /// the clickable filters of <c>A5</c> will want more, and they will want it in a shape
+    /// nobody can design before there are chips to design it for.
+    /// </remarks>
+    public bool Excludes(string field, string value)
+    {
+        var wanted = QueryFields.Find(field);
+
+        if (wanted is null)
+        {
+            return false;
+        }
+
+        var spelling = QueryFields.Normalise(value);
+
+        foreach (var term in _terms)
+        {
+            if (!term.Negated || term.Field != wanted)
+            {
+                continue;
+            }
+
+            foreach (var written in term.Written)
+            {
+                if (QueryFields.Normalise(written) == spelling)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public QueryResult Filter(IReadOnlyList<ScmEntry> entries)
     {
         if (IsEmpty)
