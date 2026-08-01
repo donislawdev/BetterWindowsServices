@@ -203,6 +203,7 @@ public static class QueryParser
         {
             QueryFieldKind.Text => ReadTextValue(value, forFreeSearch: false, problems),
             QueryFieldKind.Enumeration => ReadSymbolValue(field, value, problems),
+            QueryFieldKind.Size => ReadSizeValue(field, value, problems),
             _ => ReadNumberValue(field, value, problems)
         };
     }
@@ -314,18 +315,78 @@ public static class QueryParser
         return null;
     }
 
+    /// <summary>
+    /// Which comparison a value opens with, and what is left after it.
+    ///
+    /// Shared by numbers and sizes because the shapes are the language's, not the unit's -
+    /// a person who has learned <c>pid:&gt;1000</c> should not have to find out whether
+    /// memory spells its comparisons the same way.
+    /// </summary>
+    private static (NumberOperator Operation, string Bound)? Comparison(string text) => text switch
+    {
+        _ when text.StartsWith(">=", StringComparison.Ordinal) => (NumberOperator.GreaterOrEqual, text[2..]),
+        _ when text.StartsWith("<=", StringComparison.Ordinal) => (NumberOperator.LessOrEqual, text[2..]),
+        _ when text.StartsWith('>') => (NumberOperator.Greater, text[1..]),
+        _ when text.StartsWith('<') => (NumberOperator.Less, text[1..]),
+        _ => null
+    };
+
+    /// <summary>
+    /// A quantity of bytes, in the same shapes a number takes: exact, compared, or a closed
+    /// range. The unit is not optional - see <see cref="QuerySizes"/> for why.
+    /// </summary>
+    private static IQueryValue? ReadSizeValue(QueryField field, ScannedText value, List<QueryProblem> problems)
+    {
+        var text = value.Text;
+
+        if (Comparison(text) is { } comparison)
+        {
+            return QuerySizes.TryRead(comparison.Bound, out var bound)
+                ? new SizeValue(comparison.Operation, bound, bound)
+                : RejectSize(field, value, problems);
+        }
+
+        // Only a dash between two units is a range. Looking for the first dash anywhere, the
+        // way the number field does, is safe here for the same reason: a size never opens
+        // with one, because a negative quantity of bytes is not a thing anybody writes.
+        var dash = text.IndexOf('-', StringComparison.Ordinal);
+
+        if (dash > 0)
+        {
+            if (!QuerySizes.TryRead(text[..dash], out var low) || !QuerySizes.TryRead(text[(dash + 1)..], out var high))
+            {
+                return RejectSize(field, value, problems);
+            }
+
+            // Ends the wrong way round matches nothing, ever, so it is a mistake rather than
+            // an empty answer - the same rule the number field follows.
+            return low <= high
+                ? new SizeValue(NumberOperator.Range, low, high)
+                : RejectSize(field, value, problems);
+        }
+
+        return QuerySizes.TryRead(text, out var exact)
+            ? new SizeValue(NumberOperator.Equal, exact, exact)
+            : RejectSize(field, value, problems);
+    }
+
+    private static IQueryValue? RejectSize(QueryField field, ScannedText value, List<QueryProblem> problems)
+    {
+        problems.Add(new QueryProblem
+        {
+            Kind = QueryProblemKind.BadSize,
+            Text = value.Text,
+            Field = field.Name
+        });
+
+        return null;
+    }
+
     private static IQueryValue? ReadNumberValue(QueryField field, ScannedText value, List<QueryProblem> problems)
     {
         var text = value.Text;
 
-        (NumberOperator Operation, string Bound)? shape = text switch
-        {
-            _ when text.StartsWith(">=", StringComparison.Ordinal) => (NumberOperator.GreaterOrEqual, text[2..]),
-            _ when text.StartsWith("<=", StringComparison.Ordinal) => (NumberOperator.LessOrEqual, text[2..]),
-            _ when text.StartsWith('>') => (NumberOperator.Greater, text[1..]),
-            _ when text.StartsWith('<') => (NumberOperator.Less, text[1..]),
-            _ => null
-        };
+        var shape = Comparison(text);
 
         if (shape is { } comparison)
         {

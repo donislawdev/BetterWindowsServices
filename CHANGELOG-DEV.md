@@ -267,6 +267,54 @@ sense as answers to the one above them.
     three change no existing column's meaning, unlike a trigger or a missing file. No SACL,
     no writes.
 
+- **The fourth family of S4, and the end of S4: process memory.** **[contract]** `memory`
+  on `ScmEntry` and in the JSON as `{workingSet, commit, sharedBy}`, a `MEMORY` column, a
+  `--memory` switch, and `memory` in the query language.
+  - **Measured:** the pass costs **5-8 ms over 810 entries and 110 processes**, six runs.
+    That closes open question 4 of `docs/02` - all four families now measured, and the
+    spread across them is a hundredfold. `ADR-13` is justified by exactly one of the four.
+  - **The population is not what the specification assumed.** 119 entries of 810 have a
+    process, those 119 sit in **110 processes**, and **105 of those host exactly one
+    entry**. The big `netsvcs` group with its 48 services exists in the configuration and
+    not at runtime, because Windows splits svchost into a process per service when there is
+    enough memory. I predicted about 200 entries with a process and was high by two thirds.
+  - **The access mask is the whole slice.** `GetProcessMemoryInfo` names
+    `PROCESS_QUERY_INFORMATION` with `PROCESS_VM_READ` in its first sentence, and accepts
+    `PROCESS_QUERY_LIMITED_INFORMATION` instead. Measured over 110 processes: the limited
+    right refused by **none**, the wider pair by **seven** - lsass, MsMpEng,
+    MpDefenderCoreService, NisSrv, SecurityHealthService and two svchosts. It is also the
+    only right under which "this only reads" is checkable: the limited mask cannot read or
+    write anything inside the process.
+  - **The first deliberate break was not caught, so a guard was added for it.** Swapping in
+    the wider mask left all 352 tests green, because every test sampled entries that had
+    answered and the seven refusals simply dropped out of the sample. The new guard asks the
+    opposite question - did anything fail to answer - and names the eight services affected.
+    It makes its strong claim only on an elevated session, and says so in the test: without
+    elevation a refusal on somebody else's process is the system behaving normally, and a
+    guard that fires on a correct run gets switched off.
+  - **The second break was caught, by two tests:** running the pass after the filter. The
+    sharing count is then taken over the filtered list, so a service in a shared process
+    reports having it to itself - every megabyte figure stays right and only the sentence
+    around it is false.
+  - **Found by measuring, not by writing: the pass was being counted as filtering time.**
+    2-3 ms without it and 7-8 ms with it, all under the word "filtered" - the same mistake
+    the signature pass has its own line to avoid. It has one now. It also corrects my own
+    note from the probe that this costs a fraction of a millisecond: that is what the calls
+    cost, and the pass also builds 810 new records.
+  - **Sizes are new to the query language**, because the specification's own showcase query
+    is `memory:>500MB` and without units the field would be unusable. The unit is required:
+    `memory:>500` is a refusal with a message, not a question about 500 bytes that would
+    match every running service. Powers of 1024, matching Task Manager and `Get-Process`.
+  - **`Query.NeedsSecondPass` became `Query.Needs`, a flags enum.** With one flag, a query
+    about memory would have set off a signature verification measured in seconds to answer
+    something that costs milliseconds.
+  - **Deliberately left out:** the private working set, which is what Task Manager shows in
+    its Memory column. It needs either the mask seven processes refuse or performance
+    counters, whose **counter set names are translated** - `Proces` and `Proces w wersji 2`
+    on this machine - which rule 3 rules out. Only the numeric-index route would be safe and
+    nobody asked. Also left out: a second size field for the commit figure, memory history,
+    and memory in a snapshot, which `D1` rightly does not ask for.
+
 - **Found while doing it, and bigger than the slice: without elevation the manager
   enumerates fewer entries, not entries with holes.** 807 against 810, with `RoutePolicy`,
   `ZTDNS` and `ZTHELPER` missing entirely, and `sc.exe query type= all state= all` in the
@@ -408,6 +456,10 @@ Carried here rather than in a session's memory, because sessions end.
   expired since signing is a different fact from one that was expired when it signed.
 - **The second pass cannot be interrupted.** Ctrl+C during those five seconds ends the
   process, which is harmless for a read but not the three-level handling a plan run gets.
+- **The private working set is not read.** It is the number Task Manager shows under
+  Memory, and the two ways to it are a mask seven processes refuse and performance counters
+  whose set names are translated. Anybody comparing our column against Task Manager's
+  default will see two different numbers, both correct.
 - **`dwControlsAccepted`** likewise - a service's own declaration of whether it accepts
   being stopped, which would make a fifth preflight warning. Open question: whether it
   enters the public JSON contract or is read only when building a plan.

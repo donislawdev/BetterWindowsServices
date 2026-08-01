@@ -10,7 +10,41 @@ internal enum QueryFieldKind
     Enumeration,
 
     /// <summary>Equality, comparison and a closed range.</summary>
-    Number
+    Number,
+
+    /// <summary>
+    /// The same shapes as <see cref="Number"/>, over a quantity of bytes written with a
+    /// unit: <c>500MB</c>, <c>&gt;1GB</c>, <c>100MB-1GB</c>.
+    ///
+    /// Its own kind rather than a number, because the unit is not optional. The
+    /// specification's own example is <c>memory:&gt;500MB</c>, and reading a bare
+    /// <c>memory:&gt;500</c> as bytes would match every running service while looking like
+    /// it had filtered - the confident wrong answer this language is arranged to avoid.
+    /// </summary>
+    Size
+}
+
+/// <summary>
+/// Data a query needs that a plain listing does not read.
+///
+/// Flags rather than a single yes-or-no, and that is not future-proofing for its own sake:
+/// with one flag, a query about memory would set off a signature verification measured at
+/// several seconds, to answer a question that costs under a millisecond. The caller asks
+/// for what it needs and gets only that.
+///
+/// Kept here rather than as a list of field names in the command line, so that adding a
+/// family cannot leave that list quietly out of date.
+/// </summary>
+[Flags]
+public enum ExtraRead
+{
+    None = 0,
+
+    /// <summary>Who signed each binary. Measured at 4620-7656 ms over 810 entries.</summary>
+    Signatures = 1,
+
+    /// <summary>What each running process is using. Measured at under a millisecond over 110 processes.</summary>
+    Memory = 2
 }
 
 /// <summary>
@@ -55,14 +89,14 @@ internal sealed class QueryField
     internal IReadOnlyList<string> Aliases { get; init; } = [];
 
     /// <summary>
-    /// Whether this field has no data until the second pass has run.
+    /// What has to be read before this field has anything to say.
     ///
     /// Kept here rather than as a list of names somewhere else, so that a caller can ask
-    /// "does this query need the expensive read" without knowing which fields those are.
-    /// The command line must not carry that list: it would go stale the first time a family
-    /// of expensive data was added, and it would go stale silently.
+    /// "what does this query need" without knowing which fields those are. The command line
+    /// must not carry that list: it would go stale the first time a family was added, and it
+    /// would go stale silently.
     /// </summary>
-    internal bool NeedsSecondPass { get; init; }
+    internal ExtraRead Needs { get; init; }
 
     /// <summary>
     /// Whether this field was read on this entry, which is what <c>none</c>, <c>any</c>
@@ -93,4 +127,13 @@ internal sealed class QueryField
 
     /// <summary>Number fields only. Null when the value is absent or was refused.</summary>
     internal Func<ScmEntry, int?>? NumberOf { get; init; }
+
+    /// <summary>
+    /// Size fields only, in bytes. Null when the value is absent or was refused.
+    ///
+    /// Bytes and a long, not megabytes and an int. Rounding at the source would make a
+    /// range that reads exactly right - <c>memory:1MB-2MB</c> - answer about something
+    /// slightly different, and a process above two gigabytes is ordinary on a server.
+    /// </summary>
+    internal Func<ScmEntry, long?>? SizeOf { get; init; }
 }

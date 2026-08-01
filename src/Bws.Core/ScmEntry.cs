@@ -289,6 +289,24 @@ public sealed record ScmEntry
     public required Reading<string> SecurityDescriptor { get; init; }
 
     /// <summary>
+    /// What the process behind this entry is using, when one is running.
+    ///
+    /// The last of the four families S4 was cut into, and the only one that is a
+    /// measurement rather than a description of how the machine is set up. Everything else
+    /// on this record reads the same twice in a row - this does not, which is why it is not
+    /// part of a snapshot and why a plain listing does not ask for it.
+    ///
+    /// Absent for the great majority: 691 entries of 810 are not running, and an entry with
+    /// no process has no memory in the same way a stopped entry has no process id. Not read
+    /// until somebody asks with <c>--memory</c> or with a query about it.
+    ///
+    /// Cheap, and deliberately not read anyway. Measured on 2026-08-01: asking all 110
+    /// processes takes under a millisecond. See <see cref="MemoryPass"/> for why that is not
+    /// the argument it looks like.
+    /// </summary>
+    public required Reading<ProcessMemory> Memory { get; init; }
+
+    /// <summary>
     /// True for a name in <see cref="DependsOn"/> that names a load order group rather
     /// than a service. Stopping one member of a group does not necessarily break anything
     /// that depends on the group, so the two cannot be treated alike when planning.

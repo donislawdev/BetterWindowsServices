@@ -51,17 +51,20 @@ public sealed class Query
     public bool IsEmpty => _terms.Count == 0;
 
     /// <summary>
-    /// Whether answering this query needs data the first pass does not read.
+    /// What has to be read before this query can be answered, beyond what a listing reads.
     ///
     /// Asked before the listing is filtered, so that somebody writing <c>signed:no</c> gets
     /// an answer rather than an empty list. Without this the only honest reply to a query
     /// about an unread field is nothing at all - which reads exactly like "there are none",
     /// and is the failure this whole language is arranged to avoid.
     ///
-    /// It costs what it costs, and the caller is the one who says so out loud.
+    /// Per family rather than a single flag, because the families are nothing alike: one is
+    /// measured in seconds and the other in fractions of a millisecond, so answering a
+    /// question about memory by verifying every signature on the machine would be paying
+    /// four thousand times over for something nobody asked about.
     /// </summary>
-    public bool NeedsSecondPass =>
-        _terms.Any(term => term.Field is { NeedsSecondPass: true });
+    public ExtraRead Needs =>
+        _terms.Aggregate(ExtraRead.None, (needs, term) => needs | (term.Field?.Needs ?? ExtraRead.None));
 
     public QueryResult Filter(IReadOnlyList<ScmEntry> entries)
     {

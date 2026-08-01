@@ -74,19 +74,32 @@ public sealed class SignatureQueryTests
     }
 
     [Fact]
-    public void Asking_about_signatures_says_the_second_pass_is_needed()
+    public void Asking_about_signatures_says_the_signatures_are_needed()
     {
         // What makes "bws list --query signed:no" work without a switch. Answering it from
         // an unread field would be a correct query returning what reads exactly like
         // "there are none".
-        Assert.True(QueryParser.Parse("signed:no").Query!.NeedsSecondPass);
-        Assert.True(QueryParser.Parse("publisher:microsoft").Query!.NeedsSecondPass);
+        Assert.Equal(ExtraRead.Signatures, Needs("signed:no"));
+        Assert.Equal(ExtraRead.Signatures, Needs("publisher:microsoft"));
 
         // And the ordinary listing stays fast, which is the whole point of asking.
-        Assert.False(QueryParser.Parse("start:auto !status:running").Query!.NeedsSecondPass);
-        Assert.False(QueryParser.Parse("file:missing").Query!.NeedsSecondPass);
-        Assert.False(QueryParser.Parse("spooler").Query!.NeedsSecondPass);
+        Assert.Equal(ExtraRead.None, Needs("start:auto !status:running"));
+        Assert.Equal(ExtraRead.None, Needs("file:missing"));
+        Assert.Equal(ExtraRead.None, Needs("spooler"));
     }
+
+    [Fact]
+    public void Asking_about_memory_does_not_drag_the_signatures_along()
+    {
+        // The reason this answer is a set of flags rather than a yes. Verifying every
+        // signature on the machine measured 4620-7656 ms, and reading what the processes
+        // are using measured under a millisecond - so answering a question about memory by
+        // doing both would cost four thousand times what was asked for.
+        Assert.Equal(ExtraRead.Memory, Needs("memory:>100MB"));
+        Assert.Equal(ExtraRead.Signatures | ExtraRead.Memory, Needs("memory:>100MB signed:no"));
+    }
+
+    private static ExtraRead Needs(string query) => QueryParser.Parse(query).Query!.Needs;
 
     [Fact]
     public void An_unread_signature_answers_nothing_at_all()

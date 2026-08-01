@@ -49,6 +49,18 @@ internal sealed record CommandLine
     /// </summary>
     internal bool Signatures { get; private init; }
 
+    /// <summary>
+    /// Read what each running entry's process is using, which the listing does not do by
+    /// default.
+    ///
+    /// Not for the reason <see cref="Signatures"/> is asked for. This one is measured at
+    /// under a millisecond, so the switch buys no time worth mentioning - it exists because
+    /// memory is the one thing here that is a measurement rather than a description of how
+    /// the machine is set up, and a plain listing stays the second of those. A query about
+    /// memory turns it on by itself.
+    /// </summary>
+    internal bool Memory { get; private init; }
+
     /// <summary>Null when no query was given, which selects everything.</summary>
     internal string? Query { get; private init; }
 
@@ -98,6 +110,11 @@ internal sealed record CommandLine
         // end. Measured cost is around three seconds, which is why it is asked for rather
         // than assumed.
         ("--signatures", [CommandKind.List]),
+
+        // Listing only, for the same reason: a plan is about what will happen to a service,
+        // not about how much memory it is holding while it happens.
+        ("--memory", [CommandKind.List]),
+
         ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
 
         // Diagnostic, and every command reads the manager before doing anything, so it
@@ -143,6 +160,7 @@ internal sealed record CommandLine
         var dryRun = false;
         var dependents = false;
         var signatures = false;
+        var memory = false;
         string? query = null;
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
@@ -183,6 +201,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--dry-run")) { dryRun = true; given.Add("--dry-run"); continue; }
             if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
             if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
+            if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -241,6 +260,7 @@ internal sealed record CommandLine
             DryRun = dryRun,
             Dependents = dependents,
             Signatures = signatures,
+            Memory = memory,
             Query = query,
             Timeout = timeout,
             BadTimeout = badTimeout,

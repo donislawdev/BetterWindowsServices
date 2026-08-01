@@ -40,6 +40,20 @@ internal sealed record TriggerJson(string Kind, string Action);
 /// </summary>
 internal sealed record SignatureJson(string Status, int ResultCode, string? Publisher);
 
+/// <summary>
+/// What one process is using, in bytes, and how many entries have to share that answer.
+///
+/// Bytes rather than megabytes, because this half of the output is for programs and a
+/// program that wants megabytes can divide. Rounding here would be this layer deciding how
+/// precise somebody else's question is allowed to be.
+///
+/// <paramref name="SharedBy"/> travels with the numbers rather than being left for a reader
+/// to work out from the process ids. Five services in one process each reporting the same
+/// 36 MB is correct and adds up to five times the truth, and the only thing standing
+/// between those two readings is this field.
+/// </summary>
+internal sealed record MemoryJson(long WorkingSet, long Commit, int SharedBy);
+
 internal sealed record EntryJson
 {
     public required string ServiceName { get; init; }
@@ -136,6 +150,13 @@ internal sealed record EntryJson
     /// </summary>
     public required string? SecurityDescriptor { get; init; }
 
+    /// <summary>
+    /// What the process behind this entry is using. Null when the entry is not running,
+    /// which is the ordinary case, and null as well when nobody asked - told apart by
+    /// "notRead".
+    /// </summary>
+    public required MemoryJson? Memory { get; init; }
+
     /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
@@ -169,6 +190,7 @@ internal sealed record EntryJson
         Note(unreadable, notRead, nameof(entry.RequiredPrivileges), entry.RequiredPrivileges);
         Note(unreadable, notRead, nameof(entry.SidType), entry.SidType);
         Note(unreadable, notRead, nameof(entry.SecurityDescriptor), entry.SecurityDescriptor);
+        Note(unreadable, notRead, nameof(entry.Memory), entry.Memory);
 
         return new EntryJson
         {
@@ -203,6 +225,13 @@ internal sealed record EntryJson
             RequiredPrivileges = entry.RequiredPrivileges.IsPresent ? entry.RequiredPrivileges.Value : null,
             SidType = entry.SidType.IsPresent ? Camel(entry.SidType.Value.ToString()) : null,
             SecurityDescriptor = entry.SecurityDescriptor.IsPresent ? entry.SecurityDescriptor.Value : null,
+
+            Memory = entry.Memory.IsPresent
+                ? new MemoryJson(
+                    entry.Memory.Value!.WorkingSet,
+                    entry.Memory.Value.Commit,
+                    entry.Memory.Value.SharedBy)
+                : null,
 
             Unreadable = unreadable.Count == 0 ? null : unreadable,
             NotRead = notRead.Count == 0 ? null : notRead

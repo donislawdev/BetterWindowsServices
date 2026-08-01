@@ -94,6 +94,11 @@ try
     // true number next to a sentence about something else.
     long inspected = 0;
 
+    // Its own number for the same reason, and it turned out to need one: the pass is cheap
+    // in calls and not free in work, so it showed up inside the figure labelled "filtered"
+    // until it was pulled out.
+    long measured = 0;
+
     // Every command produces its text, and exactly one place puts text on the data channel.
     // Not tidiness: it is what makes "could anything else have reached standard output"
     // answerable by looking, and a guard in the architecture tests holds it to one.
@@ -147,11 +152,34 @@ try
         // list because nobody had looked would be a correct query returning what reads
         // exactly like "there are none" - which is the one failure this whole language is
         // arranged to avoid.
-        if (options.Signatures || parsed.Query!.NeedsSecondPass)
+        var needs = parsed.Query!.Needs;
+
+        if (options.Signatures || needs.HasFlag(ExtraRead.Signatures))
         {
             var before = stopwatch.ElapsedMilliseconds;
             entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
             inspected = stopwatch.ElapsedMilliseconds - before;
+        }
+
+        // Asked for separately, because the two families are nothing alike - seconds against
+        // single milliseconds - and answering a question about memory by verifying every
+        // signature would cost a thousand times what was asked for.
+        //
+        // Over every entry, before the filter. MemoryPass counts how many entries share each
+        // process, and counting that over a filtered list would report a service in a shared
+        // process as having it to itself.
+        //
+        // Timed on its own line for the same reason the signatures are. The calls themselves
+        // measure well under a millisecond, and the pass around them does not: it builds a
+        // new record for all 810 entries. Folding that into the figure called "filtered"
+        // would put a true number next to a sentence about something else, which is the
+        // mistake this line was split off to avoid - and it was measured doing exactly that
+        // before it was split.
+        if (options.Memory || needs.HasFlag(ExtraRead.Memory))
+        {
+            var before = stopwatch.ElapsedMilliseconds;
+            entries = MemoryPass.Fill(entries, new WindowsProcessMemoryReader());
+            measured = stopwatch.ElapsedMilliseconds - before;
         }
 
         var result = parsed.Query!.Filter(entries);
@@ -161,7 +189,7 @@ try
             ? ListingJson.Render(result.Entries)
             : ListingTable.Render(result.Entries);
 
-        Report(entries, result, options, read, stopwatch.ElapsedMilliseconds, inspected);
+        Report(entries, result, options, read, stopwatch.ElapsedMilliseconds, inspected, measured);
     }
 
     if (options.IsWrite)
@@ -170,7 +198,7 @@ try
         // owed on every command. It used to be said only when listing, which meant a plan
         // built on entries whose configuration was refused looked exactly like one built on
         // a complete reading.
-        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected: 0);
+        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected: 0, measured: 0);
     }
 
     Console.Out.WriteLine(data);
@@ -264,7 +292,8 @@ static void Report(
     CommandLine options,
     long readMilliseconds,
     long totalMilliseconds,
-    long inspected)
+    long inspected,
+    long measured)
 {
     var refused = entries.Count(entry => entry.StartType.Outcome == ReadOutcome.Denied);
 
@@ -310,7 +339,11 @@ static void Report(
     // thing wearing our label.
     Console.Error.WriteLine(result is null
         ? Texts.Of("cli.info.timingRead", entries.Count, readMilliseconds)
-        : Texts.Of("cli.info.timing", entries.Count, readMilliseconds, totalMilliseconds - readMilliseconds - inspected));
+        : Texts.Of(
+            "cli.info.timing",
+            entries.Count,
+            readMilliseconds,
+            totalMilliseconds - readMilliseconds - inspected - measured));
 
     if (inspected > 0)
     {
@@ -318,6 +351,11 @@ static void Report(
         // would invite the reading that they were checked and found instantly, which is
         // the opposite of what a run without them means.
         Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
+    }
+
+    if (measured > 0)
+    {
+        Console.Error.WriteLine(Texts.Of("cli.info.timingMeasured", measured));
     }
 
     if (result is not null)

@@ -58,6 +58,25 @@ StartService
 ControlService
 QueryServiceStatusEx
 
+// How much memory the process behind an entry is using.
+//
+// The only block here that leaves the service control manager entirely: memory belongs to
+// a process, so this asks the process. Read-only, and the access right below is the whole
+// reason this is safe to say - PROCESS_QUERY_LIMITED_INFORMATION cannot read, write or
+// touch anything in the process, it only allows asking about it.
+//
+// Which right, measured rather than taken from the first sentence of the documentation.
+// GetProcessMemoryInfo is documented as needing PROCESS_QUERY_INFORMATION and
+// PROCESS_VM_READ, and separately as accepting PROCESS_QUERY_LIMITED_INFORMATION since
+// Windows 7. Those are not equivalent in practice: over the 110 processes behind services
+// on 2026-08-01, the limited right was refused by none and the wider pair by seven -
+// lsass, MsMpEng, MpDefenderCoreService, NisSrv, SecurityHealthService and two svchosts.
+// Asking for more than is needed costs answers and looks exactly like a bug.
+OpenProcess
+GetProcessMemoryInfo
+PROCESS_MEMORY_COUNTERS_EX
+PROCESS_ACCESS_RIGHTS
+
 // Who signed the file an entry runs, and whether the system trusts that signature.
 //
 // Read-only, and the whole block is about files rather than services - none of it can

@@ -5,7 +5,7 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.usage": "Usage:\n  bws list [--query TEXT] [--signatures] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]\n\n  --signatures reads who signed each binary. Several seconds, so it is off unless asked.\n  A query about signatures turns it on by itself.",
+  "cli.usage": "Usage:\n  bws list [--query TEXT] [--signatures] [--memory] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]\n\n  --signatures reads who signed each binary. Several seconds, so it is off unless asked.\n  --memory reads what each running entry's process is using. Fast, and off by default\n  because it is a measurement rather than a setting: it is different a second later.\n  A query about either turns that one on by itself.",
   "cli.unknownOption": "Unknown option: {0}",
   "cli.optionNeedsValue": "{0} needs a value after it.",
   "cli.optionNotForCommand": "{0} does not apply to {1}. It works with: {2}.",
@@ -69,7 +69,9 @@
   "cli.column.account": "ACCOUNT",
   "cli.column.processId": "PID",
   "cli.column.signature": "SIGNATURE",
+  "cli.column.memory": "MEMORY",
   "cli.info.timingInspected": "Verified signatures in {0} ms.",
+  "cli.info.timingMeasured": "Read process memory in {0} ms.",
 
   "cli.cell.noAccess": "(no access)",
   "cli.cell.startDelayed": "{0} (delayed)",
@@ -77,6 +79,8 @@
   "cli.cell.startTrigger": "{0}, on trigger",
   "cli.cell.startFileMissing": "{0}, file missing",
   "cli.cell.signedBy": "{0} ({1})",
+  "cli.cell.megabytes": "{0} MB",
+  "cli.cell.memoryShared": "{0} (shared by {1})",
 
   "cli.query.unknownField": "There is no field called {0}. Fields you can use: {1}.",
   "cli.query.unknownValue": "{1} has no value {0}. It accepts: {2}.",
@@ -84,6 +88,7 @@
   "cli.query.badPattern": "The expression /{0}/ could not be read. {1}",
   "cli.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
   "cli.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
+  "cli.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "cli.warning.configurationRefused": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",
   "cli.warning.delayRefused": "The delayed start setting was refused for {0} entries, so they are shown without it.",

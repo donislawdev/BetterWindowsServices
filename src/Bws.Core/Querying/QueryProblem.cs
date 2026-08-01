@@ -23,7 +23,17 @@ public enum QueryProblemKind
     UnclosedQuote,
 
     /// <summary>A number or a range that does not read as one.</summary>
-    BadNumber
+    BadNumber,
+
+    /// <summary>
+    /// A size that does not read as one, which most often means the unit was left off.
+    ///
+    /// Its own kind rather than <see cref="BadNumber"/>, because the answer a person needs
+    /// is different. A bad number is a typo. A bad size is usually <c>memory:&gt;500</c>,
+    /// written by somebody who meant megabytes and gets told so, instead of being told their
+    /// number is not a number when it plainly is.
+    /// </summary>
+    BadSize
 }
 
 /// <summary>

@@ -34,6 +34,11 @@ internal static class QueryMessages
         QueryProblemKind.UnclosedQuote => Texts.Of(
             "cli.query.unclosedQuote", problem.Text),
 
+        // Its own sentence rather than the number one. Somebody who wrote memory:>500 wrote
+        // a perfectly good number and left off the unit, and being told their number is not
+        // a number would send them to check the digits.
+        QueryProblemKind.BadSize => Texts.Of("cli.query.badSize", problem.Text, problem.Field!),
+
         _ => Texts.Of("cli.query.badNumber", problem.Text, problem.Field!)
     };
 

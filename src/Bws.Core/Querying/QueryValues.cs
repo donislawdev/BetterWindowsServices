@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -217,6 +218,105 @@ internal sealed class NumberValue(NumberOperator operation, int low, int high) :
             NumberOperator.LessOrEqual => value <= low,
             _ => value >= low && value <= high
         });
+    }
+}
+
+/// <summary>
+/// A value compared against a quantity of bytes.
+///
+/// Its own class rather than a wider <see cref="NumberValue"/>, because the two are not the
+/// same question wearing different units. A process above two gigabytes does not fit in the
+/// integer the other one uses, and the operand is written with a unit that has to be read
+/// before anything can be compared.
+/// </summary>
+internal sealed class SizeValue(NumberOperator operation, long low, long high) : IQueryValue
+{
+    public Verdict Test(QueryField field, ScmEntry entry)
+    {
+        if (field.OutcomeOf(entry) == ReadOutcome.Denied)
+        {
+            return Verdict.CouldNotRead;
+        }
+
+        var value = field.SizeOf!(entry);
+
+        // A stopped service has no process and therefore no memory. memory:>500MB about it
+        // is false rather than an error, the same as pid:>1000 on the same entry.
+        if (value is null)
+        {
+            return Verdict.NoMatch;
+        }
+
+        return Verdict.Of(operation switch
+        {
+            NumberOperator.Equal => value == low,
+            NumberOperator.Greater => value > low,
+            NumberOperator.GreaterOrEqual => value >= low,
+            NumberOperator.Less => value < low,
+            NumberOperator.LessOrEqual => value <= low,
+            _ => value >= low && value <= high
+        });
+    }
+}
+
+/// <summary>
+/// Reads a quantity of bytes written with a unit.
+///
+/// The unit is required, and that is the whole design. <c>memory:&gt;500</c> read as bytes
+/// would match every running service on the machine while looking exactly like a filter
+/// that worked, and read as megabytes it would be this code guessing at what somebody meant.
+/// Refusing it costs one retry and a message naming the forms that work.
+/// </summary>
+internal static class QuerySizes
+{
+    /// <summary>
+    /// Powers of 1024, because that is what Windows means when it writes MB. Task Manager,
+    /// the file properties dialog and <c>Get-Process</c> all divide by 1024, so matching the
+    /// disk-drive meaning of the word would put us at odds with everything a person could
+    /// check us against.
+    /// </summary>
+    private static readonly (string Suffix, long Multiplier)[] Units =
+    [
+        ("KB", 1024L),
+        ("MB", 1024L * 1024),
+        ("GB", 1024L * 1024 * 1024),
+        ("TB", 1024L * 1024 * 1024 * 1024),
+
+        // Last, so that the two-letter suffixes are tried first - otherwise every one of
+        // them would match here on its final character and be read as a count of bytes.
+        ("B", 1L)
+    ];
+
+    internal static bool TryRead(string text, out long bytes)
+    {
+        bytes = 0;
+
+        foreach (var (suffix, multiplier) in Units)
+        {
+            if (!text.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var number = text[..^suffix.Length];
+
+            if (!long.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out var quantity))
+            {
+                return false;
+            }
+
+            // A quantity large enough to overflow is a mistake worth reporting rather than
+            // silently wrapping into a small number that matches everything.
+            if (quantity > long.MaxValue / multiplier)
+            {
+                return false;
+            }
+
+            bytes = quantity * multiplier;
+            return true;
+        }
+
+        return false;
     }
 }
 

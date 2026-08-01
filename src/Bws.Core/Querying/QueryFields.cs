@@ -261,7 +261,7 @@ public static class QueryFields
             // useless. The individual statuses are askable underneath for drilling in.
             Name = "signed",
             Kind = QueryFieldKind.Enumeration,
-            NeedsSecondPass = true,
+            Needs = ExtraRead.Signatures,
             OutcomeOf = entry => entry.Signature.Outcome,
             SymbolsOf = SignatureSymbols,
             Values =
@@ -288,7 +288,7 @@ public static class QueryFields
             // and it is one of the few that turns a service list into an audit.
             Name = "publisher",
             Kind = QueryFieldKind.Text,
-            NeedsSecondPass = true,
+            Needs = ExtraRead.Signatures,
             OutcomeOf = PublisherOutcome,
             TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null
         },
@@ -348,6 +348,25 @@ public static class QueryFields
             Kind = QueryFieldKind.Text,
             OutcomeOf = entry => entry.SecurityDescriptor.Outcome,
             TextOf = entry => entry.SecurityDescriptor.ValueOr(null)
+        },
+
+        new QueryField
+        {
+            // Reserved in the query language document from the start, and written out in the
+            // specification's own showcase query as memory:>500MB - which is where the unit
+            // comes from. It is the reason this language has sizes at all.
+            //
+            // The working set rather than the commit, because it is the number a person can
+            // check us against: it is what Get-Process reports as WorkingSet64 and what Task
+            // Manager shows in its working set column. The commit figure is in the machine
+            // readable output next to it and deliberately has no field of its own - nobody
+            // asked for one, and a second size field would have to be named well enough to
+            // be told apart from this one at a glance.
+            Name = "memory",
+            Kind = QueryFieldKind.Size,
+            Needs = ExtraRead.Memory,
+            OutcomeOf = entry => entry.Memory.Outcome,
+            SizeOf = entry => entry.Memory.IsPresent ? entry.Memory.Value!.WorkingSet : null
         }
     ];
 

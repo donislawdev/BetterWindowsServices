@@ -257,7 +257,12 @@ public sealed class WindowsScmCatalog : IScmCatalog
             // is the honest state here and it is the ordinary one: a listing that verified
             // every signature would take six times its budget, so most runs never will.
             Signature = Reading<BinarySignature>.NotRead(),
-            FileVersion = Reading<string>.NotRead()
+            FileVersion = Reading<string>.NotRead(),
+
+            // Filled in by MemoryPass, and only when asked. Not read is honest here and it
+            // is the ordinary state: a listing describes configuration, and this is the one
+            // field that is a reading off a running machine instead.
+            Memory = Reading<ProcessMemory>.NotRead()
         };
     }
 

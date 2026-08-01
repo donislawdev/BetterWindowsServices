@@ -75,7 +75,13 @@ internal static class Entries
         SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
 
         SecurityDescriptor = Reading<string>.Present(
-            "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)")
+            "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)"),
+
+        // Not read, like the signature and for a related reason: a plain listing does not
+        // ask. The difference is that this one is cheap and left out anyway, because it is
+        // a measurement rather than a setting - so a fixture that started out knowing it
+        // would make the rare case the default here too.
+        Memory = Reading<ProcessMemory>.NotRead()
     };
 
     /// <summary>

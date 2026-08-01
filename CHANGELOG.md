@@ -73,6 +73,22 @@ Nothing has been released yet. Everything below is what the tool does today.
   - Not shown in the table. The three would add width to every row without changing what
     any existing column means, and the listing is already wide.
 
+- **`--memory` shows how much memory each running entry's process is using.** A `MEMORY`
+  column, and `requiredPrivileges`-style detail in `--json` with both the working set and
+  the commit figure. `--query "memory:>100MB"` finds the heavy ones and switches the
+  reading on by itself.
+  - **A number belonging to several services says so.** Services sharing one process all
+    report that process's memory, which is correct and adds up to several times the truth -
+    so the cell reads `36.1 MB (shared by 5)` and the machine readable output carries the
+    count alongside the figures.
+  - Sizes in a query need their unit: `memory:>500MB`, `memory:<1GB`, `memory:100MB-1GB`.
+    Writing `memory:>500` is refused with a message rather than read as 500 bytes, which
+    would match every running service while looking like it had filtered. Units are powers
+    of 1024, the same as Task Manager and `Get-Process`.
+  - Off by default, and not to save time - it takes a few milliseconds. It is the one thing
+    the tool reports that is a measurement rather than a setting, so a plain listing stays a
+    description of how the machine is configured.
+
 ### Fixed
 
 - **The usage text lists every switch again.** `--signatures` was missing from it, and
