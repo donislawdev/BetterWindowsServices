@@ -12,6 +12,11 @@ CloseServiceHandle
 EnumServicesStatusEx
 QueryServiceConfig
 
+// The delayed start flag is not part of the configuration structure above. The manager
+// reports start type 2 for a delayed entry and for an ordinary automatic one alike, so
+// telling them apart takes a second call at a different information level.
+QueryServiceConfig2
+
 // Constants and structures for the calls above.
 SC_MANAGER_CONNECT
 SC_MANAGER_ENUMERATE_SERVICE
@@ -19,4 +24,6 @@ SERVICE_QUERY_CONFIG
 ENUM_SERVICE_TYPE
 ENUM_SERVICE_STATUS_PROCESSW
 SERVICE_STATUS_CURRENT_STATE
+SERVICE_CONFIG
+SERVICE_DELAYED_AUTO_START_INFO
 WIN32_ERROR

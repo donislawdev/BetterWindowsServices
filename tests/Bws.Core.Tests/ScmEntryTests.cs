@@ -50,16 +50,11 @@ public sealed class ScmEntryTests
         } is { IsDriver: true });
     }
 
-    private static ScmEntry Entry(EntryStatus status, Reading<StartType> startType) => new()
-    {
-        // Deliberately different strings. A fixture where the service name and the display
-        // name are equal would let a test about identity pass while checking nothing.
-        ServiceName = "Spooler",
-        DisplayName = "Print Spooler",
-        EntryType = EntryType.OwnProcess,
-        Status = status,
-        ProcessId = Reading<int>.Absent(),
-        StartType = startType,
-        Account = Reading<string>.Present("LocalSystem")
-    };
+    private static ScmEntry Entry(EntryStatus status, Reading<StartType> startType) =>
+        Entries.Any with
+        {
+            Status = status,
+            ProcessId = Reading<int>.Absent(),
+            StartType = startType
+        };
 }

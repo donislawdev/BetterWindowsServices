@@ -132,7 +132,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
     private static ScmEntry Describe(SafeHandle manager, EnumeratedEntry enumerated)
     {
-        var configuration = ReadConfiguration(manager, enumerated.ServiceName);
+        var configuration = ReadConfiguration(manager, enumerated);
 
         return new ScmEntry
         {
@@ -148,13 +148,14 @@ public sealed class WindowsScmCatalog : IScmCatalog
                 : Reading<int>.Present((int)enumerated.ProcessId),
 
             StartType = configuration.StartType,
+            DelayedAuto = configuration.DelayedAuto,
             Account = configuration.Account
         };
     }
 
-    private static Configuration ReadConfiguration(SafeHandle manager, string serviceName)
+    private static Configuration ReadConfiguration(SafeHandle manager, EnumeratedEntry enumerated)
     {
-        using var service = PInvoke.OpenService(manager, serviceName, PInvoke.SERVICE_QUERY_CONFIG);
+        using var service = PInvoke.OpenService(manager, enumerated.ServiceName, PInvoke.SERVICE_QUERY_CONFIG);
 
         if (service.IsInvalid)
         {
@@ -175,7 +176,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
             return Configuration.Refused(DescribeError(Marshal.GetLastWin32Error()));
         }
 
-        return ReadConfigurationBuffer(buffer);
+        var configuration = ReadConfigurationBuffer(buffer);
+
+        return configuration with { DelayedAuto = ReadDelayedAuto(service, enumerated, configuration.StartType) };
     }
 
     private static unsafe Configuration ReadConfigurationBuffer(byte[] buffer)
@@ -188,9 +191,46 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
             return new Configuration(
                 StartType: Reading<StartType>.Present(MapStartType(configuration.dwStartType)),
+                DelayedAuto: Reading<bool>.Absent(),
                 Account: string.IsNullOrEmpty(account)
                     ? Reading<string>.Absent()
                     : Reading<string>.Present(account));
+        }
+    }
+
+    /// <summary>
+    /// Whether an automatic entry starts late.
+    ///
+    /// Asked only where it can be true, which keeps the extra call off the great majority
+    /// of the listing: drivers do not have the notion, and neither does anything that is
+    /// not automatic in the first place. Those come back absent, which says the idea does
+    /// not apply here rather than claiming somebody checked and found no delay.
+    /// </summary>
+    private static unsafe Reading<bool> ReadDelayedAuto(
+        SafeHandle service, EnumeratedEntry enumerated, Reading<StartType> startType)
+    {
+        var applies = !enumerated.IsDriver
+            && startType.IsPresent
+            && startType.Value == Core.StartType.Automatic;
+
+        if (!applies)
+        {
+            return Reading<bool>.Absent();
+        }
+
+        // Fixed size structure, so asking for the length first would only double the number
+        // of calls. That matters here: this runs once per automatic entry on every listing.
+        var buffer = new byte[sizeof(SERVICE_DELAYED_AUTO_START_INFO)];
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_DELAYED_AUTO_START_INFO, buffer, out _))
+        {
+            return Reading<bool>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+        }
+
+        fixed (byte* start = buffer)
+        {
+            return Reading<bool>.Present(((SERVICE_DELAYED_AUTO_START_INFO*)start)->fDelayedAutostart);
         }
     }
 
@@ -248,14 +288,20 @@ public sealed class WindowsScmCatalog : IScmCatalog
         string DisplayName,
         EntryType EntryType,
         EntryStatus Status,
-        uint ProcessId);
+        uint ProcessId)
+    {
+        internal bool IsDriver =>
+            EntryType is Core.EntryType.KernelDriver or Core.EntryType.FileSystemDriver;
+    }
 
     private readonly record struct Configuration(
         Reading<StartType> StartType,
+        Reading<bool> DelayedAuto,
         Reading<string> Account)
     {
         internal static Configuration Refused(string reason) => new(
             Reading<StartType>.Denied(reason),
+            Reading<bool>.Denied(reason),
             Reading<string>.Denied(reason));
     }
 }

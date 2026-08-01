@@ -5,7 +5,7 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.usage": "Usage: bws [--json] [--timing]",
+  "cli.usage": "Usage: bws [--query TEXT] [--json] [--timing]",
   "cli.unknownOption": "Unknown option: {0}",
 
   "cli.column.name": "NAME",
@@ -17,7 +17,21 @@
   "cli.column.processId": "PID",
 
   "cli.cell.noAccess": "(no access)",
+  "cli.cell.startDelayed": "{0} (delayed)",
+  "cli.cell.startDelayedUnknown": "{0} (delay unknown)",
+
+  "cli.query.unknownField": "There is no field called {0}. Fields you can use: {1}.",
+  "cli.query.unknownValue": "{1} has no value {0}. It accepts: {2}.",
+  "cli.query.unknownValueNearest": "{1} has no value {0}. Did you mean {2}? It accepts: {3}.",
+  "cli.query.badPattern": "The expression /{0}/ could not be read. {1}",
+  "cli.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
+  "cli.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
 
   "cli.warning.configurationRefused": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",
-  "cli.info.timing": "Read {0} entries in {1} ms."
+  "cli.warning.delayRefused": "The delayed start setting was refused for {0} entries, so they are shown without it.",
+  "cli.warning.queryIncomplete": "{0} entries were judged on a field that could not be read. This result may be missing entries, or holding ones that do not belong.",
+  "cli.warning.queryTooCostly": "The expression ran out of time on {0} entries, so they were never checked. Try a simpler one.",
+
+  "cli.info.timing": "Read {0} entries in {1} ms, filtered in {2} ms.",
+  "cli.info.matched": "{0} of {1} entries matched."
 }

@@ -82,6 +82,22 @@ public sealed record ScmEntry
     public required Reading<StartType> StartType { get; init; }
 
     /// <summary>
+    /// Whether an automatic entry starts late, after the boot rush.
+    ///
+    /// A separate field rather than a sixth <see cref="Core.StartType"/> value, and the
+    /// reason is the refusal case. The manager answers the start type and the delay flag
+    /// through two different calls, so "automatic, and I could not find out whether it is
+    /// delayed" is a state that happens. One enumeration holds one value and would have to
+    /// report that as plain automatic, which is a confident answer about something nobody
+    /// read. Measured on a real machine on 2026-08-01: 13 of 78 automatic services carry
+    /// the flag, and sc.exe reports both kinds as start type 2.
+    ///
+    /// Absent on anything that is not automatic, where the idea does not apply. Absent is
+    /// not false: false would claim the question was asked and answered.
+    /// </summary>
+    public required Reading<bool> DelayedAuto { get; init; }
+
+    /// <summary>
     /// Account the entry runs as, as text. Translated on non-English systems, so it is
     /// a label and never an identity (ADR-14). The account SID belongs to the expensive
     /// pass and is not read here.

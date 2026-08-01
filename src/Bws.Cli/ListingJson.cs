@@ -26,6 +26,18 @@ internal sealed record EntryJson
     public required string Status { get; init; }
     public required int? ProcessId { get; init; }
     public required string? StartType { get; init; }
+
+    /// <summary>
+    /// Added rather than folded into <see cref="StartType"/>, so the value of that field
+    /// stays what it always was. A delayed entry still reports "Automatic", because it is
+    /// automatic, and anything already reading this output keeps working.
+    ///
+    /// Null on everything that is not automatic, where the idea does not apply, and on
+    /// anything the flag could not be read for. Those two are told apart by "unreadable",
+    /// same as every other field here.
+    /// </summary>
+    public required bool? DelayedAuto { get; init; }
+
     public required string? Account { get; init; }
 
     /// <summary>Field name to reason, for everything that was refused. Omitted when empty.</summary>
@@ -38,6 +50,7 @@ internal sealed record EntryJson
 
         Note(unreadable, nameof(entry.ProcessId), entry.ProcessId.Outcome, entry.ProcessId.Reason);
         Note(unreadable, nameof(entry.StartType), entry.StartType.Outcome, entry.StartType.Reason);
+        Note(unreadable, nameof(entry.DelayedAuto), entry.DelayedAuto.Outcome, entry.DelayedAuto.Reason);
         Note(unreadable, nameof(entry.Account), entry.Account.Outcome, entry.Account.Reason);
 
         return new EntryJson
@@ -48,6 +61,7 @@ internal sealed record EntryJson
             Status = entry.Status.ToString(),
             ProcessId = entry.ProcessId.IsPresent ? entry.ProcessId.Value : null,
             StartType = entry.StartType.IsPresent ? entry.StartType.Value.ToString() : null,
+            DelayedAuto = entry.DelayedAuto.IsPresent ? entry.DelayedAuto.Value : null,
             Account = entry.Account.IsPresent ? entry.Account.Value : null,
             Unreadable = unreadable.Count == 0 ? null : unreadable
         };

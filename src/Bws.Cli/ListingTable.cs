@@ -35,13 +35,34 @@ internal static class ListingTable
                 entry.DisplayName,
                 entry.EntryType.ToString(),
                 entry.Status.ToString(),
-                Cell(entry.StartType, value => value.ToString()),
+                StartCell(entry),
                 Cell(entry.Account, value => value),
                 Cell(entry.ProcessId, value => value.ToString())
             ]);
         }
 
         return Layout(rows);
+    }
+
+    /// <summary>
+    /// The start type, with the delay said out loud next to it rather than in a column of
+    /// its own. services.msc puts it in the same place, and a whole column that is empty
+    /// for nine entries in ten would cost more width than it earns.
+    ///
+    /// An automatic entry whose delay flag was refused says so. Printing a plain
+    /// "Automatic" there would be a claim that it starts at boot, which is precisely what
+    /// nobody managed to find out.
+    /// </summary>
+    private static string StartCell(ScmEntry entry)
+    {
+        var startType = Cell(entry.StartType, value => value.ToString());
+
+        return entry.DelayedAuto.Outcome switch
+        {
+            ReadOutcome.Present when entry.DelayedAuto.Value => Texts.Of("cli.cell.startDelayed", startType),
+            ReadOutcome.Denied => Texts.Of("cli.cell.startDelayedUnknown", startType),
+            _ => startType
+        };
     }
 
     private static string Cell<T>(Reading<T> reading, Func<T, string> show) => reading.Outcome switch
