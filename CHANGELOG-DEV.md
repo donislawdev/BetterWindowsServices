@@ -290,13 +290,49 @@ sense as answers to the one above them.
   correctly. Its own list and its own message now. Found by the guard above, which was not
   looking for it.
 
+- **The binaries claimed to be version 1.0.0.** With no `Version` property anywhere the SDK
+  stamps `1.0.0.0`, so every build declared a first release while both changelogs held
+  everything under `[Unreleased]`. **Set to `0.1.0` by the owner on 2026-08-01** in
+  `Directory.Build.props`, which is the only place any project takes it from. Rule 11 keeps
+  this the owner's decision, so the number is theirs and the plumbing is mine.
+
+- **The elevation check in `CLAUDE.md` answered `False` on an elevated session, and had
+  done so all along.** It asked `IsInRole('Administrators')`, which compares the *name* of
+  the group. On this machine the group is `BUILTIN\Administratorzy`, so the answer was
+  always no. Asking through `WindowsBuiltInRole.Administrator` compares the well-known SID
+  `S-1-5-32-544` and answers correctly in any language.
+  - **What this invalidated, and it is not small.** Every environment note recorded as
+    "measured on a shell without administrator rights" was measured with rights. Two claims
+    lose their evidence: that configuration is never refused on this machine, and that
+    stopping and starting the four permitted services succeeded *without* elevation - the
+    latter was the whole basis for "write permissions are per service, not per elevation".
+    The run itself stands, because it compared against `sc.exe` after every step. The
+    inference does not. Corrected in `docs/04` and `CLAUDE.md` rather than deleted.
+  - **What survives:** `sc config` being refused on `GamingServicesNet` while the same
+    process could stop it. That refusal was handed to an elevated caller, so it is a fact
+    about that service's descriptor and it still means write rights are not one right.
+  - Found by a contradiction, not by review: `whoami /priv` showed `SeDebugPrivilege`
+    enabled in a session the documents called unelevated. Two readings of one fact
+    disagreeing is the cheapest signal that one of them measures something other than its
+    name.
+
+- **`666 of 869` was never a count of refusals** and it had been used in four documents and
+  two code comments as the empirical justification for the `Denied` state. Walking the same
+  keys: **666 of them have no security value at all.** Of the rest, an elevated session
+  reads 203 and is refused none, a restricted token reads 157 and is refused 46.
+  - Replaced with a measurement of the path the product actually uses. Over the manager's
+    own 810 names, under `runas /trustlevel:0x20000`: opening for configuration is refused
+    **3** times, opening with `READ_CONTROL` **8**, and every query on a handle that did
+    open is refused **none**. With elevation all four numbers are zero.
+  - **The four states keep their justification, but a different one.** It was "refusal is
+    the default case". It is now "confusing refusal with emptiness makes a diff report
+    changes that never happened", which holds at eight entries as well as at six hundred.
+  - **First live specimens of a refused read on this machine**: `RoutePolicy`, `ZTDNS` and
+    `ZTHELPER` refuse to open at all under a restricted token. `docs/05` records them.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
-
-- **No `Version` property anywhere in the build.** The SDK therefore stamps `1.0.0.0`, so
-  the binaries already claim a version nobody declared. Rule 11 makes this the owner's
-  call.
 - **The `unreadable` JSON shape has no guard.** Reading configuration through the manager
   is refused zero times on the machine available, so a live run produces no such entry. The
   `Reading<T>` type behind it is guarded. Closing this needs a test project for the CLI or

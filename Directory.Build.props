@@ -44,6 +44,19 @@
     Identity of the product. One place, so the name never drifts between the executable,
     the package metadata and the About window (ADR-12a).
   -->
+  <!--
+    Version. Set by the owner on 2026-08-01 and nowhere else: rule 11 of CLAUDE.md makes
+    raising it a declaration to users rather than housekeeping, so it is not something a
+    session changes on its own.
+
+    It exists at all because the absence was not neutral. With no Version anywhere the SDK
+    stamps 1.0.0.0, so every binary already claimed to be a first release while both
+    changelogs held everything under [Unreleased]. A number below one says what is true.
+  -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
   <PropertyGroup>
     <Product>Better Windows Services</Product>
     <Company>Better Windows Services</Company>

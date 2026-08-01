@@ -65,6 +65,9 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **One unreadable file no longer ends the whole run.** A binary whose certificate cannot
   be parsed now costs its own answer, reported as unreadable, rather than the other eight
   hundred entries and a failing exit code.
+- **The program no longer claims to be version 1.0.0.** Nothing had ever declared a
+  version, so the build tools filled one in. It now reports `0.1.0`, which is what an
+  unreleased tool should say.
 
 ### Known limits
 

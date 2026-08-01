@@ -3,21 +3,25 @@ namespace Bws.Core;
 /// <summary>
 /// What happened when we tried to read one piece of information.
 ///
-/// Four states, not two. Measured on a real machine on 2026-07-31: reading the
-/// security descriptor from the registry was refused for 666 of the 869 keys a script
-/// walked, on a shell without administrator rights. Refusal is a normal case rather
-/// than an edge case, and it is a fact about our permissions, not about the service.
+/// Four states, not two. Refusal is real and it is a fact about our permissions rather
+/// than about the service: measured on a real machine on 2026-08-01, under a genuinely
+/// restricted token, the manager refuses to open 3 of 810 entries for configuration and
+/// 8 for the security descriptor. With elevation both numbers are zero.
 ///
-/// That 869 is a count of registry keys and not of entries. The manager reports around
-/// 810, and the two are counted by different means over different things - said here
-/// because the number sitting next to the word "entries" is exactly how the two get
-/// confused. Configuration read through the manager, which is what this tool does, was
-/// refused zero times on that same machine.
+/// This comment used to say 666 of 869, and that number was wrong twice over. It counted
+/// registry keys rather than entries, and what it counted was not refusals: 666 of those
+/// keys simply have no security value to read. The shell it was measured on was also
+/// elevated, contrary to what was recorded, because the check asked whether the user was
+/// in a group called "Administrators" on a machine where that group is called
+/// "Administratorzy". Kept here rather than quietly replaced, because the wrong number
+/// was persuasive for two months and the shape of the mistake is worth more than the
+/// number that replaced it.
 ///
-/// Collapsing <see cref="Denied"/> into <see cref="Absent"/> would make a snapshot
-/// taken without elevation look like a snapshot of a machine where those values do
-/// not exist. Comparing it against an elevated one would then report hundreds of
-/// changes that never happened.
+/// The reason for four states does not rest on refusal being common. Collapsing
+/// <see cref="Denied"/> into <see cref="Absent"/> would make a snapshot taken without
+/// elevation look like a snapshot of a machine where those values do not exist, and
+/// comparing the two would report changes that never happened. That holds at eight
+/// entries exactly as it held at the six hundred that were never there.
 /// </summary>
 public enum ReadOutcome
 {

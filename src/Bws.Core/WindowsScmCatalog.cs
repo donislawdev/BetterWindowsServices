@@ -13,11 +13,15 @@ namespace Bws.Core;
 /// display name, type, state and process, and one configuration query per entry for
 /// the start type and the account.
 ///
-/// The second call is the one that gets refused. Measured on 2026-07-31, a shell
-/// without administrator rights could read 203 of 869 security descriptors, so
-/// refusal here is the ordinary path and not a failure worth throwing over. Refused
-/// entries come back in the listing carrying <see cref="ReadOutcome.Denied"/>, because
-/// dropping them would produce a listing that looks complete and is not.
+/// The second call is the one that gets refused, and rarely: measured on 2026-08-01
+/// under a restricted token, opening 3 of 810 entries is denied, and with elevation
+/// none are. Rare is not never, and a refused entry still comes back in the listing
+/// carrying <see cref="ReadOutcome.Denied"/> - dropping it would produce a listing that
+/// looks complete and is not.
+///
+/// An earlier version of this comment claimed 203 of 869 read and the rest refused. That
+/// number was a count of registry keys, most of which hold no security value at all, and
+/// it never described this call. See <see cref="ReadOutcome"/>.
 /// </summary>
 public sealed class WindowsScmCatalog : IScmCatalog
 {
