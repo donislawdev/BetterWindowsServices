@@ -81,9 +81,53 @@
     <SolidColorBrush x:Key="TextSubdued">#A0A0A0</SolidColorBrush>
 
     <!--
+        Selection, and it is here because the built-in theme does not cover it.
+
+        Measured by looking: with ThemeMode="Dark" the Fluent theme styles the controls but
+        leaves DataGrid's own selection alone, so a selected row came out light grey with
+        dark text on a dark window - and the focused cell drew a box that reads as somewhere
+        to type, on a list that is read only. That is the "two products in one window" this
+        whole file exists to prevent, arriving from the one direction ADR-24 assumed was
+        covered.
+    -->
+    <SolidColorBrush x:Key="SurfaceSelected">#2D4F6C</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceHover">#2A2A2A</SolidColorBrush>
+    <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
+
+    <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
+
+    <!--
         Default look per control type, so a control is consistent without anybody remembering
         to apply a style. The guard checks these too: every Value below points at a name.
     -->
+    <Style TargetType="DataGridCell">
+        <!--
+            No border at all, ever. The default draws one around the focused cell, which on a
+            list nobody can edit is a promise the list does not keep.
+        -->
+        <Setter Property="BorderThickness" Value="{StaticResource MarginNone}" />
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
+                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="DataGridRow">
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
+                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceHover}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />

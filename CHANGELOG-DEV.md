@@ -652,6 +652,20 @@ sense as answers to the one above them.
   - **A new test project, `tests/Bws.Gui.Tests`.** The view models are the half of a window
     that can fail on its own at three in the morning, and the half a screenshot cannot check.
     Five tests, three of them proved by mutation.
+  - **Found on the owner's screenshot, and worth recording as a fact about the framework:
+    the built-in Fluent theme does not style `DataGrid` selection.** A selected row came out
+    light grey with dark text on a dark window, and the focused cell drew a border that reads
+    as somewhere to type - on a list nothing can edit. That is "two products in one window"
+    arriving from the one direction `ADR-24` assumed the framework covered. Selection is ours
+    now, in the theme file, and it takes the whole row.
+  - **Left open on purpose, and handed to the slice it belongs to:** maximised to 2560 px the
+    star columns grow past the viewport and the last two fall off the right edge. **In an
+    ordinary window the layout is correct** - the owner's screenshot has all six columns in
+    place. Four different width schemes were tried and none changed the maximised behaviour,
+    so the cause is deeper than the ratios and **it is not being guessed at further**. S6d
+    brings configurable columns anyway, which makes it that slice's work rather than a patch
+    here. **NOT ESTABLISHED:** whether the grid is handed the viewport width when the window
+    changes state.
   - **Deliberately left out:** sorting and column reordering. Both belong with the slice that
     also has to answer what a sort does while the list refreshes underneath it, which `A10`
     has five rules about.

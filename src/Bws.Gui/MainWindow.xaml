@@ -39,8 +39,9 @@
                   CanUserAddRows="False"
                   GridLinesVisibility="None"
                   HeadersVisibility="Column"
-                  ColumnWidth="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
+                  HorizontalScrollBarVisibility="Disabled"
+                  SelectionUnit="FullRow"
+                  SelectionMode="Single">
 
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{DynamicResource gui.column.name}"
@@ -58,7 +59,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginNone}">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginAboveStatus}">
             <TextBlock Text="{Binding Status}" Style="{StaticResource SubduedText}" />
         </StackPanel>
     </Grid>
