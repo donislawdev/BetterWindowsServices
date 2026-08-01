@@ -139,6 +139,45 @@ public sealed record ScmEntry
     public required Reading<IReadOnlyList<ServiceTrigger>> Triggers { get; init; }
 
     /// <summary>
+    /// The whole command the manager runs, executable and arguments together, exactly as
+    /// it comes back.
+    ///
+    /// Kept verbatim rather than tidied, because this is the value a snapshot has to
+    /// preserve and a diff has to compare. The arguments are part of what somebody changed
+    /// when they changed it, and a normalised version would hide that.
+    ///
+    /// Free: it arrives in the same configuration structure the start type, the account and
+    /// the dependencies come from, so reading it costs no extra call.
+    /// </summary>
+    public required Reading<string> BinaryPath { get; init; }
+
+    /// <summary>
+    /// The file that command actually runs, as an absolute path.
+    ///
+    /// Its own field rather than something a reader is left to work out, because working it
+    /// out is the hard half: arguments have to come off, <c>\SystemRoot\</c> and relative
+    /// paths have to be resolved, and an unquoted path with spaces is genuinely ambiguous.
+    /// See <see cref="BinaryPathResolver"/> for the rules and the measurements behind them.
+    ///
+    /// Absent when the entry names no file at all and no default applies.
+    /// </summary>
+    public required Reading<string> BinaryFile { get; init; }
+
+    /// <summary>
+    /// Whether <see cref="BinaryFile"/> is on disk.
+    ///
+    /// An entry set to start automatically whose file is gone is an orphan in the glossary's
+    /// sense, and C13 of the specification is about finding them. Measured on a real machine
+    /// on 2026-08-01: five entries of 810 name a file that is not there, none of them
+    /// automatic, which is why this is reported as its own fact rather than folded into a
+    /// single "orphan" answer that would have been empty.
+    ///
+    /// Cheap enough to read on every listing: 34-39 ms across 810 entries, against a budget
+    /// of a second, and against 45-75 ms for the triggers already read the same way.
+    /// </summary>
+    public required Reading<bool> BinaryOnDisk { get; init; }
+
+    /// <summary>
     /// True for a name in <see cref="DependsOn"/> that names a load order group rather
     /// than a service. Stopping one member of a group does not necessarily break anything
     /// that depends on the group, so the two cannot be treated alike when planning.
@@ -150,8 +189,7 @@ public sealed record ScmEntry
 
     /// <summary>
     /// The single most useful derived fact in the whole tool: the entry is supposed to
-    /// be running and is not. Measured on a real machine, ten entries answered this on
-    /// a normal workstation.
+    /// be running and is not.
     ///
     /// Unknown when the start type could not be read, because "I could not check"
     /// must never render as "everything is fine".
@@ -159,12 +197,46 @@ public sealed record ScmEntry
     public Reading<bool> RunsAgainstItsStartType =>
         StartType.Outcome switch
         {
-            ReadOutcome.Present => Reading<bool>.Present(
-                StartType.Value == Core.StartType.Automatic && Status != EntryStatus.Running),
+            ReadOutcome.Present => Judge(),
+
             // Passes the refusal on whole, number and sentence together. A refusal always
             // carries both, so there is nothing here to invent - and inventing a sentence
             // was what the old fallback did, in English, in code.
             ReadOutcome.Denied => Reading<bool>.Denied(StartType.ErrorCode, StartType.Reason!),
             _ => Reading<bool>.NotRead()
         };
+
+    /// <summary>
+    /// Whether the entry not running is a failure, once the triggers are taken into account.
+    ///
+    /// An automatic entry that is stopped used to be the whole answer. It is not: an entry
+    /// with a trigger that starts it is doing exactly what it was configured to do, and the
+    /// system will bring it up when the condition arrives. Measured on a real machine on
+    /// 2026-08-01, four of the ten entries this reported were waiting rather than broken -
+    /// and a signal that is wrong four times out of ten is one people learn to ignore.
+    ///
+    /// The cost of that is here, in the last branch: the answer now depends on a field that
+    /// can be unread, so an entry that looks stopped and whose triggers nobody read gets
+    /// "I do not know" rather than an accusation. That only applies to entries that would
+    /// otherwise be reported - everything else is answered without the triggers being needed
+    /// at all, so an unread listing does not turn into 810 shrugs.
+    /// </summary>
+    private Reading<bool> Judge()
+    {
+        if (StartType.Value != Core.StartType.Automatic || Status == EntryStatus.Running)
+        {
+            return Reading<bool>.Present(false);
+        }
+
+        return Triggers.Outcome switch
+        {
+            // Something starts it by itself. Stopped is where it is supposed to sit.
+            ReadOutcome.Present when Triggers.Value!.Any(trigger => trigger.Action == TriggerAction.Start) =>
+                Reading<bool>.Present(false),
+
+            ReadOutcome.Present or ReadOutcome.Absent => Reading<bool>.Present(true),
+            ReadOutcome.Denied => Reading<bool>.Denied(Triggers.ErrorCode, Triggers.Reason!),
+            _ => Reading<bool>.NotRead()
+        };
+    }
 }

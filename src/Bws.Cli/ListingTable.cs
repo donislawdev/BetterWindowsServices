@@ -75,7 +75,23 @@ internal static class ListingTable
         var startsOnTrigger = entry.Triggers.IsPresent
             && entry.Triggers.Value!.Any(trigger => trigger.Action == TriggerAction.Start);
 
-        return startsOnTrigger ? Texts.Of("cli.cell.startTrigger", cell) : cell;
+        if (startsOnTrigger)
+        {
+            cell = Texts.Of("cli.cell.startTrigger", cell);
+        }
+
+        // A missing file changes what the start type means more sharply than either of the
+        // two above: whatever the manager was going to do with this entry, it cannot. Said
+        // here for the same reason and at the same cost - measured on a real machine, five
+        // entries of 810, so it widens five rows rather than the table.
+        //
+        // A column of its own was the other option and was measured rather than guessed: the
+        // listing is already 260 characters across and the paths would take it past 400, for
+        // something that is empty on 805 rows out of 810. The path itself is in --json, where
+        // a person who wants it can get at it.
+        var fileMissing = entry.BinaryOnDisk is { Outcome: ReadOutcome.Present, Value: false };
+
+        return fileMissing ? Texts.Of("cli.cell.startFileMissing", cell) : cell;
     }
 
     private static string Cell<T>(Reading<T> reading, Func<T, string> show) => reading.Outcome switch

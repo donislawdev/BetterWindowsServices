@@ -40,7 +40,15 @@ internal static class Entries
         // on a real machine, 688 of 810 have no trigger at all. Not read is a state of its
         // own and has a specimen of its own - starting every fixture there would make the
         // ordinary case the rare one and quietly invert what the catalogue represents.
-        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent()
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
+
+        // Spooler's own values, read off the machine with the tool. Present rather than
+        // missing because that is the ordinary case: five entries of 810 name a file that is
+        // not there, so a fixture defaulting to missing would invert what the catalogue
+        // represents. The shapes that are awkward to resolve have specimens of their own.
+        BinaryPath = Reading<string>.Present(@"C:\WINDOWS\System32\spoolsv.exe"),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\spoolsv.exe"),
+        BinaryOnDisk = Reading<bool>.Present(true)
     };
 
     internal static ScmEntry Named(string serviceName, string displayName) =>

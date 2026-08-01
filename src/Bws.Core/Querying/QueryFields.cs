@@ -212,8 +212,56 @@ public static class QueryFields
                 new QueryValueName("start", "start"),
                 new QueryValueName("stop", "stop")
             ]
+        },
+
+        new QueryField
+        {
+            // The launch command whole, arguments and all, because that is what a person
+            // sees in the listing and what they will paste a fragment of. Matching the
+            // resolved file instead would answer "where did this come from" with a path
+            // nobody showed them.
+            Name = "path",
+            Kind = QueryFieldKind.Text,
+            OutcomeOf = entry => entry.BinaryPath.Outcome,
+            TextOf = entry => entry.BinaryPath.ValueOr(null)
+        },
+
+        new QueryField
+        {
+            // Its own field rather than a value inside "path", because it answers a
+            // different question. "path" is text and takes wildcards and expressions. This
+            // one is about the thing that text points at.
+            //
+            // An orphan in the glossary's sense is then written out of parts that already
+            // exist - file:missing start:auto - the same way automatic-without-delay is
+            // start:auto !start:delayed rather than a value of its own. Measured on a real
+            // machine on 2026-08-01: five entries name a file that is not there and none of
+            // them is automatic, so a single "orphan" answer would have been an empty list
+            // and the five would have had no way to be asked about.
+            Name = "file",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = entry => entry.BinaryOnDisk.Outcome,
+            SymbolsOf = FileSymbols,
+            Values =
+            [
+                new QueryValueName("present", "present"),
+                new QueryValueName("missing", "missing")
+            ]
         }
     ];
+
+    /// <summary>
+    /// Whether the file the entry runs is on disk.
+    ///
+    /// An entry naming no file at all reports neither symbol and is not incomplete: there
+    /// is genuinely nothing to be present or missing, which is what <c>file:none</c> asks.
+    /// </summary>
+    private static FieldSymbols FileSymbols(ScmEntry entry) => entry.BinaryOnDisk.Outcome switch
+    {
+        ReadOutcome.Present => FieldSymbols.Of(entry.BinaryOnDisk.Value ? "present" : "missing"),
+        ReadOutcome.Absent => FieldSymbols.Of(),
+        _ => FieldSymbols.Nothing
+    };
 
     /// <summary>
     /// Every kind an entry's triggers carry, plus the actions they take.
@@ -270,11 +318,24 @@ public static class QueryFields
         };
     }
 
+    /// <summary>
+    /// What a bare word searches.
+    ///
+    /// The launch command joined here the moment the tool started reading it, which is what
+    /// the query language document promised would happen. Typing a vendor's name into an
+    /// empty box and finding the services that came with them is the whole point of a free
+    /// search, and a path column somebody can see but not search reads as a bug.
+    ///
+    /// This widens what an existing bare word matches, so it is a change to the language and
+    /// not only an addition. Harmless today because a query has nowhere to be saved until
+    /// phase four - and the version stamp exists precisely so that stops being true then.
+    /// </summary>
     private static QueryField[] BuildFreeSearch() =>
     [
         Required("name"),
         Required("display"),
-        Required("account")
+        Required("account"),
+        Required("path")
     ];
 
     private static QueryField Required(string name) =>

@@ -36,7 +36,18 @@ internal static class Specimens
         Status = EntryStatus.Stopped,
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // Quoted, with two quoted arguments after it, and the file is gone. Both halves are
+        // real: this is one of the five entries on the machine naming a file that is not
+        // there, and it is manual, which is why it is not an orphan by the glossary and is
+        // still worth being able to ask about.
+        BinaryPath = Reading<string>.Present(
+            @"""C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe"" " +
+            @"""C:\Program Files\Proton\VPN\v4.4.1\ServiceData\WireGuard\ProtonVPN.conf"" ""udp"""),
+        BinaryFile = Reading<string>.Present(
+            @"C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe"),
+        BinaryOnDisk = Reading<bool>.Present(false)
     };
 
     /// <summary>
@@ -51,7 +62,15 @@ internal static class Specimens
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Present(@"NT SERVICE\McmSvc"),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // Hosted in svchost, so the launch command names the host and not the service. The
+        // file that actually holds the code is a different field the tool does not read yet,
+        // which means "the file is there" says less about a shared-process service than it
+        // does about anything else.
+        BinaryPath = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe -k McmSvc -p -s McmSvc"),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe"),
+        BinaryOnDisk = Reading<bool>.Present(true)
     };
 
     /// <summary>A second virtual account, disabled, so a test cannot pass on one example.</summary>
@@ -82,7 +101,14 @@ internal static class Specimens
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Absent(),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // The \SystemRoot\ form, which is how 237 of 825 entries name their file. Checked
+        // as written it names nothing, and that is how a naive existence check ends up
+        // calling almost the whole machine broken.
+        BinaryPath = Reading<string>.Present(@"\SystemRoot\system32\drivers\AppvStrm.sys"),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\system32\drivers\AppvStrm.sys"),
+        BinaryOnDisk = Reading<bool>.Present(true)
     };
 
     /// <summary>
@@ -102,7 +128,14 @@ internal static class Specimens
         StartType = Reading<StartType>.Denied(Entries.AccessDenied, "access denied"),
         DelayedAuto = Reading<bool>.Denied(Entries.AccessDenied, "access denied"),
         Account = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // Refused along with the rest, because they all come from the one configuration call
+        // that was turned down. Leaving them present here would make the fixture describe a
+        // reading the manager cannot produce.
+        BinaryPath = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
+        BinaryFile = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
+        BinaryOnDisk = Reading<bool>.Denied(Entries.AccessDenied, "access denied")
     };
 
     /// <summary>
@@ -197,8 +230,8 @@ internal static class Specimens
     ///
     /// The catalogue calls this the best single specimen it has, because on the real
     /// machine it carries four things at once: kernel driver, disabled, missing file, and
-    /// pending deletion. Only the first two survive here - the model has no binary path
-    /// and no pending-delete state yet.
+    /// pending deletion. Three of the four survive here now that the binary path is read -
+    /// only the pending-delete state is still missing from the model.
     /// </summary>
     internal static ScmEntry DisabledKernelDriver => Entries.Any with
     {
@@ -209,7 +242,13 @@ internal static class Specimens
         StartType = Reading<StartType>.Present(Core.StartType.Disabled),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Absent(),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        BinaryPath = Reading<string>.Present(
+            @"\SystemRoot\System32\DriverStore\FileRepository\u0202073.inf_amd64_3c7f18bc022bf004\B026184\amdkmdag.sys"),
+        BinaryFile = Reading<string>.Present(
+            @"C:\WINDOWS\System32\DriverStore\FileRepository\u0202073.inf_amd64_3c7f18bc022bf004\B026184\amdkmdag.sys"),
+        BinaryOnDisk = Reading<bool>.Present(false)
     };
 
     // -- shared processes and per-user services -------------------------------------------
@@ -377,6 +416,80 @@ internal static class Specimens
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.NotRead()
     };
 
+    // -- where the launch command points ---------------------------------------------------
+
+    /// <summary>
+    /// An unquoted path with spaces in it and no arguments, so the whole string is the file.
+    ///
+    /// The shape that breaks the obvious way of splitting a command, and it broke it here:
+    /// cutting at the first space resolved this to "C:\Program" and reported the file as
+    /// missing. Two entries on the machine have this shape and both were wrong that way.
+    ///
+    /// Windows itself resolves it by trying the prefixes shortest first, which is also what
+    /// makes an unquoted path a finding in its own right - a file planted at C:\Program.exe
+    /// would be run instead. Naming that is C5 of the specification and not this slice.
+    /// </summary>
+    internal static ScmEntry UnquotedPathWithSpaces => Entries.Any with
+    {
+        ServiceName = "UpcElevationService",
+        DisplayName = "Ubisoft UPC Elevation Service",
+        Status = EntryStatus.Stopped,
+        StartType = Reading<StartType>.Present(Core.StartType.Manual),
+        DelayedAuto = Reading<bool>.Absent(),
+        ProcessId = Reading<int>.Absent(),
+
+        BinaryPath = Reading<string>.Present(
+            @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher Core\UpcElevationService.exe"),
+        BinaryFile = Reading<string>.Present(
+            @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher Core\UpcElevationService.exe"),
+        BinaryOnDisk = Reading<bool>.Present(true)
+    };
+
+    /// <summary>
+    /// A driver naming no file of its own, which the manager answers with a default.
+    ///
+    /// 29 of 825 entries on the machine are like this and every one is a driver. The path is
+    /// absent and the file is still known, which is a pairing nothing else in the catalogue
+    /// produces - and one that a reader assuming "no path means no file" would get wrong.
+    /// </summary>
+    internal static ScmEntry DriverWithNoPathOfItsOwn => Entries.Any with
+    {
+        ServiceName = "Beep",
+        DisplayName = "Beep",
+        EntryType = EntryType.KernelDriver,
+        Status = EntryStatus.Running,
+        StartType = Reading<StartType>.Present(Core.StartType.System),
+        DelayedAuto = Reading<bool>.Absent(),
+        Account = Reading<string>.Absent(),
+        ProcessId = Reading<int>.Absent(),
+
+        BinaryPath = Reading<string>.Absent(),
+        BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\drivers\Beep.sys"),
+        BinaryOnDisk = Reading<bool>.Present(true)
+    };
+
+    /// <summary>
+    /// Nothing to run and nothing to assume.
+    ///
+    /// Synthetic, and the third the catalogue admits to: every entry naming no file on the
+    /// machine is a driver, and a driver always has the default above. It is here because
+    /// otherwise <c>file:none</c> is a word in the language with nothing it can ever match,
+    /// and a word that cannot match anything is indistinguishable from a broken one.
+    /// </summary>
+    internal static ScmEntry NothingToRun => Entries.Any with
+    {
+        ServiceName = "PathLess",
+        DisplayName = "Names no file at all",
+        Status = EntryStatus.Stopped,
+        StartType = Reading<StartType>.Present(Core.StartType.Manual),
+        DelayedAuto = Reading<bool>.Absent(),
+        ProcessId = Reading<int>.Absent(),
+
+        BinaryPath = Reading<string>.Absent(),
+        BinaryFile = Reading<string>.Absent(),
+        BinaryOnDisk = Reading<bool>.Absent()
+    };
+
     /// <summary>Everything above, as one listing.</summary>
     internal static IReadOnlyList<ScmEntry> All =>
     [
@@ -401,7 +514,10 @@ internal static class Specimens
         CaseOnlyDifferenceFirst,
         CaseOnlyDifferenceSecond,
         ManyTriggersOfOneKind,
-        TriggersNotRead
+        TriggersNotRead,
+        UnquotedPathWithSpaces,
+        DriverWithNoPathOfItsOwn,
+        NothingToRun
     ];
 
     /// <summary>A manager that hands back the whole catalogue.</summary>

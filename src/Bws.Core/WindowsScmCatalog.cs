@@ -29,6 +29,11 @@ public sealed class WindowsScmCatalog : IScmCatalog
     // was missing. The absent ones were per-user services, whose type carries extra bits
     // (0x40 for a template, 0x80 for a per-session instance) on top of the Win32 kind, so
     // a mask built from the obvious four never matches them.
+    // What a relative image path and \SystemRoot\ are relative to. Read once: it cannot
+    // change while the process runs, and it is asked for on every entry of every listing.
+    private static readonly string WindowsDirectory =
+        Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
     private const ENUM_SERVICE_TYPE AllEntryTypes =
         ENUM_SERVICE_TYPE.SERVICE_DRIVER               // kernel, file system, recogniser
         | ENUM_SERVICE_TYPE.SERVICE_ADAPTER
@@ -219,7 +224,10 @@ public sealed class WindowsScmCatalog : IScmCatalog
             DelayedAuto = configuration.DelayedAuto,
             Account = configuration.Account,
             DependsOn = configuration.DependsOn,
-            Triggers = configuration.Triggers
+            Triggers = configuration.Triggers,
+            BinaryPath = configuration.BinaryPath,
+            BinaryFile = configuration.BinaryFile,
+            BinaryOnDisk = configuration.BinaryOnDisk
         };
     }
 
@@ -248,11 +256,13 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         var configuration = ReadConfigurationBuffer(buffer);
 
-        return configuration with
+        var withOwnCalls = configuration with
         {
             DelayedAuto = ReadDelayedAuto(service, enumerated, configuration.StartType),
             Triggers = ReadTriggers(service)
         };
+
+        return withOwnCalls.WithBinary(enumerated);
     }
 
     private static unsafe Configuration ReadConfigurationBuffer(byte[] buffer)
@@ -263,6 +273,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
             var account = configuration.lpServiceStartName.ToString();
             var dependencies = ReadMultiString(configuration.lpDependencies);
+            var binaryPath = configuration.lpBinaryPathName.ToString();
 
             return new Configuration(
                 StartType: Reading<StartType>.Present(MapStartType(configuration.dwStartType)),
@@ -278,7 +289,18 @@ public sealed class WindowsScmCatalog : IScmCatalog
                     : Reading<IReadOnlyList<string>>.Present(dependencies),
 
                 // Filled in by its own call. Not read yet is the honest state here, not absent.
-                Triggers: Reading<IReadOnlyList<ServiceTrigger>>.NotRead());
+                Triggers: Reading<IReadOnlyList<ServiceTrigger>>.NotRead(),
+
+                // 29 of 825 entries name nothing at all, all of them drivers, and for those
+                // the manager applies a default of its own. Absent says that, and the file
+                // question is answered from the default rather than left blank.
+                BinaryPath: string.IsNullOrWhiteSpace(binaryPath)
+                    ? Reading<string>.Absent()
+                    : Reading<string>.Present(binaryPath),
+
+                // Both worked out from the value above, once it is known which entry it is.
+                BinaryFile: Reading<string>.NotRead(),
+                BinaryOnDisk: Reading<bool>.NotRead());
         }
     }
 
@@ -457,13 +479,47 @@ public sealed class WindowsScmCatalog : IScmCatalog
         Reading<bool> DelayedAuto,
         Reading<string> Account,
         Reading<IReadOnlyList<string>> DependsOn,
-        Reading<IReadOnlyList<ServiceTrigger>> Triggers)
+        Reading<IReadOnlyList<ServiceTrigger>> Triggers,
+        Reading<string> BinaryPath,
+        Reading<string> BinaryFile,
+        Reading<bool> BinaryOnDisk)
     {
         internal static Configuration Refused(int code) => new(
             Refused<StartType>(code),
             Refused<bool>(code),
             Refused<string>(code),
             Refused<IReadOnlyList<string>>(code),
-            Refused<IReadOnlyList<ServiceTrigger>>(code));
+            Refused<IReadOnlyList<ServiceTrigger>>(code),
+            Refused<string>(code),
+            Refused<string>(code),
+            Refused<bool>(code));
+
+        /// <summary>
+        /// Which file the launch command runs, and whether it is there.
+        ///
+        /// Kept out of the buffer reading above because it needs to know the entry, and
+        /// because it is the one part of a listing that touches the file system rather than
+        /// the manager. That makes it the first place a slow or disconnected disk could show
+        /// up, which is worth knowing when a listing is ever slower than it should be.
+        /// </summary>
+        internal Configuration WithBinary(EnumeratedEntry enumerated)
+        {
+            var resolved = BinaryPathResolver.Resolve(
+                BinaryPath.ValueOr(null),
+                enumerated.ServiceName,
+                enumerated.IsDriver,
+                WindowsDirectory,
+                File.Exists);
+
+            return resolved.File is null
+                // Nothing named and no default that applies. A fact about the entry, so the
+                // question of whether the file is there has no subject and is absent too.
+                ? this with { BinaryFile = Reading<string>.Absent(), BinaryOnDisk = Reading<bool>.Absent() }
+                : this with
+                {
+                    BinaryFile = Reading<string>.Present(resolved.File),
+                    BinaryOnDisk = Reading<bool>.Present(resolved.Found)
+                };
+        }
     }
 }

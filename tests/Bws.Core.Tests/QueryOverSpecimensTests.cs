@@ -70,7 +70,7 @@ public sealed class QueryOverSpecimensTests
     [Fact]
     public void Driver_covers_both_driver_kinds_and_nothing_else()
     {
-        Assert.Equal(["AppvStrm", "amduw23g-202073-df09ebb6"], Names("type:driver"));
+        Assert.Equal(["AppvStrm", "amduw23g-202073-df09ebb6", "Beep"], Names("type:driver"));
     }
 
     [Fact]

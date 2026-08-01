@@ -66,6 +66,26 @@ internal sealed record EntryJson
     /// </summary>
     public required IReadOnlyList<TriggerJson>? Triggers { get; init; }
 
+    /// <summary>
+    /// The launch command whole, exactly as the manager returns it, arguments included.
+    /// Null on the entries that name nothing, all of which are drivers the manager has a
+    /// default for.
+    /// </summary>
+    public required string? BinaryPath { get; init; }
+
+    /// <summary>
+    /// Which file that command runs, resolved to an absolute path.
+    ///
+    /// Alongside the raw value rather than instead of it. The raw one is what a snapshot has
+    /// to keep and a diff has to compare, and this one is what makes
+    /// <see cref="BinaryOnDisk"/> checkable by a person - being told a file is missing
+    /// without being told which file is not a report anybody can act on.
+    /// </summary>
+    public required string? BinaryFile { get; init; }
+
+    /// <summary>Whether that file is there. Null when the entry names no file at all.</summary>
+    public required bool? BinaryOnDisk { get; init; }
+
     /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
@@ -91,6 +111,9 @@ internal sealed record EntryJson
         Note(unreadable, notRead, nameof(entry.Account), entry.Account);
         Note(unreadable, notRead, nameof(entry.DependsOn), entry.DependsOn);
         Note(unreadable, notRead, nameof(entry.Triggers), entry.Triggers);
+        Note(unreadable, notRead, nameof(entry.BinaryPath), entry.BinaryPath);
+        Note(unreadable, notRead, nameof(entry.BinaryFile), entry.BinaryFile);
+        Note(unreadable, notRead, nameof(entry.BinaryOnDisk), entry.BinaryOnDisk);
 
         return new EntryJson
         {
@@ -108,6 +131,10 @@ internal sealed record EntryJson
                 ? [.. entry.Triggers.Value!.Select(trigger =>
                     new TriggerJson(Camel(trigger.Kind.ToString()), Camel(trigger.Action.ToString())))]
                 : null,
+
+            BinaryPath = entry.BinaryPath.IsPresent ? entry.BinaryPath.Value : null,
+            BinaryFile = entry.BinaryFile.IsPresent ? entry.BinaryFile.Value : null,
+            BinaryOnDisk = entry.BinaryOnDisk.IsPresent ? entry.BinaryOnDisk.Value : null,
 
             Unreadable = unreadable.Count == 0 ? null : unreadable,
             NotRead = notRead.Count == 0 ? null : notRead
