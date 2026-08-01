@@ -71,6 +71,7 @@
   "cli.cell.noAccess": "(no access)",
   "cli.cell.startDelayed": "{0} (delayed)",
   "cli.cell.startDelayedUnknown": "{0} (delay unknown)",
+  "cli.cell.startTrigger": "{0}, on trigger",
 
   "cli.query.unknownField": "There is no field called {0}. Fields you can use: {1}.",
   "cli.query.unknownValue": "{1} has no value {0}. It accepts: {2}.",

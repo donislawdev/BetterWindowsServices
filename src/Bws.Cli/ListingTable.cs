@@ -45,24 +45,37 @@ internal static class ListingTable
     }
 
     /// <summary>
-    /// The start type, with the delay said out loud next to it rather than in a column of
-    /// its own. services.msc puts it in the same place, and a whole column that is empty
-    /// for nine entries in ten would cost more width than it earns.
+    /// The start type, with what qualifies it said out loud next to it rather than in
+    /// columns of their own. services.msc puts the delay in the same place, and two whole
+    /// columns that are empty for most entries would cost more width than they earn.
     ///
     /// An automatic entry whose delay flag was refused says so. Printing a plain
     /// "Automatic" there would be a claim that it starts at boot, which is precisely what
     /// nobody managed to find out.
+    ///
+    /// A trigger is marked here for the same reason the delay is: it changes what the start
+    /// type means. Measured on a real machine on 2026-08-01, four of the ten entries that
+    /// looked like "automatic and not running" were waiting to be asked for rather than
+    /// broken, and nothing on the screen said so.
     /// </summary>
     private static string StartCell(ScmEntry entry)
     {
         var startType = Cell(entry.StartType, value => value.ToString());
 
-        return entry.DelayedAuto.Outcome switch
+        var cell = entry.DelayedAuto.Outcome switch
         {
             ReadOutcome.Present when entry.DelayedAuto.Value => Texts.Of("cli.cell.startDelayed", startType),
             ReadOutcome.Denied => Texts.Of("cli.cell.startDelayedUnknown", startType),
             _ => startType
         };
+
+        // Only a trigger that starts it. One that stops the service says nothing about
+        // whether it will come up, and marking it here would answer a question nobody asked
+        // with a fact about something else.
+        var startsOnTrigger = entry.Triggers.IsPresent
+            && entry.Triggers.Value!.Any(trigger => trigger.Action == TriggerAction.Start);
+
+        return startsOnTrigger ? Texts.Of("cli.cell.startTrigger", cell) : cell;
     }
 
     private static string Cell<T>(Reading<T> reading, Func<T, string> show) => reading.Outcome switch

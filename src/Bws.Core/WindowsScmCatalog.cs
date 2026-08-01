@@ -218,7 +218,8 @@ public sealed class WindowsScmCatalog : IScmCatalog
             StartType = configuration.StartType,
             DelayedAuto = configuration.DelayedAuto,
             Account = configuration.Account,
-            DependsOn = configuration.DependsOn
+            DependsOn = configuration.DependsOn,
+            Triggers = configuration.Triggers
         };
     }
 
@@ -247,7 +248,11 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         var configuration = ReadConfigurationBuffer(buffer);
 
-        return configuration with { DelayedAuto = ReadDelayedAuto(service, enumerated, configuration.StartType) };
+        return configuration with
+        {
+            DelayedAuto = ReadDelayedAuto(service, enumerated, configuration.StartType),
+            Triggers = ReadTriggers(service)
+        };
     }
 
     private static unsafe Configuration ReadConfigurationBuffer(byte[] buffer)
@@ -270,7 +275,10 @@ public sealed class WindowsScmCatalog : IScmCatalog
                 // services on the machine this was measured on declare no dependency at all.
                 DependsOn: dependencies.Count == 0
                     ? Reading<IReadOnlyList<string>>.Absent()
-                    : Reading<IReadOnlyList<string>>.Present(dependencies));
+                    : Reading<IReadOnlyList<string>>.Present(dependencies),
+
+                // Filled in by its own call. Not read yet is the honest state here, not absent.
+                Triggers: Reading<IReadOnlyList<ServiceTrigger>>.NotRead());
         }
     }
 
@@ -307,6 +315,57 @@ public sealed class WindowsScmCatalog : IScmCatalog
         fixed (byte* start = buffer)
         {
             return Reading<bool>.Present(((SERVICE_DELAYED_AUTO_START_INFO*)start)->fDelayedAutostart);
+        }
+    }
+
+    /// <summary>
+    /// The conditions under which the manager starts or stops this entry by itself.
+    ///
+    /// Variable length, so it takes the same buffer dance as everything else here: ask with
+    /// nothing and be told how much room the answer wants. Everything is read inside the
+    /// fixed block, because the structure hands back a pointer into that very buffer and
+    /// following it afterwards would be reading memory nobody owns any more.
+    /// </summary>
+    private static unsafe Reading<IReadOnlyList<ServiceTrigger>> ReadTriggers(SafeHandle service)
+    {
+        PInvoke.QueryServiceConfig2W(
+            service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO, default, out var needed);
+
+        if (needed == 0)
+        {
+            return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
+        }
+
+        var buffer = new byte[needed];
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO, buffer, out _))
+        {
+            return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
+        }
+
+        fixed (byte* start = buffer)
+        {
+            var info = *(SERVICE_TRIGGER_INFO*)start;
+
+            if (info.cTriggers == 0)
+            {
+                // A fact about the service: most entries have none.
+                return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
+            }
+
+            var triggers = new List<ServiceTrigger>((int)info.cTriggers);
+
+            for (uint index = 0; index < info.cTriggers; index++)
+            {
+                var trigger = info.pTriggers[index];
+
+                triggers.Add(new ServiceTrigger(
+                    ManagerTerms.Trigger(trigger.dwTriggerType),
+                    ManagerTerms.TriggerAction(trigger.dwAction)));
+            }
+
+            return Reading<IReadOnlyList<ServiceTrigger>>.Present(triggers);
         }
     }
 
@@ -397,12 +456,14 @@ public sealed class WindowsScmCatalog : IScmCatalog
         Reading<StartType> StartType,
         Reading<bool> DelayedAuto,
         Reading<string> Account,
-        Reading<IReadOnlyList<string>> DependsOn)
+        Reading<IReadOnlyList<string>> DependsOn,
+        Reading<IReadOnlyList<ServiceTrigger>> Triggers)
     {
         internal static Configuration Refused(int code) => new(
             Refused<StartType>(code),
             Refused<bool>(code),
             Refused<string>(code),
-            Refused<IReadOnlyList<string>>(code));
+            Refused<IReadOnlyList<string>>(code),
+            Refused<IReadOnlyList<ServiceTrigger>>(code));
     }
 }

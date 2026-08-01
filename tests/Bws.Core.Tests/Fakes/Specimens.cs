@@ -161,7 +161,17 @@ internal static class Specimens
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(true),
         Account = Reading<string>.Present(@"NT AUTHORITY\NetworkService"),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // The two triggers the real one carries, read on 2026-08-01. They are what turns
+        // this entry from "automatic and did not start" into "waiting to be asked for", and
+        // that difference is the whole reason triggers are read at all. One of them is the
+        // kind the interop metadata has no name for.
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+        [
+            new ServiceTrigger(TriggerKind.Custom, TriggerAction.Start),
+            new ServiceTrigger(TriggerKind.CustomSystemStateChange, TriggerAction.Start)
+        ])
     };
 
     /// <summary>
@@ -324,6 +334,49 @@ internal static class Specimens
         ProcessId = Reading<int>.Present(4268)
     };
 
+    // -- start on a condition ------------------------------------------------------------
+
+    /// <summary>
+    /// Several triggers of one kind, which is ordinary and not a mistake in the reading.
+    ///
+    /// Read from the owner's machine: this entry carries six network endpoint triggers,
+    /// all the same kind and all the same action, and sc qtriggerinfo lists six.
+    /// </summary>
+    internal static ScmEntry ManyTriggersOfOneKind => Entries.Any with
+    {
+        ServiceName = "Appinfo",
+        DisplayName = "Informacje o aplikacji",
+        Status = EntryStatus.Running,
+        StartType = Reading<StartType>.Present(Core.StartType.Manual),
+        DelayedAuto = Reading<bool>.Absent(),
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+            [.. Enumerable.Repeat(new ServiceTrigger(TriggerKind.NetworkEndpoint, TriggerAction.Start), 6)])
+    };
+
+    /// <summary>
+    /// Triggers nobody asked for yet. The fourth state, and the reason ADR-13 exists.
+    ///
+    /// Synthetic, one of the two the catalogue admits to: the tool reads triggers on every
+    /// listing today, so this state does not arise from the real manager. It belongs here
+    /// anyway, because the whole point of the state is that it must never render like "has
+    /// none" - and once expensive data grows past what one listing can afford, it becomes
+    /// the ordinary case rather than the odd one.
+    ///
+    /// Deliberately manual and stopped, so it stays out of the acceptance scenario. A
+    /// specimen that exists to prove one thing should not quietly change the answer to a
+    /// question about something else.
+    /// </summary>
+    internal static ScmEntry TriggersNotRead => Entries.Any with
+    {
+        ServiceName = "TriggersUnknown",
+        DisplayName = "Nobody asked yet",
+        Status = EntryStatus.Stopped,
+        StartType = Reading<StartType>.Present(Core.StartType.Manual),
+        DelayedAuto = Reading<bool>.Absent(),
+        ProcessId = Reading<int>.Absent(),
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.NotRead()
+    };
+
     /// <summary>Everything above, as one listing.</summary>
     internal static IReadOnlyList<ScmEntry> All =>
     [
@@ -346,7 +399,9 @@ internal static class Specimens
         GroupDependency,
         NoDependencies,
         CaseOnlyDifferenceFirst,
-        CaseOnlyDifferenceSecond
+        CaseOnlyDifferenceSecond,
+        ManyTriggersOfOneKind,
+        TriggersNotRead
     ];
 
     /// <summary>A manager that hands back the whole catalogue.</summary>

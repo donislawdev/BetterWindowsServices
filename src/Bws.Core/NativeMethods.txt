@@ -15,6 +15,10 @@ QueryServiceConfig
 // The delayed start flag is not part of the configuration structure above. The manager
 // reports start type 2 for a delayed entry and for an ordinary automatic one alike, so
 // telling them apart takes a second call at a different information level.
+//
+// Trigger information comes through the same call at yet another level. Nothing else
+// exposes it - services.msc does not show it at all, which is why the specification calls
+// it the strongest thing in the details panel.
 QueryServiceConfig2
 
 // Who breaks if this one stops. The manager answers this itself, and its answer is worth
@@ -54,4 +58,6 @@ SERVICE_STATUS_CURRENT_STATE
 SERVICE_STATUS_PROCESS
 SERVICE_CONFIG
 SERVICE_DELAYED_AUTO_START_INFO
+SERVICE_TRIGGER_INFO
+SERVICE_TRIGGER
 WIN32_ERROR

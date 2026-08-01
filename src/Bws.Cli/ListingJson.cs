@@ -28,6 +28,9 @@ namespace Bws.Cli;
 /// </summary>
 internal sealed record UnreadableJson(int ErrorCode, string Message);
 
+/// <summary>One condition that starts or stops the entry by itself.</summary>
+internal sealed record TriggerJson(string Kind, string Action);
+
 internal sealed record EntryJson
 {
     public required string ServiceName { get; init; }
@@ -57,19 +60,37 @@ internal sealed record EntryJson
     /// </summary>
     public required IReadOnlyList<string>? DependsOn { get; init; }
 
+    /// <summary>
+    /// What starts or stops this entry by itself. Null when it has none, which is the
+    /// ordinary case, and null as well when nobody asked - told apart by "notRead".
+    /// </summary>
+    public required IReadOnlyList<TriggerJson>? Triggers { get; init; }
+
     /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
 
+    /// <summary>
+    /// Fields nobody asked for on this run. Omitted when empty.
+    ///
+    /// The fourth state, and the one ADR-13 exists for. Without it "no triggers" and
+    /// "nobody looked for triggers" are the same null, and those two say opposite things
+    /// about a stopped service: one is broken, the other is waiting.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? NotRead { get; init; }
+
     internal static EntryJson From(ScmEntry entry)
     {
         var unreadable = new Dictionary<string, UnreadableJson>(StringComparer.Ordinal);
+        var notRead = new List<string>();
 
-        Note(unreadable, nameof(entry.ProcessId), entry.ProcessId);
-        Note(unreadable, nameof(entry.StartType), entry.StartType);
-        Note(unreadable, nameof(entry.DelayedAuto), entry.DelayedAuto);
-        Note(unreadable, nameof(entry.Account), entry.Account);
-        Note(unreadable, nameof(entry.DependsOn), entry.DependsOn);
+        Note(unreadable, notRead, nameof(entry.ProcessId), entry.ProcessId);
+        Note(unreadable, notRead, nameof(entry.StartType), entry.StartType);
+        Note(unreadable, notRead, nameof(entry.DelayedAuto), entry.DelayedAuto);
+        Note(unreadable, notRead, nameof(entry.Account), entry.Account);
+        Note(unreadable, notRead, nameof(entry.DependsOn), entry.DependsOn);
+        Note(unreadable, notRead, nameof(entry.Triggers), entry.Triggers);
 
         return new EntryJson
         {
@@ -82,7 +103,14 @@ internal sealed record EntryJson
             DelayedAuto = entry.DelayedAuto.IsPresent ? entry.DelayedAuto.Value : null,
             Account = entry.Account.IsPresent ? entry.Account.Value : null,
             DependsOn = entry.DependsOn.IsPresent ? entry.DependsOn.Value : null,
-            Unreadable = unreadable.Count == 0 ? null : unreadable
+
+            Triggers = entry.Triggers.IsPresent
+                ? [.. entry.Triggers.Value!.Select(trigger =>
+                    new TriggerJson(Camel(trigger.Kind.ToString()), Camel(trigger.Action.ToString())))]
+                : null,
+
+            Unreadable = unreadable.Count == 0 ? null : unreadable,
+            NotRead = notRead.Count == 0 ? null : notRead
         };
     }
 
@@ -92,11 +120,17 @@ internal sealed record EntryJson
     /// fallback for something impossible is a sentence nobody ever reads and nobody ever
     /// checks.
     /// </summary>
-    private static void Note<T>(Dictionary<string, UnreadableJson> unreadable, string field, Reading<T> reading)
+    private static void Note<T>(
+        Dictionary<string, UnreadableJson> unreadable, List<string> notRead, string field, Reading<T> reading)
     {
         if (reading.Outcome == ReadOutcome.Denied)
         {
             unreadable[Camel(field)] = new UnreadableJson(reading.ErrorCode, reading.Reason!);
+        }
+
+        if (reading.Outcome == ReadOutcome.NotRead)
+        {
+            notRead.Add(Camel(field));
         }
     }
 

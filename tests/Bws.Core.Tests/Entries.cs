@@ -34,7 +34,13 @@ internal static class Entries
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),
-        DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"])
+        DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"]),
+
+        // Absent, because that is what a real entry that has been read looks like: measured
+        // on a real machine, 688 of 810 have no trigger at all. Not read is a state of its
+        // own and has a specimen of its own - starting every fixture there would make the
+        // ordinary case the rare one and quietly invert what the catalogue represents.
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent()
     };
 
     internal static ScmEntry Named(string serviceName, string displayName) =>

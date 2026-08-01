@@ -179,8 +179,66 @@ public static class QueryFields
             Kind = QueryFieldKind.Number,
             OutcomeOf = entry => entry.ProcessId.Outcome,
             NumberOf = entry => entry.ProcessId.IsPresent ? entry.ProcessId.Value : null
+        },
+
+        new QueryField
+        {
+            // Reserved in the query language document from the start, for the moment the
+            // data existed. It does now.
+            //
+            // The question worth asking most often is not which kind but whether there is
+            // one at all, and that is already covered by the words every field has:
+            // trigger:any and trigger:none. Measured on a real machine on 2026-08-01, that
+            // is the difference between a stopped service that is broken and one that is
+            // waiting to be asked for.
+            Name = "trigger",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = entry => entry.Triggers.Outcome,
+            SymbolsOf = TriggerSymbols,
+            Values =
+            [
+                new QueryValueName("device", "devicearrival"),
+                new QueryValueName("ip", "ipaddress"),
+                new QueryValueName("domain", "domainjoin"),
+                new QueryValueName("firewall", "firewallport"),
+                new QueryValueName("policy", "grouppolicy"),
+                new QueryValueName("network", "networkendpoint"),
+                new QueryValueName("custom", "custom"),
+                new QueryValueName("state", "customsystemstatechange"),
+                new QueryValueName("unknown", "unknown"),
+
+                // Not a kind but an action, and worth asking about on its own: a trigger
+                // that stops a service is a very different fact from one that starts it.
+                new QueryValueName("start", "start"),
+                new QueryValueName("stop", "stop")
+            ]
         }
     ];
+
+    /// <summary>
+    /// Every kind an entry's triggers carry, plus the actions they take.
+    ///
+    /// Kinds and actions share one list of symbols on purpose. They are two questions about
+    /// the same thing and a person asking "what starts this by itself" should not have to
+    /// learn which of the two words they need. The names cannot collide - the kinds are
+    /// conditions and the actions are the two verbs this tool already uses everywhere.
+    /// </summary>
+    private static FieldSymbols TriggerSymbols(ScmEntry entry)
+    {
+        if (!entry.Triggers.IsPresent)
+        {
+            return entry.Triggers.Outcome == ReadOutcome.Absent
+                ? FieldSymbols.Of()
+                : FieldSymbols.Nothing;
+        }
+
+        return FieldSymbols.Of(
+        [
+            .. entry.Triggers.Value!
+                .SelectMany(trigger => new[] { Normalise(trigger.Kind.ToString()), Normalise(trigger.Action.ToString()) })
+                .Distinct(StringComparer.Ordinal)
+        ]);
+    }
 
     /// <summary>
     /// The start type, plus "delayed" when the entry carries the delay flag.

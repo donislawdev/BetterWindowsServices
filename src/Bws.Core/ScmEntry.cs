@@ -124,6 +124,21 @@ public sealed record ScmEntry
     public required Reading<IReadOnlyList<string>> DependsOn { get; init; }
 
     /// <summary>
+    /// The conditions under which the manager starts or stops this entry by itself.
+    ///
+    /// The first piece of expensive data, and the first field whose ordinary state is
+    /// <see cref="ReadOutcome.NotRead"/>. That is what ADR-13 is about: a listing has to be
+    /// useful before everything is known, so "nobody asked for this yet" has to be a state
+    /// of its own and must never render like "there is nothing here". A stopped service
+    /// with no triggers is broken. A stopped service waiting for a trigger is working.
+    ///
+    /// Absent, not empty, when the entry has none - measured on a real machine on
+    /// 2026-08-01: 122 entries of 810 have at least one, so having none is the ordinary
+    /// case and is a fact about the service rather than a gap in what we read.
+    /// </summary>
+    public required Reading<IReadOnlyList<ServiceTrigger>> Triggers { get; init; }
+
+    /// <summary>
     /// True for a name in <see cref="DependsOn"/> that names a load order group rather
     /// than a service. Stopping one member of a group does not necessarily break anything
     /// that depends on the group, so the two cannot be treated alike when planning.
