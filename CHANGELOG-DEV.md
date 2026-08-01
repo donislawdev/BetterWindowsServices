@@ -26,6 +26,11 @@ So four rules for entries here, and they are not style preferences:
 4. **Record what was deliberately left out.** The most expensive question a later session
    asks is "did anybody think about this", and the cheapest answer is a line saying yes and
    why the answer was no.
+5. **A timing figure carries its input size, and comes from more than one run.** Write
+   "4620-7656 ms over 810 entries and 544 files", never "about five seconds". One run is a
+   sample from a distribution nobody looked at, and every number here is a fact about one
+   machine - somewhere else there are different services, a different disk and a different
+   set of catalogues. Full rule in `docs/04`, "Jak wolno mierzyć wydajność".
 
 **Versions are the owner's call, never the assistant's.** Nothing here moves out of
 `[Unreleased]` without them saying so.
@@ -177,6 +182,46 @@ sense as answers to the one above them.
     the path removed from the search entirely. Exactly the fixture trap `ADR-10` warns
     about.
 
+- **Signatures and provenance** (`S4`, family two). **[contract]** `signature` and
+  `fileVersion` in the listing, `signed` and `publisher` in the query language,
+  `--signatures` on `list`.
+  - **The first family that actually needs ADR-13.** Measured over seven runs, first
+    discarded as cold, on 810 entries and 544 distinct files: **4620-7656 ms, median
+    4882**, against 338-353 ms for the whole manager read. Triggers and launch paths both
+    looked like candidates for deferral and both turned out too cheap to bother.
+  - **Windows signs its own files two ways and only one is visible from the file.**
+    WinVerifyTrust given the file alone answers for 346 of 544 and says "no signature" for
+    198 - **of which the system trusts 189**. Those are catalogue signed: hash the binary,
+    find the catalogue listing that hash, verify against it. Stopping at the first step
+    would call a third of the machine unsigned and look like it worked.
+  - Verdict agrees with `Get-AuthenticodeSignature` on **all 535** files with a publisher.
+    The publisher differs on **44** and deliberately so: a file can carry both signatures,
+    PowerShell prefers the catalogue, this prefers the file. The embedded signature travels
+    with the binary while a catalogue entry belongs to the machine reading it, so preferring
+    the catalogue would make snapshots differ across machines for reasons that are not about
+    services - ADR-14's failure mode one layer down.
+  - Revocation checking is off. It reaches the network, which ADR-19 forbids, and it would
+    make the answer depend on whether a certificate authority is reachable right now.
+  - `orphan` had no word and neither does "signed" as a single idea: `signed:no` is a group
+    covering unsigned, untrusted, expired, revoked and tampered, because an expired
+    signature is still a signature and "yes, signed" about one is true and useless.
+    `unknown` is deliberately outside that group - an unnamed result is a gap in our naming,
+    not a finding about the file.
+  - One question per distinct file rather than per entry: 810 entries point at 544 files.
+  - **Found by a test, not by reading code.** The first version read the certificate with
+    `X509CertificateLoader`, which loads files that *are* certificates rather than the
+    certificate embedded in a signed binary. The throw was caught and **every file on the
+    machine came back trusted with nobody's name on it**. Build green, unit tests green,
+    caught by an integration guard asking whether a trusted file has a signer.
+  - Guards verified by breaking the catalogue path on purpose: two integration tests go red,
+    including the one written for exactly that. **Noted from that run:** after a failed
+    build, `dotnet test --no-build` runs the previous binary and passes - a green test run
+    following a red build means nothing.
+  - A publisher cache was added and **measured not to help here**: seven runs with, five
+    without, spreads overlapping. Kept anyway, because how many catalogues a machine has is
+    a property of the machine, and removing it would be fitting the code to the one machine
+    it was measured on.
+
 ### Changed
 
 - **Putting a service back is not going forward** (`8f7106f`). Found by a run on a virtual
@@ -238,6 +283,12 @@ Carried here rather than in a session's memory, because sessions end.
   consequence for the listing, a real one for snapshots.
 - **The delay flag is not read where it does nothing.** Affects snapshots, not filtering.
 - **`errorControl` and `lpLoadOrderGroup`** are read into the buffer and thrown away.
+- **No SHA-256 of the binary.** `D1` wants one for snapshots, so it goes with S5 where it
+  will have a reader. Measured cheap: 0.52 s over 544 files, 368 MB.
+- **No date on a signature, and no countersignature timestamp.** A certificate that has
+  expired since signing is a different fact from one that was expired when it signed.
+- **The second pass cannot be interrupted.** Ctrl+C during those five seconds ends the
+  process, which is harmless for a read but not the three-level handling a plan run gets.
 - **`dwControlsAccepted`** likewise - a service's own declaration of whether it accepts
   being stopped, which would make a fifth preflight warning. Open question: whether it
   enters the public JSON contract or is read only when building a plan.

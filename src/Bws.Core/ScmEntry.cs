@@ -178,6 +178,33 @@ public sealed record ScmEntry
     public required Reading<bool> BinaryOnDisk { get; init; }
 
     /// <summary>
+    /// Who signed <see cref="BinaryFile"/> and whether the system trusts the signature.
+    ///
+    /// The first field whose ordinary state in a plain listing is
+    /// <see cref="ReadOutcome.NotRead"/>, and the first one that earns it. Measured on a
+    /// real machine on 2026-08-01: verifying 544 distinct files costs around three seconds
+    /// against 322-329 ms for everything the listing does otherwise, so reading this every
+    /// time would put the listing six times over its one second budget.
+    ///
+    /// That is what ADR-13 was written for. Triggers and launch paths both looked like they
+    /// would need it and both turned out cheap enough not to - this is the family where the
+    /// deferral is paid for by a measurement rather than by an expectation.
+    /// </summary>
+    public required Reading<BinarySignature> Signature { get; init; }
+
+    /// <summary>
+    /// The version <see cref="BinaryFile"/> claims for itself.
+    ///
+    /// Cheap on its own - 0.27 s across the same 544 files - and read in the same pass
+    /// anyway, because it comes from a file that has just been opened for the signature.
+    /// Splitting it out would mean walking every binary on the machine twice to save a
+    /// quarter of a second on a step that already costs three.
+    ///
+    /// Absent for a file with no version resource, which is ordinary rather than missing.
+    /// </summary>
+    public required Reading<string> FileVersion { get; init; }
+
+    /// <summary>
     /// True for a name in <see cref="DependsOn"/> that names a load order group rather
     /// than a service. Stopping one member of a group does not necessarily break anything
     /// that depends on the group, so the two cannot be treated alike when planning.

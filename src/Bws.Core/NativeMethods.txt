@@ -41,6 +41,42 @@ StartService
 ControlService
 QueryServiceStatusEx
 
+// Who signed the file an entry runs, and whether the system trusts that signature.
+//
+// Read-only, and the whole block is about files rather than services - none of it can
+// change anything. It is long because Windows signs its own binaries two different ways
+// and only one of them can be answered by looking at the file.
+//
+// Measured 2026-08-01 over 544 distinct files: asking WinVerifyTrust about the file alone
+// answers 346 of them and comes back TRUST_E_NOSIGNATURE for 198, of which the system
+// itself trusts 189. Those are catalogue signed - the signature lives in a separate
+// catalogue file and is found by hashing the binary and looking the hash up. Skipping that
+// path would report 189 files as unsigned while Windows trusts them, which is the same
+// class of confidently wrong answer as checking a raw image path against the disk.
+WinVerifyTrust
+WINTRUST_DATA
+WINTRUST_FILE_INFO
+WINTRUST_CATALOG_INFO
+WINTRUST_ACTION_GENERIC_VERIFY_V2
+
+// The catalogue path: hash the file, find the catalogue holding that hash, then verify
+// against the catalogue rather than against the file.
+CryptCATAdminAcquireContext2
+CryptCATAdminReleaseContext
+CryptCATAdminCalcHashFromFileHandle2
+CryptCATAdminEnumCatalogFromHash
+CryptCATAdminReleaseCatalogContext
+CryptCATCatalogInfoFromContext
+CATALOG_INFO
+
+// Who the signer is does NOT need anything here, and that is worth saying rather than
+// leaving as an absence. The obvious route reads the certificate back out of the state the
+// verification leaves behind, which costs four more functions and a struct that CsWin32
+// hands over in two incompatible shapes. The standard library already reads a certificate
+// out of a signed file, and for a catalogue-signed binary the signer is whoever signed the
+// catalogue - whose path the calls above already produced. Same answer, four fewer entries
+// on this list.
+
 // Constants and structures for the calls above.
 SC_MANAGER_CONNECT
 SC_MANAGER_ENUMERATE_SERVICE

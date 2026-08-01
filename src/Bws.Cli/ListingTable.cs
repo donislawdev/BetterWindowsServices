@@ -16,8 +16,16 @@ internal static class ListingTable
 
     internal static string Render(IReadOnlyList<ScmEntry> entries)
     {
+        // The signature column appears only when there is something in it, and the answer
+        // comes from the entries rather than from a switch somebody passed. Reading it off
+        // the data is what stops the header and the cells from ever disagreeing: a column
+        // shown because a flag was set, over entries nobody actually read, would be a row
+        // of blanks that looks like a row of "unsigned".
+        var signed = entries.Any(entry => entry.Signature.Outcome != ReadOutcome.NotRead);
+
         var rows = new List<string[]>(entries.Count + 1);
-        rows.Add([
+        rows.Add(Row(
+        [
             Texts.Of("cli.column.name"),
             Texts.Of("cli.column.displayName"),
             Texts.Of("cli.column.type"),
@@ -25,11 +33,11 @@ internal static class ListingTable
             Texts.Of("cli.column.startType"),
             Texts.Of("cli.column.account"),
             Texts.Of("cli.column.processId")
-        ]);
+        ], signed ? Texts.Of("cli.column.signature") : null));
 
         foreach (var entry in entries)
         {
-            rows.Add(
+            rows.Add(Row(
             [
                 entry.ServiceName,
                 entry.DisplayName,
@@ -38,10 +46,43 @@ internal static class ListingTable
                 StartCell(entry),
                 Cell(entry.Account, value => value),
                 Cell(entry.ProcessId, value => value.ToString())
-            ]);
+            ], signed ? SignatureCell(entry) : null));
         }
 
         return Layout(rows);
+    }
+
+    private static string[] Row(string[] cells, string? extra) =>
+        extra is null ? cells : [.. cells, extra];
+
+    /// <summary>
+    /// What the system thinks of the file, with who signed it in the same cell.
+    ///
+    /// One column rather than two, for the same reason the start type carries its
+    /// qualifiers rather than spreading into three: the listing is already 260 characters
+    /// across on a real machine, and a publisher is only ever read alongside a status.
+    ///
+    /// An unsigned file shows the status alone. There is no publisher to put in brackets
+    /// and an empty pair of them would read as a name nobody could work out.
+    /// </summary>
+    private static string SignatureCell(ScmEntry entry)
+    {
+        if (entry.Signature.Outcome == ReadOutcome.Denied)
+        {
+            return Texts.Of("cli.cell.noAccess");
+        }
+
+        if (!entry.Signature.IsPresent)
+        {
+            return Nothing;
+        }
+
+        var signature = entry.Signature.Value!;
+        var status = signature.Status.ToString();
+
+        return signature.Publisher is null
+            ? status
+            : Texts.Of("cli.cell.signedBy", status, signature.Publisher);
     }
 
     /// <summary>

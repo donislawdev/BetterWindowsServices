@@ -50,6 +50,19 @@ public sealed class Query
     /// <summary>True for a query with nothing in it, which selects everything.</summary>
     public bool IsEmpty => _terms.Count == 0;
 
+    /// <summary>
+    /// Whether answering this query needs data the first pass does not read.
+    ///
+    /// Asked before the listing is filtered, so that somebody writing <c>signed:no</c> gets
+    /// an answer rather than an empty list. Without this the only honest reply to a query
+    /// about an unread field is nothing at all - which reads exactly like "there are none",
+    /// and is the failure this whole language is arranged to avoid.
+    ///
+    /// It costs what it costs, and the caller is the one who says so out loud.
+    /// </summary>
+    public bool NeedsSecondPass =>
+        _terms.Any(term => term.Field is { NeedsSecondPass: true });
+
     public QueryResult Filter(IReadOnlyList<ScmEntry> entries)
     {
         if (IsEmpty)

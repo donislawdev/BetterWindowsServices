@@ -247,8 +247,79 @@ public static class QueryFields
                 new QueryValueName("present", "present"),
                 new QueryValueName("missing", "missing")
             ]
+        },
+
+        new QueryField
+        {
+            // Reserved in the query language document from the start, and in the
+            // specification's own example - "path:~\temp\ signed:no" is written there.
+            //
+            // yes and no are not two of the values but two groups of them, the same way
+            // type:driver covers both driver kinds. no means "Windows would not run this
+            // quietly", which is the question somebody actually has: an expired signature
+            // is a signature, and answering "yes, signed" about one would be true and
+            // useless. The individual statuses are askable underneath for drilling in.
+            Name = "signed",
+            Kind = QueryFieldKind.Enumeration,
+            NeedsSecondPass = true,
+            OutcomeOf = entry => entry.Signature.Outcome,
+            SymbolsOf = SignatureSymbols,
+            Values =
+            [
+                new QueryValueName("yes", "trusted"),
+                new QueryValueName("no", "notsigned", "untrustedroot", "expired", "revoked", "tampered"),
+                new QueryValueName("trusted", "trusted"),
+                new QueryValueName("notSigned", "notsigned"),
+                new QueryValueName("untrustedRoot", "untrustedroot"),
+                new QueryValueName("expired", "expired"),
+                new QueryValueName("revoked", "revoked"),
+                new QueryValueName("tampered", "tampered"),
+
+                // Deliberately not inside "no". A result this code could not name is not a
+                // finding about the file, it is a gap in our naming, and sweeping it in with
+                // the untrusted ones would turn our own ignorance into an accusation.
+                new QueryValueName("unknown", "unknown")
+            ]
+        },
+
+        new QueryField
+        {
+            // "Show me everything not signed by Microsoft" is the question this exists for,
+            // and it is one of the few that turns a service list into an audit.
+            Name = "publisher",
+            Kind = QueryFieldKind.Text,
+            NeedsSecondPass = true,
+            OutcomeOf = PublisherOutcome,
+            TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null
         }
     ];
+
+    /// <summary>
+    /// What the system concluded about the signature.
+    ///
+    /// A file with nothing to be signed - an entry naming no binary at all - reports no
+    /// symbols and is not incomplete. There is genuinely nothing here, which is what
+    /// <c>signed:none</c> asks about.
+    /// </summary>
+    private static FieldSymbols SignatureSymbols(ScmEntry entry) => entry.Signature.Outcome switch
+    {
+        ReadOutcome.Present => FieldSymbols.Of(Normalise(entry.Signature.Value!.Status.ToString())),
+        ReadOutcome.Absent => FieldSymbols.Of(),
+        _ => FieldSymbols.Nothing
+    };
+
+    /// <summary>
+    /// Whether there is a publisher to ask about.
+    ///
+    /// Its own function because the answer is not simply the signature's outcome. A file
+    /// that was read and turned out to be unsigned has a signature reading that is present
+    /// and a publisher that is genuinely absent - and absent is what <c>publisher:none</c>
+    /// has to find, rather than nothing at all.
+    /// </summary>
+    private static ReadOutcome PublisherOutcome(ScmEntry entry) =>
+        entry.Signature.Outcome != ReadOutcome.Present ? entry.Signature.Outcome
+            : entry.Signature.Value!.Publisher is null ? ReadOutcome.Absent
+            : ReadOutcome.Present;
 
     /// <summary>
     /// Whether the file the entry runs is on disk.

@@ -40,6 +40,15 @@ internal sealed record CommandLine
     /// <summary>Allow the entries that break to be taken down as well.</summary>
     internal bool Dependents { get; private init; }
 
+    /// <summary>
+    /// Read who signed each binary, which the listing does not do by default.
+    ///
+    /// Measured at roughly three seconds against a third of a second for the rest of a
+    /// listing, so it is asked for rather than assumed. A query about signatures turns it
+    /// on by itself - somebody who wrote signed:no has already asked.
+    /// </summary>
+    internal bool Signatures { get; private init; }
+
     /// <summary>Null when no query was given, which selects everything.</summary>
     internal string? Query { get; private init; }
 
@@ -73,6 +82,12 @@ internal sealed record CommandLine
     private static readonly (string Option, CommandKind[] Verbs)[] Surface =
     [
         ("--query", [CommandKind.List]),
+
+        // Listing only. A plan never asks who signed anything, so accepting it on a write
+        // verb would be a switch that does nothing - the silence this table was built to
+        // end. Measured cost is around three seconds, which is why it is asked for rather
+        // than assumed.
+        ("--signatures", [CommandKind.List]),
         ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
 
         // Diagnostic, and every command reads the manager before doing anything, so it
@@ -117,6 +132,7 @@ internal sealed record CommandLine
         var timing = false;
         var dryRun = false;
         var dependents = false;
+        var signatures = false;
         string? query = null;
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
@@ -155,6 +171,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--timing")) { timing = true; given.Add("--timing"); continue; }
             if (Matches(argument, "--dry-run")) { dryRun = true; given.Add("--dry-run"); continue; }
             if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
+            if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -212,6 +229,7 @@ internal sealed record CommandLine
             Timing = timing,
             DryRun = dryRun,
             Dependents = dependents,
+            Signatures = signatures,
             Query = query,
             Timeout = timeout,
             BadTimeout = badTimeout,

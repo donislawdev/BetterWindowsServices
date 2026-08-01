@@ -227,7 +227,13 @@ public sealed class WindowsScmCatalog : IScmCatalog
             Triggers = configuration.Triggers,
             BinaryPath = configuration.BinaryPath,
             BinaryFile = configuration.BinaryFile,
-            BinaryOnDisk = configuration.BinaryOnDisk
+            BinaryOnDisk = configuration.BinaryOnDisk,
+
+            // The second pass fills these, and only when somebody asks for them. Not read
+            // is the honest state here and it is the ordinary one: a listing that verified
+            // every signature would take six times its budget, so most runs never will.
+            Signature = Reading<BinarySignature>.NotRead(),
+            FileVersion = Reading<string>.NotRead()
         };
     }
 

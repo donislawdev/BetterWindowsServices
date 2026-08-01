@@ -34,6 +34,13 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **Trigger start is shown and searchable.** An entry that is set to start automatically,
   is not running, and waits for a trigger is doing what it was told to do rather than
   failing - the listing says `on trigger` and `--query trigger:any` finds them.
+- **`--signatures` shows who signed each binary and whether Windows trusts it.** Off by
+  default, because verifying a whole machine takes several seconds where the rest of a
+  listing takes a third of one. A query about signatures switches it on by itself, so
+  `--query "signed:no"` needs no flag. `signed:no` covers everything Windows would not run
+  quietly - unsigned, expired, revoked, untrusted or tampered with - and each of those can
+  be asked for by name. `publisher` finds who signed it, so `!publisher:microsoft` answers
+  "what on this machine did not come from Microsoft".
 - **The launch path is read, and a missing file is reported.** `--query file:missing` finds
   entries whose executable is not on disk, and `file:missing start:auto` is the orphan a
   cleanup would care about. The listing marks these `file missing` next to the start type.
@@ -57,4 +64,11 @@ Nothing has been released yet. Everything below is what the tool does today.
 - The tool does not raise its own privileges. When the manager refuses, it says so and
   ends with exit code 3.
 - For a service hosted inside `svchost`, the launch path names the host, so "the file is
-  there" says less than it does for a service with a process of its own.
+  there" and "who signed it" both say less than they do for a service with a process of
+  its own.
+- Certificate revocation is not checked. It would need to reach the network, and this tool
+  never does.
+- Where a file carries both its own signature and an entry in a Windows catalogue, and the
+  two name different signers, the publisher shown is the one inside the file. That can
+  differ from what PowerShell reports, and it is the one that stays the same when the file
+  is looked at on another machine.

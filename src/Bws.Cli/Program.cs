@@ -79,6 +79,12 @@ try
     var entries = catalog.ReadAll();
     var read = stopwatch.ElapsedMilliseconds;
 
+    // Its own number, and not folded into the time spent filtering. The second pass is by
+    // far the most expensive thing this tool does - measured at around five seconds against
+    // a third of one for the read - and reporting it under the word "filtered" would put a
+    // true number next to a sentence about something else.
+    long inspected = 0;
+
     // Every command produces its text, and exactly one place puts text on the data channel.
     // Not tidiness: it is what makes "could anything else have reached standard output"
     // answerable by looking, and a guard in the architecture tests holds it to one.
@@ -124,6 +130,21 @@ try
     }
     else
     {
+        // The second pass, and the first thing in this tool that is asked for rather than
+        // simply done. Measured at roughly three seconds against 322-329 ms for everything
+        // above, so a listing does not verify signatures unless somebody wants them.
+        //
+        // A query about them counts as wanting them. Answering "signed:no" with an empty
+        // list because nobody had looked would be a correct query returning what reads
+        // exactly like "there are none" - which is the one failure this whole language is
+        // arranged to avoid.
+        if (options.Signatures || parsed.Query!.NeedsSecondPass)
+        {
+            var before = stopwatch.ElapsedMilliseconds;
+            entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+            inspected = stopwatch.ElapsedMilliseconds - before;
+        }
+
         var result = parsed.Query!.Filter(entries);
         stopwatch.Stop();
 
@@ -131,7 +152,7 @@ try
             ? ListingJson.Render(result.Entries)
             : ListingTable.Render(result.Entries);
 
-        Report(entries, result, options, read, stopwatch.ElapsedMilliseconds);
+        Report(entries, result, options, read, stopwatch.ElapsedMilliseconds, inspected);
     }
 
     if (options.IsWrite)
@@ -140,7 +161,7 @@ try
         // owed on every command. It used to be said only when listing, which meant a plan
         // built on entries whose configuration was refused looked exactly like one built on
         // a complete reading.
-        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds);
+        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected: 0);
     }
 
     Console.Out.WriteLine(data);
@@ -230,7 +251,8 @@ static void Report(
     QueryResult? result,
     CommandLine options,
     long readMilliseconds,
-    long totalMilliseconds)
+    long totalMilliseconds,
+    long inspected)
 {
     var refused = entries.Count(entry => entry.StartType.Outcome == ReadOutcome.Denied);
 
@@ -276,7 +298,15 @@ static void Report(
     // thing wearing our label.
     Console.Error.WriteLine(result is null
         ? Texts.Of("cli.info.timingRead", entries.Count, readMilliseconds)
-        : Texts.Of("cli.info.timing", entries.Count, readMilliseconds, totalMilliseconds - readMilliseconds));
+        : Texts.Of("cli.info.timing", entries.Count, readMilliseconds, totalMilliseconds - readMilliseconds - inspected));
+
+    if (inspected > 0)
+    {
+        // Only when it happened. A line reporting zero milliseconds spent on signatures
+        // would invite the reading that they were checked and found instantly, which is
+        // the opposite of what a run without them means.
+        Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
+    }
 
     if (result is not null)
     {

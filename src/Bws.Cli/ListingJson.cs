@@ -31,6 +31,15 @@ internal sealed record UnreadableJson(int ErrorCode, string Message);
 /// <summary>One condition that starts or stops the entry by itself.</summary>
 internal sealed record TriggerJson(string Kind, string Action);
 
+/// <summary>
+/// What the system concluded about a file's signature.
+///
+/// The number travels with the name for the same reason a refusal carries its error code:
+/// the naming is ours and can gain a value later, while the verification result is the
+/// system's and does not move. A reader meeting "unknown" still has something to look up.
+/// </summary>
+internal sealed record SignatureJson(string Status, int ResultCode, string? Publisher);
+
 internal sealed record EntryJson
 {
     public required string ServiceName { get; init; }
@@ -86,6 +95,18 @@ internal sealed record EntryJson
     /// <summary>Whether that file is there. Null when the entry names no file at all.</summary>
     public required bool? BinaryOnDisk { get; init; }
 
+    /// <summary>
+    /// What the system thinks of the signature on that file.
+    ///
+    /// Null when nobody asked, which is the ordinary case: a listing does not verify
+    /// signatures unless it is told to, because doing so costs about three seconds. Told
+    /// apart from "there is no signature" by "notRead", the same as every other field here.
+    /// </summary>
+    public required SignatureJson? Signature { get; init; }
+
+    /// <summary>The version the file claims for itself. Null when it carries no version resource.</summary>
+    public required string? FileVersion { get; init; }
+
     /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
@@ -114,6 +135,8 @@ internal sealed record EntryJson
         Note(unreadable, notRead, nameof(entry.BinaryPath), entry.BinaryPath);
         Note(unreadable, notRead, nameof(entry.BinaryFile), entry.BinaryFile);
         Note(unreadable, notRead, nameof(entry.BinaryOnDisk), entry.BinaryOnDisk);
+        Note(unreadable, notRead, nameof(entry.Signature), entry.Signature);
+        Note(unreadable, notRead, nameof(entry.FileVersion), entry.FileVersion);
 
         return new EntryJson
         {
@@ -135,6 +158,15 @@ internal sealed record EntryJson
             BinaryPath = entry.BinaryPath.IsPresent ? entry.BinaryPath.Value : null,
             BinaryFile = entry.BinaryFile.IsPresent ? entry.BinaryFile.Value : null,
             BinaryOnDisk = entry.BinaryOnDisk.IsPresent ? entry.BinaryOnDisk.Value : null,
+
+            Signature = entry.Signature.IsPresent
+                ? new SignatureJson(
+                    Camel(entry.Signature.Value!.Status.ToString()),
+                    entry.Signature.Value.ResultCode,
+                    entry.Signature.Value.Publisher)
+                : null,
+
+            FileVersion = entry.FileVersion.IsPresent ? entry.FileVersion.Value : null,
 
             Unreadable = unreadable.Count == 0 ? null : unreadable,
             NotRead = notRead.Count == 0 ? null : notRead

@@ -32,6 +32,18 @@ internal static class CommandLineTool
     internal static ProcessResult ServiceControl(params string[] arguments) =>
         Start("sc.exe", arguments);
 
+    /// <summary>
+    /// One line of PowerShell, for the questions sc.exe has no answer to.
+    ///
+    /// Signatures are the first of those. sc.exe says nothing about them, and the reason
+    /// PowerShell is the right authority is not convenience: Get-AuthenticodeSignature walks
+    /// both of the ways Windows signs a file, and walking only one of them is exactly the
+    /// mistake this comparison exists to catch.
+    /// </summary>
+    internal static string PowerShell(string command) =>
+        Start("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command])
+            .StandardOutput.Trim();
+
     internal static int ServiceControlCount(params string[] arguments) =>
         ServiceControl(arguments).StandardOutput
             .Split('\n')

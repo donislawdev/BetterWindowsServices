@@ -48,7 +48,28 @@ internal static class Entries
         // represents. The shapes that are awkward to resolve have specimens of their own.
         BinaryPath = Reading<string>.Present(@"C:\WINDOWS\System32\spoolsv.exe"),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\spoolsv.exe"),
-        BinaryOnDisk = Reading<bool>.Present(true)
+        BinaryOnDisk = Reading<bool>.Present(true),
+
+        // Not read, because that is what an entry looks like after an ordinary listing.
+        // Verifying signatures costs about three seconds and happens only when asked, so a
+        // fixture that started out knowing them would make the rare case the default and
+        // quietly hide every mistake about the state that actually dominates.
+        Signature = Reading<BinarySignature>.NotRead(),
+        FileVersion = Reading<string>.NotRead()
+    };
+
+    /// <summary>
+    /// The same entry after the second pass has run over it.
+    ///
+    /// Its own starting point rather than a flag on the one above, because most tests care
+    /// about one world or the other and mixing them is how a test ends up asserting about
+    /// signatures on entries nobody read.
+    /// </summary>
+    internal static ScmEntry Inspected => Any with
+    {
+        Signature = Reading<BinarySignature>.Present(
+            new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows")),
+        FileVersion = Reading<string>.Present("10.0.26100.1")
     };
 
     internal static ScmEntry Named(string serviceName, string displayName) =>

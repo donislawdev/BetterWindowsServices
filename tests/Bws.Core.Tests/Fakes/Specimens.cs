@@ -522,4 +522,64 @@ internal static class Specimens
 
     /// <summary>A manager that hands back the whole catalogue.</summary>
     internal static FakeScmCatalog Catalog() => new(All);
+
+    // -- after the second pass --------------------------------------------------------------
+
+    /// <summary>
+    /// The same catalogue with signatures read, which is what a listing looks like after
+    /// <c>--signatures</c>.
+    ///
+    /// A separate list rather than a change to the one above, because both worlds are real
+    /// and most runs are the first one. Every entry above has its signature not read, and
+    /// that is not a gap in the fixtures - it is the ordinary state, since verifying them
+    /// costs about five seconds and only happens when somebody asks.
+    ///
+    /// The values are the shape a real machine produces, measured on 2026-08-01 across 544
+    /// distinct files: 535 trusted, 4 signed by nobody, and the rest with no file to ask
+    /// about. <c>BTHMODEM</c> is one of the four real ones by name.
+    /// </summary>
+    internal static IReadOnlyList<ScmEntry> Inspected =>
+    [
+        .. All.Select(entry => entry with
+        {
+            Signature = SignatureFor(entry),
+            FileVersion = entry.BinaryFile.IsPresent
+                ? Reading<string>.Present("10.0.26100.1")
+                : Reading<string>.Absent()
+        }),
+
+        // A real unsigned file, by name, so the unsigned case is not represented only by
+        // something invented. One of exactly four on the machine this was read from.
+        Entries.Any with
+        {
+            ServiceName = "BTHMODEM",
+            DisplayName = "Sterownik komunikacyjny modemu Bluetooth",
+            EntryType = EntryType.KernelDriver,
+            Status = EntryStatus.Stopped,
+            StartType = Reading<StartType>.Present(Core.StartType.Manual),
+            DelayedAuto = Reading<bool>.Absent(),
+            Account = Reading<string>.Absent(),
+            ProcessId = Reading<int>.Absent(),
+            BinaryPath = Reading<string>.Present(@"\SystemRoot\System32\drivers\bthmodem.sys"),
+            BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\drivers\bthmodem.sys"),
+            BinaryOnDisk = Reading<bool>.Present(true),
+            Signature = Reading<BinarySignature>.Present(
+                new BinarySignature(SignatureStatus.NotSigned, unchecked((int)0x800B0100), Publisher: null)),
+            FileVersion = Reading<string>.Absent()
+        }
+    ];
+
+    /// <summary>
+    /// What the second pass would conclude about one specimen.
+    ///
+    /// Refusals travel: an entry whose configuration was refused never yielded a path, so
+    /// nobody could look at a file, and the reason stays the reason.
+    /// </summary>
+    private static Reading<BinarySignature> SignatureFor(ScmEntry entry) => entry.BinaryFile.Outcome switch
+    {
+        ReadOutcome.Present => Reading<BinarySignature>.Present(
+            new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows")),
+        ReadOutcome.Denied => Reading<BinarySignature>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!),
+        _ => Reading<BinarySignature>.Absent()
+    };
 }

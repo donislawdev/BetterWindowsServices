@@ -55,6 +55,16 @@ internal sealed class QueryField
     internal IReadOnlyList<string> Aliases { get; init; } = [];
 
     /// <summary>
+    /// Whether this field has no data until the second pass has run.
+    ///
+    /// Kept here rather than as a list of names somewhere else, so that a caller can ask
+    /// "does this query need the expensive read" without knowing which fields those are.
+    /// The command line must not carry that list: it would go stale the first time a family
+    /// of expensive data was added, and it would go stale silently.
+    /// </summary>
+    internal bool NeedsSecondPass { get; init; }
+
+    /// <summary>
     /// Whether this field was read on this entry, which is what <c>none</c>, <c>any</c>
     /// and <c>?</c> ask about.
     /// </summary>
