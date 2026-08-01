@@ -121,12 +121,61 @@ public sealed class QueryContractTests
     }
 
     [Fact]
-    public void The_delayed_flag_is_null_where_the_idea_does_not_apply()
+    public void The_delayed_flag_is_read_wherever_Windows_stores_one()
     {
-        foreach (var entry in CommandLineTool.Listing("--query", "start:manual").Take(25))
-        {
-            Assert.Equal(JsonValueKind.Null, entry.GetProperty("delayedAuto").ValueKind);
-        }
+        // Changed on 2026-08-01, and the old rule was the opposite: the flag was only read
+        // for automatic entries, because it only does anything there. That confused what the
+        // setting does with whether it exists. Windows stores it on manual and disabled
+        // services too, where it sits until somebody makes the entry automatic - and a
+        // snapshot that could not see it would report that change as a start type moving,
+        // with no hint that the entry had been marked delayed all along.
+        //
+        // Measured the same day: eight entries on this machine carry it set while not being
+        // automatic, WinRM and MSDTC among them.
+        // Drivers excluded, and finding that out was worth the run: 347 of the 569 manual
+        // entries on this machine are drivers, and those carry no such setting at all.
+        // Asking about every manual entry would have made this test about the boundary below
+        // rather than about the change above.
+        var manual = CommandLineTool.Listing("--query", "start:manual !type:driver");
+
+        Assert.NotEmpty(manual);
+
+        Assert.All(manual, entry => Assert.NotEqual(
+            JsonValueKind.Null, entry.GetProperty("delayedAuto").ValueKind));
+    }
+
+    [Fact]
+    public void A_driver_has_no_delayed_flag_at_all()
+    {
+        // The boundary the change above did not move. Drivers cannot carry the setting, so
+        // null there is a fact about them rather than something nobody looked for - and it
+        // is what stops "read it wherever Windows stores one" from quietly meaning
+        // "ask about everything".
+        var drivers = CommandLineTool.Listing("--query", "type:driver").Take(40).ToArray();
+
+        Assert.NotEmpty(drivers);
+
+        Assert.All(drivers, entry => Assert.Equal(
+            JsonValueKind.Null, entry.GetProperty("delayedAuto").ValueKind));
+    }
+
+    [Fact]
+    public void The_table_marks_a_delay_only_where_it_changes_what_the_start_type_means()
+    {
+        // Reading it and showing it are different questions. The flag is now read for every
+        // non-driver entry, and Windows ignores it unless the entry starts automatically -
+        // so annotating a manual one would be a sentence about a setting with no effect.
+        var table = CommandLineTool.Run("list", "--query", "start:manual !type:driver");
+
+        Assert.Equal(0, table.ExitCode);
+        Assert.DoesNotContain("(delayed)", table.StandardOutput, StringComparison.Ordinal);
+
+        // And it still says so where it does mean something, so this is not passing by
+        // printing nothing anywhere.
+        var automatic = CommandLineTool.Run("list", "--query", "start:delayed");
+
+        Assert.Equal(0, automatic.ExitCode);
+        Assert.Contains("(delayed)", automatic.StandardOutput, StringComparison.Ordinal);
     }
 
     [Theory]

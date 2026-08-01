@@ -589,6 +589,38 @@ sense as answers to the one above them.
     screens up in the same file - fixed by appending instead, because a number once given
     stays given.
 
+- **Three overdue items, closed together because they are one subject: the four read
+  states.** **[contract]** Found by doing what rule 4 asks at the end of a stage - walking
+  the documents for sentences whose due date had passed. Two of the three said "at S5", and
+  S5 had closed an hour earlier.
+  - **The delayed start flag is read for every non-driver entry**, not only for automatic
+    ones. **Measured, and it is the whole argument:** eight entries on this machine carry it
+    **set while not being automatic** - `WinRM`, `MSDTC`, `PcaSvc`, `dcsvc`,
+    `dmwappushservice`, `edgeupdatem`, `gupdate`, `gupdatem`. A snapshot could see none of
+    them, so making one of those automatic later would show up as a start type change with no
+    hint that the entry had been marked delayed all along. Reads go from 82 to 339.
+  - **Cost: none measurable.** 451-481 ms before against 455-461 ms after, five counted runs
+    of each build interleaved, over 810 entries. The spread inside each variant is wider than
+    the gap between them, which by this project's own rule means there is no difference.
+  - **Reading it and showing it were separated, and that was not in the original question.**
+    The table would have started printing `Manual (delayed)` on eight entries - a sentence
+    about a setting Windows ignores there. It now annotates only where the flag changes what
+    the start type means. Found by reading the cell code before shipping, not after.
+  - **`ReadOutcome.Denied` stopped claiming to be about permissions.** It said "a fact about
+    our permissions" while the number beside it had always told the truth: 1060 when a
+    service vanished between enumeration and the question, 5 for a real refusal. **Corrected
+    the name's meaning rather than adding a fifth state** - the number already carries the
+    distinction and reaches the JSON, and a new state would have to be learned by every
+    consumer, the schema and the comparison. A guard holds that the number survives the trip.
+  - **One of the three turned out to be already closed, and nobody knew.** The `unreadable`
+    JSON shape was recorded as unguarded. It stopped being so when the listing's own mapping
+    moved into the core - the listing and the snapshot now render through one type, and a
+    test has held that shape against a refused specimen since. **A gap list is worth acting
+    on partly because acting on it is how you find out an entry is stale.**
+  - Found while writing the guard: `start:manual` covers **347 drivers** of 569 entries, and
+    drivers carry no such flag at all. A test asserting "every manual entry has one" was
+    asserting the wrong thing, and it failed for the right reason.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two
@@ -705,7 +737,15 @@ sense as answers to the one above them.
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
-- **The `unreadable` JSON shape has no guard.** An elevated session is refused nothing, so
+- ~~**The `unreadable` JSON shape has no guard.**~~ **Stale, and closed before it was even
+  written down.** The listing and the snapshot share one shape - `ListingJson` renders
+  through `EntryDocument`, the type the snapshot writes - and `SnapshotTests` holds that
+  shape against a refused specimen. The gap was recorded when the listing had a mapping of
+  its own, and moving that mapping into the core closed it without anybody noticing. Found
+  2026-08-01 while acting on the entry, which is the argument for acting on them.
+
+  *Original wording, kept because the way out it proposed is still the way to produce a
+  refused entry on a machine that refuses nothing:* An elevated session is refused nothing, so
   an ordinary run produces no such entry. The `Reading<T>` type behind it is guarded.
   Closing this is cheaper than it used to look: under a restricted token the manager refuses
   to open `RoutePolicy`, `ZTDNS` and `ZTHELPER`, so a run under `runas /trustlevel:0x20000`
@@ -716,10 +756,16 @@ Carried here rather than in a session's memory, because sessions end.
   the three ways out. It measures 1723-2141 ms against the 5 s `8.1` promises. The other two
   - a snapshot without signatures, and raising the budget - stay unspent, and `01` records
   what would bring each of them back.
-- **A failed configuration read is always marked as a refusal**, including when the real
-  cause is the service disappearing between enumeration and the configuration query. No
-  consequence for the listing, a real one for snapshots.
-- **The delay flag is not read where it does nothing.** Affects snapshots, not filtering.
+- ~~**A failed configuration read is always marked as a refusal.**~~ **Closed 2026-08-01 by
+  correcting a name rather than adding a state.** The mistake was in the sentence, not the
+  data: `ReadOutcome.Denied` claimed to mean "a fact about our permissions" while the number
+  beside it had always told the truth - 1060 for a service that vanished, 5 for a refusal.
+  A fifth state would make every consumer, the schema and the comparison learn a case the
+  number already describes. A guard holds that the number is not flattened on the way to the
+  file, since that is the only thing keeping the two apart.
+- ~~**The delay flag is not read where it does nothing.**~~ **Closed 2026-08-01.** Read for
+  every non-driver entry now. Eight entries on this machine carry it set while not being
+  automatic, so a snapshot could not see any of them.
 - **Nothing guards the descriptor staying on a handle of its own.** See the S4 permissions
   entry: the mistake is one word long and no test on an elevated machine sees it.
 - **An entry invisible without elevation has no representation anywhere.** Not in the four

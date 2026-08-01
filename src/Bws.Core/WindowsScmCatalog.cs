@@ -373,9 +373,27 @@ public sealed class WindowsScmCatalog : IScmCatalog
     private static unsafe Reading<bool> ReadDelayedAuto(
         SafeHandle service, EnumeratedEntry enumerated, Reading<StartType> startType)
     {
-        var applies = !enumerated.IsDriver
-            && startType.IsPresent
-            && startType.Value == Core.StartType.Automatic;
+        // Every entry that can carry one, not only the ones where it currently does
+        // something. Windows stores this flag on manual and disabled services too, and it
+        // sits there doing nothing until somebody sets the entry to automatic - at which
+        // point it decides whether the machine waits for it at boot.
+        //
+        // Read here because a snapshot records how the machine is set up, and a value that
+        // is stored and can change belongs in it. Measured on 2026-08-01: eight entries on
+        // this machine carry the flag set while not being automatic, among them WinRM, MSDTC
+        // and PcaSvc. Under the old rule a snapshot could not see any of them, so flipping
+        // one to automatic would show up as a start type change with no hint that the entry
+        // had been marked delayed all along.
+        //
+        // Costs nothing measurable: 451-481 ms before against 455-461 ms after, five counted
+        // runs of each build interleaved, over 810 entries. The spread inside each variant is
+        // wider than the gap between them, which by this project's own rule means there is no
+        // difference. It goes from 82 reads to 339.
+        //
+        // The listing still only annotates automatic entries - see ListingTable. Reading it
+        // and showing it are different questions, and "Manual (delayed)" would be a sentence
+        // claiming something the flag does not do.
+        var applies = !enumerated.IsDriver;
 
         if (!applies)
         {

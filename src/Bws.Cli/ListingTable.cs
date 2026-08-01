@@ -150,10 +150,23 @@ internal static class ListingTable
     {
         var startType = Cell(entry.StartType, value => value.ToString());
 
+        // Only where the flag does something, which is not the same as everywhere it is read.
+        // Since 2026-08-01 the manager is asked about it for every non-driver entry, because
+        // it is stored configuration a snapshot should carry - but Windows ignores it unless
+        // the entry starts automatically. Printing "Manual (delayed)" would be a sentence
+        // about a setting that has no effect, on eight entries of this machine.
+        var meansSomething = entry.StartType.IsPresent && entry.StartType.Value == StartType.Automatic;
+
         var cell = entry.DelayedAuto.Outcome switch
         {
-            ReadOutcome.Present when entry.DelayedAuto.Value => Texts.Of("cli.cell.startDelayed", startType),
-            ReadOutcome.Denied => Texts.Of("cli.cell.startDelayedUnknown", startType),
+            ReadOutcome.Present when entry.DelayedAuto.Value && meansSomething =>
+                Texts.Of("cli.cell.startDelayed", startType),
+
+            // A refusal is only worth reporting where the answer would have changed what the
+            // start type means. Elsewhere it is an admission about a field nobody was asking
+            // about, which is noise rather than honesty.
+            ReadOutcome.Denied when meansSomething => Texts.Of("cli.cell.startDelayedUnknown", startType),
+
             _ => startType
         };
 

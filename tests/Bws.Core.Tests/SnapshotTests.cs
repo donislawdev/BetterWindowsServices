@@ -99,6 +99,36 @@ public sealed class SnapshotTests
     }
 
     [Fact]
+    public void A_service_that_vanished_is_told_apart_from_one_that_was_refused()
+    {
+        // Both arrive as the same read state, and only the number distinguishes them. A
+        // service can be enumerated and be gone by the time its configuration is asked for -
+        // the manager answers 1060 there and 5 for a genuine refusal.
+        //
+        // The state cannot tell them apart and deliberately does not try: adding a fifth
+        // would make every consumer, the schema and the comparison learn a case that the
+        // number already describes. What this holds is that the number is not flattened away
+        // on the road to the file, because that is the only thing keeping the two apart.
+        const int ServiceDoesNotExist = 1060;
+
+        var vanished = Entries.Any with
+        {
+            ServiceName = "Vanished",
+            StartType = Reading<StartType>.Denied(ServiceDoesNotExist, "The specified service does not exist.")
+        };
+
+        var entry = EntryNamed(Render([vanished]), "Vanished");
+
+        Assert.Equal(
+            ServiceDoesNotExist,
+            entry.GetProperty("unreadable").GetProperty("startType").GetProperty("errorCode").GetInt32());
+
+        Assert.NotEqual(
+            Entries.AccessDenied,
+            entry.GetProperty("unreadable").GetProperty("startType").GetProperty("errorCode").GetInt32());
+    }
+
+    [Fact]
     public void The_file_says_when_it_was_taken_and_whether_the_session_could_see_everything()
     {
         var metadata = Metadata(Render(Specimens.All));

@@ -34,7 +34,21 @@ public enum ReadOutcome
     /// <summary>Read succeeded and there is genuinely nothing. A fact about the service.</summary>
     Absent = 2,
 
-    /// <summary>Read failed. A fact about our permissions, not about the service.</summary>
+    /// <summary>
+    /// We asked and did not get an answer. Never a fact about the value itself.
+    ///
+    /// <b>The number beside it says why, and it is not always permission.</b> That sentence
+    /// used to read "a fact about our permissions", which is true of nearly every case and
+    /// false in one that matters: a service can be enumerated and then be gone by the time
+    /// its configuration is asked for, and the manager answers 1060 rather than 5. Both
+    /// arrive here, and only the number tells them apart - which is why it travels with the
+    /// state instead of being flattened into a sentence.
+    ///
+    /// Deliberately not a fifth state. The name of this one was overclaiming, and correcting
+    /// a name is cheaper than a new state that every consumer, the schema and the diff would
+    /// all have to learn - especially when the thing that distinguishes the two cases is
+    /// already carried and already reaches the JSON as <c>unreadable.errorCode</c>.
+    /// </summary>
     Denied = 3
 }
 

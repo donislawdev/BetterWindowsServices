@@ -148,6 +148,17 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The delayed start setting is now recorded for every service, not only automatic ones.**
+  Windows lets you mark any service as delayed, and it only does anything on an automatic
+  one - but it is stored either way, and a snapshot that could not see it would miss the
+  moment somebody set it. Eight services on the machine this was measured on carry the
+  setting while not being automatic, `WinRM` and `MSDTC` among them.
+  - The listing still marks `(delayed)` only where it changes what the start type means.
+    Writing it next to `Manual` would claim something the setting does not do there.
+  - `--json` and snapshots now carry `delayedAuto` for every service rather than `null` for
+    most of them. `sc qc` does not show it outside automatic services, and neither does the
+    table - the difference is in what gets recorded, not in what gets claimed.
+
 - **Taking a snapshot is about four times faster.** `bws snapshot create` measured
   5.5-9.1 seconds and now measures 1.7-2.1 seconds on a machine with 810 entries and 544
   distinct binaries. It reads exactly the same things and reports exactly the same answers -
