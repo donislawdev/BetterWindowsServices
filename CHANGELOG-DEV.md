@@ -670,7 +670,7 @@ sense as answers to the one above them.
     also has to answer what a sort does while the list refreshes underneath it, which `A10`
     has five rules about.
 
-- **S6b: one box for searching, expressions and the query language** (`A1` to `A3`), plus the
+- **S6b: one box for searching, expressions and the query language** (`ff581db`), `A1` to `A3` plus the
   drivers switch (`A7`). 452 tests against 424, mutation 24 of 24, audit clean.
   - **`QueryParser.Parse` takes a second argument** turning bare words into regular
     expressions - the regex switch of `A2`. Members with a field keep their own operators
