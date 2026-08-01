@@ -159,8 +159,23 @@ internal static class PlanText
         PlanProblemKind.CascadeNotOperable => Texts.Of(
             "cli.plan.problem.cascadeNotOperable", problem.ServiceName, Join(problem.Related)),
 
+        // Three keys, because the entry that cannot come back is usually the one somebody
+        // named, and a sentence that says its name twice in eight words reads as though
+        // nobody looked at it.
+        PlanProblemKind.CannotComeBack => Texts.Of(
+            IsTheTarget(problem)
+                ? "cli.plan.problem.cannotComeBack.target"
+                : problem.Related.Count == 1
+                    ? "cli.plan.problem.cannotComeBack.one"
+                    : "cli.plan.problem.cannotComeBack.many",
+            problem.ServiceName, problem.Related.Count, Join(problem.Related)),
+
         _ => Texts.Of("cli.plan.problem.notOperable", problem.ServiceName)
     };
+
+    private static bool IsTheTarget(PlanProblem problem) =>
+        problem.Related.Count == 1
+        && string.Equals(problem.Related[0], problem.ServiceName, StringComparison.OrdinalIgnoreCase);
 
     private static string Count(string key, PlanWarning warning) =>
         warning.Related.Count == 1 ? $"{key}.one" : $"{key}.many";

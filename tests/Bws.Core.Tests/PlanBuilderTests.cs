@@ -221,6 +221,91 @@ public sealed class PlanBuilderTests
         Assert.DoesNotContain(plan.Warnings, warning => warning.Kind == PlanWarningKind.DependentsInTheWay);
     }
 
+    [Fact]
+    public void A_restart_of_a_disabled_entry_is_refused_rather_than_leaving_it_switched_off()
+    {
+        // Found by restarting a disabled but running service on a real machine: it stopped,
+        // the manager refused to start it back, and the report explained the outage
+        // afterwards. A command without --dry-run has no moment at which anybody reads a
+        // warning, so the only thing that helps is not offering the plan.
+        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Restart, "SmartConnect"));
+
+        Assert.False(plan.IsRunnable);
+        Assert.Empty(plan.Steps);
+
+        var problem = Assert.Single(plan.Problems);
+        Assert.Equal(PlanProblemKind.CannotComeBack, problem.Kind);
+        Assert.Equal(["SmartConnect"], problem.Related);
+    }
+
+    [Fact]
+    public void A_restart_is_refused_for_a_disabled_entry_in_the_cascade_as_well()
+    {
+        // One level removed and exactly as bad: the cascade takes it down on the way to
+        // something else, and the mirror half cannot put it back.
+        var catalog = new FakeScmCatalog(
+            [
+                Running("Host", "Host service"),
+                Disabled("Rider", "Rides on the host")
+            ])
+            .DependedOnBy("Host", "Rider");
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Restart, "Host", IncludeDependents: true));
+
+        Assert.False(plan.IsRunnable);
+        Assert.Equal(["Rider"], Assert.Single(plan.Problems).Related);
+    }
+
+    [Fact]
+    public void Stopping_a_disabled_entry_is_still_perfectly_fine()
+    {
+        // Nothing is promised back, so nothing is broken. Somebody asking to stop a disabled
+        // service is asking for exactly what they will get.
+        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Stop, "SmartConnect"));
+
+        Assert.True(plan.IsRunnable);
+    }
+
+    [Fact]
+    public void Whether_a_start_will_work_is_left_to_the_manager()
+    {
+        // The line this refusal must not cross. We do not predict success: the manager is
+        // the authority and its reasons go past start type - the refusal it gives says "or
+        // because it has no enabled devices associated with it" in the same sentence.
+        // Refusing a plain start here would be us guessing at its job.
+        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Start, "SmartConnect"));
+
+        Assert.True(plan.IsRunnable);
+    }
+
+    [Fact]
+    public void A_start_type_nobody_could_read_is_not_a_reason_to_refuse()
+    {
+        // Missing information must not turn into a decision. That is the whole reason the
+        // read outcomes have four states rather than two.
+        var unreadable = Running("SmartConnect", "SmartConnect") with
+        {
+            StartType = Reading<StartType>.Denied("access denied")
+        };
+
+        var catalog = new FakeScmCatalog([unreadable]);
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.Restart, "SmartConnect"));
+
+        Assert.True(plan.IsRunnable);
+    }
+
     // -- warnings -------------------------------------------------------------------------
 
     [Fact]
@@ -323,6 +408,17 @@ public sealed class PlanBuilderTests
             StartType = Reading<StartType>.Present(Core.StartType.Manual),
             DelayedAuto = Reading<bool>.Absent(),
             ProcessId = Reading<int>.Present(4444)
+        };
+
+    /// <summary>
+    /// Disabled and running at once, which is not a contradiction and is the case that
+    /// matters here. Measured on a real machine: switching a service to disabled leaves it
+    /// running until something stops it, which is glossary pitfall P7.
+    /// </summary>
+    private static ScmEntry Disabled(string serviceName, string displayName) =>
+        Running(serviceName, displayName) with
+        {
+            StartType = Reading<StartType>.Present(Core.StartType.Disabled)
         };
 
     private static FakeScmCatalog Rebuild(FakeScmCatalog catalog, string serviceName, Func<ScmEntry, ScmEntry> change)

@@ -59,6 +59,27 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 [.. driversInTheWay.Select(entry => entry.ServiceName)]);
         }
 
+        if (action.Kind == ActionKind.Restart)
+        {
+            // Everything a restart has to put back: the entry asked about, and whatever the
+            // cascade takes down on the way to it. A disabled one cannot come back, so the
+            // restart would be an outage dressed as a round trip.
+            //
+            // Only where the answer is known. An unreadable start type is not a reason to
+            // refuse - that would turn missing information into a decision, which is the
+            // opposite of what the four read outcomes exist for.
+            var stuckDown = cascade
+                .Append(target)
+                .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
+                .Select(entry => entry.ServiceName)
+                .ToList();
+
+            if (stuckDown.Count > 0)
+            {
+                return Refuse(action, PlanProblemKind.CannotComeBack, stuckDown);
+            }
+        }
+
         if (!action.IncludeDependents && blocking.Count > 0)
         {
             warnings.Add(new PlanWarning(

@@ -119,7 +119,23 @@ public enum PlanProblemKind
     /// them is one we have already said we will not do. A preview that does not match what
     /// execution would do is the one thing this whole pattern exists to prevent.
     /// </summary>
-    CascadeNotOperable
+    CascadeNotOperable,
+
+    /// <summary>
+    /// A restart would take something down that it could not start again, because the
+    /// entry is disabled.
+    ///
+    /// Found by restarting a disabled but running service on a real machine: it stopped,
+    /// the manager refused to start it back, and the report explained it afterwards. A
+    /// warning would not have helped - a command without --dry-run has no moment at which
+    /// anybody reads one, so the warning arrives after the outage it describes.
+    ///
+    /// The line this holds: we never predict whether a start will succeed, because the
+    /// manager is the authority on that and the reasons go beyond start type. We do refuse
+    /// to take something down when what we already read says we could not put it back.
+    /// Stopping such an entry is untouched, because stopping is exactly what was asked for.
+    /// </summary>
+    CannotComeBack
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>
