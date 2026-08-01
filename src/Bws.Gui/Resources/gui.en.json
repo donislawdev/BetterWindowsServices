@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "code": "en",
+    "name": "English",
+    "note": "Every string a person reads in the window. A new language is a new file beside this one, never a change in code - ADR-21. The keys are English too, and they are what the code refers to."
+  },
+
+  "gui.window.title": "Better Windows Services",
+
+  "gui.column.name": "Name",
+  "gui.column.displayName": "Display name",
+  "gui.column.status": "Status",
+  "gui.column.startType": "Start",
+  "gui.column.account": "Account",
+  "gui.column.processId": "PID",
+
+  "gui.status.reading": "Reading the service control manager...",
+  "gui.status.read": "{0} entries.",
+  "gui.status.failed": "Could not read the service control manager. {0}",
+
+  "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
+
+  "gui.cell.unknown": "unknown",
+  "gui.cell.noAccess": "no access",
+  "gui.cell.none": "none"
+}

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      The window project is WPF and this one has to be able to load its types. The view model
+      itself knows nothing about WPF - that is the point of it - but the assembly it lives in
+      does, and the language loader puts strings into a resource dictionary.
+    -->
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bws.Gui\Bws.Gui.csproj" />
+    <ProjectReference Include="..\..\src\Bws.Core\Bws.Core.csproj" />
+  </ItemGroup>
+
+</Project>

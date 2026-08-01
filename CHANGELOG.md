@@ -146,6 +146,17 @@ Nothing has been released yet. Everything below is what the tool does today.
     moves on its own. Entries start themselves for their own reasons within minutes, which
     is why what is running and how things are set up are reported apart.
 
+- **There is a window.** It opens, reads the machine and shows every entry the service
+  control manager knows about, with its name, display name, status, start type, account and
+  process id. It is dark, and dark is the only way it comes.
+  - **A value that could not be read does not look like a value that is not there.** An empty
+    cell means the service genuinely has none. Anything else says so in words, because those
+    two facts say opposite things about a service and a blank cell cannot tell you which.
+  - Read only. Every change to a service goes through a plan, so there is nothing here to
+    type into.
+  - The list does not refresh itself yet, and cannot be searched or sorted. Those are the
+    next steps.
+
 ### Changed
 
 - **The delayed start setting is now recorded for every service, not only automatic ones.**

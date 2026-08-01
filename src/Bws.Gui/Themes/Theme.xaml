@@ -1,0 +1,108 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        The only file in this product allowed to hold an appearance value.
+
+        ADR-23. Everything else refers to these by name, and a guard in the architecture
+        tests fails the build on a value written into a view. The reason is not tidiness:
+        XAML is prose, a margin of seven instead of eight breaks nothing, and that is exactly
+        how an interface drifts into looking like two products.
+
+        Reading this file top to bottom is meant to be the same thing as knowing what the
+        product looks like. If that stops being true, this file has grown wrong.
+
+        The base look comes from the built-in Fluent theme in dark mode (ADR-24), so what
+        lives here is only what is ours: the spacing scale, type sizes, and the colours that
+        mean something about an entry rather than merely decorating it.
+    -->
+
+    <!--
+        The spacing scale. Closed on purpose.
+
+        A session that wants seven cannot have seven - it picks the nearest step. That is the
+        whole mechanism against "six here, eight there", and it only works because the guard
+        makes the alternative fail the build rather than merely being discouraged.
+
+        Four steps, doubling. More steps means more ways for two screens to differ while both
+        being "correct".
+    -->
+    <system:Double x:Key="SpaceTight">4</system:Double>
+    <system:Double x:Key="SpaceNormal">8</system:Double>
+    <system:Double x:Key="SpaceWide">16</system:Double>
+    <system:Double x:Key="SpaceSection">24</system:Double>
+
+    <Thickness x:Key="PadCell">8,4,8,4</Thickness>
+    <Thickness x:Key="PadPanel">16</Thickness>
+    <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
+    <Thickness x:Key="MarginNone">0</Thickness>
+
+    <!--
+        Type. Three sizes, because a fourth would need a reason nobody has yet.
+    -->
+    <system:Double x:Key="TextSizeNormal">13</system:Double>
+    <system:Double x:Key="TextSizeHeading">18</system:Double>
+    <system:Double x:Key="TextSizeSmall">11</system:Double>
+
+    <FontFamily x:Key="TextFace">Segoe UI</FontFamily>
+
+    <!--
+        Monospaced, and only where alignment carries meaning: a launch path, a hash, a
+        security descriptor. Reading a hash in a proportional face is how two different
+        hashes look the same.
+    -->
+    <FontFamily x:Key="TextFaceFixed">Consolas</FontFamily>
+
+    <!--
+        Colours that say something.
+
+        Deliberately not a palette. The controls take their look from the Fluent dark theme,
+        so what is defined here is the small set that makes a claim about an entry - and each
+        one is named after what it means rather than after what it looks like. A brush called
+        "Red" gets used for the next red thing somebody needs. A brush called "Untrusted"
+        does not.
+    -->
+    <SolidColorBrush x:Key="MeaningUntrusted">#E81123</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningWarning">#FFB900</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
+
+    <!--
+        What nobody could read. Its own colour because it is its own state: this project
+        spends most of its rules on not letting "unknown" look like "nothing", and the
+        interface is the last place that could undo all of it.
+    -->
+    <SolidColorBrush x:Key="MeaningUnknown">#9E9E9E</SolidColorBrush>
+
+    <!--
+        Text that is present but subordinate - a display name beside a service name, a count
+        beside a group. Not a colour decision so much as a hierarchy one.
+    -->
+    <SolidColorBrush x:Key="TextSubdued">#A0A0A0</SolidColorBrush>
+
+    <!--
+        Default look per control type, so a control is consistent without anybody remembering
+        to apply a style. The guard checks these too: every Value below points at a name.
+    -->
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <Style x:Key="HeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
+    </Style>
+
+    <Style x:Key="FixedText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <Style x:Key="SubduedText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+</ResourceDictionary>

@@ -621,6 +621,41 @@ sense as answers to the one above them.
     drivers carry no such flag at all. A test asserting "every manual entry has one" was
     asserting the wrong thing, and it failed for the right reason.
 
+- **S6 cut into four, and the first quarter built: a window that shows the list.**
+  `ADR-23` and `ADR-24` were written before the first screen existed, answering a question
+  the owner asked from experience on other projects - interfaces drift into looking like two
+  products. The answer is that **XAML is prose**, so the rule has to be checkable.
+  - **Order inside the slice was a decision:** guard first, then the theme file, then the
+    screen. The other way round means the first screen decides what the guard has to
+    tolerate, which is how guards get weakened into decoration.
+  - **Three appearance guards**, in the shape the output-channel ones already use. Every
+    colour, spacing, type size and thickness lives in one file, and a value written into a
+    view fails the build. Verified by writing `Margin="7"` into the window and watching it
+    name the file, the line and both offending values.
+  - **Dark only**, on the Fluent theme built into WPF. That narrows `ADR-4`, which said "for
+    light and dark" - a sentence describing what the framework can do that read as a promise
+    of both. Corrected where it stands rather than quietly contradicted. It also closed an
+    open question about changing the theme from code, which was about a switcher nobody is
+    building now.
+  - **Hand-rolled view models, zero new dependencies** (owner's decision). WPF has the
+    notification interface built in and the whole mechanism is twelve lines, against a
+    dependency in a tool that runs with administrator rights.
+  - **Found by running it, and it would not have come out of reading the code: the first
+    window came up with an empty list and no error at all.** The view models were `internal`,
+    and WPF data binding reaches public members through reflection - when it cannot, it
+    reports nothing and shows nothing. The same family as every other trap here: silence
+    instead of a refusal.
+  - **Found in the same run:** a `DataGrid` column header cannot bind to the view model.
+    Columns are not in the visual tree and inherit no data context, so the obvious binding
+    silently shows an empty header. Text reaches the markup through the application's
+    resources instead, keyed by the same keys the language file uses.
+  - **A new test project, `tests/Bws.Gui.Tests`.** The view models are the half of a window
+    that can fail on its own at three in the morning, and the half a screenshot cannot check.
+    Five tests, three of them proved by mutation.
+  - **Deliberately left out:** sorting and column reordering. Both belong with the slice that
+    also has to answer what a sort does while the list refreshes underneath it, which `A10`
+    has five rules about.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two

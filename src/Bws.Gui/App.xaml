@@ -1,9 +1,22 @@
-﻿<Application x:Class="Bws.Gui.App"
+<Application x:Class="Bws.Gui.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Bws.Gui"
+             ThemeMode="Dark"
              StartupUri="MainWindow.xaml">
+
+    <!--
+        ThemeMode="Dark" rather than a palette of our own: ADR-24. The controls get their
+        look from the Fluent theme built into WPF, and the dictionary below adds only what is
+        ours - the spacing scale, the type sizes, and the colours that mean something.
+
+        Set here in markup rather than from code on purpose. Changing it at runtime is still
+        an experimental API, and there is nothing to change it to: one theme, no switcher.
+    -->
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

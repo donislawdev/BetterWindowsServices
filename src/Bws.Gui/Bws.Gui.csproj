@@ -9,6 +9,21 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      WithCulture=false is load-bearing here for the same reason it is in Bws.Cli: MSBuild
+      reads the ".en." in the name as a culture and compiles the file into a satellite
+      assembly instead of embedding it, stripping the culture out of the resource name on the
+      way. The build stays green and the window comes up showing keys instead of words.
+
+      These are plain data we load and choose between ourselves, not .NET satellite
+      resources. Every gui.<language>.json added later needs the same two attributes.
+    -->
+    <EmbeddedResource Include="Resources\gui.en.json"
+                      LogicalName="Bws.Gui.Resources.gui.en.json"
+                      WithCulture="false" />
+  </ItemGroup>
+
   <PropertyGroup>
     <!-- Windows shows this as the file description, in properties and in Task Manager. -->
     <AssemblyTitle>Better Windows Services</AssemblyTitle>
