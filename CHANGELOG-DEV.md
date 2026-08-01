@@ -495,7 +495,7 @@ sense as answers to the one above them.
     exactly as before - caching between runs, which `ADR-13` warns against for an audit tool,
     and parallelising the first pass, which fits its budget at 457-544 ms.
 
-- **S5b cut in two, and the first half built: `bws snapshot diff`.** **[contract]** Three at
+- **S5b cut in two, and the first half built: `bws snapshot diff`** (`4081734`). **[contract]** Three at
   once: exit code 5, the switch surface gains `--exit-code` and a `snapshot diff` column, and
   the comparison's JSON shape is a new frozen contract. Closes open question 11 of the
   specification, which was written two slices earlier and had to be answered before any of
@@ -543,7 +543,7 @@ sense as answers to the one above them.
   - **Deliberately left out:** `--live`, filtering differences by field, export, restoring,
     baselines.
 
-- **S5b2, and with it the whole of `D2`: `bws snapshot diff FILE --live`.** **[contract]**
+- **S5b2, and with it the whole of `D2`: `bws snapshot diff FILE --live`** (`23b9a25`). **[contract]**
   One switch, on one verb. The file is "before" and the machine is "after", which is the
   direction of the sentence this mode answers.
   - **A word rather than an inference from "only one file was given".** `E1` writes it that
@@ -568,8 +568,8 @@ sense as answers to the one above them.
     written for it could prove anything. Found by asking what the test would miss rather
     than by watching it fail.
 
-- **Five working methods taken from the owner's two Go projects** (2026-08-01, at his
-  instruction). None of it is in this repository - `tools/`, `docs/` and `CLAUDE.md` are all
+- **Five working methods taken from the owner's two Go projects** (2026-08-01, at his instruction, no commit of their own - `tools/`, `docs/` and
+  `CLAUDE.md` are all excluded from the repository). None of it is in this repository - `tools/`, `docs/` and `CLAUDE.md` are all
   excluded - so this entry is the only record in version control that it happened.
   - **`tools/mutate/mutate.ps1`**: targeted mutation. Ten entries, ten caught. Every "verified
     by breaking it" claim this project has made was previously a sentence that died with the
@@ -590,7 +590,7 @@ sense as answers to the one above them.
     stays given.
 
 - **Three overdue items, closed together because they are one subject: the four read
-  states.** **[contract]** Found by doing what rule 4 asks at the end of a stage - walking
+  states** (`157f7af`). **[contract]** Found by doing what rule 4 asks at the end of a stage - walking
   the documents for sentences whose due date had passed. Two of the three said "at S5", and
   S5 had closed an hour earlier.
   - **The delayed start flag is read for every non-driver entry**, not only for automatic
@@ -621,7 +621,7 @@ sense as answers to the one above them.
     drivers carry no such flag at all. A test asserting "every manual entry has one" was
     asserting the wrong thing, and it failed for the right reason.
 
-- **S6 cut into four, and the first quarter built: a window that shows the list.**
+- **S6 cut into four, and the first quarter built: a window that shows the list** (`0666bf2`, fixed in `d478137`).
   `ADR-23` and `ADR-24` were written before the first screen existed, answering a question
   the owner asked from experience on other projects - interfaces drift into looking like two
   products. The answer is that **XAML is prose**, so the rule has to be checkable.
@@ -782,6 +782,24 @@ sense as answers to the one above them.
     another comment.
   - Also corrected: the memory pass described itself as costing under a millisecond, which
     is what its calls cost and not what it costs.
+
+- **A consistency review before moving to a new session**, of the documents, the memory and
+  the comments. Three findings, and the shape of them is the argument for doing it at all.
+  - **A number in a comment rotted for the third time.** The entry point said "exactly two
+    broad catches in the project", was corrected to five, and had reached six. Instead of
+    correcting it a third time, the count moved into a guard: every broad catch is now in a
+    named list with its reason, and one appearing anywhere else fails a test. Proved by
+    mutation.
+  - **A summary contradicted its own body.** The delayed-flag reader still said it was asked
+    "only where it can be true" while the code below had been changed that day to ask for
+    every non-driver entry. The kind of thing only reading finds, since nothing compiles a
+    summary against what it summarises.
+  - **A false correction was nearly written into the documents.** A check of "five entries
+    name a file that is not there" came back as one, which read as the machine having
+    changed. It had not: `ConvertFrom-Json` in Windows PowerShell does not enumerate through
+    a pipeline, so the count was of one object rather than five items. **The mistake pointed
+    at "something stopped working"**, which is the direction a review is most willing to
+    believe. Recorded with the other shell traps.
 
 ### Known gaps
 

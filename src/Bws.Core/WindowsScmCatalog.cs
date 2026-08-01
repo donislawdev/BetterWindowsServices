@@ -363,12 +363,15 @@ public sealed class WindowsScmCatalog : IScmCatalog
     }
 
     /// <summary>
-    /// Whether an automatic entry starts late.
+    /// Whether an entry is marked to start late.
     ///
-    /// Asked only where it can be true, which keeps the extra call off the great majority
-    /// of the listing: drivers do not have the notion, and neither does anything that is
-    /// not automatic in the first place. Those come back absent, which says the idea does
-    /// not apply here rather than claiming somebody checked and found no delay.
+    /// Asked for everything that can carry the setting, which is every non-driver entry.
+    /// Drivers do not have the notion at all, and for them this comes back absent - saying
+    /// the idea does not apply rather than claiming somebody checked and found no delay.
+    ///
+    /// <b>This used to be asked only for automatic entries</b>, on the grounds that Windows
+    /// ignores it elsewhere - which confused what the setting does with whether it exists.
+    /// The body below has the measurement that changed it.
     /// </summary>
     private static unsafe Reading<bool> ReadDelayedAuto(
         SafeHandle service, EnumeratedEntry enumerated, Reading<StartType> startType)

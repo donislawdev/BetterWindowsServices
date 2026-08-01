@@ -354,11 +354,11 @@ try
 // ends with a failing code. The alternative is a stack trace in the user's face, which
 // tells them less and looks like a crash.
 //
-// The only suppression of this rule outside WindowsBinaryInspector, which has four - one
-// per file it opens, because one malformed binary out of several hundred must cost its own
-// answer rather than the whole run. Anywhere else a broad catch would be the silence rule 8
-// forbids, and the test of that is whether the failure still reaches the person. In all
-// five places it does.
+// Where the others are, and why, is a list in BroadCatchGuards rather than a number here.
+// This sentence used to carry the count and it rotted three times - "exactly two", then
+// five, then six - which is what a number in a comment does, since nothing counts it. Now
+// something does, and a broad catch appearing anywhere new fails a test instead of joining
+// a tally nobody maintains.
 catch (Exception failure)
 {
     // The whole chain, not just the top message. A wrapper such as
