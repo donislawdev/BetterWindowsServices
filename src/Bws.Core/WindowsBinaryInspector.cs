@@ -146,6 +146,32 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
 #pragma warning restore CA1031
     }
 
+    public Reading<string> ReadHash(string file)
+    {
+        if (!File.Exists(file))
+        {
+            return Reading<string>.Absent();
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(file);
+
+            // Streamed rather than read whole. The files here run to hundreds of megabytes
+            // between them and one of them alone can be large, and there is no reason for any
+            // of it to be in memory at once.
+            return Reading<string>.Present(Convert.ToHexStringLower(SHA256.HashData(stream)));
+        }
+#pragma warning disable CA1031
+        // Same reasoning as the two above: a file that cannot be opened - locked, on a
+        // disconnected disk, gone since the listing - costs its own answer and not the run.
+        catch (Exception failure)
+        {
+            return Reading<string>.Denied(failure.HResult, failure.Message);
+        }
+#pragma warning restore CA1031
+    }
+
     /// <summary>
     /// The signature the file carries itself, if any.
     ///

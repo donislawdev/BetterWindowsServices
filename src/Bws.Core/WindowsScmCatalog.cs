@@ -245,6 +245,8 @@ public sealed class WindowsScmCatalog : IScmCatalog
             BinaryOnDisk = configuration.BinaryOnDisk,
             RequiredPrivileges = configuration.RequiredPrivileges,
             SidType = configuration.SidType,
+            ErrorControl = configuration.ErrorControl,
+            LoadOrderGroup = configuration.LoadOrderGroup,
 
             // Read outside the configuration, and not because of tidiness. It needs a
             // different right on a different handle, so an entry whose configuration was
@@ -258,6 +260,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
             // every signature would take six times its budget, so most runs never will.
             Signature = Reading<BinarySignature>.NotRead(),
             FileVersion = Reading<string>.NotRead(),
+            BinaryHash = Reading<string>.NotRead(),
 
             // Filled in by MemoryPass, and only when asked. Not read is honest here and it
             // is the ordinary state: a listing describes configuration, and this is the one
@@ -315,6 +318,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
             var account = configuration.lpServiceStartName.ToString();
             var dependencies = ReadMultiString(configuration.lpDependencies);
             var binaryPath = configuration.lpBinaryPathName.ToString();
+            var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
 
             return new Configuration(
                 StartType: Reading<StartType>.Present(MapStartType(configuration.dwStartType)),
@@ -346,7 +350,15 @@ public sealed class WindowsScmCatalog : IScmCatalog
                 // Two more levels of the same call as the triggers, filled in by their own
                 // calls for the same reason: this buffer holds none of them.
                 RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
-                SidType: Reading<ServiceSidType>.NotRead());
+                SidType: Reading<ServiceSidType>.NotRead(),
+
+                ErrorControl: Reading<ErrorControl>.Present(MapErrorControl(configuration.dwErrorControl)),
+
+                // Most entries belong to no group, which is a fact about them rather than
+                // something we failed to read.
+                LoadOrderGroup: string.IsNullOrEmpty(loadOrderGroup)
+                    ? Reading<string>.Absent()
+                    : Reading<string>.Present(loadOrderGroup));
         }
     }
 
@@ -646,6 +658,22 @@ public sealed class WindowsScmCatalog : IScmCatalog
             : EntryType.Unknown;
     }
 
+    /// <summary>
+    /// How hard the system takes a failure to start during boot.
+    ///
+    /// Anything the metadata does not name comes back Unknown rather than being folded into
+    /// the nearest neighbour, the same rule the trigger kinds follow. Guessing here would be
+    /// a claim about how a machine boots.
+    /// </summary>
+    private static ErrorControl MapErrorControl(SERVICE_ERROR type) => type switch
+    {
+        SERVICE_ERROR.SERVICE_ERROR_IGNORE => Core.ErrorControl.Ignore,
+        SERVICE_ERROR.SERVICE_ERROR_NORMAL => Core.ErrorControl.Normal,
+        SERVICE_ERROR.SERVICE_ERROR_SEVERE => Core.ErrorControl.Severe,
+        SERVICE_ERROR.SERVICE_ERROR_CRITICAL => Core.ErrorControl.Critical,
+        _ => Core.ErrorControl.Unknown
+    };
+
     private static StartType MapStartType(SERVICE_START_TYPE type) => type switch
     {
         SERVICE_START_TYPE.SERVICE_BOOT_START => Core.StartType.Boot,
@@ -677,7 +705,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
         Reading<string> BinaryFile,
         Reading<bool> BinaryOnDisk,
         Reading<IReadOnlyList<string>> RequiredPrivileges,
-        Reading<ServiceSidType> SidType)
+        Reading<ServiceSidType> SidType,
+        Reading<ErrorControl> ErrorControl,
+        Reading<string> LoadOrderGroup)
     {
         internal static Configuration Refused(int code) => new(
             Refused<StartType>(code),
@@ -689,7 +719,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
             Refused<string>(code),
             Refused<bool>(code),
             Refused<IReadOnlyList<string>>(code),
-            Refused<ServiceSidType>(code));
+            Refused<ServiceSidType>(code),
+            Refused<ErrorControl>(code),
+            Refused<string>(code));
 
         /// <summary>
         /// Which file the launch command runs, and whether it is there.

@@ -3,6 +3,7 @@ using Bws.Cli;
 using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Core.Querying;
+using Bws.Core.Snapshots;
 
 // Slices S1 to S3: read every entry the manager knows about, narrow the listing with a
 // query, and work out what a stop, a start or a restart would do - then carry it out and
@@ -105,7 +106,47 @@ try
     string data;
     var exit = ExitCode.Ok;
 
-    if (options.IsWrite)
+    if (options.Kind == CommandKind.SnapshotCreate)
+    {
+        // No plan, and that is worth saying rather than leaving as an absence. ADR-11 puts
+        // every write behind a plan, and it means writes to the machine: a plan exists so
+        // that stopping a service can be previewed, reversed and turned into a command.
+        // Writing a file the person named changes nothing about any service, and there is
+        // nothing to preview that the file itself does not already say.
+        //
+        // Signatures and the hash are read every time here, unlike in a listing. A snapshot
+        // is taken deliberately and kept for months, so being comparable against the next
+        // one matters more than the several seconds it costs - and a snapshot missing them
+        // would compare against one that has them as though the machine had changed.
+        var before = stopwatch.ElapsedMilliseconds;
+        entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+        inspected = stopwatch.ElapsedMilliseconds - before;
+
+        var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
+        var target = SnapshotTarget(options.Path, snapshot.Metadata);
+
+        try
+        {
+            AtomicFile.Write(target, SnapshotJson.Render(snapshot));
+        }
+        catch (DirectoryNotFoundException missing)
+        {
+            // What somebody typed, not something that went wrong inside. ADR-18 forbids
+            // inventing directories, so the honest answer is the one the usage code carries.
+            stopwatch.Stop();
+            Console.Error.WriteLine(missing.Message);
+            return ExitCode.Usage;
+        }
+
+        stopwatch.Stop();
+
+        data = options.Json
+            ? SnapshotText.Render(snapshot, target, asJson: true)
+            : SnapshotText.Render(snapshot, target, asJson: false);
+
+        Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected, measured: 0);
+    }
+    else if (options.IsWrite)
     {
         var plan = new PlanBuilder(entries, catalog)
             .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents));
@@ -230,6 +271,23 @@ catch (Exception failure)
     return ExitCode.Runtime;
 }
 #pragma warning restore CA1031
+
+/// <summary>
+/// Where the snapshot goes when nobody said.
+///
+/// The machine and the moment, in the directory the person is standing in. E1's own example
+/// writes a snapshot without naming a file, so a name has to be worked out - and it has to
+/// be one somebody can recognise weeks later among a dozen others, which rules out anything
+/// clever. Sorted by name is sorted by time, because the stamp runs from the largest unit
+/// down.
+///
+/// Not a directory of our own choosing. ADR-18 says the tool does not invent directories,
+/// and a file appearing somewhere in a profile is a file nobody finds.
+/// </summary>
+static string SnapshotTarget(string given, SnapshotMetadata metadata) =>
+    given.Length > 0
+        ? given
+        : $"bws-snapshot-{metadata.Machine}-{metadata.TakenAt:yyyyMMdd-HHmmss}.json";
 
 /// <summary>
 /// Carries the plan out, with the waiting made visible.

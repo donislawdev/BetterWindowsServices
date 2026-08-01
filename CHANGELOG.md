@@ -89,6 +89,37 @@ Nothing has been released yet. Everything below is what the tool does today.
     the tool reports that is a measurement rather than a setting, so a plain listing stays a
     description of how the machine is configured.
 
+- **`bws snapshot create` freezes the whole machine into a file you can keep.**
+
+  ```
+  bws snapshot create before-the-deployment.json --note "before the deployment"
+  ```
+
+  JSON, one field per line, keys in a fixed order, so two snapshots of an unchanged machine
+  differ in exactly one line - the time. Put them in a repository and `git diff` tells you
+  what a patch Tuesday did. Without a file name it writes one into the current directory,
+  named after the machine and the moment.
+  - **Always complete.** Signatures and a SHA-256 of every binary are read every time, which
+    takes a few seconds. A listing skips them for speed and a snapshot cannot: one without
+    them, compared against one with them, would report the whole machine as changed.
+  - **The file says how it was taken** - machine, operating system, time, who ran it, and
+    whether they had administrator rights. That last one matters: without elevation Windows
+    hands over fewer entries, so comparing such a snapshot against an elevated one would
+    show services as removed that nobody removed. The tool says so when it writes one.
+  - **Written safely.** The file appears complete or not at all, never half-written, and a
+    failed write leaves whatever was there untouched. Pointing it at a directory that does
+    not exist is refused rather than created.
+  - Memory is deliberately not in it. It is different a second later and would be noise in a
+    document whose whole purpose is being compared with another one.
+
+- **Three more things about every entry**, in `--json` as well as in snapshots:
+  `errorControl` (how hard Windows takes it when the entry fails during boot),
+  `loadOrderGroup`, and `binaryHash`.
+
+- **Non-English names print as themselves in `--json`.** Display names on a Polish or German
+  install used to come out as escape sequences - correct JSON that nobody could check
+  against `services.msc`.
+
 ### Fixed
 
 - **The usage text lists every switch again.** `--signatures` was missing from it, and

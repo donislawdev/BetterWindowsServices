@@ -10,7 +10,17 @@ internal enum CommandKind
     List,
     Stop,
     Start,
-    Restart
+    Restart,
+
+    /// <summary>
+    /// Freeze the state of every entry into a file.
+    ///
+    /// Spelled as two words on the command line - <c>bws snapshot create</c> - because `E1`
+    /// writes it that way and because more will live under that noun: diff and restore are
+    /// both promised there. One word now would have to become two later, and a verb that
+    /// changes spelling after release costs somebody a runbook.
+    /// </summary>
+    SnapshotCreate
 }
 
 /// <summary>
@@ -65,6 +75,17 @@ internal sealed record CommandLine
     internal string? Query { get; private init; }
 
     /// <summary>
+    /// Where the snapshot goes. Empty when nobody said, and then a name is worked out.
+    /// </summary>
+    internal string Path { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// What the person wants their future self to know about this snapshot. Null when they
+    /// said nothing, which is not the same as an empty note.
+    /// </summary>
+    internal string? Note { get; private init; }
+
+    /// <summary>
     /// The longest to watch any one step.
     ///
     /// A minute by default, which is the number E1 of the specification already uses in its
@@ -115,12 +136,16 @@ internal sealed record CommandLine
         // not about how much memory it is holding while it happens.
         ("--memory", [CommandKind.List]),
 
-        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate]),
+
+        // Only where there is a snapshot to annotate. A note is the thing that makes a file
+        // from three weeks ago mean something, so it belongs to the verb that writes one.
+        ("--note", [CommandKind.SnapshotCreate]),
 
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
 
@@ -162,6 +187,8 @@ internal sealed record CommandLine
         var signatures = false;
         var memory = false;
         string? query = null;
+        var path = string.Empty;
+        string? note = null;
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
@@ -174,9 +201,47 @@ internal sealed record CommandLine
 
             if (!argument.StartsWith('-'))
             {
-                if (kind == CommandKind.None && TryVerb(argument, out var verb))
+                if (kind == CommandKind.None)
                 {
-                    kind = verb;
+                    // "snapshot" is a noun, not a verb, so it needs the word after it. E1
+                    // puts create, diff and restore under it, and only the first is built.
+                    if (Matches(argument, "snapshot"))
+                    {
+                        var next = index + 1 < arguments.Length ? arguments[index + 1] : string.Empty;
+
+                        if (Matches(next, "create"))
+                        {
+                            kind = CommandKind.SnapshotCreate;
+                            index++;
+                            continue;
+                        }
+
+                        // Reported as the pair the person typed rather than as one word of
+                        // it. "There is no such thing as snapshot" would be untrue, and
+                        // "there is no such thing as diff" would send them looking in the
+                        // wrong place.
+                        rejected.Add(next.Length == 0 ? argument : $"{argument} {next}");
+
+                        if (next.Length > 0)
+                        {
+                            index++;
+                        }
+
+                        continue;
+                    }
+
+                    if (TryVerb(argument, out var verb))
+                    {
+                        kind = verb;
+                        continue;
+                    }
+                }
+
+                // Where a snapshot goes. Optional: E1's own example writes it without one,
+                // and then a name is worked out from the machine and the time.
+                if (kind == CommandKind.SnapshotCreate && path.Length == 0)
+                {
+                    path = argument;
                     continue;
                 }
 
@@ -186,7 +251,7 @@ internal sealed record CommandLine
                 // After "list" there is no such word at all. Taking one and ignoring it
                 // would mean "bws list Spooler" quietly printed the whole machine, which is
                 // the silent kind of wrong this project spends most of its rules on.
-                if (kind is not (CommandKind.None or CommandKind.List) && serviceName.Length == 0)
+                if (kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart && serviceName.Length == 0)
                 {
                     serviceName = argument;
                     continue;
@@ -227,6 +292,30 @@ internal sealed record CommandLine
                 continue;
             }
 
+            if (argument.StartsWith("--note=", StringComparison.OrdinalIgnoreCase))
+            {
+                note = argument["--note=".Length..];
+                given.Add("--note");
+                continue;
+            }
+
+            if (Matches(argument, "--note"))
+            {
+                given.Add("--note");
+
+                if (index + 1 >= arguments.Length)
+                {
+                    // A note that was asked for and not given is a mistake, not an empty
+                    // note. Writing the snapshot anyway would lose the one thing the person
+                    // was in the middle of saying about it.
+                    incomplete.Add("--note");
+                    continue;
+                }
+
+                note = arguments[++index];
+                continue;
+            }
+
             if (argument.StartsWith("--timeout=", StringComparison.OrdinalIgnoreCase))
             {
                 given.Add("--timeout");
@@ -262,6 +351,8 @@ internal sealed record CommandLine
             Signatures = signatures,
             Memory = memory,
             Query = query,
+            Path = path,
+            Note = note,
             Timeout = timeout,
             BadTimeout = badTimeout,
             Rejected = rejected,

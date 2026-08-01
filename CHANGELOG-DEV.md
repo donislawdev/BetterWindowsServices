@@ -267,6 +267,53 @@ sense as answers to the one above them.
     three change no existing column's meaning, unlike a trigger or a missing file. No SACL,
     no writes.
 
+- **S5 cut in two, and the first half built: `bws snapshot create`.** **[contract]** A new
+  public contract, the snapshot schema, at version 1. `ADR-6` and `ADR-18` both go from
+  written to built.
+  - **Why it was cut.** S5 as planned holds the schema, metadata, deterministic writing, the
+    atomic write path that did not exist, the SHA-256, and then reading back, comparing per
+    field, four read states in a diff and the 807-against-810 trap. That is twice any slice
+    so far, and the rule says cut rather than deliver it swollen. The second reason matters
+    more: the diff's design depends on how the file records "not read", and designing it
+    against a real file is cheaper than against an imagined one.
+  - **Measured, six runs:** **6399-7156 ms** over 810 entries, of which 479-544 ms is the
+    manager and the rest is signatures and hashes. The file is **952 KB and 24 941 lines**.
+    Two snapshots of an unchanged machine differ in **one line**, the timestamp.
+  - **Signatures and hashes are read every time** (owner's decision). A snapshot is taken
+    deliberately and kept for months, so being comparable beats being quick - and one
+    without them compared against one with them reports the whole machine as changed.
+  - **Four things were needed to make "diffs cleanly" true rather than intended:** keys
+    sorted on the tree rather than by declaration order, ordinal rather than culture-aware
+    sorting, entries sorted by name with a tie-break on the exact spelling, and UTF-8
+    without a mark, Unix line endings, characters unescaped. Each of them is invisible in a
+    single file and each makes two files of an unchanged machine differ on hundreds of lines.
+  - **The entry-to-JSON mapping moved into the core**, where `docs/02` already said the
+    snapshot model is the source for the listing's fields too. Two mappings would drift, and
+    quietly: a field added to one, missing from the other, found out by whoever compares
+    snapshots six months from now.
+  - **`errorControl`, `loadOrderGroup` and `binaryHash` added** (owner's decision), because
+    the schema is frozen and `D1` names them. The first two were sitting unread in the
+    configuration buffer since S1. The hash costs 0.52 s in the pass that already opens
+    every file.
+  - **Found by a test, twice.** The rounding of the timestamp to whole seconds read
+    correctly and did nothing - it took the ticks from one reading of the clock and the
+    remainder from another - and only comparing two files showed it. And a snapshot could
+    not be read back at all, because it drops a property the document type marked required;
+    memory stopped being required, which is the right answer rather than a workaround.
+  - **Found while writing a test:** a check for the JSON escape prefix matched real AMD
+    driver store paths, where a folder is genuinely called `u0202642.inf_amd64_...` behind
+    an escaped backslash. A test asking about a pattern in text rather than a property of
+    the values found something it was not looking for.
+  - **Nothing guards atomicity itself.** Verified by replacing write-beside-and-move with a
+    direct write: all 383 tests stayed green, because the window where the difference exists
+    is microseconds wide. What is guarded is the observable half - no temporary file after a
+    successful write, quarantine that does not overwrite an earlier quarantine from the same
+    second, the encoding and the line endings.
+  - **Deliberately left out:** everything on the diff side, restoring (`D5`), baselines
+    (`D6`), scheduled snapshots (`D4`), the safety snapshot before a write (`D3`), the YAML
+    export `ADR-6` mentions, and the fields the tool still does not read at all - the
+    description and the recovery actions.
+
 - **The fourth family of S4, and the end of S4: process memory.** **[contract]** `memory`
   on `ScmEntry` and in the JSON as `{workingSet, commit, sharedBy}`, a `MEMORY` column, a
   `--memory` switch, and `memory` in the query language.
@@ -449,9 +496,8 @@ Carried here rather than in a session's memory, because sessions end.
 - **An entry invisible without elevation has no representation anywhere.** Not in the four
   states, not in the fake, not in the JSON. It is a missing row, and it will produce false
   deletions in a diff until snapshots carry the privilege level they were taken at.
-- **`errorControl` and `lpLoadOrderGroup`** are read into the buffer and thrown away.
-- **No SHA-256 of the binary.** `D1` wants one for snapshots, so it goes with S5 where it
-  will have a reader. Measured cheap: 0.52 s over 544 files, 368 MB.
+- **Nothing guards that a snapshot is written atomically.** The window is microseconds wide.
+  See the S5a entry: replacing the mechanism leaves every test green.
 - **No date on a signature, and no countersignature timestamp.** A certificate that has
   expired since signing is a different fact from one that was expired when it signed.
 - **The second pass cannot be interrupted.** Ctrl+C during those five seconds ends the

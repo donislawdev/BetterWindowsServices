@@ -56,6 +56,13 @@ internal static class Entries
         // quietly hide every mistake about the state that actually dominates.
         Signature = Reading<BinarySignature>.NotRead(),
         FileVersion = Reading<string>.NotRead(),
+        BinaryHash = Reading<string>.NotRead(),
+
+        // Spooler's own values again. Normal is what nearly everything on a machine uses -
+        // the sharper settings are for things the boot cannot do without - and belonging to
+        // no load order group is likewise the ordinary case.
+        ErrorControl = Reading<ErrorControl>.Present(Core.ErrorControl.Normal),
+        LoadOrderGroup = Reading<string>.Absent(),
 
         // Spooler's own values again, read off the machine with the probe and checked against
         // sc qprivs, sc qsidtype and sc sdshow. Present rather than absent because that is
@@ -95,7 +102,13 @@ internal static class Entries
     {
         Signature = Reading<BinarySignature>.Present(
             new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows")),
-        FileVersion = Reading<string>.Present("10.0.26100.1")
+        FileVersion = Reading<string>.Present("10.0.26100.1"),
+
+        // Sixty four hexadecimal characters, lower case, which is the shape a test about the
+        // snapshot can rely on. A shorter placeholder would let a mistake in the conversion
+        // pass unnoticed.
+        BinaryHash = Reading<string>.Present(
+            "9f2c4e8a1b3d5f70a2c4e6081a3c5e7092b4d6f8103a5c7e9b1d3f5709a2c4e60")
     };
 
     internal static ScmEntry Named(string serviceName, string displayName) =>

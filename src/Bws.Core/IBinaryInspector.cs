@@ -31,4 +31,15 @@ public interface IBinaryInspector
     /// broken - plenty of drivers ship without one.
     /// </summary>
     Reading<string> ReadFileVersion(string file);
+
+    /// <summary>
+    /// SHA-256 of the file, lower case hexadecimal.
+    ///
+    /// What a snapshot compares when it wants to know whether the file itself changed. The
+    /// signature answers a different question - who vouched for it - and a binary replaced
+    /// by another one from the same publisher passes that check unchanged.
+    ///
+    /// Absent when the path names nothing on disk, denied when it is there and unreadable.
+    /// </summary>
+    Reading<string> ReadHash(string file);
 }

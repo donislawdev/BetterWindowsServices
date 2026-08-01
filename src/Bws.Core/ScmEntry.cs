@@ -37,6 +37,31 @@ public enum EntryStatus
 }
 
 /// <summary>
+/// How hard the system takes it when this entry fails to start during boot.
+///
+/// About the boot sequence and nothing else. A service that fails at three in the
+/// afternoon is not covered by any of this - which is the confusion the glossary warns
+/// about, because the word "critical" invites reading it as "this service is important".
+/// It means "if this does not start at boot, stop booting".
+/// </summary>
+public enum ErrorControl
+{
+    Unknown = 0,
+
+    /// <summary>Carry on and say nothing.</summary>
+    Ignore,
+
+    /// <summary>Carry on and log it. What almost everything uses.</summary>
+    Normal,
+
+    /// <summary>Restart with the last known good configuration, or carry on if already using it.</summary>
+    Severe,
+
+    /// <summary>Restart with the last known good configuration, or fail the boot.</summary>
+    Critical
+}
+
+/// <summary>
 /// What the system will do with the entry at the next boot. Not the current state.
 /// </summary>
 public enum StartType
@@ -221,6 +246,24 @@ public sealed record ScmEntry
     public required Reading<BinarySignature> Signature { get; init; }
 
     /// <summary>
+    /// How hard the system takes it when this entry fails during boot.
+    ///
+    /// Free: it arrives in the same configuration structure as the start type, and it has
+    /// been sitting in that buffer unread since the first slice. `D1` names it among the
+    /// things a snapshot holds, which is what finally gave it a reader.
+    /// </summary>
+    public required Reading<ErrorControl> ErrorControl { get; init; }
+
+    /// <summary>
+    /// The load order group this entry belongs to, if any.
+    ///
+    /// Also free and also from that buffer. It matters for the same reason a dependency
+    /// does: an entry can declare a dependency on a whole group rather than on a service,
+    /// and this is the other end of that relationship. Absent for most entries.
+    /// </summary>
+    public required Reading<string> LoadOrderGroup { get; init; }
+
+    /// <summary>
     /// The version <see cref="BinaryFile"/> claims for itself.
     ///
     /// Cheap on its own - 0.27 s across the same 544 files - and read in the same pass
@@ -231,6 +274,20 @@ public sealed record ScmEntry
     /// Absent for a file with no version resource, which is ordinary rather than missing.
     /// </summary>
     public required Reading<string> FileVersion { get; init; }
+
+    /// <summary>
+    /// SHA-256 of <see cref="BinaryFile"/>, lower case hexadecimal.
+    ///
+    /// The thing a snapshot needs that a signature cannot give: a signature says who vouched
+    /// for the file, and this says whether it is byte for byte the same file. A binary
+    /// swapped for another one signed by the same publisher changes this and nothing else.
+    ///
+    /// Read alongside the signature rather than on its own, because both open the same file
+    /// and walking every binary on the machine twice would cost more than the hash does.
+    /// Measured on 2026-08-01: 0.52 s across 544 distinct files totalling 368 MB, against
+    /// 4620-7656 ms for the signatures in the same pass.
+    /// </summary>
+    public required Reading<string> BinaryHash { get; init; }
 
     /// <summary>
     /// The privileges the entry asks the manager to leave in its token, by name.

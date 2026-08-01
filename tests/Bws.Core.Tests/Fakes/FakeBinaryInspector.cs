@@ -17,13 +17,16 @@ internal sealed class FakeBinaryInspector : IBinaryInspector
 {
     private readonly Dictionary<string, Reading<BinarySignature>> _signatures;
     private readonly Dictionary<string, Reading<string>> _versions;
+    private readonly Dictionary<string, Reading<string>> _hashes;
 
     internal FakeBinaryInspector(
         Dictionary<string, Reading<BinarySignature>>? signatures = null,
-        Dictionary<string, Reading<string>>? versions = null)
+        Dictionary<string, Reading<string>>? versions = null,
+        Dictionary<string, Reading<string>>? hashes = null)
     {
         _signatures = signatures ?? new Dictionary<string, Reading<BinarySignature>>(StringComparer.OrdinalIgnoreCase);
         _versions = versions ?? new Dictionary<string, Reading<string>>(StringComparer.OrdinalIgnoreCase);
+        _hashes = hashes ?? new Dictionary<string, Reading<string>>(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Every file the signature was asked about, in order, repeats included.</summary>
@@ -51,5 +54,22 @@ internal sealed class FakeBinaryInspector : IBinaryInspector
         return _versions.TryGetValue(file, out var version)
             ? version
             : Reading<string>.Present($"1.0.0.{Path.GetFileName(file).Length}");
+    }
+
+    /// <summary>Every file the hash was asked about, in order, repeats included.</summary>
+    internal List<string> HashesAsked { get; } = [];
+
+    public Reading<string> ReadHash(string file)
+    {
+        HashesAsked.Add(file);
+
+        // Derived from the name and shaped like the real thing, so a test comparing two
+        // entries' hashes gets different answers for different files and the same answer for
+        // the same one - which is the whole property a hash has.
+        return _hashes.TryGetValue(file, out var hash)
+            ? hash
+            : Reading<string>.Present(
+                Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes(file.ToLowerInvariant()))));
     }
 }

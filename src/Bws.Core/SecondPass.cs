@@ -28,11 +28,12 @@ public static class SecondPass
     {
         var signatures = new Dictionary<string, Reading<BinarySignature>>(StringComparer.OrdinalIgnoreCase);
         var versions = new Dictionary<string, Reading<string>>(StringComparer.OrdinalIgnoreCase);
+        var hashes = new Dictionary<string, Reading<string>>(StringComparer.OrdinalIgnoreCase);
         var filled = new List<ScmEntry>(entries.Count);
 
         foreach (var entry in entries)
         {
-            filled.Add(Fill(entry, inspector, signatures, versions));
+            filled.Add(Fill(entry, inspector, signatures, versions, hashes));
         }
 
         return filled;
@@ -42,7 +43,8 @@ public static class SecondPass
         ScmEntry entry,
         IBinaryInspector inspector,
         Dictionary<string, Reading<BinarySignature>> signatures,
-        Dictionary<string, Reading<string>> versions)
+        Dictionary<string, Reading<string>> versions,
+        Dictionary<string, Reading<string>> hashes)
     {
         switch (entry.BinaryFile.Outcome)
         {
@@ -53,7 +55,8 @@ public static class SecondPass
                 return entry with
                 {
                     Signature = Reading<BinarySignature>.Absent(),
-                    FileVersion = Reading<string>.Absent()
+                    FileVersion = Reading<string>.Absent(),
+                    BinaryHash = Reading<string>.Absent()
                 };
 
             case ReadOutcome.Denied:
@@ -64,7 +67,8 @@ public static class SecondPass
                 return entry with
                 {
                     Signature = Reading<BinarySignature>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!),
-                    FileVersion = Reading<string>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!)
+                    FileVersion = Reading<string>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!),
+                    BinaryHash = Reading<string>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!)
                 };
 
             case ReadOutcome.Present:
@@ -82,7 +86,13 @@ public static class SecondPass
                     versions[file] = version;
                 }
 
-                return entry with { Signature = signature, FileVersion = version };
+                if (!hashes.TryGetValue(file, out var hash))
+                {
+                    hash = inspector.ReadHash(file);
+                    hashes[file] = hash;
+                }
+
+                return entry with { Signature = signature, FileVersion = version, BinaryHash = hash };
 
             default:
                 // Nobody read the path, so nobody can read what is at the end of it. Left
