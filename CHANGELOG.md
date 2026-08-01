@@ -215,6 +215,9 @@ Nothing has been released yet. Everything below is what the tool does today.
 ### Known limits
 
 - Local machine only. Remote management is not in this version.
+- **The window is dark, and it stays dark whatever Windows is set to** - including when
+  Windows is set to a high contrast theme. Checked rather than assumed: the window keeps its
+  own colours and stays readable, but it does not follow that setting.
 - Windows only, 64-bit only, Windows Server 2019 or Windows 10 1809 and above.
 - Operations on drivers are refused rather than attempted.
 - The tool does not raise its own privileges. When the manager refuses, it says so and

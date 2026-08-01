@@ -744,6 +744,25 @@ sense as answers to the one above them.
     filters of `A5` need. Also **item 18**: the regex switch does not fit inside the query text,
     and a saved set is text - Phase 4 has to store the state beside it or expand bare words into
     `/expression/` when saving.
+  - **Verified by the owner's screenshots**, six states of the window: `810 entries.` on an
+    empty box, `108 of 810` for `start:auto`, `13 of 810` for `start:auto !status:running`,
+    `339 of 810` for `!type:driver`, and a typo leaving the list alone while a red sentence
+    names the nearest real value. **The strongest of them is the one nobody asked for:**
+    `!type:driver` typed by hand unticked the Drivers box on its own, which is what tells a
+    member of the query apart from a switch pretending to be one.
+  - **`13` against the `12` the command line printed a minute earlier is not a disagreement.**
+    The running state moves on its own, measured at S5b2, which is exactly why the parity check
+    compares queries about it with a tolerance. Two numbers always equal would be a fact about
+    this machine standing still, not about our filtering.
+  - **High contrast settled, and the prediction was wrong about the direction.** Recorded
+    before the run: the window would come apart in the middle, WPF swapping the control brushes
+    while our nine stood still. What happened: **the window barely changes.** The system takes
+    the title bar and the border, the content stays ours, dark and readable - `ThemeMode="Dark"`
+    does not give way to high contrast, which was the one point written down as not predicted.
+    Owner's decision: leave it. That is a consequence of `ADR-24` rather than a departure from
+    it, and `ADR-24` now says so with what would overturn it. **Three brushes were not on that
+    screenshot** - row selection and the two coloured lines, the very ones flagged as riskiest -
+    so they stay **NOT SEEN**, as backlog item 20.
 
 ### Fixed
 
