@@ -137,8 +137,14 @@ Nothing has been released yet. Everything below is what the tool does today.
     count as differences.
   - **`--json`** gives the same comparison for a script, with a `differs` flag that answers
     the same question as the exit code.
-  - It reads two files and nothing else. Comparing snapshots does not touch the service
-    control manager, so it needs no rights over the machine running it.
+  - **`--live`** compares the file against this machine as it is now, which answers "what
+    changed since that snapshot". It reads signatures and hashes like `snapshot create`
+    does, because the file on the other side has them.
+  - Without `--live` it reads two files and nothing else. Comparing two snapshots does not
+    touch the service control manager, so it needs no rights over the machine running it.
+  - **A note for anything running this on a schedule:** on a live machine the running state
+    moves on its own. Entries start themselves for their own reasons within minutes, which
+    is why what is running and how things are set up are reported apart.
 
 ### Changed
 

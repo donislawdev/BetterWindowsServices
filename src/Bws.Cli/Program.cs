@@ -108,7 +108,7 @@ try
     // does not. A pipeline step comparing two snapshots on a build agent has no business
     // needing rights over that agent's own services, and reading eight hundred entries this
     // branch never looks at would spend half a second saying nothing.
-    var offline = options.Kind == CommandKind.SnapshotDiff;
+    var offline = options.Kind == CommandKind.SnapshotDiff && !options.Live;
     var catalog = offline ? null : new WindowsScmCatalog();
     IReadOnlyList<ScmEntry> entries = offline ? [] : catalog!.ReadAll();
     var read = offline ? 0 : stopwatch.ElapsedMilliseconds;
@@ -132,19 +132,49 @@ try
 
     if (options.Kind == CommandKind.SnapshotDiff)
     {
-        if (options.Path.Length == 0 || options.Against.Length == 0)
+        // Two files, or one file and the machine. Never one file on its own: that would have
+        // to be guessed into meaning something, and the only thing it could mean is the
+        // expensive one. --live says it in a word, which is how E1 writes it.
+        if (options.Path.Length == 0 || (options.Against.Length == 0 && !options.Live))
         {
-            // Two files or an answer. E1 also promises a comparison against the live machine
-            // behind --live, and that is not built, so one file is refused rather than
-            // guessed at - guessing would compare a snapshot against itself and report that
-            // nothing had changed, which is a true sentence about the wrong question.
             stopwatch.Stop();
-            Console.Error.WriteLine(Texts.Of("cli.diff.needsTwoFiles"));
+            Console.Error.WriteLine(Texts.Of("cli.diff.needsTwoSides"));
 
             return ExitCode.Usage;
         }
 
-        if (!Load(options.Path, out var before) || !Load(options.Against, out var after))
+        if (options.Live && options.Against.Length > 0)
+        {
+            // Three sides to a comparison with two. Refused rather than resolved by picking
+            // one, because either choice would silently ignore something the person typed.
+            stopwatch.Stop();
+            Console.Error.WriteLine(Texts.Of("cli.diff.liveTakesOneFile"));
+
+            return ExitCode.Usage;
+        }
+
+        if (!Load(options.Path, out var before))
+        {
+            stopwatch.Stop();
+
+            return ExitCode.Usage;
+        }
+
+        Snapshot? after;
+
+        if (options.Live)
+        {
+            // Signatures and hashes are read here for the same reason snapshot create reads
+            // them: the file on the other side has them. Comparing against a reading that
+            // skipped them would mark every entry as "one side never read this", which is
+            // 810 admissions and no answer.
+            var before2 = stopwatch.ElapsedMilliseconds;
+            entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+            inspected = stopwatch.ElapsedMilliseconds - before2;
+
+            after = Snapshot.Of(entries, note: null, new SystemClock());
+        }
+        else if (!Load(options.Against, out after))
         {
             stopwatch.Stop();
 
@@ -158,6 +188,15 @@ try
 
         if (options.Timing)
         {
+            if (options.Live)
+            {
+                // Its own line, like everywhere else the second pass runs. Folded into the
+                // comparison figure it would put seconds of file reading under a word about
+                // comparing two documents in memory.
+                Console.Error.WriteLine(Texts.Of("cli.info.timingRead", entries.Count, read));
+                Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
+            }
+
             Console.Error.WriteLine(Texts.Of("cli.info.timingCompared", stopwatch.ElapsedMilliseconds));
         }
 

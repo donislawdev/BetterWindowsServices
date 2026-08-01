@@ -543,6 +543,52 @@ sense as answers to the one above them.
   - **Deliberately left out:** `--live`, filtering differences by field, export, restoring,
     baselines.
 
+- **S5b2, and with it the whole of `D2`: `bws snapshot diff FILE --live`.** **[contract]**
+  One switch, on one verb. The file is "before" and the machine is "after", which is the
+  direction of the sentence this mode answers.
+  - **A word rather than an inference from "only one file was given".** `E1` writes it that
+    way and it is the better of the two: reading the machine costs a couple of seconds and
+    needs rights over its services, so it is not something a command should start doing
+    because an argument was left out. One file on its own is refused, and so are two files
+    with `--live`.
+  - **The acceptance test the plan asks for, run on the live machine** inside the four
+    services the owner allowed. Snapshot, stop `GamingServices`, compare: **one entry, one
+    field, `status: Running -> Stopped`, filed as running state, nothing else.** Restored
+    afterwards, `sc.exe` confirming `RUNNING` and `AUTO_START` - the state read before it.
+  - **Measured on the same run, and it is a fact about the product rather than the test:** a
+    minute later, `XblAuthManager` and `msiserver` had started **by themselves** - one woken
+    by Gaming Services coming back, one trigger started. **On a live machine the running
+    state moves on its own within minutes.** That is the measured justification for reporting
+    running state apart from configuration: without the split, every scheduled `--live` would
+    be red for reasons that are not drift. Configuration differences throughout: none.
+  - **The second pass is mandatory on the live side, and that is not obvious.** Without it
+    all 810 entries land under "one side never read this" - and an uncompared field is not a
+    difference, so the command would still report that nothing changed. **The first version
+    of the test did not catch that**, and it was strengthened before the mutation entry
+    written for it could prove anything. Found by asking what the test would miss rather
+    than by watching it fail.
+
+- **Five working methods taken from the owner's two Go projects** (2026-08-01, at his
+  instruction). None of it is in this repository - `tools/`, `docs/` and `CLAUDE.md` are all
+  excluded - so this entry is the only record in version control that it happened.
+  - **`tools/mutate/mutate.ps1`**: targeted mutation. Ten entries, ten caught. Every "verified
+    by breaking it" claim this project has made was previously a sentence that died with the
+    session that wrote it. Now it is a command. Checklist point 11.
+  - **`tools/audit/audit.ps1`**: the bridge between the documents and the code, for the tables
+    that exist in both. It found nothing on the day it was written, which is the point - the
+    exit code table had been kept in step by hand an hour earlier. Checklist point 12.
+  - **A regression surface table** in `docs/04`: 26 behaviours, 21 fully guarded, 3 partly,
+    **2 with no guard at all**, each partial one carrying what it does not cover.
+  - **Four states of every path** (normal, failure, teardown, degenerate but legal) as rule 10
+    of `CLAUDE.md`, and the five dimensions of a shared value in `docs/04`.
+  - **Two mistakes made while doing it, both worth more than the transfer.** The audit's own
+    self test reported 2 of 4 because PowerShell unrolls a one element array and
+    `PSCustomObject` has no `Count` - so every breakage producing exactly one complaint read
+    as "found nothing". **The check lied in the direction that looks like diligence.** And
+    adding a rule in the middle of a numbered list silently broke a reference to it fifteen
+    screens up in the same file - fixed by appending instead, because a number once given
+    stays given.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two

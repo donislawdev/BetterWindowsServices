@@ -113,6 +113,16 @@ internal sealed record CommandLine
     internal bool ExitCodeOnDifference { get; private init; }
 
     /// <summary>
+    /// Compare the file against this machine as it is right now.
+    ///
+    /// A word rather than an inference from "only one file was given". `E1` writes it this
+    /// way, and it is the better of the two: reading the machine takes a couple of seconds
+    /// and needs rights over its services, so it is not something a command should start
+    /// doing because an argument was left out.
+    /// </summary>
+    internal bool Live { get; private init; }
+
+    /// <summary>
     /// What the person wants their future self to know about this snapshot. Null when they
     /// said nothing, which is not the same as an empty note.
     /// </summary>
@@ -189,6 +199,10 @@ internal sealed record CommandLine
         // is the whole of what a code can say, and this switch adds a second meaning to it.
         ("--exit-code", [CommandKind.SnapshotDiff]),
 
+        // Only where there is a machine worth comparing against. Everywhere else the live
+        // state is what the command already reads.
+        ("--live", [CommandKind.SnapshotDiff]),
+
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
@@ -259,6 +273,7 @@ internal sealed record CommandLine
         var path = string.Empty;
         var against = string.Empty;
         var exitCode = false;
+        var live = false;
         string? note = null;
         string? badSubcommand = null;
         string? badTimeout = null;
@@ -362,6 +377,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
             if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
             if (Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
+            if (Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -449,6 +465,7 @@ internal sealed record CommandLine
             Path = path,
             Against = against,
             ExitCodeOnDifference = exitCode,
+            Live = live,
             Note = note,
             BadSubcommand = badSubcommand,
             Timeout = timeout,
