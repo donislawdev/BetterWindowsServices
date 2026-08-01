@@ -21,6 +21,23 @@ QueryServiceConfig
 // it the strongest thing in the details panel.
 QueryServiceConfig2
 
+// What the entry is allowed to do, and who is allowed to do things to it.
+//
+// The privileges and the service SID type ride on the configuration handle the listing
+// already holds, at two more information levels of the call above. The descriptor does
+// not: it needs READ_CONTROL, which is a different right, so it takes a handle of its own.
+//
+// That separation is measured rather than tidy. Under a restricted token on 2026-08-01,
+// five entries of 810 - LSM, NetSetupSvc, pla, QWAVE and QWAVEdrv - open for configuration
+// and refuse when READ_CONTROL is added to the same request. Asking for both at once would
+// have taken the start type, the account and the launch path away from entries that report
+// them today, in exchange for a field they were never going to give up.
+//
+// The SACL is deliberately not read. Asking for it fails the whole descriptor with error 5
+// unless SeSecurityPrivilege is enabled, which it is not even in an elevated session, so
+// including it would trade owner, group and DACL for nothing.
+QueryServiceObjectSecurity
+
 // Who breaks if this one stops. The manager answers this itself, and its answer is worth
 // more than inverting the declared dependencies would be: an entry can declare a load
 // order group rather than a service, and only the manager knows who is in that group.
@@ -81,6 +98,15 @@ CATALOG_INFO
 SC_MANAGER_CONNECT
 SC_MANAGER_ENUMERATE_SERVICE
 SERVICE_QUERY_CONFIG
+
+// READ_CONTROL and the three parts of a descriptor we ask for arrive as members of these
+// two enumerations rather than as constants of their own. The generator says so itself,
+// which is the whole argument for keeping this list under review: a hand-written P/Invoke
+// would have taken a plain number here and nobody would ever have found out what it was.
+FILE_ACCESS_RIGHTS
+OBJECT_SECURITY_INFORMATION
+SERVICE_SID_INFO
+SERVICE_REQUIRED_PRIVILEGES_INFOW
 SERVICE_ENUMERATE_DEPENDENTS
 SERVICE_QUERY_STATUS
 SERVICE_START

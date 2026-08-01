@@ -83,8 +83,38 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
             return Verdict.CouldNotRead;
         }
 
-        var value = field.TextOf!(entry);
+        if (field.TextsOf is not null)
+        {
+            return Across(field.TextsOf(entry));
+        }
 
+        return Against(field.TextOf!(entry));
+    }
+
+    /// <summary>
+    /// A field holding several values. Any one of them matching is a match, and a value
+    /// running out of time is carried out whole rather than being turned into a no - the
+    /// same rule the alternatives inside a member follow.
+    /// </summary>
+    private Verdict Across(IReadOnlyList<string>? values)
+    {
+        if (values is null)
+        {
+            return Verdict.NoMatch;
+        }
+
+        var verdict = Verdict.NoMatch;
+
+        foreach (var value in values)
+        {
+            verdict = verdict.Or(Against(value));
+        }
+
+        return verdict;
+    }
+
+    private Verdict Against(string? value)
+    {
         if (value is null)
         {
             return Verdict.NoMatch;

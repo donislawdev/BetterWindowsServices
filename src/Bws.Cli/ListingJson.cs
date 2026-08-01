@@ -107,6 +107,35 @@ internal sealed record EntryJson
     /// <summary>The version the file claims for itself. Null when it carries no version resource.</summary>
     public required string? FileVersion { get; init; }
 
+    /// <summary>
+    /// What the entry asks the manager to leave in its token, by name and in the manager's
+    /// own casing. Null when it declares nothing - which is the permissive case, not the
+    /// careful one: an entry naming no privileges keeps everything its account has.
+    /// </summary>
+    public required IReadOnlyList<string>? RequiredPrivileges { get; init; }
+
+    /// <summary>
+    /// Whether the entry has an identity of its own: "unrestricted", "restricted" or null.
+    ///
+    /// Null covers two different things, told apart the same way as everywhere else here:
+    /// an entry with no identity of its own is simply null, and an entry nobody could read
+    /// is named in "unreadable". Windows calls the first case NONE, and it is expressed as
+    /// null rather than as a third value because it is the absence of a SID rather than a
+    /// kind of one.
+    /// </summary>
+    public required string? SidType { get; init; }
+
+    /// <summary>
+    /// Who may do what to this entry, in the text form the system reads and writes, with
+    /// owner, group and permissions.
+    ///
+    /// The audit list is not in it. Reading that needs a privilege an elevated session does
+    /// not have enabled, and asking for it fails the whole read - so this differs from
+    /// <c>sc sdshow</c> in both directions: it carries owner and group, which sc does not
+    /// show, and not the audit list, which sc does.
+    /// </summary>
+    public required string? SecurityDescriptor { get; init; }
+
     /// <summary>Field name to refusal, for everything that was refused. Omitted when empty.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, UnreadableJson>? Unreadable { get; init; }
@@ -137,6 +166,9 @@ internal sealed record EntryJson
         Note(unreadable, notRead, nameof(entry.BinaryOnDisk), entry.BinaryOnDisk);
         Note(unreadable, notRead, nameof(entry.Signature), entry.Signature);
         Note(unreadable, notRead, nameof(entry.FileVersion), entry.FileVersion);
+        Note(unreadable, notRead, nameof(entry.RequiredPrivileges), entry.RequiredPrivileges);
+        Note(unreadable, notRead, nameof(entry.SidType), entry.SidType);
+        Note(unreadable, notRead, nameof(entry.SecurityDescriptor), entry.SecurityDescriptor);
 
         return new EntryJson
         {
@@ -167,6 +199,10 @@ internal sealed record EntryJson
                 : null,
 
             FileVersion = entry.FileVersion.IsPresent ? entry.FileVersion.Value : null,
+
+            RequiredPrivileges = entry.RequiredPrivileges.IsPresent ? entry.RequiredPrivileges.Value : null,
+            SidType = entry.SidType.IsPresent ? Camel(entry.SidType.Value.ToString()) : null,
+            SecurityDescriptor = entry.SecurityDescriptor.IsPresent ? entry.SecurityDescriptor.Value : null,
 
             Unreadable = unreadable.Count == 0 ? null : unreadable,
             NotRead = notRead.Count == 0 ? null : notRead

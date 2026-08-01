@@ -291,8 +291,78 @@ public static class QueryFields
             NeedsSecondPass = true,
             OutcomeOf = PublisherOutcome,
             TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null
+        },
+
+        new QueryField
+        {
+            // "Which services asked to keep the right to debug anything" is an audit
+            // question with a one-line answer here and no answer at all in services.msc.
+            //
+            // Text rather than an enumeration, although Windows has a closed list of
+            // privilege names. An enumeration would reject any name this code had not been
+            // told about, so a machine carrying a privilege we had never seen would answer a
+            // correct query with an error. Text also gives the fragment search that suits a
+            // name nobody types in full: privilege:debug finds SeDebugPrivilege.
+            //
+            // Singular, because a member asks about one of them. The field holds a list and
+            // matches when any value in it does.
+            Name = "privilege",
+            Kind = QueryFieldKind.Text,
+            Aliases = ["privileges"],
+            OutcomeOf = entry => entry.RequiredPrivileges.Outcome,
+            TextsOf = entry => entry.RequiredPrivileges.ValueOr(null)
+        },
+
+        new QueryField
+        {
+            // Two values where Windows has three. The third, NONE, is the absence of an
+            // identity rather than a kind of one, so it is read through the reserved word
+            // every field has: sidtype:none. See ServiceSidType for why that is not a
+            // convenience but the difference between "has none" and "nobody asked".
+            Name = "sidtype",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = entry => entry.SidType.Outcome,
+            SymbolsOf = SidTypeSymbols,
+            Values =
+            [
+                new QueryValueName("unrestricted", "unrestricted"),
+                new QueryValueName("restricted", "restricted"),
+                new QueryValueName("unknown", "unknown")
+            ]
+        },
+
+        new QueryField
+        {
+            // Named after the text form rather than after the descriptor, and the distinction
+            // is the glossary's own - pitfall P9 keeps the descriptor, the permission list and
+            // the text form apart because conflating them guarantees a misunderstanding at the
+            // first conversation about a diff. This field searches the text form, which is
+            // what the tool holds today. When the permission list is decoded for the window it
+            // will want a field of its own, and this name leaves that one free.
+            //
+            // Blunt on purpose: sddl:"(A;;CCLCSWRPWPDTLOCRRC;;;WD)" is an expert's question
+            // and reads like one. The everyday use is sddl:? and sddl:any, which ask which
+            // entries would not give up their permissions - the question rule 8 of CLAUDE.md
+            // exists for.
+            Name = "sddl",
+            Kind = QueryFieldKind.Text,
+            OutcomeOf = entry => entry.SecurityDescriptor.Outcome,
+            TextOf = entry => entry.SecurityDescriptor.ValueOr(null)
         }
     ];
+
+    /// <summary>
+    /// Whether the entry has an identity of its own, and which kind.
+    ///
+    /// An entry with none reports no symbols and is not incomplete: there is genuinely
+    /// nothing here, which is what <c>sidtype:none</c> asks about.
+    /// </summary>
+    private static FieldSymbols SidTypeSymbols(ScmEntry entry) => entry.SidType.Outcome switch
+    {
+        ReadOutcome.Present => FieldSymbols.Of(Normalise(entry.SidType.Value.ToString())),
+        ReadOutcome.Absent => FieldSymbols.Of(),
+        _ => FieldSymbols.Nothing
+    };
 
     /// <summary>
     /// What the system concluded about the signature.

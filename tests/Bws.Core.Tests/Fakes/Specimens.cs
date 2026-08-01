@@ -23,6 +23,35 @@ namespace Bws.Core.Tests.Fakes;
 /// </summary>
 internal static class Specimens
 {
+    /// <summary>
+    /// The descriptor that most of this machine shares, read off it on 2026-08-01 and
+    /// agreeing with <c>sc sdshow</c> apart from the two deliberate differences: it carries
+    /// the owner and the group, which sc does not print, and not the audit list, which sc
+    /// does.
+    ///
+    /// Named rather than repeated because the sharing is itself a measured fact - 810
+    /// entries hold only 121 distinct descriptors - and because a constant makes it obvious
+    /// which specimens differ on purpose.
+    /// </summary>
+    private const string CommonDescriptor =
+        "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)" +
+        "(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)";
+
+    /// <summary>
+    /// What a driver looks like in this family: it asks for no privileges and has no
+    /// identity of its own, because it has no token for either to go into. Measured across
+    /// all 471 drivers on the machine, every one of them answers this way.
+    ///
+    /// Absent rather than refused or empty. The manager answers the question and the answer
+    /// is that there is nothing here.
+    /// </summary>
+    private static ScmEntry AsADriver(ScmEntry entry) => entry with
+    {
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
+        SidType = Reading<ServiceSidType>.Absent(),
+        SecurityDescriptor = Reading<string>.Present(CommonDescriptor)
+    };
+
     // -- names and accounts -------------------------------------------------------------
 
     /// <summary>
@@ -70,7 +99,16 @@ internal static class Specimens
         // does about anything else.
         BinaryPath = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe -k McmSvc -p -s McmSvc"),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\system32\svchost.exe"),
-        BinaryOnDisk = Reading<bool>.Present(true)
+        BinaryOnDisk = Reading<bool>.Present(true),
+
+        // Declares no privileges and has an identity of its own, which is the combination
+        // that shows the two are unrelated questions. A virtual account is named after the
+        // service, so it is easy to assume the SID type follows from it. It does not.
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
+        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+        SecurityDescriptor = Reading<string>.Present(
+            "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRRC;;;LS)" +
+            "(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLORC;;;IU)(A;;CCLCSWLOCRRC;;;SU)")
     };
 
     /// <summary>A second virtual account, disabled, so a test cannot pass on one example.</summary>
@@ -135,7 +173,16 @@ internal static class Specimens
         // reading the manager cannot produce.
         BinaryPath = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
         BinaryFile = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
-        BinaryOnDisk = Reading<bool>.Denied(Entries.AccessDenied, "access denied")
+        BinaryOnDisk = Reading<bool>.Denied(Entries.AccessDenied, "access denied"),
+
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Denied(Entries.AccessDenied, "access denied"),
+        SidType = Reading<ServiceSidType>.Denied(Entries.AccessDenied, "access denied"),
+
+        // Refused as well, although it is read through a handle of its own and could in
+        // principle differ. Measured under a restricted token on 2026-08-01: all three
+        // entries that refuse the configuration handle refuse READ_CONTROL too. The
+        // entry that refuses only one of them is a specimen of its own further down.
+        SecurityDescriptor = Reading<string>.Denied(Entries.AccessDenied, "access denied")
     };
 
     /// <summary>
@@ -165,7 +212,14 @@ internal static class Specimens
         Status = EntryStatus.Stopped,
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+
+        // A service asking for nothing and given no identity, which is what most software
+        // from outside Windows looks like here. It is also the permissive shape rather than
+        // the careful one: asking for no privileges leaves the account's whole set in place.
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
+        SidType = Reading<ServiceSidType>.Absent(),
+        SecurityDescriptor = Reading<string>.Present(CommonDescriptor)
     };
 
     /// <summary>Delayed automatic, running. sc.exe reports start type 2 for this and for a
@@ -233,7 +287,7 @@ internal static class Specimens
     /// pending deletion. Three of the four survive here now that the binary path is read -
     /// only the pending-delete state is still missing from the model.
     /// </summary>
-    internal static ScmEntry DisabledKernelDriver => Entries.Any with
+    internal static ScmEntry DisabledKernelDriver => AsADriver(Entries.Any with
     {
         ServiceName = "amduw23g-202073-df09ebb6",
         DisplayName = "amduw23g-202073-df09ebb6",
@@ -249,7 +303,7 @@ internal static class Specimens
         BinaryFile = Reading<string>.Present(
             @"C:\WINDOWS\System32\DriverStore\FileRepository\u0202073.inf_amd64_3c7f18bc022bf004\B026184\amdkmdag.sys"),
         BinaryOnDisk = Reading<bool>.Present(false)
-    };
+    });
 
     // -- shared processes and per-user services -------------------------------------------
 
@@ -262,7 +316,28 @@ internal static class Specimens
         Status = EntryStatus.Running,
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
-        ProcessId = Reading<int>.Present(1900)
+        ProcessId = Reading<int>.Present(1900),
+
+        // Ten privileges, including the one an audit asks about first. Kept in the manager's
+        // own order, which is not alphabetical and is not ours to tidy.
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(
+        [
+            "SeAssignPrimaryTokenPrivilege",
+            "SeAuditPrivilege",
+            "SeChangeNotifyPrivilege",
+            "SeCreateGlobalPrivilege",
+            "SeDebugPrivilege",
+            "SeImpersonatePrivilege",
+            "SeIncreaseQuotaPrivilege",
+            "SeTcbPrivilege",
+            "SeBackupPrivilege",
+            "SeRestorePrivilege"
+        ]),
+
+        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+        SecurityDescriptor = Reading<string>.Present(
+            "O:SYG:SYD:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPWPDTLORCWDWO;;;SY)" +
+            "(A;;CCLCSWRPWPDTLORCWDWO;;;BA)(A;;CCLCLO;;;BU)")
     };
 
     /// <summary>Another of the same five. Same process, different start type, so a test
@@ -452,7 +527,7 @@ internal static class Specimens
     /// absent and the file is still known, which is a pairing nothing else in the catalogue
     /// produces - and one that a reader assuming "no path means no file" would get wrong.
     /// </summary>
-    internal static ScmEntry DriverWithNoPathOfItsOwn => Entries.Any with
+    internal static ScmEntry DriverWithNoPathOfItsOwn => AsADriver(Entries.Any with
     {
         ServiceName = "Beep",
         DisplayName = "Beep",
@@ -466,7 +541,7 @@ internal static class Specimens
         BinaryPath = Reading<string>.Absent(),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\drivers\Beep.sys"),
         BinaryOnDisk = Reading<bool>.Present(true)
-    };
+    });
 
     /// <summary>
     /// Nothing to run and nothing to assume.
@@ -488,6 +563,64 @@ internal static class Specimens
         BinaryPath = Reading<string>.Absent(),
         BinaryFile = Reading<string>.Absent(),
         BinaryOnDisk = Reading<bool>.Absent()
+    };
+
+    // -- permissions ----------------------------------------------------------------------
+
+    /// <summary>
+    /// A write-restricted identity, which is the stronger of the two kinds and the rarer:
+    /// 11 services on the machine this was read from, against 250 unrestricted.
+    ///
+    /// It declares exactly one privilege while carrying the tighter identity, so a test that
+    /// assumed the two move together would fail on it. They are separate settings and this
+    /// specimen is the counter-example.
+    /// </summary>
+    internal static ScmEntry RestrictedIdentity => Entries.Any with
+    {
+        ServiceName = "BFE",
+        DisplayName = "Aparat filtrowania bazowego",
+        EntryType = EntryType.SharedProcess,
+        Status = EntryStatus.Running,
+        StartType = Reading<StartType>.Present(Core.StartType.Automatic),
+        DelayedAuto = Reading<bool>.Present(false),
+        Account = Reading<string>.Present(@"NT AUTHORITY\LocalService"),
+        ProcessId = Reading<int>.Present(3268),
+
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeAuditPrivilege"]),
+        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Restricted),
+        SecurityDescriptor = Reading<string>.Present(
+            "O:SYG:SYD:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPLORCWDWO;;;SY)" +
+            "(A;;CCLCSWRPLORCWDWO;;;BA)(A;;CCLCLO;;;BU)")
+    };
+
+    /// <summary>
+    /// Everything read except the permissions, which is the case that decides how this
+    /// family is read at all.
+    ///
+    /// Measured under a restricted token on 2026-08-01: five entries of 810 - LSM,
+    /// NetSetupSvc, pla, QWAVE and QWAVEdrv - open for configuration and refuse when
+    /// READ_CONTROL is asked for. If the descriptor were read on the same handle as the
+    /// configuration, these five would lose their start type, their account and their launch
+    /// path in exchange for a field they were never going to hand over. The values here are
+    /// LSM's own, with the descriptor as that token sees it.
+    ///
+    /// Also the only specimen where one field is refused while its neighbours are read. The
+    /// whole four-state model exists for this shape, and until this family there was nothing
+    /// on this machine that produced it.
+    /// </summary>
+    internal static ScmEntry DescriptorRefused => Entries.Any with
+    {
+        ServiceName = "LSM",
+        DisplayName = "Menedżer sesji lokalnych",
+        EntryType = EntryType.SharedProcess,
+        Status = EntryStatus.Running,
+        StartType = Reading<StartType>.Present(Core.StartType.Automatic),
+        DelayedAuto = Reading<bool>.Present(false),
+        ProcessId = Reading<int>.Present(1096),
+
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
+        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+        SecurityDescriptor = Reading<string>.Denied(Entries.AccessDenied, "access denied")
     };
 
     /// <summary>Everything above, as one listing.</summary>
@@ -517,7 +650,9 @@ internal static class Specimens
         TriggersNotRead,
         UnquotedPathWithSpaces,
         DriverWithNoPathOfItsOwn,
-        NothingToRun
+        NothingToRun,
+        RestrictedIdentity,
+        DescriptorRefused
     ];
 
     /// <summary>A manager that hands back the whole catalogue.</summary>

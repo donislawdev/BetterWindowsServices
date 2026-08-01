@@ -56,6 +56,23 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **A refusal carries the system's number as well as its sentence.** The sentence is in the
   language of the machine, so the number is the half a script should read.
 
+- **Privileges, service identity and permissions are read and searchable.** `--json` now
+  carries `requiredPrivileges`, `sidType` and `securityDescriptor` for every entry, and the
+  query language gained `privilege`, `sidtype` and `sddl`. `--query "privilege:debug"` finds
+  everything that asked to keep the right to attach to any process, and
+  `--query "sidtype:restricted"` finds the services running under the tighter kind of
+  identity. Read on every listing, because all three together cost about a sixth of a
+  second on a machine with 810 entries.
+  - **A service that declares no privileges is not a restricted one.** Declaring them is
+    how a service asks for the rest to be taken away, so declaring none keeps everything
+    the account has.
+  - The permissions come as the text form Windows itself reads and writes, with owner,
+    group and the permission list. It differs from `sc sdshow` in two ways on purpose: it
+    has the owner and group, which `sc` does not print, and not the audit list, which needs
+    a privilege that even an administrator session does not have switched on.
+  - Not shown in the table. The three would add width to every row without changing what
+    any existing column means, and the listing is already wide.
+
 ### Fixed
 
 - **The usage text lists every switch again.** `--signatures` was missing from it, and

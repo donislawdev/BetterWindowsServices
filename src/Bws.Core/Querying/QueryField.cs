@@ -73,6 +73,18 @@ internal sealed class QueryField
     /// <summary>Text fields only. Null when the value is absent or was refused.</summary>
     internal Func<ScmEntry, string?>? TextOf { get; init; }
 
+    /// <summary>
+    /// Text fields whose value is a list rather than one string. A member matches when any
+    /// one of them matches, so <c>privilege:debug</c> finds a service that declares eight
+    /// privileges of which one is SeDebugPrivilege.
+    ///
+    /// Its own hook rather than joining the list into one string, because joining changes
+    /// what the operators mean. An exact match would have to equal the whole joined run and
+    /// would never match anything, and a wildcard could span the gap between two values and
+    /// match a privilege nobody declared.
+    /// </summary>
+    internal Func<ScmEntry, IReadOnlyList<string>?>? TextsOf { get; init; }
+
     /// <summary>Enumeration fields only.</summary>
     internal Func<ScmEntry, FieldSymbols>? SymbolsOf { get; init; }
 

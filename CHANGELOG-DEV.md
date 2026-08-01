@@ -222,6 +222,61 @@ sense as answers to the one above them.
     a property of the machine, and removing it would be fitting the code to the one machine
     it was measured on.
 
+- **The third family of S4: privileges, service SID type and the security descriptor.**
+  **[contract]** Three fields added to `ScmEntry` and to the JSON: `requiredPrivileges`,
+  `sidType`, `securityDescriptor`, plus `privilege`, `sidtype` and `sddl` in the query
+  language. Names from the binding column of `docs/03`, except the query name `sddl`, which
+  is named after the text form it searches so that the decoded permission list can have
+  `security` when it exists.
+  - **Measured, six runs each, same session, worktree built at the previous commit for the
+    comparison:** 343-364 ms before, **476-551 ms after**, over 810 entries against a budget
+    of a second. The family costs 130-190 ms. Spread inside a variant is 21 ms and 75 ms,
+    both smaller than the difference, so the difference is real. The probe predicted 120-140
+    and was low, the same way it was low for the launch path: it times the calls and not
+    what happens to the answers.
+  - **Three families in a row that ADR-13 does not apply to.** Triggers 45-75 ms, launch
+    path 45-60 ms, permissions 130-190 ms, all read every time. Only signatures, at
+    4620-7656 ms, need deferring. "Expensive data" in the specification turned out to name
+    one family out of four.
+  - **The descriptor gets a handle of its own, and that is measured rather than tidy.** It
+    needs `READ_CONTROL`. Under a restricted token, five entries of 810 - `LSM`,
+    `NetSetupSvc`, `pla`, `QWAVE`, `QWAVEdrv` - open for configuration and refuse when
+    `READ_CONTROL` is added to the same request. Asking for both together would have taken
+    the start type, the account and the launch path from those five in exchange for a field
+    they were never going to give up. I predicted this would cost nothing and was wrong.
+  - **No guard covers moving it back onto the shared handle.** Verified by doing it: all 328
+    tests stayed green, because an elevated session refuses nothing. A guard would need the
+    tool run under a restricted token from a test, through `runas` and a result file, which
+    is the kind of flaky guard that gets switched off. There is a comment at the exact line
+    where the mistake gets made, and this entry.
+  - Three other deliberate breaks did go red as they should: truncating the privilege list
+    to its first entry, mapping the restricted SID type to unrestricted, and adding
+    `SACL_SECURITY_INFORMATION` to the request - the last of which fails the whole read with
+    error 5 even elevated, which is why the audit list is deliberately not read.
+  - **`SERVICE_SID_TYPE_NONE` is modelled as absence, not as a third value.** It is not a
+    kind of identity, and putting it in the enumeration would have let `sidtype:none` be
+    answered by an entry nobody could read.
+  - **Privilege name casing varies between services on one machine** - `Schedule` declares
+    `SeSystemTimePrivilege`, `Sense` declares `SeSystemtimePrivilege`. Comparisons are
+    case-insensitive, which matters for the query language now and for the diff at S5.
+  - **`privilege` is the first text field holding a list.** `TextsOf` on `QueryField`, any
+    value matching. Joining the list into one string would have changed what the operators
+    mean: an exact match could never match, and a wildcard could span two values.
+  - **Deliberately left out:** decoding the descriptor into a readable permission list,
+    which `01` promises for the details panel and which goes with S7. No table column - the
+    three change no existing column's meaning, unlike a trigger or a missing file. No SACL,
+    no writes.
+
+- **Found while doing it, and bigger than the slice: without elevation the manager
+  enumerates fewer entries, not entries with holes.** 807 against 810, with `RoutePolicy`,
+  `ZTDNS` and `ZTHELPER` missing entirely, and `sc.exe query type= all state= all` in the
+  same token reports the same 807. This closes the open question in `docs/05` - "is there an
+  entry invisible without elevation" - with a yes, and moves the problem to **S5**: a
+  snapshot taken unelevated has three fewer entries, so comparing it against an elevated one
+  would report three deletions nobody performed. Rule 8 guards silence in fields and cannot
+  help, because what is silent is the whole row. The `D1` metadata recording the privilege
+  level a snapshot was taken at stops being a formality.
+
 ### Changed
 
 - **Putting a service back is not going forward** (`8f7106f`). Found by a run on a virtual
@@ -341,6 +396,11 @@ Carried here rather than in a session's memory, because sessions end.
   cause is the service disappearing between enumeration and the configuration query. No
   consequence for the listing, a real one for snapshots.
 - **The delay flag is not read where it does nothing.** Affects snapshots, not filtering.
+- **Nothing guards the descriptor staying on a handle of its own.** See the S4 permissions
+  entry: the mistake is one word long and no test on an elevated machine sees it.
+- **An entry invisible without elevation has no representation anywhere.** Not in the four
+  states, not in the fake, not in the JSON. It is a missing row, and it will produce false
+  deletions in a diff until snapshots carry the privilege level they were taken at.
 - **`errorControl` and `lpLoadOrderGroup`** are read into the buffer and thrown away.
 - **No SHA-256 of the binary.** `D1` wants one for snapshots, so it goes with S5 where it
   will have a reader. Measured cheap: 0.52 s over 544 files, 368 MB.

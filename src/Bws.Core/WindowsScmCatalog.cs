@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.Security;
+using Windows.Win32.Storage.FileSystem;
 using Windows.Win32.System.Services;
 
 namespace Bws.Core;
@@ -37,6 +40,14 @@ public sealed class WindowsScmCatalog : IScmCatalog
     // change while the process runs, and it is asked for on every entry of every listing.
     private static readonly string WindowsDirectory =
         Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+    // Owner, group and permissions - the three parts of a descriptor that can be read with
+    // READ_CONTROL alone. The fourth, the audit list, is left out on purpose: see
+    // ReadSecurityDescriptor.
+    private const uint DescriptorParts =
+        (uint)(OBJECT_SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION
+            | OBJECT_SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION
+            | OBJECT_SECURITY_INFORMATION.DACL_SECURITY_INFORMATION);
 
     private const ENUM_SERVICE_TYPE AllEntryTypes =
         ENUM_SERVICE_TYPE.SERVICE_DRIVER               // kernel, file system, recogniser
@@ -232,6 +243,15 @@ public sealed class WindowsScmCatalog : IScmCatalog
             BinaryPath = configuration.BinaryPath,
             BinaryFile = configuration.BinaryFile,
             BinaryOnDisk = configuration.BinaryOnDisk,
+            RequiredPrivileges = configuration.RequiredPrivileges,
+            SidType = configuration.SidType,
+
+            // Read outside the configuration, and not because of tidiness. It needs a
+            // different right on a different handle, so an entry whose configuration was
+            // refused can still have a readable descriptor and the other way round. Folding
+            // it in would have made one refusal answer for two questions nobody asked
+            // together.
+            SecurityDescriptor = ReadSecurityDescriptor(manager, enumerated),
 
             // The second pass fills these, and only when somebody asks for them. Not read
             // is the honest state here and it is the ordinary one: a listing that verified
@@ -243,6 +263,10 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
     private static Configuration ReadConfiguration(SafeHandle manager, EnumeratedEntry enumerated)
     {
+        // SERVICE_QUERY_CONFIG alone, and adding READ_CONTROL here would be the quiet
+        // mistake this family invites - see ReadSecurityDescriptor for the five entries it
+        // costs. No test on this machine would catch it: an elevated session refuses
+        // nothing, so the whole suite stays green with that one word added.
         using var service = PInvoke.OpenService(manager, enumerated.ServiceName, PInvoke.SERVICE_QUERY_CONFIG);
 
         if (service.IsInvalid)
@@ -269,7 +293,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
         var withOwnCalls = configuration with
         {
             DelayedAuto = ReadDelayedAuto(service, enumerated, configuration.StartType),
-            Triggers = ReadTriggers(service)
+            Triggers = ReadTriggers(service),
+            RequiredPrivileges = ReadRequiredPrivileges(service),
+            SidType = ReadSidType(service)
         };
 
         return withOwnCalls.WithBinary(enumerated);
@@ -310,7 +336,12 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
                 // Both worked out from the value above, once it is known which entry it is.
                 BinaryFile: Reading<string>.NotRead(),
-                BinaryOnDisk: Reading<bool>.NotRead());
+                BinaryOnDisk: Reading<bool>.NotRead(),
+
+                // Two more levels of the same call as the triggers, filled in by their own
+                // calls for the same reason: this buffer holds none of them.
+                RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
+                SidType: Reading<ServiceSidType>.NotRead());
         }
     }
 
@@ -398,6 +429,153 @@ public sealed class WindowsScmCatalog : IScmCatalog
             }
 
             return Reading<IReadOnlyList<ServiceTrigger>>.Present(triggers);
+        }
+    }
+
+    /// <summary>
+    /// The privileges the entry asks the manager to leave in its token.
+    ///
+    /// Variable length, so the same buffer dance as the triggers, and read on the handle the
+    /// configuration already opened - this level needs no right the listing does not have.
+    ///
+    /// Declaring nothing is a fact about the service and the ordinary case for two thirds of
+    /// a machine, so it comes back absent rather than as an empty list. It is also the
+    /// permissive case rather than the careful one, which is worth knowing before building
+    /// anything on top: a service that names no privileges keeps every privilege its account
+    /// has.
+    /// </summary>
+    private static unsafe Reading<IReadOnlyList<string>> ReadRequiredPrivileges(SafeHandle service)
+    {
+        PInvoke.QueryServiceConfig2W(
+            service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, default, out var needed);
+
+        if (needed == 0)
+        {
+            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
+        }
+
+        var buffer = new byte[needed];
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, buffer, out _))
+        {
+            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
+        }
+
+        fixed (byte* start = buffer)
+        {
+            // The structure is one pointer into this very buffer, so the multi-string is read
+            // inside the fixed block for the same reason the triggers are.
+            var privileges = ReadMultiString(((SERVICE_REQUIRED_PRIVILEGES_INFOW*)start)->pmszRequiredPrivileges);
+
+            return privileges.Count == 0
+                ? Reading<IReadOnlyList<string>>.Absent()
+                : Reading<IReadOnlyList<string>>.Present(privileges);
+        }
+    }
+
+    /// <summary>
+    /// Whether the entry has an identity of its own.
+    ///
+    /// Fixed size, so one call rather than two, the same trade the delay flag makes.
+    ///
+    /// Asked of drivers as well, even though every driver on the machine this was measured
+    /// on answers none. Skipping them would save about ten milliseconds across 810 entries
+    /// and would turn "471 drivers answered none here" into "drivers cannot have one", which
+    /// is a claim about every machine made from one.
+    /// </summary>
+    private static unsafe Reading<ServiceSidType> ReadSidType(SafeHandle service)
+    {
+        var buffer = new byte[sizeof(SERVICE_SID_INFO)];
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_SERVICE_SID_INFO, buffer, out _))
+        {
+            return Refused<ServiceSidType>(Marshal.GetLastWin32Error());
+        }
+
+        fixed (byte* start = buffer)
+        {
+            // SERVICE_SID_TYPE_NONE, _UNRESTRICTED and _RESTRICTED, which this interop
+            // metadata does not name - it carries the structure and not the three values that
+            // go in it. Written out here rather than as bare numbers at the call site.
+            return ((SERVICE_SID_INFO*)start)->dwServiceSidType switch
+            {
+                // Not a kind of identity but the absence of one, so it belongs in the outcome
+                // rather than in the enumeration. See ServiceSidType for what that buys.
+                0 => Reading<ServiceSidType>.Absent(),
+
+                1 => Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+                3 => Reading<ServiceSidType>.Present(ServiceSidType.Restricted),
+                _ => Reading<ServiceSidType>.Present(ServiceSidType.Unknown)
+            };
+        }
+    }
+
+    /// <summary>
+    /// Who may do what to this entry, in the text form the system reads and writes.
+    ///
+    /// The one field in a listing that opens a handle of its own, and the reason is measured
+    /// rather than structural. READ_CONTROL is a different right from SERVICE_QUERY_CONFIG,
+    /// and under a restricted token on 2026-08-01 five entries of 810 - LSM, NetSetupSvc,
+    /// pla, QWAVE and QWAVEdrv - grant the second and refuse the first. Adding READ_CONTROL
+    /// to the handle the listing already opens would have taken the start type, the account
+    /// and the launch path away from those five in exchange for a field they were never
+    /// going to give up. A refusal here costs this field and nothing else.
+    ///
+    /// The audit list is deliberately not asked for: including SACL_SECURITY_INFORMATION
+    /// fails the whole call with error 5 unless SeSecurityPrivilege is enabled, which it is
+    /// not even in an elevated session. This is a deliberate difference from sc sdshow,
+    /// which shows the audit list and does not show the owner or the group.
+    /// </summary>
+    private static unsafe Reading<string> ReadSecurityDescriptor(SafeHandle manager, EnumeratedEntry enumerated)
+    {
+        // READ_CONTROL is a standard right shared by every kind of securable object. The
+        // interop metadata happens to file it under the file rights, which is where the name
+        // comes from - it is not a file being opened here.
+        using var service = PInvoke.OpenService(
+            manager, enumerated.ServiceName, (uint)FILE_ACCESS_RIGHTS.READ_CONTROL);
+
+        if (service.IsInvalid)
+        {
+            return Refused<string>(Marshal.GetLastWin32Error());
+        }
+
+        PInvoke.QueryServiceObjectSecurity(service, DescriptorParts, default, 0, out var needed);
+
+        if (needed == 0)
+        {
+            return Refused<string>(Marshal.GetLastWin32Error());
+        }
+
+        var buffer = new byte[needed];
+
+        fixed (byte* start = buffer)
+        {
+            if (!PInvoke.QueryServiceObjectSecurity(
+                    service, DescriptorParts, new PSECURITY_DESCRIPTOR(start), needed, out _))
+            {
+                return Refused<string>(Marshal.GetLastWin32Error());
+            }
+        }
+
+        try
+        {
+            // Everything the descriptor turned out to carry, which can never be more than was
+            // asked for above. Naming the three parts again here would go wrong in one
+            // direction only - by asking for a part this descriptor does not have.
+            return Reading<string>.Present(
+                new RawSecurityDescriptor(buffer, 0).GetSddlForm(AccessControlSections.All));
+        }
+        catch (Exception malformed) when (malformed is ArgumentException or InvalidOperationException)
+        {
+            // A descriptor the system handed over and nothing here can read. Not a refusal in
+            // the ordinary sense, and reported as one anyway, because the four states have no
+            // word for "read, and unintelligible" - and of the four, saying we failed to read
+            // it is the only one that is not a lie. Narrow on purpose: these two are what
+            // building or writing a descriptor is documented to throw, so a third kind of
+            // failure here is news and should not be swallowed.
+            return Reading<string>.Denied(malformed.HResult, malformed.Message);
         }
     }
 
@@ -492,7 +670,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
         Reading<IReadOnlyList<ServiceTrigger>> Triggers,
         Reading<string> BinaryPath,
         Reading<string> BinaryFile,
-        Reading<bool> BinaryOnDisk)
+        Reading<bool> BinaryOnDisk,
+        Reading<IReadOnlyList<string>> RequiredPrivileges,
+        Reading<ServiceSidType> SidType)
     {
         internal static Configuration Refused(int code) => new(
             Refused<StartType>(code),
@@ -502,7 +682,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
             Refused<IReadOnlyList<ServiceTrigger>>(code),
             Refused<string>(code),
             Refused<string>(code),
-            Refused<bool>(code));
+            Refused<bool>(code),
+            Refused<IReadOnlyList<string>>(code),
+            Refused<ServiceSidType>(code));
 
         /// <summary>
         /// Which file the launch command runs, and whether it is there.

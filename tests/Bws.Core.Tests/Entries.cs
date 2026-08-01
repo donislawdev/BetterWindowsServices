@@ -55,7 +55,27 @@ internal static class Entries
         // fixture that started out knowing them would make the rare case the default and
         // quietly hide every mistake about the state that actually dominates.
         Signature = Reading<BinarySignature>.NotRead(),
-        FileVersion = Reading<string>.NotRead()
+        FileVersion = Reading<string>.NotRead(),
+
+        // Spooler's own values again, read off the machine with the probe and checked against
+        // sc qprivs, sc qsidtype and sc sdshow. Present rather than absent because that is
+        // the ordinary case for a service: 215 of 339 declare privileges and 261 have an
+        // identity of their own. Drivers are the other way round and have specimens of their
+        // own, which is where that difference belongs.
+        RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(
+        [
+            "SeTcbPrivilege",
+            "SeImpersonatePrivilege",
+            "SeAuditPrivilege",
+            "SeChangeNotifyPrivilege",
+            "SeAssignPrimaryTokenPrivilege",
+            "SeLoadDriverPrivilege"
+        ]),
+
+        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+
+        SecurityDescriptor = Reading<string>.Present(
+            "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)")
     };
 
     /// <summary>

@@ -50,6 +50,34 @@ public enum StartType
 }
 
 /// <summary>
+/// Whether the entry gets an identity of its own, so that rights can be given to the
+/// service rather than to the account it happens to run as.
+///
+/// Three values where Windows has four, and the missing one is the point. The manager
+/// reports NONE for an entry with no identity of its own, which is not a kind of identity -
+/// it is the absence of one. That is <see cref="ReadOutcome.Absent"/>, so it is expressed
+/// there rather than here, and <c>sidtype:none</c> in the query language then means what
+/// <c>none</c> means for every other field instead of being one enumeration's private word.
+///
+/// Measured on a real machine on 2026-08-01, agreeing with <c>sc qsidtype</c> on all four
+/// entries it was checked against by hand: 250 services unrestricted, 11 restricted, 78
+/// with none, and all 471 drivers with none - drivers have no token for a SID to go into.
+/// </summary>
+public enum ServiceSidType
+{
+    Unknown = 0,
+
+    /// <summary>The service has a SID and it is in the token like any other group.</summary>
+    Unrestricted,
+
+    /// <summary>
+    /// The service has a SID and the token is write-restricted to it, which is the stronger
+    /// of the two: the process can only write where that SID is allowed.
+    /// </summary>
+    Restricted
+}
+
+/// <summary>
 /// One entry in the service control manager: a service or a driver.
 ///
 /// Field names follow the binding "w kodzie" column of the glossary. They are a
@@ -203,6 +231,62 @@ public sealed record ScmEntry
     /// Absent for a file with no version resource, which is ordinary rather than missing.
     /// </summary>
     public required Reading<string> FileVersion { get; init; }
+
+    /// <summary>
+    /// The privileges the entry asks the manager to leave in its token, by name.
+    ///
+    /// What it asks for, which is not what it gets and not what it could have. A service
+    /// declaring none is not a service without privileges - the manager then leaves the
+    /// account's whole set in place, so declaring nothing is the permissive case and
+    /// declaring a short list is the careful one. Reading this the other way round would
+    /// invert every finding built on it.
+    ///
+    /// Names are kept exactly as the manager returns them, including the casing, which
+    /// varies between services on one machine: Schedule declares SeSystemTimePrivilege and
+    /// Sense declares SeSystemtimePrivilege, and they are the same privilege. Comparison is
+    /// therefore case-insensitive everywhere, and a diff that compared these as plain text
+    /// would report a change between two machines that had none.
+    ///
+    /// Absent, not empty, for an entry declaring nothing - measured on a real machine on
+    /// 2026-08-01: 215 of 339 services declare at least one, the longest list has 28, and
+    /// all 471 drivers declare none because a driver has no token to trim.
+    ///
+    /// Cheap: 43-50 ms across 810 entries, on the configuration handle the listing already
+    /// holds, against a budget of a second.
+    /// </summary>
+    public required Reading<IReadOnlyList<string>> RequiredPrivileges { get; init; }
+
+    /// <summary>
+    /// Whether the entry has an identity of its own. See <see cref="Core.ServiceSidType"/>
+    /// for why "none" lives in the outcome rather than in the enumeration.
+    ///
+    /// Asked of every entry including drivers, although every driver measured answers none.
+    /// Skipping them would save about ten milliseconds and would turn a measurement of one
+    /// machine into a claim about all of them.
+    /// </summary>
+    public required Reading<ServiceSidType> SidType { get; init; }
+
+    /// <summary>
+    /// Who may do what to this entry, as the text form the system reads and writes.
+    ///
+    /// The text form rather than a decoded list, and that is a deliberate split the glossary
+    /// makes in pitfall P9: the decoded list is what a person is shown, the text form is what
+    /// a snapshot keeps, because only the text form is faithful and comparable. The window
+    /// will decode it when there is a panel to decode it into.
+    ///
+    /// Owner, group and permissions. The audit list - the SACL - is not here: asking for it
+    /// fails the whole read with error 5 unless SeSecurityPrivilege is enabled, which it is
+    /// not even in an elevated session, so including it would cost the other three parts and
+    /// buy nothing. This is a deliberate difference from <c>sc sdshow</c>, which shows the
+    /// audit list and does not show owner or group.
+    ///
+    /// The one field here read through a handle of its own, because READ_CONTROL is a
+    /// different right from the one the listing already has. Measured under a restricted
+    /// token on 2026-08-01: five entries of 810 open for configuration and refuse when
+    /// READ_CONTROL is added, so asking for both together would have cost them the fields
+    /// they report today. 29-33 ms plus about 30 for the extra handle, across 810 entries.
+    /// </summary>
+    public required Reading<string> SecurityDescriptor { get; init; }
 
     /// <summary>
     /// True for a name in <see cref="DependsOn"/> that names a load order group rather
