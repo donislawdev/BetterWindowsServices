@@ -17,12 +17,23 @@ QueryServiceConfig
 // telling them apart takes a second call at a different information level.
 QueryServiceConfig2
 
+// Who breaks if this one stops. The manager answers this itself, and its answer is worth
+// more than inverting the declared dependencies would be: an entry can declare a load
+// order group rather than a service, and only the manager knows who is in that group.
+//
+// Measured 2026-08-01: sc.exe enumdepend truncates its own output to three entries and
+// exits with ERROR_MORE_DATA without retrying, so it is not usable as a comparison
+// authority. The API itself is fine when asked for the size first.
+EnumDependentServices
+
 // Constants and structures for the calls above.
 SC_MANAGER_CONNECT
 SC_MANAGER_ENUMERATE_SERVICE
 SERVICE_QUERY_CONFIG
+SERVICE_ENUMERATE_DEPENDENTS
 ENUM_SERVICE_TYPE
 ENUM_SERVICE_STATUS_PROCESSW
+ENUM_SERVICE_STATUSW
 SERVICE_STATUS_CURRENT_STATE
 SERVICE_CONFIG
 SERVICE_DELAYED_AUTO_START_INFO

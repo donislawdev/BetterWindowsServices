@@ -61,6 +61,74 @@ public sealed class WindowsScmCatalog : IScmCatalog
         return entries;
     }
 
+    public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
+    {
+        using var manager = PInvoke.OpenSCManager(
+            lpMachineName: null!,
+            lpDatabaseName: null!,
+            dwDesiredAccess: PInvoke.SC_MANAGER_CONNECT);
+
+        if (manager.IsInvalid)
+        {
+            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+        }
+
+        using var service = PInvoke.OpenService(manager, serviceName, PInvoke.SERVICE_ENUMERATE_DEPENDENTS);
+
+        if (service.IsInvalid)
+        {
+            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+        }
+
+        // Ask with an empty buffer first and let the call report how much room it wants.
+        // Skipping this is exactly what sc.exe does, and it is why sc.exe reports three
+        // dependents for a service that has a hundred and sixty two.
+        PInvoke.EnumDependentServices(
+            service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default, out var needed, out _);
+
+        if (needed == 0)
+        {
+            var error = Marshal.GetLastWin32Error();
+
+            // Nothing depends on it. The call reports no room needed and succeeds, which
+            // is a fact about the service rather than a failure to read one.
+            return error is 0 or (int)WIN32_ERROR.ERROR_SUCCESS
+                ? Reading<IReadOnlyList<string>>.Absent()
+                : Reading<IReadOnlyList<string>>.Denied(DescribeError(error));
+        }
+
+        var buffer = new byte[needed];
+
+        if (!PInvoke.EnumDependentServices(
+                service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, buffer, out _, out var returned))
+        {
+            return Reading<IReadOnlyList<string>>.Denied(DescribeError(Marshal.GetLastWin32Error()));
+        }
+
+        var names = ReadDependentNames(buffer, returned);
+
+        return names.Count == 0
+            ? Reading<IReadOnlyList<string>>.Absent()
+            : Reading<IReadOnlyList<string>>.Present(names);
+    }
+
+    private static unsafe List<string> ReadDependentNames(byte[] buffer, uint count)
+    {
+        var names = new List<string>((int)count);
+
+        fixed (byte* start = buffer)
+        {
+            var records = (ENUM_SERVICE_STATUSW*)start;
+
+            for (uint index = 0; index < count; index++)
+            {
+                names.Add(records[index].lpServiceName.ToString());
+            }
+        }
+
+        return names;
+    }
+
     private static IEnumerable<EnumeratedEntry> Enumerate(SafeHandle manager)
     {
         uint resume = 0;

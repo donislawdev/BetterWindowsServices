@@ -20,17 +20,53 @@ namespace Bws.Core.Tests.Fakes;
 internal sealed class FakeScmCatalog : IScmCatalog
 {
     private readonly IReadOnlyList<ScmEntry> _entries;
+    private readonly Dictionary<string, IReadOnlyList<string>> _dependents =
+        new(StringComparer.OrdinalIgnoreCase);
 
     internal FakeScmCatalog(params ScmEntry[] entries) => _entries = entries;
 
     internal FakeScmCatalog(IEnumerable<ScmEntry> entries) => _entries = [.. entries];
 
-    /// <summary>How many times somebody asked. Reading is not supposed to be repeated per entry.</summary>
+    /// <summary>How many times somebody asked for the listing. Reading is not meant to repeat.</summary>
     internal int Reads { get; private set; }
+
+    /// <summary>Names the double was asked about, in order, so a test can say how the cascade walked.</summary>
+    internal List<string> DependentsAsked { get; } = [];
+
+    /// <summary>Services refused when asked about, for the path a real machine will not produce on demand.</summary>
+    internal HashSet<string> RefuseDependentsFor { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Teaches the double who breaks when a service stops.
+    ///
+    /// Stated rather than derived from what the entries declare, on purpose: the real
+    /// manager answers this itself and knows things the declarations do not, so a double
+    /// that inferred it would be agreeing with our own reasoning instead of standing in
+    /// for the system.
+    /// </summary>
+    internal FakeScmCatalog DependedOnBy(string serviceName, params string[] dependents)
+    {
+        _dependents[serviceName] = dependents;
+        return this;
+    }
 
     public IReadOnlyList<ScmEntry> ReadAll()
     {
         Reads++;
         return _entries;
+    }
+
+    public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
+    {
+        DependentsAsked.Add(serviceName);
+
+        if (RefuseDependentsFor.Contains(serviceName))
+        {
+            return Reading<IReadOnlyList<string>>.Denied("access denied");
+        }
+
+        return _dependents.TryGetValue(serviceName, out var dependents)
+            ? Reading<IReadOnlyList<string>>.Present(dependents)
+            : Reading<IReadOnlyList<string>>.Absent();
     }
 }
