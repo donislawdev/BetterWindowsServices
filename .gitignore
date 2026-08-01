@@ -61,3 +61,12 @@ _scratch/
 # and independent of these files.
 docs/
 CLAUDE.md
+
+# Developer tools. Kept out for the same reason and by the same decision (2026-08-01):
+# the owner backs these up separately. They are not part of the product, they never ship,
+# and ADR-19 does not apply to them - a tool here may do things the program may not.
+#
+# Same consequence as above and it is the one that bites: git will never show that a tool
+# changed, and somebody cloning this repository gets none of them. Anything here that
+# matters has to be described in docs/ well enough to be rebuilt from the description.
+tools/
