@@ -20,7 +20,17 @@ internal enum CommandKind
     /// both promised there. One word now would have to become two later, and a verb that
     /// changes spelling after release costs somebody a runbook.
     /// </summary>
-    SnapshotCreate
+    SnapshotCreate,
+
+    /// <summary>
+    /// Say what changed between two snapshots.
+    ///
+    /// Spelled the way `E1` writes it. It was nearly spelled <c>bws diff</c> instead, on the
+    /// strength of a question that offered the choice without mentioning that the
+    /// specification had already made it - and the surface of the command line is a frozen
+    /// contract, so that would have been a breaking change bought by accident.
+    /// </summary>
+    SnapshotDiff
 }
 
 /// <summary>
@@ -81,6 +91,26 @@ internal sealed record CommandLine
     /// Where the snapshot goes. Empty when nobody said, and then a name is worked out.
     /// </summary>
     internal string Path { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// The second file a comparison reads. Empty when nobody gave one.
+    ///
+    /// The order is the order they were typed, and it is the order of the sentence a diff
+    /// answers: what changed going from the first to the second. Swapping them swaps every
+    /// before and after, which is why neither is worked out for the person.
+    /// </summary>
+    internal string Against { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// Report differences through the exit code as well as on screen.
+    ///
+    /// Off by default, and that is a decision rather than caution. The table of exit codes in
+    /// `docs/02` says what it says on purpose: an empty result is 0 and an incomplete result
+    /// is 0, because a code answers whether the tool worked rather than what it found. A diff
+    /// that failed by default would be the only command breaking that rule, and would trip
+    /// every script that only wanted to print the differences. Asking for it is one word.
+    /// </summary>
+    internal bool ExitCodeOnDifference { get; private init; }
 
     /// <summary>
     /// What the person wants their future self to know about this snapshot. Null when they
@@ -149,16 +179,20 @@ internal sealed record CommandLine
         // not about how much memory it is holding while it happens.
         ("--memory", [CommandKind.List]),
 
-        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate]),
+        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
         ("--note", [CommandKind.SnapshotCreate]),
 
+        // Only where there is something to find. Everywhere else the answer to "did it work"
+        // is the whole of what a code can say, and this switch adds a second meaning to it.
+        ("--exit-code", [CommandKind.SnapshotDiff]),
+
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate]),
+        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
 
@@ -191,15 +225,16 @@ internal sealed record CommandLine
     internal static string Spelling(CommandKind kind) => kind switch
     {
         CommandKind.SnapshotCreate => "snapshot create",
+        CommandKind.SnapshotDiff => "snapshot diff",
         _ => kind.ToString().ToLowerInvariant()
     };
 
     /// <summary>
-    /// The words that can follow <c>snapshot</c>. E1 promises diff and restore as well and
-    /// neither is built, so this is one entry today and the message that offers it comes
-    /// from here rather than from a sentence somebody has to remember to update.
+    /// The words that can follow <c>snapshot</c>. E1 promises restore as well and it is not
+    /// built, so the message offering these comes from here rather than from a sentence
+    /// somebody has to remember to update.
     /// </summary>
-    internal static IReadOnlyList<string> Subcommands => ["create"];
+    internal static IReadOnlyList<string> Subcommands => ["create", "diff"];
 
     internal ActionKind Action => Kind switch
     {
@@ -222,6 +257,8 @@ internal sealed record CommandLine
         var memory = false;
         string? query = null;
         var path = string.Empty;
+        var against = string.Empty;
+        var exitCode = false;
         string? note = null;
         string? badSubcommand = null;
         string? badTimeout = null;
@@ -247,6 +284,13 @@ internal sealed record CommandLine
                         if (Matches(next, "create"))
                         {
                             kind = CommandKind.SnapshotCreate;
+                            index++;
+                            continue;
+                        }
+
+                        if (Matches(next, "diff"))
+                        {
+                            kind = CommandKind.SnapshotDiff;
                             index++;
                             continue;
                         }
@@ -281,6 +325,20 @@ internal sealed record CommandLine
                     continue;
                 }
 
+                // Two files, in the order typed. A third is a mistake rather than a third
+                // side to compare, and it falls through to the rejected words below.
+                if (kind == CommandKind.SnapshotDiff && path.Length == 0)
+                {
+                    path = argument;
+                    continue;
+                }
+
+                if (kind == CommandKind.SnapshotDiff && against.Length == 0)
+                {
+                    against = argument;
+                    continue;
+                }
+
                 // The first bare word after a write verb is the entry it is about. A second
                 // one is a mistake, not a second target: bulk operations take --query.
                 //
@@ -303,6 +361,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
             if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
             if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
+            if (Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -388,6 +447,8 @@ internal sealed record CommandLine
             Memory = memory,
             Query = query,
             Path = path,
+            Against = against,
+            ExitCodeOnDifference = exitCode,
             Note = note,
             BadSubcommand = badSubcommand,
             Timeout = timeout,

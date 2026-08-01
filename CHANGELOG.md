@@ -120,6 +120,26 @@ Nothing has been released yet. Everything below is what the tool does today.
   install used to come out as escape sequences - correct JSON that nobody could check
   against `services.msc`.
 
+- **`bws snapshot diff EARLIER LATER`** says what changed between two snapshots, field by
+  field. It answers two of the three comparisons this tool is for: what a patch Tuesday did,
+  and why staging and production behave differently.
+  - **Configuration and running state are reported apart.** Two snapshots taken a day apart
+    differ in what was running on dozens of entries, and none of that is drift. Printed
+    together they bury the handful of settings that actually moved.
+  - **What could not be compared is said, never skipped.** An entry only one of the two
+    snapshots could see is listed as "cannot tell" rather than as removed - without
+    administrator rights Windows hands over fewer entries, so a missing one may never have
+    been removed. A field one snapshot could not read is named beside its entry instead of
+    being reported as a change from a value to nothing.
+  - **`--exit-code`** ends with code 5 when anything differs, for a pipeline step that has to
+    fail on drift. Off by default, so a script that only wants the differences printed is not
+    tripped by finding some. Entries nobody could see and fields nobody could read do not
+    count as differences.
+  - **`--json`** gives the same comparison for a script, with a `differs` flag that answers
+    the same question as the exit code.
+  - It reads two files and nothing else. Comparing snapshots does not touch the service
+    control manager, so it needs no rights over the machine running it.
+
 ### Changed
 
 - **Taking a snapshot is about four times faster.** `bws snapshot create` measured

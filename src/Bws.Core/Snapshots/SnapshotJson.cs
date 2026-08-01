@@ -111,6 +111,24 @@ public static class SnapshotJson
         return true;
     }
 
+    /// <summary>
+    /// One entry exactly as it appears in the file, as a tree.
+    ///
+    /// Here rather than in the comparison that needs it, because the alternative is a second
+    /// place that decides what a snapshot entry is made of. The shape and the dropped
+    /// measurement are the same object both callers use, so a field that starts or stops
+    /// being written is written and compared the same way without anybody remembering to
+    /// change two things.
+    /// </summary>
+    internal static JsonObject Document(EntryDocument entry)
+    {
+        var tree = JsonSerializer.SerializeToNode(entry, Shape)!.AsObject();
+
+        Drop(tree, Measurement);
+
+        return tree;
+    }
+
     private static void Drop(JsonObject entry, string property)
     {
         entry.Remove(property);

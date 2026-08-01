@@ -103,9 +103,15 @@ if (!parsed.IsValid)
 try
 {
     var stopwatch = Stopwatch.StartNew();
-    var catalog = new WindowsScmCatalog();
-    var entries = catalog.ReadAll();
-    var read = stopwatch.ElapsedMilliseconds;
+
+    // Comparing two files never opens the service control manager, and it matters that it
+    // does not. A pipeline step comparing two snapshots on a build agent has no business
+    // needing rights over that agent's own services, and reading eight hundred entries this
+    // branch never looks at would spend half a second saying nothing.
+    var offline = options.Kind == CommandKind.SnapshotDiff;
+    var catalog = offline ? null : new WindowsScmCatalog();
+    IReadOnlyList<ScmEntry> entries = offline ? [] : catalog!.ReadAll();
+    var read = offline ? 0 : stopwatch.ElapsedMilliseconds;
 
     // Its own number, and not folded into the time spent filtering. The second pass is by
     // far the most expensive thing this tool does - measured at around five seconds against
@@ -124,7 +130,43 @@ try
     string data;
     var exit = ExitCode.Ok;
 
-    if (options.Kind == CommandKind.SnapshotCreate)
+    if (options.Kind == CommandKind.SnapshotDiff)
+    {
+        if (options.Path.Length == 0 || options.Against.Length == 0)
+        {
+            // Two files or an answer. E1 also promises a comparison against the live machine
+            // behind --live, and that is not built, so one file is refused rather than
+            // guessed at - guessing would compare a snapshot against itself and report that
+            // nothing had changed, which is a true sentence about the wrong question.
+            stopwatch.Stop();
+            Console.Error.WriteLine(Texts.Of("cli.diff.needsTwoFiles"));
+
+            return ExitCode.Usage;
+        }
+
+        if (!Load(options.Path, out var before) || !Load(options.Against, out var after))
+        {
+            stopwatch.Stop();
+
+            return ExitCode.Usage;
+        }
+
+        var difference = SnapshotDiff.Between(before!, after!);
+        stopwatch.Stop();
+
+        data = options.Json ? DiffJson.Render(difference) : DiffText.Render(difference);
+
+        if (options.Timing)
+        {
+            Console.Error.WriteLine(Texts.Of("cli.info.timingCompared", stopwatch.ElapsedMilliseconds));
+        }
+
+        // Only when asked. Every other code in the table answers "did the tool work", and
+        // this is the one place where a code can also answer "what did it find" - which is a
+        // different question and a script has to opt into being told that way.
+        exit = options.ExitCodeOnDifference && difference.Any ? ExitCode.Differences : ExitCode.Ok;
+    }
+    else if (options.Kind == CommandKind.SnapshotCreate)
     {
         // No plan, and that is worth saying rather than leaving as an absence. ADR-11 puts
         // every write behind a plan, and it means writes to the machine: a plan exists so
@@ -166,7 +208,9 @@ try
     }
     else if (options.IsWrite)
     {
-        var plan = new PlanBuilder(entries, catalog)
+        // Never null here: the only command that leaves it unbuilt is the file comparison,
+        // which is not a write and never reaches this branch.
+        var plan = new PlanBuilder(entries, catalog!)
             .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents));
 
         if (!plan.IsRunnable)
@@ -442,6 +486,48 @@ static void Report(
 }
 
 /// <summary>
+/// Reads one snapshot from disk, or says what is wrong with what was pointed at.
+///
+/// Every failure here is somebody's typed path rather than something going wrong inside, so
+/// all of them end as a usage code with a sentence naming the file. A stack trace would say
+/// less and look like the tool falling over.
+///
+/// Deliberately narrow catches rather than a broad one. The ways a path can be wrong are a
+/// list somebody can finish - it is not there, it is a directory, it cannot be opened, it is
+/// not spellable - which is exactly the argument the broad catches in this project are
+/// allowed by, run backwards.
+/// </summary>
+static bool Load(string path, out Snapshot? snapshot)
+{
+    snapshot = null;
+
+    string content;
+
+    try
+    {
+        content = File.ReadAllText(path);
+    }
+    catch (Exception problem) when (problem is IOException or UnauthorizedAccessException or ArgumentException)
+    {
+        Console.Error.WriteLine(Texts.Of("cli.diff.cannotRead", path, problem.Message));
+
+        return false;
+    }
+
+    if (SnapshotJson.TryRead(content, out snapshot, out var failure))
+    {
+        return true;
+    }
+
+    // Names the file. Two are being read and a message about neither of them would leave
+    // somebody checking both. The reason is never null when the read failed, and saying so
+    // out loud is cheaper than a nullable sentence in a message.
+    Console.Error.WriteLine(Texts.Of("cli.diff.notASnapshot", path, failure ?? string.Empty));
+
+    return false;
+}
+
+/// <summary>
 /// Exit codes are a public contract: monitoring and scripts depend on them, so a new
 /// way of ending means a new constant here, never reusing a near-enough one.
 /// </summary>
@@ -477,4 +563,20 @@ internal static class ExitCode
     /// table of small numbers would make the table harder to read rather than easier.
     /// </summary>
     internal const int Interrupted = 4;
+
+    /// <summary>
+    /// A comparison ran and found differences. Only ever returned when asked for.
+    ///
+    /// Not a failure, and that is why it needed a number of its own rather than borrowing
+    /// <see cref="Incomplete"/>. Drift is what this tool is for finding - reporting it as
+    /// the same thing as a refused operation would tell a monitor that something went wrong
+    /// when what happened is that something was discovered.
+    ///
+    /// Behind --exit-code rather than automatic. The rest of this table answers "did the
+    /// tool work", never "what did it find", and a diff that ended non-zero by default would
+    /// be the one command breaking that rule - and would break every script that only wanted
+    /// the differences printed. Owner's decision, 2026-08-01, recorded as open question 11
+    /// in the product specification.
+    /// </summary>
+    internal const int Differences = 5;
 }

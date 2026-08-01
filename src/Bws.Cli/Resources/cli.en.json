@@ -5,7 +5,7 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.usage": "Usage:\n  bws list [--query TEXT] [--signatures] [--memory] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]\n  bws snapshot create [FILE] [--note TEXT] [--json] [--timing]\n\n  --signatures reads who signed each binary. Several seconds, so it is off unless asked.\n  --memory reads what each running entry's process is using. Fast, and off by default\n  because it is a measurement rather than a setting: it is different a second later.\n  A query about either turns that one on by itself.\n\n  snapshot create always reads signatures and hashes, because a snapshot is kept and\n  compared later, and one without them would compare against one with them as though the\n  machine had changed. Without a file name it writes into the current directory.\n  --note says what the snapshot was taken for.",
+  "cli.usage": "Usage:\n  bws list [--query TEXT] [--signatures] [--memory] [--json] [--timing]\n  bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]\n  bws snapshot create [FILE] [--note TEXT] [--json] [--timing]\n  bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]\n\n  --signatures reads who signed each binary. Several seconds, so it is off unless asked.\n  --memory reads what each running entry's process is using. Fast, and off by default\n  because it is a measurement rather than a setting: it is different a second later.\n  A query about either turns that one on by itself.\n\n  snapshot create always reads signatures and hashes, because a snapshot is kept and\n  compared later, and one without them would compare against one with them as though the\n  machine had changed. Without a file name it writes into the current directory.\n  --note says what the snapshot was taken for.\n\n  snapshot diff says what changed going from the first file to the second. Configuration\n  differences and running state are reported apart, because two snapshots taken a day\n  apart differ in what was running and almost none of it is drift.\n  --exit-code ends with code 5 when anything differs. Off by default, so a script that\n  only wants the differences printed is not tripped by finding some.",
   "cli.unknownOption": "Unknown option: {0}",
   "cli.optionNeedsValue": "{0} needs a value after it.",
   "cli.optionNotForCommand": "{0} does not apply to {1}. It works with: {2}.",
@@ -84,6 +84,29 @@
 
   "cli.snapshot.written": "Wrote {0}, holding {1} entries.",
   "cli.snapshot.notElevated": "Taken without administrator rights. The manager hands over fewer entries that way, so comparing this against an elevated snapshot will show entries as removed that nobody removed.",
+
+  "cli.diff.needsTwoFiles": "snapshot diff needs two files: the earlier one first, then the later one.",
+  "cli.diff.cannotRead": "Could not read {0}. {1}",
+  "cli.diff.notASnapshot": "{0} is not a snapshot this build can read. {1}",
+  "cli.diff.same": "No differences.",
+  "cli.diff.added": "Added ({0}):",
+  "cli.diff.removed": "Removed ({0}):",
+  "cli.diff.uncertain": "Cannot tell ({0}) - present in the elevated snapshot, and the other was taken without elevation, so the manager may simply not have handed these over:",
+  "cli.diff.changed": "Changed ({0}):",
+  "cli.diff.notFullyCompared": "Not fully compared ({0}) - nothing differs, and one of the two snapshots never read a field, so nobody can say either way:",
+  "cli.diff.entry": "  {0}  {1}",
+  "cli.diff.field.configuration": "    {0}: {1} -> {2}",
+  "cli.diff.field.state": "    {0}: {1} -> {2}  (running state, not configuration)",
+  "cli.diff.field.incomparable": "    {0}: not compared, one of the two snapshots never read it",
+  "cli.diff.nothing": "nothing",
+  "cli.diff.summary": "Added {0}, removed {1}, changed {2}. Fields differing: {3} in configuration, {4} in running state.",
+  "cli.diff.summaryIncomplete": "Not a complete comparison: {0} entries carry a field one snapshot never read, and {1} entries only one of the two could see.",
+  "cli.diff.caveat.elevation": "The two snapshots were taken at different privilege levels. The one without administrator rights holds fewer entries, so what is missing from it may never have been removed.",
+  "cli.diff.caveat.machine": "The two snapshots come from different machines.",
+  "cli.diff.caveat.operatingSystem": "The two snapshots come from different versions of Windows.",
+  "cli.diff.caveat.tool": "The two snapshots were written by different versions of this tool.",
+  "cli.diff.caveat.neitherRead": "Neither snapshot holds these fields, so no entry was compared on them: {0}",
+  "cli.info.timingCompared": "Read and compared two snapshots in {0} ms.",
 
   "cli.cell.megabytes": "{0} MB",
   "cli.cell.memoryShared": "{0} (shared by {1})",

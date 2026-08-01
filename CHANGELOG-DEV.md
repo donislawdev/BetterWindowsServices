@@ -495,6 +495,54 @@ sense as answers to the one above them.
     exactly as before - caching between runs, which `ADR-13` warns against for an audit tool,
     and parallelising the first pass, which fits its budget at 457-544 ms.
 
+- **S5b cut in two, and the first half built: `bws snapshot diff`.** **[contract]** Three at
+  once: exit code 5, the switch surface gains `--exit-code` and a `snapshot diff` column, and
+  the comparison's JSON shape is a new frozen contract. Closes open question 11 of the
+  specification, which was written two slices earlier and had to be answered before any of
+  this could be built.
+  - **Why it was cut.** Three comparison modes, per-field breakdown, filtering, export, exit
+    codes, the elevation trap and four read states is twice a slice again. But **two of the
+    three modes are one mechanism** - snapshot against snapshot and machine against machine
+    differ only in where the files came from - so the cut runs between "two files" and
+    "against the live machine", not between features.
+  - **Spelled `snapshot diff`, not `bws diff`, and that was nearly got wrong.** The choice
+    was put to the owner as though it were open, without mentioning that `E1` already writes
+    it - and the command surface is a frozen contract, so the shorter spelling would have
+    been a breaking change bought by accident. Caught by reading the specification before
+    writing the parser rather than after.
+  - **The fixture came before the design, and that was the most valuable decision here.** A
+    snapshot taken under a restricted token (`runas /trustlevel:0x20000`) holds **807 entries,
+    `elevated: false` and five entries with `unreadable`** - both traps at once, in a real
+    file. Designing against an imagined one would have cost a second rewrite, which is the
+    same reasoning that cut S5 in the first place.
+  - **The engine walks the document rather than a hand-kept list of fields.** A hand-kept list
+    drifts from the schema the first time somebody adds a field, and drifts silently: the new
+    field simply never shows up as changed. Walking the tree compares a field the day it is
+    added. The tree comes from `SnapshotJson`, so writing and comparing cannot disagree about
+    what an entry is made of.
+  - **Comparing two files never opens the service control manager.** A pipeline step on a
+    build agent has no business needing rights over that agent's services, and reading 810
+    entries this path never looks at would spend half a second saying nothing.
+  - **Found by running it against real files, twice, and neither would have come out of
+    reading the code.** Entries with zero differences were landing under "changed" because
+    they carried a field that could not be compared - the summary read "5 changed, 0
+    differences" and `--exit-code` **would have returned 5 for a comparison that found
+    nothing**, which is the same false alarm the whole elevation handling exists to prevent,
+    arriving through the exit code. And **"nobody asked" and "the machine refused" are two
+    different states that the format already tells apart**: the first is a fact about the run
+    and is said once, the second is a fact about one entry - five services refuse their
+    descriptor while eight hundred hand it over. Conflating them would have printed the same
+    admission on all 810 rows, the shrug this project already avoided once with triggers.
+  - **Found while writing a test:** the shared specimen is already running, so a test setting
+    its status to running would have passed while checking nothing - the ADR-10 trap exactly.
+    It stops the service now and asserts both sides of the change.
+  - **Deliberately different from `git diff --no-index`:** metadata is kept out of the
+    differences, because `takenAt` differs on every pair ever compared. What metadata does
+    produce is a caveat when it **weakens** the comparison - different privilege level,
+    machine, Windows version or tool version.
+  - **Deliberately left out:** `--live`, filtering differences by field, export, restoring,
+    baselines.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two
