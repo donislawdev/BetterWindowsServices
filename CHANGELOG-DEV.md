@@ -815,7 +815,7 @@ sense as answers to the one above them.
     grows while being built. **NOT MEASURED:** what the refresh costs on a two-processor
     machine, where the snapshot budget already has no margin.
 
-- **Four mechanisms against races and tangle**, after the owner asked how to prevent them in
+- **Four mechanisms against races and tangle** (`00446bd`), after the owner asked how to prevent them in
   code they do not read. 484 tests against 479, mutation 33 of 33, audit clean.
   - **The answer was not another document, and that is the finding.** The threading rules have
     been in `docs/06` since July and `docs/02` promised concurrency tests in the same month.
