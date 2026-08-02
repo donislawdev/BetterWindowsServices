@@ -33,7 +33,20 @@
     <system:Double x:Key="SpaceWide">16</system:Double>
     <system:Double x:Key="SpaceSection">24</system:Double>
 
+    <system:Double x:Key="SizeNone">0</system:Double>
+
     <Thickness x:Key="PadCell">8,4,8,4</Thickness>
+
+    <!--
+        The list cell, and it is deliberately not PadCell.
+
+        Measured on screen 2026-08-02: WPF UI's cell template honours TemplateBinding Padding
+        and the built-in one did not, so the same 8,4,8,4 that was invisible before the
+        migration became 6.6 logical pixels of row height after it - 29 rows on screen fell to
+        22. The owner chose to keep this list's density, so the vertical half goes to nothing
+        and row height is decided by the line height alone.
+    -->
+    <Thickness x:Key="PadListCell">8,0,8,0</Thickness>
     <Thickness x:Key="PadPanel">16</Thickness>
     <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
     <Thickness x:Key="MarginNone">0</Thickness>
@@ -122,58 +135,78 @@
         to apply a style. The guard checks these too: every Value below points at a name.
     -->
     <!--
-        Every background a row can take lives here, on the CELL, and that is measured rather
-        than stylistic. There is no DataGridRow style in this file and there must not be one.
+        THE THREE ROW STATES LIVE ON THE ROW, AND THAT MOVED HERE FROM THE CELL ON 2026-08-02.
+        Read the next four paragraphs before touching either style - this exact question has
+        now been got wrong twice, in opposite directions, and both times silently.
 
-        Measured 2026-08-02, on screen, by sampling pixels rather than by reading the markup.
-        The three states used to sit on DataGridRow and exactly one of them was visible: the
-        selected row, which looked right only because the same brush was also set here. A cell
-        in this theme paints an opaque background of its own and covers the row underneath, so
-        a Background setter on DataGridRow reaches nothing. The row that had just moved was
-        computed correctly, had a guard, passed mutation - and never once appeared, through
-        fourteen frames of a service stopping.
+        Under the built-in Fluent theme the cell painted an OPAQUE background and covered the
+        row, so a Background setter on DataGridRow reached nothing. Three states sat there,
+        exactly one appeared, and it only appeared because the same brush was also on the cell.
+        Fourteen frames of a service stopping, and the declared #3A3320 never showed once.
 
-        The lesson is worth more than the fix: XAML that binds successfully and paints nothing
-        reddens no test and logs no failure. It is the silence of rule 8 arriving through the
-        one door the compiler does not watch. tools/gui-probe checks these three colours by
-        pixel at the close of a GUI slice, because nothing else can.
+        Under WPF UI it is the other way round, and this is read out of their markup rather
+        than guessed: DefaultDataGridRowStyle templates its border as
+        Background="{TemplateBinding Background}", while DefaultDataGridCellStyle hardcodes
+        Background="Transparent" on its own border and never binds the property at all. So a
+        Background setter on the CELL is now the dead one.
+
+        WPF UI supplies no feedback of its own to lean on. Every VisualState in their row and
+        cell templates - Normal_Selected, MouseOver, all of them - is present and EMPTY, with
+        the storyboards commented out in their source. Selection and hover are ours to draw,
+        the same as before.
+
+        RowStyle and CellStyle are set explicitly on the DataGrid in MainWindow.xaml rather
+        than left to implicit lookup. Their DefaultDataGridStyle sets both properties itself,
+        and an explicit setter on the grid beats an implicit style - so leaving these keyed but
+        unreferenced would be a third way to make the same mistake.
+
+        tools/gui-probe/check.ps1 is the only instrument that can tell whether any of this
+        reaches a pixel. A property read says #3A3320 either way.
     -->
-    <Style TargetType="DataGridCell">
+    <!--
+        The grid itself, and it exists for one setter that is not optional.
+
+        DataGridTextColumn TRANSFERS FontSize from the grid onto every TextBlock it generates,
+        as a LOCAL value - and a local value beats a default style. So the implicit TextBlock
+        style below, which carries our size, loses inside every cell of this list. Their
+        DefaultDataGridStyle sets FontSize to their own DefaultDataGridFontSize, and the first
+        build after the migration came out with rows a third taller and the PID column clipped
+        to two digits, because the wider text pushed the automatic columns past the viewport.
+
+        Neither symptom looked like a font size, and that is why this comment is here.
+    -->
+    <Style x:Key="ListGrid" TargetType="DataGrid" BasedOn="{StaticResource DefaultDataGridStyle}">
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+    </Style>
+
+    <Style x:Key="ListRow" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
         <!--
-            No border at all, ever. The default draws one around the focused cell, which on a
-            list nobody can edit is a promise the list does not keep.
+            Margin and padding pulled back to nothing, against their 0,2 and 4. The owner chose
+            to keep this list's density on 2026-08-02: their spacing costs about 17% of the
+            rows on screen, measured twice, and this window exists to show 810 services.
         -->
-        <Setter Property="BorderThickness" Value="{StaticResource MarginNone}" />
-        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+        <Setter Property="Margin" Value="{StaticResource MarginNone}" />
+        <Setter Property="Padding" Value="{StaticResource MarginNone}" />
 
         <Style.Triggers>
             <!--
                 First, so that pointing at a row or selecting it still wins. A person's own
                 hand beats a notification about something that already happened.
-
-                Bound to the row's own property, which every cell of that row shares, so the
-                whole row lights up rather than one cell of it.
             -->
             <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceChanged}" />
             </DataTrigger>
 
-            <!--
-                Asked of the ROW rather than of this cell. IsMouseOver on a cell is true for
-                the one cell under the pointer, which would light a single box in the middle
-                of a row and read as a rendering fault rather than as feedback.
-            -->
-            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+            <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceHover}" />
-            </DataTrigger>
+            </Trigger>
 
             <!--
                 LAST, so selection beats the pointer, and that order is measured rather than
                 assumed. With the pointer winning, a row went grey the instant it was clicked
                 and stayed grey for as long as the hand did not move - so the one row the
-                person had just chosen was the one row that did not look chosen. The dead
-                style this replaced had the opposite order and nobody could ever see it,
-                because none of the three colours reached a pixel.
+                person had just chosen was the one row that did not look chosen.
             -->
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
@@ -182,7 +215,36 @@
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="TextBlock">
+    <!--
+        The cell carries spacing and nothing else. Any Background set here is discarded by
+        their template - see the block above.
+    -->
+    <Style x:Key="ListCell" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
+        <Setter Property="Padding" Value="{StaticResource PadListCell}" />
+        <!--
+            Against their MinHeight of 32. Row height is decided by the padding above, which is
+            the same decision as the margins on the row: keep the density this list had.
+        -->
+        <Setter Property="MinHeight" Value="{StaticResource SizeNone}" />
+    </Style>
+
+    <!--
+        BasedOn by NAME on WPF UI's own styles, not on {x:Type TextBlock}.
+
+        The type form worked while the base was the built-in Fluent theme, and would now be
+        ambiguous: this dictionary is merged after theirs and is itself keyed by the same type,
+        so which style it resolves to depends on lookup order rather than on intent. Their keys
+        are stable, documented by their own markup - DataGrid.xaml bases four styles on exactly
+        these names - and they say what is meant.
+
+        CONSEQUENCE TO KNOW: this file no longer loads on its own. It resolves keys that only
+        exist once ControlsDictionary is merged, which is why tools/wpfui-probe loads it after
+        theirs. That is a real dependency and it is the shape of the decision the owner made.
+
+        Every one of the three below keeps OUR size setter on top of their template. That is
+        the density decision of 2026-08-02 in the two places it is spelled out.
+    -->
+    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>
@@ -225,14 +287,24 @@
         The one field. Its padding is named rather than left to the framework because the hint
         sitting behind it has to line up with the text a person types, and the only way to be
         sure of that is for both to come from this line.
+
+        BasedOn is the whole reason this comment is long. Without it a default style here does
+        not ADD to the base one, it REPLACES it - so the field came out white, with grey hint
+        text, on a dark window. It shipped that way from S6a until 2026-08-02, through a
+        screenshot review that had the field on screen.
+
+        Found by accident, while photographing this window to compare it against a control
+        library. That is the fourth time in this project that XAML has bound correctly and
+        painted something other than what it promised, after the empty list from internal view
+        models, the column headers outside the visual tree, and the dead DataGridRow background.
     -->
-    <Style TargetType="TextBox">
+    <Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="Padding" Value="{StaticResource PadCell}" />
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>
 
-    <Style TargetType="CheckBox">
+    <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>

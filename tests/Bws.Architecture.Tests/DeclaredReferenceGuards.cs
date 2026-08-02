@@ -61,7 +61,18 @@ public sealed class DeclaredReferenceGuards
     {
         ["Bws.Core"] = ["Microsoft.Windows.CsWin32"],
         ["Bws.Cli"] = [],
-        ["Bws.Gui"] = []
+
+        // WPF-UI, MIT, added 2026-08-02 with the owner's decision to build this window's
+        // appearance on it. Registered in ADR-15 first and listed here second, which is the
+        // order this guard exists to force - and it did force it, going red on the build that
+        // added the package before the document was written.
+        //
+        // It is the FIRST package this project ships. The two before it are a source generator
+        // and an analyser, neither of which leaves anything behind at run time. This one is
+        // 6.3 MB of assembly inside the executable, on a machine where the tool runs with
+        // administrator rights. Its licence was read in the repository's own LICENSE file, and
+        // what it costs is measured in docs/10-WPF-UI.md rather than assumed.
+        ["Bws.Gui"] = ["WPF-UI"]
     };
 
     [Theory]

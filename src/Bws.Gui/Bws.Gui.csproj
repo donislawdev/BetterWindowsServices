@@ -4,6 +4,28 @@
     <ProjectReference Include="..\Bws.Core\Bws.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    WPF UI, MIT, the base of this window's appearance since 2026-08-02. ADR-24 and ADR-15
+    carry the decision, docs/10-WPF-UI.md carries what it costs and the five traps that are
+    not in their documentation.
+
+    Version pinned rather than floating. A control library that changes what the product looks
+    like because a restore picked up a newer build is a change nobody decided.
+  -->
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <!--
+    Per-monitor DPI awareness, ADR-25. WPF is system DPI aware by default, which means Windows
+    stretches the window bitmap on any monitor whose scaling differs from the one the session
+    logged on with - and stretched text is blurry in the literal sense. Measured before this
+    line existed: the process reported SYSTEM_AWARE.
+  -->
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>

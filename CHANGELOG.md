@@ -6,8 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 This file is for people who use the tool. Changes that only matter to somebody working on
-it - internal structure, measurements, test guards - are in
-[CHANGELOG-DEV.md](CHANGELOG-DEV.md).
+it - internal structure, measurements, test guards - are kept in a developer changelog that
+is not part of this repository.
 
 ## [Unreleased]
 
@@ -230,6 +230,9 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The search field is dark, like the rest of the window.** It came up white, with grey
+  hint text, on a dark window - and so did the two tick boxes beside it, in a less obvious
+  way. All three now take the dark theme the rest of the window uses.
 - **The usage text lists every switch again.** `--signatures` was missing from it, and
   `--timing` was shown only for `list` although it works everywhere.
 - **A switch given without its value says so**, instead of reporting itself as an unknown

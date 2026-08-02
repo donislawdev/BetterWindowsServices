@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+
+  <!--
+    ADR-25. This file exists for one setting, and the rest of it is the minimum Windows needs
+    to read that setting.
+
+    WPF applications are SYSTEM DPI aware by default - measured on this product before this
+    file existed, by asking the running window through GetAwarenessFromDpiAwarenessContext
+    rather than by reading documentation. Under system awareness Windows renders the window at
+    the DPI the session logged on with and BITMAP-STRETCHES it onto any monitor scaled
+    differently. Stretched text is blurry in the literal sense, and no amount of font tuning
+    inside the application can undo it.
+
+    It changes nothing on the machine this was written on - one monitor, system DPI 144,
+    monitor DPI 144, nothing to stretch. It changes everything on a second monitor at a
+    different scale, on a scale changed without signing out, and on a laptop leaving a dock.
+    All three are ordinary for an administrator, which is who this tool is for.
+
+    Sources, because a claim about the platform needs one:
+      https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-desktop-application-development-on-windows
+      https://learn.microsoft.com/en-us/windows/win32/hidpi/declaring-managed-apps-dpi-aware
+      https://github.com/dotnet/wpf/issues/859
+
+    BOTH elements below are needed and they are not duplicates. dpiAware is the old setting and
+    is what Windows 8.1 and Windows 10 before the Creators Update read. dpiAwareness is the
+    newer one and wins where it is understood. A manifest carrying only the second is system
+    aware on older Windows, which is inside the floor ADR-5 sets.
+  -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+    </windowsSettings>
+  </application>
+
+  <!--
+    The supported-OS list. Without it Windows applies compatibility shims for an application it
+    assumes predates Windows 10, and one of those shims is DPI virtualisation - which would
+    quietly undo the two lines above. The floor is ADR-5, Windows 10 1809 and Server 2019, so
+    only the Windows 10 and 11 entry belongs here.
+  -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+
+</assembly>

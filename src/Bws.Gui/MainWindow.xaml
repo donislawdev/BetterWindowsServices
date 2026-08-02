@@ -2,6 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource gui.window.title}"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         Height="700" Width="1100">
 
     <!--
@@ -13,6 +18,24 @@
         Text comes from the language file the same way, by key. A column header cannot bind
         to the view model: columns are not in the visual tree and inherit no data context,
         which is the trap this markup fell into on the first try.
+
+        Background is set here rather than left alone, and it is a condition rather than a
+        touch of polish: WPF UI's dictionaries do not give a plain Window a background, so
+        without this line the window comes up white and THE WHOLE LIST DISAPPEARS - light text
+        on a light surface - while the status line still reports that 811 entries were read.
+        docs/10-WPF-UI.md, trap 2.
+
+        THE FOUR RENDERING SETTINGS ARE MEASURED, NOT COPIED FROM AN ANSWER ON THE INTERNET.
+        They arrived as a suggestion from the owner and were checked the way anything about
+        pixels has to be: two builds differing only in these lines, the same text captured by
+        PrintWindow from the release build, magnified nine times and compared. With them the
+        strokes are thicker, whiter and land on the pixel grid. Without them the same glyphs
+        are paler and sit at fractional positions.
+
+        Measured AS A SET. Which of the four does the work was not separated, and saying so is
+        cheaper than four more builds for an answer nobody needs yet. TextFormattingMode is the
+        one with a known cost: Display mode is meant for small text and can look worse for
+        large. This window has none, and that stops being true the day it gets a heading.
     -->
 
     <Grid Margin="{StaticResource PadPanel}">
@@ -103,6 +126,9 @@
                   GotKeyboardFocus="ListEngaged"
                   LostKeyboardFocus="ListReleased"
                   ItemsSource="{Binding Rows}"
+                  Style="{StaticResource ListGrid}"
+                  RowStyle="{StaticResource ListRow}"
+                  CellStyle="{StaticResource ListCell}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserSortColumns="False"

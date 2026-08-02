@@ -70,3 +70,16 @@ CLAUDE.md
 # changed, and somebody cloning this repository gets none of them. Anything here that
 # matters has to be described in docs/ well enough to be rebuilt from the description.
 tools/
+
+# The developer changelog. Taken out of version control on 2026-08-02 by the owner, who
+# keeps it beside docs/ rather than in the repository. Its history up to that day stays in
+# git's objects and that was considered and accepted - the point is that it stops being a
+# tracked file from here on, not that it is erased.
+#
+# THE CONSEQUENCE IS BIGGER THAN THE ONES ABOVE AND HAS TO BE SAID. This file used to be
+# the ONE piece of project memory that survived a clone: docs/, CLAUDE.md and tools/ were
+# already out. Now nothing does. Somebody cloning this repository gets the code, the user
+# changelog, SECURITY.md and the licence - no decisions, no measurements, no backlog, and
+# no record of what was already tried and rejected. A public repository will need its own
+# writing for contributors, and that is no longer a nicety.
+CHANGELOG-DEV.md
