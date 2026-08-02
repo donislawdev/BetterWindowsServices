@@ -1294,6 +1294,58 @@ reading code, and that is a different instrument with a different failure mode.
     about what came back passes on a build that computes nothing, which is the fastest possible
     implementation and the useless one.
 
+- **A listing stopped waiting on itself** (`09ed9fe`). The same loop over the same 810 entries
+  costs 13-22 ms without opening a handle per entry and 455-475 ms with, so about 440 ms of
+  every listing was one processor waiting on the manager while fifteen did nothing. It is the
+  shape `ADR-22` had already found one layer up, in signature verification.
+  - Reading 810 entries **455-475 ms to 72-84**. `bws list` end to end **569-595 to 231-260**.
+    The window from launch to a row **1335-2980 to 833-889**, which is section 8.1's first
+    budget met - it had never been measured until that morning and was broken.
+  - **Order is held by index rather than by sorting afterwards**, so the answer is the
+    sequential one by construction. The assumption underneath is that one `OpenSCManager`
+    handle may be used by `OpenService` from several threads at once: nothing forbids it, it
+    is written where somebody will find it, and the guard compares a parallel reading against a
+    single-threaded one field by field - 810 entries, all identical.
+  - That comparison is a **real oracle rather than two runs of one implementation**, which is
+    the distinction this project paid for at S5a1.
+  - The timing half of the guard went red in the full suite and green alone, because every
+    other integration test verifies signatures and takes every processor there is. It runs in
+    a collection of its own now, and asserts twice as fast rather than the six times measured
+    here, because it will run on hardware nobody has seen.
+
+- **The list fills in one step the first time** (`ac2d2ef`). `Rows.Insert` ran 810 times into
+  an observable collection a DataGrid is bound to. Window launch to a row **833-889 to
+  749-822**.
+  - **The prediction was wrong and the entry says so.** Those notifications were expected to be
+    about 285 ms of the gap between the window appearing and the list being on it. They were
+    about seventy. Most of that gap is the DataGrid realising and laying itself out, which is
+    not ours to remove.
+  - A reset is also how a DataGrid is told to throw the selection and the scroll position
+    away, so the cheap path is fenced twice - only on an empty list, and `RowList` throws if
+    asked to reset while there is anything to lose. **Both fences are guarded and in the
+    mutation registry**, because the ordinary window tests cannot see either: the row objects
+    are the same whichever way the list is told about the change.
+
+- **`PublishReadyToRun` measured and rejected.** Interleaved, five counted passes each,
+  **735-811 ms plain against 721-782 with**. The ranges overlap and this project's rule is that
+  a spread wider than the difference means there is no difference. WPF ships compiled ahead of
+  time already, and five thousand lines of ours do not take long to jit. Size grew 0.3 MB.
+  Written down so the next session does not spend an afternoon rediscovering it.
+
+- **Three ratchet drops in one afternoon: 807, 746, 644, 631.** Every one was forced rather
+  than chosen - the guard went red after an addition, a seam turned out to be already there,
+  and the number came down afterwards. `ScmBuffers.cs`, `ScmDetailReader.cs` and `Sentences.cs`
+  exist because of it, and `WindowsScmCatalog.cs` went from 807 lines to 515.
+
+- **The mutation registry reported four of its own entries broken by those splits**, and that
+  is the tool earning its place rather than failing. Three went `STALE` because the code they
+  anchored on had moved into a new file. One went `MISSED` for a subtler reason: the entry that
+  proves the size ratchet adds a line to the longest file, and after two splits the file it
+  named was no longer the longest, so adding to it broke nothing.
+  - A fifth failure was **newlines rather than code**: splitting a file with `WriteAllLines`
+    turned it from LF to CRLF and every multi-line anchor stopped matching. Line endings are
+    out of the comparison now, and the file is written back in the shape it was found in.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
