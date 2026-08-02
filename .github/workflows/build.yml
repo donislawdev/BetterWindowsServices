@@ -1,0 +1,106 @@
+# The first thing in this project that runs the checks without somebody remembering to.
+#
+# WHAT IT IS FOR, in the owner's words on 2026-08-02: "piszesz mnóstwo kodu a nikt tego nie
+# sprawdza". Five hundred and thirty tests, a mutation registry and two bridge scripts existed
+# before this file, and every one of them ran only when the assistant chose to run it. A check
+# that depends on somebody's memory is a check with a bad day built into it.
+#
+# WHAT IT CANNOT DO, and this is not a limitation of continuous integration - it follows
+# directly from decisions recorded in CLAUDE.md:
+#
+#   Points 11 and 12 of the definition of done are tools/mutate/mutate.ps1 and
+#   tools/audit/audit.ps1. BOTH LIVE IN tools/, WHICH IS OUTSIDE THE REPOSITORY. A checkout
+#   gets the code and the tests and nothing else, so this workflow carries TEN of the twelve
+#   points, not twelve. Mutation and the document bridge stay with the owner.
+#
+#   tools/gui-probe/check.ps1 is a third one it cannot carry, for a different reason: it needs
+#   a desktop session, a real window and a service to move.
+#
+# MEASURED BEFORE THIS FILE WAS WRITTEN, rather than assumed: a fresh clone into a temporary
+# directory builds with zero warnings and passes all 530 tests. So this is not aspirational.
+
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build and the tests that do not need this machine
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: restore
+        run: dotnet restore BetterWindowsServices.slnx
+
+      # Warnings are already errors, set once in Directory.Build.props rather than here - a
+      # second place saying it would be a second place to change and a first place to forget.
+      - name: build
+        run: dotnet build BetterWindowsServices.slnx -c Release --no-restore
+
+      # THREE PROJECTS, NOT FOUR, and the missing one is deliberate.
+      #
+      # Bws.Integration.Tests reads the live service control manager of whatever machine it runs
+      # on, compares against that machine's sc.exe, and holds performance budgets from section
+      # 8.1 of the specification. A runner is a different machine: fewer services, different
+      # rights, and two or four processors where docs/04 already records that the snapshot
+      # budget lands at 99.6% of its promise on two. Those tests belong on a machine somebody
+      # can look at, and there is a job below for asking a runner what it thinks.
+      #
+      # A guard that goes red for reasons unrelated to the change teaches people to ignore it,
+      # which is worse than not having it. That sentence is in docs/04 about a different test
+      # and it applies here without modification.
+      - name: tests that hold anywhere
+        run: |
+          dotnet test tests/Bws.Core.Tests/Bws.Core.Tests.csproj -c Release --no-build --nologo
+          dotnet test tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj -c Release --no-build --nologo
+          dotnet test tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj -c Release --no-build --nologo
+
+      # Publishing is its own failure mode and the build does not cover it. Section S9 of the
+      # specification promises a small self-contained file, and the measured 93.5 MB is already
+      # a problem written down as backlog item 6 - but a publish that stops working entirely is
+      # a different and worse surprise, and this is the cheapest place to find out.
+      - name: the single file still publishes
+        run: dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+
+  live-machine:
+    name: what a different machine says about the integration tests
+    runs-on: windows-latest
+
+    # BY HAND ONLY, and that is the point of this job rather than a hedge.
+    #
+    # It is an INSTRUMENT, not a gate. Every number in this project's documents is a fact about
+    # one machine - 810 entries, 544 distinct files, sixteen processors - and docs/04 says
+    # plainly that a figure without its subject is a claim with no content. This job is the
+    # cheapest way to ask a second machine the same questions, and the answers are worth
+    # reading precisely because they will differ.
+    #
+    # It is not on every push because a red mark that everybody knows to ignore is worse than
+    # no mark. If it turns out to be steady, it graduates into the job above with a note saying
+    # what was measured before it was trusted.
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: build
+        run: dotnet build BetterWindowsServices.slnx -c Release
+
+      - name: the tests that read a real service control manager
+        run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo
