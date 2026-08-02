@@ -15,6 +15,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **`bws --help` and `bws -h`** print how to use the tool, on standard output, and end
+  successfully. Running `bws` with nothing after it does the same. The help now starts with
+  three examples rather than a list of switches.
+- **`bws --version`** says which version this is.
+- **A mistyped command is offered the one you probably meant.** `bws lst` answers
+  "There is no command lst. Did you mean list?" rather than calling it an unknown option.
 - **`bws list`** shows every entry the service control manager knows about, as a table for
   a person or with `--json` for a script. Drivers are included, which is why the count is
   larger than the one `services.msc` shows.

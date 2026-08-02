@@ -11,6 +11,45 @@ using Bws.Core.Snapshots;
 
 var options = CommandLine.Read(args);
 
+// ASKING A QUESTION IS NOT A MISTAKE, and until 2026-08-02 this tool answered as though it
+// were: --help came back "Unknown option: --help", on the error channel, with code 2 - the code
+// reserved for what somebody typed wrongly. No arguments at all did the same thing without the
+// first line. clig.dev puts help on the data channel with a code of zero, and every user's
+// first reflex is to type it.
+//
+// Both before anything else, because neither depends on a verb, on options making sense, or on
+// the tool being able to reach the service manager.
+if (options.Version)
+{
+    // Through Output rather than straight to the console, and a guard insisted twice: first
+    // that the channel be named, then that there be exactly one place naming it. Both were
+    // right - this is what the run produces, so it belongs beside the listing and the JSON.
+    Output.Data(Texts.Of("cli.version", Release.Number));
+    return ExitCode.Ok;
+}
+
+if (options.Help)
+{
+    // The data channel on purpose. Somebody piping the help into a pager or a file is asking
+    // for the text, so the text is the output of the run rather than a diagnostic beside it.
+    Output.Data(Texts.Of("cli.usage"));
+    return ExitCode.Ok;
+}
+
+if (options.BadVerb is not null)
+{
+    // Named as a command rather than an option, and offered the nearest one. "Unknown option:
+    // lst" was wrong twice over: lst is not an option, and the answer helped with nothing.
+    var nearest = Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
+
+    Console.Error.WriteLine(nearest is null
+        ? Texts.Of("cli.unknownCommand", options.BadVerb, string.Join(", ", OptionSurface.Verbs))
+        : Texts.Of("cli.unknownCommandDidYouMean", options.BadVerb, nearest));
+
+    Console.Error.WriteLine(Texts.Of("cli.usage"));
+    return ExitCode.Usage;
+}
+
 if (options.BadSubcommand is not null)
 {
     // Ahead of the unknown-option check, because "snapshot" on its own would otherwise be
@@ -19,7 +58,7 @@ if (options.BadSubcommand is not null)
     // Two sentences rather than one, because the two cases are different and one wording
     // has to lie about one of them. Snapshot on its own is a command that is half typed.
     // Snapshot followed by a word we do not know is a command that does not exist.
-    var available = string.Join(", ", CommandLine.Subcommands);
+    var available = string.Join(", ", OptionSurface.Subcommands);
 
     Console.Error.WriteLine(options.BadSubcommand.Length == 0
         ? Texts.Of("cli.subcommandMissing", available)
@@ -63,8 +102,8 @@ if (options.Misplaced.Count > 0)
         Console.Error.WriteLine(Texts.Of(
             "cli.optionNotForCommand",
             option,
-            CommandLine.Spelling(options.Kind),
-            string.Join(", ", CommandLine.Accepts(option))));
+            OptionSurface.Spelling(options.Kind),
+            string.Join(", ", OptionSurface.Accepts(option))));
     }
 
     return ExitCode.Usage;
@@ -374,7 +413,7 @@ try
         Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected: 0, measured: 0);
     }
 
-    Console.Out.WriteLine(data);
+    Output.Data(data);
 
     return exit;
 }

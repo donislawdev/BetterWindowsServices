@@ -25,7 +25,18 @@ public sealed class UsageContractTests
     private static readonly string[] EverySwitch =
     [
         "--query", "--signatures", "--memory", "--json", "--timing",
-        "--dry-run", "--dependents", "--timeout", "--note"
+        "--dry-run", "--dependents", "--timeout", "--note",
+
+        // Added 2026-08-02, and their absence from this list is why nobody noticed that the
+        // first of them did not work at all. This guard was green while `bws --help` answered
+        // "Unknown option: --help" and ended with the code for a mistyped command - because it
+        // only ever asked about switches somebody had remembered to write down here.
+        //
+        // Spelling out the surface rather than deriving it is deliberate, and it has a cost
+        // this entry is the receipt for: a list that has to be remembered can be forgotten.
+        // Deriving it would have made the guard agree with whatever the code does, which is
+        // worse - it would have been green for the same reason and taught nobody anything.
+        "--help", "-h", "--version"
     ];
 
     /// <summary>
@@ -42,14 +53,19 @@ public sealed class UsageContractTests
     [Fact]
     public void The_usage_text_mentions_every_switch_the_tool_accepts()
     {
-        // No verb at all prints the usage and ends with the code for a mistaken command.
+        // No verb at all prints the usage on the DATA channel and ends with zero, and that is a
+        // deliberate change of contract from 2026-08-02. It used to be code 2 on the error
+        // channel - the code this tool reserves for what somebody typed wrongly - so asking how
+        // to use it was answered as a mistake. This assertion is the old contract's headstone:
+        // it said Equal(2) and Equal(string.Empty, StandardOutput), and it went red on the
+        // change, which is exactly what it was for.
         var usage = CommandLineTool.Run();
 
-        Assert.Equal(2, usage.ExitCode);
-        Assert.Equal(string.Empty, usage.StandardOutput);
+        Assert.Equal(0, usage.ExitCode);
+        Assert.Equal(string.Empty, usage.StandardError);
 
         var missing = EverySwitch
-            .Where(option => !usage.StandardError.Contains(option, StringComparison.Ordinal))
+            .Where(option => !usage.StandardOutput.Contains(option, StringComparison.Ordinal))
             .ToArray();
 
         Assert.True(
@@ -62,7 +78,7 @@ public sealed class UsageContractTests
     {
         // The other direction, and the one that rots quietly: a switch that was removed or
         // renamed leaves a line in the help promising something the tool will refuse.
-        var usage = CommandLineTool.Run().StandardError;
+        var usage = CommandLineTool.Run().StandardOutput;
 
         foreach (var option in EverySwitch)
         {
@@ -86,7 +102,7 @@ public sealed class UsageContractTests
         // command has to appear in the help, and every command the tool talks about has to
         // be a command the tool accepts - a message that answers "use it with snapshotcreate"
         // sends somebody to type a word that does not exist.
-        var usage = CommandLineTool.Run().StandardError;
+        var usage = CommandLineTool.Run().StandardOutput;
 
         foreach (var command in EveryCommand)
         {
@@ -99,6 +115,78 @@ public sealed class UsageContractTests
 
         Assert.Contains("snapshot create", refusal, StringComparison.Ordinal);
         Assert.DoesNotContain("snapshotcreate", refusal, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    public void Asking_how_to_use_it_is_answered_on_the_data_channel_and_is_not_a_failure(string asked)
+    {
+        // The contract this fixes, in one sentence: `bws --help` used to answer "Unknown option:
+        // --help", print the usage on the error channel, and end with code 2 - the code reserved
+        // for what somebody typed wrongly. Asking for help was reported as a mistake, and it is
+        // the first thing anybody types.
+        var help = CommandLineTool.Run(asked);
+
+        Assert.Equal(0, help.ExitCode);
+        Assert.Equal(string.Empty, help.StandardError);
+        Assert.Contains("bws list", help.StandardOutput, StringComparison.Ordinal);
+
+        // Leading with examples rather than a list of flags, which is the other half of what
+        // clig.dev asks for and the half a switch inventory cannot check.
+        Assert.StartsWith("Examples:", help.StandardOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_tool_can_say_what_version_it_is()
+    {
+        // It could not until 2026-08-02, while the number sat in every binary. An administrator
+        // wanting to know what was on their production server had to read file properties.
+        var version = CommandLineTool.Run("--version");
+
+        Assert.Equal(0, version.ExitCode);
+        Assert.Equal(string.Empty, version.StandardError);
+
+        // The number itself is not asserted - it is the owner's to set by rule 11, and a test
+        // holding a copy would fail on the release it is meant to survive. What is asserted is
+        // that something version-shaped comes back rather than the word this tool prints when
+        // it cannot read one.
+        Assert.Matches(@"^bws \d+\.\d+\.\d+", version.StandardOutput.Trim());
+    }
+
+    [Theory]
+    [InlineData("lst", "list")]
+    [InlineData("stpo", "stop")]
+    [InlineData("snpashot", "snapshot")]
+    public void A_mistyped_command_is_called_a_command_and_offered_the_nearest_one(string typed, string meant)
+    {
+        // Two faults in the old answer, "Unknown option: lst": the word is not an option, and
+        // nothing was offered. Naming the wrong kind of thing is the same family of mistake as
+        // a switch without its value reporting itself as unknown, which this tool made once
+        // already and fixed once already.
+        var wrong = CommandLineTool.Run(typed);
+
+        Assert.Equal(2, wrong.ExitCode);
+        Assert.DoesNotContain("Unknown option", wrong.StandardError, StringComparison.Ordinal);
+
+        // The whole sentence rather than the word, and the mutation registry is why. Asserting
+        // that the answer merely CONTAINS "list" passed with suggestions turned off entirely -
+        // because the fallback answer lists every command, and "list" is one of them. A test
+        // that is satisfied by the thing it exists to rule out.
+        Assert.Contains($"Did you mean {meant}?", wrong.StandardError, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_word_close_to_nothing_is_not_given_a_guess()
+    {
+        // A suggestion that is wrong is worse than none: it reads as though the tool understood.
+        // So the far-away word gets the list instead, and the list comes from the code rather
+        // than from a sentence somebody has to remember to update.
+        var nonsense = CommandLineTool.Run("qwertyuiop");
+
+        Assert.Equal(2, nonsense.ExitCode);
+        Assert.DoesNotContain("Did you mean", nonsense.StandardError, StringComparison.Ordinal);
+        Assert.Contains("list", nonsense.StandardError, StringComparison.Ordinal);
     }
 
     [Fact]
