@@ -77,7 +77,11 @@ public sealed class BroadCatchGuards
 
         foreach (var file in Sources.Shipped())
         {
-            var matches = Regex.Matches(File.ReadAllText(file), @"#pragma warning disable CA1031");
+            var matches = Regex.Matches(
+                File.ReadAllText(file),
+                @"#pragma warning disable CA1031",
+                RegexOptions.None,
+                Sources.Ceiling);
 
             if (matches.Count > 0)
             {

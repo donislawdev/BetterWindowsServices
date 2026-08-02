@@ -29,10 +29,10 @@ public sealed class OutputChannelGuards
     /// Console.Out or Console.Error, which name the channel they mean.
     /// </summary>
     private static readonly Regex UnnamedChannel = new(
-        @"\bConsole\.Write\w*\(", RegexOptions.Compiled);
+        @"\bConsole\.Write\w*\(", RegexOptions.Compiled, Sources.Ceiling);
 
     private static readonly Regex DataChannel = new(
-        @"\bConsole\.Out\.", RegexOptions.Compiled);
+        @"\bConsole\.Out\.", RegexOptions.Compiled, Sources.Ceiling);
 
     [Fact]
     public void No_shipped_source_file_writes_without_naming_the_channel()

@@ -61,7 +61,8 @@ public sealed class ConcurrencyGuards
         @"\bTask\.Run\b|\bParallel\.|\bnew\s+Thread\b|\block\s*\(|\bInterlocked\.|\bMonitor\.|" +
         @"\bVolatile\.|\bThreadPool\.|\bConcurrent(Dictionary|Bag|Queue|Stack)\b|" +
         @"\bSemaphoreSlim\b|\bManualResetEvent|\bAutoResetEvent\b|\bMutex\b|\bBarrier\b",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled,
+        Sources.Ceiling);
 
     [Fact]
     public void Only_the_places_that_argued_for_it_can_do_two_things_at_once()

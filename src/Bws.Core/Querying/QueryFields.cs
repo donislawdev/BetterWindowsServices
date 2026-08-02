@@ -78,6 +78,11 @@ public static class QueryFields
         return new string(folded[..length]);
     }
 
+    // Long because it is a table, not because it is tangled: one entry per field, each a
+    // declaration with no branching in it. Splitting it would put the language's field list in
+    // several places, which is the thing this file exists to prevent - and the ceiling is
+    // aimed at methods somebody has to hold in their head, which this is not.
+#pragma warning disable MA0051
     private static QueryField[] BuildAll() =>
     [
         new QueryField
@@ -369,6 +374,8 @@ public static class QueryFields
             SizeOf = entry => entry.Memory.IsPresent ? entry.Memory.Value!.WorkingSet : null
         }
     ];
+
+#pragma warning restore MA0051
 
     /// <summary>
     /// Whether the entry has an identity of its own, and which kind.

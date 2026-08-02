@@ -20,7 +20,8 @@ public sealed class UserFacingTextGuards
 {
     private static readonly Regex LiteralToConsole = new(
         @"Console\.(Out|Error)\.Write\w*\(\s*[$@]*""",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled,
+        Sources.Ceiling);
 
     [Fact]
     public void No_shipped_source_file_writes_a_literal_string_to_the_console()

@@ -47,7 +47,7 @@ public sealed class BackgroundWorkGuards
     /// rather than a call, because that is where the decision is made.
     /// </summary>
     private static readonly Regex AsyncVoid = new(
-        @"\basync\s+void\s+\w+\s*\(", RegexOptions.Compiled);
+        @"\basync\s+void\s+\w+\s*\(", RegexOptions.Compiled, Sources.Ceiling);
 
     /// <summary>
     /// Work started and thrown away: a discard on something awaitable, or a call to a method
@@ -59,7 +59,8 @@ public sealed class BackgroundWorkGuards
     /// </summary>
     private static readonly Regex Abandoned = new(
         @"(^\s*_\s*=\s*\w[\w\.]*Async\s*\()|(^\s*(?!return\b|await\b)\w[\w\.]*Async\s*\([^;]*\)\s*;)",
-        RegexOptions.Compiled | RegexOptions.Multiline);
+        RegexOptions.Compiled | RegexOptions.Multiline,
+        Sources.Ceiling);
 
     [Fact]
     public void Every_async_void_is_somewhere_that_argued_for_one()

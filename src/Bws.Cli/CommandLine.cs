@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bws.Core.Planning;
 
 namespace Bws.Cli;
@@ -259,6 +260,11 @@ internal sealed record CommandLine
 
     internal bool IsWrite => Kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart;
 
+    // Suppressed rather than defended: at 199 lines this one really is too long, and the
+    // analyser is right. Splitting it is a change to working code that no slice asked for, so
+    // it is written down as backlog item 24 instead of being done here on the way past - and
+    // this comment is the reason the suppression is not a way of forgetting about it.
+#pragma warning disable MA0051
     internal static CommandLine Read(string[] arguments)
     {
         var kind = CommandKind.None;
@@ -483,6 +489,8 @@ internal sealed record CommandLine
         };
     }
 
+#pragma warning restore MA0051
+
     /// <summary>
     /// Reads a number of seconds, or says what it got instead.
     ///
@@ -493,7 +501,11 @@ internal sealed record CommandLine
     /// </summary>
     private static string? Seconds(string value, ref TimeSpan timeout)
     {
-        if (!int.TryParse(value, out var seconds) || seconds < 1)
+        // Invariant, not the machine's regional settings. A timeout is typed by whoever wrote
+        // the runbook, and a runbook that means sixty on one machine and nothing on another
+        // because of a decimal separator is exactly what rule 3 exists to stop.
+        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+            || seconds < 1)
         {
             return value;
         }

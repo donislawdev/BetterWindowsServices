@@ -65,4 +65,22 @@
     <Description>Service management for Windows administrators: search, bulk operations, audit and drift.</Description>
   </PropertyGroup>
 
+  <!--
+    Meziantou.Analyzer, MIT, build time only - PrivateAssets stops it reaching anything that
+    ships. Taken for three rules out of more than two hundred, and the rest are switched off
+    by name in .editorconfig with what they cost measured beside them.
+
+    The justification ADR-15 asks for, in one line: MA0051 gives a ceiling on method length,
+    which is the anti-tangle guard this project wanted and could not build without a parser -
+    so this reference REPLACES a dependency on Roslyn rather than adding one on top of it.
+    MA0009 guards the one surface where this product takes hostile input, which is a regular
+    expression somebody typed into a search box.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Meziantou.Analyzer" Version="3.0.138">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

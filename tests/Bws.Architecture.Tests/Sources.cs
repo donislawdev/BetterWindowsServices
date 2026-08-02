@@ -10,6 +10,18 @@ namespace Bws.Architecture.Tests;
 /// </summary>
 internal static class Sources
 {
+    /// <summary>
+    /// How long any guard may spend matching one line before it gives up.
+    ///
+    /// These patterns run over our own files, so nothing hostile reaches them and in principle
+    /// none of them can run away. The ceiling is here anyway, and the reason is the one this
+    /// project already paid for once: without a limit, a mistake in a pattern <b>hangs the test
+    /// run instead of reddening it</b>, and a run that never ends reports nothing at all.
+    ///
+    /// Generous on purpose. The job is to stop a hang, not to time anything.
+    /// </summary>
+    internal static readonly TimeSpan Ceiling = TimeSpan.FromSeconds(5);
+
     /// <summary>Every source file that ends up in the product.</summary>
     internal static IEnumerable<string> Shipped() => Under("src");
 

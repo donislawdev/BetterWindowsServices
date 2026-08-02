@@ -874,6 +874,26 @@ sense as answers to the one above them.
   - **A guard that missed, and the runner said so.** The first size mutation added forty lines
     to a thirty line file and came back MISSED - the mutation never got near what it was aiming
     at. Rewritten to put one line onto the file that is the ceiling.
+  - **An external analyser, measured before choosing, and the measurement changed the answer.**
+    Meziantou.Analyzer turned on whole reports **11 rules and 254 hits** on this tree, halved
+    for the double listing: 127 asking for a comparer on every dictionary of strings, 66 that
+    file names match type names - which small related types deliberately do not here - and 40
+    preferring string.Equals over an operator that is already ordinal. Three rules out of more
+    than two hundred survived, and the rest are off by name with the count beside each.
+  - **MA0051 is the method ceiling the file ratchet cannot give**, because a file can sit
+    under its limit while holding one method nobody can read. Set at 120 lines, ratcheting the
+    same way. It is also why this reference **replaces** a dependency rather than adding one:
+    the alternative was taking Roslyn to count method lengths ourselves.
+  - **MA0009 found nothing in the product and that is the finding.** Nine hits, all in
+    architecture guards reading our own files, and none in the query language - because that
+    already compiles typed patterns on the non-backtracking engine under a ceiling. Every
+    guard regex now carries one too, for the reason this project has already paid for once: a
+    pattern without a limit **hangs a test run instead of reddening it**.
+  - **Two methods suppressed at the declaration rather than by raising the number**, because
+    raising it would hide everything in between. QueryFields.BuildAll is a table with no
+    branching in it. CommandLine.Read is 199 lines and the analyser is right - written down as
+    backlog item 24, with the suppression carrying that number so it cannot become a way of
+    forgetting.
   - **Licences checked on the package pages rather than recalled**, because the owner asked:
     CsCheck is Apache-2.0, FsCheck BSD-3-Clause, SharpFuzz MIT, Microsoft.CodeAnalysis.CSharp
     MIT, Meziantou.Analyzer MIT. All permissive and compatible with GPL-3.0-or-later, and all

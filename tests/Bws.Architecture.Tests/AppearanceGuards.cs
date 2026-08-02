@@ -52,7 +52,9 @@ public sealed class AppearanceGuards
     /// what this guard forbids is a value invented in place.
     /// </summary>
     private static readonly Regex ByName = new(
-        @"^\{\s*(StaticResource|DynamicResource|TemplateBinding|Binding|x:Static)\b", RegexOptions.Compiled);
+        @"^\{\s*(StaticResource|DynamicResource|TemplateBinding|Binding|x:Static)\b",
+        RegexOptions.Compiled,
+        Sources.Ceiling);
 
     [Fact]
     public void No_view_invents_an_appearance_value_of_its_own()
@@ -67,7 +69,11 @@ public sealed class AppearanceGuards
             {
                 foreach (var attribute in Policed)
                 {
-                    foreach (Match match in Regex.Matches(lines[index], $@"\b{attribute}\s*=\s*""([^""]*)"""))
+                    foreach (Match match in Regex.Matches(
+                                 lines[index],
+                                 $@"\b{attribute}\s*=\s*""([^""]*)""",
+                                 RegexOptions.None,
+                                 Sources.Ceiling))
                     {
                         var value = match.Groups[1].Value.Trim();
 
@@ -101,7 +107,11 @@ public sealed class AppearanceGuards
 
             for (var index = 0; index < lines.Length; index++)
             {
-                var setter = Regex.Match(lines[index], @"Property\s*=\s*""(\w+)""\s*Value\s*=\s*""([^""]*)""");
+                var setter = Regex.Match(
+                    lines[index],
+                    @"Property\s*=\s*""(\w+)""\s*Value\s*=\s*""([^""]*)""",
+                    RegexOptions.None,
+                    Sources.Ceiling);
 
                 if (setter.Success
                     && Policed.Contains(setter.Groups[1].Value, StringComparer.Ordinal)
