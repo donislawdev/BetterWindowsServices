@@ -9,6 +9,17 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+
+    <!--
+      Property tests. ADR-15 in docs/02 carries the argument; the short version is that this
+      project already writes them by hand and the one thing it cannot do by hand is shrink a
+      failure to the smallest input that causes it.
+
+      Apache-2.0, checked in the project's own LICENSE file rather than on the package label.
+      Test projects only, never packed, never published - a guard in the architecture tests
+      keeps it out of anything that ships.
+    -->
+    <PackageReference Include="CsCheck" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>

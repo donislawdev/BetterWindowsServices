@@ -95,6 +95,25 @@ public static class SnapshotJson
             return false;
         }
 
+        // Both halves, because neither is guaranteed by anything the compiler enforces and a
+        // file on disk answers to nobody. Snapshot is a positional record, so its two parts are
+        // constructor parameters - and `required` does not reach constructor parameters, which
+        // means a file saying "metadata": null deserialises perfectly well and then fails on
+        // the next line.
+        //
+        // Found by a property test on the day one was written, not by reading this: a snapshot
+        // damaged five characters in the right place made `bws snapshot diff` end with a stack
+        // trace instead of the sentence this method exists to produce. A snapshot is a file
+        // kept for months and carried between machines, so "somebody edited it" and "the disk
+        // filled up while it was being written" are ordinary rather than exotic.
+        if (snapshot.Metadata is null || snapshot.Entries is null)
+        {
+            failure = "The file is missing the parts a snapshot is made of.";
+            snapshot = null;
+
+            return false;
+        }
+
         if (snapshot.Metadata.SchemaVersion != Snapshot.CurrentSchemaVersion)
         {
             // Said out loud rather than attempted. A file from a schema this build does not

@@ -3,90 +3,21 @@ using Bws.Core.Querying;
 namespace Bws.Core.Tests;
 
 /// <summary>
-/// Properties of the query language rather than examples of it.
+/// Properties of the query language that are about ORDER rather than about input.
 ///
-/// ADR-10 names this parser as one of the three places where property tests pay for
-/// themselves here, and gives the two properties: the parser never fails in a way it did
-/// not plan for, and the order somebody typed their members in does not change the
-/// answer. Examples cannot cover either, because both are statements about every input
-/// rather than about a chosen one.
+/// `ADR-10` names this parser as one of the three places where property tests pay for
+/// themselves, and gives two properties. The first - the parser never fails in a way it did
+/// not plan for - moved to <see cref="ParserPropertyTests"/> on 2026-08-02, where a library
+/// shrinks a failure to the smallest text that causes it. These stayed, because shrinking has
+/// nothing to offer them: what varies here is the order of a fixed set of members, and the
+/// smallest counterexample is already two of them.
 ///
-/// Generation is deliberately built from the characters that mean something - quotes,
-/// backslashes, commas, colons, exclamation marks, slashes, stars - because random
-/// letters would exercise the boring path and prove nothing about the interesting one.
+/// Both are invariants nobody would find by looking. Breaking either shows up as results that
+/// depend on the order somebody clicked filters in, which reads as the tool being unreliable
+/// rather than as a bug with a location.
 /// </summary>
-#pragma warning disable CA1031
-// Catching everything is the assertion here, not a lapse. The property being checked is
-// that no exception of any kind escapes, so narrowing the catch would narrow the claim to
-// the failures somebody already thought of - which are exactly the ones that do not need
-// a property test.
 public sealed class QueryPropertyTests
 {
-    private const string Interesting = "\"\\,:!*?/=<>- abnames tatus";
-
-    [Fact]
-    public void Reading_a_query_never_fails_in_a_way_it_did_not_plan_for()
-    {
-        // The contract is total: any text at all comes back either as something that can
-        // filter or as a list of problems. An escaping mistake that throws would reach a
-        // person as a stack trace from typing into a search box.
-        var random = new Random(Seed: 20260801);
-
-        for (var attempt = 0; attempt < 20_000; attempt++)
-        {
-            var text = RandomQuery(random);
-
-            QueryParseResult parsed;
-
-            try
-            {
-                parsed = QueryParser.Parse(text);
-            }
-            catch (Exception failure)
-            {
-                Assert.Fail($"Parsing '{text}' threw {failure.GetType().Name}: {failure.Message}");
-                return;
-            }
-
-            Assert.True(
-                parsed.IsValid ^ (parsed.Problems.Count > 0),
-                $"Parsing '{text}' produced neither a usable query nor a problem.");
-        }
-    }
-
-    [Fact]
-    public void A_query_that_reads_can_always_judge_an_entry_without_failing()
-    {
-        // Parsing and evaluating fail differently. A pattern that compiles and then trips
-        // over a particular value would surface only on the machine that has that value.
-        var random = new Random(Seed: 20260802);
-        var entries = Sample();
-
-        for (var attempt = 0; attempt < 20_000; attempt++)
-        {
-            var text = RandomQuery(random);
-            var parsed = QueryParser.Parse(text);
-
-            if (!parsed.IsValid)
-            {
-                continue;
-            }
-
-            foreach (var entry in entries)
-            {
-                try
-                {
-                    _ = parsed.Query!.Match(entry);
-                }
-                catch (Exception failure)
-                {
-                    Assert.Fail($"Running '{text}' against {entry.ServiceName} threw {failure.GetType().Name}.");
-                    return;
-                }
-            }
-        }
-    }
-
     [Fact]
     public void The_order_members_were_typed_in_never_changes_the_answer()
     {
@@ -150,19 +81,6 @@ public sealed class QueryPropertyTests
         return shuffled;
     }
 
-    private static string RandomQuery(Random random)
-    {
-        var length = random.Next(0, 24);
-        var text = new char[length];
-
-        for (var index = 0; index < length; index++)
-        {
-            text[index] = Interesting[random.Next(Interesting.Length)];
-        }
-
-        return new string(text);
-    }
-
     /// <summary>
     /// Entries that differ in the ways the language can ask about, including the two that
     /// carry no value and the one that could not be read. A sample where every entry looks
@@ -201,4 +119,3 @@ public sealed class QueryPropertyTests
         }
     ];
 }
-#pragma warning restore CA1031
