@@ -76,7 +76,21 @@
         "Red" gets used for the next red thing somebody needs. A brush called "Untrusted"
         does not.
     -->
-    <SolidColorBrush x:Key="MeaningUntrusted">#E81123</SolidColorBrush>
+    <!--
+        EVERY COLOUR BELOW IS CHOSEN BY CALCULATION, NOT BY EYE, and a test enforces it -
+        ContrastGuards reads this file, resolves the background out of WPF UI's own dictionary
+        and fails the build below the threshold for the brush's role. Adding a brush here
+        without giving it a role fails too, so the guard cannot quietly miss one.
+
+        It exists because five of ten brushes did not pass when somebody finally counted, on
+        2026-08-02. The worst was this one: #E81123 gave 3.52 against 4.5 required, and it
+        carries the two most important sentences in the tool - an untrusted signature and a
+        query with a mistake in it. The least readable colour on the least forgiving message.
+
+        tools/contrast/contrast.ps1 is the instrument for choosing a replacement. WCAG 2.2
+        SC 1.4.3 for text, SC 1.4.11 for surfaces.
+    -->
+    <SolidColorBrush x:Key="MeaningUntrusted">#F1707A</SolidColorBrush>
     <SolidColorBrush x:Key="MeaningWarning">#FFB900</SolidColorBrush>
     <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
 
@@ -87,7 +101,7 @@
         A brush borrowed for a second meaning is how the next session ends up changing the
         colour of a rejected query by adjusting what an untrusted signature looks like.
     -->
-    <SolidColorBrush x:Key="MeaningRejected">#E81123</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningRejected">#F1707A</SolidColorBrush>
 
     <!--
         What nobody could read. Its own colour because it is its own state: this project
@@ -112,8 +126,23 @@
         whole file exists to prevent, arriving from the one direction ADR-24 assumed was
         covered.
     -->
-    <SolidColorBrush x:Key="SurfaceSelected">#2D4F6C</SolidColorBrush>
-    <SolidColorBrush x:Key="SurfaceHover">#2A2A2A</SolidColorBrush>
+    <!--
+        Selection has to be TELLABLE APART from an ordinary row, which is what WCAG 2.2
+        SC 1.4.11 asks of a component state, so it answers to 3:1 against the list background
+        and not to taste. The old #2D4F6C gave 1.90.
+
+        Two ratios pull against each other here and both are checked: lighten the surface and
+        it separates better from the background while white text on it separates worse.
+        #3F7099 gives 3.09 against the background and 5.26 for white on top - the only pair in
+        the search where both clear their threshold with room.
+
+        Hover answers to a floor of OUR choosing and that is said plainly rather than dressed
+        up as a standard: 1.4.11 covers states needed to IDENTIFY a component, and a pointer
+        already says where the pointer is. What is not defensible is 1.14, which is what
+        #2A2A2A gave - below the point where the state can be seen at all.
+    -->
+    <SolidColorBrush x:Key="SurfaceSelected">#3F7099</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceHover">#454545</SolidColorBrush>
     <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
 
     <!--
@@ -124,8 +153,14 @@
         Deliberately dim. It marks every service that starts or stops while the window is
         open, which on a working machine is a steady trickle - loud enough to catch the eye
         from across the screen and it would be a fairground.
+
+        DIM IS NOT THE SAME AS INVISIBLE, and #3A3320 was the second. It measured 1.30 against
+        the background, and that number explains an argument this project could not settle for
+        three slices: whether the colour was reaching a pixel at all. At 1.30 it hardly shows
+        when it does arrive, so a rendering fault and a contrast fault looked identical from
+        the outside. #63563A keeps the amber and measures 2.27.
     -->
-    <SolidColorBrush x:Key="SurfaceChanged">#3A3320</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceChanged">#63563A</SolidColorBrush>
 
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
