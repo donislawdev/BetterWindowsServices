@@ -27,7 +27,7 @@ public sealed class MainViewModel : Observable
     /// writes these words into the box where they can be seen, which is the same promise `A5`
     /// makes about clickable filters: the query is what you are looking at.
     /// </summary>
-    private const string HideDrivers = "!type:driver";
+    private const string HideDrivers = Sentences.HideDrivers;
 
     private const string DriverField = "type";
     private const string DriverValue = "driver";
@@ -94,7 +94,7 @@ public sealed class MainViewModel : Observable
     /// the selection and send the scroll back to the top on every refresh, which is the one
     /// thing `A10` names first.
     /// </summary>
-    public ObservableCollection<EntryRow> Rows { get; } = [];
+    public RowList Rows { get; } = [];
 
     /// <summary>
     /// The one field: free search, regular expressions and the query language, exactly as
@@ -155,7 +155,7 @@ public sealed class MainViewModel : Observable
 
         set
         {
-            QueryText = value ? WithoutHiddenDrivers(_queryText) : WithHiddenDrivers(_queryText);
+            QueryText = value ? Sentences.WithoutHiddenDrivers(_queryText) : Sentences.WithHiddenDrivers(_queryText);
 
             // Unconditional, because nothing was set. When the edit did not take - the member
             // was somewhere this cannot reach - the switch reads the query again and goes back
@@ -516,7 +516,7 @@ public sealed class MainViewModel : Observable
             ? Texts.Of("gui.status.read", _order.Count)
             : Texts.Of("gui.status.matched", selected.Count, _order.Count);
 
-        Notice = Admissions(unreadable, tooCostly);
+        Notice = Sentences.Admissions(_query, _held, unreadable, tooCostly);
 
         Raise(nameof(ShowDrivers));
     }
@@ -543,6 +543,24 @@ public sealed class MainViewModel : Observable
 
         _held = false;
 
+        // Filling an empty list one row at a time is 810 notifications, and a DataGrid answers
+        // every one of them. Measured 2026-08-02: it was about 285 ms of the time between the
+        // window appearing and a row being on the screen, against roughly 80 for the reading
+        // that produced the rows.
+        //
+        // Only when the list is empty, and that condition is doing real work rather than being
+        // cautious. A reset is how a DataGrid is told it cannot work out what moved, so it
+        // throws away the selection and the scroll position - the two things `A10` names first.
+        // An empty list has neither, so this is the one moment where the cheap path costs
+        // nothing. Every refresh after it goes through the loop below, row object by row
+        // object, exactly as before.
+        if (Rows.Count == 0 && selected.Count > 0)
+        {
+            Rows.ResetTo(selected, nothingToPreserve: true);
+
+            return;
+        }
+
         var wanted = new HashSet<EntryRow>(selected);
 
         for (var index = Rows.Count - 1; index >= 0; index--)
@@ -562,83 +580,4 @@ public sealed class MainViewModel : Observable
         }
     }
 
-    /// <summary>
-    /// Everything this answer is not, in sentences.
-    ///
-    /// The order is deliberate: what was never read comes first, because it is the sentence
-    /// that explains an empty list, and somebody staring at one should not have to read past
-    /// anything to find out why.
-    /// </summary>
-    private string Admissions(int unreadable, int tooCostly)
-    {
-        var needs = _query.Needs;
-        var notes = new List<string>();
-
-        // This window reads what a listing reads and no more. The command line answers a
-        // question about signatures by going and verifying them, measured at 1100-1245 ms over
-        // 810 entries and 544 files - a price a listing pays once and a search box cannot pay
-        // on every keystroke. Doing it in the background is its own slice after S6c.
-        if (needs.HasFlag(ExtraRead.Signatures))
-        {
-            notes.Add(Texts.Of("gui.query.unreadSignatures"));
-        }
-
-        if (needs.HasFlag(ExtraRead.Memory))
-        {
-            notes.Add(Texts.Of("gui.query.unreadMemory"));
-        }
-
-        // Suppressed when the query asked about something nobody has read, and this is a
-        // choice rather than an oversight. Both cases arrive as one count, and the sentence
-        // below says the machine refused - which for an unread family would turn "nobody
-        // looked" into "you were not allowed", the one distinction this project spends most of
-        // its rules keeping apart. The sentence above already says what happened.
-        if (unreadable > 0 && needs == ExtraRead.None)
-        {
-            notes.Add(Texts.Of("gui.status.partial", unreadable));
-        }
-
-        if (tooCostly > 0)
-        {
-            notes.Add(Texts.Of("gui.status.tooCostly", tooCostly));
-        }
-
-        // Never silent about holding still. A list that quietly stopped matching its own query
-        // while somebody leant on it would be the same silence rule 8 forbids, arriving from
-        // the one direction where it looks like politeness.
-        if (_held)
-        {
-            notes.Add(Texts.Of("gui.status.holding"));
-        }
-
-        return string.Join(" ", notes);
-    }
-
-    private static string WithHiddenDrivers(string text)
-    {
-        var trimmed = text.TrimEnd();
-
-        return trimmed.Length == 0 ? HideDrivers : trimmed + " " + HideDrivers;
-    }
-
-    /// <summary>
-    /// Takes the exclusion off the end, and leaves everything else exactly as it was typed.
-    ///
-    /// Cut at whitespace and nowhere else, so a quoted value earlier in the line is not so
-    /// much as looked at. Case is folded because Windows folds it everywhere else in this
-    /// language - the spelling this recognises is the one the switch itself writes.
-    /// </summary>
-    private static string WithoutHiddenDrivers(string text)
-    {
-        var trimmed = text.TrimEnd();
-        var lastGap = trimmed.LastIndexOfAny([' ', '\t', '\n', '\r']);
-        var tail = trimmed[(lastGap + 1)..];
-
-        if (!string.Equals(tail, HideDrivers, StringComparison.OrdinalIgnoreCase))
-        {
-            return text;
-        }
-
-        return lastGap < 0 ? string.Empty : trimmed[..lastGap].TrimEnd();
-    }
 }

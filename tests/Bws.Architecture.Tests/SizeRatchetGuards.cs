@@ -34,18 +34,20 @@ public sealed class SizeRatchetGuards
     ///
     ///   807 -> 746   the network rule pushed it to 816, and its two record types moved into
     ///                ScmBuffers.cs
-    ///   746 -> 515   reading entries in parallel pushed it to 797, and the questions asked of
+    ///   746 -> 644   reading entries in parallel pushed it to 797, and the questions asked of
     ///                a single service handle moved into ScmDetailReader.cs
+    ///   644 -> 631   filling the list in one go pushed MainViewModel.cs to 662, and the
+    ///                sentences the window says moved into Sentences.cs
     ///
-    /// <b>That is the whole argument for a ceiling, happening twice in an afternoon.</b>
-    /// Neither split was planned, neither was suggested by anybody reading the file, and both
-    /// followed a seam that was already there once somebody was made to look for one. The
-    /// longest file is now MainViewModel.cs, which has never been asked the same question.
+    /// <b>That is the whole argument for a ceiling, happening three times in an afternoon.</b>
+    /// None of the splits was planned, none was suggested by anybody reading the files, and all
+    /// three followed a seam that was already there once somebody was made to look for one. The
+    /// longest file is now Program.cs, which has never been asked the same question.
     ///
     /// Lowering the number afterwards is not bookkeeping. Leaving it at 746 would hand back a
     /// hundred lines of room nobody argued for.
     /// </summary>
-    private const int LongestShippedFile = 644;
+    private const int LongestShippedFile = 631;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
