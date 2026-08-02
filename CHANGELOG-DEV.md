@@ -851,7 +851,7 @@ sense as answers to the one above them.
   - **And it would not have found the hole it was proposed for.** Analysers see patterns, and a
     missing reentrancy guard is a design decision. Worth writing down, because it deflates a
     mechanism I proposed myself.
-  - **Two more the next day, one of them the fourth mechanism after all.** The owner took the
+  - **Two more the next day** (`e329e1d`)**, one of them the fourth mechanism after all.** The owner took the
     size guard on second thought, on the grounds that not having tangle is cheaper than
     removing it, and asked what transferred from a parallel conversation about their Go
     projects. Both are proved by mutation.
