@@ -190,6 +190,20 @@ Nothing has been released yet. Everything below is what the tool does today.
   - It costs about a fiftieth of a second per check on a machine with 810 entries, and it
     stops entirely while the window is minimised.
 
+- **`--follow-network`, and by default the tool no longer reaches off your machine.** A
+  service can be set up to run a program from a network share. Until now, checking whether
+  that program was there meant contacting the other machine - and if it was not answering,
+  the listing sat there for **twenty one seconds** for that one service. Worse, the
+  connection signs in as whoever is running the tool, so pointing a service at a share is
+  enough to make an audit hand your credentials to it.
+  - Now such a service is reported with its path as usual, and the question of whether the
+    file is there comes back as **not checked**. Never as missing: this tool does not say a
+    file is gone when it never looked.
+  - Add `--follow-network` to `bws list` or `bws snapshot create` when you genuinely run
+    services from a share and want them checked like any other.
+  - Only paths of the `\\server\share` form count. A drive letter mapped to a share cannot
+    be told apart from a local disk without contacting it, so those are still followed.
+
 ### Changed
 
 - **The delayed start setting is now recorded for every service, not only automatic ones.**

@@ -1205,6 +1205,49 @@ reading code, and that is a different instrument with a different failure mode.
     to the non-backtracking engine first with a 50 ms ceiling behind it. Snapshot
     deserialisation has no polymorphic surface to attack.
 
+- **`--follow-network`, and the rule it belongs to** (`449d56b`). `[contract]` - first switch
+  added to `E1` since that surface was frozen, on `list` and `snapshot create`. The finding it
+  answers is written up above and in `docs/09`. What the slice decided, as opposed to what it
+  found:
+  - **Skip is the default everywhere, including callers that never see the switch.** A skipped
+    entry reports its disk question as **not read**, never as missing, and still reports the
+    path - which file a command runs comes out of its text, and only the disk question needed
+    the disk. `ResolvedBinary.Found` became `ResolvedBinary.OnDisk`, a `Reading<bool>`, because
+    two answers became three.
+  - **No default on the resolver's new parameter, on purpose.** A default would let a new call
+    site reach off the machine by saying nothing, which is how the old behaviour survived six
+    slices unnoticed.
+  - **Not offered on `snapshot diff --live`**, and the cost of that is stated rather than
+    hidden: the table assigns switches to verbs, not to variants, so accepting it there would
+    also accept it on the two-file form where it does nothing. A live comparison therefore
+    reports "one side did not read this" for an entry on a share - an admission about the
+    comparison, never a false difference. `docs/08` item 35 if somebody ever needs the other.
+  - **Two shapes start with two backslashes and are local:** `\\?\C:\x` and `\\.\Device` are
+    the Win32 device namespace. `\\?\UNC\` is a share in the long spelling. A drive letter
+    mapped to a share cannot be told from a local disk without asking, which is the thing being
+    avoided, so it is still followed - written into `NetworkPath` rather than left to be found.
+  - **The guard asserts the absence of a call, not the value of an answer.** The probe handed
+    to the resolver throws if anything asks the disk about a path on another machine, because a
+    test on the returned value passes on a build that asks and then discards what it hears.
+    Both halves are in the mutation registry.
+  - **The size ratchet went red at 816 lines and that is why `ScmBuffers.cs` exists.** Moving
+    the two record types out took `WindowsScmCatalog.cs` from 807 to 746 and the ceiling was
+    lowered to match. **Deliberately not a partial class:** continuing one type across two
+    files satisfies a ratchet that counts files while leaving the type as large, which is
+    gaming a guard rather than answering it.
+
+- **The window does not grow, measured over an hour rather than argued about.** `docs/08`
+  item 26 asked whether a tick allocating 810 records a second leaks, on the strength of 35
+  seconds showing two megabytes. Sixty samples over **60.4 minutes at rest**: private bytes
+  **98.2 MB at the first sample and 98.8 at the last**, range 97.9-100.1, handles 952-962,
+  threads 11-15. Nothing accumulates.
+  - **And the instrument question is settled by the same run.** Working set over that hour
+    swung **110.8 to 152.2 MB with nothing changing in the program**, because Windows trims
+    it. A ratchet built on working set would have guarded the memory manager. Private bytes
+    moved 2.2 MB across the whole hour.
+  - The earlier run that showed 97 to 140 MB was contaminated by the S6c tests running in the
+    same window, which is why it was reported as contaminated rather than as growth.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
