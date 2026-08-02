@@ -1099,6 +1099,112 @@ sense as answers to the one above them.
     at "something stopped working"**, which is the direction a review is most willing to
     believe. Recorded with the other shell traps.
 
+### 2026-08-02, second session: the window checked on a screen
+
+Everything above is 2026-08-01. What follows is a later day and is kept apart on purpose,
+because the whole of it came from **looking at the running window** rather than from
+reading code, and that is a different instrument with a different failure mode.
+
+- **S6c was verified on screen, and four of its five promises held.** A service stopped
+  from another console changed the row in about a second without the window being touched,
+  the selection and the scroll position survived five ticks with **zero differing pixels
+  over 83 304 samples**, the pointer froze the list and said so in its own line, and F5
+  picked up a start type changed externally that four seconds of ticks correctly did not.
+
+- **The fifth promise was not kept, and nothing anywhere said so.** A row that had just
+  moved was supposed to be highlighted for three seconds. Over fourteen frames spanning
+  0.9 to 7.2 seconds after a stop, the row band was uniformly `45,45,45` - the declared
+  `#3A3320` never appeared once.
+  - **What it was:** the three row states lived on a `DataGridRow` style, and a
+    `DataGridCell` in this theme paints an opaque background that covers the row. Selection
+    looked right only because the same brush is also set on the cell. Every `Background`
+    setter on `DataGridRow` in this window was dead.
+  - **How it was separated from a guess:** the same style holds an `IsMouseOver` trigger,
+    which also did not paint, while the cell's `IsSelected` trigger did. Three triggers, one
+    difference, and the one that worked was the one with a copy on the cell.
+  - **Why nothing caught it:** the view model computes `RecentlyChanged` correctly and has a
+    guard checked by mutation. The binding resolved. Nothing failed. This is the silence of
+    rule 8 arriving after the last line anybody can test, and it is a class this project had
+    not met before - `docs/08` item 19 covers binding failures and would not have seen this.
+  - **Fixed** (`5355851`) by moving both triggers onto the cell, with hover asked of the
+    ancestor row so a whole row lights rather than one cell. `IsSelected` is now **last**, and that order is
+    measured too: with the pointer winning, a row went grey the moment it was clicked and
+    stayed grey, so the one row somebody had chosen was the one that did not look chosen.
+    Caught by the new guard on its first run, minutes after the guard was written.
+
+- **`tools/gui-probe/`, and one of its scripts lied within the hour.** `capture.ps1`,
+  `interact.ps1` and `check.ps1`. The first version brought the window to the front with
+  `SetForegroundWindow`, never checked the result, and printed "captured" over five frames
+  that contained the terminal instead. Windows refuses a foreground change from a process
+  the user is not interacting with. Now `PrintWindow` is the default - the window renders
+  itself, nothing is stolen, and **the window keeps its keyboard focus, which matters here
+  because focus is what freezes the list this is looking at**. Every path verifies, and a
+  uniformly blank frame is refused rather than written.
+  - Second trap of the same shape: a single `SetCursorPos` does not wake `MouseEnter`, so
+    the freeze promise looked broken while being whole. The pointer now moves in two steps.
+  - `check.ps1` **reads the expected colours out of `Theme.xaml`** rather than holding a
+    copy, the same bridge shape as `tools/audit`. The claim it makes is exactly the one that
+    was false: what the theme declares is what the screen shows. Proved by breaking - putting
+    the defect back reddens it and nothing else.
+
+- **The mutation registry said 38 of 38 and had been wrong since the analysers landed.**
+  The concurrency entry inserts `Task.Run(() => { })`, and `MA0134` - one of the three rules
+  taken on 2026-08-01 - refuses an async call whose result nobody observes. The mutation
+  stopped compiling, so the entry stopped proving anything, and the tool reported `BROKEN`
+  rather than a pass. Rewritten to `Interlocked`, back to 38 of 38.
+  - **Worth more than the fix:** the tool that proves guards can fail is itself something
+    that goes stale, and only a run says so. Two guards colliding looks like progress and
+    reads as a regression in the evidence.
+
+- **A test accused this tool of being wrong when PowerShell had not answered.**
+  `SignatureContractTests` was red, saying our verdict differed from the system's. It did
+  not. `powershell.exe` inherits `PSModulePath` from whoever starts it, and when that is
+  PowerShell 7 the inherited list puts PowerShell 7's modules first - Windows PowerShell
+  then finds a `Microsoft.PowerShell.Security` built for the wrong runtime, fails to load
+  it, and reports `Get-AuthenticodeSignature` as a command that does not exist. The empty
+  output compared cleanly against nothing and the message named **our** side as the odd one.
+  - Fixed on both sides (`4a86aa2`): the child gets `PSModulePath` removed so it works its
+    own out, and the exit code is now checked so a non-answer says it is a non-answer.
+  - **Reproduces from a test host and not from a prompt**, because an interactive
+    `& powershell.exe` gets the variable rewritten for it. That is the worst way round, and
+    it means the suite is red for anybody running `dotnet test` from pwsh and green from cmd.
+
+- **Memory: the number in this file did not say which counter it was, and that decided the
+  question it was written to answer.** Measured 2026-08-02: the window at rest is **147.5-
+  151.9 MB working set and 93.9-98.2 MB private**. The recorded 147.7-149.6 was working set,
+  which counts shared pages of mapped images - and a WPF process maps a great many that a
+  console listing maps none of.
+  - **Working set is the wrong instrument for this budget**, and that is a measurement:
+    over seventeen minutes it fell from 148 to 110 MB with nothing changing in the program,
+    because Windows trimmed it. A ratchet built on it would guard the memory manager.
+  - `tools/memory-probe/sample.ps1` reports four counters and names them, because one number
+    with no name is what produced this.
+  - **First run was contaminated and is reported as such:** its first twenty minutes carried
+    the S6c tests, including two full F5 readings, and private bytes rose 97 to 140 MB in
+    that window. A clean at-rest run was started afterwards and is what the figures above
+    come from.
+
+- **First security review, all four scopes, written up in `docs/09-PRZEGLAD-BEZPIECZENSTWA.md`.**
+  The finding that matters: **this tool goes out on the network and the `ADR-19` guard cannot
+  see it.** A service image path beginning `\\` is passed through untouched
+  (`BinaryPathResolver.cs:148`) to `File.Exists` (`WindowsScmCatalog.cs:794`), and under
+  `--signatures` or a snapshot the file is then opened. The guard checks for `System.Net.*`
+  references only, and SMB arrives through `System.IO`.
+  - Measured: `File.Exists` on an unreachable UNC host blocks **21 053 ms**, against 1.23 ms
+    for a local path, on a one second budget. The unquoted-path loop calls it once per space.
+  - An SMB connection authenticates with the token of whoever ran the tool, and this tool is
+    documented as running elevated on production. **NOT ESTABLISHED:** no service with such
+    a path was created, because the owner's consent covers modifying four named services
+    rather than creating new ones. The chain above is citations, the 21 seconds is measured.
+  - Left for the owner rather than fixed in passing: what `binaryOnDisk` should answer for a
+    network entry is a product question, since "not known" is the only answer available
+    without going out. `docs/08` item 28.
+  - Clean and worth recording as clean: the write path has no bypass - `WindowsScmControl` is
+    constructed in exactly one place, inside a `PlanRunner`, and the window never references
+    `IScmControl` at all. Rights are one per operation. The user-typed regular expression goes
+    to the non-backtracking engine first with a 50 ms ceiling behind it. Snapshot
+    deserialisation has no polymorphic surface to attack.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.
