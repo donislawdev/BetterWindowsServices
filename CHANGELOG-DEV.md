@@ -900,7 +900,7 @@ sense as answers to the one above them.
     would be build or test only, so none of them would ship. **None taken yet** - that decision
     is the owner's and is written up where they can answer it.
 
-- **Property tests on a library, and it paid for itself on the first run.** 496 tests against
+- **Property tests on a library** (`78502a0`)**, and it paid for itself on the first run.** 496 tests against
   484, mutation 38 of 38, audit clean.
   - **The one thing hand written property tests could not do is shrink.** This project has had
     them since S2 - 20 000 draws at a fixed seed over characters that mean something - and they
