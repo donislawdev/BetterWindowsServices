@@ -31,8 +31,14 @@ public static class BinaryPathResolver
     /// at, which on a full listing is several hundred needless questions.
     /// </summary>
     /// <param name="File">Absolute path, or null when the entry names nothing to resolve.</param>
-    /// <param name="Found">Whether that file is there. False whenever <paramref name="File"/> is null.</param>
-    public readonly record struct ResolvedBinary(string? File, bool Found);
+    /// <param name="OnDisk">
+    /// Whether that file is there. A <see cref="Reading{T}"/> rather than a bool because there
+    /// are now three answers, not two: it is there, it is not, and <b>nobody looked</b> - the
+    /// last of those for a path on another machine when the caller did not ask to go off this
+    /// one. Collapsing "did not look" into "not there" would be rule 8 broken in the field
+    /// where it costs most: an audit tool reporting a file as missing when it never checked.
+    /// </param>
+    public readonly record struct ResolvedBinary(string? File, Reading<bool> OnDisk);
 
     /// <param name="command">The launch command exactly as the manager returns it.</param>
     /// <param name="serviceName">Needed only for a driver that names no file of its own.</param>
@@ -42,13 +48,25 @@ public static class BinaryPathResolver
     /// Asks whether a candidate is on disk. Handed in rather than called directly, so the
     /// rules above can be tested without a file system arranged to suit them.
     /// </param>
+    /// <param name="networkPaths">
+    /// Whether a path on another machine may be asked about at all. Skipping is the default
+    /// everywhere, and the reason is measured rather than cautious - see
+    /// <see cref="NetworkPaths"/> for the 21 seconds and the credential half.
+    /// </param>
     public static ResolvedBinary Resolve(
         string? command,
         string serviceName,
         bool isDriver,
         string windowsDirectory,
-        Func<string, bool> exists)
+        Func<string, bool> exists,
+        NetworkPaths networkPaths)
     {
+        // No default value on the parameter above, on purpose. A default would let a new call
+        // site reach off the machine by saying nothing, which is exactly how the behaviour
+        // this replaces went unnoticed for six slices.
+        bool OffLimits(string candidate) =>
+            networkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(candidate);
+
         if (string.IsNullOrWhiteSpace(command))
         {
             // A driver that names no file runs the one the manager assumes for it. Anything
@@ -56,12 +74,12 @@ public static class BinaryPathResolver
             // than inventing a path in order to report it missing.
             if (!isDriver)
             {
-                return new ResolvedBinary(null, Found: false);
+                return new ResolvedBinary(null, Reading<bool>.Absent());
             }
 
             var assumed = Path.Combine(windowsDirectory, "System32", "drivers", serviceName + ".sys");
 
-            return new ResolvedBinary(assumed, exists(assumed));
+            return new ResolvedBinary(assumed, Look(assumed, exists, OffLimits));
         }
 
         var trimmed = command.Trim();
@@ -73,7 +91,7 @@ public static class BinaryPathResolver
             var close = trimmed.IndexOf('"', 1);
             var quoted = Absolute(close > 0 ? trimmed[1..close] : trimmed[1..], windowsDirectory);
 
-            return new ResolvedBinary(quoted, exists(quoted));
+            return new ResolvedBinary(quoted, Look(quoted, exists, OffLimits));
         }
 
         // No quotes and possibly spaces, so where the file name ends is genuinely ambiguous.
@@ -89,6 +107,7 @@ public static class BinaryPathResolver
         // Naming the ambiguity as a finding of its own is C5 of the specification, and is
         // deliberately not done here.
         string? executableLooking = null;
+        var lookedAway = false;
 
         // Ordinal by construction: searching for a character has no cultural reading, and
         // the overload taking a start index has no comparison parameter to pass one to.
@@ -97,9 +116,18 @@ public static class BinaryPathResolver
         {
             var candidate = Absolute(space < 0 ? trimmed : trimmed[..space], windowsDirectory);
 
-            if (exists(candidate))
+            // Off this machine, and nobody asked to go there. Every prefix of one command
+            // shares a root, so this is the same answer each time round - but it is asked per
+            // candidate rather than once, because Absolute can turn a candidate into
+            // something else entirely, and a rule that holds "by construction" is the kind
+            // that stops holding when somebody adds a seventh path shape.
+            if (OffLimits(candidate))
             {
-                return new ResolvedBinary(candidate, Found: true);
+                lookedAway = true;
+            }
+            else if (exists(candidate))
+            {
+                return new ResolvedBinary(candidate, Reading<bool>.Present(true));
             }
 
             executableLooking ??= HasExecutableExtension(candidate) ? candidate : null;
@@ -114,8 +142,22 @@ public static class BinaryPathResolver
         // point of picking well is that a person can check it. The prefix that ends in an
         // executable extension is the one they meant. Falling back to the whole string keeps
         // us from returning a truncated path, which would read as a different mistake.
-        return new ResolvedBinary(executableLooking ?? Absolute(trimmed, windowsDirectory), Found: false);
+        //
+        // Unless nobody looked, in which case "missing" would be a claim about a disk this
+        // process never touched. Which prefix is the file cannot be settled without looking
+        // either, so the readable guess comes back with the disk question unanswered.
+        return new ResolvedBinary(
+            executableLooking ?? Absolute(trimmed, windowsDirectory),
+            lookedAway ? Reading<bool>.NotRead() : Reading<bool>.Present(false));
     }
+
+    /// <summary>
+    /// One question about the disk, asked only when it is allowed to be asked.
+    /// </summary>
+    private static Reading<bool> Look(string candidate, Func<string, bool> exists, Func<string, bool> offLimits) =>
+        offLimits(candidate)
+            ? Reading<bool>.NotRead()
+            : Reading<bool>.Present(exists(candidate));
 
     /// <summary>
     /// One candidate, turned into a path that can be looked for.

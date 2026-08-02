@@ -109,7 +109,17 @@ try
     // needing rights over that agent's own services, and reading eight hundred entries this
     // branch never looks at would spend half a second saying nothing.
     var offline = options.Kind == CommandKind.SnapshotDiff && !options.Live;
-    var catalog = offline ? null : new WindowsScmCatalog();
+
+    // Skip unless somebody said otherwise, everywhere, including the branches that never see
+    // the switch. `snapshot diff --live` is the one that never sees it: the switch belongs to
+    // `list` and `snapshot create`, because offering it on the diff verb would also accept it
+    // on the two-file form where it does nothing, and a switch that does nothing is the
+    // silence the belonging table exists to end. The cost of that choice is honest rather
+    // than hidden - a live comparison reports "one side did not read this" for an entry on a
+    // share, which is an admission about the comparison and never a false difference.
+    var networkPaths = options.FollowNetwork ? NetworkPaths.Follow : NetworkPaths.Skip;
+
+    var catalog = offline ? null : new WindowsScmCatalog(networkPaths);
     IReadOnlyList<ScmEntry> entries = offline ? [] : catalog!.ReadAll();
     var read = offline ? 0 : stopwatch.ElapsedMilliseconds;
 
@@ -169,7 +179,7 @@ try
             // skipped them would mark every entry as "one side never read this", which is
             // 810 admissions and no answer.
             var before2 = stopwatch.ElapsedMilliseconds;
-            entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+            entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
             inspected = stopwatch.ElapsedMilliseconds - before2;
 
             after = Snapshot.Of(entries, note: null, new SystemClock());
@@ -218,7 +228,7 @@ try
         // one matters more than the several seconds it costs - and a snapshot missing them
         // would compare against one that has them as though the machine had changed.
         var before = stopwatch.ElapsedMilliseconds;
-        entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+        entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
         inspected = stopwatch.ElapsedMilliseconds - before;
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
@@ -300,7 +310,7 @@ try
         if (options.Signatures || needs.HasFlag(ExtraRead.Signatures))
         {
             var before = stopwatch.ElapsedMilliseconds;
-            entries = SecondPass.Fill(entries, new WindowsBinaryInspector());
+            entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
             inspected = stopwatch.ElapsedMilliseconds - before;
         }
 

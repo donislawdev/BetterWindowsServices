@@ -25,7 +25,7 @@ public sealed class BinaryPathResolverTests
             onDisk: [@"C:\WINDOWS\system32\svchost.exe"]);
 
         Assert.Equal(@"C:\WINDOWS\system32\svchost.exe", resolved.File);
-        Assert.True(resolved.Found);
+        Assert.True(resolved.OnDisk.Value);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class BinaryPathResolverTests
 
         // Nothing on disk, and the answer is still the path a person can go and check. This
         // is one of the five entries on the machine whose file is genuinely gone.
-        Assert.False(resolved.Found);
+        Assert.False(resolved.OnDisk.ValueOr(false));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class BinaryPathResolverTests
         var resolved = Resolve(command, onDisk: [command]);
 
         Assert.Equal(command, resolved.File);
-        Assert.True(resolved.Found);
+        Assert.True(resolved.OnDisk.Value);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class BinaryPathResolverTests
         var resolved = Resolve(@"C:\Program Files\Gone\Gone.exe --flag", onDisk: []);
 
         Assert.Equal(@"C:\Program Files\Gone\Gone.exe", resolved.File);
-        Assert.False(resolved.Found);
+        Assert.False(resolved.OnDisk.ValueOr(false));
     }
 
     [Theory]
@@ -104,7 +104,7 @@ public sealed class BinaryPathResolverTests
         var resolved = Resolve(null, onDisk: [@"C:\WINDOWS\System32\drivers\Beep.sys"], serviceName: "Beep", isDriver: true);
 
         Assert.Equal(@"C:\WINDOWS\System32\drivers\Beep.sys", resolved.File);
-        Assert.True(resolved.Found);
+        Assert.True(resolved.OnDisk.Value);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class BinaryPathResolverTests
         var resolved = Resolve(null, onDisk: [], serviceName: "PathLess", isDriver: false);
 
         Assert.Null(resolved.File);
-        Assert.False(resolved.Found);
+        Assert.False(resolved.OnDisk.ValueOr(false));
     }
 
     [Fact]
@@ -123,17 +123,102 @@ public sealed class BinaryPathResolverTests
     {
         const string command = @"\\server\share\agent.exe";
 
-        Assert.Equal(command, Resolve(command, onDisk: [command]).File);
+        Assert.Equal(
+            command,
+            Resolve(command, onDisk: [command], networkPaths: NetworkPaths.Follow).File);
+    }
+
+    [Fact]
+    public void A_path_on_another_machine_is_not_asked_about_at_all()
+    {
+        // The guard the whole slice exists for, and it asserts the ABSENCE of a call rather
+        // than the value of an answer. That is deliberate: the defect being prevented is not
+        // a wrong answer, it is a question - a File.Exists over SMB blocks for 21 053 ms on
+        // an unreachable host and authenticates as whoever ran this. A test on the returned
+        // value would pass on a build that asked and then discarded what it heard.
+        var resolved = BinaryPathResolver.Resolve(
+            @"\\server\share\agent.exe --run",
+            "Any",
+            isDriver: false,
+            Windows,
+            _ => throw new InvalidOperationException("The disk was asked about a path on another machine."),
+            NetworkPaths.Skip);
+
+        // Still named, because which file a command runs is worked out from its text. Only
+        // the disk question needed the disk.
+        Assert.Equal(@"\\server\share\agent.exe", resolved.File);
+
+        // Not read, and emphatically not "missing". An audit tool reporting a file as absent
+        // when it never looked is the exact failure rule 8 is about.
+        Assert.Equal(ReadOutcome.NotRead, resolved.OnDisk.Outcome);
+    }
+
+    [Theory]
+    // Two backslashes and local, both of them. The device namespace is a way of naming
+    // things on this machine that skips path parsing, and treating it as remote would stop
+    // the tool answering about files that are right here.
+    [InlineData(@"\\?\C:\Tools\agent.exe", false)]
+    [InlineData(@"\\.\PhysicalDrive0", false)]
+    // A share, in both spellings.
+    [InlineData(@"\\server\share\agent.exe", true)]
+    [InlineData(@"\\?\UNC\server\share\agent.exe", true)]
+    // Ordinary local paths.
+    [InlineData(@"C:\WINDOWS\System32\spoolsv.exe", false)]
+    [InlineData(@"\SystemRoot\system32\drivers\x.sys", false)]
+    [InlineData("", false)]
+    public void What_counts_as_leaving_this_machine(string path, bool leaves)
+    {
+        Assert.Equal(leaves, NetworkPath.LeavesThisMachine(path));
+    }
+
+    [Fact]
+    public void Asked_to_follow_the_network_it_answers_like_any_other_path()
+    {
+        // The other half, because a switch that turns nothing on is the same silence from
+        // the opposite side. Without this, removing the Follow branch entirely would leave
+        // the test above green.
+        const string command = @"\\server\share\agent.exe";
+
+        var resolved = Resolve(command, onDisk: [command], networkPaths: NetworkPaths.Follow);
+
+        Assert.Equal(command, resolved.File);
+        Assert.Equal(ReadOutcome.Present, resolved.OnDisk.Outcome);
+        Assert.True(resolved.OnDisk.Value);
+    }
+
+    [Fact]
+    public void The_second_pass_does_not_open_a_file_on_another_machine_either()
+    {
+        // The more expensive half of the same rule, and the one with more to lose. The
+        // listing asks the disk a yes-or-no question; this reads the whole file to hash it
+        // and verify its signature, which over a share is a file transfer - on every listing
+        // that asks for signatures and on every snapshot.
+        //
+        // The real inspector rather than a double, because what is being asserted is that it
+        // does not go out, and a double cannot fail to go out. A build that lost this would
+        // not merely fail here, it would take about twenty one seconds to do so - which is
+        // itself the measurement being defended.
+        var inspector = new WindowsBinaryInspector();
+        const string onAShare = @"\\bws-test-no-such-host\share\agent.exe";
+
+        Assert.Equal(ReadOutcome.NotRead, inspector.ReadSignature(onAShare).Outcome);
+        Assert.Equal(ReadOutcome.NotRead, inspector.ReadFileVersion(onAShare).Outcome);
+        Assert.Equal(ReadOutcome.NotRead, inspector.ReadHash(onAShare).Outcome);
     }
 
     private static BinaryPathResolver.ResolvedBinary Resolve(
         string? command,
         string[] onDisk,
         string serviceName = "Any",
-        bool isDriver = false)
+        bool isDriver = false,
+        NetworkPaths networkPaths = NetworkPaths.Follow)
     {
         var present = new HashSet<string>(onDisk, StringComparer.OrdinalIgnoreCase);
 
-        return BinaryPathResolver.Resolve(command, serviceName, isDriver, Windows, present.Contains);
+        // Follow by default in this helper and Skip by default in the product, which looks
+        // backwards and is not. Every case above is about resolving a path, and answering
+        // them under the production default would make each one silently a test about the
+        // network rule instead. The two tests that are about that rule name it explicitly.
+        return BinaryPathResolver.Resolve(command, serviceName, isDriver, Windows, present.Contains, networkPaths);
     }
 }

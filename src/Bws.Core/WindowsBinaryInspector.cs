@@ -26,7 +26,14 @@ namespace Bws.Core;
 ///
 /// Read-only throughout. Nothing here opens anything for writing or changes any state.
 /// </summary>
-public sealed class WindowsBinaryInspector : IBinaryInspector
+/// <param name="networkPaths">
+/// Whether a file on another machine may be opened. Skipping is the default, and this class
+/// is the expensive half of that rule rather than the cheap one: the listing asks the disk a
+/// yes-or-no question, this one <b>reads the whole file</b> to hash it and verify it. Over a
+/// share that is a file transfer, on every listing that asks for signatures and on every
+/// snapshot.
+/// </param>
+public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPaths.Skip) : IBinaryInspector
 {
     /// <summary>The file carries no signature of its own. Not a failure - the question moves on.</summary>
     private const int NoSignature = unchecked((int)0x800B0100);
@@ -61,8 +68,22 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
     /// </summary>
     private readonly ConcurrentDictionary<string, string?> _publishers = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Whether this file is one nobody asked us to reach for.
+    ///
+    /// Checked before <c>File.Exists</c> in all three readings below, and the order matters:
+    /// the existence check is itself the network call being avoided.
+    /// </summary>
+    private bool OffLimits(string file) =>
+        networkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(file);
+
     public Reading<BinarySignature> ReadSignature(string file)
     {
+        if (OffLimits(file))
+        {
+            return Reading<BinarySignature>.NotRead();
+        }
+
         if (!File.Exists(file))
         {
             // A fact about the machine, not about our permissions. The listing already knows
@@ -130,6 +151,11 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
 
     public Reading<string> ReadFileVersion(string file)
     {
+        if (OffLimits(file))
+        {
+            return Reading<string>.NotRead();
+        }
+
         if (!File.Exists(file))
         {
             return Reading<string>.Absent();
@@ -156,6 +182,11 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
 
     public Reading<string> ReadHash(string file)
     {
+        if (OffLimits(file))
+        {
+            return Reading<string>.NotRead();
+        }
+
         if (!File.Exists(file))
         {
             return Reading<string>.Absent();

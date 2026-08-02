@@ -74,6 +74,20 @@ internal sealed record CommandLine
     internal bool Signatures { get; private init; }
 
     /// <summary>
+    /// Allow the tool to look at a launch path that lives on another machine.
+    ///
+    /// Off by default, and unlike every other switch here that default is not about cost. A
+    /// service can register its image on a share, and asking the disk about it is an ordinary
+    /// existence check that <b>blocks for 21 053 ms on an unreachable host</b> - measured
+    /// 2026-08-02 against 1.23 ms for a local path - and authenticates as whoever ran this.
+    ///
+    /// With it off, the disk question for such an entry comes back <b>not read</b> rather
+    /// than "missing". The path is still reported: which file a command names is worked out
+    /// from text, and only the disk question needs the disk.
+    /// </summary>
+    internal bool FollowNetwork { get; private init; }
+
+    /// <summary>
     /// Read what each running entry's process is using, which the listing does not do by
     /// default.
     ///
@@ -190,6 +204,17 @@ internal sealed record CommandLine
         // not about how much memory it is holding while it happens.
         ("--memory", [CommandKind.List]),
 
+        // The two verbs that resolve a launch path against the disk. A plan does not - it
+        // works from names the manager already gave it - and a comparison of two files never
+        // touches a machine at all, so on either of those this would be a switch that does
+        // nothing.
+        //
+        // Off by default and this is the only switch here where the default is a safety
+        // decision rather than a cost one. Measured 2026-08-02: one unreachable share costs
+        // 21 053 ms against a one second budget, and the connection carries the token of
+        // whoever ran the tool. See NetworkPaths in the core for the whole argument.
+        ("--follow-network", [CommandKind.List, CommandKind.SnapshotCreate]),
+
         ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
@@ -275,6 +300,7 @@ internal sealed record CommandLine
         var dependents = false;
         var signatures = false;
         var memory = false;
+        var followNetwork = false;
         string? query = null;
         var path = string.Empty;
         var against = string.Empty;
@@ -382,6 +408,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
             if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
             if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
+            if (Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
             if (Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
             if (Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
@@ -467,6 +494,7 @@ internal sealed record CommandLine
             Dependents = dependents,
             Signatures = signatures,
             Memory = memory,
+            FollowNetwork = followNetwork,
             Query = query,
             Path = path,
             Against = against,

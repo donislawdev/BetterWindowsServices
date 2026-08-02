@@ -26,13 +26,21 @@ namespace Bws.Architecture.Tests;
 public sealed class SizeRatchetGuards
 {
     /// <summary>
-    /// The longest file in the product, measured 2026-08-02: WindowsScmCatalog.cs at 807 lines.
+    /// The longest file in the product. WindowsScmCatalog.cs, and it is <b>746 lines as of
+    /// 2026-08-02, down from 807</b>.
     ///
     /// It is long for a reason that will not go away - it is the whole surface of the service
     /// control manager, and the comments explaining which access right costs which answer are
-    /// most of it. If it needs to grow, the reading of one family of fields moves out first.
+    /// most of it. If it needs to grow, a piece of it moves out first.
+    ///
+    /// <b>The drop is what this guard is for, and it was earned rather than tidied.</b> Adding
+    /// the network rule pushed the file nine lines past 807, this went red, and the answer was
+    /// to move the two record types it carried into <c>ScmBuffers.cs</c> - which is the
+    /// conversation the ceiling exists to force, happening exactly once and taking half an
+    /// hour. Lowering the number afterwards is not bookkeeping: leaving it at 807 would hand
+    /// back sixty one lines of room nobody argued for.
     /// </summary>
-    private const int LongestShippedFile = 807;
+    private const int LongestShippedFile = 746;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

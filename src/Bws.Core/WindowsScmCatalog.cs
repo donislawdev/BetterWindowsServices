@@ -26,7 +26,12 @@ namespace Bws.Core;
 /// number was a count of registry keys, most of which hold no security value at all, and
 /// it never described this call. See <see cref="ReadOutcome"/>.
 /// </summary>
-public sealed class WindowsScmCatalog : IScmCatalog
+/// <param name="networkPaths">
+/// Whether a launch path on another machine may be asked about - <see cref="NetworkPaths"/>
+/// holds the whole argument. Optional so that every caller gets the safe answer by saying
+/// nothing, and only the one that wants the other has to say so.
+/// </param>
+public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.Skip) : IScmCatalog
 {
     // Everything the manager holds. services.msc shows only part of this, which is why
     // our count is larger, and that difference is deliberate rather than a discrepancy.
@@ -75,7 +80,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         foreach (var enumerated in Enumerate(manager))
         {
-            entries.Add(Describe(manager, enumerated));
+            entries.Add(Describe(manager, enumerated, networkPaths));
         }
 
         return entries;
@@ -250,9 +255,9 @@ public sealed class WindowsScmCatalog : IScmCatalog
         return entries;
     }
 
-    private static ScmEntry Describe(SafeHandle manager, EnumeratedEntry enumerated)
+    private static ScmEntry Describe(SafeHandle manager, EnumeratedEntry enumerated, NetworkPaths networkPaths)
     {
-        var configuration = ReadConfiguration(manager, enumerated);
+        var configuration = ReadConfiguration(manager, enumerated, networkPaths);
 
         return new ScmEntry
         {
@@ -301,7 +306,8 @@ public sealed class WindowsScmCatalog : IScmCatalog
         };
     }
 
-    private static Configuration ReadConfiguration(SafeHandle manager, EnumeratedEntry enumerated)
+    private static ScmConfiguration ReadConfiguration(
+        SafeHandle manager, EnumeratedEntry enumerated, NetworkPaths networkPaths)
     {
         // SERVICE_QUERY_CONFIG alone, and adding READ_CONTROL here would be the quiet
         // mistake this family invites - see ReadSecurityDescriptor for the five entries it
@@ -311,21 +317,21 @@ public sealed class WindowsScmCatalog : IScmCatalog
 
         if (service.IsInvalid)
         {
-            return Configuration.Refused(Marshal.GetLastWin32Error());
+            return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
         }
 
         PInvoke.QueryServiceConfig(service, default, out var needed);
 
         if (needed == 0)
         {
-            return Configuration.Refused(Marshal.GetLastWin32Error());
+            return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
         }
 
         var buffer = new byte[needed];
 
         if (!PInvoke.QueryServiceConfig(service, buffer, out _))
         {
-            return Configuration.Refused(Marshal.GetLastWin32Error());
+            return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
         }
 
         var configuration = ReadConfigurationBuffer(buffer);
@@ -338,10 +344,10 @@ public sealed class WindowsScmCatalog : IScmCatalog
             SidType = ReadSidType(service)
         };
 
-        return withOwnCalls.WithBinary(enumerated);
+        return withOwnCalls.WithBinary(enumerated, WindowsDirectory, networkPaths);
     }
 
-    private static unsafe Configuration ReadConfigurationBuffer(byte[] buffer)
+    private static unsafe ScmConfiguration ReadConfigurationBuffer(byte[] buffer)
     {
         fixed (byte* start = buffer)
         {
@@ -352,7 +358,7 @@ public sealed class WindowsScmCatalog : IScmCatalog
             var binaryPath = configuration.lpBinaryPathName.ToString();
             var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
 
-            return new Configuration(
+            return new ScmConfiguration(
                 StartType: Reading<StartType>.Present(MapStartType(configuration.dwStartType)),
                 DelayedAuto: Reading<bool>.Absent(),
                 Account: string.IsNullOrEmpty(account)
@@ -737,71 +743,4 @@ public sealed class WindowsScmCatalog : IScmCatalog
         _ => Core.StartType.Unknown
     };
 
-    private readonly record struct EnumeratedEntry(
-        string ServiceName,
-        string DisplayName,
-        EntryType EntryType,
-        EntryStatus Status,
-        uint ProcessId)
-    {
-        internal bool IsDriver =>
-            EntryType is Core.EntryType.KernelDriver or Core.EntryType.FileSystemDriver;
-    }
-
-    private readonly record struct Configuration(
-        Reading<StartType> StartType,
-        Reading<bool> DelayedAuto,
-        Reading<string> Account,
-        Reading<IReadOnlyList<string>> DependsOn,
-        Reading<IReadOnlyList<ServiceTrigger>> Triggers,
-        Reading<string> BinaryPath,
-        Reading<string> BinaryFile,
-        Reading<bool> BinaryOnDisk,
-        Reading<IReadOnlyList<string>> RequiredPrivileges,
-        Reading<ServiceSidType> SidType,
-        Reading<ErrorControl> ErrorControl,
-        Reading<string> LoadOrderGroup)
-    {
-        internal static Configuration Refused(int code) => new(
-            Refused<StartType>(code),
-            Refused<bool>(code),
-            Refused<string>(code),
-            Refused<IReadOnlyList<string>>(code),
-            Refused<IReadOnlyList<ServiceTrigger>>(code),
-            Refused<string>(code),
-            Refused<string>(code),
-            Refused<bool>(code),
-            Refused<IReadOnlyList<string>>(code),
-            Refused<ServiceSidType>(code),
-            Refused<ErrorControl>(code),
-            Refused<string>(code));
-
-        /// <summary>
-        /// Which file the launch command runs, and whether it is there.
-        ///
-        /// Kept out of the buffer reading above because it needs to know the entry, and
-        /// because it is the one part of a listing that touches the file system rather than
-        /// the manager. That makes it the first place a slow or disconnected disk could show
-        /// up, which is worth knowing when a listing is ever slower than it should be.
-        /// </summary>
-        internal Configuration WithBinary(EnumeratedEntry enumerated)
-        {
-            var resolved = BinaryPathResolver.Resolve(
-                BinaryPath.ValueOr(null),
-                enumerated.ServiceName,
-                enumerated.IsDriver,
-                WindowsDirectory,
-                File.Exists);
-
-            return resolved.File is null
-                // Nothing named and no default that applies. A fact about the entry, so the
-                // question of whether the file is there has no subject and is absent too.
-                ? this with { BinaryFile = Reading<string>.Absent(), BinaryOnDisk = Reading<bool>.Absent() }
-                : this with
-                {
-                    BinaryFile = Reading<string>.Present(resolved.File),
-                    BinaryOnDisk = Reading<bool>.Present(resolved.Found)
-                };
-        }
-    }
 }

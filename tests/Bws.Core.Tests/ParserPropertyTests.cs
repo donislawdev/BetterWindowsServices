@@ -128,14 +128,21 @@ public sealed class ParserPropertyTests
                     serviceName: "Probe",
                     isDriver: false,
                     windowsDirectory: @"C:\Windows",
-                    exists: _ => false);
+                    exists: _ => false,
+                    networkPaths: NetworkPaths.Follow);
 
                 _ = BinaryPathResolver.Resolve(
                     command,
                     serviceName: "Probe",
                     isDriver: true,
                     windowsDirectory: @"C:\Windows",
-                    exists: _ => true);
+                    exists: _ => true,
+
+                    // Follow, so that arbitrary text is put through the whole resolver rather
+                    // than through the branch that returns early for anything starting with
+                    // two backslashes. Skipping here would quietly stop this property from
+                    // covering the shape it was written to cover.
+                    networkPaths: NetworkPaths.Follow);
 
                 return true;
             },
