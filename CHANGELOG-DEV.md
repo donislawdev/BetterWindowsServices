@@ -1248,6 +1248,52 @@ reading code, and that is a different instrument with a different failure mode.
   - The earlier run that showed 97 to 140 MB was contaminated by the S6c tests running in the
     same window, which is why it was reported as contaminated rather than as growth.
 
+- **What the window's memory is made of, by subtraction rather than by opinion** (`tools/memory-probe/ladder.ps1`). The question had been open since the window was first measured and the honest answer was NOT ESTABLISHED. Two independent runs of five interleaved passes, cold pass discarded, agree:
+  - .NET runtime alone **6.7 MB** private, **WPF and the graphics stack 48.1**, a DataGrid with
+    no rows 3.2, 810 rows of six string columns 12.5. **A bare WPF window showing that list is
+    70.4 MB before a line of our code.** The real window is 96.5-97.3.
+  - **An empty WPF window is 54.3-55.2 MB private.** The budget in section 8.1 says tens of
+    MB, and no WPF program showing 810 rows can meet it. `ADR-4` chose WPF and `CLAUDE.md`
+    forbids proposing alternatives, so this is a fact to write into the specification rather
+    than a defect to fix.
+  - **The data is 0.8 MB**, measured separately three times to the same tenth: 0.6 of entries
+    and 0.2 of view rows. Three per cent of the 26.5 MB that is ours. Anybody arriving to make
+    the window lighter by holding less would save 0.8 MB out of 97.
+  - **`bws list` is 15.2-17.0 MB private, not 32.** Thirty two was a working set. The original
+    "116 MB above the data" compared two working sets - in private bytes the gap is 80.8, of
+    which 63.8 is framework.
+  - The probe references none of the product on purpose. Measuring WPF and our own code
+    together would have answered neither question.
+
+- **The last unmeasured budget, measured, and it is breached** (`tools/gui-probe/first-row.ps1`).
+  From launching the window to a row drawn on the screen: **1335-2980 ms against one second**,
+  five passes with the cold one discarded. The clock starts at process start and stops at a
+  pixel - not at the window handle appearing, which happens while the list is empty, and not
+  at the read returning, which happens before anything is drawn.
+  - The instrument adds at most one poll cycle of detection lag, measured at 40-70 ms per
+    capture, and it runs in another process so it does not slow the window down.
+  - **Second budget to turn out broken this session, and both turned up only because somebody
+    filled in a table.** Neither was findable by reading code.
+
+- **Three budgets now have guards, and the two that do not say why** (`c66b04b`). The table in
+  `docs/04` went from one of six held to two full, two partial and two deliberately not.
+  - `A_loaded_listing_holds_no_more_than_it_did` - a ratchet on the managed heap. **The first
+    version of it reported 0.1 MB and would have passed while an entry doubled**, because it
+    built the entries before it started measuring. It now reads the data layer and the row
+    layer apart, so a failure says which one moved. Checked by mutation - a cached field on
+    `EntryRow` is the realistic way this breaks, and 810 of them at eight kilobytes is 6.6 MB.
+  - `A_thousand_ticks_hold_nothing` - 1 KB of drift. **No mutation entry, and that is an
+    admission rather than an oversight:** a leak needs a field added, the registry does one
+    text substitution, and an entry pretending to be that mutation would be worse than none.
+  - `Expensive_data_for_the_whole_machine_stays_inside_the_budget` - 900 ms over 810 entries
+    against ten seconds. **The first draft of its comment claimed it would catch the
+    parallelism being removed. It would not**, and the numbers to check that were already in
+    this file: file-by-file verification measured 4926-8500 ms, also inside the budget. The
+    comment now says what the guard holds, which is the budget and nothing narrower.
+  - Every timing guard here carries a second claim about the answer. A stopwatch with no claim
+    about what came back passes on a build that computes nothing, which is the fastest possible
+    implementation and the useless one.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.

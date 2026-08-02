@@ -244,6 +244,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 ### Known limits
 
 - Local machine only. Remote management is not in this version.
+- **The window uses about 100 MB and takes about a second and a half to show the list.**
+  Measured rather than estimated, on a machine with 810 services. Roughly half of that memory
+  is the Windows user interface framework itself: an empty window with nothing in it already
+  costs 55 MB, and a plain list of 810 rows costs 70 before any of this tool's own code runs.
+  The data behind the list - every service, every setting shown - is under a megabyte of it.
+  The command line tool over the same services uses about 16 MB.
 - **The window is dark, and it stays dark whatever Windows is set to** - including when
   Windows is set to a high contrast theme. Checked rather than assumed: the window keeps its
   own colours and stays readable, but it does not follow that setting.
