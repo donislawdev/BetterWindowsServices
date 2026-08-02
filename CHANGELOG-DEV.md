@@ -764,7 +764,7 @@ sense as answers to the one above them.
     screenshot** - row selection and the two coloured lines, the very ones flagged as riskiest -
     so they stay **NOT SEEN**, as backlog item 20.
 
-- **S6c: the list lives**, which is `A10` minus the background reading of expensive data.
+- **S6c: the list lives** (`cbb35cc`), which is `A10` minus the background reading of expensive data.
   479 tests against 452, mutation 29 of 29, audit clean.
   - **A probe before the slice knocked down a sentence this project had written down.**
     `docs/02` called `NotifyServiceStatusChange` "the right candidate" for `A10` and left NOT
