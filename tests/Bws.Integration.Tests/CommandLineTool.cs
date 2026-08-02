@@ -40,16 +40,27 @@ internal static class CommandLineTool
     /// both of the ways Windows signs a file, and walking only one of them is exactly the
     /// mistake this comparison exists to catch.
     /// </summary>
-    internal static string PowerShell(string command) =>
-        Start("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command])
-            .StandardOutput.Trim();
+    internal static string PowerShell(string command)
+    {
+        var run = Start("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], forgetModulePath: true);
+
+        // The exit code is checked, and that is not tidiness. Without it a PowerShell that
+        // never ran hands back an empty string, and an empty string is a perfectly good value
+        // to compare against - so the comparison fails saying the two verdicts differ, naming
+        // our answer as the odd one out. Measured 2026-08-02: every one of twelve calls was
+        // failing this way, and the message pointed at the wrong side of the comparison.
+        Assert.True(run.ExitCode == 0,
+            $"The second opinion never answered. powershell.exe exited {run.ExitCode} for `{command}`:\n{run.StandardError}");
+
+        return run.StandardOutput.Trim();
+    }
 
     internal static int ServiceControlCount(params string[] arguments) =>
         ServiceControl(arguments).StandardOutput
             .Split('\n')
             .Count(line => line.StartsWith("SERVICE_NAME:", StringComparison.Ordinal));
 
-    private static ProcessResult Start(string executable, string[] arguments)
+    private static ProcessResult Start(string executable, string[] arguments, bool forgetModulePath = false)
     {
         var startup = new ProcessStartInfo(executable)
         {
@@ -61,6 +72,22 @@ internal static class CommandLineTool
         foreach (var argument in arguments)
         {
             startup.ArgumentList.Add(argument);
+        }
+
+        // Windows PowerShell inherits PSModulePath from whoever started it, and when that is
+        // PowerShell 7 the inherited list puts PowerShell 7's own modules first. Windows
+        // PowerShell then finds a Microsoft.PowerShell.Security built for the wrong runtime,
+        // fails to load it, and reports Get-AuthenticodeSignature as a command that does not
+        // exist. Dropping the variable makes it work its own default out.
+        //
+        // Measured 2026-08-02, and it is the reason this test class was red for a whole run:
+        // the shell that launched dotnet test was pwsh, and nothing in the failure said so.
+        // Interactive `& powershell.exe` does not show the problem, because PowerShell
+        // rewrites the variable for a child it recognises - so this reproduces from a test
+        // host and not from a prompt, which is the worst way round.
+        if (forgetModulePath)
+        {
+            startup.Environment.Remove("PSModulePath");
         }
 
         using var process = Process.Start(startup)
