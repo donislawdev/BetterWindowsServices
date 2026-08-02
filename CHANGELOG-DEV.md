@@ -851,9 +851,34 @@ sense as answers to the one above them.
   - **And it would not have found the hole it was proposed for.** Analysers see patterns, and a
     missing reentrancy guard is a design decision. Worth writing down, because it deflates a
     mechanism I proposed myself.
-  - **Deliberately not built:** a report on file and method length, offered as the fourth
-    mechanism and not chosen. Backlog item 23, with the reason - I had named it the weakest of
-    the four, since line count is a poor measure of tangle.
+  - **Two more the next day, one of them the fourth mechanism after all.** The owner took the
+    size guard on second thought, on the grounds that not having tangle is cheaper than
+    removing it, and asked what transferred from a parallel conversation about their Go
+    projects. Both are proved by mutation.
+  - **A size ratchet, ceilings at today's numbers:** no shipped file over **807** lines, no
+    test file over **756**, no more than **6** shipped and **2** test files over 500. Numbers
+    may only ever fall, like the coverage threshold in `ADR-10`. Nothing claims 807 is a good
+    length - it claims the longest file may not become 808, so adding to it starts with
+    splitting it. A fourth test guards the ratchet against being left behind: a ceiling a
+    hundred lines above what it holds has stopped measuring anything.
+  - **Concurrency contained at the source**, borrowed from the Go side where the same guard
+    names the files allowed to hold a goroutine. The method transfers, none of its decisions
+    do. Three files of forty two: the second pass, its publisher cache, and the view model,
+    each with its reason beside it. **It does not make those safe** - it makes a fourth one a
+    decision rather than an accident, which is the only thing that can be checked exactly
+    about a defect that will not reproduce on demand.
+  - **What did not transfer, and why it is worth writing down:** `go test -race` has no
+    equivalent - .NET ships no race detector. And the separate code-standard document that
+    conversation proposed, built as a table of failure mode against guard, **already exists
+    here** as the regression surface in `docs/04`. It gained rows rather than a neighbour.
+  - **A guard that missed, and the runner said so.** The first size mutation added forty lines
+    to a thirty line file and came back MISSED - the mutation never got near what it was aiming
+    at. Rewritten to put one line onto the file that is the ceiling.
+  - **Licences checked on the package pages rather than recalled**, because the owner asked:
+    CsCheck is Apache-2.0, FsCheck BSD-3-Clause, SharpFuzz MIT, Microsoft.CodeAnalysis.CSharp
+    MIT, Meziantou.Analyzer MIT. All permissive and compatible with GPL-3.0-or-later, and all
+    would be build or test only, so none of them would ship. **None taken yet** - that decision
+    is the owner's and is written up where they can answer it.
 
 ### Fixed
 

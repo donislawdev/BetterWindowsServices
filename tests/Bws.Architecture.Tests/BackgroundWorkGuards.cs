@@ -112,7 +112,7 @@ public sealed class BackgroundWorkGuards
     {
         var files = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var file in ShippedSourceFiles())
+        foreach (var file in Sources.Shipped())
         {
             if (pattern.IsMatch(File.ReadAllText(file)))
             {
@@ -122,10 +122,4 @@ public sealed class BackgroundWorkGuards
 
         return files;
     }
-
-    private static IEnumerable<string> ShippedSourceFiles() =>
-        Directory
-            .EnumerateFiles(Path.Combine(GuardedAssemblies.RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 }

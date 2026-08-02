@@ -75,7 +75,7 @@ public sealed class BroadCatchGuards
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        foreach (var file in ShippedSourceFiles())
+        foreach (var file in Sources.Shipped())
         {
             var matches = Regex.Matches(File.ReadAllText(file), @"#pragma warning disable CA1031");
 
@@ -87,10 +87,4 @@ public sealed class BroadCatchGuards
 
         return counts;
     }
-
-    private static IEnumerable<string> ShippedSourceFiles() =>
-        Directory
-            .EnumerateFiles(Path.Combine(GuardedAssemblies.RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 }
