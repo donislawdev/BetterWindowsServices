@@ -26,11 +26,11 @@ namespace Bws.Architecture.Tests;
 public sealed class SizeRatchetGuards
 {
     /// <summary>
-    /// The longest file in the product. <b>644 lines as of 2026-08-02, down from 807 through
-    /// 746 in a single day, and it is no longer WindowsScmCatalog.cs.</b>
+    /// The longest file in the product. <b>583 lines as of 2026-08-02, down from 807 in a
+    /// single day, and it is no longer WindowsScmCatalog.cs.</b>
     ///
-    /// That file was 807 lines and is now 515, and the two steps down were both forced by this
-    /// guard rather than done for tidiness:
+    /// That file was 807 lines and is now 515. Every step down was forced by this guard rather
+    /// than done for tidiness:
     ///
     ///   807 -> 746   the network rule pushed it to 816, and its two record types moved into
     ///                ScmBuffers.cs
@@ -38,16 +38,19 @@ public sealed class SizeRatchetGuards
     ///                a single service handle moved into ScmDetailReader.cs
     ///   644 -> 631   filling the list in one go pushed MainViewModel.cs to 662, and the
     ///                sentences the window says moved into Sentences.cs
+    ///   631 -> 583   refusing to overwrite a snapshot pushed Program.cs to 651, and carrying
+    ///                a plan out moved into Execution.cs
     ///
-    /// <b>That is the whole argument for a ceiling, happening three times in an afternoon.</b>
+    /// <b>That is the whole argument for a ceiling, happening four times in an afternoon.</b>
     /// None of the splits was planned, none was suggested by anybody reading the files, and all
-    /// three followed a seam that was already there once somebody was made to look for one. The
-    /// longest file is now Program.cs, which has never been asked the same question.
+    /// four followed a seam that was already there once somebody was made to look for one. The
+    /// longest file is now MainViewModel.cs at 583, down from 644 without being touched again -
+    /// every other file came down past it.
     ///
     /// Lowering the number afterwards is not bookkeeping. Leaving it at 746 would hand back a
     /// hundred lines of room nobody argued for.
     /// </summary>
-    private const int LongestShippedFile = 631;
+    private const int LongestShippedFile = 583;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

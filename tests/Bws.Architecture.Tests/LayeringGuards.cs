@@ -94,4 +94,69 @@ public sealed class LayeringGuards
             $"Assemblies: [{string.Join(", ", networkAssemblies)}]. " +
             "Zero telemetry is a decision, not an aspiration (ADR-19).");
     }
+
+    /// <summary>
+    /// Nothing that ships starts a process, loads an assembly by name, or builds a type from
+    /// one.
+    ///
+    /// Written 2026-08-02, after a security document from another of the owner's projects
+    /// put it plainly: <b>a tool must not execute anything, and the guard for that is the same
+    /// shape as the guard for the network.</b> This one holds today - checked by reading the
+    /// whole of <c>src</c> before writing it, and nothing in the product names any of these -
+    /// so it costs nothing now and exists for what comes next.
+    ///
+    /// <b>What comes next is the point.</b> S7 brings an event log panel and Faza 2 brings a
+    /// binary path editor, and both are exactly the slice where somebody reaches for
+    /// <c>Process.Start</c> to open a viewer or test a command. A tool that runs elevated on
+    /// somebody else's production machine, and whose whole subject is which programs the
+    /// machine launches, is the last place a quiet process start belongs.
+    ///
+    /// <b>What it does not prove, and this is the same caveat the network guard carries:</b>
+    /// a reference graph shows what our own code names. A dependency could reach the same
+    /// place without us naming it. Three packages are declared and none of them ships, so the
+    /// exposure today is small - but the guard is PARTIAL and is described that way in the
+    /// regression surface rather than being allowed to look complete.
+    /// </summary>
+    [Theory]
+    [InlineData("Bws.Core")]
+    [InlineData("Bws.Cli")]
+    [InlineData("Bws.Gui")]
+    public void No_shipped_assembly_runs_anything(string projectName)
+    {
+        var assembly = AssemblyFacts.Of(projectName);
+
+        // Named types rather than a namespace prefix, because System.Diagnostics is where
+        // Stopwatch lives and the command line times itself with one. Forbidding the
+        // namespace would forbid a clock, which is the sort of guard people switch off.
+        //
+        // System.Reflection.Assembly is DELIBERATELY NOT HERE, and the first version of this
+        // guard had it and went red on all three projects. The reason is good: every one of
+        // them reads its own embedded language file, which is what `ADR-21` prescribes, and
+        // that goes through Assembly. Forbidding the type would forbid the translations.
+        //
+        // The cost of leaving it out is stated rather than hidden: this guard sees types, not
+        // the members called on them, so Assembly.Load would walk past it. What it does hold
+        // is the two shapes that cannot be mistaken for anything innocent - starting a process
+        // and building a type from a name.
+        string[] forbidden =
+        [
+            "System.Diagnostics.Process",
+            "System.Diagnostics.ProcessStartInfo",
+            "System.Activator",
+            "System.AppDomain"
+        ];
+
+        var found = assembly.TypeReferences
+            .Where(type => forbidden.Contains(type, StringComparer.Ordinal))
+            .OrderBy(type => type, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            found.Length == 0,
+            $"{projectName} names something that runs code: [{string.Join(", ", found)}]. " +
+            "This tool reads a machine and changes services through a plan. It does not start " +
+            "programs, and it does not build types a file asked for. If a slice genuinely " +
+            "needs one of these, that is a conversation and an entry here with its reason - " +
+            "not a reference that arrives while somebody is doing something else.");
+    }
 }

@@ -175,6 +175,38 @@ public sealed class SnapshotContractTests : IDisposable
         Assert.Contains("snapshot diff", run.StandardError, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_existing_file_is_not_overwritten_without_being_told()
+    {
+        // The one place this tool writes a file, and until 2026-08-02 it replaced whatever was
+        // at the path without a word and ended with code 0. Found by reading a security
+        // document from another of the owner's projects - "never overwrites somebody else's
+        // file" - and confirmed by doing it to a file holding the words below.
+        var target = Path.Combine(_directory, "already-here.json");
+        const string mine = "this is not a snapshot and it is not yours";
+
+        File.WriteAllText(target, mine);
+
+        var refused = CommandLineTool.Run("snapshot", "create", target);
+
+        Assert.Equal(2, refused.ExitCode);
+
+        // The whole point. A refusal that still replaced the file would be worse than no
+        // refusal at all, because the exit code would say the file survived.
+        Assert.Equal(mine, File.ReadAllText(target));
+
+        // And the sentence names the path, because "there is already a file" without saying
+        // where is a message somebody has to go and work out for themselves.
+        Assert.Contains(target, refused.StandardError, StringComparison.Ordinal);
+
+        // The other half, without which this passes on a build that refuses always. A switch
+        // that turns nothing on is the same silence from the opposite side.
+        var forced = CommandLineTool.Run("snapshot", "create", target, "--force");
+
+        Assert.Equal(0, forced.ExitCode);
+        Assert.NotEqual(mine, File.ReadAllText(target));
+    }
+
     private JsonElement Take(string name, params string[] arguments) =>
         JsonDocument.Parse(File.ReadAllText(TakeToPath(name, arguments))).RootElement;
 

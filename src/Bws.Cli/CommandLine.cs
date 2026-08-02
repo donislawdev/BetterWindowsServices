@@ -88,6 +88,17 @@ internal sealed record CommandLine
     internal bool FollowNetwork { get; private init; }
 
     /// <summary>
+    /// Write the snapshot even though a file is already there.
+    ///
+    /// Off by default, and that default is the point. A snapshot is kept for months and
+    /// compared later, so the file somebody is about to lose is exactly the kind of file that
+    /// hurts to lose - and until 2026-08-02 this command replaced whatever was at the path
+    /// without a word and ended with code 0, whether or not what it replaced was a snapshot
+    /// at all.
+    /// </summary>
+    internal bool Force { get; private init; }
+
+    /// <summary>
     /// Read what each running entry's process is using, which the listing does not do by
     /// default.
     ///
@@ -215,6 +226,10 @@ internal sealed record CommandLine
         // whoever ran the tool. See NetworkPaths in the core for the whole argument.
         ("--follow-network", [CommandKind.List, CommandKind.SnapshotCreate]),
 
+        // The one verb that writes a file somebody keeps. Nothing else here overwrites
+        // anything, so nothing else has an existing file to be asked about.
+        ("--force", [CommandKind.SnapshotCreate]),
+
         ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
@@ -301,6 +316,7 @@ internal sealed record CommandLine
         var signatures = false;
         var memory = false;
         var followNetwork = false;
+        var force = false;
         string? query = null;
         var path = string.Empty;
         var against = string.Empty;
@@ -409,6 +425,7 @@ internal sealed record CommandLine
             if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
             if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
             if (Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
+            if (Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
             if (Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
             if (Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
@@ -495,6 +512,7 @@ internal sealed record CommandLine
             Signatures = signatures,
             Memory = memory,
             FollowNetwork = followNetwork,
+            Force = force,
             Query = query,
             Path = path,
             Against = against,
