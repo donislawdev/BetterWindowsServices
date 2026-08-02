@@ -1346,6 +1346,55 @@ reading code, and that is a different instrument with a different failure mode.
     turned it from LF to CRLF and every multi-line anchor stopped matching. Line endings are
     out of the comparison now, and the file is written back in the shape it was found in.
 
+- **The memory budget in the specification was changed, and that is the owner's decision
+  rather than a measurement.** Section 8.1 said "tens of MB" - a number written before the
+  first line of code, before WPF was chosen and before anything was measured. It now says
+  **under 120 MB of private bytes for the window and under 30 for the command line**, with the
+  ladder printed underneath it and a paragraph saying what the number is not.
+  - The 120 sits above the **floor**, not above today's program: 70.4 MB is a bare WPF window
+    showing 810 rows, today's window is 96.5-97.3, and the 23 MB between them is what is left
+    for Fazy 2-5. When that runs out it will be a real conversation about memory.
+  - Working set is deliberately not the unit. Over an hour at rest it moved 110.8 to 152.2 MB
+    with nothing changing in the program.
+
+- **A security document from another of the owner's projects, read and answered** (`9593a9a`).
+  Methods and measurements transfer, product decisions do not - and **two of that document's
+  measurements are ours**, sent the other way: the process access mask that loses seven
+  processes of 110, and the group name that answers False on an elevated session in the wrong
+  language.
+  - **`snapshot create` overwrote whatever was at the path, without a word, exit code 0.**
+    Confirmed rather than reasoned about, on a file holding the words "this is not a snapshot".
+    It is the only place this tool writes a file and it is the file somebody keeps for months.
+    Now refused with exit code 2 and a sentence naming the path, `--force` writes anyway.
+    Refused **before** verifying signatures, because a second spent to then say "there is
+    already a file there" is a second nobody got anything for.
+  - **A guard that nothing shipped starts a process or builds a type from a name.** It holds
+    today and exists for S7 and Faza 2, which bring an event log panel and a binary path
+    editor - the two slices where somebody reaches for `Process.Start`. **Its first version
+    also forbade `System.Reflection.Assembly` and went red on all three projects, correctly:**
+    each of them reads its own embedded language file, which is what `ADR-21` prescribes.
+  - **A threat model with a third column** - what is deliberately not protected - and a list
+    of what this tool is not: not access control, not a security tool, not a boundary between
+    users of one machine. A security document silent about its own edges is worse than none.
+  - **`SECURITY.md`**, four sections, reporting through GitHub's private channel so that no
+    address of the owner's is published by an assistant deciding for them. **The owner has to
+    turn that channel on in the repository settings** - `docs/08` item 43.
+  - What did not transfer, with reasons: archive extraction (nothing is unpacked), synthetic
+    personal data (nothing is generated), offensive features (none). **Path traversal comes
+    back at `C10`**, where a name inside somebody's file becomes a file name.
+
+- **The size ratchet fired four times in one afternoon: 807, 746, 631, 583.** Every drop was
+  forced by an addition, every seam turned out to be already there, and the number came down
+  after. `ScmBuffers.cs`, `ScmDetailReader.cs`, `Sentences.cs` and `Execution.cs` all exist
+  because of it.
+  - **The mutation entry that proves the ratchet came back MISSED twice, both times honestly.**
+    It has to name whichever file is longest, and the file kept changing. The second time was
+    an hour after a comment in that very entry said "whoever lowers the ceiling next has to
+    move this with it" - and the person who lowered it next was the person who wrote that.
+    **An instruction ignored by its own author within the hour is a defect with a note
+    attached**, so the entry now works the file out at run time and anchors on the namespace
+    line, which is the one line in any of these files with no reason to change.
+
 ### Known gaps
 
 Carried here rather than in a session's memory, because sessions end.

@@ -244,6 +244,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 ### Known limits
 
 - Local machine only. Remote management is not in this version.
+- **`bws snapshot create` no longer replaces a file that is already there.** It says so and
+  stops, without spending the second it takes to read every signature first. Add `--force` if
+  replacing the file is what you meant. Until now it overwrote whatever was at that path -
+  snapshot or not - and reported success.
+- **`SECURITY.md`** in the repository: how to report a vulnerability privately, what is in
+  scope, and what this tool deliberately does not claim to protect.
 - **Everything that reads the machine got about twice as fast.** `bws list` went from a bit
   under six tenths of a second to a bit under a quarter, and the window now shows its list in
   around eight tenths of a second rather than a second and a third. Measured on a machine with
