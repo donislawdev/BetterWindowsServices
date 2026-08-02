@@ -175,6 +175,21 @@ Nothing has been released yet. Everything below is what the tool does today.
     for a listing, rather than answering with an empty list that reads like "there are
     none". The command line answers them today with `--signatures` and `--memory`.
 
+- **The list keeps itself up to date.** Stop a service from anywhere - `services.msc`, a
+  terminal, an installer - and the window notices within about a second. Nobody has to press
+  anything.
+  - **A row that changed is lit for a few seconds**, so you can see what happened even if you
+    were looking at another part of the screen.
+  - **It does not move under your hand.** While the mouse is over the list or the keyboard is
+    in it, nothing joins or leaves - a row you are reaching for stays where it was. Cells
+    still update, so you can watch a service stop while your cursor is on it. The line under
+    the list says when it is holding still like this, and it settles as soon as you move away.
+  - **Your selection and your place in the list survive** every refresh.
+  - **F5 still does what you expect**, and does more than the automatic refresh: it re-reads
+    the settings too, so a start type you changed elsewhere shows up at once.
+  - It costs about a fiftieth of a second per check on a machine with 810 entries, and it
+    stops entirely while the window is minimised.
+
 ### Changed
 
 - **The delayed start setting is now recorded for every service, not only automatic ones.**

@@ -26,6 +26,7 @@
   "gui.status.failed": "Could not read the service control manager. {0}",
   "gui.status.partial": "{0} entries were judged on a field that could not be read, so this list may be missing entries, or holding ones that do not belong.",
   "gui.status.tooCostly": "The expression ran out of time on {0} entries, so they were never checked. Try a simpler one.",
+  "gui.status.holding": "The list is holding still while you use it, so nothing joins or leaves under your cursor. It settles when you move away, or on F5.",
 
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
 

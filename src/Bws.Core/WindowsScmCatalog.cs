@@ -81,6 +81,38 @@ public sealed class WindowsScmCatalog : IScmCatalog
         return entries;
     }
 
+    public IReadOnlyList<ScmStatus> ReadStatuses()
+    {
+        using var manager = PInvoke.OpenSCManager(
+            lpMachineName: null!,
+            lpDatabaseName: null!,
+            dwDesiredAccess: PInvoke.SC_MANAGER_CONNECT | PInvoke.SC_MANAGER_ENUMERATE_SERVICE);
+
+        if (manager.IsInvalid)
+        {
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(),
+                "Could not open the service control manager for enumeration.");
+        }
+
+        var statuses = new List<ScmStatus>(capacity: 1024);
+
+        // The same enumeration a full reading starts with, and then nothing. What makes a
+        // full reading expensive is the handle opened for every entry afterwards, so leaving
+        // that out is the whole saving rather than an optimisation of it.
+        foreach (var enumerated in Enumerate(manager))
+        {
+            statuses.Add(new ScmStatus(
+                enumerated.ServiceName,
+                enumerated.Status,
+                enumerated.ProcessId == 0
+                    ? Reading<int>.Absent()
+                    : Reading<int>.Present((int)enumerated.ProcessId)));
+        }
+
+        return statuses;
+    }
+
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
     {
         using var manager = PInvoke.OpenSCManager(

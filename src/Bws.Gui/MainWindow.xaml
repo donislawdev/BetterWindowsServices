@@ -97,6 +97,11 @@
             it, which A10 has five rules about.
         -->
         <DataGrid Grid.Row="1"
+                  x:Name="Entries"
+                  MouseEnter="ListEngaged"
+                  MouseLeave="ListReleased"
+                  GotKeyboardFocus="ListEngaged"
+                  LostKeyboardFocus="ListReleased"
                   ItemsSource="{Binding Rows}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"

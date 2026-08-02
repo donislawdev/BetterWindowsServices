@@ -248,7 +248,7 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
 
     private static async Task<MainViewModel> Load()
     {
-        var model = new MainViewModel(() => new WindowsScmCatalog().ReadAll());
+        var model = new MainViewModel(new WindowsScmCatalog(), new SystemClock());
 
         await model.LoadAsync();
 

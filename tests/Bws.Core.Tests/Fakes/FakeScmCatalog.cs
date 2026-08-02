@@ -50,10 +50,26 @@ internal sealed class FakeScmCatalog : IScmCatalog
         return this;
     }
 
+    /// <summary>How many times somebody asked only for what is moving.</summary>
+    internal int StatusReads { get; private set; }
+
     public IReadOnlyList<ScmEntry> ReadAll()
     {
         Reads++;
         return _entries;
+    }
+
+    /// <summary>
+    /// Taken from the same entries, because here the status genuinely is one of their fields
+    /// and reading it twice from one fixture is not the double inferring anything. Anything
+    /// that needs the status to <b>change</b> between two calls wants a different double -
+    /// this one stands still on purpose, so a test that sees a change knows where it came from.
+    /// </summary>
+    public IReadOnlyList<ScmStatus> ReadStatuses()
+    {
+        StatusReads++;
+
+        return [.. _entries.Select(entry => new ScmStatus(entry.ServiceName, entry.Status, entry.ProcessId))];
     }
 
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)

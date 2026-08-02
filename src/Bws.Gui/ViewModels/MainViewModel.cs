@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Bws.Core;
 using Bws.Core.Querying;
 
@@ -6,15 +7,15 @@ namespace Bws.Gui.ViewModels;
 /// <summary>
 /// What the window shows and how it got there.
 ///
-/// The reading runs off the interface thread, because it takes about half a second over 810
-/// entries and a window that stops answering for half a second at startup is a window that
-/// looks broken. `docs/06`, part 4: nothing from a worker thread touches the interface, so
-/// what comes back is a plain list and everything the window binds to is built here.
+/// Every reading runs off the interface thread, because a full one takes about half a second
+/// over 810 entries and a window that stops answering for half a second looks broken.
+/// `docs/06`, part 4: nothing from a worker thread touches the interface, so what comes back
+/// is a plain list and everything the window binds to is built here.
 ///
 /// Knows nothing about WPF beyond the notification interface. That is what makes it possible
-/// to check what the window will show without opening one - and the thing this slice is
-/// judged on is whether the same query text picks the same entries here as in the command
-/// line, which is a question about this file rather than about the markup.
+/// to check what the window will show without opening one - including the parts that are
+/// hardest to look at by hand, like what a list does to the row under somebody's cursor while
+/// it refreshes itself.
 /// </summary>
 public sealed class MainViewModel : Observable
 {
@@ -31,10 +32,24 @@ public sealed class MainViewModel : Observable
     private const string DriverField = "type";
     private const string DriverValue = "driver";
 
-    private readonly Func<IReadOnlyList<ScmEntry>> _read;
+    /// <summary>
+    /// How long a row stays marked as having just moved.
+    ///
+    /// Long enough to catch the eye of somebody looking at another part of the screen, short
+    /// enough that a busy machine does not end up with half the list highlighted. `A10` asks
+    /// for the behaviour and does not name a number, so this one is a judgement rather than a
+    /// measurement and says so.
+    /// </summary>
+    internal static readonly TimeSpan HighlightFor = TimeSpan.FromSeconds(3);
 
-    /// <summary>Everything the manager handed over. Kept, because every keystroke filters it again.</summary>
-    private IReadOnlyList<ScmEntry> _entries = [];
+    private readonly IScmCatalog _catalog;
+    private readonly IClock _clock;
+
+    /// <summary>Every row that exists, by service name, whether or not the query lets it through.</summary>
+    private readonly Dictionary<string, EntryRow> _rows = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Every row in the order the manager hands them over.</summary>
+    private List<EntryRow> _order = [];
 
     /// <summary>
     /// The last query that parsed, which is not always the last query that was typed.
@@ -46,32 +61,40 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private Query _query = QueryParser.Parse(null).Query!;
 
-    private IReadOnlyList<EntryRow> _rows = [];
     private string _queryText = string.Empty;
     private bool _bareWordsAreExpressions;
     private string _status = Texts.Of("gui.status.reading");
     private string _notice = string.Empty;
     private string _problem = string.Empty;
     private bool _incomplete;
+    private bool _interacting;
+    private bool _refreshing;
+    private bool _held;
 
     public MainViewModel()
-        : this(() => new WindowsScmCatalog().ReadAll())
+        : this(new WindowsScmCatalog(), new SystemClock())
     {
     }
 
     /// <summary>
-    /// The reading is handed in so a test can decide what the manager says, including the
-    /// cases a real machine will not produce on demand - a refusal, an empty machine, a
-    /// service whose configuration could not be read.
+    /// The manager and the clock are handed in so a test can decide what both say - including
+    /// the cases a real machine will not produce on demand: a refusal, an empty machine, a
+    /// service that stops between one second and the next, three seconds passing at once.
     /// </summary>
-    public MainViewModel(Func<IReadOnlyList<ScmEntry>> read) => _read = read;
-
-    /// <summary>What the list shows: the entries this query selected, as rows.</summary>
-    public IReadOnlyList<EntryRow> Rows
+    public MainViewModel(IScmCatalog catalog, IClock clock)
     {
-        get => _rows;
-        private set => Set(ref _rows, value);
+        _catalog = catalog;
+        _clock = clock;
     }
+
+    /// <summary>
+    /// What the list shows: the entries this query selected, in the manager's own order.
+    ///
+    /// One collection for the life of the window, changed in place. Replacing it would drop
+    /// the selection and send the scroll back to the top on every refresh, which is the one
+    /// thing `A10` names first.
+    /// </summary>
+    public ObservableCollection<EntryRow> Rows { get; } = [];
 
     /// <summary>
     /// The one field: free search, regular expressions and the query language, exactly as
@@ -141,6 +164,31 @@ public sealed class MainViewModel : Observable
         }
     }
 
+    /// <summary>
+    /// Whether somebody is using the list right now - pointing at it, or typing into it.
+    ///
+    /// Set by the window, because only a window knows about focus and a mouse. While it is
+    /// true, rows keep updating and <b>nothing joins or leaves the list</b>: `A10` says the
+    /// order freezes for the duration of an interaction, and a row appearing above the one
+    /// somebody is aiming at moves their target while they are reaching for it.
+    ///
+    /// Cells still move, and that is the deliberate half of the compromise. A row that says
+    /// Stopped under a query about running services is visibly odd and highlighted, which is a
+    /// far better failure than a row that silently disappears from under a cursor.
+    /// </summary>
+    public bool Interacting
+    {
+        get => _interacting;
+        set
+        {
+            if (Set(ref _interacting, value) && !value && _held)
+            {
+                // Whatever was held back happens now, in one go.
+                Apply();
+            }
+        }
+    }
+
     /// <summary>One line under the list. Never empty - "reading" is a state worth showing.</summary>
     public string Status
     {
@@ -150,7 +198,8 @@ public sealed class MainViewModel : Observable
 
     /// <summary>
     /// What this result has to admit about itself: entries judged on something nobody could
-    /// read, entries never judged at all, and questions about data this window has not read.
+    /// read, entries never judged at all, questions about data this window has not read, and
+    /// a list holding still because somebody is using it.
     ///
     /// Empty when there is nothing to admit, which is the ordinary case. Separate from
     /// <see cref="Problem"/> because these are facts about the answer and that one is a fact
@@ -191,21 +240,18 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// Reads the machine and fills the list.
-    ///
-    /// Returns the rows as well as setting them, so a test can look at what was produced
-    /// without watching a property it did not set.
+    /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks
+    /// for afterwards.
     /// </summary>
-    public async Task<IReadOnlyList<EntryRow>> LoadAsync()
+    public async Task LoadAsync()
     {
         Status = Texts.Of("gui.status.reading");
 
+        IReadOnlyList<ScmEntry> entries;
+
         try
         {
-            // Off the interface thread, and only the reading. Turning entries into rows now
-            // belongs with the filtering, because the filter decides which of them there are
-            // to turn - and it runs again on every keystroke either way.
-            _entries = await Task.Run(_read).ConfigureAwait(true);
+            entries = await Task.Run(_catalog.ReadAll).ConfigureAwait(true);
         }
 #pragma warning disable CA1031
         // Broad, and it is the same argument as the entry point of the command line tool:
@@ -214,16 +260,171 @@ public sealed class MainViewModel : Observable
         // carries its own number and its own language.
         catch (Exception failure)
         {
-            Status = Texts.Of("gui.status.failed", failure.Message);
-            Incomplete = true;
+            Fail(failure);
 
-            return [];
+            return;
         }
 #pragma warning restore CA1031
 
+        Incomplete = false;
+        Absorb(entries);
         Apply();
+    }
 
-        return Rows;
+    /// <summary>
+    /// One tick of the live list: asks what is running and moves whatever moved.
+    ///
+    /// Driven from outside rather than by a loop in here, and that is a deliberate shape. A
+    /// loop would need a thread, a cancellation and a rule about what happens when the window
+    /// closes mid-read - three things to get wrong. A window that calls this on a timer needs
+    /// none of them, and a test can call it whenever it likes instead of waiting for seconds
+    /// to pass.
+    ///
+    /// The cheap reading measures 13-22 ms over 810 entries against 423-500 ms for a full one,
+    /// which is what makes asking once a second reasonable rather than rude.
+    /// </summary>
+    public async Task RefreshAsync()
+    {
+        // A tick arriving while the last one is still out is dropped rather than queued. The
+        // reading is short, so this only happens when the machine is busy - and answering a
+        // late tick with a second reading would make it busier.
+        if (_refreshing)
+        {
+            return;
+        }
+
+        _refreshing = true;
+
+        try
+        {
+            IReadOnlyList<ScmStatus> statuses;
+
+            try
+            {
+                statuses = await Task.Run(_catalog.ReadStatuses).ConfigureAwait(true);
+            }
+#pragma warning disable CA1031
+            // Same argument as above, and it earns its place here rather than inheriting it:
+            // this runs unattended once a second, so an exception nobody caught would take the
+            // window down while its owner was somewhere else entirely.
+            catch (Exception failure)
+            {
+                Fail(failure);
+
+                return;
+            }
+#pragma warning restore CA1031
+
+            Incomplete = false;
+
+            if (Freshen(statuses))
+            {
+                // Awaited rather than left running, so that a caller who waits for one tick
+                // really has waited for it - and so the guard above is still standing when the
+                // full reading finishes.
+                await LoadAsync().ConfigureAwait(true);
+            }
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    /// <summary>
+    /// Takes the highlight off the rows that have worn it long enough.
+    ///
+    /// One sweep rather than a timer per row, and called by the same tick that refreshes.
+    /// Separate from the reading because it has to keep happening while nothing is moving -
+    /// otherwise the last thing to change stays lit until the next thing does.
+    /// </summary>
+    public void FadeHighlights()
+    {
+        var now = _clock.Now;
+
+        foreach (var row in _order)
+        {
+            if (row.RecentlyChanged && now - row.ChangedAt >= HighlightFor)
+            {
+                row.RecentlyChanged = false;
+            }
+        }
+    }
+
+    /// <summary>Rebuilds every row from a full reading, keeping the rows that already exist.</summary>
+    private void Absorb(IReadOnlyList<ScmEntry> entries)
+    {
+        var now = _clock.Now;
+        var order = new List<EntryRow>(entries.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in entries)
+        {
+            seen.Add(entry.ServiceName);
+
+            if (_rows.TryGetValue(entry.ServiceName, out var row))
+            {
+                row.Absorb(entry, now);
+            }
+            else
+            {
+                row = EntryRow.Of(entry);
+                _rows[entry.ServiceName] = row;
+            }
+
+            order.Add(row);
+        }
+
+        foreach (var gone in _rows.Keys.Where(name => !seen.Contains(name)).ToArray())
+        {
+            _rows.Remove(gone);
+        }
+
+        _order = order;
+    }
+
+    /// <summary>
+    /// Takes a cheap reading and moves what moved.
+    ///
+    /// A name nobody knows means an entry was installed, and a name that stopped coming means
+    /// one was removed. Neither can be filled in from this reading - everything else a row
+    /// shows is configuration - so it asks for a full one instead. That is rare enough to be
+    /// worth the half second, and pretending otherwise would put a row on screen with two
+    /// columns saying "unknown" for no reason a person could work out.
+    /// </summary>
+    /// <returns>Whether the composition changed, so a full reading is owed.</returns>
+    private bool Freshen(IReadOnlyList<ScmStatus> statuses)
+    {
+        if (statuses.Count != _rows.Count || statuses.Any(status => !_rows.ContainsKey(status.ServiceName)))
+        {
+            return true;
+        }
+
+        var now = _clock.Now;
+        var moved = false;
+
+        foreach (var status in statuses)
+        {
+            moved |= _rows[status.ServiceName].Absorb(status, now);
+        }
+
+        FadeHighlights();
+
+        // Only when something moved. Re-running the filter over 810 entries every second to
+        // find out that nothing changed would be the one part of this that is genuinely
+        // wasteful, and the answer is already known.
+        if (moved)
+        {
+            Apply();
+        }
+
+        return false;
+    }
+
+    private void Fail(Exception failure)
+    {
+        Status = Texts.Of("gui.status.failed", failure.Message);
+        Incomplete = true;
     }
 
     /// <summary>
@@ -250,17 +451,80 @@ public sealed class MainViewModel : Observable
         Problem = string.Empty;
         _query = parsed.Query!;
 
-        var result = _query.Filter(_entries);
+        var selected = new List<EntryRow>(_order.Count);
+        var unreadable = 0;
+        var tooCostly = 0;
 
-        Rows = [.. result.Entries.Select(EntryRow.Of)];
+        foreach (var row in _order)
+        {
+            var match = _query.Match(row.Entry);
 
-        Status = result.Entries.Count == _entries.Count
-            ? Texts.Of("gui.status.read", _entries.Count)
-            : Texts.Of("gui.status.matched", result.Entries.Count, _entries.Count);
+            if (match.Matched)
+            {
+                selected.Add(row);
+            }
 
-        Notice = Admissions(result);
+            if (match.Unreadable)
+            {
+                unreadable++;
+            }
+
+            if (match.TooCostly)
+            {
+                tooCostly++;
+            }
+        }
+
+        Show(selected);
+
+        Status = selected.Count == _order.Count
+            ? Texts.Of("gui.status.read", _order.Count)
+            : Texts.Of("gui.status.matched", selected.Count, _order.Count);
+
+        Notice = Admissions(unreadable, tooCostly);
 
         Raise(nameof(ShowDrivers));
+    }
+
+    /// <summary>
+    /// Makes the visible list match what the query selected, moving as little as possible.
+    ///
+    /// Two passes over one collection: drop what is no longer wanted, then put the missing
+    /// ones where they belong. After the first pass what remains is a subsequence of what is
+    /// wanted, so the second can walk both in step. The rows themselves are the same objects
+    /// throughout, which is what lets the selection and the scroll position survive.
+    ///
+    /// Held back entirely while somebody is using the list. Cells keep moving underneath -
+    /// see <see cref="Interacting"/> for why that half is not held back with it.
+    /// </summary>
+    private void Show(List<EntryRow> selected)
+    {
+        if (_interacting)
+        {
+            _held = Rows.Count != selected.Count || !Rows.SequenceEqual(selected);
+
+            return;
+        }
+
+        _held = false;
+
+        var wanted = new HashSet<EntryRow>(selected);
+
+        for (var index = Rows.Count - 1; index >= 0; index--)
+        {
+            if (!wanted.Contains(Rows[index]))
+            {
+                Rows.RemoveAt(index);
+            }
+        }
+
+        for (var index = 0; index < selected.Count; index++)
+        {
+            if (index >= Rows.Count || !ReferenceEquals(Rows[index], selected[index]))
+            {
+                Rows.Insert(index, selected[index]);
+            }
+        }
     }
 
     /// <summary>
@@ -270,7 +534,7 @@ public sealed class MainViewModel : Observable
     /// that explains an empty list, and somebody staring at one should not have to read past
     /// anything to find out why.
     /// </summary>
-    private string Admissions(QueryResult result)
+    private string Admissions(int unreadable, int tooCostly)
     {
         var needs = _query.Needs;
         var notes = new List<string>();
@@ -278,7 +542,7 @@ public sealed class MainViewModel : Observable
         // This window reads what a listing reads and no more. The command line answers a
         // question about signatures by going and verifying them, measured at 1100-1245 ms over
         // 810 entries and 544 files - a price a listing pays once and a search box cannot pay
-        // on every keystroke. Doing it in the background is A10's work and belongs to S6c.
+        // on every keystroke. Doing it in the background is its own slice after S6c.
         if (needs.HasFlag(ExtraRead.Signatures))
         {
             notes.Add(Texts.Of("gui.query.unreadSignatures"));
@@ -294,14 +558,22 @@ public sealed class MainViewModel : Observable
         // below says the machine refused - which for an unread family would turn "nobody
         // looked" into "you were not allowed", the one distinction this project spends most of
         // its rules keeping apart. The sentence above already says what happened.
-        if (result.Unreadable > 0 && needs == ExtraRead.None)
+        if (unreadable > 0 && needs == ExtraRead.None)
         {
-            notes.Add(Texts.Of("gui.status.partial", result.Unreadable));
+            notes.Add(Texts.Of("gui.status.partial", unreadable));
         }
 
-        if (result.TooCostly > 0)
+        if (tooCostly > 0)
         {
-            notes.Add(Texts.Of("gui.status.tooCostly", result.TooCostly));
+            notes.Add(Texts.Of("gui.status.tooCostly", tooCostly));
+        }
+
+        // Never silent about holding still. A list that quietly stopped matching its own query
+        // while somebody leant on it would be the same silence rule 8 forbids, arriving from
+        // the one direction where it looks like politeness.
+        if (_held)
+        {
+            notes.Add(Texts.Of("gui.status.holding"));
         }
 
         return string.Join(" ", notes);

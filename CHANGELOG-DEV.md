@@ -764,6 +764,57 @@ sense as answers to the one above them.
     screenshot** - row selection and the two coloured lines, the very ones flagged as riskiest -
     so they stay **NOT SEEN**, as backlog item 20.
 
+- **S6c: the list lives**, which is `A10` minus the background reading of expensive data.
+  479 tests against 452, mutation 29 of 29, audit clean.
+  - **A probe before the slice knocked down a sentence this project had written down.**
+    `docs/02` called `NotifyServiceStatusChange` "the right candidate" for `A10` and left NOT
+    ESTABLISHED beside whether CsWin32 could generate it. It generates it without complaint -
+    and the documentation the generator pastes into the generated file says outright that it
+    **cannot report on driver services**, which on this machine is **471 of 810 entries**. It
+    also allows one outstanding request per service, delivers through an APC to a thread
+    parked in an alertable wait, and is spent after a single notification. The sentence was
+    written without reading what the function covers, and has been struck out saying so.
+  - **Measured, five interleaved pairs, cold pair discarded:** the cheap reading costs
+    **13-22 ms over 810 entries** against **423-500 ms** for a full one. The spread inside
+    either variant is narrower than the gap, so the difference is real. That is what makes a
+    **one second** tick reasonable - under two per cent of one processor.
+  - **New primitive, `IScmCatalog.ReadStatuses`:** name, status and process id for everything,
+    from one enumeration. Three members rather than a whole entry, because everything else is
+    configuration that somebody has to change deliberately. What makes a full reading expensive
+    is the handle opened per entry, not the enumeration - so leaving that out is the whole
+    saving rather than a tuning of it.
+  - **The view model changed shape again, and this time it was not a choice.** Swapping the
+    whole list in on one notification - right for filtering - drops the selection and sends the
+    scroll to the top on every refresh, which is the first thing `A10` forbids. So `EntryRow`
+    stopped being immutable, took its identity from the service name (`ADR-14`) and started
+    notifying per cell, and the visible collection is now **reconciled entry by entry**: drop
+    what is unwanted, then insert what is missing where it belongs. The rows stay the same
+    objects throughout, and that is the entire mechanism - a selection is a reference to one.
+  - **The cost of that was measured rather than assumed:** filtering still runs in
+    **0.43-2.40 ms over 810 entries** across six runs, the same as before the change. It still
+    does not cover the grid drawing itself, and no test here can.
+  - **Freezing during interaction is announced, not silent.** While the mouse is over the list
+    or the keyboard is in it, nothing joins or leaves and cells keep moving - so a row can read
+    Stopped under a query about running services. The line under the list says so, because a
+    list quietly disagreeing with its own query would be rule 8's silence arriving from the one
+    direction where it looks like politeness.
+  - **A name nobody knows costs a full reading.** The cheap reading knows an entry appeared and
+    nothing else about it. Putting a row on screen with two columns saying "unknown" would be
+    cheaper and impossible to explain to anybody looking at it.
+  - **The loop does not live in the view model, and that was deliberate.** It exposes one tick
+    and the window calls it on a timer. A loop inside would need a thread, a cancellation and a
+    rule for the window closing mid-read - three things to get wrong - and a test would have to
+    wait real seconds instead of calling a method.
+  - **The mutation tool caught its own author.** Three entries from S6b went STALE and BROKEN
+    the moment the view model was reshaped: two matched nothing, one no longer compiled after
+    mutation. That is the point of having STALE as a verdict at all - "verified by breaking it"
+    rots when the code moves, and it rots invisibly. They were rewritten against the new shape.
+  - **Deliberately left out:** the second phase of `ADR-13`. At S6b this was written down as
+    belonging to S6c, and that is **withdrawn**: it is separate machinery - background work,
+    cancellation, columns filling in mid-read - and welding it to a refresh loop is how a slice
+    grows while being built. **NOT MEASURED:** what the refresh costs on a two-processor
+    machine, where the snapshot budget already has no margin.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two

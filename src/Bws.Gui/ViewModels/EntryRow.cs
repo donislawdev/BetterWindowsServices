@@ -11,33 +11,159 @@ namespace Bws.Gui.ViewModels;
 /// with a wrong answer - "not read" rendered as an empty cell reads as "there is none", and
 /// those two say opposite things about a service.
 ///
-/// Doing it here means the rule lives in one place and can be checked without a window.
+/// <b>It changes rather than being replaced, and that is what makes a live list possible.</b>
+/// A window that swapped in new row objects every second would reset the scroll position and
+/// drop the selection every time, which is precisely what `A10` forbids. So the row keeps its
+/// identity - the internal service name, never the display name (`ADR-14`) - and its cells
+/// move underneath it.
 /// </summary>
-public sealed class EntryRow
+public sealed class EntryRow : Observable
 {
+    private ScmEntry _entry;
+    private string _displayName;
+    private string _status;
+    private string _startType;
+    private string _account;
+    private string _processId;
+    private bool _recentlyChanged;
+
     private EntryRow(ScmEntry entry)
     {
+        _entry = entry;
         ServiceName = entry.ServiceName;
+        _displayName = entry.DisplayName;
+        _status = entry.Status.ToString();
+        _startType = Describe(entry.StartType, value => value.ToString());
+        _account = Describe(entry.Account, value => value);
+        _processId = Describe(entry.ProcessId, Number);
+    }
+
+    /// <summary>
+    /// Which entry this row is. Never changes, because it is the identity rather than a
+    /// property - `ADR-14`. Windows treats it as case insensitive while keeping the spelling,
+    /// so anything matching rows to entries has to do the same.
+    /// </summary>
+    public string ServiceName { get; }
+
+    public string DisplayName
+    {
+        get => _displayName;
+        private set => Set(ref _displayName, value);
+    }
+
+    public string Status
+    {
+        get => _status;
+        private set => Set(ref _status, value);
+    }
+
+    public string StartType
+    {
+        get => _startType;
+        private set => Set(ref _startType, value);
+    }
+
+    public string Account
+    {
+        get => _account;
+        private set => Set(ref _account, value);
+    }
+
+    public string ProcessId
+    {
+        get => _processId;
+        private set => Set(ref _processId, value);
+    }
+
+    /// <summary>
+    /// Whether this row moved a moment ago.
+    ///
+    /// `A10` rule three: a change has to be visible rather than stealthy. A list that quietly
+    /// corrects itself is a list where somebody looking away misses the one thing they were
+    /// waiting for, and then distrusts the whole window.
+    ///
+    /// Cleared by whoever set it, on a clock, rather than by a timer per row. Eight hundred
+    /// timers to make a highlight fade would be a lot of machinery for a coloured background.
+    /// </summary>
+    public bool RecentlyChanged
+    {
+        get => _recentlyChanged;
+        internal set => Set(ref _recentlyChanged, value);
+    }
+
+    /// <summary>The entry behind this row, which is what a query is asked about.</summary>
+    internal ScmEntry Entry => _entry;
+
+    /// <summary>When this row last moved, for whoever is clearing the highlight.</summary>
+    internal DateTimeOffset ChangedAt { get; private set; }
+
+    public static EntryRow Of(ScmEntry entry) => new(entry);
+
+    /// <summary>
+    /// Takes what a cheap reading found, and says whether anything actually moved.
+    ///
+    /// The entry behind the row is updated too, not only the cells. Leaving it stale would
+    /// mean the list showed a service as stopped while a query about running services still
+    /// counted it - the row and the filter disagreeing about the same fact.
+    /// </summary>
+    internal bool Absorb(ScmStatus status, DateTimeOffset now)
+    {
+        if (_entry.Status == status.Status && SameProcess(_entry.ProcessId, status.ProcessId))
+        {
+            return false;
+        }
+
+        _entry = _entry with { Status = status.Status, ProcessId = status.ProcessId };
+
+        Status = _entry.Status.ToString();
+        ProcessId = Describe(_entry.ProcessId, Number);
+        ChangedAt = now;
+        RecentlyChanged = true;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Takes a full reading of the same entry. Configuration moves when somebody changes it,
+    /// which is rarer than a service starting and is not what the cheap reading watches.
+    /// </summary>
+    internal bool Absorb(ScmEntry entry, DateTimeOffset now)
+    {
+        var moved = _entry.Status != entry.Status
+            || !SameProcess(_entry.ProcessId, entry.ProcessId)
+            || Describe(_entry.StartType, value => value.ToString()) != Describe(entry.StartType, value => value.ToString())
+            || Describe(_entry.Account, value => value) != Describe(entry.Account, value => value)
+            || _entry.DisplayName != entry.DisplayName;
+
+        _entry = entry;
+
         DisplayName = entry.DisplayName;
         Status = entry.Status.ToString();
         StartType = Describe(entry.StartType, value => value.ToString());
         Account = Describe(entry.Account, value => value);
-        ProcessId = Describe(entry.ProcessId, value => value.ToString(System.Globalization.CultureInfo.CurrentCulture));
+        ProcessId = Describe(entry.ProcessId, Number);
+
+        if (moved)
+        {
+            ChangedAt = now;
+            RecentlyChanged = true;
+        }
+
+        return moved;
     }
 
-    public string ServiceName { get; }
+    /// <summary>
+    /// Two readings of a process, compared including their outcome.
+    ///
+    /// Absent and present-with-a-value are different answers even when neither carries a
+    /// number, and comparing only the numbers would miss a service stopping if the manager
+    /// happened to have refused the reading before.
+    /// </summary>
+    private static bool SameProcess(Reading<int> left, Reading<int> right) =>
+        left.Outcome == right.Outcome && left.Value == right.Value;
 
-    public string DisplayName { get; }
-
-    public string Status { get; }
-
-    public string StartType { get; }
-
-    public string Account { get; }
-
-    public string ProcessId { get; }
-
-    public static EntryRow Of(ScmEntry entry) => new(entry);
+    private static string Number(int value) =>
+        value.ToString(System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>
     /// A reading as text, with each of the four states saying something different.

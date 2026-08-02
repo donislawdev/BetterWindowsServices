@@ -103,6 +103,17 @@
     <SolidColorBrush x:Key="SurfaceHover">#2A2A2A</SolidColorBrush>
     <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
 
+    <!--
+        A row that moved a moment ago. A10 rule three: a change has to be visible rather than
+        stealthy, because a list that quietly corrects itself is one where somebody looking
+        away misses the thing they were waiting for.
+
+        Deliberately dim. It marks every service that starts or stops while the window is
+        open, which on a working machine is a steady trickle - loud enough to catch the eye
+        from across the screen and it would be a fairground.
+    -->
+    <SolidColorBrush x:Key="SurfaceChanged">#3A3320</SolidColorBrush>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
@@ -128,6 +139,14 @@
 
     <Style TargetType="DataGridRow">
         <Style.Triggers>
+            <!--
+                First, so that pointing at a row or selecting it still wins. A person's own
+                hand beats a notification about something that already happened.
+            -->
+            <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceChanged}" />
+            </DataTrigger>
+
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
                 <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
