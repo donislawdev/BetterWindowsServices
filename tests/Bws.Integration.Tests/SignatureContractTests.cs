@@ -151,5 +151,5 @@ public sealed class SignatureContractTests
 
     private static string AccordingToPowerShell(string file) =>
         CommandLineTool.PowerShell(
-            $"(Get-AuthenticodeSignature -LiteralPath '{file.Replace("'", "''")}').Status.ToString()");
+            $"(Get-AuthenticodeSignature -LiteralPath '{file.Replace("'", "''", StringComparison.Ordinal)}').Status.ToString()");
 }

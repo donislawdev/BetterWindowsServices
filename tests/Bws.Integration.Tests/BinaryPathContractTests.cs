@@ -141,14 +141,16 @@ public sealed class BinaryPathContractTests
     {
         var trimmed = command.Trim();
 
-        if (trimmed.Length == 0 || trimmed[0] == '"' || !trimmed.Contains(' '))
+        if (trimmed.Length == 0 || trimmed[0] == '"' || !trimmed.Contains(' ', StringComparison.Ordinal))
         {
             yield break;
         }
 
         var settled = reported.Count(character => character == ' ');
 
-        for (var space = trimmed.IndexOf(' '); space >= 0; space = trimmed.IndexOf(' ', space + 1))
+        for (var space = trimmed.IndexOf(' ', StringComparison.Ordinal);
+             space >= 0;
+             space = trimmed.IndexOf(' ', space + 1))
         {
             var candidate = trimmed[..space];
 

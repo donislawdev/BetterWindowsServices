@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Querying;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -522,6 +523,161 @@ public sealed class MainViewModelTests
         await model.LoadAsync();
 
         Assert.Equal("Print Spooler, renamed", model.Rows[0].DisplayName);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Reentrancy: what the window can do to itself while it is waiting for the machine
+    // ---------------------------------------------------------------------------------
+    //
+    // Not thread safety. Every continuation here comes back to the interface thread, so two
+    // fields are never written at once - which is exactly why this class of hole is invisible
+    // by inspection. What can go wrong is ordering: a reading started earlier finishing later
+    // and leaving an older answer on screen, or a call re-entering while its own state is
+    // half rebuilt. The real threading in this project lives in the core's second pass and is
+    // guarded there.
+
+    [Fact]
+    public async Task Two_readings_are_never_out_at_once()
+    {
+        // Found by reading the code rather than by a failure, and the fix is worth less than
+        // the test: before it, pressing F5 twice sent two full readings, and the one that
+        // FINISHED later won rather than the one that LOOKED later. So the list could settle
+        // on the older of two answers and say nothing about it.
+        var machine = new LiveMachine(Entry("Spooler"), Entry("BITS"));
+        var model = await Loaded(machine);
+
+        var reads = machine.FullReads;
+
+        machine.HoldReadings();
+
+        var first = model.LoadAsync();
+
+        try
+        {
+            // Never a bare await on the second call, and that is the whole shape of this test.
+            // Without the guard it starts its own reading, blocks on the same gate as the
+            // first, and **the test hangs instead of failing** - which this project has already
+            // paid for once, when picking the wrong regex engine hung the suite rather than
+            // reddening it. A hang tells nobody anything.
+            await Returned(model.LoadAsync(), "a second full reading");
+
+            // A tick arriving in the same window is turned away by the same guard, because both
+            // kinds of reading rebuild the same state.
+            await Returned(model.RefreshAsync(), "a tick");
+        }
+        finally
+        {
+            machine.ReleaseReadings();
+        }
+
+        await first;
+
+        Assert.Equal(reads + 1, machine.FullReads);
+        Assert.Equal(0, machine.StatusReads);
+    }
+
+    /// <summary>
+    /// Waits for a call that is supposed to come straight back, and fails rather than waits if
+    /// it does not.
+    /// </summary>
+    private static async Task Returned(Task call, string what)
+    {
+        var settled = await Task.WhenAny(call, Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false);
+
+        Assert.True(
+            ReferenceEquals(settled, call),
+            $"{what} did not come back while another was still out, so it started one of its own. " +
+            "The guard against overlapping readings is missing.");
+
+        await call.ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task The_list_always_matches_the_query_however_the_operations_are_interleaved()
+    {
+        // An invariant rather than a scenario, and that is the point: nobody can enumerate the
+        // orders in which a person types, points, presses F5 and lets a tick land. What can be
+        // stated is what must be true after every one of them.
+        var machine = new LiveMachine(Entry("Spooler"), Stopped("BITS"), Driver("disk"), Entry("Winmgmt"));
+        var model = await Loaded(machine);
+
+        var steps = new List<(string Name, Func<Task> Do)>
+        {
+            ("type a query", () => { model.QueryText = "status:running"; return Task.CompletedTask; }),
+            ("type a broken query", () => { model.QueryText = "status:runing"; return Task.CompletedTask; }),
+            ("type nothing", () => { model.QueryText = string.Empty; return Task.CompletedTask; }),
+            ("hide drivers", () => { model.ShowDrivers = false; return Task.CompletedTask; }),
+            ("show drivers", () => { model.ShowDrivers = true; return Task.CompletedTask; }),
+            ("turn on expressions", () => { model.BareWordsAreExpressions = true; return Task.CompletedTask; }),
+            ("turn off expressions", () => { model.BareWordsAreExpressions = false; return Task.CompletedTask; }),
+            ("start using the list", () => { model.Interacting = true; return Task.CompletedTask; }),
+            ("stop using the list", () => { model.Interacting = false; return Task.CompletedTask; }),
+            ("a service stops", () => { machine.Stop("Spooler"); return Task.CompletedTask; }),
+            ("a service starts", () => { machine.Start("BITS", 4321); return Task.CompletedTask; }),
+            ("a tick lands", model.RefreshAsync),
+            ("somebody presses F5", model.LoadAsync)
+        };
+
+        // Every ordered pair, which is where reentrancy hides - one operation landing inside
+        // the state another left behind.
+        foreach (var first in steps)
+        {
+            foreach (var second in steps)
+            {
+                await first.Do();
+                await second.Do();
+
+                Invariants(model, $"after '{first.Name}' then '{second.Name}'");
+            }
+        }
+    }
+
+    /// <summary>
+    /// What has to be true of the window no matter what just happened to it.
+    ///
+    /// Judged against what the model has read, not against the machine as it is now. The two
+    /// differ on purpose between one tick and the next, and holding the window to the second
+    /// would be a test demanding clairvoyance.
+    /// </summary>
+    private static void Invariants(MainViewModel model, string after)
+    {
+        // No row twice. A reconciliation that inserted without removing would show one service
+        // in two places, and a person would believe it.
+        Assert.True(
+            model.Rows.Distinct().Count() == model.Rows.Count,
+            $"A row appears more than once {after}.");
+
+        Assert.True(
+            model.Rows.Select(row => row.ServiceName).Distinct(StringComparer.OrdinalIgnoreCase).Count() == model.Rows.Count,
+            $"Two rows carry the same service name {after}.");
+
+        // The line under the list always says something. "Reading" counts, emptiness does not.
+        Assert.False(string.IsNullOrWhiteSpace(model.Status), $"The line under the list is empty {after}.");
+
+        var parsed = QueryParser.Parse(model.QueryText, bareWordsAreExpressions: model.BareWordsAreExpressions);
+
+        // A query that does not read leaves the list where it was, so there is nothing to
+        // hold it to - and the window has to have said so.
+        if (!parsed.IsValid)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(model.Problem), $"A broken query is not reported {after}.");
+
+            return;
+        }
+
+        Assert.Equal(string.Empty, model.Problem);
+
+        // Suspended on purpose while somebody is leaning on the list, and the window says so
+        // in words. That is the one place this invariant is allowed to lapse, and it may not
+        // lapse quietly.
+        if (model.Interacting)
+        {
+            return;
+        }
+
+        Assert.True(
+            model.Rows.All(row => parsed.Query!.Match(row.Entry).Matched),
+            $"A row on screen does not satisfy the query {after}.");
     }
 
     [Fact]

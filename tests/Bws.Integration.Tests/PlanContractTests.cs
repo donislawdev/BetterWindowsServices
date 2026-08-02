@@ -76,7 +76,7 @@ public sealed class PlanContractTests
 
         // And the message says where the option does work, because "not here" alone leaves
         // somebody guessing at the surface.
-        Assert.Contains("It works with:", run.StandardError);
+        Assert.Contains("It works with:", run.StandardError, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -88,10 +88,10 @@ public sealed class PlanContractTests
         var run = CommandLineTool.Run("stop", "Spooler", "--dry-run", "--timing");
 
         Assert.Equal(0, run.ExitCode);
-        Assert.Contains("Read ", run.StandardError);
+        Assert.Contains("Read ", run.StandardError, StringComparison.Ordinal);
 
         // Not the filtering line, which would be a measurement of something that never ran.
-        Assert.DoesNotContain("filtered in", run.StandardError);
+        Assert.DoesNotContain("filtered in", run.StandardError, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,7 +126,8 @@ public sealed class PlanContractTests
         Assert.Equal("Stopped", result.GetProperty("status").GetString());
 
         // And the machine agrees, according to something that is not us.
-        Assert.Contains("STOPPED", CommandLineTool.ServiceControl("query", target).StandardOutput);
+        Assert.Contains(
+            "STOPPED", CommandLineTool.ServiceControl("query", target).StandardOutput, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -139,8 +140,11 @@ public sealed class PlanContractTests
         var run = CommandLineTool.Run("stop", target);
 
         Assert.Equal(0, run.ExitCode);
-        Assert.Contains($"Plan: stop {target}  (1 step)", run.StandardOutput);
-        Assert.Contains($"  1. stop  {target}   (asked for)   already there, nothing to do", run.StandardOutput);
+        Assert.Contains($"Plan: stop {target}  (1 step)", run.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains(
+            $"  1. stop  {target}   (asked for)   already there, nothing to do",
+            run.StandardOutput,
+            StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -156,8 +160,8 @@ public sealed class PlanContractTests
 
             // sc.exe is the authority, not our own listing. Checking with the tool under
             // test whether the tool under test is safe to run would prove nothing.
-            var stopped = CommandLineTool.ServiceControl("query", name).StandardOutput.Contains("STOPPED");
-            var disabled = CommandLineTool.ServiceControl("qc", name).StandardOutput.Contains("DISABLED");
+            var stopped = CommandLineTool.ServiceControl("query", name).StandardOutput.Contains("STOPPED", StringComparison.Ordinal);
+            var disabled = CommandLineTool.ServiceControl("qc", name).StandardOutput.Contains("DISABLED", StringComparison.Ordinal);
 
             if (stopped && disabled)
             {

@@ -90,7 +90,10 @@ public static class BinaryPathResolver
         // deliberately not done here.
         string? executableLooking = null;
 
-        for (var space = trimmed.IndexOf(' '); ; space = trimmed.IndexOf(' ', space + 1))
+        // Ordinal by construction: searching for a character has no cultural reading, and
+        // the overload taking a start index has no comparison parameter to pass one to.
+        for (var space = trimmed.IndexOf(' ', StringComparison.Ordinal); ;
+             space = trimmed.IndexOf(' ', space + 1))
         {
             var candidate = Absolute(space < 0 ? trimmed : trimmed[..space], windowsDirectory);
 
@@ -126,7 +129,7 @@ public static class BinaryPathResolver
     {
         var value = candidate.Trim();
 
-        if (value.Contains('%'))
+        if (value.Contains('%', StringComparison.Ordinal))
         {
             value = Environment.ExpandEnvironmentVariables(value);
         }

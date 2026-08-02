@@ -37,6 +37,19 @@ internal sealed class LiveMachine : IScmCatalog
     /// <summary>Thrown by the next reading of either kind, then cleared.</summary>
     internal Exception? FailNext { get; set; }
 
+    /// <summary>
+    /// Holds every reading inside the manager until it is released.
+    ///
+    /// The only way to have two readings genuinely in flight at once from a test. Without it,
+    /// a double is so fast that the first call has finished before the second is made, and a
+    /// test about two overlapping readings would be a test about one.
+    /// </summary>
+    private readonly ManualResetEventSlim _gate = new(initialState: true);
+
+    internal void HoldReadings() => _gate.Reset();
+
+    internal void ReleaseReadings() => _gate.Set();
+
     internal void Stop(string serviceName) => _entries[serviceName] = _entries[serviceName] with
     {
         Status = EntryStatus.Stopped,
@@ -68,6 +81,7 @@ internal sealed class LiveMachine : IScmCatalog
     public IReadOnlyList<ScmEntry> ReadAll()
     {
         FullReads++;
+        _gate.Wait();
         Throw();
 
         return [.. _order.Select(name => _entries[name])];
@@ -76,6 +90,7 @@ internal sealed class LiveMachine : IScmCatalog
     public IReadOnlyList<ScmStatus> ReadStatuses()
     {
         StatusReads++;
+        _gate.Wait();
         Throw();
 
         return [.. _order.Select(name => new ScmStatus(name, _entries[name].Status, _entries[name].ProcessId))];

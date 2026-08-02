@@ -815,6 +815,46 @@ sense as answers to the one above them.
     grows while being built. **NOT MEASURED:** what the refresh costs on a two-processor
     machine, where the snapshot budget already has no margin.
 
+- **Four mechanisms against races and tangle**, after the owner asked how to prevent them in
+  code they do not read. 484 tests against 479, mutation 33 of 33, audit clean.
+  - **The answer was not another document, and that is the finding.** The threading rules have
+    been in `docs/06` since July and `docs/02` promised concurrency tests in the same month.
+    Neither caught anything, because prose has nothing checking it - which is rule 3 of this
+    project demonstrated on this project.
+  - **Found by reading the code while answering:** `LoadAsync` had no guard against overlapping
+    calls. Two presses of F5 sent two full readings and the one that **finished** later won
+    rather than the one that **looked** later, so the list could settle on the older of two
+    answers silently. None of the 479 tests could see it - none called anything twice at once.
+  - **It is not a data race, and the distinction matters for whoever reads this next.** Every
+    continuation comes back to the interface thread, so no two fields are ever written at once.
+    What breaks is ordering and reentrancy. The real threading in this project is the core's
+    second pass and it has its own guard.
+  - **A test with its own ceiling, because the first version hung.** Removing the guard under
+    mutation made the second call block on the same gate as the first and the run never ended -
+    a hang reports nothing at all. Anything asserting that a call comes straight back has to
+    time out and fail rather than await. This project paid for the same lesson once already,
+    choosing a regular expression engine.
+  - **An invariant over every ordered pair of thirteen operations** - typing, both switches, a
+    tick, F5, the cursor arriving and leaving. Not a scenario: nobody can enumerate the orders
+    in which those land, but what must be true after each of them can be stated.
+  - **`BackgroundWorkGuards`:** `async void` only from a list with a reason beside each entry
+    (one today, an overridden key handler the framework leaves no choice about), and work
+    started and abandoned with **no list at all**, because there is no case for it here.
+  - **Analyser rules named one at a time rather than a mode, and the measurement is why.**
+    `AnalysisMode=Recommended` reports **496 warnings on this tree, 248 of them CA1707** -
+    identifiers containing underscores, which is every test name in the project and a
+    deliberate convention. A guard that screams at correct code is switched off within a week.
+  - **The narrow set found one real defect on its first day:** `X509Certificate.CreateFromSignedFile`
+    was never disposed, leaving one native certificate context per signed file to a finaliser -
+    **544 of them in a single snapshot**. No test could have seen it: the answers were right
+    and the run finished.
+  - **And it would not have found the hole it was proposed for.** Analysers see patterns, and a
+    missing reentrancy guard is a design decision. Worth writing down, because it deflates a
+    mechanism I proposed myself.
+  - **Deliberately not built:** a report on file and method length, offered as the fourth
+    mechanism and not chosen. Backlog item 23, with the reason - I had named it the weakest of
+    the four, since line count is a poor measure of tangle.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two

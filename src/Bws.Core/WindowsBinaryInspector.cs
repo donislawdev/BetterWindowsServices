@@ -375,8 +375,18 @@ public sealed class WindowsBinaryInspector : IBinaryInspector
             // throw is caught below, and every file on the machine comes back trusted with
             // nobody's name against it. It shipped that way for one build and an integration
             // test caught it, which is the only thing that would have.
+            // Both handles released, and the inner one was leaking. The extractor returns a
+            // certificate holding a native context, the constructor beside it copies from that
+            // certificate rather than taking it over, and nothing was disposing the original -
+            // so every signed file left one native handle to a finaliser. Over 544 distinct
+            // files in one snapshot that is 544 of them.
+            //
+            // Found by an analyser on 2026-08-02, not by a test. No test could see it: the
+            // answers were right, the run finished, and the only symptom was handles going
+            // back later than they should have.
 #pragma warning disable SYSLIB0057
-            using var certificate = new X509Certificate2(X509Certificate.CreateFromSignedFile(file));
+            using var signed = X509Certificate.CreateFromSignedFile(file);
+            using var certificate = new X509Certificate2(signed);
 #pragma warning restore SYSLIB0057
 
             var name = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false);

@@ -70,13 +70,18 @@ internal static class Texts
         // English first, then the chosen language on top of it. A translation that is missing
         // a key falls back to a sentence rather than showing the key - an unfinished
         // translation should be usable, not a punishment.
-        Merge(strings, Embedded(Fallback));
+        using (var fallback = Embedded(Fallback))
+        {
+            Merge(strings, fallback);
+        }
 
         var wanted = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 
         if (!string.Equals(wanted, Fallback, StringComparison.OrdinalIgnoreCase))
         {
-            Merge(strings, Embedded(wanted) ?? Beside(wanted));
+            using var chosen = Embedded(wanted) ?? Beside(wanted);
+
+            Merge(strings, chosen);
         }
 
         return strings;
@@ -98,6 +103,16 @@ internal static class Texts
         return File.Exists(file) ? File.OpenRead(file) : null;
     }
 
+    /// <summary>
+    /// Reads one language file into the dictionary. Does not own the stream.
+    ///
+    /// Ownership sits with the caller, which is the reverse of how this was first written, and
+    /// the change is not cosmetic. Disposing something handed in means every call site has to
+    /// know that this one does - and the site that mattered picked between two streams with a
+    /// null coalescing operator, where an analyser could no longer tell which of them was going
+    /// to be closed. Owning it at the point where it is chosen is the version a reader can
+    /// check in one line.
+    /// </summary>
     private static void Merge(Dictionary<string, string> into, Stream? source)
     {
         if (source is null)
@@ -105,18 +120,15 @@ internal static class Texts
             return;
         }
 
-        using (source)
-        {
-            using var document = JsonDocument.Parse(source);
+        using var document = JsonDocument.Parse(source);
 
-            foreach (var property in document.RootElement.EnumerateObject())
+        foreach (var property in document.RootElement.EnumerateObject())
+        {
+            // Anything that is not a plain string describes the file rather than being
+            // one of its strings.
+            if (property.Value.ValueKind == JsonValueKind.String)
             {
-                // Anything that is not a plain string describes the file rather than being
-                // one of its strings.
-                if (property.Value.ValueKind == JsonValueKind.String)
-                {
-                    into[property.Name] = property.Value.GetString()!;
-                }
+                into[property.Name] = property.Value.GetString()!;
             }
         }
     }

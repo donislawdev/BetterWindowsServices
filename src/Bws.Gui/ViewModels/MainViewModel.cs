@@ -68,7 +68,7 @@ public sealed class MainViewModel : Observable
     private string _problem = string.Empty;
     private bool _incomplete;
     private bool _interacting;
-    private bool _refreshing;
+    private bool _reading;
     private bool _held;
 
     public MainViewModel()
@@ -242,8 +242,38 @@ public sealed class MainViewModel : Observable
     /// <summary>
     /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks
     /// for afterwards.
+    ///
+    /// A second call arriving while one is out is dropped rather than queued. Without that,
+    /// two presses of F5 send two readings and the one that <b>finished later</b> wins rather
+    /// than the one that <b>read later</b> - so the list can settle on the older of two
+    /// answers and say nothing about it. Nothing here corrupts, because every continuation
+    /// comes back to the interface thread, which is precisely why the hole was invisible: it
+    /// is a question of ordering rather than of two threads touching one field.
     /// </summary>
     public async Task LoadAsync()
+    {
+        if (_reading)
+        {
+            return;
+        }
+
+        _reading = true;
+
+        try
+        {
+            await LoadEverything().ConfigureAwait(true);
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    /// <summary>
+    /// The reading itself, without the guard, because the tick already holds it when it finds
+    /// out that it needs a full one.
+    /// </summary>
+    private async Task LoadEverything()
     {
         Status = Texts.Of("gui.status.reading");
 
@@ -285,15 +315,19 @@ public sealed class MainViewModel : Observable
     /// </summary>
     public async Task RefreshAsync()
     {
-        // A tick arriving while the last one is still out is dropped rather than queued. The
+        // A tick arriving while any reading is still out is dropped rather than queued. The
         // reading is short, so this only happens when the machine is busy - and answering a
         // late tick with a second reading would make it busier.
-        if (_refreshing)
+        //
+        // One flag for both kinds of reading, not two. They rebuild the same state, so two
+        // flags would let a tick and an F5 overlap and leave whichever finished last on
+        // screen, which is not the same thing as whichever looked last.
+        if (_reading)
         {
             return;
         }
 
-        _refreshing = true;
+        _reading = true;
 
         try
         {
@@ -319,15 +353,16 @@ public sealed class MainViewModel : Observable
 
             if (Freshen(statuses))
             {
-                // Awaited rather than left running, so that a caller who waits for one tick
-                // really has waited for it - and so the guard above is still standing when the
-                // full reading finishes.
-                await LoadAsync().ConfigureAwait(true);
+                // The unguarded one, because the guard above is already held. Calling the
+                // public entry point here would find its own flag raised and quietly do
+                // nothing, which is the sort of deadlock-by-politeness that looks like the
+                // machine simply never installing anything.
+                await LoadEverything().ConfigureAwait(true);
             }
         }
         finally
         {
-            _refreshing = false;
+            _reading = false;
         }
     }
 

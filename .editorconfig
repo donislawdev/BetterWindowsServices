@@ -32,3 +32,50 @@ dotnet_naming_style.underscore_camel.capitalization = camel_case
 # Silence is forbidden (CLAUDE.md rule 8): an empty catch block is an error,
 # not a style preference.
 dotnet_diagnostic.CA1031.severity = warning
+
+# ---------------------------------------------------------------------------------------
+# Analysers turned on one rule at a time, 2026-08-02, after measuring what a mode costs.
+#
+# AnalysisMode=Recommended was measured on this tree and reported 496 warnings, of which
+# 248 were CA1707 - "identifiers should not contain underscores" - which is every test
+# name in the project and a deliberate convention. A guard that screams at correct code
+# gets switched off in a week, so a mode is the wrong instrument here and a named list is
+# the right one. Every rule below earned its place by what it found or by what it protects.
+#
+# What the measurement also showed, and it is worth writing down because it deflates the
+# reason this was proposed: none of these would have caught the reentrancy hole in the
+# window. Analysers see patterns, not designs.
+
+# Dispose before losing scope. This one found a real leak on the day it went in: a
+# certificate context per signed file, 544 of them in one snapshot, left to a finaliser.
+# No test could have seen it - the answers were right and the run finished.
+dotnet_diagnostic.CA2000.severity = warning
+
+# Culture. Rule 3 of CLAUDE.md says never assume an English Windows, and these are that
+# rule where a compiler can check it: a comparison or a conversion that quietly depends on
+# the machine's regional settings is exactly the silent wrong answer this product cannot
+# afford. The invariant forms have to be asked for out loud.
+dotnet_diagnostic.CA1304.severity = warning
+dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1307.severity = warning
+dotnet_diagnostic.CA1310.severity = warning
+
+# Blocking inside something asynchronous, and awaiting without saying which context it
+# comes back on. Neither fires today - the window already writes ConfigureAwait everywhere
+# and nothing blocks - so these are here to keep it that way rather than to fix anything.
+# A tick running once a second on the interface thread is where the first Result or Wait
+# would freeze the window, and it would look like the machine being slow.
+dotnet_diagnostic.CA1849.severity = warning
+dotnet_diagnostic.CA2007.severity = warning
+
+# A cancellation token that exists and is not passed on. Background work that cannot be
+# stopped is half of what 06-STRUKTURA-I-KONWENCJE part 4 asks for.
+dotnet_diagnostic.CA2016.severity = warning
+
+[tests/**.cs]
+# The one rule above that does not apply here rather than being inconvenient. CA2007 is
+# about which context an await comes back on, and the test runner has none - so writing
+# ConfigureAwait on every await in a test would be ceremony that says nothing. Everything
+# else stays on: a test comparing strings against what the machine returned is subject to
+# the same regional settings the product is.
+dotnet_diagnostic.CA2007.severity = none
