@@ -46,7 +46,19 @@ public sealed class ConcurrencyGuards
             "Reading the manager off the interface thread, because a full reading takes about " +
             "half a second and a window that stops answering for half a second looks broken. " +
             "Only the reading runs out there - nothing it returns touches anything on screen " +
-            "until it is back."
+            "until it is back.",
+
+        ["WindowsScmCatalog.cs"] =
+            "Describing entries several at a time, added 2026-08-02. The same loop over the " +
+            "same 810 entries costs 13-22 ms without opening a handle per entry and 455-475 " +
+            "with, so about 440 ms of every listing was one processor waiting on the manager " +
+            "while fifteen did nothing. Measured after: 108-122 ms, and the whole bws list " +
+            "process went from 569-595 ms to 231-260. The ranges do not touch. " +
+            "Order is held by index rather than by sorting afterwards, so the answer is the " +
+            "sequential one by construction, and ReadAllContractTests compares a parallel " +
+            "reading against a single-threaded one field by field - which is also the only " +
+            "check on the assumption underneath this: that one OpenSCManager handle may be " +
+            "used by OpenService from several threads at once."
     };
 
     /// <summary>
