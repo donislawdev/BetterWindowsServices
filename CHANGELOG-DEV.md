@@ -938,6 +938,36 @@ sense as answers to the one above them.
     `IsPackable=false` that `dotnet publish` never touches. Written up in `ADR-15` with the
     register.
 
+- **The last budget nobody had measured, measured - and breached.** The specification's
+  section 8.1 lists six performance promises. Five of them have nothing holding them, and one
+  has been broken since the window was built.
+  - **The window uses 147.7-149.6 MB in Release** against a budget written as "tens of MB".
+    Debug measures 149.8-152, so the build configuration is not the explanation.
+  - **The data is not the cost, and that comes from subtracting two measurements rather than
+    from a guess:** `bws list` reads the same 810 entries and fits in **31.8-32.4 MB**, and
+    `bws snapshot create` in 72.0-79.9. About 116 MB is the window itself. What exactly, **NOT
+    ESTABLISHED**.
+  - **Processor time for the live refresh: 0.61% of one core** in Release, 0.75 in Debug, over
+    36 seconds with the one second tick running. The earlier claim of "under two per cent" was
+    arithmetic from the read time rather than a measurement of the process. It is now a
+    measurement, and it came out better than the arithmetic.
+  - **Whether it grows over hours is open.** The tick allocates 810 records a second. Thirty
+    five seconds showed two megabytes, which means nothing for a tool meant to stay open all
+    day, so it is written down rather than answered.
+  - **The snapshot budget deliberately has no guard**, and that belongs in the record rather
+    than being left as an absence: the margin on two processors is 0.4%, so a test asserting it
+    would go red on a loaded agent for reasons that are not ours - and a guard that reddens at
+    random teaches everybody to ignore it.
+  - **Four rules go with the table**, each paid for by a measurement here rather than being
+    general advice: measure the family and not the category, because the spread inside
+    "expensive data" turned out to be two orders of magnitude; the cost sits where a handle is
+    opened, not where the loop is - 13-22 ms against 423-500 ms over the same 810 entries; do
+    not build deferral machinery on a guess about cost, because the two families that looked
+    like candidates were both too cheap to bother; and a budget with no guard is a wish.
+  - **Written down here first on purpose.** `CLAUDE.md` and `docs/` are both outside version
+    control - the first of those was stated wrongly several times today, and this file is the
+    only one of the three that survives in the repository.
+
 ### Fixed
 
 - **One malformed file could end a whole run** (`b9831a7`). `WindowsBinaryInspector` caught two
