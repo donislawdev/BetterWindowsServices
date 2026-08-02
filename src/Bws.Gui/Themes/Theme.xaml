@@ -121,6 +121,23 @@
         Default look per control type, so a control is consistent without anybody remembering
         to apply a style. The guard checks these too: every Value below points at a name.
     -->
+    <!--
+        Every background a row can take lives here, on the CELL, and that is measured rather
+        than stylistic. There is no DataGridRow style in this file and there must not be one.
+
+        Measured 2026-08-02, on screen, by sampling pixels rather than by reading the markup.
+        The three states used to sit on DataGridRow and exactly one of them was visible: the
+        selected row, which looked right only because the same brush was also set here. A cell
+        in this theme paints an opaque background of its own and covers the row underneath, so
+        a Background setter on DataGridRow reaches nothing. The row that had just moved was
+        computed correctly, had a guard, passed mutation - and never once appeared, through
+        fourteen frames of a service stopping.
+
+        The lesson is worth more than the fix: XAML that binds successfully and paints nothing
+        reddens no test and logs no failure. It is the silence of rule 8 arriving through the
+        one door the compiler does not watch. tools/gui-probe checks these three colours by
+        pixel at the close of a GUI slice, because nothing else can.
+    -->
     <Style TargetType="DataGridCell">
         <!--
             No border at all, ever. The default draws one around the focused cell, which on a
@@ -130,29 +147,37 @@
         <Setter Property="Padding" Value="{StaticResource PadCell}" />
 
         <Style.Triggers>
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
-                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <Style TargetType="DataGridRow">
-        <Style.Triggers>
             <!--
                 First, so that pointing at a row or selecting it still wins. A person's own
                 hand beats a notification about something that already happened.
+
+                Bound to the row's own property, which every cell of that row shares, so the
+                whole row lights up rather than one cell of it.
             -->
             <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceChanged}" />
             </DataTrigger>
 
+            <!--
+                Asked of the ROW rather than of this cell. IsMouseOver on a cell is true for
+                the one cell under the pointer, which would light a single box in the middle
+                of a row and read as a rendering fault rather than as feedback.
+            -->
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceHover}" />
+            </DataTrigger>
+
+            <!--
+                LAST, so selection beats the pointer, and that order is measured rather than
+                assumed. With the pointer winning, a row went grey the instant it was clicked
+                and stayed grey for as long as the hand did not move - so the one row the
+                person had just chosen was the one row that did not look chosen. The dead
+                style this replaced had the opposite order and nobody could ever see it,
+                because none of the three colours reached a pixel.
+            -->
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
                 <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-            </Trigger>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceHover}" />
             </Trigger>
         </Style.Triggers>
     </Style>
