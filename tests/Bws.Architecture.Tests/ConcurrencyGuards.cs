@@ -48,6 +48,17 @@ public sealed class ConcurrencyGuards
             "Only the reading runs out there - nothing it returns touches anything on screen " +
             "until it is back.",
 
+        ["Execution.cs"] =
+            "Ctrl+C, and this file was concurrent long before it said so. The handler behind " +
+            "Console.CancelKeyPress runs on a thread of the runtime's choosing while the plan " +
+            "is being carried out on this one, so the count of presses is shared state and " +
+            "always was. It was raised with ++ until 2026-08-03, where two presses arriving " +
+            "together could both read zero, both take the first level, and never reach the " +
+            "second - the level that exists because a real run on a virtual machine left a " +
+            "cascade half down. Interlocked is what made this visible to the guard, not what " +
+            "made the file concurrent, and that is worth knowing: this list is only as good " +
+            "as the constructs it looks for, and an event handler is not one of them.",
+
         ["WindowsScmCatalog.cs"] =
             "Describing entries several at a time, added 2026-08-02. The same loop over the " +
             "same 810 entries costs 13-22 ms without opening a handle per entry and 455-475 " +

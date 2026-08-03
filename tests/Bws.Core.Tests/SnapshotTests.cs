@@ -170,12 +170,27 @@ public sealed class SnapshotTests
     [Fact]
     public void A_snapshot_reads_back_as_what_was_written()
     {
-        var text = Render(Specimens.All);
+        // Everything in the catalogue except one half of the deliberate twin pair, and the
+        // exception is the point rather than a convenience.
+        //
+        // Twin and TWIN are in the catalogue to pin the sort tie-break in the test above, which
+        // is a fact about WRITING. Since 2026-08-03 the reader refuses a file holding both,
+        // because Windows cannot produce two services whose names differ only in case and the
+        // comparison engine matches its two sides without case - owner's decision. So the whole
+        // catalogue is a legal thing to write and not a legal thing to read back, and saying that
+        // here is better than a round trip quietly running over a smaller set than it claims.
+        var machineLike = Specimens.All
+            .Where(entry => !entry.ServiceName.Equals("TWIN", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Equal(Specimens.All.Count - 1, machineLike.Length);
+
+        var text = Render(machineLike);
 
         var reread = SnapshotJson.TryRead(text, out var read, out var failure);
 
         Assert.True(reread, failure);
-        Assert.Equal(Specimens.All.Count, read!.Entries.Count);
+        Assert.Equal(machineLike.Length, read!.Entries.Count);
 
         // And writing it again produces the same text. A round trip that loses a field would
         // otherwise be found by whoever compared an old snapshot with a new one, months from
@@ -200,6 +215,60 @@ public sealed class SnapshotTests
         // Pointing at the wrong file is an ordinary thing for a person to do, and an
         // exception would make it look like the tool falling over.
         Assert.False(SnapshotJson.TryRead("{ this is not json", out _, out var failure));
+        Assert.NotNull(failure);
+    }
+
+    [Fact]
+    public void An_entry_that_is_empty_is_refused_rather_than_thrown_over()
+    {
+        // MEASURED 2026-08-03 on the real tool before this check existed: a file shaped exactly
+        // like this ended `bws snapshot diff` with "Object reference not set to an instance of
+        // an object." and code 1 - the code for the tool falling over, on a file that is simply
+        // broken, with a message naming neither of the two files being compared.
+        //
+        // Structurally valid JSON, which is why the property test beside this never reached it:
+        // that one damages a real snapshot by cutting, deleting, flipping and inserting
+        // characters, and every one of those makes the document unreadable rather than wrong.
+        var text = Render(Specimens.All)
+            .Replace("\"entries\": [", "\"entries\": [\n    null,", StringComparison.Ordinal);
+
+        Assert.False(SnapshotJson.TryRead(text, out var read, out var failure));
+        Assert.Null(read);
+
+        // Names the position, because there is no name to give - which is the whole of what is
+        // wrong with it.
+        Assert.Contains("1", failure!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_file_holding_one_service_twice_is_refused_rather_than_thrown_over()
+    {
+        // The comparison matches the two sides by service name, so a file naming one service
+        // twice is one this build cannot compare. Before this check it did not say so: it ended
+        // with "An item with the same key has already been added. Key: ..." and code 1.
+        //
+        // Written by handing the same entry over twice rather than by editing text, so what is
+        // being read back is a document this project's own writer produced.
+        var text = SnapshotJson.Render(
+            Snapshot.Of([Specimens.All[0], Specimens.All[0]], note: null, new FakeClock()));
+
+        Assert.False(SnapshotJson.TryRead(text, out var read, out var failure));
+        Assert.Null(read);
+        Assert.Contains(Specimens.All[0].ServiceName, failure!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_names_differing_only_in_case_are_one_service_to_this_reader()
+    {
+        // Windows compares service names without case and so does the comparison engine, so
+        // accepting this file would produce a document whose two halves cannot be matched. The
+        // check has to fold case for the same reason the matching does.
+        var second = Specimens.All[0] with { ServiceName = Specimens.All[0].ServiceName.ToUpperInvariant() };
+
+        var text = SnapshotJson.Render(
+            Snapshot.Of([Specimens.All[0], second], note: null, new FakeClock()));
+
+        Assert.False(SnapshotJson.TryRead(text, out _, out var failure));
         Assert.NotNull(failure);
     }
 

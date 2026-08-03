@@ -43,14 +43,30 @@ public sealed class SizeRatchetGuards
     ///
     /// <b>That is the whole argument for a ceiling, happening four times in an afternoon.</b>
     /// None of the splits was planned, none was suggested by anybody reading the files, and all
-    /// four followed a seam that was already there once somebody was made to look for one. The
-    /// longest file is now MainViewModel.cs at 583, down from 644 without being touched again -
-    /// every other file came down past it.
+    /// four followed a seam that was already there once somebody was made to look for one.
     ///
     /// Lowering the number afterwards is not bookkeeping. Leaving it at 746 would hand back a
     /// hundred lines of room nobody argued for.
+    ///
+    /// <b>583 -> 568 on 2026-08-03</b>, and it happened three more times the same way while
+    /// repairing what an audit found:
+    ///
+    ///   583 -> 583   reporting a wildcard the engine will not build pushed QueryParser.cs to
+    ///                598, and working out which accepted spelling somebody meant moved into
+    ///                QuerySpelling.cs
+    ///   583 -> 583   moving the whole program inside its own catch, and telling a mistyped path
+    ///                from a disk that went away, pushed Program.cs to 597 - so the snapshot as a
+    ///                file on disk moved into SnapshotFiles.cs
+    ///   583 -> 568   saying how a list becomes another list without doubling a row pushed
+    ///                MainViewModel.cs to 611, and the reconciliation moved into RowList.cs,
+    ///                which is where a collection that knows how to become another one belongs
+    ///
+    /// The longest file is now QueryParser.cs at 568. <b>The mutation entry that proves this
+    /// guard can fail finds the longest file at run time</b> rather than naming one, because an
+    /// entry naming a file stops proving anything the moment that file stops being longest - it
+    /// came back MISSED for exactly that reason on 2026-08-02, and again today.
     /// </summary>
-    private const int LongestShippedFile = 583;
+    private const int LongestShippedFile = 568;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

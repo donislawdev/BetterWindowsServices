@@ -46,12 +46,17 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
     private static readonly HWND NoWindow = new(-1);
 
     /// <summary>
-    /// Publishers already read, keyed by the file the certificate came out of.
+    /// Publishers already read, keyed by the CATALOGUE the certificate came out of.
     ///
     /// It bounds a worst case rather than fixing a measured one, and that distinction is
     /// worth keeping straight. A binary carrying its own signature is asked about once
     /// anyway, so this only ever helps files signed by catalogue, which share a smaller
     /// number of catalogues between them.
+    ///
+    /// <b>That sentence was true and the code did not follow it until 2026-08-03</b>, when this
+    /// held every file rather than every catalogue - buying nothing for the binaries and giving
+    /// their publisher a way to go stale inside a long-lived process. See
+    /// <see cref="CataloguePublisher"/>.
     ///
     /// <b>Measured and NOT shown to help here.</b> Seven runs with it and five without, on
     /// a machine with 810 entries over 544 distinct files: with it 4675-6823 ms, without it
@@ -111,8 +116,10 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
 
             if (embedded != NoSignature)
             {
+                // Read rather than remembered. This file is asked about once in a run, so a
+                // cache would be a way to be wrong later and never a way to be quicker.
                 return Reading<BinarySignature>.Present(
-                    new BinarySignature(Classify(embedded), embedded, PublisherOf(file)));
+                    new BinarySignature(Classify(embedded), embedded, ReadPublisher(file)));
             }
 
             return ThroughCatalogue(file);
@@ -342,7 +349,7 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
             // is the same answer Explorer gives, and reading it from the catalogue file
             // keeps four more functions out of the interop list.
             return Reading<BinarySignature>.Present(
-                new BinarySignature(Classify(result), result, PublisherOf(cataloguePath)));
+                new BinarySignature(Classify(result), result, CataloguePublisher(cataloguePath)));
         }
     }
 
@@ -380,19 +387,29 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
     }
 
     /// <summary>
-    /// Who signed it, read back from the signed file itself.
+    /// Who signed the catalogue, read back from the catalogue file.
+    ///
+    /// <b>The only thing that is remembered, and until 2026-08-03 every file was.</b> The two
+    /// callers are not alike, which is the whole of this split. A binary carrying its own
+    /// signature is asked about exactly once per run - the second pass fixes the set of distinct
+    /// files before it asks anything - so remembering the answer saves nothing and only creates a
+    /// way for it to go stale. Catalogues are shared between many binaries, so remembering those
+    /// is the case the cache was written for.
+    ///
+    /// <b>What the stale answer looked like</b>, in a tool whose reason to exist is noticing that
+    /// a file changed: the verdict and the hash are worked out afresh every time and the
+    /// publisher was not, so a binary replaced between two readings inside one process reported a
+    /// new hash beside the old signer. No process lives long enough for that today. The second
+    /// phase of `ADR-13` - signatures read in the background while the window stays open - is a
+    /// process that does.
     ///
     /// The standard library reads the certificate out of a signed file without walking the
     /// chain, which is exactly right here: the chain was already walked by the verification
     /// above, and its verdict is carried separately. This call only answers "whose name is
     /// on it".
-    ///
-    /// Returns null rather than throwing on a file that carries no certificate. That is not
-    /// an error worth a state of its own - the status already says what happened, and a
-    /// publisher for something unsigned is a question with no subject.
     /// </summary>
-    private string? PublisherOf(string file) =>
-        _publishers.GetOrAdd(file, ReadPublisher);
+    private string? CataloguePublisher(string catalogue) =>
+        _publishers.GetOrAdd(catalogue, ReadPublisher);
 
     private static string? ReadPublisher(string file)
     {

@@ -11,9 +11,35 @@ namespace Bws.Core.Querying;
 /// values while the other is part of a display name. Carrying the mask alongside the text
 /// is what lets every later step ask "was this one special" instead of guessing.
 /// </summary>
-internal sealed record ScannedText(string Text, bool[] Literal)
+/// <param name="Blanks">
+/// Where an empty pair of quotes sat, as positions in <paramref name="Text"/>.
+///
+/// <b>The one thing a quote leaves behind after producing no characters</b>, and without it the
+/// language cannot tell two different sentences apart. <c>status:</c> is what a search box holds
+/// between the colon and the value, so it is tolerated and dropped. <c>status:""</c> is finished -
+/// somebody wrote quotes and closed them - and it asks for entries whose status is the empty
+/// string, which is nothing, ever.
+///
+/// Until 2026-08-03 both were the same absence, so <c>bws list --query '""'</c> and
+/// <c>--query 'name:""'</c> each came back with all 810 entries and a code of success. Backlog
+/// item 66, and it is the same fault as the lone exclamation mark that was fixed the day before:
+/// a script with a typo in its query gets the whole machine and a green light.
+///
+/// A position rather than a flag, because a member can hold both shapes - <c>name:""x</c> has an
+/// empty pair of quotes and a value that is not empty, and only a position can say that the two
+/// are in different places.
+/// </param>
+internal sealed record ScannedText(string Text, bool[] Literal, IReadOnlyList<int>? Blanks = null)
 {
     internal int Length => Text.Length;
+
+    /// <summary>
+    /// True when this is nothing, and was written as nothing on purpose.
+    ///
+    /// The difference between a value somebody has not finished typing and one they finished by
+    /// closing a pair of quotes around nothing.
+    /// </summary>
+    internal bool IsExplicitlyEmpty => Text.Length == 0 && Blanks is { Count: > 0 };
 
     /// <summary>True when the character at this position still carries its special meaning.</summary>
     internal bool IsSpecial(int index, char character) =>
@@ -37,8 +63,19 @@ internal sealed record ScannedText(string Text, bool[] Literal)
     internal bool StartsWithSpecial(char character) =>
         Text.Length > 0 && IsSpecial(0, character);
 
+    /// <summary>
+    /// A run of this text, with the marks that belong to it.
+    ///
+    /// The end of the range is inclusive for the blanks and exclusive for the characters, and
+    /// that is not a slip: a blank sits BETWEEN characters, so one at the very end of a slice
+    /// belongs to it. That is the whole case this exists for - the value of <c>name:""</c> is a
+    /// slice of length zero whose blank is at its start, which is also its end.
+    /// </summary>
     internal ScannedText Slice(int start, int length) =>
-        new(Text.Substring(start, length), Literal[start..(start + length)]);
+        new(
+            Text.Substring(start, length),
+            Literal[start..(start + length)],
+            Blanks?.Where(at => at >= start && at <= start + length).Select(at => at - start).ToArray());
 
     internal ScannedText Slice(int start) => Slice(start, Text.Length - start);
 
@@ -94,8 +131,10 @@ internal static class QueryScanner
 
         var text = new StringBuilder();
         var literal = new List<bool>();
+        var blanks = new List<int>();
         var quoting = false;
         var quoteStartedAt = -1;
+        var quotedFrom = 0;
 
         for (var index = 0; index < query.Length; index++)
         {
@@ -103,6 +142,21 @@ internal static class QueryScanner
 
             if (character == '"')
             {
+                if (quoting)
+                {
+                    // A pair that produced no characters. Noted, because after this line there
+                    // is nothing left to show it ever happened - and "somebody wrote nothing on
+                    // purpose" is a different sentence from "somebody has not typed it yet".
+                    if (text.Length == quotedFrom)
+                    {
+                        blanks.Add(text.Length);
+                    }
+                }
+                else
+                {
+                    quotedFrom = text.Length;
+                }
+
                 quoting = !quoting;
                 quoteStartedAt = quoting ? index : -1;
                 continue;
@@ -120,7 +174,8 @@ internal static class QueryScanner
 
             if (!quoting && char.IsWhiteSpace(character))
             {
-                Flush(members, text, literal);
+                Flush(members, text, literal, blanks);
+                quotedFrom = 0;
                 continue;
             }
 
@@ -134,19 +189,24 @@ internal static class QueryScanner
             return false;
         }
 
-        Flush(members, text, literal);
+        Flush(members, text, literal, blanks);
         return true;
     }
 
-    private static void Flush(List<ScannedText> members, StringBuilder text, List<bool> literal)
+    private static void Flush(
+        List<ScannedText> members, StringBuilder text, List<bool> literal, List<int> blanks)
     {
-        if (text.Length == 0)
+        // Nothing typed, so there is no member. An empty pair of quotes is not nothing typed:
+        // it is a member that was finished and says nothing, and dropping it here is how
+        // `bws list --query '""'` used to answer with the whole machine and a code of success.
+        if (text.Length == 0 && blanks.Count == 0)
         {
             return;
         }
 
-        members.Add(new ScannedText(text.ToString(), [.. literal]));
+        members.Add(new ScannedText(text.ToString(), [.. literal], blanks.Count == 0 ? null : [.. blanks]));
         text.Clear();
         literal.Clear();
+        blanks.Clear();
     }
 }

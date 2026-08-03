@@ -9,138 +9,154 @@ using Bws.Core.Snapshots;
 // query, and work out what a stop, a start or a restart would do - then carry it out and
 // say what came of every step.
 
-var options = CommandLine.Read(args);
-
-// ASKING A QUESTION IS NOT A MISTAKE, and until 2026-08-02 this tool answered as though it
-// were: --help came back "Unknown option: --help", on the error channel, with code 2 - the code
-// reserved for what somebody typed wrongly. No arguments at all did the same thing without the
-// first line. clig.dev puts help on the data channel with a code of zero, and every user's
-// first reflex is to type it.
+// THE WHOLE PROGRAM IS INSIDE THIS, AND UNTIL 2026-08-03 THE FIRST THIRTY LINES WERE NOT.
 //
-// Both before anything else, because neither depends on a verb, on options making sense, or on
-// the tool being able to reach the service manager.
-if (options.Version)
-{
-    // Through Output rather than straight to the console, and a guard insisted twice: first
-    // that the channel be named, then that there be exactly one place naming it. Both were
-    // right - this is what the run produces, so it belongs beside the listing and the JSON.
-    Output.Data(Texts.Of("cli.version", Release.Number));
-    return ExitCode.Ok;
-}
-
-if (options.Help)
-{
-    // The data channel on purpose. Somebody piping the help into a pager or a file is asking
-    // for the text, so the text is the output of the run rather than a diagnostic beside it.
-    Output.Data(Texts.Of("cli.usage"));
-    return ExitCode.Ok;
-}
-
-if (options.BadVerb is not null)
-{
-    // Named as a command rather than an option, and offered the nearest one. "Unknown option:
-    // lst" was wrong twice over: lst is not an option, and the answer helped with nothing.
-    var nearest = Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
-
-    Console.Error.WriteLine(nearest is null
-        ? Texts.Of("cli.unknownCommand", options.BadVerb, string.Join(", ", OptionSurface.Verbs))
-        : Texts.Of("cli.unknownCommandDidYouMean", options.BadVerb, nearest));
-
-    Console.Error.WriteLine(Texts.Of("cli.usage"));
-    return ExitCode.Usage;
-}
-
-if (options.BadSubcommand is not null)
-{
-    // Ahead of the unknown-option check, because "snapshot" on its own would otherwise be
-    // reported as an option nobody knows - and it is neither an option nor unknown.
-    //
-    // Two sentences rather than one, because the two cases are different and one wording
-    // has to lie about one of them. Snapshot on its own is a command that is half typed.
-    // Snapshot followed by a word we do not know is a command that does not exist.
-    var available = string.Join(", ", OptionSurface.Subcommands);
-
-    Console.Error.WriteLine(options.BadSubcommand.Length == 0
-        ? Texts.Of("cli.subcommandMissing", available)
-        : Texts.Of("cli.unknownSubcommand", options.BadSubcommand, available));
-
-    Console.Error.WriteLine(Texts.Of("cli.usage"));
-    return ExitCode.Usage;
-}
-
-if (options.Rejected.Count > 0)
-{
-    // Diagnostics go to the error channel even when the run fails. The data channel stays
-    // clean so a failed run never drops a stray line into somebody's pipe.
-    Console.Error.WriteLine(Texts.Of("cli.unknownOption", string.Join(", ", options.Rejected)));
-    Console.Error.WriteLine(Texts.Of("cli.usage"));
-    return ExitCode.Usage;
-}
-
-if (options.Incomplete.Count > 0)
-{
-    // A different mistake from an unknown option, and it used to be reported as one -
-    // sending somebody to hunt for a typo in a word they had spelled correctly.
-    Console.Error.WriteLine(Texts.Of("cli.optionNeedsValue", string.Join(", ", options.Incomplete)));
-    Console.Error.WriteLine(Texts.Of("cli.usage"));
-    return ExitCode.Usage;
-}
-
-if (options.Kind == CommandKind.None)
-{
-    Console.Error.WriteLine(Texts.Of("cli.usage"));
-    return ExitCode.Usage;
-}
-
-if (options.Misplaced.Count > 0)
-{
-    // An option that exists but not here. Refused rather than ignored: a switch that
-    // quietly does nothing turns a runbook line into something that looks right and behaves
-    // differently, and nobody finds out until it matters.
-    foreach (var option in options.Misplaced)
-    {
-        Console.Error.WriteLine(Texts.Of(
-            "cli.optionNotForCommand",
-            option,
-            OptionSurface.Spelling(options.Kind),
-            string.Join(", ", OptionSurface.Accepts(option))));
-    }
-
-    return ExitCode.Usage;
-}
-
-if (options.IsWrite && options.ServiceName.Length == 0)
-{
-    Console.Error.WriteLine(Texts.Of("cli.missingServiceName", options.Action.ToString().ToLowerInvariant()));
-    return ExitCode.Usage;
-}
-
-if (options.BadTimeout is not null)
-{
-    Console.Error.WriteLine(Texts.Of("cli.badTimeout", options.BadTimeout));
-    return ExitCode.Usage;
-}
-
-// Read the query before touching the system. A typo costs nothing this way, and the
-// alternative is enumerating hundreds of entries in order to throw them away.
-var parsed = QueryParser.Parse(options.Query);
-
-if (!parsed.IsValid)
-{
-    foreach (var problem in parsed.Problems)
-    {
-        Console.Error.WriteLine(QueryMessages.Of(problem));
-    }
-
-    // A query with a mistake in it filters nothing and says what is wrong. In a window
-    // that means the listing stays as it was, and here it means no listing at all: a
-    // terminal writes into pipes, and answering a typo with the unfiltered listing would
-    // hand every entry to whatever comes next in the pipeline.
-    return ExitCode.Usage;
-}
-
+// The catch at the bottom describes itself as the entry point's, which is the right place for a
+// broad one - and it started after the arguments had been read, after help and version had been
+// answered, and after the query had been parsed. Those three are exactly the places that handle
+// what a person typed, so the one part of the run most likely to meet something unexpected was
+// the part with nothing behind it.
+//
+// MEASURED 2026-08-03: `bws list --query "name:*a*a..."` with about a thousand repetitions ended
+// with an unhandled exception, a stack trace, and exit code 0xE0434352 - a number that is not in
+// the table of exit codes and that no script can be expected to know. The parser has since been
+// fixed to report that as a problem, which is the real repair, and this is the net underneath it:
+// the next surprise in the same region ends with a sentence and code 1 rather than a crash.
+//
+// The line in the regression surface of docs/04 reading "every ending has a code from the table -
+// PARTIAL, an unforeseen failure still falls into code 1" was not true here. It is now.
 try
 {
+    var options = CommandLine.Read(args);
+
+    // ASKING A QUESTION IS NOT A MISTAKE, and until 2026-08-02 this tool answered as though it
+    // were: --help came back "Unknown option: --help", on the error channel, with code 2 - the code
+    // reserved for what somebody typed wrongly. No arguments at all did the same thing without the
+    // first line. clig.dev puts help on the data channel with a code of zero, and every user's
+    // first reflex is to type it.
+    //
+    // Both before anything else, because neither depends on a verb, on options making sense, or on
+    // the tool being able to reach the service manager.
+    if (options.Version)
+    {
+        // Through Output rather than straight to the console, and a guard insisted twice: first
+        // that the channel be named, then that there be exactly one place naming it. Both were
+        // right - this is what the run produces, so it belongs beside the listing and the JSON.
+        Output.Data(Texts.Of("cli.version", Release.Number));
+        return ExitCode.Ok;
+    }
+
+    if (options.Help)
+    {
+        // The data channel on purpose. Somebody piping the help into a pager or a file is asking
+        // for the text, so the text is the output of the run rather than a diagnostic beside it.
+        Output.Data(Texts.Of("cli.usage"));
+        return ExitCode.Ok;
+    }
+
+    if (options.BadVerb is not null)
+    {
+        // Named as a command rather than an option, and offered the nearest one. "Unknown option:
+        // lst" was wrong twice over: lst is not an option, and the answer helped with nothing.
+        var nearest = Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
+
+        Console.Error.WriteLine(nearest is null
+            ? Texts.Of("cli.unknownCommand", options.BadVerb, string.Join(", ", OptionSurface.Verbs))
+            : Texts.Of("cli.unknownCommandDidYouMean", options.BadVerb, nearest));
+
+        Console.Error.WriteLine(Texts.Of("cli.usage"));
+        return ExitCode.Usage;
+    }
+
+    if (options.BadSubcommand is not null)
+    {
+        // Ahead of the unknown-option check, because "snapshot" on its own would otherwise be
+        // reported as an option nobody knows - and it is neither an option nor unknown.
+        //
+        // Two sentences rather than one, because the two cases are different and one wording
+        // has to lie about one of them. Snapshot on its own is a command that is half typed.
+        // Snapshot followed by a word we do not know is a command that does not exist.
+        var available = string.Join(", ", OptionSurface.Subcommands);
+
+        Console.Error.WriteLine(options.BadSubcommand.Length == 0
+            ? Texts.Of("cli.subcommandMissing", available)
+            : Texts.Of("cli.unknownSubcommand", options.BadSubcommand, available));
+
+        Console.Error.WriteLine(Texts.Of("cli.usage"));
+        return ExitCode.Usage;
+    }
+
+    if (options.Rejected.Count > 0)
+    {
+        // Diagnostics go to the error channel even when the run fails. The data channel stays
+        // clean so a failed run never drops a stray line into somebody's pipe.
+        Console.Error.WriteLine(Texts.Of("cli.unknownOption", string.Join(", ", options.Rejected)));
+        Console.Error.WriteLine(Texts.Of("cli.usage"));
+        return ExitCode.Usage;
+    }
+
+    if (options.Incomplete.Count > 0)
+    {
+        // A different mistake from an unknown option, and it used to be reported as one -
+        // sending somebody to hunt for a typo in a word they had spelled correctly.
+        Console.Error.WriteLine(Texts.Of("cli.optionNeedsValue", string.Join(", ", options.Incomplete)));
+        Console.Error.WriteLine(Texts.Of("cli.usage"));
+        return ExitCode.Usage;
+    }
+
+    if (options.Kind == CommandKind.None)
+    {
+        Console.Error.WriteLine(Texts.Of("cli.usage"));
+        return ExitCode.Usage;
+    }
+
+    if (options.Misplaced.Count > 0)
+    {
+        // An option that exists but not here. Refused rather than ignored: a switch that
+        // quietly does nothing turns a runbook line into something that looks right and behaves
+        // differently, and nobody finds out until it matters.
+        foreach (var option in options.Misplaced)
+        {
+            Console.Error.WriteLine(Texts.Of(
+                "cli.optionNotForCommand",
+                option,
+                OptionSurface.Spelling(options.Kind),
+                string.Join(", ", OptionSurface.Accepts(option))));
+        }
+
+        return ExitCode.Usage;
+    }
+
+    if (options.IsWrite && options.ServiceName.Length == 0)
+    {
+        Console.Error.WriteLine(Texts.Of("cli.missingServiceName", options.Action.ToString().ToLowerInvariant()));
+        return ExitCode.Usage;
+    }
+
+    if (options.BadTimeout is not null)
+    {
+        Console.Error.WriteLine(Texts.Of("cli.badTimeout", options.BadTimeout));
+        return ExitCode.Usage;
+    }
+
+    // Read the query before touching the system. A typo costs nothing this way, and the
+    // alternative is enumerating hundreds of entries in order to throw them away.
+    var parsed = QueryParser.Parse(options.Query);
+
+    if (!parsed.IsValid)
+    {
+        foreach (var problem in parsed.Problems)
+        {
+            Console.Error.WriteLine(QueryMessages.Of(problem));
+        }
+
+        // A query with a mistake in it filters nothing and says what is wrong. In a window
+        // that means the listing stays as it was, and here it means no listing at all: a
+        // terminal writes into pipes, and answering a typo with the unfiltered listing would
+        // hand every entry to whatever comes next in the pipeline.
+        return ExitCode.Usage;
+    }
+
     var stopwatch = Stopwatch.StartNew();
 
     // Comparing two files never opens the service control manager, and it matters that it
@@ -202,11 +218,11 @@ try
             return ExitCode.Usage;
         }
 
-        if (!Load(options.Path, out var before))
+        if (!SnapshotFiles.Load(options.Path, out var before, out var earlierFailed))
         {
             stopwatch.Stop();
 
-            return ExitCode.Usage;
+            return earlierFailed;
         }
 
         Snapshot? after;
@@ -223,11 +239,11 @@ try
 
             after = Snapshot.Of(entries, note: null, new SystemClock());
         }
-        else if (!Load(options.Against, out after))
+        else if (!SnapshotFiles.Load(options.Against, out after, out var laterFailed))
         {
             stopwatch.Stop();
 
-            return ExitCode.Usage;
+            return laterFailed;
         }
 
         var difference = SnapshotDiff.Between(before!, after!);
@@ -291,7 +307,7 @@ try
         inspected = stopwatch.ElapsedMilliseconds - before;
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
-        var target = SnapshotTarget(options.Path, snapshot.Metadata);
+        var target = SnapshotFiles.Target(options.Path, snapshot.Metadata);
 
         try
         {
@@ -443,65 +459,6 @@ catch (Exception failure)
 }
 #pragma warning restore CA1031
 
-/// <summary>
-/// Where the snapshot goes when nobody said.
-///
-/// The machine and the moment, in the directory the person is standing in. E1's own example
-/// writes a snapshot without naming a file, so a name has to be worked out - and it has to
-/// be one somebody can recognise weeks later among a dozen others, which rules out anything
-/// clever. Sorted by name is sorted by time, because the stamp runs from the largest unit
-/// down.
-///
-/// Not a directory of our own choosing. ADR-18 says the tool does not invent directories,
-/// and a file appearing somewhere in a profile is a file nobody finds.
-/// </summary>
-static string SnapshotTarget(string given, SnapshotMetadata metadata) =>
-    given.Length > 0
-        ? given
-        : $"bws-snapshot-{metadata.Machine}-{metadata.TakenAt:yyyyMMdd-HHmmss}.json";
-
-
-/// <summary>
-/// Reads one snapshot from disk, or says what is wrong with what was pointed at.
-///
-/// Every failure here is somebody's typed path rather than something going wrong inside, so
-/// all of them end as a usage code with a sentence naming the file. A stack trace would say
-/// less and look like the tool falling over.
-///
-/// Deliberately narrow catches rather than a broad one. The ways a path can be wrong are a
-/// list somebody can finish - it is not there, it is a directory, it cannot be opened, it is
-/// not spellable - which is exactly the argument the broad catches in this project are
-/// allowed by, run backwards.
-/// </summary>
-static bool Load(string path, out Snapshot? snapshot)
-{
-    snapshot = null;
-
-    string content;
-
-    try
-    {
-        content = File.ReadAllText(path);
-    }
-    catch (Exception problem) when (problem is IOException or UnauthorizedAccessException or ArgumentException)
-    {
-        Console.Error.WriteLine(Texts.Of("cli.diff.cannotRead", path, problem.Message));
-
-        return false;
-    }
-
-    if (SnapshotJson.TryRead(content, out snapshot, out var failure))
-    {
-        return true;
-    }
-
-    // Names the file. Two are being read and a message about neither of them would leave
-    // somebody checking both. The reason is never null when the read failed, and saying so
-    // out loud is cheaper than a nullable sentence in a message.
-    Console.Error.WriteLine(Texts.Of("cli.diff.notASnapshot", path, failure ?? string.Empty));
-
-    return false;
-}
 
 /// <summary>
 /// Exit codes are a public contract: monitoring and scripts depend on them, so a new

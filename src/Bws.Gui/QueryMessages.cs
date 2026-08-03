@@ -40,8 +40,17 @@ internal static class QueryMessages
         // naming it one would send somebody looking at characters that are correct.
         QueryProblemKind.EmptyTerm => Texts.Of("gui.query.emptyTerm", problem.Text),
 
+        // Shortened, unlike every other message here. The text that causes this runs to about
+        // two thousand characters, and this one goes into a single line under a list.
+        QueryProblemKind.PatternTooComplex => Texts.Of(
+            "gui.query.patternTooComplex", Excerpt(problem.Text)),
+
         _ => Texts.Of("gui.query.badNumber", problem.Text, problem.Field!)
     };
+
+    /// <summary>Enough of a value to recognise it, for the one message whose value can be enormous.</summary>
+    private static string Excerpt(string text) =>
+        text.Length <= 40 ? text : text[..40] + "...";
 
     private static string Join(IReadOnlyList<string> values) => string.Join(", ", values);
 }

@@ -67,7 +67,18 @@ public static class NetworkPath
             return false;
         }
 
-        var value = path.TrimStart();
+        // Separators folded before anything is compared, and that is a repair rather than
+        // tidiness. Windows treats a forward slash as a separator everywhere a path is parsed,
+        // so `//server/share/x.exe` reaches the same host as `\\server\share\x.exe` - and until
+        // 2026-08-03 this looked only for two backslashes and let the first shape past as local.
+        // Everything this class exists to prevent then happened: an existence check that blocks
+        // for twenty one seconds on an unreachable host, and an SMB connection carrying the token
+        // of whoever ran the tool, which is meant to be an administrator on a production machine.
+        //
+        // `ADR-19` has now been broken twice by the same class of thing and neither time by
+        // anything resembling a network client - once through System.IO, once through a
+        // separator. Both times the guard was looking at the wrong layer.
+        var value = path.TrimStart().Replace('/', '\\');
 
         if (!value.StartsWith(@"\\", StringComparison.Ordinal))
         {

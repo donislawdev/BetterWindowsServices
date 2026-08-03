@@ -43,8 +43,21 @@ internal static class QueryMessages
         // naming it one would send somebody looking at characters that are correct.
         QueryProblemKind.EmptyTerm => Texts.Of("cli.query.emptyTerm", problem.Text),
 
+        // Shortened, unlike every other message here, and that is what the shortening is for:
+        // the text that causes this is about two thousand characters long, so echoing it whole
+        // would bury the one sentence that says what to do about it.
+        //
+        // The engine's own words are deliberately left out. They are about the size of an
+        // automaton, which explains nothing to anybody who did not pick the engine.
+        QueryProblemKind.PatternTooComplex => Texts.Of(
+            "cli.query.patternTooComplex", Excerpt(problem.Text)),
+
         _ => Texts.Of("cli.query.badNumber", problem.Text, problem.Field!)
     };
+
+    /// <summary>Enough of a value to recognise it, for the one message whose value can be enormous.</summary>
+    private static string Excerpt(string text) =>
+        text.Length <= 40 ? text : text[..40] + "...";
 
     private static string Join(IReadOnlyList<string> values) => string.Join(", ", values);
 }

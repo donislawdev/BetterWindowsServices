@@ -197,7 +197,12 @@ public static class QueryParser
             problems.Add(new QueryProblem
             {
                 Kind = QueryProblemKind.EmptyTerm,
-                Text = member.Text
+
+                // Written back out when the member left no characters behind, because it did
+                // leave something: a pair of quotes, which is what somebody typed and what the
+                // message has to name. An empty fragment in a sentence about a fragment reads
+                // as a message with a hole in it.
+                Text = member.Text.Length == 0 ? "\"\"" : member.Text
             });
 
             return null;
@@ -241,6 +246,23 @@ public static class QueryParser
         {
             if (part.Length == 0)
             {
+                // Nothing after the colon is somebody mid-keystroke and is dropped below. An
+                // empty PAIR OF QUOTES is not: they opened it and closed it, so the member is
+                // finished and asks for a value that is the empty string - which nothing has.
+                //
+                // Until 2026-08-03 the two were the same absence, and `name:""` came back with
+                // every entry on the machine and a code of success. Backlog item 66.
+                if (part.IsExplicitlyEmpty)
+                {
+                    problems.Add(new QueryProblem
+                    {
+                        Kind = QueryProblemKind.EmptyTerm,
+                        Text = member.Text
+                    });
+
+                    return null;
+                }
+
                 continue;
             }
 
@@ -375,7 +397,23 @@ public static class QueryParser
 
         if (value.HasSpecial('*') || value.HasSpecial('?'))
         {
-            return new TextValue(TextOperator.Pattern, value.Text, QueryPatterns.Wildcard(value));
+            if (QueryPatterns.TryWildcard(value, out var wildcard, out var refused))
+            {
+                return new TextValue(TextOperator.Pattern, value.Text, wildcard);
+            }
+
+            // Said rather than thrown. Until 2026-08-03 this call could not fail as far as the
+            // parser was concerned, so a wildcard the engine refused escaped as an exception -
+            // out of Parse, out of the command line tool's Main, and onto somebody's screen as
+            // a stack trace with an exit code that is not in the table.
+            problems.Add(new QueryProblem
+            {
+                Kind = QueryProblemKind.PatternTooComplex,
+                Text = value.Text,
+                Detail = refused
+            });
+
+            return null;
         }
 
         return new TextValue(TextOperator.Contains, value.Text, null);
@@ -405,7 +443,7 @@ public static class QueryParser
             // A typo in an enumeration must never come back as an empty list. An empty list
             // reads as an answer, and "there are no running services" is a very different
             // sentence from "you wrote runing".
-            Nearest = Nearest(wanted, alternatives)
+            Nearest = QuerySpelling.Nearest(wanted, alternatives)
         });
 
         return null;
@@ -527,56 +565,4 @@ public static class QueryParser
 
     private static bool TryNumber(string text, out int number) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out number);
-
-    /// <summary>
-    /// The closest accepted spelling, when one is close enough to be worth offering. Too
-    /// generous a threshold turns a helpful hint into a confusing one, so a suggestion has
-    /// to be nearer than half the word.
-    /// </summary>
-    private static string? Nearest(string wanted, IReadOnlyList<string> alternatives)
-    {
-        var best = default(string);
-        var bestDistance = int.MaxValue;
-
-        foreach (var candidate in alternatives)
-        {
-            var distance = Distance(wanted, QueryFields.Normalise(candidate));
-
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                best = candidate;
-            }
-        }
-
-        var allowed = Math.Max(2, wanted.Length / 2);
-
-        return bestDistance <= allowed ? best : null;
-    }
-
-    private static int Distance(string left, string right)
-    {
-        var previous = new int[right.Length + 1];
-        var current = new int[right.Length + 1];
-
-        for (var column = 0; column <= right.Length; column++)
-        {
-            previous[column] = column;
-        }
-
-        for (var row = 1; row <= left.Length; row++)
-        {
-            current[0] = row;
-
-            for (var column = 1; column <= right.Length; column++)
-            {
-                var substitution = previous[column - 1] + (left[row - 1] == right[column - 1] ? 0 : 1);
-                current[column] = Math.Min(Math.Min(current[column - 1] + 1, previous[column] + 1), substitution);
-            }
-
-            (previous, current) = (current, previous);
-        }
-
-        return previous[right.Length];
-    }
 }

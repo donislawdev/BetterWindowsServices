@@ -166,6 +166,20 @@ public sealed class BinaryPathResolverTests
     [InlineData(@"C:\WINDOWS\System32\spoolsv.exe", false)]
     [InlineData(@"\SystemRoot\system32\drivers\x.sys", false)]
     [InlineData("", false)]
+    // THE SAME DESTINATIONS WRITTEN WITH FORWARD SLASHES, and until 2026-08-03 every one of
+    // these answered "local". Windows treats a forward slash as a separator wherever a path is
+    // parsed, so these reach the same host as the backslash spellings above - and this class is
+    // the whole of what stops an existence check blocking for twenty one seconds on an
+    // unreachable share, while authenticating as whoever ran the tool.
+    //
+    // `ADR-19` had then been broken twice by the same class of thing and neither time by
+    // anything resembling a network client: once through System.IO, once through a separator.
+    [InlineData("//server/share/agent.exe", true)]
+    [InlineData(@"//server\share\agent.exe", true)]
+    [InlineData("//?/UNC/server/share/agent.exe", true)]
+    [InlineData("//?/C:/Tools/agent.exe", false)]
+    [InlineData("//./PhysicalDrive0", false)]
+    [InlineData("C:/WINDOWS/System32/spoolsv.exe", false)]
     public void What_counts_as_leaving_this_machine(string path, bool leaves)
     {
         Assert.Equal(leaves, NetworkPath.LeavesThisMachine(path));

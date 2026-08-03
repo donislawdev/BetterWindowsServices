@@ -246,10 +246,35 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         {
             // Ask with an empty buffer first. The call is expected to fail and to report
             // how much room it wants, which is the documented way to size this.
-            PInvoke.EnumServicesStatusEx(
+            var probed = PInvoke.EnumServicesStatusEx(
                 manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
                 ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default,
                 out var needed, out _, ref resume, null!);
+
+            var probeError = Marshal.GetLastWin32Error();
+
+            // NOTHING LEFT AND REFUSED LOOKED THE SAME FROM HERE UNTIL 2026-08-03, and this
+            // took both to mean the first. Any failure that does not set the size - a refusal,
+            // a manager shutting down between two turns of this loop, resources running out -
+            // came back reporting no room needed, the loop broke, and ReadAll returned however
+            // many entries it happened to have collected by then. With a code of success, and a
+            // listing that looks exactly like a complete one.
+            //
+            // That is rule 8 of CLAUDE.md, in the one place in this file that had no guard
+            // against it. ReadDependents below has had the same buffer shape and the right
+            // check since it was written, and so has ReadConfiguration - this was the odd one
+            // out rather than the pattern.
+            //
+            // ASKED THROUGH THE RETURN VALUE, NOT THROUGH THE ERROR CODE ALONE, and the
+            // difference is not style. Windows does not clear the last error on success, so a
+            // call that genuinely has nothing left to hand over can leave whatever the previous
+            // call in this thread put there - and a check reading only the number would throw
+            // on a stale one, turning a working listing into a failure. The return value is the
+            // only thing that says whether this call worked.
+            if (!probed && probeError != (int)WIN32_ERROR.ERROR_MORE_DATA)
+            {
+                throw new Win32Exception(probeError, "Enumerating the service control manager failed.");
+            }
 
             if (needed == 0)
             {

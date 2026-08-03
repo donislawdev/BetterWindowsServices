@@ -77,6 +77,30 @@ internal static class OptionSurface
         ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart])
     ];
 
+    /// <summary>
+    /// Whether a word is one of this tool's options, whichever verb it belongs to.
+    ///
+    /// Exists so that an option needing a value can tell "nobody gave me one" from "the next
+    /// word is another switch". Until 2026-08-03 it could not: <c>bws list --query --json</c>
+    /// took <c>--json</c> as the text to search for, found nothing, printed a table with no rows
+    /// and ended with code 0 - so a script asking for JSON got a human table and a green light.
+    /// That is the same silence the belonging table above exists to end, arriving from the other
+    /// side.
+    ///
+    /// <b>Asked about known options rather than about a leading hyphen</b>, and the difference is
+    /// somebody's note. <c>--note "-before the upgrade"</c> is a sentence a person would write,
+    /// and refusing every value that opens with a hyphen would take it away to catch a mistake
+    /// this catches exactly.
+    ///
+    /// Help and version are here as well as in the table, because they belong to no verb and are
+    /// read before one is known - and they are just as wrong as a value.
+    /// </summary>
+    internal static bool IsOption(string argument) =>
+        argument.Equals("--help", StringComparison.OrdinalIgnoreCase)
+        || argument.Equals("-h", StringComparison.OrdinalIgnoreCase)
+        || argument.Equals("--version", StringComparison.OrdinalIgnoreCase)
+        || Surface.Any(entry => entry.Option.Equals(argument, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Where an option does work, for the message that says it does not work here.</summary>
     internal static IReadOnlyList<string> Accepts(string option) =>
     [

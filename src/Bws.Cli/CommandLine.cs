@@ -405,7 +405,7 @@ internal sealed record CommandLine
             {
                 given.Add("--query");
 
-                if (index + 1 >= arguments.Length)
+                if (NeedsValue(arguments, index))
                 {
                     // An option that needs a value and did not get one is a mistake, not an
                     // empty query. Treating it as empty would quietly list everything.
@@ -428,7 +428,7 @@ internal sealed record CommandLine
             {
                 given.Add("--note");
 
-                if (index + 1 >= arguments.Length)
+                if (NeedsValue(arguments, index))
                 {
                     // A note that was asked for and not given is a mistake, not an empty
                     // note. Writing the snapshot anyway would lose the one thing the person
@@ -452,7 +452,7 @@ internal sealed record CommandLine
             {
                 given.Add("--timeout");
 
-                if (index + 1 >= arguments.Length)
+                if (NeedsValue(arguments, index))
                 {
                     incomplete.Add("--timeout");
                     continue;
@@ -503,6 +503,20 @@ internal sealed record CommandLine
     }
 
 #pragma warning restore MA0051
+
+    /// <summary>
+    /// Whether an option that needs a value is going to be left without one.
+    ///
+    /// Two ways that happens and they used to be one: nothing follows it at all, or what follows
+    /// is another switch. The second was taken as the value until 2026-08-03, so
+    /// <c>bws list --query --json</c> searched for the text "--json", matched nothing, and ended
+    /// with an empty table and code 0 - with the switch somebody actually typed silently gone.
+    ///
+    /// A switch that quietly does nothing is what the belonging table exists to end. This is the
+    /// same fault from the other direction, and it was the louder of the two.
+    /// </summary>
+    private static bool NeedsValue(string[] arguments, int index) =>
+        index + 1 >= arguments.Length || OptionSurface.IsOption(arguments[index + 1]);
 
     /// <summary>
     /// Reads a number of seconds, or says what it got instead.

@@ -102,6 +102,72 @@ public sealed class QueryParserTests
         Assert.False(string.IsNullOrWhiteSpace(problem.Detail));
     }
 
+    [Theory]
+    [InlineData("\"\"")]
+    [InlineData("name:\"\"")]
+    [InlineData("status:\"\"")]
+    [InlineData("name:spooler \"\"")]
+    public void An_empty_pair_of_quotes_is_finished_and_says_nothing(string text)
+    {
+        // MEASURED on the real tool before this was a problem: `bws list --query '\"\"'` and
+        // `--query 'name:\"\"'` each came back with all 810 entries and a code of success, so a
+        // script with a typo in its query got the whole machine and a green light. Backlog item
+        // 66, the same fault as the lone exclamation mark fixed the day before.
+        //
+        // The line this sits on is narrow and the test below holds the other side of it: nothing
+        // after a colon is somebody still typing and stays tolerated. Quotes that were opened and
+        // closed are not - the member is finished, and it asks for a value nothing has.
+        var problem = OneProblem(text);
+
+        Assert.Equal(QueryProblemKind.EmptyTerm, problem.Kind);
+    }
+
+    [Fact]
+    public void Quotes_around_something_are_still_ordinary_text()
+    {
+        // The other side of the line, and it is here so that a repair which simply refused every
+        // pair of quotes would go red. Quoting is how a display name with a space in it is
+        // searched for, which is an ordinary thing to want.
+        var parsed = QueryParser.Parse("display:\"Print Spooler\"");
+
+        Assert.True(parsed.IsValid);
+        Assert.False(parsed.Query!.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData("name:")]
+    [InlineData("")]
+    public void A_wildcard_too_big_for_the_engine_is_refused_rather_than_thrown_over(string prefix)
+    {
+        // MEASURED 2026-08-03 before this was a problem at all: `bws list --query "name:*a*a..."`
+        // ended the process with an unhandled NotSupportedException, a stack trace, and exit code
+        // 0xE0434352 - a number outside the table of exit codes entirely. The linear engine
+        // refuses a pattern whose automaton would pass ten thousand nodes, and about a thousand
+        // repetitions of "*a" is enough to get there.
+        //
+        // Both shapes, because both reach the same place and only one of them looks like a
+        // pattern: a member with a field name, and a bare word, which is what a search box holds.
+        //
+        // The property test next door cannot find this. It generates text up to forty characters
+        // and the threshold is around two thousand, so the property is true of everything it will
+        // ever produce.
+        var problem = OneProblem(prefix + string.Concat(Enumerable.Repeat("*a", 1200)));
+
+        Assert.Equal(QueryProblemKind.PatternTooComplex, problem.Kind);
+    }
+
+    [Fact]
+    public void A_wildcard_the_engine_will_build_is_still_a_wildcard()
+    {
+        // The other side of the line above, and it is here so that a fix which simply refused
+        // every wildcard would go red. Measured at the same time: four hundred repetitions build
+        // without complaint, so the refusal is about size rather than about wildcards.
+        var parsed = QueryParser.Parse("name:" + string.Concat(Enumerable.Repeat("*a", 400)));
+
+        Assert.True(parsed.IsValid);
+        Assert.False(parsed.Query!.IsEmpty);
+    }
+
     [Fact]
     public void A_quote_that_never_closes_is_refused()
     {

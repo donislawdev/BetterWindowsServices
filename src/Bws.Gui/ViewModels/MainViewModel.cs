@@ -522,15 +522,14 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// Makes the visible list match what the query selected, moving as little as possible.
+    /// Makes the visible list match what the query selected.
     ///
-    /// Two passes over one collection: drop what is no longer wanted, then put the missing
-    /// ones where they belong. After the first pass what remains is a subsequence of what is
-    /// wanted, so the second can walk both in step. The rows themselves are the same objects
-    /// throughout, which is what lets the selection and the scroll position survive.
+    /// Held back entirely while somebody is using the list - `A10`. Cells keep moving
+    /// underneath, and <see cref="Interacting"/> says why that half is not held back with it.
     ///
-    /// Held back entirely while somebody is using the list. Cells keep moving underneath -
-    /// see <see cref="Interacting"/> for why that half is not held back with it.
+    /// How the list becomes the other list is <see cref="RowList.Reconcile"/>, which is where it
+    /// belongs: a collection that knows how to turn into another collection without losing the
+    /// objects in it. This decides WHETHER to, which needs the things only a view model knows.
     /// </summary>
     private void Show(List<EntryRow> selected)
     {
@@ -542,42 +541,6 @@ public sealed class MainViewModel : Observable
         }
 
         _held = false;
-
-        // Filling an empty list one row at a time is 810 notifications, and a DataGrid answers
-        // every one of them. Measured 2026-08-02: it was about 285 ms of the time between the
-        // window appearing and a row being on the screen, against roughly 80 for the reading
-        // that produced the rows.
-        //
-        // Only when the list is empty, and that condition is doing real work rather than being
-        // cautious. A reset is how a DataGrid is told it cannot work out what moved, so it
-        // throws away the selection and the scroll position - the two things `A10` names first.
-        // An empty list has neither, so this is the one moment where the cheap path costs
-        // nothing. Every refresh after it goes through the loop below, row object by row
-        // object, exactly as before.
-        if (Rows.Count == 0 && selected.Count > 0)
-        {
-            Rows.ResetTo(selected, nothingToPreserve: true);
-
-            return;
-        }
-
-        var wanted = new HashSet<EntryRow>(selected);
-
-        for (var index = Rows.Count - 1; index >= 0; index--)
-        {
-            if (!wanted.Contains(Rows[index]))
-            {
-                Rows.RemoveAt(index);
-            }
-        }
-
-        for (var index = 0; index < selected.Count; index++)
-        {
-            if (index >= Rows.Count || !ReferenceEquals(Rows[index], selected[index]))
-            {
-                Rows.Insert(index, selected[index]);
-            }
-        }
+        Rows.Reconcile(selected);
     }
-
 }

@@ -67,4 +67,81 @@ public sealed class RowList : ObservableCollection<EntryRow>
         OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs("Item[]"));
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
+
+    /// <summary>
+    /// Turns this list into the given one, keeping every row object that appears in both.
+    ///
+    /// <b>Moved here from the view model on 2026-08-03</b>, when the size ratchet asked for a
+    /// seam and this was the honest one: a collection that knows how to become another
+    /// collection. What stays behind decides WHETHER to change, which needs focus, a mouse and a
+    /// query - none of which a list has any business knowing about.
+    ///
+    /// Three passes and each one is load-bearing.
+    /// </summary>
+    public void Reconcile(IReadOnlyList<EntryRow> wanted)
+    {
+        ArgumentNullException.ThrowIfNull(wanted);
+
+        // Filling an empty list one row at a time is 810 notifications, and a DataGrid answers
+        // every one of them. Measured 2026-08-02: about 285 ms of the time between the window
+        // appearing and a row being on the screen, against roughly 80 for the reading that
+        // produced the rows.
+        //
+        // Only when this list is empty, and that condition is doing real work rather than being
+        // cautious. A reset is how a DataGrid is told it cannot work out what moved, so it throws
+        // away the selection and the scroll position - the two things `A10` names first. An empty
+        // list has neither, so this is the one moment where the cheap path costs nothing.
+        if (Count == 0 && wanted.Count > 0)
+        {
+            ResetTo(wanted, nothingToPreserve: true);
+
+            return;
+        }
+
+        var keeping = new HashSet<EntryRow>(wanted);
+
+        for (var index = Count - 1; index >= 0; index--)
+        {
+            if (!keeping.Contains(this[index]))
+            {
+                RemoveAt(index);
+            }
+        }
+
+        // A ROW ALREADY HERE IS MOVED, NEVER INSERTED A SECOND TIME.
+        //
+        // This pass used to insert whenever the object at a position was not the one wanted
+        // there, which is correct only while what survived the pass above is in the same relative
+        // order as what is wanted - an assumption nothing stated and nothing checked. Two rows
+        // that swap places break it outright: [A, B] against a wanted [B, A] inserted B at the
+        // front and left the old B where it was, so the list ended [B, A, B] and the same service
+        // was on screen twice.
+        //
+        // It is reachable. The order comes from the service control manager, and Snapshot says in
+        // as many words that the manager's order is in no contract and has been seen to move -
+        // and a full reading happens on F5 and whenever a service is installed or removed.
+        //
+        // The invariant guarding this list did not see it either, because it asks whether the
+        // list holds a row the query rejected, and in a swap both rows are wanted.
+        for (var index = 0; index < wanted.Count; index++)
+        {
+            if (index < Count && ReferenceEquals(this[index], wanted[index]))
+            {
+                continue;
+            }
+
+            var already = IndexOf(wanted[index]);
+
+            // Moved rather than removed and added, because a move keeps the row object - and the
+            // selection and the scroll position ride on the row objects being the same ones.
+            if (already >= 0)
+            {
+                Move(already, index);
+            }
+            else
+            {
+                Insert(index, wanted[index]);
+            }
+        }
+    }
 }

@@ -12,6 +12,19 @@ namespace Bws.Integration.Tests;
 /// It runs here rather than in the architecture guards because it asks the built tool what
 /// it accepts and what it prints, instead of reading the source and inferring both.
 /// </summary>
+/// <remarks>
+/// <b>Marked as running anywhere, which is what puts it in continuous integration.</b> Everything
+/// in this class is about the command line surface - what the tool accepts, what it says when it
+/// does not, and which exit code comes back. None of it depends on which services this machine
+/// happens to have, so none of the reasons the rest of this project stays off a build agent apply.
+///
+/// The whole project used to be excluded, and the reason given covered only part of it: comparing
+/// against this machine's sc.exe and holding budgets from section 8.1 are indeed facts about one
+/// machine. Asking whether `bws --help` ends with code zero is not, and it went unchecked on every
+/// push for the same reason - which is how that exact fault lived through the whole life of the
+/// product once already.
+/// </remarks>
+[Trait("runs", "anywhere")]
 public sealed class UsageContractTests
 {
     /// <summary>
@@ -209,5 +222,39 @@ public sealed class UsageContractTests
         Assert.Equal(2, wrong.ExitCode);
         Assert.DoesNotContain("Unknown option", wrong.StandardError, StringComparison.Ordinal);
         Assert.Contains("restore", wrong.StandardError, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_switch_is_never_swallowed_as_the_value_of_another_one()
+    {
+        // MEASURED before this held: `bws list --query --json` ended with code 0, an empty table
+        // on the data channel, and no JSON anywhere - because --json had been taken as the text
+        // to search for. A script asking for a machine readable listing got a human one and a
+        // green light, and the switch it typed was silently gone.
+        //
+        // That is the same silence the belonging table exists to end, arriving from the other
+        // side: there the option was refused for being in the wrong place, and here it was never
+        // seen as an option at all.
+        var swallowed = CommandLineTool.Run("list", "--query", "--json");
+
+        Assert.Equal(2, swallowed.ExitCode);
+        Assert.Contains("--query", swallowed.StandardError, StringComparison.Ordinal);
+
+        // Nothing on the data channel, because a failed run must not drop a stray line into
+        // whatever comes next in the pipeline.
+        Assert.Equal(string.Empty, swallowed.StandardOutput.Trim());
+    }
+
+    [Fact]
+    public void A_value_that_merely_looks_like_a_switch_is_still_a_value()
+    {
+        // The other side of the line, and it decides the shape of the check above. Refusing
+        // every value that opens with a hyphen would be simpler and would take away a note
+        // somebody would plausibly write - so the question asked is whether the next word is one
+        // of THIS TOOL'S options, not whether it starts with a dash.
+        var dashed = CommandLineTool.Run("list", "--query", "-notanoption");
+
+        Assert.Equal(0, dashed.ExitCode);
+        Assert.DoesNotContain("--query", dashed.StandardError, StringComparison.Ordinal);
     }
 }

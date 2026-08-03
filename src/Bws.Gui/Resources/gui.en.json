@@ -40,6 +40,7 @@
   "gui.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
   "gui.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
   "gui.query.emptyTerm": "{0} says nothing. A ! needs something after it, and a word needs something in it.",
+  "gui.query.patternTooComplex": "The wildcard starting {0} has too many parts to build. Use fewer * and ? characters.",
   "gui.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "gui.cell.unknown": "unknown",

@@ -119,6 +119,10 @@ public static class SnapshotJson
             // Said out loud rather than attempted. A file from a schema this build does not
             // know may be missing fields, or may mean something different by one it has - and
             // reading it anyway would produce a comparison that looks ordinary and is not.
+            //
+            // AHEAD OF THE CONTENT CHECK BELOW, and the order carries an argument: a rule about
+            // what the entries may hold is a rule of THIS schema, so applying it to a document
+            // written against another one would report a fault that may not be one there.
             failure =
                 $"The snapshot uses schema version {snapshot.Metadata.SchemaVersion} and this " +
                 $"build reads version {Snapshot.CurrentSchemaVersion}.";
@@ -127,7 +131,90 @@ public static class SnapshotJson
             return false;
         }
 
+        // Everything above is about the document. This is about what is inside it, and it was
+        // missing until 2026-08-03 - so this method kept its promise and the caller broke it two
+        // lines later.
+        //
+        // MEASURED, not reasoned: a file with `"entries": [ {...}, null ]` ended
+        // `bws snapshot diff` with "Object reference not set to an instance of an object." and
+        // code 1, and a file holding one service name twice ended it with "An item with the same
+        // key has already been added." Neither message names either of the two files being
+        // compared, and code 1 says the tool fell over when what happened is that a file is
+        // broken.
+        //
+        // Neither shape is exotic for a document kept for months, edited by hand, merged by
+        // somebody's tooling or truncated by a full disk. The property test beside this damages
+        // a real snapshot by cutting, deleting, flipping and inserting characters, which is the
+        // right instrument and reaches neither of these: both are structurally valid JSON.
+        if (Broken(snapshot, out failure))
+        {
+            snapshot = null;
+
+            return false;
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// Whether the entries are something a comparison can be run against.
+    ///
+    /// Three questions, and all three are asked of the file rather than trusted from the type. A
+    /// required property does not reach the elements of a list, it does not reach a property
+    /// spelled out with null after it, and nothing anywhere says a document holds each service
+    /// once.
+    ///
+    /// <b>Names are compared without case, and that is a decision about what a snapshot is</b>
+    /// rather than a detail of this method - owner's decision, 2026-08-03. Windows cannot hold
+    /// two services whose names differ only in case, because the manager compares them that way
+    /// when one is created, so a file carrying both describes no machine that exists. The
+    /// comparison engine matches its two sides the same way and would otherwise fail on such a
+    /// file with a message from inside a dictionary.
+    ///
+    /// The specimen catalogue in the tests carries <c>Twin</c> and <c>TWIN</c> on purpose, to pin
+    /// the tie-break that keeps two such names in a settled order when they are written. That is
+    /// a fact about writing, and it is why a snapshot of the whole catalogue is deliberately not
+    /// something this reader accepts back.
+    /// </summary>
+    private static bool Broken(Snapshot snapshot, out string? failure)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < snapshot.Entries.Count; index++)
+        {
+            var entry = snapshot.Entries[index];
+
+            if (entry is null)
+            {
+                // The position rather than a name, because there is no name to give - which is
+                // the whole of what is wrong with it.
+                failure = $"Entry {index + 1} in the file is empty.";
+
+                return true;
+            }
+
+            // `required` does not mean present. It makes the compiler insist on a value where
+            // one is written in code, and says nothing about a file that spells the property
+            // and puts null after it - which deserialises without complaint and then fails
+            // wherever the name is used as identity.
+            if (entry.ServiceName is null)
+            {
+                failure = $"Entry {index + 1} in the file has no service name.";
+
+                return true;
+            }
+
+            if (!seen.Add(entry.ServiceName))
+            {
+                failure = $"The file holds more than one entry called '{entry.ServiceName}'.";
+
+                return true;
+            }
+        }
+
+        failure = null;
+
+        return false;
     }
 
     /// <summary>

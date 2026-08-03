@@ -49,7 +49,23 @@ public enum QueryProblemKind
     /// character by the property test beside it. Neither the four hundred tests then existing
     /// nor the analysers had anything to say.
     /// </summary>
-    EmptyTerm
+    EmptyTerm,
+
+    /// <summary>
+    /// A wildcard with so many parts that the linear engine will not build it.
+    ///
+    /// Its own kind rather than <see cref="BadPattern"/>, and the difference is the sentence a
+    /// person needs. A bad pattern is written wrongly and the engine says where. This one is
+    /// written correctly and is simply too big, so the answer is "use fewer wildcards" rather
+    /// than "check your syntax" - and the engine's own words here are about automaton nodes,
+    /// which explain nothing to anybody who did not choose the engine.
+    ///
+    /// <b>Added 2026-08-03 because until then it was not a problem at all, it was a crash.</b>
+    /// About a thousand repetitions of <c>*a</c> ended the process with an unhandled exception
+    /// and an exit code outside the table. See <c>QueryPatterns.TryWildcard</c> for why this is
+    /// refused rather than handed to the engine that would accept it.
+    /// </summary>
+    PatternTooComplex
 }
 
 /// <summary>

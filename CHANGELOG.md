@@ -249,6 +249,29 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **The program no longer claims to be version 1.0.0.** Nothing had ever declared a
   version, so the build tools filled one in. It now reports `0.1.0`, which is what an
   unreleased tool should say.
+- **A long search with many `*` characters no longer ends the program.** A query with around
+  a thousand wildcards used to end with an error message from inside .NET and an exit code
+  that is not in the table. It now says the wildcard has too many parts and asks for fewer.
+- **A search that says nothing is refused instead of returning everything.** `--query ""`
+  and `--query name:""` used to answer with every entry on the machine and a success code,
+  so a script with a typo in its query got the whole machine and a green light. A half-typed
+  member such as `status:` is still fine - that is what a search box holds while you type.
+- **A switch is no longer swallowed as another switch's value.** `bws list --query --json`
+  used to search for the text `--json`, print an empty table and end successfully, with the
+  switch you actually typed silently gone.
+- **A damaged snapshot is answered with a sentence naming the file.** A file with an empty
+  entry, or one naming the same service twice, used to end the comparison with a message
+  from inside .NET that named neither of the two files being compared.
+- **A launch path written with forward slashes is recognised as being on another machine.**
+  `//server/share/x.exe` was treated as local, so the tool would reach for it - which can
+  block for twenty seconds on an unreachable host and connects as whoever ran the tool.
+  `--follow-network` is still how you ask for that on purpose.
+- **A disk problem is no longer reported as your typo.** Reading a snapshot from a share that
+  went away, or a file another program is holding open, now ends with the code that means the
+  tool hit a problem rather than the one that means you mistyped the path.
+- **Ctrl+C just after a plan finishes no longer risks ending the run without its report.**
+- **The list no longer shows the same service twice** after a refresh in which two rows
+  changed places.
 
 ### Known limits
 

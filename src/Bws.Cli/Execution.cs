@@ -33,13 +33,19 @@ internal static class Execution
         using var abandonment = new CancellationTokenSource();
         var presses = 0;
 
-        Console.CancelKeyPress += (_, key) =>
+        ConsoleCancelEventHandler pressed = (_, key) =>
         {
             // Three presses, three different asks, and each message says what the next one
             // costs. The middle one was missing and it showed: pressing twice used to end the
             // process outright, leaving a half stopped cascade and printing nothing about it.
             // Somebody who wants a run to stop is not asking to be told nothing.
-            switch (++presses)
+            //
+            // Counted atomically, because this runs on a thread of the runtime's choosing and
+            // nothing says two presses cannot arrive at once. With `++presses` both could read
+            // zero, both could take the first branch, and the second level - the one added after
+            // a real run on a virtual machine left a cascade half down - would never be reached
+            // however many times somebody pressed.
+            switch (Interlocked.Increment(ref presses))
             {
                 case 1:
                     key.Cancel = true;
@@ -59,13 +65,30 @@ internal static class Execution
             }
         };
 
-        return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
-            plan,
-            timeout,
-            interruption.Token,
-            abandonment.Token,
-            starting: (step, number) => Console.Error.WriteLine(
-                PlanText.Progress(step, number, plan.Steps.Count)));
+        Console.CancelKeyPress += pressed;
+
+        try
+        {
+            return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
+                plan,
+                timeout,
+                interruption.Token,
+                abandonment.Token,
+                starting: (step, number) => Console.Error.WriteLine(
+                    PlanText.Progress(step, number, plan.Steps.Count)));
+        }
+        finally
+        {
+            // TAKEN OFF BEFORE THE TWO SOURCES ABOVE ARE DISPOSED, and until 2026-08-03 it never
+            // was. The handler outlived them: the plan finished, the `using` statements released
+            // both, and the handler stayed subscribed while the report was rendered and written.
+            // A press in that window called Cancel on a disposed source, which throws, on a
+            // thread with nothing to catch it - so the one moment where somebody most wants the
+            // report is the moment the process could end without printing it.
+            //
+            // The state (T) of rule 10, in the place this project has already paid for it once.
+            Console.CancelKeyPress -= pressed;
+        }
     }
 
     /// <summary>

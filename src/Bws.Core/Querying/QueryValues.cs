@@ -389,8 +389,26 @@ internal static class QueryPatterns
     /// <summary>
     /// Turns a wildcard into a pattern anchored at both ends, because a wildcard describes
     /// the whole value while the plain form already means "contains".
+    ///
+    /// <b>Returns rather than throws, and until 2026-08-03 it threw.</b> The linear engine
+    /// refuses a pattern whose automaton would exceed ten thousand nodes, and a wildcard is
+    /// the one shape in this language where a person can reach that by accident: about a
+    /// thousand repetitions of <c>*a</c> - a two thousand character paste - is enough.
+    /// <c>bws list --query "name:*a*a..."</c> ended with an unhandled
+    /// <see cref="NotSupportedException"/>, a stack trace, and exit code <c>0xE0434352</c>,
+    /// which is not in the table of exit codes at all. In the window the same text arrives on
+    /// the interface thread through a binding, on every keystroke.
+    ///
+    /// <b>Refused rather than sent to the other engine</b>, which is what <see cref="TryPattern"/>
+    /// does with a construct the linear engine cannot express. The two cases are not alike. A
+    /// backreference is a thing somebody meant, and the ordinary engine plus the time limit is
+    /// the honest way to serve it. A wildcard of this size is a paste accident, and the ordinary
+    /// engine would meet it with exactly the backtracking shape - <c>.*a.*a.*a</c> - that runs
+    /// away, so the trade would be a crash swapped for a window frozen for as long as the
+    /// timeout allows, times every entry in the listing. The linear engine is the promise this
+    /// language makes about patterns typed into a search box, and this keeps it.
     /// </summary>
-    internal static Regex Wildcard(ScannedText value)
+    internal static bool TryWildcard(ScannedText value, out Regex? compiled, out string? failure)
     {
         var pattern = new StringBuilder(value.Length + 8).Append('^');
 
@@ -412,6 +430,23 @@ internal static class QueryPatterns
             }
         }
 
-        return new Regex(pattern.Append('$').ToString(), Shared | RegexOptions.NonBacktracking);
+        try
+        {
+            // The time limit is here for the same reason it is on every other pattern in this
+            // file, and the reason is written at Ceiling: it is what turns a mistake in the
+            // choice of engine into a red test rather than a run that never ends. This call
+            // used to be the one place in the language that left it off.
+            compiled = new Regex(pattern.Append('$').ToString(), Shared | RegexOptions.NonBacktracking, Ceiling);
+            failure = null;
+
+            return true;
+        }
+        catch (Exception refused) when (refused is NotSupportedException or ArgumentException)
+        {
+            compiled = null;
+            failure = refused.Message;
+
+            return false;
+        }
     }
 }
