@@ -36,6 +36,10 @@ internal static class QueryMessages
 
         QueryProblemKind.BadSize => Texts.Of("gui.query.badSize", problem.Text, problem.Field!),
 
+        // Its own sentence, because "there is nothing here" is not a kind of typo and
+        // naming it one would send somebody looking at characters that are correct.
+        QueryProblemKind.EmptyTerm => Texts.Of("gui.query.emptyTerm", problem.Text),
+
         _ => Texts.Of("gui.query.badNumber", problem.Text, problem.Field!)
     };
 

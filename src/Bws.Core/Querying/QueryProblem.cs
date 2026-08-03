@@ -33,7 +33,23 @@ public enum QueryProblemKind
     /// written by somebody who meant megabytes and gets told so, instead of being told their
     /// number is not a number when it plainly is.
     /// </summary>
-    BadSize
+    BadSize,
+
+    /// <summary>
+    /// A word with nothing in it. Today that means a lone <c>!</c>, or one whose whole body is
+    /// an empty pair of quotes.
+    ///
+    /// <b>Added 2026-08-03 because it was being dropped in silence.</b> The parser returned
+    /// nothing for such a member and recorded no problem, so <c>bws list --query "!!!"</c> came
+    /// back with all 810 entries and a code of success - a script with a typo in its query got
+    /// the whole machine and a green light. That is rule 8 of CLAUDE.md broken in the place the
+    /// rule is most about: an answer that looks complete and is not.
+    ///
+    /// Found by <c>tools/user-journey/journey.ps1</c> on its first run, shrunk to a single
+    /// character by the property test beside it. Neither the four hundred tests then existing
+    /// nor the analysers had anything to say.
+    /// </summary>
+    EmptyTerm
 }
 
 /// <summary>

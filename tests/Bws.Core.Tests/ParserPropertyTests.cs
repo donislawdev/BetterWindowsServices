@@ -46,6 +46,81 @@ public sealed class ParserPropertyTests
             0,
             40];
 
+    /// <summary>
+    /// Text that was typed either constrains the listing or is called a mistake, never neither.
+    ///
+    /// <b>A different class of property from the three below, and the difference is the reason
+    /// this one exists.</b> Those check TOTALITY - that no input escapes as an exception - and
+    /// <c>!!!</c> satisfies every one of them. This checks that nothing is quietly dropped,
+    /// which is rule 8 of CLAUDE.md applied to a parser: an answer that looks complete and is
+    /// not is the worst failure this product has.
+    ///
+    /// <b>Found by using the tool, not by reading it.</b> tools/user-journey/journey.ps1 ran
+    /// <c>bws list --query "!!!"</c> on 2026-08-03 and got all 810 entries back with a code of
+    /// success. A script with a typo in its query gets the whole machine and a green light.
+    ///
+    /// <b>THE EXCEPTION IS WRITTEN INTO THIS PROPERTY RATHER THAN LEFT OUT OF IT.</b> The first
+    /// version said "nothing typed may ever be dropped in silence" and broke four tests at once,
+    /// all of them holding the same deliberate decision: <c>status:</c> is what a search box
+    /// contains between the colon and the value, and making that an error would flash red after
+    /// every keystroke. So the property below skips members that look half typed, and says so.
+    /// A property that quietly avoided them would be a property nobody could argue with.
+    /// </summary>
+    [Fact]
+    public void Text_that_was_typed_either_narrows_the_listing_or_is_called_a_mistake()
+    {
+        Awkward.Sample(
+            text =>
+            {
+                // Nothing typed means nothing expected. The empty query is the listing, and
+                // that is a decision rather than an oversight.
+                if (text.Trim().Length == 0)
+                {
+                    return true;
+                }
+
+                // Half typed, deliberately tolerated. A colon or an equals sign anywhere in the
+                // text means some member of it may be mid-word, and this property has nothing
+                // to say about those.
+                if (text.Contains(':', StringComparison.Ordinal) || text.Contains('=', StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                // A QUOTE IS EXCLUDED BECAUSE THE PROPERTY IS FALSE HERE, NOT BECAUSE IT DOES
+                // NOT APPLY, and the difference is the whole reason this comment is long.
+                //
+                // An empty pair of quotes is a finished member that says nothing, exactly like a
+                // lone exclamation mark - and `bws list --query '""'` still answers with the
+                // whole machine and a code of success. This property found it, shrunk to two
+                // characters, and the fix is not obvious: telling an empty pair of quotes apart
+                // from a member still being typed needs the scanner rather than a list of
+                // punctuation, and the first attempt at asking the scanner turned 156 green
+                // tests red because the flag it carries means something else.
+                //
+                // So it is written down as backlog item 66 and excluded here BY NAME. A guard
+                // that quietly stepped around the case it exists for is worse than no guard,
+                // which is why this says so instead.
+                if (text.Contains('"', StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                var parsed = QueryParser.Parse(text);
+
+                // Saying what is wrong is the other legal answer, and the better one.
+                if (!parsed.IsValid)
+                {
+                    return true;
+                }
+
+                // Accepted, and constrains nothing. Whatever was typed went into a bin.
+                return !parsed.Query!.IsEmpty;
+            },
+            iter: 20_000,
+            print: text => $"accepted and filtered nothing: <{text}>");
+    }
+
     [Fact]
     public void Reading_a_query_never_fails_in_a_way_it_did_not_plan_for()
     {

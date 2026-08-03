@@ -144,6 +144,37 @@ public sealed class QueryParserTests
         Assert.True(query.Match(Entries.Any).Matched);
     }
 
+    /// <summary>
+    /// A word made of nothing but exclamation marks is a mistake, not a filter that lets
+    /// everything through.
+    ///
+    /// <b>The boundary between this and the test above is the whole point, and it is a real
+    /// distinction rather than a line drawn somewhere.</b> <c>status:</c> is what a search box
+    /// holds between the colon and the value, so calling it an error would flash red after every
+    /// keystroke. <c>!</c> is not on the way to anything - it is finished, and it says nothing.
+    ///
+    /// Until 2026-08-03 both were dropped in silence and <c>bws list --query "!!!"</c> answered
+    /// with all 810 entries and a code of success. A script with a typo in its query got the
+    /// whole machine and a green light.
+    ///
+    /// <b>Written by example rather than left to the property test next door, and the mutation
+    /// registry is why.</b> That property covers this and only reaches it when the generator
+    /// happens to produce a string of nothing but exclamation marks, so removing the behaviour
+    /// came back MISSED - the property was green on a build that had the defect back. A guard
+    /// that catches sometimes is not a guard.
+    /// </summary>
+    [Theory]
+    [InlineData("!")]
+    [InlineData("!!")]
+    [InlineData("!!!")]
+    public void A_word_of_nothing_but_exclamation_marks_is_a_mistake(string text)
+    {
+        var parsed = QueryParser.Parse(text);
+
+        Assert.False(parsed.IsValid);
+        Assert.Contains(parsed.Problems, problem => problem.Kind == QueryProblemKind.EmptyTerm);
+    }
+
     [Fact]
     public void Field_names_ignore_case()
     {

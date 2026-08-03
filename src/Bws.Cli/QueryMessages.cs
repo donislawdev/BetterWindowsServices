@@ -39,6 +39,10 @@ internal static class QueryMessages
         // a number would send them to check the digits.
         QueryProblemKind.BadSize => Texts.Of("cli.query.badSize", problem.Text, problem.Field!),
 
+        // Its own sentence, because "there is nothing here" is not a kind of typo and
+        // naming it one would send somebody looking at characters that are correct.
+        QueryProblemKind.EmptyTerm => Texts.Of("cli.query.emptyTerm", problem.Text),
+
         _ => Texts.Of("cli.query.badNumber", problem.Text, problem.Field!)
     };
 

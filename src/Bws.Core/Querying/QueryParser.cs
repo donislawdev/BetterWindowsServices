@@ -104,6 +104,16 @@ public static class QueryParser
 
         foreach (var member in members)
         {
+            // A member that produces nothing is dropped in silence, and that is DELIBERATE for
+            // one shape only: a member still being typed. `status:` is what a search box holds
+            // between the colon and the value, and making it an error would flash red after
+            // every keystroke. Three tests hold that decision and a fourth holds it in the
+            // window.
+            //
+            // A choke point here reporting every silent drop was written on 2026-08-03 and
+            // reverted the same hour, because it broke all four. The narrower fix lives in
+            // ReadMember: a member that is nothing but exclamation marks is not half typed, it
+            // is finished and says nothing.
             var term = ReadMember(member, problems, bareWordsAreExpressions);
 
             if (term is not null)
@@ -163,8 +173,33 @@ public static class QueryParser
         var negated = member.StartsWithSpecial('!');
         var body = negated ? member.Slice(1) : member;
 
-        if (body.Length == 0)
+        // A member made of nothing but exclamation marks. Said rather than dropped, and until
+        // 2026-08-03 it was dropped: `bws list --query "!!!"` came back with all 810 entries and
+        // a code of success, so a script with a typo in its query got the whole machine and a
+        // green light. Rule 8 broken in the place that rule is most about.
+        //
+        // Found by tools/user-journey/journey.ps1 on its first run and shrunk to one character
+        // by the property test beside it.
+        //
+        // NARROW ON PURPOSE, and the boundary is the interesting part. `status:` and `=` are
+        // also members that produce nothing, and they are left alone because they are what a
+        // search box holds WHILE SOMEBODY IS TYPING - three tests and one in the window hold
+        // that decision. An exclamation mark on its own is not half typed. It is finished and
+        // it says nothing.
+        // AN ATTEMPT TO ASK THE SCANNER INSTEAD WENT IN HERE AND CAME STRAIGHT BACK OUT, and it
+        // is written down because the guess was reasonable and wrong. ScannedText carries a
+        // Literal flag per character, and "no literal characters means no content" reads well -
+        // but that flag marks characters whose special meaning was taken away by quoting, not
+        // characters a person meant. An ordinary word has none of them. The condition turned 156
+        // green tests red in one build.
+        if (body.Length == 0 || body.Text.All(character => character == '!'))
         {
+            problems.Add(new QueryProblem
+            {
+                Kind = QueryProblemKind.EmptyTerm,
+                Text = member.Text
+            });
+
             return null;
         }
 

@@ -124,6 +124,7 @@
   "cli.query.badPattern": "The expression /{0}/ could not be read. {1}",
   "cli.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
   "cli.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
+  "cli.query.emptyTerm": "{0} says nothing. A ! needs something after it, and a word needs something in it.",
   "cli.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "cli.warning.configurationRefused": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",
