@@ -245,6 +245,59 @@ public sealed class UsageContractTests
         Assert.Equal(string.Empty, swallowed.StandardOutput.Trim());
     }
 
+    [Theory]
+    [InlineData("status:")]
+    [InlineData("=")]
+    [InlineData("\"\"")]
+    [InlineData("!!!")]
+    public void Text_that_constrains_nothing_is_refused_here_however_it_is_spelled(string query)
+    {
+        // FOUR SPELLINGS OF ONE FAULT, and the first three used to answer with every entry on
+        // the machine and a code of success. Each was repaired by naming it - !!! first, then
+        // the empty pair of quotes - and each time the next spelling turned up within the hour.
+        //
+        // The repair that closed the family stopped naming spellings. The parser is told whether
+        // the text is finished, the window says it is not because it holds status: between two
+        // keystrokes, and a terminal says it is because there are no keystrokes. Owner's
+        // decision, 2026-08-03.
+        //
+        // Here rather than only in the core tests because the code is the half that matters to a
+        // script, and a script is what this protects: a typo in a query used to return the whole
+        // machine and a green light.
+        var refused = CommandLineTool.Run("list", "--query", query);
+
+        Assert.Equal(2, refused.ExitCode);
+        Assert.Equal(string.Empty, refused.StandardOutput.Trim());
+    }
+
+    [Fact]
+    public void The_same_text_still_answers_while_somebody_is_typing_it()
+    {
+        // The other side of the line, and it lives in the window rather than here - so what this
+        // checks is that the strictness above did not reach the language itself. A finished
+        // member with a value is still a query, and a bare word that happens to be short is not
+        // suddenly a mistake.
+        Assert.Equal(0, CommandLineTool.Run("list", "--query", "status:running").ExitCode);
+        Assert.Equal(0, CommandLineTool.Run("list", "--query", "sta").ExitCode);
+    }
+
+    [Fact]
+    public void An_option_given_twice_is_refused_rather_than_quietly_halved()
+    {
+        // The last one used to win in silence, so `--query a --query b` searched for b and said
+        // nothing about a. Same fault as a switch swallowed as another one's value, from a third
+        // direction: the tool accepted something somebody wrote and did nothing with it.
+        var twice = CommandLineTool.Run("list", "--query", "status:running", "--query", "status:stopped");
+
+        Assert.Equal(2, twice.ExitCode);
+        Assert.Contains("--query", twice.StandardError, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, twice.StandardOutput.Trim());
+
+        // A flag repeated means what it meant once, so it is left alone - only the three options
+        // carrying a value can lose one of two.
+        Assert.Equal(0, CommandLineTool.Run("list", "--json", "--json").ExitCode);
+    }
+
     [Fact]
     public void A_value_that_merely_looks_like_a_switch_is_still_a_value()
     {

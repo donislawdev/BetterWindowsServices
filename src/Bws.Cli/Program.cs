@@ -95,6 +95,15 @@ try
         return ExitCode.Usage;
     }
 
+    if (options.Repeated.Count > 0)
+    {
+        // Accepted twice and honoured once is the same silence as accepted and ignored, which
+        // this tool refuses everywhere else. The last one used to win without a word.
+        Console.Error.WriteLine(Texts.Of("cli.optionGivenTwice", string.Join(", ", options.Repeated)));
+
+        return ExitCode.Usage;
+    }
+
     if (options.Incomplete.Count > 0)
     {
         // A different mistake from an unknown option, and it used to be reported as one -

@@ -80,7 +80,31 @@ public static class QueryParser
     /// stored text, so the day sets can be saved, this state has to be stored beside the text
     /// or folded into it. Recorded as item 18 of the backlog.
     /// </param>
-    public static QueryParseResult Parse(string? query, bool bareWordsAreExpressions = false)
+    /// <param name="input">
+    /// Whether this is text somebody has finished writing or text they are in the middle of.
+    ///
+    /// <b>The difference decides what a member that says nothing means</b>, and until 2026-08-03
+    /// there was no difference. A member with nothing after its colon was dropped in silence
+    /// everywhere, because a search box holds <c>status:</c> between two keystrokes and turning
+    /// that red after every one of them teaches people to ignore red. That reasoning is sound
+    /// for a window and has no meaning at all in a terminal, which has no keystrokes - and there
+    /// the same tolerance meant <c>bws list --query "status:"</c> answered with every entry on
+    /// the machine and a code of success.
+    ///
+    /// That is the third shape of one fault. <c>!!!</c> was repaired on 2026-08-03, then the
+    /// empty pair of quotes, and each repair closed one spelling of "somebody wrote something
+    /// that constrains nothing". <b>This closes the family</b>, including the spellings nobody
+    /// has thought of, because it stops asking which shapes are suspicious and asks instead
+    /// whether anything was understood.
+    ///
+    /// An enum rather than a boolean at the call site, the same choice and the same reason as
+    /// <c>NetworkPaths</c>: <c>Parse(text, false, true)</c> says nothing to anybody reading it.
+    ///
+    /// <b>Finished is the default</b>, so a new caller gets the strict reading by saying nothing
+    /// and only the window has to ask for the other. Owner's decision, 2026-08-03.
+    /// </param>
+    public static QueryParseResult Parse(
+        string? query, bool bareWordsAreExpressions = false, QueryInput input = QueryInput.Finished)
     {
         var problems = new List<QueryProblem>();
 
@@ -104,21 +128,33 @@ public static class QueryParser
 
         foreach (var member in members)
         {
-            // A member that produces nothing is dropped in silence, and that is DELIBERATE for
-            // one shape only: a member still being typed. `status:` is what a search box holds
-            // between the colon and the value, and making it an error would flash red after
-            // every keystroke. Three tests hold that decision and a fourth holds it in the
-            // window.
+            // THE CHOKE POINT, and it went in and came straight back out on 2026-08-03 before
+            // it could work. Reporting every member that produced nothing broke four tests at
+            // once, all of them holding the same deliberate decision about half-typed text - so
+            // it was reverted and replaced by a rule naming one shape, the lone exclamation
+            // mark. Two more shapes turned up within the hour.
             //
-            // A choke point here reporting every silent drop was written on 2026-08-03 and
-            // reverted the same hour, because it broke all four. The narrower fix lives in
-            // ReadMember: a member that is nothing but exclamation marks is not half typed, it
-            // is finished and says nothing.
+            // What was missing was not the choke point. It was somebody having said which of
+            // the two situations the text is in, and now the caller says.
+            var before = problems.Count;
             var term = ReadMember(member, problems, bareWordsAreExpressions);
 
             if (term is not null)
             {
                 terms.Add(term);
+
+                continue;
+            }
+
+            // Nothing came of it, and nothing has been said about why. In a window that is
+            // somebody mid-word. In a terminal there is no mid-word.
+            if (input is QueryInput.Finished && problems.Count == before)
+            {
+                problems.Add(new QueryProblem
+                {
+                    Kind = QueryProblemKind.EmptyTerm,
+                    Text = member.Text.Length == 0 ? "\"\"" : member.Text
+                });
             }
         }
 
@@ -216,8 +252,8 @@ public static class QueryParser
         if (colon <= 0)
         {
             var free = asExpression
-                ? ReadExpressionValue(body, problems)
-                : ReadTextValue(body, forFreeSearch: true, problems);
+                ? QueryValueReader.ReadExpressionValue(body, problems)
+                : QueryValueReader.ReadTextValue(body, forFreeSearch: true, problems);
 
             return free is null
                 ? null
@@ -266,7 +302,7 @@ public static class QueryParser
                 continue;
             }
 
-            var value = ReadValue(field, part, problems);
+            var value = QueryValueReader.ReadValue(field, part, problems);
 
             if (value is not null)
             {
@@ -282,287 +318,4 @@ public static class QueryParser
             : new QueryTerm { Field = field, Values = values, Negated = negated, Written = written };
     }
 
-    /// <summary>
-    /// A bare word read as a regular expression, which is what the regex switch beside the
-    /// search box means.
-    ///
-    /// Nothing else is tried first - not the slashes, not the equals sign, not the wildcards.
-    /// With the switch on, the text is the expression and every character in it means what it
-    /// means to a regular expression, which is the only reading that does not need a person to
-    /// remember a second set of rules for when the switch is down.
-    /// </summary>
-    private static IQueryValue? ReadExpressionValue(ScannedText value, List<QueryProblem> problems)
-    {
-        if (QueryPatterns.TryPattern(value.Text, out var compiled, out var failure))
-        {
-            return new TextValue(TextOperator.Pattern, value.Text, compiled);
-        }
-
-        problems.Add(new QueryProblem
-        {
-            Kind = QueryProblemKind.BadPattern,
-            Text = value.Text,
-            Detail = failure
-        });
-
-        return null;
-    }
-
-    private static IQueryValue? ReadValue(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        var reserved = ReadReservedValue(value);
-
-        if (reserved is not null)
-        {
-            return reserved;
-        }
-
-        return field.Kind switch
-        {
-            QueryFieldKind.Text => ReadTextValue(value, forFreeSearch: false, problems),
-            QueryFieldKind.Enumeration => ReadSymbolValue(field, value, problems),
-            QueryFieldKind.Size => ReadSizeValue(field, value, problems),
-            _ => ReadNumberValue(field, value, problems)
-        };
-    }
-
-    /// <summary>
-    /// The three words that ask about the reading rather than the value. Only the bare
-    /// form counts, so <c>name:"none"</c> looks for a service called none and <c>name:"?"</c>
-    /// looks for a question mark.
-    /// </summary>
-    private static IQueryValue? ReadReservedValue(ScannedText value)
-    {
-        if (!value.IsBare())
-        {
-            return null;
-        }
-
-        // Deliberately ahead of the wildcard rule, where a lone ? would otherwise mean
-        // "any single character". Asking what could not be read is worth the collision,
-        // and a one-character wildcard on its own is not a query anybody writes.
-        if (value.Text == QueryFields.Unreadable)
-        {
-            return new OutcomeValue(ReadOutcome.Denied);
-        }
-
-        return QueryFields.Normalise(value.Text) switch
-        {
-            QueryFields.None => new OutcomeValue(ReadOutcome.Absent),
-            QueryFields.Any => new OutcomeValue(ReadOutcome.Present),
-            _ => null
-        };
-    }
-
-    private static IQueryValue? ReadTextValue(ScannedText value, bool forFreeSearch, List<QueryProblem> problems)
-    {
-        // A bare word is text and nothing else. Reserved words need a field to be about,
-        // so treating a lone "none" as a search for the word is the only reading that means
-        // anything.
-        if (!forFreeSearch && value.Length == 0)
-        {
-            return null;
-        }
-
-        if (value.Length >= 2 && value.IsSpecial(0, '/') && value.IsSpecial(value.Length - 1, '/'))
-        {
-            var pattern = value.Text[1..^1];
-
-            if (!QueryPatterns.TryPattern(pattern, out var compiled, out var failure))
-            {
-                problems.Add(new QueryProblem
-                {
-                    Kind = QueryProblemKind.BadPattern,
-                    Text = pattern,
-                    Detail = failure
-                });
-
-                return null;
-            }
-
-            return new TextValue(TextOperator.Pattern, pattern, compiled);
-        }
-
-        if (value.StartsWithSpecial('='))
-        {
-            var wanted = value.Slice(1);
-
-            // An equals sign with nothing after it is somebody mid-keystroke, the same as a
-            // colon with nothing after it. Taking it literally would ask for entries whose
-            // name is the empty string and answer with nothing at all.
-            return wanted.Length == 0
-                ? null
-                : new TextValue(TextOperator.Exact, wanted.Text, null);
-        }
-
-        if (value.HasSpecial('*') || value.HasSpecial('?'))
-        {
-            if (QueryPatterns.TryWildcard(value, out var wildcard, out var refused))
-            {
-                return new TextValue(TextOperator.Pattern, value.Text, wildcard);
-            }
-
-            // Said rather than thrown. Until 2026-08-03 this call could not fail as far as the
-            // parser was concerned, so a wildcard the engine refused escaped as an exception -
-            // out of Parse, out of the command line tool's Main, and onto somebody's screen as
-            // a stack trace with an exit code that is not in the table.
-            problems.Add(new QueryProblem
-            {
-                Kind = QueryProblemKind.PatternTooComplex,
-                Text = value.Text,
-                Detail = refused
-            });
-
-            return null;
-        }
-
-        return new TextValue(TextOperator.Contains, value.Text, null);
-    }
-
-    private static IQueryValue? ReadSymbolValue(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        var wanted = QueryFields.Normalise(value.Text);
-
-        foreach (var accepted in field.Values)
-        {
-            if (QueryFields.Normalise(accepted.Text) == wanted)
-            {
-                return new SymbolValue(accepted.Symbols);
-            }
-        }
-
-        var alternatives = field.Values.Select(accepted => accepted.Text).ToArray();
-
-        problems.Add(new QueryProblem
-        {
-            Kind = QueryProblemKind.UnknownValue,
-            Text = value.Text,
-            Field = field.Name,
-            Alternatives = alternatives,
-
-            // A typo in an enumeration must never come back as an empty list. An empty list
-            // reads as an answer, and "there are no running services" is a very different
-            // sentence from "you wrote runing".
-            Nearest = QuerySpelling.Nearest(wanted, alternatives)
-        });
-
-        return null;
-    }
-
-    /// <summary>
-    /// Which comparison a value opens with, and what is left after it.
-    ///
-    /// Shared by numbers and sizes because the shapes are the language's, not the unit's -
-    /// a person who has learned <c>pid:&gt;1000</c> should not have to find out whether
-    /// memory spells its comparisons the same way.
-    /// </summary>
-    private static (NumberOperator Operation, string Bound)? Comparison(string text) => text switch
-    {
-        _ when text.StartsWith(">=", StringComparison.Ordinal) => (NumberOperator.GreaterOrEqual, text[2..]),
-        _ when text.StartsWith("<=", StringComparison.Ordinal) => (NumberOperator.LessOrEqual, text[2..]),
-        _ when text.StartsWith('>') => (NumberOperator.Greater, text[1..]),
-        _ when text.StartsWith('<') => (NumberOperator.Less, text[1..]),
-        _ => null
-    };
-
-    /// <summary>
-    /// A quantity of bytes, in the same shapes a number takes: exact, compared, or a closed
-    /// range. The unit is not optional - see <see cref="QuerySizes"/> for why.
-    /// </summary>
-    private static IQueryValue? ReadSizeValue(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        var text = value.Text;
-
-        if (Comparison(text) is { } comparison)
-        {
-            return QuerySizes.TryRead(comparison.Bound, out var bound)
-                ? new SizeValue(comparison.Operation, bound, bound)
-                : RejectSize(field, value, problems);
-        }
-
-        // Only a dash between two units is a range. Looking for the first dash anywhere, the
-        // way the number field does, is safe here for the same reason: a size never opens
-        // with one, because a negative quantity of bytes is not a thing anybody writes.
-        var dash = text.IndexOf('-', StringComparison.Ordinal);
-
-        if (dash > 0)
-        {
-            if (!QuerySizes.TryRead(text[..dash], out var low) || !QuerySizes.TryRead(text[(dash + 1)..], out var high))
-            {
-                return RejectSize(field, value, problems);
-            }
-
-            // Ends the wrong way round matches nothing, ever, so it is a mistake rather than
-            // an empty answer - the same rule the number field follows.
-            return low <= high
-                ? new SizeValue(NumberOperator.Range, low, high)
-                : RejectSize(field, value, problems);
-        }
-
-        return QuerySizes.TryRead(text, out var exact)
-            ? new SizeValue(NumberOperator.Equal, exact, exact)
-            : RejectSize(field, value, problems);
-    }
-
-    private static IQueryValue? RejectSize(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        problems.Add(new QueryProblem
-        {
-            Kind = QueryProblemKind.BadSize,
-            Text = value.Text,
-            Field = field.Name
-        });
-
-        return null;
-    }
-
-    private static IQueryValue? ReadNumberValue(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        var text = value.Text;
-
-        var shape = Comparison(text);
-
-        if (shape is { } comparison)
-        {
-            return TryNumber(comparison.Bound, out var bound)
-                ? new NumberValue(comparison.Operation, bound, bound)
-                : Reject(field, value, problems);
-        }
-
-        var dash = text.IndexOf('-', StringComparison.Ordinal);
-
-        if (dash > 0)
-        {
-            if (!TryNumber(text[..dash], out var low) || !TryNumber(text[(dash + 1)..], out var high))
-            {
-                return Reject(field, value, problems);
-            }
-
-            // A range that ends before it starts matches nothing, ever. Letting it through
-            // would answer a transposition with an empty list, and an empty list reads as
-            // "there are none" rather than "you wrote the ends the wrong way round".
-            return low <= high
-                ? new NumberValue(NumberOperator.Range, low, high)
-                : Reject(field, value, problems);
-        }
-
-        return TryNumber(text, out var exact)
-            ? new NumberValue(NumberOperator.Equal, exact, exact)
-            : Reject(field, value, problems);
-    }
-
-    private static IQueryValue? Reject(QueryField field, ScannedText value, List<QueryProblem> problems)
-    {
-        problems.Add(new QueryProblem
-        {
-            Kind = QueryProblemKind.BadNumber,
-            Text = value.Text,
-            Field = field.Name
-        });
-
-        return null;
-    }
-
-    private static bool TryNumber(string text, out int number) =>
-        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out number);
 }

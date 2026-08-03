@@ -128,6 +128,7 @@
   "cli.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
   "cli.query.emptyTerm": "{0} says nothing. A ! needs something after it, and a word needs something in it.",
   "cli.query.patternTooComplex": "The wildcard starting {0} has too many parts to build. Use fewer * and ? characters.",
+  "cli.optionGivenTwice": "Given more than once, and only one of them could be used: {0}. Say it once.",
   "cli.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "cli.warning.configurationRefused": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",

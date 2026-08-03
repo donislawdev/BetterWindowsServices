@@ -79,33 +79,25 @@ public sealed class ParserPropertyTests
                     return true;
                 }
 
-                // Half typed, deliberately tolerated. A colon or an equals sign anywhere in the
-                // text means some member of it may be mid-word, and this property has nothing
-                // to say about those.
-                if (text.Contains(':', StringComparison.Ordinal) || text.Contains('=', StringComparison.Ordinal))
-                {
-                    return true;
-                }
-
-                // A QUOTE IS EXCLUDED BECAUSE THE PROPERTY IS FALSE HERE, NOT BECAUSE IT DOES
-                // NOT APPLY, and the difference is the whole reason this comment is long.
+                // THREE EXCLUSIONS STOOD HERE AND ALL THREE ARE GONE, 2026-08-03. That is the
+                // whole point of this entry now, so it is worth saying what they were.
                 //
-                // An empty pair of quotes is a finished member that says nothing, exactly like a
-                // lone exclamation mark - and `bws list --query '""'` still answers with the
-                // whole machine and a code of success. This property found it, shrunk to two
-                // characters, and the fix is not obvious: telling an empty pair of quotes apart
-                // from a member still being typed needs the scanner rather than a list of
-                // punctuation, and the first attempt at asking the scanner turned 156 green
-                // tests red because the flag it carries means something else.
+                // Text holding a colon or an equals sign was skipped, because a member might be
+                // half typed and this property had nothing to say about those. Text holding a
+                // quote was skipped BY NAME, because the property was false there - an empty
+                // pair of quotes was a finished member saying nothing, and `--query '""'`
+                // answered with the whole machine and a code of success.
                 //
-                // So it is written down as backlog item 66 and excluded here BY NAME. A guard
-                // that quietly stepped around the case it exists for is worse than no guard,
-                // which is why this says so instead.
-                if (text.Contains('"', StringComparison.Ordinal))
-                {
-                    return true;
-                }
-
+                // Both are answered by the same thing, and it is not a longer list of suspicious
+                // punctuation: the caller now says whether the text is finished. A search box
+                // says it is not and keeps its tolerance. Everything else - which is every use
+                // this property describes - says it is, and then a member that constrains
+                // nothing is a mistake with no exceptions to enumerate.
+                //
+                // <b>So the property is now unconditional for any text at all</b>, which is what
+                // it was reaching for from the start. Three repairs were needed to get here and
+                // each of the first two named one spelling: `!!!`, then `""`. Naming spellings
+                // is how the next one gets missed.
                 var parsed = QueryParser.Parse(text);
 
                 // Saying what is wrong is the other legal answer, and the better one.

@@ -1,6 +1,35 @@
 namespace Bws.Core.Querying;
 
 /// <summary>
+/// Whether a piece of query text is finished, or somebody is in the middle of writing it.
+///
+/// <b>The one thing that decides what a member saying nothing means.</b> A search box holds
+/// <c>status:</c> between two keystrokes, so treating it as a mistake would turn the box red
+/// through most of the time somebody is typing - and a warning that is usually wrong is a
+/// warning people learn to skip. A terminal has no keystrokes: by the time the text reaches
+/// this parser it is as finished as it will ever be, and the same tolerance meant
+/// <c>bws list --query "status:"</c> answered with every entry on the machine and a code of
+/// success.
+///
+/// An enum rather than a boolean for the same reason <see cref="NetworkPaths"/> is one: at the
+/// call site <c>Parse(text, false, true)</c> says nothing to anybody reading it.
+/// </summary>
+public enum QueryInput
+{
+    /// <summary>
+    /// Nobody is going to add to this. A member that constrains nothing is a mistake, because
+    /// there is no later in which it could become something.
+    /// </summary>
+    Finished,
+
+    /// <summary>
+    /// Somebody is typing it, so a member that constrains nothing is simply not finished yet
+    /// and is passed over without a word. The rest of the text still answers.
+    /// </summary>
+    BeingTyped
+}
+
+/// <summary>
 /// What is wrong with a query, as a kind plus the facts needed to say so.
 ///
 /// The core never builds the sentence. It reports which kind of problem happened and

@@ -286,6 +286,16 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **A search about something the tool has not read says so.** Asking about a publisher when
   signatures were not read used to drop those entries silently. The result now reports
   itself as partial, the way a search about a refused field already did.
+- **A query that narrows nothing is refused on the command line.** `--query "status:"` and
+  `--query "="` used to answer with every entry on the machine and a success code, so a
+  script with a typo in its query got the whole machine and a green light. They now end
+  with the code that means the command was wrong. **This is a change in behaviour: if you
+  have a half-written query in a script, it will start failing - which is the point.**
+  The search box in the window is unchanged, because it holds `status:` between two
+  keystrokes while you type.
+- **An option given twice is refused.** `--query a --query b` used to search for `b` and say
+  nothing about `a`. Applies to `--query`, `--note` and `--timeout`, which carry a value. A
+  plain flag repeated still means what it meant once.
 
 ### Known limits
 

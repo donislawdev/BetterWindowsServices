@@ -84,12 +84,13 @@ public sealed class QueryParserTests
     [Fact]
     public void An_equals_sign_with_nothing_after_it_is_unfinished_rather_than_a_search_for_emptiness()
     {
-        // Same reasoning as a colon with nothing after it. Taken literally it asks for
-        // entries whose name is the empty string, which is an empty list dressed as an answer.
-        var query = Valid("name:=");
+        // Same reasoning as a colon with nothing after it, and the same boundary since
+        // 2026-08-03: unfinished while somebody is typing, a mistake once they have stopped.
+        var parsed = QueryParser.Parse("name:=", input: QueryInput.BeingTyped);
 
-        Assert.True(query.IsEmpty);
-        Assert.True(query.Match(Entries.Any).Matched);
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.Query!.IsEmpty);
+        Assert.True(parsed.Query.Match(Entries.Any).Matched);
     }
 
     [Fact]
@@ -118,6 +119,24 @@ public sealed class QueryParserTests
         // after a colon is somebody still typing and stays tolerated. Quotes that were opened and
         // closed are not - the member is finished, and it asks for a value nothing has.
         var problem = OneProblem(text);
+
+        Assert.Equal(QueryProblemKind.EmptyTerm, problem.Kind);
+    }
+
+    [Theory]
+    [InlineData("\"\"")]
+    [InlineData("name:\"\"")]
+    public void An_empty_pair_of_quotes_is_finished_even_in_the_middle_of_typing(string text)
+    {
+        // The one shape that stays a mistake in a search box, and it is the reason the scanner
+        // records WHERE an empty pair of quotes sat rather than the parser guessing from
+        // punctuation. `status:` is a member somebody has not got to the end of. `name:""` is a
+        // member they closed - the quotes are typed, the value is nothing, and no further
+        // keystroke turns that into something.
+        //
+        // Without this, the window would drop it in silence and the box would show a filter that
+        // filters nothing, which is exactly what the command line did until 2026-08-03.
+        var problem = Assert.Single(QueryParser.Parse(text, input: QueryInput.BeingTyped).Problems);
 
         Assert.Equal(QueryProblemKind.EmptyTerm, problem.Kind);
     }
@@ -198,16 +217,44 @@ public sealed class QueryParserTests
     {
         // Typing "status:running" passes through "sta", "status" and "status:" on the way.
         // None of those is a mistake, so none of them may light up red.
-        Assert.True(QueryParser.Parse(text).IsValid);
+        //
+        // SAID EXPLICITLY SINCE 2026-08-03, and the parameter is the whole of this test now.
+        // The tolerance belongs to a search box and used to apply everywhere, which meant
+        // `bws list --query "status:"` answered with every entry on the machine and a code of
+        // success. A terminal has no keystrokes, so there is no "still being typed" in it.
+        Assert.True(QueryParser.Parse(text, input: QueryInput.BeingTyped).IsValid);
+    }
+
+    [Theory]
+    [InlineData("status:")]
+    [InlineData("status: name:spooler")]
+    [InlineData("name:=")]
+    [InlineData("=")]
+    public void The_same_text_is_a_mistake_once_nobody_is_typing_it_any_more(string text)
+    {
+        // The other side of the line above, and the reason the line exists. Owner's decision,
+        // 2026-08-03: the command line refuses text that constrains nothing.
+        //
+        // This is the third repair of one fault and the one that closes it. `!!!` was named,
+        // then the empty pair of quotes was named, and each time the next spelling turned up
+        // within the hour. This stops asking which spellings are suspicious and asks whether
+        // anything was understood at all.
+        var problem = Assert.Single(QueryParser.Parse(text).Problems);
+
+        Assert.Equal(QueryProblemKind.EmptyTerm, problem.Kind);
     }
 
     [Fact]
     public void A_field_with_nothing_after_the_colon_is_ignored_rather_than_matching_nothing()
     {
-        var query = Valid("status:");
+        // While it is being typed. Taken literally it asks for entries whose status is the empty
+        // string, which is an empty list dressed as an answer - so the member is passed over and
+        // the rest of the text still answers.
+        var parsed = QueryParser.Parse("status:", input: QueryInput.BeingTyped);
 
-        Assert.True(query.IsEmpty);
-        Assert.True(query.Match(Entries.Any).Matched);
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.Query!.IsEmpty);
+        Assert.True(parsed.Query.Match(Entries.Any).Matched);
     }
 
     /// <summary>

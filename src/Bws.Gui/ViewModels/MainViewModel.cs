@@ -471,7 +471,13 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private void Apply()
     {
-        var parsed = QueryParser.Parse(_queryText, bareWordsAreExpressions: _bareWordsAreExpressions);
+        // BeingTyped, and the window is the only caller that asks for it. This runs on every
+        // keystroke, so a member with nothing after its colon is somebody mid-word rather than
+        // somebody making a mistake - and a box that shows an error through most of the typing
+        // teaches people to ignore the box. The command line says Finished, because by the time
+        // text reaches it there is no later.
+        var parsed = QueryParser.Parse(
+            _queryText, bareWordsAreExpressions: _bareWordsAreExpressions, input: QueryInput.BeingTyped);
 
         if (!parsed.IsValid)
         {

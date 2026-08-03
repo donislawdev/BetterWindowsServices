@@ -114,6 +114,11 @@ internal static class ScmDetailReader
             return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
         }
 
+        if (buffer.Length < sizeof(SERVICE_TRIGGER_INFO))
+        {
+            return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
+        }
+
         fixed (byte* start = buffer)
         {
             var info = *(SERVICE_TRIGGER_INFO*)start;
@@ -169,11 +174,18 @@ internal static class ScmDetailReader
             return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
         }
 
+        if (buffer.Length < sizeof(SERVICE_REQUIRED_PRIVILEGES_INFOW))
+        {
+            // Room reported for less than the structure the call promises. Nothing to read.
+            return Reading<IReadOnlyList<string>>.Absent();
+        }
+
         fixed (byte* start = buffer)
         {
             // The structure is one pointer into this very buffer, so the multi-string is read
             // inside the fixed block for the same reason the triggers are.
-            var privileges = ReadMultiString(((SERVICE_REQUIRED_PRIVILEGES_INFOW*)start)->pmszRequiredPrivileges);
+            var privileges = ReadMultiString(
+                ((SERVICE_REQUIRED_PRIVILEGES_INFOW*)start)->pmszRequiredPrivileges, start, buffer.Length);
 
             return privileges.Count == 0
                 ? Reading<IReadOnlyList<string>>.Absent()
@@ -295,20 +307,61 @@ internal static class ScmDetailReader
     /// service declaring five dependencies would report one, and the cascade built on it
     /// would look reasonable and be wrong.
     /// </summary>
-    internal static unsafe List<string> ReadMultiString(PWSTR start)
+    /// <param name="buffer">The block this string was read out of.</param>
+    /// <param name="length">How long that block is, in bytes.</param>
+    /// <remarks>
+    /// <b>Bounded by the buffer since 2026-08-03, and before that by nothing at all.</b> The walk
+    /// ran until it met two nulls in a row, so a multi-string the manager did not terminate -
+    /// truncated, or simply not what this code believes it is - would have carried the loop
+    /// straight out of a managed array and into whatever follows it. Every other buffer here is
+    /// at least described by a count. This one had neither a count nor a limit.
+    ///
+    /// The trust that made that acceptable is real: the manager and this process are the same
+    /// machine and the same kernel. It was also unwritten, which is the part that was wrong -
+    /// and this tool runs elevated on production servers, which is a poor place to keep an
+    /// unwritten assumption about memory. Owner's decision, 2026-08-03.
+    ///
+    /// Reading is bounded too, not just the walk. Asking for a string at a pointer reads until
+    /// a null wherever that null happens to be, so the terminator is found inside the remaining
+    /// span first and the string is built from that.
+    /// </remarks>
+    internal static unsafe List<string> ReadMultiString(PWSTR start, byte* buffer, int length)
     {
         var values = new List<string>();
+        var cursor = start.Value;
 
-        if (start.Value is null)
+        if (cursor is null)
         {
             return values;
         }
 
-        for (var cursor = start.Value; *cursor != '\0';)
+        // The structure hands back a pointer into the very block it came from. One that does not
+        // land there is not something to make the best of - it is a reading nobody can trust.
+        var offset = (byte*)cursor - buffer;
+
+        if (offset < 0 || offset >= length)
         {
-            var value = new string(cursor);
-            values.Add(value);
-            cursor += value.Length + 1;
+            return values;
+        }
+
+        var end = (char*)(buffer + length);
+
+        while (cursor < end && *cursor != '\0')
+        {
+            var remaining = new ReadOnlySpan<char>(cursor, (int)(end - cursor));
+            var terminator = remaining.IndexOf('\0');
+
+            if (terminator < 0)
+            {
+                // The run reaches the end of the block without closing. What is there is what
+                // there is, and it stops here rather than reading on.
+                values.Add(new string(remaining));
+
+                break;
+            }
+
+            values.Add(new string(remaining[..terminator]));
+            cursor += terminator + 1;
         }
 
         return values;

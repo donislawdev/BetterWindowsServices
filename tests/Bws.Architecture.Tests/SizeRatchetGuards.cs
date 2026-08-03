@@ -61,12 +61,24 @@ public sealed class SizeRatchetGuards
     ///                MainViewModel.cs to 611, and the reconciliation moved into RowList.cs,
     ///                which is where a collection that knows how to become another one belongs
     ///
-    /// The longest file is now QueryParser.cs at 568. <b>The mutation entry that proves this
-    /// guard can fail finds the longest file at run time</b> rather than naming one, because an
-    /// entry naming a file stops proving anything the moment that file stops being longest - it
-    /// came back MISSED for exactly that reason on 2026-08-02, and again today.
+    /// <b>568 -> 557 later the same day</b>, repairing the last tier of the same audit, and twice
+    /// more for the same reason:
+    ///
+    ///   568 -> 568   saying whether query text is finished or still being typed pushed
+    ///                QueryParser.cs to 604, and reading a VALUE moved into QueryValueReader.cs -
+    ///                a seam the language had from the day it was written, found only because a
+    ///                ceiling made somebody look
+    ///   568 -> 557   refusing an option given twice pushed CommandLine.cs to 589, and reading a
+    ///                single word moved into Arguments.cs
+    ///
+    /// The longest file is now WindowsScmCatalog.cs at 557, and it got there without being
+    /// touched - every file that used to be above it came down past it. <b>The mutation entry
+    /// that proves this guard can fail finds the longest file at run time</b> rather than naming
+    /// one, because an entry naming a file stops proving anything the moment that file stops
+    /// being longest - it came back MISSED for exactly that reason on 2026-08-02, and again on
+    /// 2026-08-03.
     /// </summary>
-    private const int LongestShippedFile = 568;
+    private const int LongestShippedFile = 557;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
@@ -85,7 +97,16 @@ public sealed class SizeRatchetGuards
     /// </summary>
     private const int Long = 500;
 
-    private const int ShippedFilesAllowedToBeLong = 6;
+    /// <summary>
+    /// Six until 2026-08-03, and it was fully used the whole time - the seventh file to pass 500
+    /// lines would have reddened the build. Two splits that afternoon took it to five, so the
+    /// number came down with it: leaving it at six would hand back a slot nobody argued for,
+    /// which is the same reasoning as the ceiling above.
+    ///
+    /// The mutation entry proving this dial can fail came back MISSED the moment the count
+    /// dropped, honestly - adding one long file to a tree with a spare slot changes nothing.
+    /// </summary>
+    private const int ShippedFilesAllowedToBeLong = 5;
     private const int TestFilesAllowedToBeLong = 2;
 
     [Fact]

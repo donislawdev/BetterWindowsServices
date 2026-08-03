@@ -223,6 +223,22 @@ internal sealed record CommandLine
     internal IReadOnlyList<string> Incomplete { get; private init; } = [];
 
     /// <summary>
+    /// Options carrying a value that were given more than once.
+    ///
+    /// Refused rather than resolved, and the last one used to win in silence - so
+    /// <c>bws list --query "a" --query "b"</c> searched for b and said nothing about a. That is
+    /// the same fault as a switch swallowed as another one's value, from a third direction: the
+    /// tool accepted something a person wrote and did nothing with it.
+    ///
+    /// The convention elsewhere is that the last wins, and it is a reasonable convention for a
+    /// tool where a wrapper script sets a default somebody overrides. This one has no wrappers
+    /// and a rule against silent acceptance, so it says so instead. Owner's decision, 2026-08-03.
+    ///
+    /// Only the three that carry a value. A flag given twice means exactly what it meant once.
+    /// </summary>
+    internal IReadOnlyList<string> Repeated { get; private init; } = [];
+
+    /// <summary>
     /// Options that exist but do not belong to this verb.
     ///
     /// Their own list rather than folded into <see cref="Rejected"/>, because the answer a
@@ -240,6 +256,9 @@ internal sealed record CommandLine
     };
 
     internal bool IsWrite => Kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart;
+
+    /// <summary>The options where giving one twice means one of the two was thrown away.</summary>
+    private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout"];
 
     // Suppressed rather than defended: at 199 lines this one really is too long, and the
     // analyser is right. Splitting it is a change to working code that no slice asked for, so
@@ -283,8 +302,8 @@ internal sealed record CommandLine
             // questions about the tool rather than options belonging to a verb. Putting them in
             // the table of what each verb accepts would make "bws --help" require a verb, which
             // is the opposite of what somebody typing it wants.
-            if (Matches(argument, "--help") || Matches(argument, "-h")) { help = true; continue; }
-            if (Matches(argument, "--version")) { version = true; continue; }
+            if (Arguments.Matches(argument, "--help") || Arguments.Matches(argument, "-h")) { help = true; continue; }
+            if (Arguments.Matches(argument, "--version")) { version = true; continue; }
 
             if (!argument.StartsWith('-'))
             {
@@ -292,18 +311,18 @@ internal sealed record CommandLine
                 {
                     // "snapshot" is a noun, not a verb, so it needs the word after it. E1
                     // puts create, diff and restore under it, and only the first is built.
-                    if (Matches(argument, "snapshot"))
+                    if (Arguments.Matches(argument, "snapshot"))
                     {
                         var next = index + 1 < arguments.Length ? arguments[index + 1] : string.Empty;
 
-                        if (Matches(next, "create"))
+                        if (Arguments.Matches(next, "create"))
                         {
                             kind = CommandKind.SnapshotCreate;
                             index++;
                             continue;
                         }
 
-                        if (Matches(next, "diff"))
+                        if (Arguments.Matches(next, "diff"))
                         {
                             kind = CommandKind.SnapshotDiff;
                             index++;
@@ -325,7 +344,7 @@ internal sealed record CommandLine
                         continue;
                     }
 
-                    if (TryVerb(argument, out var verb))
+                    if (Arguments.TryVerb(argument, out var verb))
                     {
                         kind = verb;
                         continue;
@@ -382,16 +401,16 @@ internal sealed record CommandLine
                 continue;
             }
 
-            if (Matches(argument, "--json")) { json = true; given.Add("--json"); continue; }
-            if (Matches(argument, "--timing")) { timing = true; given.Add("--timing"); continue; }
-            if (Matches(argument, "--dry-run")) { dryRun = true; given.Add("--dry-run"); continue; }
-            if (Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
-            if (Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
-            if (Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
-            if (Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
-            if (Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
-            if (Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
-            if (Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
+            if (Arguments.Matches(argument, "--json")) { json = true; given.Add("--json"); continue; }
+            if (Arguments.Matches(argument, "--timing")) { timing = true; given.Add("--timing"); continue; }
+            if (Arguments.Matches(argument, "--dry-run")) { dryRun = true; given.Add("--dry-run"); continue; }
+            if (Arguments.Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
+            if (Arguments.Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
+            if (Arguments.Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
+            if (Arguments.Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
+            if (Arguments.Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
+            if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
+            if (Arguments.Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -401,11 +420,11 @@ internal sealed record CommandLine
                 continue;
             }
 
-            if (Matches(argument, "--query"))
+            if (Arguments.Matches(argument, "--query"))
             {
                 given.Add("--query");
 
-                if (NeedsValue(arguments, index))
+                if (Arguments.NeedsValue(arguments, index))
                 {
                     // An option that needs a value and did not get one is a mistake, not an
                     // empty query. Treating it as empty would quietly list everything.
@@ -424,11 +443,11 @@ internal sealed record CommandLine
                 continue;
             }
 
-            if (Matches(argument, "--note"))
+            if (Arguments.Matches(argument, "--note"))
             {
                 given.Add("--note");
 
-                if (NeedsValue(arguments, index))
+                if (Arguments.NeedsValue(arguments, index))
                 {
                     // A note that was asked for and not given is a mistake, not an empty
                     // note. Writing the snapshot anyway would lose the one thing the person
@@ -444,21 +463,21 @@ internal sealed record CommandLine
             if (argument.StartsWith("--timeout=", StringComparison.OrdinalIgnoreCase))
             {
                 given.Add("--timeout");
-                badTimeout = Seconds(argument["--timeout=".Length..], ref timeout);
+                badTimeout = Arguments.Seconds(argument["--timeout=".Length..], ref timeout);
                 continue;
             }
 
-            if (Matches(argument, "--timeout"))
+            if (Arguments.Matches(argument, "--timeout"))
             {
                 given.Add("--timeout");
 
-                if (NeedsValue(arguments, index))
+                if (Arguments.NeedsValue(arguments, index))
                 {
                     incomplete.Add("--timeout");
                     continue;
                 }
 
-                badTimeout = Seconds(arguments[++index], ref timeout);
+                badTimeout = Arguments.Seconds(arguments[++index], ref timeout);
                 continue;
             }
 
@@ -493,6 +512,16 @@ internal sealed record CommandLine
             Incomplete = incomplete,
 
             // In the order they were typed, each named once however many times it appeared.
+            Repeated =
+            [
+                .. given
+                    .Where(option => CarriesAValue.Contains(option, StringComparer.Ordinal))
+                    .GroupBy(option => option, StringComparer.Ordinal)
+                    .Where(twice => twice.Count() > 1)
+                    .Select(twice => twice.Key)
+            ],
+
+            // In the order they were typed, each named once however many times it appeared.
             Misplaced =
             [
                 .. given
@@ -504,57 +533,4 @@ internal sealed record CommandLine
 
 #pragma warning restore MA0051
 
-    /// <summary>
-    /// Whether an option that needs a value is going to be left without one.
-    ///
-    /// Two ways that happens and they used to be one: nothing follows it at all, or what follows
-    /// is another switch. The second was taken as the value until 2026-08-03, so
-    /// <c>bws list --query --json</c> searched for the text "--json", matched nothing, and ended
-    /// with an empty table and code 0 - with the switch somebody actually typed silently gone.
-    ///
-    /// A switch that quietly does nothing is what the belonging table exists to end. This is the
-    /// same fault from the other direction, and it was the louder of the two.
-    /// </summary>
-    private static bool NeedsValue(string[] arguments, int index) =>
-        index + 1 >= arguments.Length || OptionSurface.IsOption(arguments[index + 1]);
-
-    /// <summary>
-    /// Reads a number of seconds, or says what it got instead.
-    ///
-    /// Nothing below a second, and nothing at all rather than a default quietly standing in.
-    /// Somebody who writes --timeout 30s meant thirty seconds, and giving them sixty because
-    /// their spelling was not understood is the kind of quiet substitution that turns up in
-    /// a runbook months later.
-    /// </summary>
-    private static string? Seconds(string value, ref TimeSpan timeout)
-    {
-        // Invariant, not the machine's regional settings. A timeout is typed by whoever wrote
-        // the runbook, and a runbook that means sixty on one machine and nothing on another
-        // because of a decimal separator is exactly what rule 3 exists to stop.
-        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
-            || seconds < 1)
-        {
-            return value;
-        }
-
-        timeout = TimeSpan.FromSeconds(seconds);
-        return null;
-    }
-
-    private static bool TryVerb(string argument, out CommandKind kind)
-    {
-        kind = argument.ToLowerInvariant() switch
-        {
-            "list" => CommandKind.List,
-            "stop" => CommandKind.Stop,
-            "start" => CommandKind.Start,
-            "restart" => CommandKind.Restart,
-            _ => CommandKind.None
-        };
-
-        return kind != CommandKind.None;
-    }
-
-    private static bool Matches(string argument, string option) =>
-        argument.Equals(option, StringComparison.OrdinalIgnoreCase);
 }

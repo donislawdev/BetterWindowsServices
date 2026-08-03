@@ -215,6 +215,8 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
 
     private static unsafe List<string> ReadDependentNames(byte[] buffer, uint count)
     {
+        count = Math.Min(count, (uint)(buffer.Length / sizeof(ENUM_SERVICE_STATUSW)));
+
         var names = new List<string>((int)count);
 
         fixed (byte* start = buffer)
@@ -304,6 +306,11 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
 
     private static unsafe List<EnumeratedEntry> ReadEnumerationBuffer(byte[] buffer, uint count)
     {
+        // However many records the manager says it wrote, never more than the room it was given.
+        // Trusting the count alone is the shape this project used everywhere and wrote down
+        // nowhere - see ReadConfigurationBuffer for the argument.
+        count = Math.Min(count, (uint)(buffer.Length / sizeof(ENUM_SERVICE_STATUS_PROCESSW)));
+
         var entries = new List<EnumeratedEntry>((int)count);
 
         fixed (byte* start = buffer)
@@ -419,14 +426,28 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         return withOwnCalls.WithBinary(enumerated, WindowsDirectory, networkPaths);
     }
 
+    /// <remarks>
+    /// The size is checked before the cast, and it was not until 2026-08-03. The manager reports
+    /// how much room it wants and this asks for exactly that, so a buffer too small for the
+    /// structure cannot happen - which is a fact about the manager rather than about this code,
+    /// and it was nowhere written down. Owner's decision, 2026-08-03: the three places in this
+    /// project that read a reported size now check it, because the tool runs elevated on
+    /// production servers and a memory fault there is indistinguishable from a bug of ours.
+    /// </remarks>
     private static unsafe ScmConfiguration ReadConfigurationBuffer(byte[] buffer)
     {
+        if (buffer.Length < sizeof(QUERY_SERVICE_CONFIGW))
+        {
+            return ScmConfiguration.Refused((int)WIN32_ERROR.ERROR_INVALID_DATA);
+        }
+
         fixed (byte* start = buffer)
         {
             var configuration = *(QUERY_SERVICE_CONFIGW*)start;
 
             var account = configuration.lpServiceStartName.ToString();
-            var dependencies = ScmDetailReader.ReadMultiString(configuration.lpDependencies);
+            var dependencies = ScmDetailReader.ReadMultiString(
+                configuration.lpDependencies, start, buffer.Length);
             var binaryPath = configuration.lpBinaryPathName.ToString();
             var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
 
