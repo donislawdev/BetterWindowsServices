@@ -33,6 +33,11 @@ namespace Bws.Core;
 /// </param>
 public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.Skip) : IScmCatalog
 {
+    // What a relative image path and \SystemRoot\ are relative to. Read once: it cannot
+    // change while the process runs, and it is asked for on every entry of every listing.
+    private static readonly string WindowsDirectory =
+        Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
     // Everything the manager holds. services.msc shows only part of this, which is why
     // our count is larger, and that difference is deliberate rather than a discrepancy.
     //
@@ -41,15 +46,10 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
     // was missing. The absent ones were per-user services, whose type carries extra bits
     // (0x40 for a template, 0x80 for a per-session instance) on top of the Win32 kind, so
     // a mask built from the obvious four never matches them.
-    // What a relative image path and \SystemRoot\ are relative to. Read once: it cannot
-    // change while the process runs, and it is asked for on every entry of every listing.
-    private static readonly string WindowsDirectory =
-        Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-
-    // The security descriptor parts used to be declared here as well as in ScmDetailReader,
-    // word for word including the comment, and this copy went unused when the reading moved
-    // there on 2026-08-02. Two copies of one constant is the drift this project spends its
-    // rules on, and an unused private constant raises no warning at all - so it sat.
+    //
+    // (A copy of the security descriptor parts used to sit here too, word for word with the
+    // one in ScmDetailReader, and went unused when the reading moved there on 2026-08-02. An
+    // unused private constant raises no warning at all, so it sat until an audit found it.)
     private const ENUM_SERVICE_TYPE AllEntryTypes =
         ENUM_SERVICE_TYPE.SERVICE_DRIVER               // kernel, file system, recogniser
         | ENUM_SERVICE_TYPE.SERVICE_ADAPTER
@@ -110,6 +110,15 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
 
         var enumerated = Enumerate(manager);
         var entries = new ScmEntry[enumerated.Count];
+
+        // WORTH KNOWING BEFORE ANYBODY CATCHES SOMETHING FROM HERE BY TYPE: the two branches
+        // below fail differently. Below, an exception from Describe travels as itself. Through
+        // Parallel.For it arrives wrapped in an AggregateException.
+        //
+        // Nothing catches either by type today, so the difference is cosmetic - and it is worth
+        // saying because the single-threaded branch exists only so the guard can compare one
+        // reading against the other, which means the guard runs a branch that behaves differently
+        // under failure from the one that ships.
 
         if (degreeOfParallelism == 1)
         {
@@ -325,8 +334,8 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
                 entries.Add(new EnumeratedEntry(
                     ServiceName: record.lpServiceName.ToString(),
                     DisplayName: record.lpDisplayName.ToString(),
-                    EntryType: MapEntryType(status.dwServiceType),
-                    Status: MapStatus(status.dwCurrentState),
+                    EntryType: ManagerTerms.EntryType(status.dwServiceType),
+                    Status: ManagerTerms.Status(status.dwCurrentState),
                     ProcessId: status.dwProcessId));
             }
         }
@@ -452,7 +461,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
 
             return new ScmConfiguration(
-                StartType: Reading<StartType>.Present(MapStartType(configuration.dwStartType)),
+                StartType: Reading<StartType>.Present(ManagerTerms.StartType(configuration.dwStartType)),
                 DelayedAuto: Reading<bool>.Absent(),
                 Account: string.IsNullOrEmpty(account)
                     ? Reading<string>.Absent()
@@ -483,7 +492,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
                 RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
                 SidType: Reading<ServiceSidType>.NotRead(),
 
-                ErrorControl: Reading<ErrorControl>.Present(MapErrorControl(configuration.dwErrorControl)),
+                ErrorControl: Reading<ErrorControl>.Present(ManagerTerms.ErrorControl(configuration.dwErrorControl)),
 
                 // Most entries belong to no group, which is a fact about them rather than
                 // something we failed to read.
@@ -503,55 +512,5 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
 
     // Shared with the half of the manager that writes, because two copies of the same
     // mapping drift.
-
-    private static EntryStatus MapStatus(SERVICE_STATUS_CURRENT_STATE state) => ManagerTerms.Status(state);
-
-    private static EntryType MapEntryType(ENUM_SERVICE_TYPE type)
-    {
-        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_KERNEL_DRIVER))
-        {
-            return EntryType.KernelDriver;
-        }
-
-        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_FILE_SYSTEM_DRIVER))
-        {
-            return EntryType.FileSystemDriver;
-        }
-
-        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_WIN32_SHARE_PROCESS))
-        {
-            return EntryType.SharedProcess;
-        }
-
-        return type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_WIN32_OWN_PROCESS)
-            ? EntryType.OwnProcess
-            : EntryType.Unknown;
-    }
-
-    /// <summary>
-    /// How hard the system takes a failure to start during boot.
-    ///
-    /// Anything the metadata does not name comes back Unknown rather than being folded into
-    /// the nearest neighbour, the same rule the trigger kinds follow. Guessing here would be
-    /// a claim about how a machine boots.
-    /// </summary>
-    private static ErrorControl MapErrorControl(SERVICE_ERROR type) => type switch
-    {
-        SERVICE_ERROR.SERVICE_ERROR_IGNORE => Core.ErrorControl.Ignore,
-        SERVICE_ERROR.SERVICE_ERROR_NORMAL => Core.ErrorControl.Normal,
-        SERVICE_ERROR.SERVICE_ERROR_SEVERE => Core.ErrorControl.Severe,
-        SERVICE_ERROR.SERVICE_ERROR_CRITICAL => Core.ErrorControl.Critical,
-        _ => Core.ErrorControl.Unknown
-    };
-
-    private static StartType MapStartType(SERVICE_START_TYPE type) => type switch
-    {
-        SERVICE_START_TYPE.SERVICE_BOOT_START => Core.StartType.Boot,
-        SERVICE_START_TYPE.SERVICE_SYSTEM_START => Core.StartType.System,
-        SERVICE_START_TYPE.SERVICE_AUTO_START => Core.StartType.Automatic,
-        SERVICE_START_TYPE.SERVICE_DEMAND_START => Core.StartType.Manual,
-        SERVICE_START_TYPE.SERVICE_DISABLED => Core.StartType.Disabled,
-        _ => Core.StartType.Unknown
-    };
 
 }

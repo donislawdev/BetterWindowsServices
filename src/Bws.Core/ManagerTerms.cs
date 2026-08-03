@@ -69,6 +69,65 @@ internal static class ManagerTerms
         _ => Core.TriggerAction.Unknown
     };
 
+    /// <summary>
+    /// What an entry is technically, from the bits the enumeration carries.
+    ///
+    /// <b>Moved here from WindowsScmCatalog on 2026-08-03 because the size ratchet said so, and
+    /// it belonged here anyway</b> - this file exists to turn the manager's vocabulary into ours,
+    /// and three of the four mappings were living beside the calls instead. One of them was a
+    /// method whose whole body was a call to this file.
+    ///
+    /// The order matters. A per-user service carries extra bits on top of its Win32 kind, so the
+    /// driver kinds are asked about first and the shared kind before the own-process one.
+    /// </summary>
+    internal static EntryType EntryType(ENUM_SERVICE_TYPE type)
+    {
+        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_KERNEL_DRIVER))
+        {
+            return Core.EntryType.KernelDriver;
+        }
+
+        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_FILE_SYSTEM_DRIVER))
+        {
+            return Core.EntryType.FileSystemDriver;
+        }
+
+        if (type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_WIN32_SHARE_PROCESS))
+        {
+            return Core.EntryType.SharedProcess;
+        }
+
+        return type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_WIN32_OWN_PROCESS)
+            ? Core.EntryType.OwnProcess
+            : Core.EntryType.Unknown;
+    }
+
+    /// <summary>
+    /// How hard the system takes a failure to start during boot.
+    ///
+    /// Anything the metadata does not name comes back Unknown rather than being folded into
+    /// the nearest neighbour, the same rule the trigger kinds follow. Guessing here would be
+    /// a claim about how a machine boots.
+    /// </summary>
+    internal static ErrorControl ErrorControl(SERVICE_ERROR type) => type switch
+    {
+        SERVICE_ERROR.SERVICE_ERROR_IGNORE => Core.ErrorControl.Ignore,
+        SERVICE_ERROR.SERVICE_ERROR_NORMAL => Core.ErrorControl.Normal,
+        SERVICE_ERROR.SERVICE_ERROR_SEVERE => Core.ErrorControl.Severe,
+        SERVICE_ERROR.SERVICE_ERROR_CRITICAL => Core.ErrorControl.Critical,
+        _ => Core.ErrorControl.Unknown
+    };
+
+    internal static StartType StartType(SERVICE_START_TYPE type) => type switch
+    {
+        SERVICE_START_TYPE.SERVICE_BOOT_START => Core.StartType.Boot,
+        SERVICE_START_TYPE.SERVICE_SYSTEM_START => Core.StartType.System,
+        SERVICE_START_TYPE.SERVICE_AUTO_START => Core.StartType.Automatic,
+        SERVICE_START_TYPE.SERVICE_DEMAND_START => Core.StartType.Manual,
+        SERVICE_START_TYPE.SERVICE_DISABLED => Core.StartType.Disabled,
+        _ => Core.StartType.Unknown
+    };
+
     internal static EntryStatus Status(SERVICE_STATUS_CURRENT_STATE state) => state switch
     {
         SERVICE_STATUS_CURRENT_STATE.SERVICE_STOPPED => EntryStatus.Stopped,

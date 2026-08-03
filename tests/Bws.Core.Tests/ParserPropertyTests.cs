@@ -139,6 +139,55 @@ public sealed class ParserPropertyTests
             iter: 20_000);
     }
 
+    /// <summary>
+    /// The same contract, over text far longer than anybody types by hand.
+    ///
+    /// <b>Its own property rather than a wider generator, and the reason is a measurement.</b>
+    /// The one above runs twenty thousand times and the strings it makes are up to forty
+    /// characters, which is the right size for finding a shape - most interesting query text is
+    /// short. Widening it to thousands would multiply the cost of every one of those runs to
+    /// reach a case that needs length rather than shape.
+    ///
+    /// And length is a case. <b>A wildcard of about a thousand parts ended the process</b> with
+    /// an exit code outside the table until 2026-08-03 - the linear engine refuses a pattern
+    /// whose automaton passes ten thousand nodes, and the threshold is around two thousand
+    /// characters. The property above was true of everything its generator will ever produce,
+    /// and stayed true while the tool crashed.
+    ///
+    /// Fewer runs and a bounded length, because each one is expensive and the space being covered
+    /// is thin: what matters is the order of magnitude, not the variety. <b>Measured while writing
+    /// it</b> - a first version multiplying up to 1500 times took this project's core suite from
+    /// nine seconds to two minutes forty, which is a test nobody would keep running. The sizes
+    /// below straddle the threshold that used to crash, which is all this has to do.
+    /// </summary>
+    [Fact]
+    public void Reading_a_very_long_query_never_fails_in_a_way_it_did_not_plan_for()
+    {
+        Gen.Select(Awkward, Gen.Int[40, 200])
+            .Sample(
+                grown =>
+                {
+                    var (seed, times) = grown;
+                    var text = seed.Length == 0 ? new string('*', times) : string.Concat(Enumerable.Repeat(seed, times));
+
+                    QueryParseResult parsed;
+
+                    try
+                    {
+                        parsed = QueryParser.Parse(text);
+                    }
+                    catch (Exception failure)
+                    {
+                        throw new InvalidOperationException(
+                            $"Parsing {text.Length} characters threw {failure.GetType().Name}: {failure.Message}",
+                            failure);
+                    }
+
+                    return parsed.IsValid ^ (parsed.Problems.Count > 0);
+                },
+                iter: 150);
+    }
+
     [Fact]
     public void Reading_a_query_as_expressions_never_fails_either()
     {

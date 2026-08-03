@@ -296,6 +296,11 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **An option given twice is refused.** `--query a --query b` used to search for `b` and say
   nothing about `a`. Applies to `--query`, `--note` and `--timeout`, which carry a value. A
   plain flag repeated still means what it meant once.
+- **The listing table lines up when a name holds an unusual character.** A display name
+  containing something stored as two units - an emoji in a product name, a rare ideograph -
+  used to push every row after it in that column two spaces out. Characters from the Chinese,
+  Japanese and Korean ranges take two columns on screen and are still counted as one, so a
+  listing on those systems can still drift.
 
 ### Known limits
 

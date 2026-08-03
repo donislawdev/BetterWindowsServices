@@ -79,13 +79,13 @@ jobs:
       # failure names which project failed in the job summary rather than in a log somebody has
       # to open.
       - name: tests that hold anywhere - core
-        run: dotnet test tests/Bws.Core.Tests/Bws.Core.Tests.csproj -c Release --no-build --nologo
+        run: dotnet test tests/Bws.Core.Tests/Bws.Core.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=core.trx" --results-directory results
 
       - name: tests that hold anywhere - architecture
-        run: dotnet test tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj -c Release --no-build --nologo
+        run: dotnet test tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=architecture.trx" --results-directory results
 
       - name: tests that hold anywhere - window
-        run: dotnet test tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj -c Release --no-build --nologo
+        run: dotnet test tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=window.trx" --results-directory results
 
       # THE PART OF THE INTEGRATION PROJECT THAT IS NOT ABOUT THIS MACHINE, added 2026-08-03.
       #
@@ -101,7 +101,23 @@ jobs:
       # a guard that goes red for the wrong reason teaches people to ignore it, and that costs
       # more than the coverage is worth.
       - name: tests that hold anywhere - the command line surface
-        run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo --filter "runs=anywhere"
+        run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo --filter "runs=anywhere" --logger "trx;LogFileName=surface.trx" --results-directory results
+
+      # SOMETHING TO OPEN WHEN A RUN GOES RED, which until 2026-08-03 there was not: a failed
+      # job left a log in a web page and nothing to take away from it.
+      #
+      # On failure only. A green run has nothing anybody wants, and an artifact uploaded on every
+      # push is storage spent to make the interesting case slightly easier to find.
+      #
+      # `if: failure()` rather than `always()` for the same reason, and it runs even though the
+      # steps above stop the job - that is what the condition is for.
+      - name: what the failing run said
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: results
+          retention-days: 14
 
       # Publishing is its own failure mode and the build does not cover it. Section S9 of the
       # specification promises a small self-contained file, and the measured 93.5 MB is already

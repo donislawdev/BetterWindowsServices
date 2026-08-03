@@ -72,6 +72,17 @@ public static class MemoryPass
                 return Reading<ProcessMemory>.Absent();
 
             case ReadOutcome.Present:
+                // KNOWN AND NOT CLOSED: Windows reuses process identifiers. Between the
+                // enumeration that produced this number and the question asked with it, the
+                // process can have ended and another one can have been given the same number -
+                // and then this reports a stranger's memory against this service, as a figure in
+                // the right column meaning nothing.
+                //
+                // The window is milliseconds, and closing it needs something to compare against
+                // that the service control manager does not hand over: it reports no start time
+                // for the process behind an entry, so there is no reference point to check one
+                // against. Written down rather than guarded, and it is the reason this field is
+                // the one thing here that is a measurement rather than a description.
                 var processId = entry.ProcessId.Value;
 
                 if (!readings.TryGetValue(processId, out var reading))

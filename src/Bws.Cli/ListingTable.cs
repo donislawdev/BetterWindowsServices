@@ -215,7 +215,7 @@ internal static class ListingTable
         {
             for (var column = 0; column < columns; column++)
             {
-                widths[column] = Math.Max(widths[column], row[column].Length);
+                widths[column] = Math.Max(widths[column], Wide(row[column]));
             }
         }
 
@@ -227,14 +227,51 @@ internal static class ListingTable
             {
                 // The last column carries no trailing padding, so copying a line out of a
                 // terminal does not bring invisible spaces with it.
-                text.Append(column == columns - 1
-                    ? row[column]
-                    : row[column].PadRight(widths[column] + 2));
+                if (column == columns - 1)
+                {
+                    text.Append(row[column]);
+
+                    continue;
+                }
+
+                text.Append(row[column]).Append(' ', widths[column] + 2 - Wide(row[column]));
             }
 
             text.AppendLine();
         }
 
         return text.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// How many columns a cell takes on screen, as far as this can be known.
+    ///
+    /// <b>Not the length of the string</b>, and that is what it used to be. A display name is
+    /// whatever the vendor wrote and the machine's language allows, so it can hold a character
+    /// stored as two units - an emoji in a product name, a rare ideograph - and counting units
+    /// made every row after it in that column two spaces out. `PadRight` counts the same way, so
+    /// the two mistakes did not cancel: the width was wrong and the padding was wrong with it.
+    ///
+    /// Text elements rather than units, so a character built from several units counts once, and
+    /// so does a letter with a combining accent.
+    ///
+    /// <b>WHAT THIS STILL DOES NOT KNOW, said rather than left to be found.</b> A full-width
+    /// character - the Han, Kana and Hangul ranges - occupies two terminal columns and is counted
+    /// here as one, so a listing on a Japanese or Chinese Windows still drifts. Getting that
+    /// right needs the East Asian Width table, which .NET does not expose and which is more than
+    /// a listing column is worth today. `CLAUDE.md` says not to assume an English Windows, and
+    /// this is the one place that still does.
+    /// </summary>
+    private static int Wide(string cell)
+    {
+        var elements = System.Globalization.StringInfo.GetTextElementEnumerator(cell);
+        var width = 0;
+
+        while (elements.MoveNext())
+        {
+            width++;
+        }
+
+        return width;
     }
 }

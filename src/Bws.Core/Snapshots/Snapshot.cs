@@ -86,11 +86,24 @@ public sealed record SnapshotMetadata
             // legitimately differs between two snapshots harder to read than it need be.
             TakenAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset),
 
-            TakenBy = WindowsIdentity.GetCurrent().Name,
+            TakenBy = AccountName(),
             Elevated = IsElevated(),
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             Tool = CoreAssembly.Version
         };
+    }
+
+    /// <remarks>
+    /// Released, and it was not until 2026-08-03 - an identity holds a native token, and this one
+    /// was taken and dropped while the method two lines below took its own and released it
+    /// properly. One snapshot leaks one handle, which is nothing and is also the kind of thing
+    /// that is only ever nothing until the code moves somewhere it runs repeatedly.
+    /// </remarks>
+    private static string AccountName()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+
+        return identity.Name;
     }
 
     private static bool IsElevated()

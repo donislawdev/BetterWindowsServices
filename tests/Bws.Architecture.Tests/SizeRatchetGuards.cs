@@ -71,14 +71,21 @@ public sealed class SizeRatchetGuards
     ///   568 -> 557   refusing an option given twice pushed CommandLine.cs to 589, and reading a
     ///                single word moved into Arguments.cs
     ///
-    /// The longest file is now WindowsScmCatalog.cs at 557, and it got there without being
-    /// touched - every file that used to be above it came down past it. <b>The mutation entry
-    /// that proves this guard can fail finds the longest file at run time</b> rather than naming
-    /// one, because an entry naming a file stops proving anything the moment that file stops
-    /// being longest - it came back MISSED for exactly that reason on 2026-08-02, and again on
-    /// 2026-08-03.
+    ///   557 -> 552   two comments naming what a reader could not otherwise know - that the two
+    ///                branches of ReadAll fail differently, and that a process identifier can be
+    ///                reused - pushed WindowsScmCatalog.cs to 566. Three mappings from the
+    ///                manager's vocabulary into ours moved into ManagerTerms.cs, which is the
+    ///                file that exists for exactly that and already held the fourth. One of the
+    ///                three was a method whose whole body was a call to it.
+    ///
+    /// The longest file is now MainViewModel.cs at 552, and it got there without being touched -
+    /// every file that used to be above it came down past it, three times over now. <b>The
+    /// mutation entry that proves this guard can fail finds the longest file at run time</b>
+    /// rather than naming one, because an entry naming a file stops proving anything the moment
+    /// that file stops being longest - it came back MISSED for exactly that reason on 2026-08-02,
+    /// and again on 2026-08-03.
     /// </summary>
-    private const int LongestShippedFile = 557;
+    private const int LongestShippedFile = 552;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
