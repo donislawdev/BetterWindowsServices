@@ -224,6 +224,72 @@ public sealed class SnapshotContractTests : IDisposable
         Assert.Contains(Path.GetFileName(kept[0]), forced.StandardError, StringComparison.Ordinal);
     }
 
+    // NOT marked as running anywhere, although what they are about - how bytes are decoded - has
+    // nothing to do with this machine. Both take a real snapshot to get a real file, which reads
+    // the manager and verifies every signature on the machine, and that is the reason the rest of
+    // this class stays off a build agent. Smuggling a slow machine-dependent test into the job by
+    // naming it after the part that is portable would be the same silence as any other.
+    [Theory]
+    [InlineData("utf8-bom")]
+    [InlineData("utf16")]
+    public void A_snapshot_saved_with_a_byte_order_mark_still_reads(string encoding)
+    {
+        // The half that must keep working, and it is here first because it decides the shape of
+        // the refusal below: a mark is honoured, so a file something else saved as UTF-16 is
+        // still a snapshot. Only bytes that are none of those come back as a refusal.
+        var original = Path.Combine(_directory, "original.json");
+
+        Assert.Equal(0, CommandLineTool.Run("snapshot", "create", original).ExitCode);
+
+        var copy = Path.Combine(_directory, encoding + ".json");
+        var text = File.ReadAllText(original);
+
+        File.WriteAllText(copy, text, encoding == "utf16"
+            ? System.Text.Encoding.Unicode
+            : new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        var compared = CommandLineTool.Run("snapshot", "diff", original, copy);
+
+        Assert.Equal(0, compared.ExitCode);
+        Assert.Contains("No differences", compared.StandardOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_snapshot_that_is_not_utf8_is_refused_rather_than_guessed_at()
+    {
+        // MEASURED before this held: the same snapshot re-encoded to Windows-1250 and compared
+        // against itself reported CHANGED (297) - two hundred and ninety seven entries said to
+        // have changed, and not one of them had. File.ReadAllText honours a byte order mark and
+        // otherwise assumes UTF-8, and where the bytes are not UTF-8 it substitutes a replacement
+        // character and carries on without a word.
+        //
+        // It takes one person opening a snapshot in an editor set to the machine's code page and
+        // saving it. With --exit-code that is a pipeline failing over drift that does not exist,
+        // which in a tool built to tell real drift from noise is the worst answer available.
+        // The note carries a character that exists in both UTF-8 and a single-byte code page, so
+        // the file below really is the same text in another encoding rather than a corrupted one.
+        // Latin-1 rather than Windows-1250, which is what was measured: .NET does not carry the
+        // legacy code pages without an extra package, and taking a dependency to reproduce a
+        // failure that any single-byte encoding produces would be paying for nothing. What
+        // matters is a byte above 0x7F standing alone, which is not valid UTF-8 in any of them.
+        var original = Path.Combine(_directory, "utf8.json");
+
+        Assert.Equal(0, CommandLineTool.Run("snapshot", "create", original, "--note", "café").ExitCode);
+
+        var recoded = Path.Combine(_directory, "single-byte.json");
+
+        File.WriteAllBytes(recoded, System.Text.Encoding.Latin1.GetBytes(File.ReadAllText(original)));
+
+        // The two files say the same thing, and one of them cannot be read as UTF-8.
+        Assert.NotEqual(File.ReadAllBytes(original).Length, File.ReadAllBytes(recoded).Length);
+
+        var compared = CommandLineTool.Run("snapshot", "diff", original, recoded);
+
+        Assert.Equal(2, compared.ExitCode);
+        Assert.Contains(recoded, compared.StandardError, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, compared.StandardOutput.Trim());
+    }
+
     [Fact]
     public void A_readable_snapshot_is_replaced_rather_than_kept()
     {

@@ -66,7 +66,14 @@ public static class AtomicFile
         // at the end has to be a rename within one volume to be a single step. Across
         // volumes it becomes a copy and a delete, which is exactly the halfway state this
         // exists to prevent.
-        var beside = Path.Combine(directory, $".{Path.GetFileName(full)}.{Guid.NewGuid():N}.tmp");
+        // The identifier is formatted with a provider named rather than left to the machine's
+        // culture. It cannot matter for a GUID - "N" is hexadecimal either way - and it is
+        // written out so that the rule holds without exceptions: no format specifier inside an
+        // interpolated string in shipped code. One that cannot matter and one that mattered a
+        // great deal were the only two in the product, and telling them apart by eye is exactly
+        // the judgement a guard exists to remove.
+        var identifier = Guid.NewGuid().ToString("N", System.Globalization.CultureInfo.InvariantCulture);
+        var beside = Path.Combine(directory, "." + Path.GetFileName(full) + "." + identifier + ".tmp");
 
         // Written beside and moved over, never straight into the target. No test in this
         // project can tell the difference - verified by replacing these two lines with a

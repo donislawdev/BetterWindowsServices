@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Bws.Core;
 using Bws.Core.Snapshots;
 
@@ -31,11 +33,29 @@ internal static class SnapshotFiles
     ///
     /// Not a directory of our own choosing. ADR-18 says the tool does not invent directories,
     /// and a file appearing somewhere in a profile is a file nobody finds.
+    ///
+    /// <b>The stamp is written with an invariant culture, and until 2026-08-03 it was written
+    /// with the machine's.</b> An interpolated hole formats with <c>CurrentCulture</c>, and a
+    /// culture carries a calendar - so the same moment produced these names:
+    ///
+    /// <code>
+    ///   pl-PL, en-US, ja-JP   bws-snapshot-MACHINE-20260803-194500.json
+    ///   th-TH                 bws-snapshot-MACHINE-25690803-194500.json   Buddhist year
+    ///   ar-SA                 bws-snapshot-MACHINE-14480220-194500.json   Hijri
+    ///   fa-IR                 bws-snapshot-MACHINE-14050512-194500.json   Persian
+    /// </code>
+    ///
+    /// The timestamp INSIDE the file is unaffected - the serialiser writes ISO 8601 whatever the
+    /// machine thinks - so on those three systems <b>the name of the file and the date in it said
+    /// different things</b>, and the sentence above about sorting by name was false. The
+    /// quarantine name two files away had this right from the day it was written, which is what
+    /// makes this an omission rather than a decision.
     /// </summary>
     internal static string Target(string given, SnapshotMetadata metadata) =>
         given.Length > 0
             ? given
-            : $"bws-snapshot-{metadata.Machine}-{metadata.TakenAt:yyyyMMdd-HHmmss}.json";
+            : "bws-snapshot-" + metadata.Machine + "-"
+                + metadata.TakenAt.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".json";
 
     /// <summary>
     /// Whether this file may be written over, and what had to happen first if so.
@@ -138,13 +158,52 @@ internal static class SnapshotFiles
     {
         try
         {
-            return SnapshotJson.TryRead(File.ReadAllText(path), out _, out _);
+            return SnapshotJson.TryRead(ReadText(path), out _, out _);
         }
         catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            // Cannot be read at all, which is the strongest possible case for keeping it.
+            // Cannot be read at all - and that now includes "is not UTF-8", because the reader
+            // below refuses rather than substitutes. Which is the strongest possible case for
+            // keeping the file rather than writing over it.
             return false;
         }
+    }
+
+    /// <summary>
+    /// The bytes at a path, as text, or nothing at all.
+    ///
+    /// <b>A decoder that refuses, and until 2026-08-03 this was <c>File.ReadAllText</c>, which
+    /// substitutes.</b> That call honours a byte order mark and otherwise assumes UTF-8, and when
+    /// the bytes are not UTF-8 it puts a replacement character in and carries on without a word.
+    ///
+    /// MEASURED on the same snapshot re-encoded four ways and compared against itself:
+    ///
+    /// <code>
+    ///   UTF-8                  No differences.
+    ///   UTF-8 with a mark      No differences.
+    ///   UTF-16 with a mark     No differences.
+    ///   Windows-1250           Changed (297)
+    /// </code>
+    ///
+    /// <b>Two hundred and ninety seven entries reported as changed, and not one of them had.</b>
+    /// It takes one person opening a snapshot in an editor set to the machine's code page and
+    /// saving it - and with <c>--exit-code</c> that is a pipeline failing over drift that does not
+    /// exist. In a tool whose whole purpose is telling real drift from noise, silently guessing at
+    /// bytes is the one thing it may not do.
+    ///
+    /// The mark is still honoured, so a snapshot saved as UTF-16 by something else still reads.
+    /// Only bytes that are not any of those come back as a refusal.
+    /// </summary>
+    /// <exception cref="DecoderFallbackException">The bytes are not text this build can read.</exception>
+    private static string ReadText(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var reader = new StreamReader(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+            detectEncodingFromByteOrderMarks: true);
+
+        return reader.ReadToEnd();
     }
 
     /// <summary>
@@ -168,7 +227,19 @@ internal static class SnapshotFiles
 
         try
         {
-            content = File.ReadAllText(path);
+            content = ReadText(path);
+        }
+
+        // AHEAD OF THE TWO BELOW, and it has to be: a decoder failure IS an ArgumentException, so
+        // the clause that calls a mistyped path a mistake would otherwise swallow it and blame
+        // the wrong thing. This is not a path somebody got wrong - it is a file that exists,
+        // opened cleanly, and holds bytes this build will not guess at.
+        catch (DecoderFallbackException)
+        {
+            Console.Error.WriteLine(Texts.Of("cli.diff.notUtf8", path));
+            code = ExitCode.Usage;
+
+            return false;
         }
 
         // WHOSE FAULT IT WAS DECIDES THE CODE, and until 2026-08-03 every one of these was code 2 -

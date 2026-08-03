@@ -42,6 +42,14 @@ internal static class Texts
         Strings.TryGetValue(key, out var text) ? text : key;
 
     internal static string Of(string key, params object[] values) =>
+        // THE MACHINE'S CULTURE, AND THE COMMAND LINE USES THE INVARIANT ONE. That difference is
+        // deliberate and was nowhere written down until 2026-08-03, which is how an audit came to
+        // ask about it.
+        //
+        // A window shows text to the person sitting at it, on their machine, so a count reads
+        // better as they would write it. A terminal writes into pipes, where a thousands
+        // separator that appears on one install and not on another is something a script has to
+        // cope with. Same product, two audiences, two right answers.
         string.Format(CultureInfo.CurrentCulture, Of(key), values);
 
     /// <summary>Every key that was loaded, for a guard that wants to check the markup against them.</summary>

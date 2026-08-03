@@ -29,6 +29,12 @@ internal static class Texts
     internal static string Of(string key) =>
         Strings.TryGetValue(key, out var text) ? text : key;
 
+    /// <remarks>
+    /// The invariant culture, and the window uses the machine's. Deliberate, and nowhere written
+    /// down until 2026-08-03: a terminal writes into pipes, where a thousands separator that
+    /// appears on one install and not on another is something a script has to cope with. A window
+    /// shows text to the person sitting at it, and there the machine's culture reads better.
+    /// </remarks>
     internal static string Of(string key, params object[] values) =>
         string.Format(CultureInfo.InvariantCulture, Of(key), values);
 

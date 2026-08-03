@@ -301,6 +301,15 @@ Nothing has been released yet. Everything below is what the tool does today.
   used to push every row after it in that column two spaces out. Characters from the Chinese,
   Japanese and Korean ranges take two columns on screen and are still counted as one, so a
   listing on those systems can still drift.
+- **A snapshot gets the same file name whatever calendar your Windows uses.** Without a file
+  name the tool works one out from the machine and the date, and it used to write that date
+  in the system's calendar - so the same moment produced `20260803` on a Polish or American
+  machine and `25690803` on a Thai one, while the date inside the file stayed the same. The
+  name and the contents disagreed, and the files stopped sorting by time.
+- **A snapshot that is not UTF-8 is refused instead of being guessed at.** Opening one in an
+  editor set to your system's code page and saving it used to make the next comparison report
+  hundreds of entries as changed when nothing had. Files saved as UTF-8 or UTF-16 with a byte
+  order mark still read normally.
 
 ### Known limits
 
