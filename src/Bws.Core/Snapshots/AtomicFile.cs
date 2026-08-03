@@ -15,6 +15,18 @@ namespace Bws.Core.Snapshots;
 /// process that dies at any point leaves either the old file or a temporary one, never a
 /// half-written target. On success nothing temporary remains.
 ///
+/// <b>WHICH KIND OF DEATH, said out loud since 2026-08-03 because the sentence above does not
+/// cover them all.</b> A process that is killed, that throws, or that is ended by Ctrl+C is
+/// covered exactly as written. **A power failure or a system crash is not.** Nothing here forces
+/// the content to the disk before the rename, so the file system is free to make the rename
+/// durable while the bytes are not - and what comes back is a file with the right name, the
+/// right timestamp and no content, which is the very thing this class exists to prevent.
+///
+/// Not fixed, and that is a decision rather than an oversight: writing through would cost every
+/// snapshot a flush to buy a case nobody here has met. Written down so that the next person to
+/// read the promise above knows where it stops, because a promise with an unstated edge is worse
+/// than a smaller promise.
+///
 /// One path for every file the tool writes, built once here rather than separately in each
 /// place that writes something. `ADR-18` says that too, and the reason is that the second
 /// implementation is the one that forgets a step.

@@ -93,11 +93,20 @@ internal static class CommandLineTool
         using var process = Process.Start(startup)
             ?? throw new InvalidOperationException($"Could not start '{executable}'.");
 
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
+        // BOTH CHANNELS AT ONCE, and reading them one after the other is a deadlock waiting for
+        // a noisy run. A pipe holds a few kilobytes; once the error channel fills, the child
+        // blocks writing to it, and a parent sitting in ReadToEnd on the data channel never gets
+        // to the line that would drain it. Neither side can move, and a test that hangs reports
+        // nothing at all - which this project has already paid for once, choosing a regex engine.
+        //
+        // Nothing here produces that much on the error channel today. What does is a run with
+        // one line per refused entry, which is a shape the tool could easily grow.
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+
         process.WaitForExit();
 
-        return new ProcessResult(process.ExitCode, output, error);
+        return new ProcessResult(process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
     }
 
     /// <summary>

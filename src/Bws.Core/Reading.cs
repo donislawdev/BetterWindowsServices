@@ -99,7 +99,31 @@ public readonly record struct Reading<T>
     public static Reading<T> Absent() => new(ReadOutcome.Absent, default, 0, null);
 
     public static Reading<T> Denied(int errorCode, string reason) =>
-        new(ReadOutcome.Denied, default, errorCode, reason);
+        new(ReadOutcome.Denied, default, Win32Of(errorCode), reason);
+
+    /// <summary>
+    /// One numbering, whichever numbering the failure arrived in.
+    ///
+    /// <b>Two of them used to reach <see cref="ErrorCode"/> and nothing said so.</b> Most
+    /// refusals here come from <c>GetLastWin32Error</c> and are Win32 codes - access denied is
+    /// 5. Some come from the <c>HResult</c> of a managed exception, because by the time one has
+    /// been built the thread's last error has usually been overwritten by whatever the runtime
+    /// did on the way - and there the same refusal is <c>0x80070005</c>, which as a signed
+    /// number is -2147024891.
+    ///
+    /// So a script keying on 5 worked for the listing and silently missed the same refusal
+    /// coming out of a signature or a security descriptor. The field is a frozen contract and
+    /// its documentation calls it "the system's own number", singular. This makes that true
+    /// rather than explaining that it is not. <b>Owner's decision, 2026-08-03.</b>
+    ///
+    /// Only the Win32 facility is unwrapped. <c>0x800B0100</c> - a file carrying no signature -
+    /// has no Win32 equivalent and keeps its own number, because inventing one would be worse
+    /// than carrying two numbering schemes.
+    ///
+    /// Here rather than at the four call sites, so that a fifth cannot forget.
+    /// </summary>
+    private static int Win32Of(int code) =>
+        ((uint)code & 0xFFFF0000u) == 0x80070000u ? (int)((uint)code & 0xFFFFu) : code;
 
     /// <summary>
     /// The value, or the fallback. Deliberately makes the caller name what it wants shown,

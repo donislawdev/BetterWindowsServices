@@ -126,6 +126,42 @@ public sealed class SignatureQueryTests
         Assert.DoesNotContain("BTHMODEM", Over(Specimens.Inspected, "microsoft windows"));
     }
 
+    [Fact]
+    public void An_entry_nobody_read_the_signature_of_makes_the_answer_say_so()
+    {
+        // A TEXT FIELD USED TO DROP IT IN SILENCE. Refused was asked about and not read was not,
+        // so an entry whose signature nobody looked at was simply excluded and never counted
+        // among the entries the answer is unsure about - a shorter list that looks complete.
+        //
+        // It is not a hypothetical shape. With --follow-network off, an entry whose binary sits
+        // on a share never has its signature read, and `publisher:microsoft` quietly left it out.
+        //
+        // The enumeration fields have always reported this - FieldSymbols.Nothing carries
+        // "incomplete" for exactly this case - so `signed:no` said the result was partial while
+        // `publisher:x` beside it did not. They agree now.
+        var parsed = QueryParser.Parse("publisher:microsoft");
+
+        Assert.True(parsed.IsValid);
+
+        // Specimens.All is the plain listing: nobody has asked for signatures on any of it.
+        var result = parsed.Query!.Filter(Specimens.All);
+
+        Assert.Equal(Specimens.All.Count, result.Unreadable);
+        Assert.Empty(result.Entries);
+    }
+
+    [Fact]
+    public void An_entry_whose_signature_was_read_is_answered_rather_than_shrugged_at()
+    {
+        // The other side, and it is what stops the repair above from turning every query into an
+        // admission. Once the second pass has run, these are ordinary answers.
+        var parsed = QueryParser.Parse("publisher:microsoft");
+        var result = parsed.Query!.Filter(Specimens.Inspected);
+
+        Assert.NotEmpty(result.Entries);
+        Assert.NotEqual(Specimens.Inspected.Count, result.Unreadable);
+    }
+
     private static List<string> Match(string query) => Over(Specimens.Inspected, query);
 
     private static List<string> Over(IReadOnlyList<ScmEntry> entries, string query)

@@ -82,13 +82,19 @@ public sealed record ComparisonCaveats(
 /// missing entries exists to prevent, arriving through the exit code instead.
 /// </param>
 /// <param name="NeitherRead">
-/// Fields no entry could be compared on, because neither snapshot holds them.
+/// Fields that at least one entry could not be compared on, because neither snapshot read them
+/// there.
 ///
-/// Said once for the whole comparison rather than against every entry. Usually it means this
-/// build does not read the field at all, which is a fact about the two files and not about
-/// any one service - repeated per row it would be the same admission eight hundred times,
-/// the shape this project already met when a listing threatened to answer "I do not know"
-/// about every entry it had.
+/// <b>At least one, not every one</b>, and the sentence used to say the second - which was a
+/// claim about scale that the code does not make. It is gathered per entry and reported once, so
+/// a field appearing here may have been unread on a single entry out of eight hundred. In the
+/// ordinary case the two are the same thing, because the usual reason is that this build does
+/// not read the field at all - but "usually" is not "always", and a caveat that overstates how
+/// much was missed is a caveat nobody can act on.
+///
+/// Said once for the whole comparison rather than against every entry. Repeated per row it
+/// would be the same admission eight hundred times, the shape this project already met when a
+/// listing threatened to answer "I do not know" about every entry it had.
 /// </param>
 public sealed record SnapshotDiff(
     IReadOnlyList<EntryPresence> Added,

@@ -49,6 +49,29 @@ internal interface IQueryValue
     Verdict Test(QueryField field, ScmEntry entry);
 }
 
+internal static class QueryValue
+{
+    /// <summary>
+    /// Whether this field has anything to say about this entry, or the answer would be a guess.
+    ///
+    /// <b>Two states, and until 2026-08-03 only one of them was asked about.</b> Refused is
+    /// obvious. Not read is the quieter one: the field has no value because nobody looked, so
+    /// saying "no" is a confident answer to a question nobody put to the machine.
+    ///
+    /// It mattered in a way nothing announced. With <c>--follow-network</c> off, an entry whose
+    /// binary sits on a share never gets its signature read - so <c>publisher:microsoft</c>
+    /// dropped it from the result and did not count it among the entries the answer is unsure
+    /// about. A shorter list that looks complete, which is rule 8 of CLAUDE.md in the field
+    /// where it costs most.
+    ///
+    /// The enumeration fields have always done this - <c>FieldSymbols.Nothing</c> carries
+    /// "incomplete" for exactly this case - so <c>signed:no</c> reported itself as partial while
+    /// <c>publisher:x</c> beside it did not. The three value kinds here now agree with them.
+    /// </summary>
+    internal static bool Unanswerable(QueryField field, ScmEntry entry) =>
+        field.OutcomeOf(entry) is ReadOutcome.Denied or ReadOutcome.NotRead;
+}
+
 /// <summary>
 /// The reserved words: <c>none</c>, <c>any</c> and <c>?</c>. They ask about the reading
 /// itself rather than about the value, which is how the four states a field can be in
@@ -79,7 +102,7 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
 {
     public Verdict Test(QueryField field, ScmEntry entry)
     {
-        if (field.OutcomeOf(entry) == ReadOutcome.Denied)
+        if (QueryValue.Unanswerable(field, entry))
         {
             return Verdict.CouldNotRead;
         }
@@ -195,7 +218,7 @@ internal sealed class NumberValue(NumberOperator operation, int low, int high) :
 {
     public Verdict Test(QueryField field, ScmEntry entry)
     {
-        if (field.OutcomeOf(entry) == ReadOutcome.Denied)
+        if (QueryValue.Unanswerable(field, entry))
         {
             return Verdict.CouldNotRead;
         }
@@ -233,7 +256,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
 {
     public Verdict Test(QueryField field, ScmEntry entry)
     {
-        if (field.OutcomeOf(entry) == ReadOutcome.Denied)
+        if (QueryValue.Unanswerable(field, entry))
         {
             return Verdict.CouldNotRead;
         }

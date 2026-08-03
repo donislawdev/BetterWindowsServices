@@ -205,7 +205,55 @@ public sealed class SnapshotContractTests : IDisposable
 
         Assert.Equal(0, forced.ExitCode);
         Assert.NotEqual(mine, File.ReadAllText(target));
+
+        // AND WHAT WAS THERE IS STILL THERE, under another name. `ADR-18` asks for quarantine
+        // rather than deletion on the grounds that a corrupt snapshot is sometimes the only
+        // remaining trace of what was there - and until 2026-08-03 AtomicFile.Quarantine existed,
+        // was tested, and had no caller in the product at all, which made the promise look kept
+        // while nothing kept it.
+        var kept = Directory
+            .GetFiles(_directory)
+            .Where(file => !string.Equals(file, target, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.Single(kept);
+        Assert.Equal(mine, File.ReadAllText(kept[0]));
+
+        // Named on the error channel, because a file moved somewhere nobody was told about is
+        // barely better than one that was deleted.
+        Assert.Contains(Path.GetFileName(kept[0]), forced.StandardError, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_readable_snapshot_is_replaced_rather_than_kept()
+    {
+        // The other side of the line above, and it decides what quarantine means. Somebody who
+        // asks for --force over a snapshot they took an hour ago means replace it - keeping a
+        // copy of every one of those would fill their directory with files they never asked for.
+        // Only what cannot be read back is worth keeping, because only that cannot be produced
+        // again.
+        var target = Path.Combine(_directory, "replaceable.json");
+
+        Assert.Equal(0, CommandLineTool.Run("snapshot", "create", target).ExitCode);
+        Assert.Equal(0, CommandLineTool.Run("snapshot", "create", target, "--force").ExitCode);
+
+        Assert.Single(Directory.GetFiles(_directory));
+    }
+
+    // THERE IS NO TEST HERE FOR THE NAME THE TOOL WORKS OUT ITSELF, and the absence is written
+    // down rather than left to be noticed.
+    //
+    // That path had no overwrite guard at all until 2026-08-03, on the reasoning that a name
+    // carrying a timestamp to the second "collides with nothing" - true of one person running
+    // the command twice, false of two runs started together by a script, of a file restored from
+    // a backup, and of a fast machine. It has one now.
+    //
+    // A test was written for it and REMOVED THE SAME HOUR, because the mutation runner said it
+    // proved nothing: it passed a file name explicitly, so the early check refused first and the
+    // gate it claimed to guard was never reached. Reaching that gate needs the tool to choose a
+    // name that already exists, which needs two runs inside one second - and the command line has
+    // no way to hand a clock in. A test whose name claims more than it checks is worse than no
+    // test, because the next session reads the name.
 
     private JsonElement Take(string name, params string[] arguments) =>
         JsonDocument.Parse(File.ReadAllText(TakeToPath(name, arguments))).RootElement;

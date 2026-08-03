@@ -272,6 +272,20 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **Ctrl+C just after a plan finishes no longer risks ending the run without its report.**
 - **The list no longer shows the same service twice** after a refresh in which two rows
   changed places.
+- **A file you are about to replace is kept when it cannot be read as a snapshot.**
+  `snapshot create --force` over something that is not a snapshot now moves it aside under
+  its own name plus a timestamp, and says where it went, instead of destroying it. A file
+  that IS a readable snapshot is replaced, because that is what asking for `--force` means.
+- **The name the tool picks for you is protected too.** Without a file name it works one out
+  from the machine and the moment, and that path used to overwrite whatever was already
+  there without asking.
+- **One refusal now has one number.** `unreadable.errorCode` in the JSON output carried the
+  Windows number for some refusals and a .NET number for others - the same access denial was
+  `5` in one place and `-2147024891` in another. A script keying on the number now works
+  everywhere. **If you match on that field, check your values.**
+- **A search about something the tool has not read says so.** Asking about a publisher when
+  signatures were not read used to drop those entries silently. The result now reports
+  itself as partial, the way a search about a refused field already did.
 
 ### Known limits
 

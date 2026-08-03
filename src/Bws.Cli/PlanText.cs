@@ -39,9 +39,16 @@ internal static class PlanText
             ? Texts.Of("cli.plan.heading.one", Verb(plan.Action.Kind), plan.Action.ServiceName)
             : Texts.Of("cli.plan.heading.many", Verb(plan.Action.Kind), plan.Action.ServiceName, plan.Steps.Count));
 
+        // All three, or none. The first was written this way and the other two were not, so a
+        // plan with no steps threw "Sequence contains no elements" from the second line - which
+        // means the guard on the first line was describing a case the next two could not survive.
+        //
+        // Unreachable from the command line today, because a plan is only rendered once
+        // IsRunnable has said it has steps. Reachable the moment a window shows a plan it is
+        // refusing, which is what S7 brings, and that is exactly when nobody would be looking.
         var width = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => step.ServiceName.Length);
-        var operations = plan.Steps.Max(step => Operation(step.Operation).Length);
-        var reasons = plan.Steps.Max(step => Reason(step.Reason).Length);
+        var operations = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => Operation(step.Operation).Length);
+        var reasons = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => Reason(step.Reason).Length);
 
         for (var index = 0; index < plan.Steps.Count; index++)
         {

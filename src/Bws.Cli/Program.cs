@@ -288,12 +288,14 @@ try
         // anything - a snapshot was the one place, and it was the place somebody keeps for
         // months.
         //
-        // Only when a name was given. Without one the name carries a timestamp to the second
-        // and collides with nothing.
-        if (options.Path.Length > 0 && File.Exists(options.Path) && !options.Force)
+        // Asked here as well as after the name is worked out, and both go through the same
+        // method rather than repeating the condition. This one is the courtesy - it saves the
+        // second the signatures cost when the answer is already known - and it can only be asked
+        // when a name was given, because otherwise there is no name yet to ask about.
+        if (options.Path.Length > 0 && !SnapshotFiles.MayWrite(options.Path, options.Force, out var taken))
         {
             stopwatch.Stop();
-            Console.Error.WriteLine(Texts.Of("cli.snapshot.fileExists", options.Path));
+            Console.Error.WriteLine(taken);
 
             return ExitCode.Usage;
         }
@@ -308,6 +310,29 @@ try
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
         var target = SnapshotFiles.Target(options.Path, snapshot.Metadata);
+
+        // THE SAME QUESTION ABOUT THE FILE THAT WILL ACTUALLY BE WRITTEN, which until 2026-08-03
+        // was never asked when nobody named one. The comment here read "without a name the name
+        // carries a timestamp to the second and collides with nothing", and that is true of one
+        // person running the command twice and false of two runs started together by a script,
+        // of a file restored from a backup, and of a machine fast enough to finish twice inside
+        // a second. So the one command in this tool that overwrites anything had a way round its
+        // own guard, on the path a person takes when they have not thought about the file name.
+        if (!SnapshotFiles.MayWrite(target, options.Force, out var refusal)
+            || !SnapshotFiles.KeepWhatCannotBeRead(target, out var quarantined, out refusal))
+        {
+            stopwatch.Stop();
+            Console.Error.WriteLine(refusal);
+
+            return ExitCode.Usage;
+        }
+
+        // Said before the write rather than after, because it is the sentence somebody needs in
+        // order to find the file again if this run is not what they meant.
+        if (quarantined is not null)
+        {
+            Console.Error.WriteLine(Texts.Of("cli.snapshot.quarantined", target, quarantined));
+        }
 
         try
         {

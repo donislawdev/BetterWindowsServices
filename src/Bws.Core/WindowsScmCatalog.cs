@@ -46,14 +46,10 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
     private static readonly string WindowsDirectory =
         Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 
-    // Owner, group and permissions - the three parts of a descriptor that can be read with
-    // READ_CONTROL alone. The fourth, the audit list, is left out on purpose: see
-    // ReadSecurityDescriptor.
-    private const uint DescriptorParts =
-        (uint)(OBJECT_SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION
-            | OBJECT_SECURITY_INFORMATION.GROUP_SECURITY_INFORMATION
-            | OBJECT_SECURITY_INFORMATION.DACL_SECURITY_INFORMATION);
-
+    // The security descriptor parts used to be declared here as well as in ScmDetailReader,
+    // word for word including the comment, and this copy went unused when the reading moved
+    // there on 2026-08-02. Two copies of one constant is the drift this project spends its
+    // rules on, and an unused private constant raises no warning at all - so it sat.
     private const ENUM_SERVICE_TYPE AllEntryTypes =
         ENUM_SERVICE_TYPE.SERVICE_DRIVER               // kernel, file system, recogniser
         | ENUM_SERVICE_TYPE.SERVICE_ADAPTER
@@ -414,7 +410,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
 
         var withOwnCalls = configuration with
         {
-            DelayedAuto = ScmDetailReader.ReadDelayedAuto(service, enumerated, configuration.StartType),
+            DelayedAuto = ScmDetailReader.ReadDelayedAuto(service, enumerated),
             Triggers = ScmDetailReader.ReadTriggers(service),
             RequiredPrivileges = ScmDetailReader.ReadRequiredPrivileges(service),
             SidType = ScmDetailReader.ReadSidType(service)

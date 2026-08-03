@@ -38,8 +38,12 @@ internal static class ScmDetailReader
     /// ignores it elsewhere - which confused what the setting does with whether it exists.
     /// The body below has the measurement that changed it.
     /// </summary>
-    internal static unsafe Reading<bool> ReadDelayedAuto(
-        SafeHandle service, EnumeratedEntry enumerated, Reading<StartType> startType)
+    /// <remarks>
+    /// The start type used to be a parameter here and was never read - a leftover from when this
+    /// was asked only of automatic entries. A signature that names something the body ignores is
+    /// a claim about what the answer depends on, and this one was false.
+    /// </remarks>
+    internal static unsafe Reading<bool> ReadDelayedAuto(SafeHandle service, EnumeratedEntry enumerated)
     {
         // Every entry that can carry one, not only the ones where it currently does
         // something. Windows stores this flag on manual and disabled services too, and it
