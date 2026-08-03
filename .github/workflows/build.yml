@@ -62,11 +62,46 @@ jobs:
       # A guard that goes red for reasons unrelated to the change teaches people to ignore it,
       # which is worse than not having it. That sentence is in docs/04 about a different test
       # and it applies here without modification.
-      - name: tests that hold anywhere
-        run: |
-          dotnet test tests/Bws.Core.Tests/Bws.Core.Tests.csproj -c Release --no-build --nologo
-          dotnet test tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj -c Release --no-build --nologo
-          dotnet test tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj -c Release --no-build --nologo
+      # ONE PROJECT PER STEP, AND THAT IS A FIX RATHER THAN A LAYOUT PREFERENCE.
+      #
+      # These three used to be three lines of one `run:` block, and in that shape the step
+      # reported the exit code of the LAST command only. GitHub runs a `run:` block as
+      # `pwsh -command ". 'script.ps1'"` with `$ErrorActionPreference = 'stop'` and an appended
+      # `exit $LASTEXITCODE` - and that preference governs PowerShell cmdlets, not the exit code
+      # of a native program. `dotnet test` is a native program.
+      #
+      # MEASURED 2026-08-03 by reproducing the documented shell shape locally on pwsh 7.6.4: a
+      # first command exiting 1 did not stop the script, the second still ran, and the runner
+      # would have seen 0. So a red Bws.Core.Tests - 325 of the 401 tests that run here - passed
+      # this workflow as long as the GUI project was green.
+      #
+      # Separate steps have no such rule to remember. Each one is its own exit code, and a
+      # failure names which project failed in the job summary rather than in a log somebody has
+      # to open.
+      - name: tests that hold anywhere - core
+        run: dotnet test tests/Bws.Core.Tests/Bws.Core.Tests.csproj -c Release --no-build --nologo
+
+      - name: tests that hold anywhere - architecture
+        run: dotnet test tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj -c Release --no-build --nologo
+
+      - name: tests that hold anywhere - window
+        run: dotnet test tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj -c Release --no-build --nologo
+
+      # THE PART OF THE INTEGRATION PROJECT THAT IS NOT ABOUT THIS MACHINE, added 2026-08-03.
+      #
+      # The whole project used to sit out, and the reason given covered only part of it. Comparing
+      # against a machine's own sc.exe and holding the budgets from section 8.1 really are facts
+      # about one machine. Asking whether `bws --help` ends with code zero is not - and it went
+      # unchecked on every push for the same reason, which is how that exact fault lived through
+      # the whole life of the product once already.
+      #
+      # OPT IN RATHER THAN OPT OUT, and that is deliberate. A test written tomorrow does not join
+      # this step until somebody marks it, so a new test that quietly depends on the machine it
+      # was written on cannot turn this job red for a reason unrelated to the change. docs/04 says
+      # a guard that goes red for the wrong reason teaches people to ignore it, and that costs
+      # more than the coverage is worth.
+      - name: tests that hold anywhere - the command line surface
+        run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo --filter "runs=anywhere"
 
       # Publishing is its own failure mode and the build does not cover it. Section S9 of the
       # specification promises a small self-contained file, and the measured 93.5 MB is already

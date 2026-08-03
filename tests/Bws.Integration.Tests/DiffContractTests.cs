@@ -14,7 +14,12 @@ namespace Bws.Integration.Tests;
 /// </summary>
 public sealed class DiffContractTests
 {
+    // The three below never open the service control manager - comparing two files is offline by
+    // design, and these three never get as far as reading either of them. So they run on a build
+    // agent like any other test, which is what the trait says. The fourth one does not: it takes
+    // a snapshot of the machine it is on, which is the one claim here only a real machine settles.
     [Fact]
+    [Trait("runs", "anywhere")]
     public void One_file_on_its_own_is_refused_rather_than_guessed_at()
     {
         // The alternative would be to treat it as --live, which reads the whole machine and
@@ -28,6 +33,7 @@ public sealed class DiffContractTests
     }
 
     [Fact]
+    [Trait("runs", "anywhere")]
     public void Two_files_and_live_together_are_refused()
     {
         // Three sides to a comparison that takes two. Picking one silently would ignore
@@ -39,6 +45,7 @@ public sealed class DiffContractTests
     }
 
     [Fact]
+    [Trait("runs", "anywhere")]
     public void A_file_that_is_not_there_is_answered_rather_than_thrown()
     {
         // Somebody pointed at the wrong file. That is an ordinary thing to do, and a stack

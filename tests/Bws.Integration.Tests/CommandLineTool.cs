@@ -100,6 +100,19 @@ internal static class CommandLineTool
         return new ProcessResult(process.ExitCode, output, error);
     }
 
+    /// <summary>
+    /// The tool these tests are about.
+    ///
+    /// <b>The build this test project was itself built in, not the newest one on disk.</b> Until
+    /// 2026-08-03 this took whatever <c>Bws.Cli.exe</c> had the latest timestamp anywhere under
+    /// <c>bin</c>, which meant a Release run could be measuring a Debug binary, or the other way
+    /// round, purely because of what had been built last. Nothing would have said so - both
+    /// answer every one of these tests the same way until the day one of them does not.
+    ///
+    /// This project has already paid once for a test run against a build that was not the one
+    /// under test: <c>dotnet test --no-build</c> after a failed compile tests the previous binary
+    /// and passes.
+    /// </summary>
     private static string Path()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -112,12 +125,24 @@ internal static class CommandLineTool
         var root = directory?.FullName
             ?? throw new InvalidOperationException("Repository root not found above the test output.");
 
-        var executable = Directory
-            .EnumerateFiles(System.IO.Path.Combine(root, "src", "Bws.Cli", "bin"), "Bws.Cli.exe", SearchOption.AllDirectories)
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .FirstOrDefault();
+        // ...\tests\Bws.Integration.Tests\bin\<configuration>\<framework>\ - the framework is the
+        // same for every project here, so the configuration is what has to match.
+        var output = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar));
+        var configuration = output.Parent?.Name
+            ?? throw new InvalidOperationException($"Cannot tell which configuration '{output.FullName}' was built in.");
+
+        var built = System.IO.Path.Combine(root, "src", "Bws.Cli", "bin", configuration);
+
+        var executable = Directory.Exists(built)
+            ? Directory
+                .EnumerateFiles(built, "Bws.Cli.exe", SearchOption.AllDirectories)
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault()
+            : null;
 
         return executable ?? throw new InvalidOperationException(
-            "Bws.Cli.exe was not found. Build the solution before running the integration tests.");
+            $"Bws.Cli.exe was not found under '{built}'. These tests run the real tool, and it has " +
+            $"to be the {configuration} build, because that is the one they were compiled beside. " +
+            "Build the solution in this configuration before running them.");
     }
 }
