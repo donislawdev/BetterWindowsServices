@@ -390,9 +390,9 @@ public sealed class QueryMatchingTests
     [Fact]
     public void Quotes_protect_a_value_with_a_space_in_it()
     {
-        var spaced = Entries.Named("ProtonVPN WireGuard", "ProtonVPN WireGuard");
+        var spaced = Entries.Named("ContosoVPN Tunnel", "ContosoVPN Tunnel");
 
-        Assert.True(Matches("""name:"ProtonVPN WireGuard" """, spaced));
+        Assert.True(Matches("""name:"ContosoVPN Tunnel" """, spaced));
     }
 
     [Fact]
@@ -408,7 +408,7 @@ public sealed class QueryMatchingTests
     {
         // Without this every path would be a syntax error, and paths are what this domain
         // is full of.
-        var path = Entries.Named("Ubisoft", @"C:\Program Files (x86)\Ubisoft");
+        var path = Entries.Named("Fabrikam", @"C:\Program Files (x86)\Fabrikam");
 
         Assert.True(Matches(@"display:C:\Program", path));
     }

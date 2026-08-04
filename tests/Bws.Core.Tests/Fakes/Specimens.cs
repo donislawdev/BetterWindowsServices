@@ -10,6 +10,17 @@ namespace Bws.Core.Tests.Fakes;
 /// a catalogue without a specimen is guesswork. Values are copied exactly, including the
 /// display names, which is why they are in Polish.
 ///
+/// <b>With one deliberate exception: the names of software from other vendors were changed on
+/// 2026-08-04, and the shapes were not.</b> This repository is public, and a fixture naming a
+/// particular VPN and the version of it installed says more about whoever ran the tool than
+/// about the tool. Three names became Microsoft's fictional companies - Contoso, Fabrikam - and
+/// every character that carries meaning survived: the same number of spaces in the same places,
+/// the same quoting, the same parenthesis in "Program Files (x86)", the same version-looking
+/// segment. Those are what the resolver is tested against, and they are what a real reading
+/// bought us. <b>Do not put the original names back to make this feel more authentic</b> - it
+/// would give something away and prove nothing extra. The guard in PublicSurfaceGuards refuses
+/// them, and does it without naming them in a public file.
+///
 /// The Polish text here is captured data, not authored text, and it earns its place. The
 /// catalogue document lists "system in another language" as a case with no evidence
 /// behind it - the whole identity rule of ADR-14 exists for it and rests on reasoning
@@ -60,8 +71,8 @@ internal static class Specimens
     /// </summary>
     internal static ScmEntry NameWithASpace => Entries.Any with
     {
-        ServiceName = "ProtonVPN WireGuard",
-        DisplayName = "ProtonVPN WireGuard",
+        ServiceName = "ContosoVPN Tunnel",
+        DisplayName = "ContosoVPN Tunnel",
         Status = EntryStatus.Stopped,
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
@@ -72,10 +83,10 @@ internal static class Specimens
         // there, and it is manual, which is why it is not an orphan by the glossary and is
         // still worth being able to ask about.
         BinaryPath = Reading<string>.Present(
-            @"""C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe"" " +
-            @"""C:\Program Files\Proton\VPN\v4.4.1\ServiceData\WireGuard\ProtonVPN.conf"" ""udp"""),
+            @"""C:\Program Files\Contoso\VPN\v4.4.1\ContosoVPN.TunnelService.exe"" " +
+            @"""C:\Program Files\Contoso\VPN\v4.4.1\ServiceData\Tunnel\ContosoVPN.conf"" ""udp"""),
         BinaryFile = Reading<string>.Present(
-            @"C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe"),
+            @"C:\Program Files\Contoso\VPN\v4.4.1\ContosoVPN.TunnelService.exe"),
         BinaryOnDisk = Reading<bool>.Present(false)
     };
 
@@ -506,17 +517,17 @@ internal static class Specimens
     /// </summary>
     internal static ScmEntry UnquotedPathWithSpaces => Entries.Any with
     {
-        ServiceName = "UpcElevationService",
-        DisplayName = "Ubisoft UPC Elevation Service",
+        ServiceName = "GameElevationService",
+        DisplayName = "Fabrikam Game Elevation Service",
         Status = EntryStatus.Stopped,
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
         ProcessId = Reading<int>.Absent(),
 
         BinaryPath = Reading<string>.Present(
-            @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher Core\UpcElevationService.exe"),
+            @"C:\Program Files (x86)\Fabrikam\Fabrikam Game Launcher Core\GameElevationService.exe"),
         BinaryFile = Reading<string>.Present(
-            @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher Core\UpcElevationService.exe"),
+            @"C:\Program Files (x86)\Fabrikam\Fabrikam Game Launcher Core\GameElevationService.exe"),
         BinaryOnDisk = Reading<bool>.Present(true)
     };
 

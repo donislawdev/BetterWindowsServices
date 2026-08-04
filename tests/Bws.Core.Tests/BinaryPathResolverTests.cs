@@ -32,10 +32,10 @@ public sealed class BinaryPathResolverTests
     public void Quotes_say_where_the_file_name_ends()
     {
         var resolved = Resolve(
-            @"""C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe"" ""C:\conf"" ""udp""",
+            @"""C:\Program Files\Contoso\VPN\v4.4.1\ContosoVPN.TunnelService.exe"" ""C:\conf"" ""udp""",
             onDisk: []);
 
-        Assert.Equal(@"C:\Program Files\Proton\VPN\v4.4.1\ProtonVPN.WireGuardService.exe", resolved.File);
+        Assert.Equal(@"C:\Program Files\Contoso\VPN\v4.4.1\ContosoVPN.TunnelService.exe", resolved.File);
 
         // Nothing on disk, and the answer is still the path a person can go and check. This
         // is one of the five entries on the machine whose file is genuinely gone.
@@ -48,7 +48,7 @@ public sealed class BinaryPathResolverTests
         // The case that broke the obvious approach while this was being written: cutting at
         // the first space gave "C:\Program" and reported a file that is there as missing.
         // Two entries on the machine have this shape.
-        const string command = @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher Core\UpcElevationService.exe";
+        const string command = @"C:\Program Files (x86)\Fabrikam\Fabrikam Game Launcher Core\GameElevationService.exe";
 
         var resolved = Resolve(command, onDisk: [command]);
 
@@ -134,7 +134,7 @@ public sealed class BinaryPathResolverTests
     [Theory]
     [InlineData(@"\SystemRoot\system32\drivers\AppvStrm.sys", @"C:\WINDOWS\system32\drivers\AppvStrm.sys")]
     [InlineData(@"system32\drivers\Acx01000.sys", @"C:\WINDOWS\system32\drivers\Acx01000.sys")]
-    [InlineData(@"\??\C:\Program Files\Proton\x.sys", @"C:\Program Files\Proton\x.sys")]
+    [InlineData(@"\??\C:\Program Files\Contoso\x.sys", @"C:\Program Files\Contoso\x.sys")]
     [InlineData(@"C:\WINDOWS\System32\spoolsv.exe", @"C:\WINDOWS\System32\spoolsv.exe")]
     public void Every_shape_the_manager_returns_lands_on_the_same_kind_of_path(string raw, string expected)
     {

@@ -76,18 +76,18 @@ public sealed class QueryOverSpecimensTests
     [Fact]
     public void A_name_with_a_space_needs_quoting_and_then_works()
     {
-        Assert.Equal(["ProtonVPN WireGuard"], Names("""name:"ProtonVPN WireGuard" """));
+        Assert.Equal(["ContosoVPN Tunnel"], Names("""name:"ContosoVPN Tunnel" """));
 
         // Unquoted it is two members rather than one, and here that still finds the entry,
         // because the default operator is "contains" and the free word matches the same
         // display name. Which is worth knowing: the quoting rule is not what makes the
         // ordinary case work, it is what makes the value mean one thing.
-        Assert.Equal(["ProtonVPN WireGuard"], Names("name:ProtonVPN WireGuard"));
+        Assert.Equal(["ContosoVPN Tunnel"], Names("name:ContosoVPN Tunnel"));
 
         // Ask for the whole value and the difference stops being subtle. Quoted it matches,
-        // unquoted the exact comparison is against "ProtonVPN" alone and nothing has that name.
-        Assert.Equal(["ProtonVPN WireGuard"], Names("""name:="ProtonVPN WireGuard" """));
-        Assert.Empty(Names("name:=ProtonVPN WireGuard"));
+        // unquoted the exact comparison is against "ContosoVPN" alone and nothing has that name.
+        Assert.Equal(["ContosoVPN Tunnel"], Names("""name:="ContosoVPN Tunnel" """));
+        Assert.Empty(Names("name:=ContosoVPN Tunnel"));
     }
 
     [Fact]

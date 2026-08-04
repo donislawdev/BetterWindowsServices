@@ -228,17 +228,17 @@ public sealed class PlanBuilderTests
         // the manager refused to start it back, and the report explained the outage
         // afterwards. A command without --dry-run has no moment at which anybody reads a
         // warning, so the only thing that helps is not offering the plan.
-        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+        var catalog = new FakeScmCatalog([Disabled("LinkAgent", "LinkAgent")]);
 
         var plan = new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(ActionKind.Restart, "SmartConnect"));
+            .Build(new ServiceAction(ActionKind.Restart, "LinkAgent"));
 
         Assert.False(plan.IsRunnable);
         Assert.Empty(plan.Steps);
 
         var problem = Assert.Single(plan.Problems);
         Assert.Equal(PlanProblemKind.CannotComeBack, problem.Kind);
-        Assert.Equal(["SmartConnect"], problem.Related);
+        Assert.Equal(["LinkAgent"], problem.Related);
     }
 
     [Fact]
@@ -265,10 +265,10 @@ public sealed class PlanBuilderTests
     {
         // Nothing is promised back, so nothing is broken. Somebody asking to stop a disabled
         // service is asking for exactly what they will get.
-        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+        var catalog = new FakeScmCatalog([Disabled("LinkAgent", "LinkAgent")]);
 
         var plan = new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(ActionKind.Stop, "SmartConnect"));
+            .Build(new ServiceAction(ActionKind.Stop, "LinkAgent"));
 
         Assert.True(plan.IsRunnable);
     }
@@ -280,10 +280,10 @@ public sealed class PlanBuilderTests
         // the authority and its reasons go past start type - the refusal it gives says "or
         // because it has no enabled devices associated with it" in the same sentence.
         // Refusing a plain start here would be us guessing at its job.
-        var catalog = new FakeScmCatalog([Disabled("SmartConnect", "SmartConnect")]);
+        var catalog = new FakeScmCatalog([Disabled("LinkAgent", "LinkAgent")]);
 
         var plan = new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(ActionKind.Start, "SmartConnect"));
+            .Build(new ServiceAction(ActionKind.Start, "LinkAgent"));
 
         Assert.True(plan.IsRunnable);
     }
@@ -293,7 +293,7 @@ public sealed class PlanBuilderTests
     {
         // Missing information must not turn into a decision. That is the whole reason the
         // read outcomes have four states rather than two.
-        var unreadable = Running("SmartConnect", "SmartConnect") with
+        var unreadable = Running("LinkAgent", "LinkAgent") with
         {
             StartType = Reading<StartType>.Denied(Entries.AccessDenied, "access denied")
         };
@@ -301,7 +301,7 @@ public sealed class PlanBuilderTests
         var catalog = new FakeScmCatalog([unreadable]);
 
         var plan = new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(ActionKind.Restart, "SmartConnect"));
+            .Build(new ServiceAction(ActionKind.Restart, "LinkAgent"));
 
         Assert.True(plan.IsRunnable);
     }

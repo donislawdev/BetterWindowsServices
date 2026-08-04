@@ -22,7 +22,7 @@ public sealed class BinaryQueryTests
     {
         var missing = Match("file:missing");
 
-        Assert.Contains("ProtonVPN WireGuard", missing);
+        Assert.Contains("ContosoVPN Tunnel", missing);
         Assert.Contains("amduw23g-202073-df09ebb6", missing);
         Assert.DoesNotContain("Spooler", missing);
     }
@@ -88,8 +88,8 @@ public sealed class BinaryQueryTests
         //
         // The word is chosen so that the path is the only way to reach it: "svchost" is not
         // in McmSvc's name, not in its Polish display name and not in its account. The first
-        // version of this test looked for "ubisoft" on an entry whose display name is
-        // "Ubisoft UPC Elevation Service", so it passed with the path taken out of the search
+        // version of this test looked for "fabrikam" on an entry whose display name is
+        // "Fabrikam Game Elevation Service", so it passed with the path taken out of the search
         // altogether - a test proving nothing, exactly as ADR-10 warns a fixture can do.
         Assert.Contains("McmSvc", Match("svchost"));
 
