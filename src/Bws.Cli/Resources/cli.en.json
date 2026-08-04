@@ -5,7 +5,7 @@
     "note": "The command line tool exists only in English by decision. The file exists anyway so that no user-facing text lives as a literal in code, and so every string can be reviewed in one place against part 5 of the glossary."
   },
 
-  "cli.version": "bws {0}",
+  "cli.version": "bws {0}\nCopyright (C) 2026 Better Windows Services contributors\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.",
 
   "cli.unknownCommand": "There is no command {0}. There is: {1}.",
   "cli.unknownCommandDidYouMean": "There is no command {0}. Did you mean {1}?",
