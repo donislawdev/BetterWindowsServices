@@ -1,0 +1,12 @@
+{
+    "everything":  {
+                       "Bws.Gui":  82.7,
+                       "Bws.Core":  91.2,
+                       "Bws.Cli":  9.1
+                   },
+    "anywhere":  {
+                     "Bws.Gui":  82.7,
+                     "Bws.Cli":  9.1,
+                     "Bws.Core":  71.7
+                 }
+}

@@ -4,6 +4,20 @@
     <ProjectReference Include="..\Bws.Core\Bws.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Everything in this assembly is internal on purpose - it is a program, not a library, and
+      nothing outside it has any business calling in. That left it with no unit tests at all and,
+      because the integration tests run the built executable as a separate process, with no
+      coverage measurement either: 3135 lines the gate could not see.
+
+      Opening it to one named test assembly is the narrow way out. The alternative - making types
+      public so a test can reach them - would widen the shipped surface to buy a test, which is
+      the wrong direction for a program that ships as one file.
+    -->
+    <InternalsVisibleTo Include="Bws.Cli.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>

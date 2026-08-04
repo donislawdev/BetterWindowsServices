@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj" />
+    <Project Path="tests/Bws.Cli.Tests/Bws.Cli.Tests.csproj" />
     <Project Path="tests/Bws.Core.Tests/Bws.Core.Tests.csproj" />
     <Project Path="tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj" />
     <Project Path="tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj" />

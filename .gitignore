@@ -40,6 +40,12 @@ coverage*.info
 *.coverage
 *.trx
 
+# The one coverage file that is INPUT rather than output: the floors the gate holds the
+# measurement against. It has to travel with the repository, because CI reads it and CI cannot
+# see tools/. Without this line the rule above hides it, which is how it was found - the file was
+# written, committed nothing, and would have left the workflow with no floor to read.
+!tests/coverage-floor.json
+
 # NuGet
 *.nupkg
 packages/

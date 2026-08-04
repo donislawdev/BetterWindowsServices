@@ -103,6 +103,24 @@ jobs:
       - name: tests that hold anywhere - the command line surface
         run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo --filter "runs=anywhere" --logger "trx;LogFileName=surface.trx" --results-directory results
 
+      # THE COVERAGE FLOOR ADR-10 PROMISED, running where it cannot be forgotten.
+      #
+      # The scope is "anywhere" and that word is doing real work. The integration project reads
+      # this machine's service control manager and does not run here, and it accounts for
+      # NINETEEN POINTS of Bws.Core's coverage - 91.2% with it, 71.7% without. So this job holds
+      # a genuinely different floor from the one a developer sees locally, and both are written
+      # in tests/coverage-floor.json under their own names rather than one number pretending to
+      # mean the same thing in two places.
+      #
+      # The gate is a script in the repository rather than steps in this file, so that the
+      # comparison exists once. tools/check.ps1 runs the same script with the other scope.
+      #
+      # Measured before it was trusted: three consecutive runs gave identical figures, which
+      # matters because the property tests draw random seeds and a gate that wobbles teaches
+      # everybody to ignore it.
+      - name: coverage against its floor
+        run: pwsh -File tests/coverage-gate.ps1 -Scope anywhere
+
       # SOMETHING TO OPEN WHEN A RUN GOES RED, which until 2026-08-03 there was not: a failed
       # job left a log in a web page and nothing to take away from it.
       #
