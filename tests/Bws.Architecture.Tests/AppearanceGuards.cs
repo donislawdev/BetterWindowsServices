@@ -135,7 +135,7 @@ public sealed class AppearanceGuards
         // Without this the two guards above pass perfectly on a product with no theme file
         // and no views - which is exactly the state they were written in. A guard that is
         // satisfied by absence is satisfied for as long as nobody builds anything.
-        var theme = Path.Combine(GuardedAssemblies.RepositoryRoot(), "src", "Bws.Gui", "Themes", ThemeFile);
+        var theme = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", ThemeFile);
 
         Assert.True(File.Exists(theme), $"The one file allowed to hold appearance values is missing: {theme}");
 
@@ -153,7 +153,7 @@ public sealed class AppearanceGuards
     /// </summary>
     private static IEnumerable<string> Views() =>
         Directory
-            .EnumerateFiles(Path.Combine(GuardedAssemblies.RepositoryRoot(), "src"), "*.xaml", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(SourceTree.Root(), "src"), "*.xaml", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => Path.GetFileName(path) != ThemeFile)

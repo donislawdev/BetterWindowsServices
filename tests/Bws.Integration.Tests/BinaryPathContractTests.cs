@@ -104,6 +104,34 @@ public sealed class BinaryPathContractTests
     }
 
     [Fact]
+    public void Nothing_that_is_running_is_reported_as_having_lost_its_file()
+    {
+        // The machine contradicting us out loud. A service the manager reports as Running was
+        // started from a file, so a listing that calls that file missing is wrong and can be
+        // shown to be wrong without leaving the machine - no sc.exe, no second opinion, no
+        // sample size.
+        //
+        // Written 2026-08-04 after Windows Server 2025 produced exactly this: TermServLicensing
+        // is Running and we said its binary was gone, because its ImagePath carries no .exe and
+        // the resolver never tried appending one. Everything else here was green, including the
+        // guard below, which asks whether a LONGER reading of the command is on disk - and the
+        // reading that answers is the same length, one character longer in the file name.
+        //
+        // Vacuous on a healthy machine, and that is the right shape: the claim is that this set
+        // is empty, not that it has members. There were none of these on either machine after
+        // the fix, and one before it.
+        foreach (var entry in CommandLineTool.Listing("--query", "file:missing"))
+        {
+            Assert.True(
+                CommandLineTool.Text(entry, "status") != "Running",
+                $"{CommandLineTool.Text(entry, "serviceName")} is running, and we report its file " +
+                $"'{CommandLineTool.Text(entry, "binaryFile")}' as gone. The manager started it " +
+                $"from '{CommandLineTool.Text(entry, "binaryPath")}', so one of us is wrong about " +
+                "which file that command names, and it is not the manager.");
+        }
+    }
+
+    [Fact]
     public void Nothing_is_called_missing_while_a_longer_reading_of_the_command_is_on_disk()
     {
         // This one exists because the tests above did not catch the mistake it is named for.

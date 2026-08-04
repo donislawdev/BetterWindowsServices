@@ -236,6 +236,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **A running service is no longer reported as having lost its binary.** When a service is
+  registered without a file extension - `svchost -k TSLicensing` rather than `svchost.exe -k
+  TSLicensing` - the tool could not find the file and said it was missing, while Windows was
+  running the service from it perfectly well. Windows adds `.exe` to a name that has none,
+  and the tool now does the same. Remote Desktop Licensing is registered this way on Windows
+  Server, so `--query "file:missing"` there answered with one entry that was fine.
 - **The search field is dark, like the rest of the window.** It came up white, with grey
   hint text, on a dark window - and so did the two tick boxes beside it, in a less obvious
   way. All three now take the dark theme the rest of the window uses.

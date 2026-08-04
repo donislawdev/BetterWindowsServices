@@ -118,7 +118,7 @@ public sealed class DeclaredReferenceGuards
     private static IReadOnlyList<string> Declared(string projectName, string element)
     {
         var projectFile = Path.Combine(
-            GuardedAssemblies.RepositoryRoot(), "src", projectName, projectName + ".csproj");
+            SourceTree.Root(), "src", projectName, projectName + ".csproj");
 
         if (!File.Exists(projectFile))
         {

@@ -124,15 +124,7 @@ internal static class CommandLineTool
     /// </summary>
     private static string Path()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !Directory.Exists(System.IO.Path.Combine(directory.FullName, ".git")))
-        {
-            directory = directory.Parent;
-        }
-
-        var root = directory?.FullName
-            ?? throw new InvalidOperationException("Repository root not found above the test output.");
+        var root = SourceTree.Root();
 
         // ...\tests\Bws.Integration.Tests\bin\<configuration>\<framework>\ - the framework is the
         // same for every project here, so the configuration is what has to match.

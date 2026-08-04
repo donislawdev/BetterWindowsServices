@@ -20,6 +20,16 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Bws.Tests" />
+  </ItemGroup>
+
+  <!--
+    Finding the source tree, shared by linking rather than by a shared assembly - the reference
+    edges between these projects are themselves under guard. See tests/SourceTree.cs for why
+    there is one copy of this and not four.
+  -->
+  <ItemGroup>
+    <Compile Include="..\SourceTree.cs" Link="SourceTree.cs" />
   </ItemGroup>
 
   <ItemGroup>

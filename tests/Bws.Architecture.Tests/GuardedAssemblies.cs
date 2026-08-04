@@ -15,7 +15,7 @@ internal static class GuardedAssemblies
 
     internal static string PathOf(string projectName)
     {
-        var binDirectory = Path.Combine(RepositoryRoot(), "src", projectName, "bin");
+        var binDirectory = Path.Combine(SourceTree.Root(), "src", projectName, "bin");
 
         if (!Directory.Exists(binDirectory))
         {
@@ -34,18 +34,5 @@ internal static class GuardedAssemblies
         return newest ?? throw new InvalidOperationException(
             $"Found no {projectName}.dll under '{binDirectory}'. " +
             "Build the whole solution before running the architecture guards.");
-    }
-
-    internal static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException(
-            "Repository root not found: no .git directory above the test output directory.");
     }
 }

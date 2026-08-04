@@ -76,6 +76,51 @@ public sealed class BinaryPathResolverTests
     }
 
     [Fact]
+    public void A_command_naming_no_extension_runs_the_exe_Windows_appends_to_it()
+    {
+        // Read off Windows Server 2025 on 2026-08-04, where TermServLicensing is written
+        // exactly this way and is Running. We called its file missing, which is a false
+        // audit finding: nobody can act on "this service lost its binary" if it is issued
+        // about a service that is up.
+        //
+        // The machine this project was written against has no entry of this shape, which is
+        // why it took a second machine. Every prefix of this command has no extension, so
+        // the prefix walk on its own can never land anywhere.
+        var resolved = Resolve(
+            @"C:\WINDOWS\system32\svchost -k TSLicensing",
+            onDisk: [@"C:\WINDOWS\system32\svchost.exe"]);
+
+        Assert.Equal(@"C:\WINDOWS\system32\svchost.exe", resolved.File);
+        Assert.True(resolved.OnDisk.Value);
+    }
+
+    [Fact]
+    public void The_name_as_written_wins_over_the_one_with_an_extension_appended()
+    {
+        // CreateProcess appends only when it has to, so a file sitting there under the exact
+        // name given is the one that runs. Built rather than captured - no machine seen so
+        // far has both - and pinned because the alternative order is invisible until the day
+        // somebody has both, and then it is wrong about which binary is running.
+        var resolved = Resolve(
+            @"C:\Tools\runner -q",
+            onDisk: [@"C:\Tools\runner", @"C:\Tools\runner.exe"]);
+
+        Assert.Equal(@"C:\Tools\runner", resolved.File);
+    }
+
+    [Fact]
+    public void Nothing_is_appended_to_a_name_that_already_carries_an_extension()
+    {
+        // The other half of the rule, and the half that keeps this from becoming a second
+        // guess at every path. A name ending .bat is taken as written by CreateProcess, so
+        // inventing bat.exe would let us report a file that Windows would never run.
+        var resolved = Resolve(@"C:\Tools\start.bat --now", onDisk: [@"C:\Tools\start.bat.exe"]);
+
+        Assert.False(resolved.OnDisk.ValueOr(true));
+        Assert.Equal(@"C:\Tools\start.bat", resolved.File);
+    }
+
+    [Fact]
     public void When_nothing_is_on_disk_the_answer_is_the_part_that_looks_like_a_file()
     {
         // Reporting a truncated path would read as a different mistake than the one being

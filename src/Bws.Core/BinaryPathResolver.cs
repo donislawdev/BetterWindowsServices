@@ -79,7 +79,7 @@ public static class BinaryPathResolver
 
             var assumed = Path.Combine(windowsDirectory, "System32", "drivers", serviceName + ".sys");
 
-            return new ResolvedBinary(assumed, Look(assumed, exists, OffLimits));
+            return Settle(assumed, exists, OffLimits);
         }
 
         var trimmed = command.Trim();
@@ -91,7 +91,7 @@ public static class BinaryPathResolver
             var close = trimmed.IndexOf('"', 1);
             var quoted = Absolute(close > 0 ? trimmed[1..close] : trimmed[1..], windowsDirectory);
 
-            return new ResolvedBinary(quoted, Look(quoted, exists, OffLimits));
+            return Settle(quoted, exists, OffLimits);
         }
 
         // No quotes and possibly spaces, so where the file name ends is genuinely ambiguous.
@@ -125,9 +125,9 @@ public static class BinaryPathResolver
             {
                 lookedAway = true;
             }
-            else if (exists(candidate))
+            else if (AsWindowsWouldTryIt(candidate).FirstOrDefault(exists) is { } found)
             {
-                return new ResolvedBinary(candidate, Reading<bool>.Present(true));
+                return new ResolvedBinary(found, Reading<bool>.Present(true));
             }
 
             executableLooking ??= HasExecutableExtension(candidate) ? candidate : null;
@@ -152,12 +152,50 @@ public static class BinaryPathResolver
     }
 
     /// <summary>
-    /// One question about the disk, asked only when it is allowed to be asked.
+    /// One candidate, looked for the way Windows would look for it, and only when it is
+    /// allowed to be asked about at all.
     /// </summary>
-    private static Reading<bool> Look(string candidate, Func<string, bool> exists, Func<string, bool> offLimits) =>
-        offLimits(candidate)
-            ? Reading<bool>.NotRead()
-            : Reading<bool>.Present(exists(candidate));
+    private static ResolvedBinary Settle(string candidate, Func<string, bool> exists, Func<string, bool> offLimits)
+    {
+        if (offLimits(candidate))
+        {
+            return new ResolvedBinary(candidate, Reading<bool>.NotRead());
+        }
+
+        return AsWindowsWouldTryIt(candidate).FirstOrDefault(exists) is { } found
+            ? new ResolvedBinary(found, Reading<bool>.Present(true))
+            : new ResolvedBinary(candidate, Reading<bool>.Present(false));
+    }
+
+    /// <summary>
+    /// The names Windows will actually try for one candidate.
+    ///
+    /// <b>CreateProcess appends .exe when the name it is handed carries no extension</b>, and
+    /// services are launched through it. So <c>C:\WINDOWS\system32\svchost -k TSLicensing</c>
+    /// runs <c>svchost.exe</c>, and every prefix of that command is a name with no extension.
+    ///
+    /// Found 2026-08-04 on Windows Server 2025, which has exactly one entry written this way -
+    /// <c>TermServLicensing</c>, and it is <b>Running</b> while we called its file missing.
+    /// That is a false audit finding, not a cosmetic one: the whole point of this tool is that
+    /// "this service lost its binary" means something. The machine this project was written
+    /// against has no entry of this shape, so nothing here could have seen it, and the guard
+    /// that asks the closest question - is there a <i>longer</i> reading of the command on
+    /// disk - was green throughout, because the reading that answers is the same length.
+    ///
+    /// Only .exe, and only when there is no extension at all, because that is the whole of
+    /// what CreateProcess does. A name ending .bat or .com is taken as written, and a name
+    /// ending in something that is not an extension at all - a version number, say - counts
+    /// as having one and gets nothing appended.
+    /// </summary>
+    private static IEnumerable<string> AsWindowsWouldTryIt(string candidate)
+    {
+        yield return candidate;
+
+        if (Path.GetExtension(candidate).Length == 0)
+        {
+            yield return candidate + ".exe";
+        }
+    }
 
     /// <summary>
     /// One candidate, turned into a path that can be looked for.

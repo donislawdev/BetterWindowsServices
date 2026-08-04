@@ -149,18 +149,39 @@ public sealed class ReadAllContractTests(ITestOutputHelper output)
             $"ONE AT A TIME {single.Min():F0}-{single.Max():F0} ms, " +
             $"SEVERAL AT ONCE {many.Min():F0}-{many.Max():F0} ms");
 
-        // Twice as fast, not "the ranges do not touch". The measured difference is nearer six
-        // times - 466-470 ms against 72-84 on a quiet machine - so half is a long way from the
-        // truth on purpose. This runs on whatever hardware somebody has, and a guard that
-        // asserts the exact win measured on one machine is a guard that reddens on every other
-        // one. What it holds is that going wide still buys something large, which is the claim
-        // the change was made on.
+        // THE RANGES MUST NOT TOUCH. It used to say twice as fast, and that was written in the
+        // belief that half of a measured six times was a long way from the truth on any machine.
+        // It was not. On Windows Server 2025 with eight processors this measured 173-179 ms
+        // against 279-310 - a real win of 1.7 times, parallelism plainly working, and red.
+        //
+        // The old threshold was quietly a claim about SIXTEEN processors. Halving them did not
+        // halve the win from six times to three, it collapsed it to under two, so no constant
+        // multiple survives being carried to another machine. What does survive is the project's
+        // own rule for whether a difference exists at all: if the spread is wider than the
+        // difference there is no difference, and here the spreads are far apart.
+        //
+        // SAID PLAINLY, because it is weaker than what it replaces: this would stay green if the
+        // degree fell from sixteen to two. It catches the failure it was written for - somebody
+        // setting the degree back to one, which makes the two runs the same code path and makes
+        // the ranges overlap completely - and it no longer claims anything about how much is
+        // bought, because that turned out to be a fact about the machine.
+        //
+        // Measured for reference, so the next person knows what normal looks like: 5.7 times at
+        // sixteen processors over 810 entries, 1.7 times at eight over 661.
+        if (Environment.ProcessorCount == 1)
+        {
+            // Nothing to hold. The default degree IS one here, so both runs are the same run
+            // and any claim about the difference would be a claim about noise. Saying so beats
+            // a guard that reddens on a single-processor agent for doing exactly the right thing.
+            return;
+        }
+
         Assert.True(
-            many.Max() * 2 < single.Min(),
+            many.Max() < single.Min(),
             $"Describing entries several at a time measured {many.Min():F0}-{many.Max():F0} ms " +
-            $"against {single.Min():F0}-{single.Max():F0} ms one at a time - less than twice as " +
-            "fast, where six times was measured. Either the parallelism is gone, or the cost it " +
-            "was hiding has moved somewhere else and this guard needs rewriting rather than " +
-            "relaxing.");
+            $"against {single.Min():F0}-{single.Max():F0} ms one at a time, on " +
+            $"{Environment.ProcessorCount} processors. The ranges overlap, so going wide bought " +
+            "nothing measurable. Either the parallelism is gone, or the cost it was hiding has " +
+            "moved somewhere else and this guard needs rewriting rather than relaxing.");
     }
 }

@@ -35,11 +35,22 @@ public static class SecondPass
     /// plateau is at the processor count, and going past it buys nothing while asking the
     /// machine for more.
     ///
-    /// <b>NOT ESTABLISHED:</b> whether the plateau follows the processor count or whether it
-    /// is an absolute number that happened to be sixteen here, which is also what this
-    /// machine's storage would queue. One machine cannot tell those apart. It matters for
-    /// build agents, which have few cores and share their disk - tools/signature-probe run
-    /// on a machine with a different processor count settles it.
+    /// <b>SETTLED 2026-08-04, on the second machine this has ever run on.</b> Windows Server
+    /// 2025, eight logical processors, a different disk, 661 entries over 433 distinct files:
+    ///
+    ///     degree    1      2      4      8     16     32
+    ///     fastest   2506   2117   1497   1296   1306   1305 ms
+    ///     spread    5.9%   2.6%   9.0%  13.7%   8.7%  10.3%
+    ///
+    /// Eight is measurably better than four - [1497, 1632] and [1296, 1474] do not touch.
+    /// Sixteen is not measurably better than eight, and neither is thirty-two. <b>So the
+    /// plateau moved to eight, which is this machine's processor count.</b> An absolute
+    /// number that happened to be sixteen would have shown a gain from eight to sixteen here
+    /// as well, and there is none. It follows the processors.
+    ///
+    /// That is what makes ProcessorCount the right default rather than a number that suited
+    /// one machine, and it is the answer a build agent needed: few cores means a lower
+    /// plateau, not a wasted one.
     /// </summary>
     public static int DefaultDegreeOfParallelism => Environment.ProcessorCount;
 

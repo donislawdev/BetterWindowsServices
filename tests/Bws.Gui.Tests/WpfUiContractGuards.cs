@@ -124,7 +124,7 @@ public sealed class WpfUiContractGuards
 
     private static IEnumerable<string> OurXaml()
     {
-        var gui = Path.Combine(RepositoryRoot(), "src", "Bws.Gui");
+        var gui = Path.Combine(SourceTree.Root(), "src", "Bws.Gui");
         return Directory
             .EnumerateFiles(gui, "*.xaml", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
@@ -179,18 +179,5 @@ public sealed class WpfUiContractGuards
         {
             Collect(merged, into);
         }
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-            ?? throw new InvalidOperationException("Repository root not found above " + AppContext.BaseDirectory);
     }
 }

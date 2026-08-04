@@ -142,7 +142,7 @@ public sealed class ContrastGuards
     /// <summary>Every brush the theme declares, read out of the file rather than held here.</summary>
     private static List<(string Name, Color Colour)> Declared()
     {
-        var theme = Path.Combine(RepositoryRoot(), "src", "Bws.Gui", "Themes", "Theme.xaml");
+        var theme = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Theme.xaml");
         var text = File.ReadAllText(theme);
 
         return Regex
@@ -195,17 +195,4 @@ public sealed class ContrastGuards
 
     private static string Hex(Color colour) =>
         string.Create(System.Globalization.CultureInfo.InvariantCulture, $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}");
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName
-            ?? throw new InvalidOperationException("Repository root not found above " + AppContext.BaseDirectory);
-    }
 }

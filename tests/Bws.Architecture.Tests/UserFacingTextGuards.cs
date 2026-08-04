@@ -49,7 +49,7 @@ public sealed class UserFacingTextGuards
 
     private static IEnumerable<string> ShippedSourceFiles() =>
         Directory
-            .EnumerateFiles(Path.Combine(GuardedAssemblies.RepositoryRoot(), "src"), "*.cs", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(SourceTree.Root(), "src"), "*.cs", SearchOption.AllDirectories)
             // Generated interop and build intermediates are not ours to police.
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));

@@ -166,15 +166,28 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
         // that reads exactly like "there are none".
         //
         // Reading it in the background is A10's work and belongs to S6c.
+        //
+        // THE QUESTION IS signed:yes AND IT USED TO BE signed:no. Changed 2026-08-04, after the
+        // second machine this project has ever run on answered signed:no with nothing at all -
+        // Windows Server 2025, clean install, every binary signed - and the last line here failed
+        // saying the collection was empty. It was right to fail: it had stopped being able to
+        // tell "the terminal answered" from "the terminal found none", which is the ADR-10 trap
+        // this very test class was rewritten for once already, when a parity check asked about
+        // ^sql on a machine with no SQL Server and passed by comparing two empty answers.
+        //
+        // signed:yes is the same kind of question and its answer cannot be empty on a Windows
+        // machine: 660 of 661 entries on the server, and the one left out is the entry whose
+        // binary could not be resolved. So the claim below survives being asked on somebody
+        // else's install, which is the only thing that was wrong with it.
         var model = await Load();
 
-        model.QueryText = "signed:no";
+        model.QueryText = "signed:yes";
 
         Assert.Empty(model.Rows);
         Assert.Equal(string.Empty, model.Problem);
         Assert.NotEqual(string.Empty, model.Notice);
 
-        var terminal = Terminal("signed:no");
+        var terminal = Terminal("signed:yes");
 
         Assert.NotEmpty(terminal.Selected);
     }

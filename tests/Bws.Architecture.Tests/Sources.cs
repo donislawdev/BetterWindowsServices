@@ -30,7 +30,7 @@ internal static class Sources
 
     private static IEnumerable<string> Under(string folder) =>
         Directory
-            .EnumerateFiles(Path.Combine(GuardedAssemblies.RepositoryRoot(), folder), "*.cs", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(SourceTree.Root(), folder), "*.cs", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 }
