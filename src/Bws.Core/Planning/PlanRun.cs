@@ -95,6 +95,38 @@ public sealed record PlanRun
     public required bool Cancelled { get; init; }
 
     /// <summary>
+    /// The longest any one step was to be watched for, as asked for by whoever ran this.
+    ///
+    /// Here rather than left with the caller because it is half of the evidence this record
+    /// exists to hold: what came of a step is only readable next to what it was given.
+    /// </summary>
+    public required TimeSpan Ceiling { get; init; }
+
+    /// <summary>
+    /// Steps that took longer than the ceiling and did not end by our giving up.
+    ///
+    /// <b>This is a real case and it surprises people, which is why it is a property rather
+    /// than something a reader is left to spot.</b> <c>--timeout</c> caps how long this tool
+    /// waits <i>after</i> the manager accepts a request. It cannot cap the manager's own
+    /// answer, and the manager does not always answer quickly: measured on Windows Server
+    /// 2025 on 2026-08-04, <c>StartService</c> for a service that never reports itself took
+    /// <b>30 375-30 450 ms across three runs</b> before coming back with error 1053. So
+    /// <c>bws start X --timeout 1</c> ran for half a minute, reported the truth, and looked
+    /// like a switch that did nothing.
+    ///
+    /// <b>The test carries no threshold on purpose.</b> A step that ended in
+    /// <see cref="StepOutcome.TimedOut"/> reached the ceiling because the ceiling worked, and
+    /// its own line already says "gave up after". Any other step that ran past the ceiling
+    /// spent that time somewhere the ceiling does not reach, and that is the whole of what
+    /// there is to say. Picking a multiple of the ceiling instead would have been a number
+    /// with no reason behind it.
+    /// </summary>
+    public IReadOnlyList<StepResult> OutranTheCeiling =>
+        [.. Results.Where(result =>
+            result.Outcome != StepOutcome.TimedOut
+            && result.Milliseconds > Ceiling.TotalMilliseconds)];
+
+    /// <summary>
     /// Every entry ended up where the plan wanted it.
     ///
     /// Steps that were already there count. Running the same plan twice must not report

@@ -27,9 +27,13 @@ internal static class PlanText
     /// comparing two things that look alike, which is the whole point of the pattern - a
     /// separate results table would leave the comparison to whoever remembered to make it.
     /// </summary>
-    internal static string Render(PlanRun run) => Render(run.Plan, run.Results, run.Cancelled);
+    internal static string Render(PlanRun run) => Render(run.Plan, run.Results, run.Cancelled, run);
 
-    private static string Render(OperationPlan plan, IReadOnlyList<StepResult>? results, bool cancelled = false)
+    private static string Render(
+        OperationPlan plan,
+        IReadOnlyList<StepResult>? results,
+        bool cancelled = false,
+        PlanRun? run = null)
     {
         var text = new StringBuilder();
 
@@ -81,6 +85,21 @@ internal static class PlanText
         {
             text.AppendLine();
             text.AppendLine(Texts.Of("cli.run.wasInterrupted"));
+        }
+
+        // Said here rather than left for somebody to notice, because the surprise is silent
+        // otherwise: --timeout 1 against a service that never reports itself to the manager
+        // ran for 30.4 s on Windows Server 2025, reported the truth about the service, and
+        // looked exactly like a switch that does nothing. The core decides which steps this
+        // covers - it is a judgement about the run and the window will need the same one.
+        foreach (var outran in run?.OutranTheCeiling ?? [])
+        {
+            text.AppendLine();
+            text.AppendLine(Texts.Of(
+                "cli.run.outranTheCeiling",
+                outran.Step.ServiceName,
+                Took(outran.Milliseconds),
+                Took((long)run!.Ceiling.TotalMilliseconds)));
         }
 
         if (plan.Warnings.Count > 0)

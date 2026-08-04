@@ -236,6 +236,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **A command that runs much longer than `--timeout` now says why.** That switch caps how
+  long the tool waits once the service manager has accepted a request, and it cannot cap the
+  manager's own answer - which takes tens of seconds when a service never reports itself.
+  `bws start X --timeout 1` could therefore run for half a minute, report the truth, and look
+  exactly like a switch that does nothing. The report now names the step, what it took, and
+  where the time went. `--timeout` also has an explanation in `--help`, which it never had.
 - **A running service is no longer reported as having lost its binary.** When a service is
   registered without a file extension - `svchost -k TSLicensing` rather than `svchost.exe -k
   TSLicensing` - the tool could not find the file and said it was missing, while Windows was

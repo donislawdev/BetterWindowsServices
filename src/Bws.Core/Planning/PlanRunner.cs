@@ -121,6 +121,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
         {
             Plan = plan,
             Results = results,
+            Ceiling = timeout,
 
             // One flag for both asks. Which of the two it was is already written into the
             // steps - a run that put things back and one that did not read differently
