@@ -9,7 +9,7 @@ namespace Bws.Core.Tests.Fakes;
 /// particular situation on demand, so anything that reasons about entries is tested
 /// against this instead. Two situations matter enough on their own to justify it.
 ///
-/// The refusal path cannot be reached on the owner's machine at all. 05-PRZYPADKI-BRZEGOWE
+/// The refusal path cannot be reached on the machine these were captured from at all. 05-PRZYPADKI-BRZEGOWE
 /// records that reading configuration through the manager was refused zero times out of
 /// 811 without administrator rights, and says in as many words that the refusal path
 /// remains unverified on a real system. Here it is one line.

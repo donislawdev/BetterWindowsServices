@@ -179,9 +179,9 @@ public sealed class SnapshotContractTests : IDisposable
     public void An_existing_file_is_not_overwritten_without_being_told()
     {
         // The one place this tool writes a file, and until 2026-08-02 it replaced whatever was
-        // at the path without a word and ended with code 0. Found by reading a security
-        // document from another of the owner's projects - "never overwrites somebody else's
-        // file" - and confirmed by doing it to a file holding the words below.
+        // at the path without a word and ended with code 0. Found while reading a security
+        // review from elsewhere, which asks of any tool that it never overwrite somebody
+        // else's file - and confirmed by doing exactly that to the file below.
         var target = Path.Combine(_directory, "already-here.json");
         const string mine = "this is not a snapshot and it is not yours";
 

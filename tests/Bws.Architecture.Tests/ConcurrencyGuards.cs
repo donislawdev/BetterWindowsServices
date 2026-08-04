@@ -5,9 +5,9 @@ namespace Bws.Architecture.Tests;
 /// <summary>
 /// Keeps the places that can do two things at once down to a list somebody wrote on purpose.
 ///
-/// Borrowed 2026-08-02 from the owner's Go projects, where the same guard names the files
-/// allowed to hold a goroutine or a channel. <b>The method transfers, none of its decisions
-/// do</b> - the constructs below are C#'s, and the list is ours.
+/// Borrowed 2026-08-02 from a Go codebase, where the same guard names the files allowed to
+/// hold a goroutine or a channel. <b>The method transfers, none of its decisions do</b> - the
+/// constructs below are C#'s, and the list is ours.
 ///
 /// The argument for containing it at the source rather than testing for its symptoms: a race
 /// is the one defect class that does not reproduce on demand, so a test for one is a test that

@@ -157,8 +157,9 @@ public sealed class PlanBuilderTests
     [Fact]
     public void A_cascade_that_would_need_a_driver_stopped_offers_no_plan_at_all()
     {
-        // Found by reading a real plan rather than by reasoning. Stopping BFE on the owner's
-        // machine drags in two kernel drivers, and a plan that refuses a driver as its
+        // Found by reading a real plan rather than by reasoning. Stopping BFE on a real
+        // machine drags in kernel drivers - two on the machine this was found on, one on
+        // another - and a plan that refuses a driver as its
         // target while listing two of them as steps contradicts itself exactly where it has
         // to be trusted. A problem rather than a warning, because the steps underneath
         // would be a preview of something that was never going to happen.

@@ -5,8 +5,8 @@ namespace Bws.Architecture.Tests;
 /// <summary>
 /// Keeps every appearance value in one file.
 ///
-/// `ADR-23` in code, and it exists because of a failure the owner has watched happen in
-/// other projects: the interface drifts apart. One screen gets a margin of eight, the next
+/// `ADR-23` in code, and it exists because of a failure that happens to interfaces everywhere:
+/// they drift apart. One screen gets a margin of eight, the next
 /// one seven, a third invents a slightly different grey - and none of it is noticed, because
 /// <b>XAML is prose</b>. A wrong margin does not fail a build and does not redden a test, so
 /// it survives, and the next screen copies it.

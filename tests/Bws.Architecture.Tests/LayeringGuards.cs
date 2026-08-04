@@ -99,9 +99,9 @@ public sealed class LayeringGuards
     /// Nothing that ships starts a process, loads an assembly by name, or builds a type from
     /// one.
     ///
-    /// Written 2026-08-02, after a security document from another of the owner's projects
-    /// put it plainly: <b>a tool must not execute anything, and the guard for that is the same
-    /// shape as the guard for the network.</b> This one holds today - checked by reading the
+    /// Written 2026-08-02, after a security review elsewhere put it plainly: <b>a tool must not
+    /// execute anything, and the guard for that is the same shape as the guard for the
+    /// network.</b> This one holds today - checked by reading the
     /// whole of <c>src</c> before writing it, and nothing in the product names any of these -
     /// so it costs nothing now and exists for what comes next.
     ///

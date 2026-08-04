@@ -98,6 +98,107 @@ public sealed class PublicSurfaceGuards
             + Environment.NewLine + string.Join(Environment.NewLine, found));
     }
 
+    /// <summary>
+    /// Files allowed to hold text outside plain ASCII, each with the reason it is allowed.
+    ///
+    /// <b>This exists because of what got through without it.</b> The continuous integration
+    /// workflow carried a sentence of Polish for two days - a remark quoted from a conversation,
+    /// in a file that goes out with the repository. Two rules said it should not be there: this
+    /// project writes everything in its files in English, and nothing said in a conversation
+    /// belongs in a published file. Neither rule was checked by anything.
+    ///
+    /// <b>A blanket ban would be wrong and would be turned off within a week</b>, because
+    /// several files carry non-English text for good reasons - a copyright holder's name is not
+    /// negotiable, and a service display name captured from a localised Windows is evidence.
+    /// So this is a list with a reason beside each entry, and a file that is not on it fails.
+    /// Adding a file here is the moment somebody has to say why, which is the whole mechanism.
+    /// </summary>
+    private static readonly Dictionary<string, string> MayHoldOtherAlphabets = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["THIRD-PARTY-NOTICES.md"] =
+            "copyright holders' names, which a licence requires to be reproduced as written",
+
+        ["tests/Bws.Core.Tests/Fakes/Specimens.cs"] =
+            "service display names captured from a localised Windows - the evidence that a "
+            + "service name and a display name are two different things",
+
+        ["tests/Bws.Core.Tests/QueryOverSpecimensTests.cs"] =
+            "queries asked against those captured display names, including one that proves "
+            + "matching ignores case outside ASCII too",
+
+        ["src/Bws.Core/Reading.cs"] =
+            "one sentence of a localised refusal, quoted to show why a message is carried "
+            + "beside its number instead of being compared as words",
+
+        ["src/Bws.Cli/ListingJson.cs"] =
+            "names a character that a wrong console encoding turns every localised name into",
+
+        ["src/Bws.Core/Snapshots/SnapshotJson.cs"] =
+            "the same character, for the same reason, on the writing side",
+
+        ["tests/Bws.Core.Tests/SnapshotDiffTests.cs"] =
+            "a localised refusal quoted to show two machines answering the same question in "
+            + "two languages",
+
+        ["tests/Bws.Integration.Tests/SnapshotContractTests.cs"] =
+            "an accented word written to a file on purpose, to prove the encoding survives"
+    };
+
+    [Fact]
+    public void Nothing_outside_plain_ascii_appears_without_a_reason_on_the_list()
+    {
+        var root = SourceTree.Root();
+        var unexplained = new List<string>();
+
+        foreach (var file in Published())
+        {
+            // Letters, not bytes. This reads the file as text, so what is being asked is
+            // whether anybody wrote something in another alphabet - not how it is encoded.
+            if (!File.ReadAllText(file).Any(character => character > 127))
+            {
+                continue;
+            }
+
+            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+
+            if (!MayHoldOtherAlphabets.ContainsKey(relative))
+            {
+                unexplained.Add("  " + relative);
+            }
+        }
+
+        Assert.True(
+            unexplained.Count == 0,
+            "Everything in this repository's files is written in English, and these hold "
+            + "something that is not. If there is a reason - captured data, a name that has to "
+            + "be reproduced as written - put the file on the list in this class with that "
+            + "reason. If there is not, it is prose that wandered in from somewhere else:"
+            + Environment.NewLine + string.Join(Environment.NewLine, unexplained));
+    }
+
+    [Fact]
+    public void The_list_does_not_keep_permissions_nobody_uses_any_more()
+    {
+        // The other direction. An entry left behind after the text it excused was rewritten is
+        // a hole standing open, and it looks exactly like a considered decision.
+        var root = SourceTree.Root();
+
+        var stale = MayHoldOtherAlphabets.Keys
+            .Where(relative =>
+            {
+                var file = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
+                return !File.Exists(file) || !File.ReadAllText(file).Any(character => character > 127);
+            })
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            stale.Count == 0,
+            "These are allowed to hold text outside ASCII and no longer do. Take them off the "
+            + "list rather than leaving a permission nobody is using:"
+            + Environment.NewLine + string.Join(Environment.NewLine, stale.Select(name => "  " + name)));
+    }
+
     [Fact]
     public void The_list_of_particular_names_is_either_applied_or_reported_as_absent()
     {

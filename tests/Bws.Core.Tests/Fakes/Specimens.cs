@@ -5,7 +5,7 @@ namespace Bws.Core.Tests.Fakes;
 /// <summary>
 /// The catalogue 05-PRZYPADKI-BRZEGOWE was written to specify.
 ///
-/// Every entry below was read off the owner's machine on 2026-08-01 with the tool's own
+/// Every entry below was read off a real machine on 2026-08-01 with the tool's own
 /// --json output, not invented. That is the rule the catalogue document sets for itself:
 /// a catalogue without a specimen is guesswork. Values are copied exactly, including the
 /// display names, which is why they are in Polish.
@@ -464,7 +464,7 @@ internal static class Specimens
     /// <summary>
     /// Several triggers of one kind, which is ordinary and not a mistake in the reading.
     ///
-    /// Read from the owner's machine: this entry carries six network endpoint triggers,
+    /// Read from a real machine: this entry carries six network endpoint triggers,
     /// all the same kind and all the same action, and sc qtriggerinfo lists six.
     /// </summary>
     internal static ScmEntry ManyTriggersOfOneKind => Entries.Any with

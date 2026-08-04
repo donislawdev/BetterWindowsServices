@@ -9,8 +9,8 @@ namespace Bws.Gui.Tests;
 /// <summary>
 /// Every name this product borrows from WPF UI still exists in WPF UI.
 ///
-/// Written 2026-08-02 on the owner's instruction, and his sentence is the whole specification
-/// for it: the library will be updated, and an update must not break our interface.
+/// Written 2026-08-02, and one sentence is the whole specification for it: the library will be
+/// updated, and an update must not break our interface.
 ///
 /// <b>The failure this exists for is not hypothetical and it is not a build error.</b> Our
 /// theme bases four default styles on names that live in their dictionaries -

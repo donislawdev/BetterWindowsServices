@@ -3,9 +3,9 @@ namespace Bws.Architecture.Tests;
 /// <summary>
 /// A ceiling on how long a file may get, set at what the longest one is today.
 ///
-/// Borrowed 2026-08-02 from the owner's Go projects, where the same idea caps function length
-/// and nesting. <b>The method transfers, none of its numbers do</b> - theirs came from their
-/// tree, these come from measuring this one.
+/// Borrowed 2026-08-02 from a Go codebase, where the same idea caps function length and
+/// nesting. <b>The method transfers, none of its numbers do</b> - theirs came from their tree,
+/// these come from measuring this one.
 ///
 /// <b>The point is the direction, not the number.</b> Nothing here says 807 lines is a good
 /// length - it says the longest file in this product is 807 lines and is not allowed to become
@@ -17,8 +17,8 @@ namespace Bws.Architecture.Tests;
 /// measure of tangle: a long file of flat, well-named methods is fine and a short one can be
 /// impossible. What it does measure exactly is <b>growth</b>, and growth is what nobody
 /// notices - a file gains thirty lines a slice and is unreadable a year later with no single
-/// change to blame. This was the weakest of four mechanisms proposed on the day, and the owner
-/// took it anyway, on the grounds that not having spaghetti is cheaper than removing it.
+/// change to blame. This was the weakest of four mechanisms proposed on the day and was taken
+/// anyway, on the grounds that not having spaghetti is cheaper than removing it.
 ///
 /// False alarm estimate: zero on the day, by construction - the ceilings are today's numbers.
 /// Every failure from here on is something that grew.
@@ -91,8 +91,8 @@ public sealed class SizeRatchetGuards
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
     ///
     /// Held to the same rule as the product, deliberately. A test file nobody can read is a
-    /// test file nobody checks, and this project leans on tests harder than most because the
-    /// owner does not read the code.
+    /// test file nobody checks, and this project leans on its tests harder than most, because
+    /// they are the mechanism it trusts rather than review.
     /// </summary>
     private const int LongestTestFile = 756;
 

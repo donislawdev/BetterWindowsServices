@@ -1,9 +1,9 @@
 # The first thing in this project that runs the checks without somebody remembering to.
 #
-# WHAT IT IS FOR, in the owner's words on 2026-08-02: "piszesz mnóstwo kodu a nikt tego nie
-# sprawdza". Five hundred and thirty tests, a mutation registry and two bridge scripts existed
-# before this file, and every one of them ran only when the assistant chose to run it. A check
-# that depends on somebody's memory is a check with a bad day built into it.
+# WHAT IT IS FOR: a lot of code was being written and nothing was checking it on its own.
+# Five hundred and thirty tests, a mutation registry and two bridge scripts existed before this
+# file, and every one of them ran only when somebody chose to run it. A check that depends on
+# somebody's memory is a check with a bad day built into it.
 #
 # WHAT IT CANNOT DO, and this is not a limitation of continuous integration - it follows
 # directly from decisions recorded in CLAUDE.md:
