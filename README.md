@@ -45,18 +45,23 @@ require is written down in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Security reports go through the channel described in [SECURITY.md](SECURITY.md).
 
-## A note on the comments, so they are not confusing
+## The design documents are private, and that is deliberate
 
 The comments in this code refer often to design documents - `docs/01`, `ADR-14`, "the
-specification", a backlog item by number. **Those documents are not in this repository.** They
-are kept and versioned separately by the project owner, and the same goes for `tools/`, which
-holds the measuring and probing scripts several comments mention.
+specification", a backlog item by number - and to `tools/`, where the measuring and probing
+scripts live. **None of that is in this repository, by decision rather than by oversight.**
+Those documents are the project owner's, kept and versioned separately, and they are private.
 
-This is worth knowing rather than worth apologising for: those references are the reason a
-comment can say *why* something is the way it is instead of repeating *what* the line does. What
-a reader here loses is the long-form argument behind a decision. What is not lost is the
-decision itself, because the comments carry it - the reasoning in this code is written for
-somebody who will meet the same problem, not as a pointer to somewhere else.
+So this section is not an apology and there is nothing to fix. It is here because a reader who
+meets `ADR-14` in a comment deserves to know straight away that it is not a file they failed to
+find.
 
-If you need the reasoning behind a particular decision to make a change, open an issue and ask.
-That is a better answer than guessing.
+**What that costs a reader is the long-form argument behind a decision. What it does not cost is
+the decision itself.** The comments in this code are written to carry the reasoning where the
+reasoning matters - what was measured, what was tried and rejected, what a change here would
+break. They are written for somebody who will meet the same problem, not as pointers to
+somewhere else. A reference is a footnote to an argument the comment has already made, not a
+substitute for making it.
+
+If you need more of the reasoning behind a particular decision in order to change something,
+open an issue and ask. That is a better answer than guessing, and asking is welcome.
