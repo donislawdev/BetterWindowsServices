@@ -98,6 +98,7 @@
   "cli.diff.liveTakesOneFile": "--live compares one file against this machine, so give one file, not two.",
   "cli.diff.cannotRead": "Could not read {0}. {1}",
   "cli.diff.notASnapshot": "{0} is not a snapshot this build can read. {1}",
+  "cli.diff.cannotCompare": "Nothing was compared. {0}",
   "cli.diff.same": "No differences.",
   "cli.diff.added": "Added ({0}):",
   "cli.diff.removed": "Removed ({0}):",

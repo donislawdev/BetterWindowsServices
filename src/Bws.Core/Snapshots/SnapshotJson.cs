@@ -96,19 +96,15 @@ public static class SnapshotJson
         }
 
         // Both halves, because neither is guaranteed by anything the compiler enforces and a
-        // file on disk answers to nobody. Snapshot is a positional record, so its two parts are
-        // constructor parameters - and `required` does not reach constructor parameters, which
-        // means a file saying "metadata": null deserialises perfectly well and then fails on
-        // the next line.
+        // file on disk answers to nobody.
         //
         // Found by a property test on the day one was written, not by reading this: a snapshot
         // damaged five characters in the right place made `bws snapshot diff` end with a stack
         // trace instead of the sentence this method exists to produce. A snapshot is a file
         // kept for months and carried between machines, so "somebody edited it" and "the disk
         // filled up while it was being written" are ordinary rather than exotic.
-        if (snapshot.Metadata is null || snapshot.Entries is null)
+        if (snapshot.MissingParts(out failure))
         {
-            failure = "The file is missing the parts a snapshot is made of.";
             snapshot = null;
 
             return false;
@@ -146,7 +142,11 @@ public static class SnapshotJson
         // somebody's tooling or truncated by a full disk. The property test beside this damages
         // a real snapshot by cutting, deleting, flipping and inserting characters, which is the
         // right instrument and reaches neither of these: both are structurally valid JSON.
-        if (Broken(snapshot, out failure))
+        //
+        // The question itself belongs to Snapshot rather than here, since 2026-08-04. It was
+        // written here because this was the first caller that needed it, and being written here
+        // meant the comparison engine relied on it without being able to ask it.
+        if (snapshot.BrokenEntries(out failure))
         {
             snapshot = null;
 
@@ -154,67 +154,6 @@ public static class SnapshotJson
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Whether the entries are something a comparison can be run against.
-    ///
-    /// Three questions, and all three are asked of the file rather than trusted from the type. A
-    /// required property does not reach the elements of a list, it does not reach a property
-    /// spelled out with null after it, and nothing anywhere says a document holds each service
-    /// once.
-    ///
-    /// <b>Names are compared without case, and that is a decision about what a snapshot is</b>
-    /// rather than a detail of this method - owner's decision, 2026-08-03. Windows cannot hold
-    /// two services whose names differ only in case, because the manager compares them that way
-    /// when one is created, so a file carrying both describes no machine that exists. The
-    /// comparison engine matches its two sides the same way and would otherwise fail on such a
-    /// file with a message from inside a dictionary.
-    ///
-    /// The specimen catalogue in the tests carries <c>Twin</c> and <c>TWIN</c> on purpose, to pin
-    /// the tie-break that keeps two such names in a settled order when they are written. That is
-    /// a fact about writing, and it is why a snapshot of the whole catalogue is deliberately not
-    /// something this reader accepts back.
-    /// </summary>
-    private static bool Broken(Snapshot snapshot, out string? failure)
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        for (var index = 0; index < snapshot.Entries.Count; index++)
-        {
-            var entry = snapshot.Entries[index];
-
-            if (entry is null)
-            {
-                // The position rather than a name, because there is no name to give - which is
-                // the whole of what is wrong with it.
-                failure = $"Entry {index + 1} in the file is empty.";
-
-                return true;
-            }
-
-            // `required` does not mean present. It makes the compiler insist on a value where
-            // one is written in code, and says nothing about a file that spells the property
-            // and puts null after it - which deserialises without complaint and then fails
-            // wherever the name is used as identity.
-            if (entry.ServiceName is null)
-            {
-                failure = $"Entry {index + 1} in the file has no service name.";
-
-                return true;
-            }
-
-            if (!seen.Add(entry.ServiceName))
-            {
-                failure = $"The file holds more than one entry called '{entry.ServiceName}'.";
-
-                return true;
-            }
-        }
-
-        failure = null;
-
-        return false;
     }
 
     /// <summary>

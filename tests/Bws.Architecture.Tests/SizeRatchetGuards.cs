@@ -110,10 +110,21 @@ public sealed class SizeRatchetGuards
     /// number came down with it: leaving it at six would hand back a slot nobody argued for,
     /// which is the same reasoning as the ceiling above.
     ///
+    /// Five until 2026-08-04, when Program.cs came down past 500 and the count went with it. It
+    /// had reached 555 by gaining a branch that refuses a comparison, which is three past the
+    /// ceiling, and the exit code table moved to a file of its own - a better home anyway, being
+    /// the most frozen thing in the command line tool and until then the least findable.
+    ///
+    /// <b>Program.cs now stands at exactly 500, which is not long by one line.</b> Worth knowing
+    /// before adding to it rather than after: one more line there makes it long again, and with
+    /// four slots used of four that reddens the build.
+    ///
     /// The mutation entry proving this dial can fail came back MISSED the moment the count
-    /// dropped, honestly - adding one long file to a tree with a spare slot changes nothing.
+    /// dropped, honestly - adding one long file to a tree with a spare slot changes nothing. It
+    /// has now done so twice, on 2026-08-03 and again here, which is the entry working rather
+    /// than failing: it reports the day the dial stopped being tight.
     /// </summary>
-    private const int ShippedFilesAllowedToBeLong = 5;
+    private const int ShippedFilesAllowedToBeLong = 4;
     private const int TestFilesAllowedToBeLong = 2;
 
     [Fact]

@@ -151,4 +151,92 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
                 .ThenBy(entry => entry.ServiceName, StringComparer.Ordinal)
                 .Select(EntryDocument.From)
         ]);
+
+    /// <summary>
+    /// Whether the two parts one of these is made of are both there.
+    ///
+    /// Asked rather than trusted from the type. This is a positional record, so its two parts
+    /// are constructor parameters, and <c>required</c> does not reach those - a document saying
+    /// <c>"metadata": null</c> deserialises perfectly well and then fails on the first line that
+    /// reads it.
+    /// </summary>
+    internal bool MissingParts(out string? failure)
+    {
+        if (Metadata is null || Entries is null)
+        {
+            failure = "The parts a snapshot is made of are missing.";
+
+            return true;
+        }
+
+        failure = null;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether the entries are something a comparison can be run against.
+    ///
+    /// Three questions, and all three are asked of the document rather than trusted from the
+    /// type. A required property does not reach the elements of a list, it does not reach a
+    /// property spelled out with null after it, and nothing anywhere says a document holds each
+    /// service once.
+    ///
+    /// <b>Names are compared without case, and that is a decision about what a snapshot is</b>
+    /// rather than a detail of any one caller - owner's decision, 2026-08-03. Windows cannot hold
+    /// two services whose names differ only in case, because the manager compares them that way
+    /// when one is created, so a document carrying both describes no machine that exists.
+    ///
+    /// The specimen catalogue in the tests carries <c>Twin</c> and <c>TWIN</c> on purpose, to pin
+    /// the tie-break that keeps two such names in a settled order when they are written. That is
+    /// a fact about writing, and it is why a snapshot of the whole catalogue is deliberately not
+    /// something that can be read back or compared.
+    ///
+    /// <b>Here rather than in the reader that first needed it, and that move is the point.</b>
+    /// Until 2026-08-04 this lived inside <see cref="SnapshotJson"/>, and the comparison engine
+    /// was safe only because every document it saw had come through that reader - a dependency
+    /// recorded in a comment and in nothing else. The engine now asks the same question of
+    /// whatever it is handed. One rule, one place, two callers: the shape this project already
+    /// paid for once, when four copies of the same directory walk disagreed about their anchor.
+    /// </summary>
+    internal bool BrokenEntries(out string? failure)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < Entries.Count; index++)
+        {
+            var entry = Entries[index];
+
+            if (entry is null)
+            {
+                // The position rather than a name, because there is no name to give - which is
+                // the whole of what is wrong with it.
+                failure = $"Entry {index + 1} is empty.";
+
+                return true;
+            }
+
+            // `required` does not mean present. It makes the compiler insist on a value where
+            // one is written in code, and says nothing about a document that spells the property
+            // and puts null after it - which deserialises without complaint and then fails
+            // wherever the name is used as identity.
+            if (entry.ServiceName is null)
+            {
+                failure = $"Entry {index + 1} has no service name.";
+
+                return true;
+            }
+
+            if (!seen.Add(entry.ServiceName))
+            {
+                failure = $"More than one entry is called '{entry.ServiceName}'.";
+
+                return true;
+            }
+        }
+
+        failure = null;
+
+        return false;
+    }
 }

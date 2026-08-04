@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 
 namespace Bws.Core.Snapshots;
@@ -134,15 +135,78 @@ public sealed record SnapshotDiff(
     /// </summary>
     public bool Any => Added.Count > 0 || Removed.Count > 0 || Changed.Count > 0;
 
-    public static SnapshotDiff Between(Snapshot before, Snapshot after)
+    /// <summary>
+    /// Compares two snapshots, or says why one of them is not something to compare.
+    ///
+    /// <b>Returns rather than throws, and that shape arrived on 2026-08-04 as a breaking change -
+    /// owner's decision, taken knowing it was one.</b> Until then this was <c>Between</c>, and it
+    /// fell over from inside a dictionary
+    /// on a snapshot holding one service name twice - with a message naming neither side. It was
+    /// safe in practice only because every document reaching it had come through
+    /// <see cref="SnapshotJson.TryRead"/>, which refuses that file. That is a precondition
+    /// recorded in a comment and enforced by nothing, and the second caller - a window showing a
+    /// comparison - would have been free to reintroduce the crash.
+    ///
+    /// So the question moved to <see cref="Snapshot"/>, where it is a fact about the document
+    /// rather than about JSON, and this asks it of whatever it is handed. Two callers, one rule,
+    /// one place. The check costs a set insertion per entry against a comparison that already
+    /// serialises every entry twice, which is why paying it on every run is not worth avoiding.
+    ///
+    /// A null argument is still thrown over, deliberately. A broken document is an ordinary
+    /// thing to run into and gets a sentence; passing nothing at all is a mistake in the code
+    /// calling this, and turning that into a return value would hide it.
+    /// </summary>
+    /// <param name="diff">
+    /// Carries its own guarantee rather than leaving every caller to assert it. Without the
+    /// annotation each one silences the compiler at the point of use, which reads the same and
+    /// switches off the check that would notice the day this stops being true.
+    /// </param>
+    public static bool TryBetween(
+        Snapshot before, Snapshot after, [NotNullWhen(true)] out SnapshotDiff? diff, out string? failure)
     {
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
 
+        diff = null;
+
+        // The words the product already uses for the two sides - "two files, the earlier one
+        // first". Not "before" and "after", which name the parameters rather than what a person
+        // typed, and not the file names, which this layer has no business knowing.
+        if (Unusable(before, "earlier", out failure) || Unusable(after, "later", out failure))
+        {
+            return false;
+        }
+
+        diff = Between(before, after);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a side is a snapshot at all.
+    ///
+    /// Both questions in order, and the order is load-bearing rather than tidy: the second walks
+    /// the entries, so it may only be asked once the first has said there are entries to walk.
+    /// </summary>
+    private static bool Unusable(Snapshot snapshot, string side, out string? failure)
+    {
+        if (snapshot.MissingParts(out var fault) || snapshot.BrokenEntries(out fault))
+        {
+            failure = $"The {side} snapshot is broken. {fault}";
+
+            return true;
+        }
+
+        failure = null;
+
+        return false;
+    }
+
+    private static SnapshotDiff Between(Snapshot before, Snapshot after)
+    {
         // Case-insensitively, because that is how Windows treats a service name, so two
-        // spellings are the same service rather than two. NOT GUARDED: nothing here checks
-        // that a snapshot holds no two entries matching this way. Windows cannot produce
-        // that, and a file that holds it was not written by this tool.
+        // spellings are the same service rather than two. What used to stand here was a note
+        // saying nothing checked for two entries matching this way - the caller above now does.
         var left = before.Entries.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
         var right = after.Entries.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
 

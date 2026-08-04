@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using Bws.Core;
@@ -278,6 +279,48 @@ internal static class SnapshotFiles
 
         // A file that is not a snapshot is what somebody pointed at, so it keeps the usage code.
         // The machine did its part here - it handed over every byte that was asked for.
+        code = ExitCode.Usage;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Compares two snapshots, or says which side stopped it and why.
+    ///
+    /// <b>Here rather than beside the verb it serves, and the reason is the size ratchet.</b>
+    /// Program.cs stood at 549 lines against a ceiling of 552 that may only ever go down, so the
+    /// branch this needs would have reddened the build - which is the ratchet working, not
+    /// getting in the way. This file already owns "turn a snapshot the person pointed at into
+    /// either a document or a sentence and a code", and a comparison refusing one of its two
+    /// sides is the same sentence arriving one step later.
+    ///
+    /// <b>Unreachable through the command line today, and that is written down rather than left
+    /// to be discovered.</b> Both sides of a two-file comparison have been through
+    /// <c>SnapshotJson.TryRead</c>, which refuses these documents already, and --live builds its
+    /// side from what the manager handed over, which cannot hold one service twice. What this
+    /// guards is the next caller - a window showing a comparison - and the cost of guarding it
+    /// now is one branch.
+    /// </summary>
+    /// <param name="difference">
+    /// Annotated rather than left for the caller to assert with an exclamation mark. The compiler
+    /// then knows what the return value already meant, and the alternative - telling it to be
+    /// quiet twice at the call site - says the same thing while switching off the check that
+    /// would notice if it stopped being true.
+    /// </param>
+    internal static bool Compare(
+        Snapshot before, Snapshot after, [NotNullWhen(true)] out SnapshotDiff? difference, out int code)
+    {
+        code = ExitCode.Ok;
+
+        if (SnapshotDiff.TryBetween(before, after, out difference, out var failure))
+        {
+            return true;
+        }
+
+        Console.Error.WriteLine(Texts.Of("cli.diff.cannotCompare", failure ?? string.Empty));
+
+        // The same code a file that is not a snapshot gets, for the same reason: what is wrong is
+        // the document somebody pointed at, and the machine did everything it was asked.
         code = ExitCode.Usage;
 
         return false;

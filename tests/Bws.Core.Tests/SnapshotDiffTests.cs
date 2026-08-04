@@ -203,8 +203,18 @@ public sealed class SnapshotDiffTests
         Assert.True(caveats.ToolVersionDiffers);
     }
 
-    private static SnapshotDiff Between(Snapshot before, Snapshot after) =>
-        SnapshotDiff.Between(before, after);
+    /// <summary>
+    /// Every comparison here is between two documents that really are snapshots, so the refusal
+    /// is asserted once instead of in thirteen places - and asserted rather than ignored, since a
+    /// helper that quietly returned nothing would turn a broken engine into thirteen null
+    /// dereferences naming nothing. The refusal is the subject of its own tests next door.
+    /// </summary>
+    private static SnapshotDiff Between(Snapshot before, Snapshot after)
+    {
+        Assert.True(SnapshotDiff.TryBetween(before, after, out var diff, out var failure), failure);
+
+        return diff!;
+    }
 
     private static Snapshot Taken(IReadOnlyList<ScmEntry> entries) =>
         Snapshot.Of(entries, note: null, new FakeClock()) with

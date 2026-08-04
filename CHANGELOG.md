@@ -322,6 +322,9 @@ Nothing has been released yet. Everything below is what the tool does today.
   editor set to your system's code page and saving it used to make the next comparison report
   hundreds of entries as changed when nothing had. Files saved as UTF-8 or UTF-16 with a byte
   order mark still read normally.
+- **When a snapshot cannot be read, the message says which file and what is wrong with it**,
+  rather than describing "the file" without naming one. Comparing two snapshots reads two of
+  them, so a message about neither left you checking both.
 
 ### Known limits
 
