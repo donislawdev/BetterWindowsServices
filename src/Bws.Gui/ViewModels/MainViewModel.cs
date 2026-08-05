@@ -94,7 +94,8 @@ public sealed class MainViewModel : Observable
     /// for a fourth seam. Choosing which sentence applies is reasoning about words, and the rest
     /// of this class is about rows, queries and threads.
     /// </summary>
-    public Says Says { get; } = new();
+    public Says Says { get; init; } = new();
+
 
     /// <summary>
     /// The one field: free search, regular expressions and the query language, exactly as
@@ -465,7 +466,7 @@ public sealed class MainViewModel : Observable
             ? Texts.Of("gui.status.read", everything.Count)
             : Texts.Of("gui.status.matched", narrowed.Selected.Count, everything.Count);
 
-        Says.Notice = Sentences.Admissions(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
+        Says.AboutTheAnswer(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
 
         Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
 

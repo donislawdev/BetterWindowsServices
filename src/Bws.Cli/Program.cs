@@ -29,29 +29,12 @@ try
 {
     var options = CommandLine.Read(args);
 
-    // ASKING A QUESTION IS NOT A MISTAKE, and until 2026-08-02 this tool answered as though it
-    // were: --help came back "Unknown option: --help", on the error channel, with code 2 - the code
-    // reserved for what somebody typed wrongly. No arguments at all did the same thing without the
-    // first line. clig.dev puts help on the data channel with a code of zero, and every user's
-    // first reflex is to type it.
-    //
-    // Both before anything else, because neither depends on a verb, on options making sense, or on
-    // the tool being able to reach the service manager.
-    if (options.Version)
+    // Version and help first, because neither depends on a verb, on options making sense, or on
+    // the tool being able to reach the service manager. Why they answer the way they do lives in
+    // Immediate, together with what this tool used to do instead.
+    if (Immediate.Answer(options) is { } answered)
     {
-        // Through Output rather than straight to the console, and a guard insisted twice: first
-        // that the channel be named, then that there be exactly one place naming it. Both were
-        // right - this is what the run produces, so it belongs beside the listing and the JSON.
-        Output.Data(Texts.Of("cli.version", Release.Number));
-        return ExitCode.Ok;
-    }
-
-    if (options.Help)
-    {
-        // The data channel on purpose. Somebody piping the help into a pager or a file is asking
-        // for the text, so the text is the output of the run rather than a diagnostic beside it.
-        Output.Data(Texts.Of("cli.usage"));
-        return ExitCode.Ok;
+        return answered;
     }
 
     if (options.BadVerb is not null)

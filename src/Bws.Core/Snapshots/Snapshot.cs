@@ -87,7 +87,11 @@ public sealed record SnapshotMetadata
             TakenAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset),
 
             TakenBy = AccountName(),
-            Elevated = IsElevated(),
+
+            // Asked of Session rather than answered here, since 2026-08-05. The window has to
+            // say the same thing to the person looking at a list, and a second implementation
+            // of "am I elevated" would be a second reader of one fact.
+            Elevated = Session.IsElevated(),
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             Tool = CoreAssembly.Version
         };
@@ -106,12 +110,6 @@ public sealed record SnapshotMetadata
         return identity.Name;
     }
 
-    private static bool IsElevated()
-    {
-        using var identity = WindowsIdentity.GetCurrent();
-
-        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-    }
 }
 
 /// <summary>

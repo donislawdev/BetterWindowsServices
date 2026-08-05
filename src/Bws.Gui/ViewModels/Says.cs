@@ -1,3 +1,6 @@
+using Bws.Core;
+using Bws.Core.Querying;
+
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
@@ -106,6 +109,27 @@ public sealed class Says : Observable
 
     /// <summary>Which of the five, for a test that wants to name it rather than read its words.</summary>
     internal ListFace Face => _list.Face;
+
+    /// <summary>
+    /// Whether this session has administrator rights. Asked once, because it cannot change while
+    /// the window is open.
+    ///
+    /// <b>It lives here because it only ever matters as a SENTENCE.</b> Nothing about the rows,
+    /// the query or the reading changes with elevation - what changes is that the list is short
+    /// and somebody has to be told. Settable so a test can have the other answer, which a working
+    /// session cannot produce on demand.
+    /// </summary>
+    internal bool Elevated { get; init; } = Session.IsElevated();
+
+    /// <summary>
+    /// Everything this answer has to admit about itself, composed and stored in one step.
+    ///
+    /// The composing lives in <see cref="Sentences"/>, the deciding in the view model, and the
+    /// holding here - so the view model never has to know that elevation is one of the things
+    /// worth saying.
+    /// </summary>
+    internal void AboutTheAnswer(Query query, bool held, int unreadable, int tooCostly) =>
+        Notice = Sentences.Admissions(query, held, unreadable, tooCostly, Elevated);
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.

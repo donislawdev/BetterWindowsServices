@@ -167,6 +167,27 @@ public sealed class UsageContractTests
         Assert.Matches(@"^bws \d+\.\d+\.\d+", version.StandardOutput.Trim());
     }
 
+    /// <summary>
+    /// AND WHAT SHAPE OF FILE IT WRITES, WHICH IS A SECOND, INDEPENDENT NUMBER.
+    ///
+    /// <b>The reason is forensic rather than tidy.</b> A build can change without the snapshot
+    /// format changing, and the format cannot change without a reader somewhere needing to know.
+    /// When the same snapshot gives a different answer in six months, a log carrying only the
+    /// program version cannot say which of the two moved - and this tool exists to compare files
+    /// taken months apart.
+    ///
+    /// The number is not asserted for the same reason the program version is not: it belongs to
+    /// whoever changes the schema. What is asserted is that it is named at all.
+    /// </summary>
+    [Fact]
+    public void The_tool_also_says_what_shape_of_snapshot_it_writes()
+    {
+        var version = CommandLineTool.Run("--version");
+
+        Assert.Equal(0, version.ExitCode);
+        Assert.Matches(@"snapshot schema \d+", version.StandardOutput);
+    }
+
     [Theory]
     [InlineData("lst", "list")]
     [InlineData("stpo", "stop")]

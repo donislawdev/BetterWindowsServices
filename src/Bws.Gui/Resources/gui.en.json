@@ -56,7 +56,6 @@
 
   "gui.cell.unknown": "unknown",
   "gui.cell.noAccess": "no access",
-  "gui.cell.none": "none",
 
   "gui.cell.status.running": "Running",
   "gui.cell.status.stopped": "Stopped",

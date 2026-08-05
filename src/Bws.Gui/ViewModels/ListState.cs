@@ -70,7 +70,7 @@ internal readonly record struct ListState
 
         if (failed)
         {
-            return Say(ListFace.Failed, "gui.empty.failed", "gui.empty.failedWayOut");
+            return Say(ListFace.Failed, Texts.Of("gui.empty.failed"), Texts.Of("gui.empty.failedWayOut"));
         }
 
         // Only while nothing has arrived yet. A refresh over a list that already has rows leaves
@@ -78,23 +78,31 @@ internal readonly record struct ListState
         // out right now".
         if (reading)
         {
-            return Say(ListFace.Loading, "gui.empty.loading", string.Empty);
+            return Say(ListFace.Loading, Texts.Of("gui.empty.loading"), string.Empty);
         }
 
         // The machine, not the query. Offering to clear an empty query would be the window
         // telling somebody to undo something they never did.
         if (everything == 0)
         {
-            return Say(ListFace.NothingToShow, "gui.empty.nothingToShow", string.Empty);
+            return Say(ListFace.NothingToShow, Texts.Of("gui.empty.nothingToShow"), string.Empty);
         }
 
-        return Say(ListFace.NothingMatched, "gui.empty.nothingMatched", "gui.empty.nothingMatchedWayOut");
+        return Say(
+            ListFace.NothingMatched,
+            Texts.Of("gui.empty.nothingMatched"),
+            Texts.Of("gui.empty.nothingMatchedWayOut"));
     }
 
+    /// <summary>
+    /// Builds the answer. Takes the words rather than their keys, and that is not a detail: a key
+    /// travelling as a variable is invisible to the guard that checks every declared string is
+    /// said somewhere, and to a person reading this method for what it shows.
+    /// </summary>
     private static ListState Say(ListFace face, string message, string wayOut) => new()
     {
         Face = face,
-        Message = Texts.Of(message),
-        WayOut = wayOut.Length == 0 ? string.Empty : Texts.Of(wayOut)
+        Message = message,
+        WayOut = wayOut
     };
 }

@@ -18,7 +18,10 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **`bws --help` and `bws -h`** print how to use the tool, on standard output, and end
   successfully. Running `bws` with nothing after it does the same. The help now starts with
   three examples rather than a list of switches.
-- **`bws --version`** says which version this is.
+- **`bws --version`** says which version this is, and which shape of snapshot file it writes.
+  The two move independently: a new build does not always change the file, and a changed file
+  always matters to whatever reads it back. A log that recorded only the program version could
+  not tell you afterwards which of the two had moved.
 - **A mistyped command is offered the one you probably meant.** `bws lst` answers
   "There is no command lst. Did you mean list?" rather than calling it an unknown option.
 - **`bws list`** shows every entry the service control manager knows about, as a table for
@@ -242,6 +245,11 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **The entry count moved up beside the search box and got bigger.** It answers every keystroke
   you make there, and it used to be the smallest grey text in the bottom corner. It also thickens
   while a filter is on, so you can see that the list is narrowed without reading the number.
+- **The window now tells you when it is running without administrator rights**, and tells you
+  before anything else it has to say. It matters more than it sounds: without them Windows hands
+  over a shorter list and refuses some of what it does hand over, so the count you are reading is
+  not the whole machine. Every other note under the search box is about a list you would otherwise
+  assume was complete.
   - **The start type now says what changes its meaning**, the same way the command line
     already did: delayed, on trigger, or file missing. A stopped automatic service that is
     waiting to be asked for is no longer indistinguishable from one that failed to start.

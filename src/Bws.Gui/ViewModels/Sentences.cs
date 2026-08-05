@@ -32,10 +32,23 @@ internal static class Sentences
     /// that explains an empty list, and somebody staring at one should not have to read past
     /// anything to find out why.
     /// </summary>
-    internal static string Admissions(Query query, bool held, int unreadable, int tooCostly)
+    internal static string Admissions(Query query, bool held, int unreadable, int tooCostly, bool elevated)
     {
         var needs = query.Needs;
         var notes = new List<string>();
+
+        // FIRST, BECAUSE IT IS A FACT ABOUT THE WHOLE LIST RATHER THAN ABOUT THIS QUERY.
+        //
+        // <b>The sentence existed in the language file from the beginning and reached no screen
+        // until 2026-08-05</b>, which made it the shape rule 8 forbids: the window knew the list
+        // was short and said nothing. Measured on this machine: without elevation the manager
+        // enumerates 807 entries where an elevated session sees 810, and five more refuse their
+        // security descriptor. Somebody reading a count has to know that before anything else,
+        // because every other sentence here is about a list they think is complete.
+        if (!elevated)
+        {
+            notes.Add(Texts.Of("gui.status.notElevated"));
+        }
 
         // This window reads what a listing reads and no more. The command line answers a
         // question about signatures by going and verifying them, measured at 1100-1245 ms over
