@@ -78,14 +78,42 @@ public sealed class SizeRatchetGuards
     ///                file that exists for exactly that and already held the fourth. One of the
     ///                three was a method whose whole body was a call to it.
     ///
-    /// The longest file is now MainViewModel.cs at 552, and it got there without being touched -
-    /// every file that used to be above it came down past it, three times over now. <b>The
-    /// mutation entry that proves this guard can fail finds the longest file at run time</b>
-    /// rather than naming one, because an entry naming a file stops proving anything the moment
-    /// that file stops being longest - it came back MISSED for exactly that reason on 2026-08-02,
-    /// and again on 2026-08-03.
+    ///   552 -> 536   the keyboard slice needed room in MainViewModel.cs, which stood exactly on
+    ///                the ceiling with none - backlog 129. Three seams in the end, and the third
+    ///                was asked for by this guard going red mid-slice: Holding.cs took the rule
+    ///                about when the list may rearrange itself, RowIndex.cs took the row
+    ///                bookkeeping, Narrowing.cs took what a query picks out and what it could not
+    ///                judge. MainViewModel.cs ends at 525 and is no longer the longest file at
+    ///                all - CommandLine.cs is, at 536.
+    ///
+    ///                <b>The middle of that is worth keeping.</b> Six lines of comment pushed the
+    ///                file back over a ceiling it had just been split under, and the temptation
+    ///                was to shorten the comment. This project has already recorded doing exactly
+    ///                that for two rounds before doing what the ratchet asks. The ratchet asks
+    ///                for a seam.
+    ///
+    /// <b>THE TIGHTENING WAS ASKED FOR BY THE MUTATION ENTRY, NOT BY THE DRIFT TEST BELOW.</b>
+    /// That test allows a hundred lines of slack and 552 against 541 sat well inside it, so it
+    /// passed. The entry appends one line to the longest shipped file and expects red - at a
+    /// ceiling eleven lines above it, nothing happened and it came back MISSED. <b>The sharper
+    /// of two guards over the same rule is the one to believe</b>, and a ceiling the longest file
+    /// cannot reach is holding nothing.
+    ///
+    /// The longest file is CommandLine.cs at 536. <b>The mutation entry that proves this guard
+    /// can fail finds the longest file at run time</b> rather than naming one, because an entry
+    /// naming a file stops proving anything the moment that file stops being longest - it came
+    /// back MISSED for exactly that reason on 2026-08-02, and again on 2026-08-03.
+    ///
+    /// <b>IT COUNTS NO XAML, AND ON 2026-08-05 THAT STOPPED BEING A DETAIL.</b> Sources.Shipped
+    /// enumerates *.cs only, so Themes/Theme.xaml is outside every number in this file - and it
+    /// is now 755 lines, two hundred past the longest thing this ceiling holds, after the row
+    /// gained its own control template. A file of appearance values plus templates is precisely
+    /// the shape that grows without anybody deciding to let it. <b>The header of mutate.ps1 says
+    /// the ratchet counts XAML. It does not, and that sentence is wrong.</b> Backlog 132 - the
+    /// decision is the owner's, because bringing it in means choosing a first ceiling for a file
+    /// that is already the longest.
     /// </summary>
-    private const int LongestShippedFile = 552;
+    private const int LongestShippedFile = 536;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

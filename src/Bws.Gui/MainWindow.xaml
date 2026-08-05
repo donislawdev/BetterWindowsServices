@@ -140,7 +140,27 @@
                   HeadersVisibility="Column"
                   HorizontalScrollBarVisibility="Disabled"
                   SelectionUnit="FullRow"
-                  SelectionMode="Single">
+                  SelectionMode="Single"
+                  PreviewMouseRightButtonDown="PointAtRowBeforeMenu"
+                  ContextMenuOpening="OfferTheMenuOnlyOnARow">
+
+            <!--
+                READ ONLY, LIKE THE LIST. Everything that changes a service goes through a plan,
+                so a menu item that stopped one from here would be an operation without a plan -
+                rule 1 of the project notes, and not a temporary shortcut either. Those arrive
+                with the screen that can show a plan.
+
+                It hangs on the grid rather than on the row style, and that is the difference
+                between a menu and a menu that works: a ContextMenu in a resource dictionary has
+                nowhere to put a handler. The grid is also an ancestor of whatever cell has focus,
+                so the menu key opens it without a second copy for the keyboard.
+            -->
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="{DynamicResource gui.menu.copyName}" Click="CopyServiceName" />
+                    <MenuItem Header="{DynamicResource gui.menu.copyDisplayName}" Click="CopyDisplayName" />
+                </ContextMenu>
+            </DataGrid.ContextMenu>
 
             <!--
                 NOT ONE OF THESE WIDTHS IS Auto ANY MORE, AND THAT IS THE FIX FOR BACKLOG ITEM

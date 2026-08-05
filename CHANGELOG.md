@@ -217,6 +217,23 @@ Nothing has been released yet. Everything below is what the tool does today.
   the service is doing something, hollow means it is not. Process ids line up on their last
   digit. Column headings are heavier and a size larger than the rows under them, and a line
   runs between one row and the next so a row can be followed across the window.
+- **The window can be used without a mouse.** `Ctrl+F` puts the cursor in the search box and
+  selects what is there, `Escape` empties it, and the arrow keys walk the list. `F5` still
+  reads everything again. A key the window has no use for is passed on rather than swallowed.
+- **The row the keyboard is on is now visible.** It carries an outline, which nothing in the
+  list had before - the list showed which row was selected but not which one the arrow keys
+  would move from.
+- **Right-clicking a row offers to copy its name or its display name**, and the menu key on
+  the keyboard opens the same menu. It selects the row you pointed at first, so the name you
+  get is the row you clicked. Nothing in this menu changes a service.
+- **A selected row, a row under the pointer and a row that just changed now look different
+  from each other.** They were meant to since the window moved to its current control
+  library and did not: the colours were set in a way the library's own row template
+  overwrote on every row, so the list drew them in the library's colours - with selected and
+  hovered sharing one colour - or, for a row that had just changed, not at all.
+- **Something the window cannot do is now said out loud.** The clipboard belongs to whichever
+  program took it last, so copying genuinely fails sometimes. It reports that under the list
+  instead of doing nothing, and the message stays until you ask for something else.
   - **The start type now says what changes its meaning**, the same way the command line
     already did: delayed, on trigger, or file missing. A stopped automatic service that is
     waiting to be asked for is no longer indistinguishable from one that failed to start.

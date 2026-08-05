@@ -32,24 +32,16 @@ public sealed class MainViewModel : Observable
     private const string DriverField = "type";
     private const string DriverValue = "driver";
 
-    /// <summary>
-    /// How long a row stays marked as having just moved.
-    ///
-    /// Long enough to catch the eye of somebody looking at another part of the screen, short
-    /// enough that a busy machine does not end up with half the list highlighted. `A10` asks
-    /// for the behaviour and does not name a number, so this one is a judgement rather than a
-    /// measurement and says so.
-    /// </summary>
-    internal static readonly TimeSpan HighlightFor = TimeSpan.FromSeconds(3);
+    /// <summary>How long a row stays marked as having just moved. Lives with the rows it marks.</summary>
+    internal static TimeSpan HighlightFor => RowIndex.HighlightFor;
 
     private readonly IScmCatalog _catalog;
-    private readonly IClock _clock;
 
-    /// <summary>Every row that exists, by service name, whether or not the query lets it through.</summary>
-    private readonly Dictionary<string, EntryRow> _rows = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Whether the list may rearrange itself right now, and what it owes if it may not.</summary>
+    private readonly Holding _holding = new();
 
-    /// <summary>Every row in the order the manager hands them over.</summary>
-    private List<EntryRow> _order = [];
+    /// <summary>Every row that exists, kept in step with the machine.</summary>
+    private readonly RowIndex _index;
 
     /// <summary>
     /// The last query that parsed, which is not always the last query that was typed.
@@ -66,10 +58,9 @@ public sealed class MainViewModel : Observable
     private string _status = Texts.Of("gui.status.reading");
     private string _notice = string.Empty;
     private string _problem = string.Empty;
+    private string _refusal = string.Empty;
     private bool _incomplete;
-    private bool _interacting;
     private bool _reading;
-    private bool _held;
 
     public MainViewModel()
         : this(new WindowsScmCatalog(), new SystemClock())
@@ -84,7 +75,7 @@ public sealed class MainViewModel : Observable
     public MainViewModel(IScmCatalog catalog, IClock clock)
     {
         _catalog = catalog;
-        _clock = clock;
+        _index = new RowIndex(clock);
     }
 
     /// <summary>
@@ -112,9 +103,59 @@ public sealed class MainViewModel : Observable
         {
             if (Set(ref _queryText, value ?? string.Empty))
             {
+                // Asking for something else puts away what the last action could not do. It is
+                // the only signal available that the person has moved on - and a refusal that
+                // stayed while they typed would end up describing a list it no longer refers to.
+                _refusal = string.Empty;
+
                 Apply();
             }
         }
+    }
+
+    /// <summary>
+    /// The row the person has chosen, or nothing.
+    ///
+    /// <b>Handed in at the moment it is needed rather than bound to the list, and that is a
+    /// repair.</b> It was a two way binding on SelectedItem for one afternoon, and the window
+    /// journey turned flaky inside it - passages reporting a grid that disagreed with its own
+    /// count line, with the window saying it was holding still. A binding into a list that
+    /// reconciles itself once a second is another party in the middle of `A10`, and nothing here
+    /// needs it: the selection is only ever read when somebody asks for a copy.
+    ///
+    /// What it is for is that <b>every question about the chosen entry has an answer that can be
+    /// checked without opening a window</b> - which is why the two below live here rather than in
+    /// the handler that copies them.
+    /// </summary>
+    public EntryRow? Selected { get; set; }
+
+    /// <summary>What a copy of the name would put on the clipboard, or nothing when no row is chosen.</summary>
+    public string? SelectedServiceName => Selected?.ServiceName;
+
+    /// <summary>The same for the display name, which is the one a person recognises.</summary>
+    public string? SelectedDisplayName => Selected?.DisplayName;
+
+    /// <summary>
+    /// Empties the query, which is what Escape asks for - `docs/11` 9.1.
+    ///
+    /// <b>Answers whether it did anything, and the window needs that answer rather than a
+    /// courtesy.</b> A key press swallowed by something that decided to do nothing is a key that
+    /// stops working further up, and Escape is the one key every dialog and every window in
+    /// Windows already has an opinion about. So an empty box leaves the press alone.
+    ///
+    /// Clearing shows drivers again, because the exclusion lives in this text and nowhere else -
+    /// which is <see cref="ShowDrivers"/> keeping its promise rather than a side effect.
+    /// </summary>
+    public bool ClearQuery()
+    {
+        if (_queryText.Length == 0)
+        {
+            return false;
+        }
+
+        QueryText = string.Empty;
+
+        return true;
     }
 
     /// <summary>
@@ -165,23 +206,25 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// Whether somebody is using the list right now - pointing at it, or typing into it.
+    /// Whether somebody is using the list right now - pointing at it, or with the keyboard in it.
     ///
-    /// Set by the window, because only a window knows about focus and a mouse. While it is
-    /// true, rows keep updating and <b>nothing joins or leaves the list</b>: `A10` says the
-    /// order freezes for the duration of an interaction, and a row appearing above the one
-    /// somebody is aiming at moves their target while they are reaching for it.
-    ///
-    /// Cells still move, and that is the deliberate half of the compromise. A row that says
-    /// Stopped under a query about running services is visibly odd and highlighted, which is a
-    /// far better failure than a row that silently disappears from under a cursor.
+    /// The window's door onto <see cref="Holding"/>, which carries the rule itself and why it has
+    /// the shape it has. Set by the window, because only a window knows about focus and a mouse.
     /// </summary>
     public bool Interacting
     {
-        get => _interacting;
+        get => _holding.Interacting;
         set
         {
-            if (Set(ref _interacting, value) && !value && _held)
+            if (_holding.Interacting == value)
+            {
+                return;
+            }
+
+            _holding.Interacting = value;
+            Raise(nameof(Interacting));
+
+            if (!value && _holding.Pending)
             {
                 // Whatever was held back happens now, in one go.
                 Apply();
@@ -212,15 +255,35 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// What is wrong with the query as typed. Empty while it reads.
+    /// What is wrong with what was asked for - a query that will not parse, or something the
+    /// window tried and could not do. Empty while it reads.
     ///
-    /// A mistake here leaves the list alone - `docs/07` again - so this is the only sign that
-    /// the box and the list have stopped agreeing, and it has to be visible.
+    /// A mistake in a query leaves the list alone - `docs/07` again - so this is the only sign
+    /// that the box and the list have stopped agreeing, and it has to be visible.
+    ///
+    /// <b>An action's refusal wins over a query's, and outlives a tick.</b> Both would otherwise
+    /// be written by <see cref="Apply"/>, which runs whenever anything on the machine moves - so
+    /// a copy that failed would announce itself and be gone within the second, on a busy machine
+    /// before anybody read it. It clears when the person asks for something else.
+    ///
+    /// The right home for a finished action's result is a transient one, and WPF UI has a
+    /// Snackbar for it - `docs/10` section 4. This line is where it goes until there is a slice
+    /// that puts one in.
     /// </summary>
-    public string Problem
+    public string Problem => _refusal.Length > 0 ? _refusal : _problem;
+
+    /// <summary>
+    /// Something the window tried on the person's behalf and could not do.
+    ///
+    /// Rule 8 in a place it is easy to think does not apply: an action that quietly did nothing
+    /// leaves somebody believing it did. The clipboard is the live example - it belongs to
+    /// whichever process grabbed it last, so copying genuinely fails on a working machine.
+    /// </summary>
+    public void CouldNotDo(string because)
     {
-        get => _problem;
-        private set => Set(ref _problem, value);
+        _refusal = Texts.Of("gui.status.couldNotDo", because);
+
+        Raise(nameof(Problem));
     }
 
     /// <summary>
@@ -297,7 +360,7 @@ public sealed class MainViewModel : Observable
 #pragma warning restore CA1031
 
         Incomplete = false;
-        Absorb(entries);
+        _index.Absorb(entries);
         Apply();
     }
 
@@ -351,13 +414,22 @@ public sealed class MainViewModel : Observable
 
             Incomplete = false;
 
-            if (Freshen(statuses))
+            switch (_index.Absorb(statuses))
             {
-                // The unguarded one, because the guard above is already held. Calling the
-                // public entry point here would find its own flag raised and quietly do
-                // nothing, which is the sort of deadlock-by-politeness that looks like the
-                // machine simply never installing anything.
-                await LoadEverything().ConfigureAwait(true);
+                case Freshening.CompositionChanged:
+                    // The unguarded one, because the guard above is already held. Calling the
+                    // public entry point here would find its own flag raised and quietly do
+                    // nothing, which is the sort of deadlock-by-politeness that looks like the
+                    // machine simply never installing anything.
+                    await LoadEverything().ConfigureAwait(true);
+                    break;
+
+                case Freshening.Moved:
+                    Apply();
+                    break;
+
+                default:
+                    break;
             }
         }
         finally
@@ -367,93 +439,22 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// Takes the highlight off the rows that have worn it long enough.
-    ///
-    /// One sweep rather than a timer per row, and called by the same tick that refreshes.
-    /// Separate from the reading because it has to keep happening while nothing is moving -
-    /// otherwise the last thing to change stays lit until the next thing does.
+    /// Takes the highlight off the rows that have worn it long enough. Driven by the same tick
+    /// that refreshes, because it has to keep happening while nothing is moving.
     /// </summary>
-    public void FadeHighlights()
+    public void FadeHighlights() => _index.Fade();
+
+    /// <summary>What is wrong with the query, which may be nothing. Silent while an action's refusal stands.</summary>
+    private void SayProblem(string problem)
     {
-        var now = _clock.Now;
-
-        foreach (var row in _order)
+        if (_problem == problem)
         {
-            if (row.RecentlyChanged && now - row.ChangedAt >= HighlightFor)
-            {
-                row.RecentlyChanged = false;
-            }
-        }
-    }
-
-    /// <summary>Rebuilds every row from a full reading, keeping the rows that already exist.</summary>
-    private void Absorb(IReadOnlyList<ScmEntry> entries)
-    {
-        var now = _clock.Now;
-        var order = new List<EntryRow>(entries.Count);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var entry in entries)
-        {
-            seen.Add(entry.ServiceName);
-
-            if (_rows.TryGetValue(entry.ServiceName, out var row))
-            {
-                row.Absorb(entry, now);
-            }
-            else
-            {
-                row = EntryRow.Of(entry);
-                _rows[entry.ServiceName] = row;
-            }
-
-            order.Add(row);
+            return;
         }
 
-        foreach (var gone in _rows.Keys.Where(name => !seen.Contains(name)).ToArray())
-        {
-            _rows.Remove(gone);
-        }
+        _problem = problem;
 
-        _order = order;
-    }
-
-    /// <summary>
-    /// Takes a cheap reading and moves what moved.
-    ///
-    /// A name nobody knows means an entry was installed, and a name that stopped coming means
-    /// one was removed. Neither can be filled in from this reading - everything else a row
-    /// shows is configuration - so it asks for a full one instead. That is rare enough to be
-    /// worth the half second, and pretending otherwise would put a row on screen with two
-    /// columns saying "unknown" for no reason a person could work out.
-    /// </summary>
-    /// <returns>Whether the composition changed, so a full reading is owed.</returns>
-    private bool Freshen(IReadOnlyList<ScmStatus> statuses)
-    {
-        if (statuses.Count != _rows.Count || statuses.Any(status => !_rows.ContainsKey(status.ServiceName)))
-        {
-            return true;
-        }
-
-        var now = _clock.Now;
-        var moved = false;
-
-        foreach (var status in statuses)
-        {
-            moved |= _rows[status.ServiceName].Absorb(status, now);
-        }
-
-        FadeHighlights();
-
-        // Only when something moved. Re-running the filter over 810 entries every second to
-        // find out that nothing changed would be the one part of this that is genuinely
-        // wasteful, and the answer is already known.
-        if (moved)
-        {
-            Apply();
-        }
-
-        return false;
+        Raise(nameof(Problem));
     }
 
     private void Fail(Exception failure)
@@ -484,69 +485,41 @@ public sealed class MainViewModel : Observable
             // Every complaint, not the first one. Two mistakes in one query is ordinary while
             // somebody is typing, and fixing one to be told about the next is a poor trade for
             // a shorter line.
-            Problem = string.Join(" ", parsed.Problems.Select(QueryMessages.Of));
+            SayProblem(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
 
             return;
         }
 
-        Problem = string.Empty;
+        SayProblem(string.Empty);
         _query = parsed.Query!;
 
-        var selected = new List<EntryRow>(_order.Count);
-        var unreadable = 0;
-        var tooCostly = 0;
+        var everything = _index.Ordered;
+        var narrowed = Narrowing.Of(_query, everything);
 
-        foreach (var row in _order)
-        {
-            var match = _query.Match(row.Entry);
+        Show(narrowed.Selected);
 
-            if (match.Matched)
-            {
-                selected.Add(row);
-            }
+        Status = narrowed.Selected.Count == everything.Count
+            ? Texts.Of("gui.status.read", everything.Count)
+            : Texts.Of("gui.status.matched", narrowed.Selected.Count, everything.Count);
 
-            if (match.Unreadable)
-            {
-                unreadable++;
-            }
-
-            if (match.TooCostly)
-            {
-                tooCostly++;
-            }
-        }
-
-        Show(selected);
-
-        Status = selected.Count == _order.Count
-            ? Texts.Of("gui.status.read", _order.Count)
-            : Texts.Of("gui.status.matched", selected.Count, _order.Count);
-
-        Notice = Sentences.Admissions(_query, _held, unreadable, tooCostly);
+        Notice = Sentences.Admissions(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
 
         Raise(nameof(ShowDrivers));
     }
 
     /// <summary>
-    /// Makes the visible list match what the query selected.
+    /// Makes the visible list match what the query selected, unless it is being held.
     ///
-    /// Held back while somebody is using the list AND there is something to hold - `A10`, plus
-    /// <c>HoldingTests</c> for why the second half is not optional. Cells keep moving underneath
-    /// and <see cref="Interacting"/> says why that half is not held back with it.
-    /// How the list becomes the other list is <see cref="RowList.Reconcile"/>, which is where it
-    /// belongs: a collection that knows how to turn into another collection without losing the
-    /// objects in it. This decides WHETHER to, which needs the things only a view model knows.
+    /// Two collaborators and neither of them is this class, which is the point of the shape.
+    /// <see cref="Holding"/> decides WHETHER, because that needs `A10` and what a window knows.
+    /// <see cref="RowList.Reconcile"/> decides HOW, because that is a collection turning into
+    /// another collection without losing the objects in it.
     /// </summary>
     private void Show(List<EntryRow> selected)
     {
-        if (_interacting && Rows.Count > 0)
+        if (_holding.MayRearrange(Rows, selected))
         {
-            _held = Rows.Count != selected.Count || !Rows.SequenceEqual(selected);
-
-            return;
+            Rows.Reconcile(selected);
         }
-
-        _held = false;
-        Rows.Reconcile(selected);
     }
 }

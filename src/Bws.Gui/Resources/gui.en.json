@@ -29,6 +29,10 @@
   "gui.status.holding": "The list is holding still while you use it, so nothing joins or leaves under your cursor. It settles when you move away, or on F5.",
 
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
+  "gui.status.couldNotDo": "That did not happen. {0}",
+
+  "gui.menu.copyName": "Copy name",
+  "gui.menu.copyDisplayName": "Copy display name",
 
   "gui.query.unreadSignatures": "This asks about signatures, which are not read for a listing, so no entry can answer it here. Ask the command line with --signatures.",
   "gui.query.unreadMemory": "This asks about memory, which is not read for a listing, so no entry can answer it here. Ask the command line with --memory.",

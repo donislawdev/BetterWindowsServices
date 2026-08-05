@@ -231,16 +231,19 @@
              The grid coerces AlternationCount to nothing while AlternatingRowBackground is null.
           2. DataGrid.AlternatingRowBackground - painted, and DISQUALIFIED BY WHAT THAT PROVED.
              Set to one colour with our own row trigger set to another, the grid's colour is the
-             one on screen: it works by COERCION, which outranks every style trigger. Left in, it
-             would have taken selection, hover and the moved-a-moment-ago highlight off every
-             second row, silently.
+             one on screen. Left in, it would have taken selection, hover and the
+             moved-a-moment-ago highlight off every second row, silently.
           3. A horizontal grid line - paints, at 1200,212 in the capture, and touches none of the
              three row states because the grid draws it rather than the row's background.
 
-        FOUND ON THE WAY AND IT IS BIGGER THAN THIS BRUSH: a Background trigger in the ROW style
-        reaches no pixel at all under WPF UI, with either value. That is the mechanism the three
-        row states have been standing on since the migration, and whether THEY still arrive is
-        backlog item 49 - open, and needing the one instrument that must be run by hand.
+        WHY 2 BEAT OUR TRIGGER WAS WRITTEN HERE AS "COERCION" AND THAT WAS WRONG. Read out of
+        their markup on 2026-08-05 with tools/wpfui-probe template: their row template carries
+        a trigger on ItemsControl.AlternationIndex = 0 which sets the border's Background from
+        the grid's RowBackground - and AlternationIndex is zero for every row while
+        AlternationCount is, so that trigger is ALWAYS ON. A setter inside a control template's
+        triggers outranks the TemplateBinding on the same element, so our row Background died
+        there rather than to any coercion. Naming it coercion made the whole family look
+        unfixable, when the real answer was to stop borrowing the template - see ListRow.
 
         1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
         a separator identifies nothing, it only has to be seen between two rows. #333333 measures
@@ -266,6 +269,41 @@
     -->
     <SolidColorBrush x:Key="SurfaceChanged">#63563A</SolidColorBrush>
 
+    <!--
+        WHERE THE KEYBOARD IS. The fourth row state, and the only one that is a formal
+        requirement rather than a courtesy - WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator,
+        and `ADR-24` removed the only one this list had when it took the box off the focused
+        cell. That was the right call about appearance: the box read as somewhere to type, on a
+        list nobody can type into. It was also the removal of the whole indicator.
+
+        IT ANSWERS TO FOUR BACKGROUNDS, NOT ONE, AND THAT IS WHY IT IS THIS PALE. A ring is
+        drawn against whatever the row already is, so the ratio that matters is the worst of
+        the four a row can take. Measured with tools/contrast/contrast.ps1 against each:
+
+          #202020  the window          11.21
+          #454545  hover                6.60
+          #63563A  moved a moment ago   4.94
+          #3F7099  selected             3.62   <- the one that decided the colour
+
+        Every brush above answers to the window background alone, which is the ordinary case
+        and is what ContrastGuards measures. This one has its own test in that file, because a
+        guard that checked it against the window would pass it at 11.21 and never look at the
+        3.62 that is the real floor.
+
+        DRAWN AS AN OUTLINE AND NOT A FILL, and that is not only taste. A fill would have to
+        beat the three states it lands on top of, so focus and selection would fight over the
+        same pixel. An outline sits at the edge and leaves the state underneath legible.
+    -->
+    <SolidColorBrush x:Key="FocusRing">#D6D6D6</SolidColorBrush>
+
+    <!--
+        One pixel, and the outline is an OVERLAY rather than the row's own border. A border on
+        the row takes layout space, and two pixels per row over 810 rows is about a tenth of
+        the list - a price this window has twice refused to pay for looks, and refuses again
+        for a ring that is only on one row at a time.
+    -->
+    <Thickness x:Key="FocusRingThickness">1</Thickness>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
@@ -289,10 +327,16 @@
         Background="Transparent" on its own border and never binds the property at all. So a
         Background setter on the CELL is now the dead one.
 
-        WPF UI supplies no feedback of its own to lean on. Every VisualState in their row and
-        cell templates - Normal_Selected, MouseOver, all of them - is present and EMPTY, with
-        the storyboards commented out in their source. Selection and hover are ours to draw,
-        the same as before.
+        THE PARAGRAPH THAT USED TO FOLLOW SAID WPF UI SUPPLIES NO FEEDBACK TO LEAN ON, BECAUSE
+        EVERY VisualState IN THEIR TEMPLATES IS EMPTY. The VisualStates are indeed empty and
+        that half was right. The conclusion was wrong, and it was wrong in the direction that
+        cost the most: their feedback lives in ControlTemplate.Triggers, not in visual states,
+        and it was drawing hover and selection all along - in THEIR brush, over ours, with the
+        two states sharing one colour so that they could not be told apart. Whoever reads a
+        template for this again: read the triggers, not only the states.
+
+        None of it applies to the row any more, because the row no longer uses their template.
+        The cell still does.
 
         RowStyle and CellStyle are set explicitly on the DataGrid in MainWindow.xaml rather
         than left to implicit lookup. Their DefaultDataGridStyle sets both properties itself,
@@ -319,6 +363,37 @@
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
     </Style>
 
+    <!--
+        THE ROW OWNS ITS OWN TEMPLATE SINCE 2026-08-05, AND THAT IS THE FIX FOR A FAMILY OF
+        FAULTS RATHER THAN FOR ONE OF THEM. Read this before moving a state back into a style
+        trigger, because that is the shape that failed.
+
+        What was wrong: the four states were setters on DataGridRow.Background inside this
+        style. Their template feeds that property to its border through a TemplateBinding, so
+        it looks like it should arrive - and it never did. Their template also carries a
+        trigger on ItemsControl.AlternationIndex = 0 that sets the same border's Background
+        from the grid's RowBackground, and AlternationIndex is zero for every row while
+        AlternationCount is zero, so it is on for every row all the time. Inside a template,
+        a trigger's setter outranks a TemplateBinding on the same element. Our colour lost that
+        contest on every row, every frame, in silence.
+
+        This is the FIFTH time in this product that XAML bound correctly and painted something
+        else, after the empty list from internal members, column headers outside the visual
+        tree, the cell painting over the row under the built-in theme, and the white search
+        box. Rule 7 of the project notes says a problem that keeps coming back is a wrong
+        primitive rather than a missing tweak. The wrong primitive was borrowing a template and
+        arguing with it from outside.
+
+        WHAT WE GIVE UP BY OWNING IT: their template's future improvements, and about forty
+        lines to maintain. WHAT WE GET: four states that are template triggers, which is the
+        one place nothing can outrank, plus a zebra stripe that becomes possible again - the
+        two AlternationIndex triggers below are kept and come FIRST, so setting
+        AlternatingRowBackground on the grid would stripe the list without touching any state.
+        Backlog 123 asks for exactly that and could not have it while the states were dying.
+
+        STILL NOT PROVEN AT THE PIXEL. This explains a measurement rather than replacing one.
+        tools/gui-probe/check.ps1 is the instrument, and it needs a person.
+    -->
     <Style x:Key="ListRow" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
         <!--
             Margin and padding pulled back to nothing, against their 0,2 and 4. The owner chose
@@ -328,30 +403,139 @@
         <Setter Property="Margin" Value="{StaticResource MarginNone}" />
         <Setter Property="Padding" Value="{StaticResource MarginNone}" />
 
-        <Style.Triggers>
-            <!--
-                First, so that pointing at a row or selecting it still wins. A person's own
-                hand beats a notification about something that already happened.
-            -->
-            <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceChanged}" />
-            </DataTrigger>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridRow">
+                    <Border x:Name="RowSurface"
+                            Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <SelectiveScrollingGrid>
+                                <SelectiveScrollingGrid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </SelectiveScrollingGrid.ColumnDefinitions>
+                                <SelectiveScrollingGrid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </SelectiveScrollingGrid.RowDefinitions>
 
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceHover}" />
-            </Trigger>
+                                <DataGridCellsPresenter
+                                    Grid.Column="1"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}"
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
 
-            <!--
-                LAST, so selection beats the pointer, and that order is measured rather than
-                assumed. With the pointer winning, a row went grey the instant it was clicked
-                and stayed grey for as long as the hand did not move - so the one row the
-                person had just chosen was the one row that did not look chosen.
-            -->
-            <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
-                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-            </Trigger>
-        </Style.Triggers>
+                                <DataGridDetailsPresenter
+                                    Grid.Column="1"
+                                    Grid.Row="1"
+                                    Visibility="{TemplateBinding DetailsVisibility}"
+                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Both" />
+
+                                <!--
+                                    The grid decides whether row headers show, through its own
+                                    converter. Theirs hardcodes Visible, which is a decision
+                                    taken away from HeadersVisibility on the grid.
+                                -->
+                                <DataGridRowHeader
+                                    Grid.Column="0"
+                                    Grid.Row="0"
+                                    Grid.RowSpan="2"
+                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
+                                    Visibility="{Binding HeadersVisibility,
+                                        ConverterParameter={x:Static DataGridHeadersVisibility.Row},
+                                        Converter={x:Static DataGrid.HeadersVisibilityConverter},
+                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
+                            </SelectiveScrollingGrid>
+
+                            <!--
+                                A sibling rather than a border on the row, so it costs no
+                                layout - an empty Border asks for two pixels and the cells
+                                beside it ask for more, so the row height is unchanged. Not
+                                hit testable, or the ring would swallow clicks on its own row.
+                            -->
+                            <Border x:Name="FocusOutline"
+                                    BorderBrush="{StaticResource FocusRing}"
+                                    BorderThickness="{StaticResource FocusRingThickness}"
+                                    Visibility="Collapsed"
+                                    IsHitTestVisible="False"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <!--
+                            The grid's own two, kept and kept FIRST. They are inert while the
+                            grid sets neither brush, and they are what a zebra stripe would
+                            come back through - underneath the states rather than over them,
+                            which is the arrangement backlog 123 needs.
+                        -->
+                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                            <Setter TargetName="RowSurface"
+                                    Property="Background"
+                                    Value="{Binding RowBackground,
+                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
+                        </Trigger>
+
+                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                            <Setter TargetName="RowSurface"
+                                    Property="Background"
+                                    Value="{Binding AlternatingRowBackground,
+                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
+                        </Trigger>
+
+                        <!--
+                            First of the three colours, so that pointing at a row or selecting
+                            it still wins. A person's own hand beats a notification about
+                            something that already happened.
+                        -->
+                        <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
+                            <Setter TargetName="RowSurface"
+                                    Property="Background"
+                                    Value="{StaticResource SurfaceChanged}" />
+                        </DataTrigger>
+
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="RowSurface"
+                                    Property="Background"
+                                    Value="{StaticResource SurfaceHover}" />
+                        </Trigger>
+
+                        <!--
+                            LAST of the three, so selection beats the pointer, and that order is
+                            measured rather than assumed. With the pointer winning, a row went
+                            grey the instant it was clicked and stayed grey for as long as the
+                            hand did not move - so the one row the person had just chosen was
+                            the one row that did not look chosen.
+
+                            Foreground goes on the row rather than the border, because it has
+                            to reach the text inside the cells and it travels by inheritance.
+                        -->
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="RowSurface"
+                                    Property="Background"
+                                    Value="{StaticResource SurfaceSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+
+                        <!--
+                            Focus is not one of the three and does not compete with them: it
+                            shows an outline and changes no fill, so a row can be selected and
+                            focused and still look like both.
+
+                            IsKeyboardFocusWithin rather than IsFocused, because the keyboard
+                            lands on a CELL inside the row rather than on the row. Read out of
+                            their styles, which set KeyboardNavigation.IsTabStop to False on both
+                            the row and the cell, plus how a DataGrid moves focus when the current
+                            cell changes. NOT MEASURED at the pixel - that needs an active window,
+                            which a test process does not have. Backlog 131.
+                        -->
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="FocusOutline" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!--

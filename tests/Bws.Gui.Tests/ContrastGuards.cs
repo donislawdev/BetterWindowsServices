@@ -66,8 +66,27 @@ public sealed class ContrastGuards
         // IDENTIFIES NOTHING - it only has to be seen between them, which is a smaller job than
         // any state above. It also stays UNDER hover, so that pointing at a row remains the
         // stronger of the two signals rather than competing with the furniture.
-        ["SurfaceRowLine"] = 1.25
+        ["SurfaceRowLine"] = 1.25,
+
+        // WCAG 2.2 SC 1.4.11 again, and THE NUMBER HERE IS THE WEAKER OF THE TWO CHECKS IT GETS.
+        // The test below this table measures it against the window, where it comes out at 11.21
+        // and clears anything - which would be a guard passing for the wrong reason, because a
+        // ring is drawn on top of whatever state the row already has. Its real floor is the
+        // worst of four surfaces and lives in its own test further down.
+        ["FocusRing"] = ForState
     };
+
+    /// <summary>
+    /// Every surface a row can be, which is what a ring drawn on that row has to be seen against.
+    ///
+    /// Named rather than discovered, because "every brush starting with Surface" would also
+    /// sweep in the line between rows - furniture the ring is never drawn over - and a guard that
+    /// quietly widens its own subject stops meaning what its name says.
+    /// </summary>
+    private static readonly string[] UnderTheRing =
+    [
+        "SurfaceSelected", "SurfaceHover", "SurfaceChanged"
+    ];
 
     [Fact]
     public void Every_declared_colour_clears_the_ratio_its_role_needs()
@@ -122,6 +141,51 @@ public sealed class ContrastGuards
         Assert.True(
             short_.Count == 0,
             "A row in this state carries text and the text has to be readable on it:"
+            + Environment.NewLine + string.Join(Environment.NewLine, short_));
+    }
+
+    /// <summary>
+    /// The focus ring answers to four backgrounds rather than one, and the worst of them decides
+    /// the colour.
+    ///
+    /// <b>This is the test the first one could not be.</b> Every other brush in this file sits on
+    /// the window and is checked against it. A ring is drawn on a row that may already be
+    /// selected, hovered or freshly moved, so measuring it against the window alone passes it at
+    /// 11.21 while the ratio that decides whether anybody can see it is 3.62.
+    ///
+    /// It is also the reason the ring is as pale as it is: selected is the lightest surface a row
+    /// takes, so it sets the floor for the other three.
+    /// </summary>
+    [Fact]
+    public void The_focus_ring_clears_its_ratio_against_every_surface_a_row_can_take()
+    {
+        var declared = Declared().ToDictionary(pair => pair.Name, pair => pair.Colour, StringComparer.Ordinal);
+
+        Assert.True(
+            declared.ContainsKey("FocusRing"),
+            "The theme declares no FocusRing, so the list shows nothing about where the keyboard "
+            + "is - WCAG 2.2 SC 1.4.11, and backlog 59.");
+
+        var ring = declared["FocusRing"];
+        var short_ = new List<string>();
+
+        foreach (var surface in UnderTheRing.Append(null))
+        {
+            var beneath = surface is null ? WindowBackground() : declared[surface];
+            var ratio = Contrast(ring, beneath);
+
+            if (ratio < ForState)
+            {
+                short_.Add(string.Create(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    $"  on {surface ?? "the window"} {Hex(beneath)} it measures {ratio:F2} and needs {ForState:F1}"));
+            }
+        }
+
+        Assert.True(
+            short_.Count == 0,
+            "The focus ring is drawn on a row that may already be in one of these states, so it "
+            + "has to be tellable from all of them:"
             + Environment.NewLine + string.Join(Environment.NewLine, short_));
     }
 
