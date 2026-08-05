@@ -223,7 +223,7 @@ public partial class MainWindow : Window
         }
         catch (System.Runtime.InteropServices.ExternalException refusal)
         {
-            _model.CouldNotDo(refusal.Message);
+            _model.Says.CouldNotDo(refusal.Message);
         }
     }
 

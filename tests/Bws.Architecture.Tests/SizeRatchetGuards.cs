@@ -152,7 +152,17 @@ public sealed class SizeRatchetGuards
     /// has now done so twice, on 2026-08-03 and again here, which is the entry working rather
     /// than failing: it reports the day the dial stopped being tight.
     /// </summary>
-    private const int ShippedFilesAllowedToBeLong = 4;
+    /// <summary>
+    /// Four until 2026-08-05, and it came down because the empty states asked MainViewModel.cs
+    /// for a fourth seam - which took it from 525 to 490 and out of this count altogether.
+    ///
+    /// <b>The mutation entry asked for the tightening, and the drift test above did not.</b> That
+    /// one only watches the longest file. Nothing watches this dial drifting loose, so the entry
+    /// that proves it can fail is what noticed: at an allowance of four with three files long,
+    /// making one more long changed nothing and it came back MISSED. <b>A dial with slack in it
+    /// is not holding the thing it is named after.</b>
+    /// </summary>
+    private const int ShippedFilesAllowedToBeLong = 3;
     private const int TestFilesAllowedToBeLong = 2;
 
     [Fact]

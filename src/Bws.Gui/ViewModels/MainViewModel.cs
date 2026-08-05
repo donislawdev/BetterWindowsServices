@@ -55,12 +55,11 @@ public sealed class MainViewModel : Observable
 
     private string _queryText = string.Empty;
     private bool _bareWordsAreExpressions;
-    private string _status = Texts.Of("gui.status.reading");
-    private string _notice = string.Empty;
-    private string _problem = string.Empty;
-    private string _refusal = string.Empty;
-    private bool _incomplete;
     private bool _reading;
+
+    /// <summary>Whether the last reading failed outright, which is not the same as admitting gaps.</summary>
+    private bool _failed;
+
 
     public MainViewModel()
         : this(new WindowsScmCatalog(), new SystemClock())
@@ -88,6 +87,16 @@ public sealed class MainViewModel : Observable
     public RowList Rows { get; } = [];
 
     /// <summary>
+    /// Everything the window says about this answer - the count, the two admissions, and the
+    /// sentence in the middle of an empty list.
+    ///
+    /// Its own object since 2026-08-05, when the empty states arrived and the size ratchet asked
+    /// for a fourth seam. Choosing which sentence applies is reasoning about words, and the rest
+    /// of this class is about rows, queries and threads.
+    /// </summary>
+    public Says Says { get; } = new();
+
+    /// <summary>
     /// The one field: free search, regular expressions and the query language, exactly as
     /// <c>A1</c> to <c>A3</c> ask for and exactly as the command line takes it.
     ///
@@ -106,7 +115,7 @@ public sealed class MainViewModel : Observable
                 // Asking for something else puts away what the last action could not do. It is
                 // the only signal available that the person has moved on - and a refusal that
                 // stayed while they typed would end up describing a list it no longer refers to.
-                _refusal = string.Empty;
+                Says.Moved();
 
                 Apply();
             }
@@ -232,75 +241,6 @@ public sealed class MainViewModel : Observable
         }
     }
 
-    /// <summary>One line under the list. Never empty - "reading" is a state worth showing.</summary>
-    public string Status
-    {
-        get => _status;
-        private set => Set(ref _status, value);
-    }
-
-    /// <summary>
-    /// What this result has to admit about itself: entries judged on something nobody could
-    /// read, entries never judged at all, questions about data this window has not read, and
-    /// a list holding still because somebody is using it.
-    ///
-    /// Empty when there is nothing to admit, which is the ordinary case. Separate from
-    /// <see cref="Problem"/> because these are facts about the answer and that one is a fact
-    /// about the question.
-    /// </summary>
-    public string Notice
-    {
-        get => _notice;
-        private set => Set(ref _notice, value);
-    }
-
-    /// <summary>
-    /// What is wrong with what was asked for - a query that will not parse, or something the
-    /// window tried and could not do. Empty while it reads.
-    ///
-    /// A mistake in a query leaves the list alone - `docs/07` again - so this is the only sign
-    /// that the box and the list have stopped agreeing, and it has to be visible.
-    ///
-    /// <b>An action's refusal wins over a query's, and outlives a tick.</b> Both would otherwise
-    /// be written by <see cref="Apply"/>, which runs whenever anything on the machine moves - so
-    /// a copy that failed would announce itself and be gone within the second, on a busy machine
-    /// before anybody read it. It clears when the person asks for something else.
-    ///
-    /// The right home for a finished action's result is a transient one, and WPF UI has a
-    /// Snackbar for it - `docs/10` section 4. This line is where it goes until there is a slice
-    /// that puts one in.
-    /// </summary>
-    public string Problem => _refusal.Length > 0 ? _refusal : _problem;
-
-    /// <summary>
-    /// Something the window tried on the person's behalf and could not do.
-    ///
-    /// Rule 8 in a place it is easy to think does not apply: an action that quietly did nothing
-    /// leaves somebody believing it did. The clipboard is the live example - it belongs to
-    /// whichever process grabbed it last, so copying genuinely fails on a working machine.
-    /// </summary>
-    public void CouldNotDo(string because)
-    {
-        _refusal = Texts.Of("gui.status.couldNotDo", because);
-
-        Raise(nameof(Problem));
-    }
-
-    /// <summary>
-    /// Whether the reading admitted to gaps. Shown, never swallowed.
-    ///
-    /// Rule 8 in the window: a listing that quietly dropped what it could not read looks
-    /// complete, and looking complete is exactly what makes it dangerous.
-    ///
-    /// About the reading, not about the query. A result the query could only half answer says
-    /// so in <see cref="Notice"/> - folding the two together would put "the machine refused"
-    /// and "this filter had nothing to go on" behind one flag.
-    /// </summary>
-    public bool Incomplete
-    {
-        get => _incomplete;
-        private set => Set(ref _incomplete, value);
-    }
 
     /// <summary>
     /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks
@@ -315,12 +255,12 @@ public sealed class MainViewModel : Observable
     /// </summary>
     public async Task LoadAsync()
     {
-        if (_reading)
+        if (Reading)
         {
             return;
         }
 
-        _reading = true;
+        Reading = true;
 
         try
         {
@@ -328,7 +268,7 @@ public sealed class MainViewModel : Observable
         }
         finally
         {
-            _reading = false;
+            Reading = false;
         }
     }
 
@@ -338,7 +278,11 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private async Task LoadEverything()
     {
-        Status = Texts.Of("gui.status.reading");
+        Says.Status = Texts.Of("gui.status.reading");
+
+        // Said before the reading rather than after it, or the one state this announces would be
+        // announced only once it had stopped being true.
+        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
 
         IReadOnlyList<ScmEntry> entries;
 
@@ -359,7 +303,8 @@ public sealed class MainViewModel : Observable
         }
 #pragma warning restore CA1031
 
-        Incomplete = false;
+        Says.Incomplete = false;
+        _failed = false;
         _index.Absorb(entries);
         Apply();
     }
@@ -385,12 +330,12 @@ public sealed class MainViewModel : Observable
         // One flag for both kinds of reading, not two. They rebuild the same state, so two
         // flags would let a tick and an F5 overlap and leave whichever finished last on
         // screen, which is not the same thing as whichever looked last.
-        if (_reading)
+        if (Reading)
         {
             return;
         }
 
-        _reading = true;
+        Reading = true;
 
         try
         {
@@ -412,7 +357,7 @@ public sealed class MainViewModel : Observable
             }
 #pragma warning restore CA1031
 
-            Incomplete = false;
+            Says.Incomplete = false;
 
             switch (_index.Absorb(statuses))
             {
@@ -434,7 +379,7 @@ public sealed class MainViewModel : Observable
         }
         finally
         {
-            _reading = false;
+            Reading = false;
         }
     }
 
@@ -444,23 +389,41 @@ public sealed class MainViewModel : Observable
     /// </summary>
     public void FadeHighlights() => _index.Fade();
 
-    /// <summary>What is wrong with the query, which may be nothing. Silent while an action's refusal stands.</summary>
-    private void SayProblem(string problem)
+
+    /// <summary>
+    /// Whether a reading is out, and the face follows it.
+    ///
+    /// <b>A property rather than a field, and the reason is a fault this had for ten minutes.</b>
+    /// The face was worked out at the end of a reading, while this was still true - so a query
+    /// that matched nothing after F5 came out as "reading the manager" and stayed there, because
+    /// nothing ran again once the reading ended. Every path that lowers this now says so, which
+    /// is cheaper than every path remembering to.
+    /// </summary>
+    private bool Reading
     {
-        if (_problem == problem)
+        get => _reading;
+
+        set
         {
-            return;
+            if (_reading == value)
+            {
+                return;
+            }
+
+            _reading = value;
+
+            Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
         }
-
-        _problem = problem;
-
-        Raise(nameof(Problem));
     }
+
 
     private void Fail(Exception failure)
     {
-        Status = Texts.Of("gui.status.failed", failure.Message);
-        Incomplete = true;
+        Says.Status = Texts.Of("gui.status.failed", failure.Message);
+        Says.Incomplete = true;
+        _failed = true;
+
+        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
     }
 
     /// <summary>
@@ -485,12 +448,12 @@ public sealed class MainViewModel : Observable
             // Every complaint, not the first one. Two mistakes in one query is ordinary while
             // somebody is typing, and fixing one to be told about the next is a poor trade for
             // a shorter line.
-            SayProblem(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
+            Says.AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
 
             return;
         }
 
-        SayProblem(string.Empty);
+        Says.AboutTheQuery(string.Empty);
         _query = parsed.Query!;
 
         var everything = _index.Ordered;
@@ -498,11 +461,13 @@ public sealed class MainViewModel : Observable
 
         Show(narrowed.Selected);
 
-        Status = narrowed.Selected.Count == everything.Count
+        Says.Status = narrowed.Selected.Count == everything.Count
             ? Texts.Of("gui.status.read", everything.Count)
             : Texts.Of("gui.status.matched", narrowed.Selected.Count, everything.Count);
 
-        Notice = Sentences.Admissions(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
+        Says.Notice = Sentences.Admissions(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
+
+        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
 
         Raise(nameof(ShowDrivers));
     }

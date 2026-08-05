@@ -184,8 +184,8 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
         model.QueryText = "signed:yes";
 
         Assert.Empty(model.Rows);
-        Assert.Equal(string.Empty, model.Problem);
-        Assert.NotEqual(string.Empty, model.Notice);
+        Assert.Equal(string.Empty, model.Says.Problem);
+        Assert.NotEqual(string.Empty, model.Says.Notice);
 
         var terminal = Terminal("signed:yes");
 

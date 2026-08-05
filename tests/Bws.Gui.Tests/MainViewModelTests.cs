@@ -34,10 +34,10 @@ public sealed class MainViewModelTests
     {
         var model = await Loaded(Entry("Spooler"));
 
-        Assert.Contains("1", model.Status, StringComparison.Ordinal);
-        Assert.False(model.Incomplete);
-        Assert.Equal(string.Empty, model.Notice);
-        Assert.Equal(string.Empty, model.Problem);
+        Assert.Contains("1", model.Says.Status, StringComparison.Ordinal);
+        Assert.False(model.Says.Incomplete);
+        Assert.Equal(string.Empty, model.Says.Notice);
+        Assert.Equal(string.Empty, model.Says.Problem);
     }
 
     [Fact]
@@ -51,8 +51,8 @@ public sealed class MainViewModelTests
         await model.LoadAsync();
 
         Assert.Empty(model.Rows);
-        Assert.True(model.Incomplete);
-        Assert.Contains("no manager here", model.Status, StringComparison.Ordinal);
+        Assert.True(model.Says.Incomplete);
+        Assert.Contains("no manager here", model.Says.Status, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -89,8 +89,8 @@ public sealed class MainViewModelTests
 
         // Both numbers, because "2 entries" on a filtered list reads as a machine with two
         // services on it.
-        Assert.Contains("2", model.Status, StringComparison.Ordinal);
-        Assert.Contains("3", model.Status, StringComparison.Ordinal);
+        Assert.Contains("2", model.Says.Status, StringComparison.Ordinal);
+        Assert.Contains("3", model.Says.Status, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class MainViewModelTests
         Assert.Equal("Spooler", model.Rows[0].ServiceName);
 
         // And the complaint carries the way out, not merely the fact of a mistake.
-        Assert.Contains("running", model.Problem, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("running", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class MainViewModelTests
         {
             model.QueryText = halfway;
 
-            Assert.Equal(string.Empty, model.Problem);
+            Assert.Equal(string.Empty, model.Says.Problem);
         }
 
         // The last one selects everything, because a member with nothing after the colon is
@@ -253,7 +253,7 @@ public sealed class MainViewModelTests
         model.QueryText = "spooler(";
 
         Assert.Single(model.Rows);
-        Assert.NotEqual(string.Empty, model.Problem);
+        Assert.NotEqual(string.Empty, model.Says.Problem);
     }
 
     [Fact]
@@ -271,10 +271,10 @@ public sealed class MainViewModelTests
         model.QueryText = "signed:no";
 
         Assert.Empty(model.Rows);
-        Assert.Equal(string.Empty, model.Problem);
-        Assert.Contains(Bws.Gui.Texts.Of("gui.query.unreadSignatures"), model.Notice, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, model.Says.Problem);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.query.unreadSignatures"), model.Says.Notice, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            Bws.Gui.Texts.Of("gui.status.partial", 2), model.Notice, StringComparison.Ordinal);
+            Bws.Gui.Texts.Of("gui.status.partial", 2), model.Says.Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -289,7 +289,7 @@ public sealed class MainViewModelTests
         model.QueryText = "account:LocalSystem";
 
         Assert.Equal(["Spooler"], model.Rows.Select(row => row.ServiceName));
-        Assert.NotEqual(string.Empty, model.Notice);
+        Assert.NotEqual(string.Empty, model.Says.Notice);
     }
 
     // ---------------------------------------------------------------------------------
@@ -451,7 +451,7 @@ public sealed class MainViewModelTests
 
         // And it says so, because a list quietly disagreeing with its own query is the silence
         // rule 8 forbids, arriving from the one direction where it looks like politeness.
-        Assert.Contains(Bws.Gui.Texts.Of("gui.status.holding"), model.Notice, StringComparison.Ordinal);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.status.holding"), model.Says.Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -469,7 +469,7 @@ public sealed class MainViewModelTests
         model.Interacting = false;
 
         Assert.Equal(["BITS"], model.Rows.Select(row => row.ServiceName));
-        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.status.holding"), model.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.status.holding"), model.Says.Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -483,14 +483,14 @@ public sealed class MainViewModelTests
         machine.FailNext = new InvalidOperationException("the manager went away");
         await model.RefreshAsync();
 
-        Assert.True(model.Incomplete);
-        Assert.Contains("the manager went away", model.Status, StringComparison.Ordinal);
+        Assert.True(model.Says.Incomplete);
+        Assert.Contains("the manager went away", model.Says.Status, StringComparison.Ordinal);
 
         // And the next tick recovers rather than staying broken.
         machine.Stop("Spooler");
         await model.RefreshAsync();
 
-        Assert.False(model.Incomplete);
+        Assert.False(model.Says.Incomplete);
         Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler").Status);
     }
 
@@ -503,7 +503,7 @@ public sealed class MainViewModelTests
         await model.RefreshAsync();
 
         Assert.All(model.Rows, row => Assert.False(row.RecentlyChanged));
-        Assert.Equal(string.Empty, model.Notice);
+        Assert.Equal(string.Empty, model.Says.Notice);
     }
 
     [Fact]
@@ -652,7 +652,7 @@ public sealed class MainViewModelTests
             $"Two rows carry the same service name {after}.");
 
         // The line under the list always says something. "Reading" counts, emptiness does not.
-        Assert.False(string.IsNullOrWhiteSpace(model.Status), $"The line under the list is empty {after}.");
+        Assert.False(string.IsNullOrWhiteSpace(model.Says.Status), $"The line under the list is empty {after}.");
 
         var parsed = QueryParser.Parse(model.QueryText, bareWordsAreExpressions: model.BareWordsAreExpressions);
 
@@ -660,12 +660,12 @@ public sealed class MainViewModelTests
         // hold it to - and the window has to have said so.
         if (!parsed.IsValid)
         {
-            Assert.False(string.IsNullOrWhiteSpace(model.Problem), $"A broken query is not reported {after}.");
+            Assert.False(string.IsNullOrWhiteSpace(model.Says.Problem), $"A broken query is not reported {after}.");
 
             return;
         }
 
-        Assert.Equal(string.Empty, model.Problem);
+        Assert.Equal(string.Empty, model.Says.Problem);
 
         // Suspended on purpose while somebody is leaning on the list, and the window says so
         // in words. That is the one place this invariant is allowed to lapse, and it may not

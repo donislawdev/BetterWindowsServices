@@ -34,6 +34,13 @@
   "gui.menu.copyName": "Copy name",
   "gui.menu.copyDisplayName": "Copy display name",
 
+  "gui.empty.loading": "Reading the service control manager...",
+  "gui.empty.nothingMatched": "Nothing on this machine matches what you asked for.",
+  "gui.empty.nothingMatchedWayOut": "Press Esc to empty the box and see everything again.",
+  "gui.empty.nothingToShow": "The service control manager handed over no entries at all.",
+  "gui.empty.failed": "The list could not be read. What went wrong is written under it.",
+  "gui.empty.failedWayOut": "Press F5 to read the machine again.",
+
   "gui.query.unreadSignatures": "This asks about signatures, which are not read for a listing, so no entry can answer it here. Ask the command line with --signatures.",
   "gui.query.unreadMemory": "This asks about memory, which is not read for a listing, so no entry can answer it here. Ask the command line with --memory.",
 

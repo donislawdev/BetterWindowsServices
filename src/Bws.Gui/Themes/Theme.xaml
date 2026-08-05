@@ -304,6 +304,13 @@
     -->
     <Thickness x:Key="FocusRingThickness">1</Thickness>
 
+    <!--
+        How wide a sentence in the middle of an empty list may get before it stops being one.
+        Around seventy characters at TextSizeHeading, which is the span typography guidance puts
+        a line of prose at - a sentence stretched across 1650 pixels is read twice or not at all.
+    -->
+    <system:Double x:Key="WidthEmptyState">520</system:Double>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
@@ -708,6 +715,40 @@
     <Style x:Key="SubduedText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
+        THE COUNT, WHICH MOVED OUT FROM UNDER THE LIST AND STOPPED BEING SUBDUED. Complaint 8 of
+        the eleven says it was the least visible thing on the screen and is the main answer to
+        every keystroke - small, grey and at the bottom is three ways of saying "ignore me".
+
+        SEMIBOLD WHEN THE LIST IS NARROWED, AND THAT IS COMPLAINT 7 RATHER THAN DECORATION. That
+        one says you cannot see THAT a filter is on. The words already say it - "108 of 810"
+        against "810" - but a weight change is seen without reading, which is the difference
+        between a signal and a fact you have to go and check.
+
+        TextSizeHeader rather than TextSizeHeading: 14 is the floor for semibold text in the
+        guidance TypeScaleGuards holds, and this line is semibold half the time.
+    -->
+    <Style x:Key="CountLine" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Says.Narrowed}" Value="True">
+                <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The sentence in the middle of an empty list. Larger than the rows, because it is the only
+        thing on that half of the screen and somebody is looking at it wondering what happened.
+    -->
+    <Style x:Key="EmptyStateText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
         <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
     </Style>
 

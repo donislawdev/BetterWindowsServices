@@ -234,6 +234,14 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **Something the window cannot do is now said out loud.** The clipboard belongs to whichever
   program took it last, so copying genuinely fails sometimes. It reports that under the list
   instead of doing nothing, and the message stays until you ask for something else.
+- **An empty list now says why it is empty.** There were four different reasons for it and one
+  blank rectangle: still reading, nothing matched what you asked for, the machine handed over
+  nothing at all, or the list could not be read. Each says which, in the middle of the window,
+  and the ones you can do something about say what - Escape to empty the box, F5 to read again.
+  The column headings stay where they are while it does.
+- **The entry count moved up beside the search box and got bigger.** It answers every keystroke
+  you make there, and it used to be the smallest grey text in the bottom corner. It also thickens
+  while a filter is on, so you can see that the list is narrowed without reading the number.
   - **The start type now says what changes its meaning**, the same way the command line
     already did: delayed, on trigger, or file missing. A stopped automatic service that is
     waiting to be asked for is no longer indistinguishable from one that failed to start.

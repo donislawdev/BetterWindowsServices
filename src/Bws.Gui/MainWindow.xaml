@@ -58,6 +58,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
@@ -104,10 +105,34 @@
                 early: the filter you clicked is the query you can read.
             -->
             <CheckBox Grid.Column="2"
+                      Margin="{StaticResource MarginBetweenControls}"
                       VerticalAlignment="Center"
                       IsChecked="{Binding ShowDrivers}"
                       Content="{DynamicResource gui.search.showDrivers}"
                       ToolTip="{DynamicResource gui.search.showDriversHint}" />
+
+            <!--
+                THE COUNT, AND IT MOVED UP HERE FROM UNDER THE LIST. Complaint 8 of the eleven:
+                it was the least visible thing on the screen - small, grey, bottom left - and it
+                is the main answer to every keystroke in the box beside it. Beside the box is
+                where somebody is already looking.
+
+                It doubles as complaint 7, "you cannot see THAT it is filtering". A narrowed list
+                reads "108 of 810 entries" rather than "810 entries", which says both that a
+                filter is on and how much it took - and the style below makes it semibold when
+                narrowed, so the difference is visible without reading the number.
+
+                Trimmed with a tooltip, because this line also carries the failure message, which
+                is the system's and can be any length. The same failure is said again in the
+                middle of the empty list, where there is room for it.
+            -->
+            <TextBlock Grid.Column="3"
+                       AutomationProperties.AutomationId="countLine"
+                       VerticalAlignment="Center"
+                       Text="{Binding Says.Status}"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Says.Status}"
+                       Style="{StaticResource CountLine}" />
         </Grid>
 
         <!--
@@ -244,18 +269,76 @@
         </DataGrid>
 
         <!--
-            Three lines and never fewer than one. The count is always there, the other two
-            appear only when they have something to say - and what they say is kept apart on
-            purpose: one is a fact about the answer, the other about the question.
+            WHAT THE MIDDLE OF THE WINDOW SAYS WHEN IT HAS NO ROWS. Complaint 9 of the eleven,
+            and the one the line under the list could not answer: an empty rectangle does not
+            say whether nothing matched or something broke, and a line of grey text below the
+            grid is read after the grid, if at all.
+
+            It sits OVER the grid rather than instead of it, so the column headings stay where
+            they are - a list whose headings vanish reads as a window that fell over, and at the
+            empty state the rows come back on the next key press. Not hit testable, so the grid
+            underneath still takes a click.
+
+            Five states rather than four, and the fifth is why this is worked out in ListState
+            rather than here: a machine that hands over nothing is not a query that matched
+            nothing, and offering to clear an empty query would be the window being confidently
+            wrong.
+        -->
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsHitTestVisible="False"
+                    MaxWidth="{StaticResource WidthEmptyState}">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Says.ListMessage}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+
+            <TextBlock Text="{Binding Says.ListMessage}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Style="{StaticResource EmptyStateText}" />
+
+            <!--
+                The way out, and it is the only place in this window that says these two keys
+                exist. Nielsen's third heuristic - `docs/11` 9.2 names it as this product's
+                weakest - and both keys were added the day before and are invisible everywhere
+                else. Empty when there is none to offer, which is the loading state and a machine
+                with nothing on it.
+            -->
+            <TextBlock Text="{Binding Says.ListWayOut}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Margin="{StaticResource MarginAboveStatus}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Says.ListWayOut}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
+
+        <!--
+            Two lines now, and never more than two. The count moved up beside the box it answers
+            - complaint 8 - and what is left here is what a result has to ADMIT about itself and
+            what is wrong with the question, which are two different things and stay apart.
         -->
         <StackPanel Grid.Row="2" Margin="{StaticResource MarginAboveStatus}">
-            <TextBlock Text="{Binding Status}" Style="{StaticResource SubduedText}" />
 
-            <TextBlock Text="{Binding Notice}" TextWrapping="Wrap">
+            <TextBlock Text="{Binding Says.Notice}" TextWrapping="Wrap">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Notice}" Value="">
+                            <DataTrigger Binding="{Binding Says.Notice}" Value="">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -263,11 +346,11 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <TextBlock Text="{Binding Problem}" TextWrapping="Wrap">
+            <TextBlock Text="{Binding Says.Problem}" TextWrapping="Wrap">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource ProblemText}">
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Problem}" Value="">
+                            <DataTrigger Binding="{Binding Says.Problem}" Value="">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>

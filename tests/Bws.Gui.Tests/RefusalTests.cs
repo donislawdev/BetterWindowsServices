@@ -22,11 +22,11 @@ public sealed class RefusalTests
 
         await model.LoadAsync();
 
-        Assert.Equal(string.Empty, model.Problem);
+        Assert.Equal(string.Empty, model.Says.Problem);
 
-        model.CouldNotDo("The clipboard is in use.");
+        model.Says.CouldNotDo("The clipboard is in use.");
 
-        Assert.Contains("clipboard", model.Problem, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("clipboard", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -46,13 +46,13 @@ public sealed class RefusalTests
 
         await model.LoadAsync();
 
-        model.CouldNotDo("The clipboard is in use.");
+        model.Says.CouldNotDo("The clipboard is in use.");
 
         machine.Stop("BITS");
 
         await model.RefreshAsync();
 
-        Assert.Contains("clipboard", model.Problem, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("clipboard", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -67,10 +67,10 @@ public sealed class RefusalTests
 
         await model.LoadAsync();
 
-        model.CouldNotDo("The clipboard is in use.");
+        model.Says.CouldNotDo("The clipboard is in use.");
         model.QueryText = "spool";
 
-        Assert.Equal(string.Empty, model.Problem);
+        Assert.Equal(string.Empty, model.Says.Problem);
     }
 
     /// <summary>
@@ -89,13 +89,13 @@ public sealed class RefusalTests
 
         model.QueryText = "start:nonsense";
 
-        Assert.NotEqual(string.Empty, model.Problem);
+        Assert.NotEqual(string.Empty, model.Says.Problem);
 
-        var aboutTheQuery = model.Problem;
+        var aboutTheQuery = model.Says.Problem;
 
-        model.CouldNotDo("The clipboard is in use.");
+        model.Says.CouldNotDo("The clipboard is in use.");
 
-        Assert.NotEqual(aboutTheQuery, model.Problem);
-        Assert.Contains("clipboard", model.Problem, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(aboutTheQuery, model.Says.Problem);
+        Assert.Contains("clipboard", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
     }
 }
