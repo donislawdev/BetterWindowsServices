@@ -148,51 +148,41 @@ internal static class ListingTable
     /// </summary>
     private static string StartCell(ScmEntry entry)
     {
-        var startType = Cell(entry.StartType, value => value.ToString());
+        var cell = Cell(entry.StartType, value => value.ToString());
 
-        // Only where the flag does something, which is not the same as everywhere it is read.
-        // Since 2026-08-01 the manager is asked about it for every non-driver entry, because
-        // it is stored configuration a snapshot should carry - but Windows ignores it unless
-        // the entry starts automatically. Printing "Manual (delayed)" would be a sentence
-        // about a setting that has no effect, on eight entries of this machine.
-        var meansSomething = entry.StartType.IsPresent && entry.StartType.Value == StartType.Automatic;
+        // WHICH qualifiers apply is decided in the core, because the window shows the same
+        // column and two copies of one rule drift apart quietly. What stays here is the
+        // WORDING, which is different on purpose: these come out of cli.en.json and the
+        // window's come out of gui.en.json.
+        //
+        // Everything below is unchanged in behaviour from the version that computed it here,
+        // and the contract tests over a real machine are what says so.
+        var qualifies = StartQualifiers.Of(entry);
 
-        var cell = entry.DelayedAuto.Outcome switch
+        if (qualifies.Delayed)
         {
-            ReadOutcome.Present when entry.DelayedAuto.Value && meansSomething =>
-                Texts.Of("cli.cell.startDelayed", startType),
+            cell = Texts.Of("cli.cell.startDelayed", cell);
+        }
+        else if (qualifies.DelayUnknown)
+        {
+            cell = Texts.Of("cli.cell.startDelayedUnknown", cell);
+        }
 
-            // A refusal is only worth reporting where the answer would have changed what the
-            // start type means. Elsewhere it is an admission about a field nobody was asking
-            // about, which is noise rather than honesty.
-            ReadOutcome.Denied when meansSomething => Texts.Of("cli.cell.startDelayedUnknown", startType),
-
-            _ => startType
-        };
-
-        // Only a trigger that starts it. One that stops the service says nothing about
-        // whether it will come up, and marking it here would answer a question nobody asked
-        // with a fact about something else.
-        var startsOnTrigger = entry.Triggers.IsPresent
-            && entry.Triggers.Value!.Any(trigger => trigger.Action == TriggerAction.Start);
-
-        if (startsOnTrigger)
+        if (qualifies.OnTrigger)
         {
             cell = Texts.Of("cli.cell.startTrigger", cell);
         }
 
-        // A missing file changes what the start type means more sharply than either of the
-        // two above: whatever the manager was going to do with this entry, it cannot. Said
-        // here for the same reason and at the same cost - measured on a real machine, five
-        // entries of 810, so it widens five rows rather than the table.
+        // A missing file changes what the start type means more sharply than the two above:
+        // whatever the manager was going to do with this entry, it cannot. Said here for the
+        // same reason and at the same cost - measured on a real machine, five entries of 810,
+        // so it widens five rows rather than the table.
         //
         // A column of its own was the other option and was measured rather than guessed: the
         // listing is already 260 characters across and the paths would take it past 400, for
         // something that is empty on 805 rows out of 810. The path itself is in --json, where
         // a person who wants it can get at it.
-        var fileMissing = entry.BinaryOnDisk is { Outcome: ReadOutcome.Present, Value: false };
-
-        return fileMissing ? Texts.Of("cli.cell.startFileMissing", cell) : cell;
+        return qualifies.FileMissing ? Texts.Of("cli.cell.startFileMissing", cell) : cell;
     }
 
     private static string Cell<T>(Reading<T> reading, Func<T, string> show) => reading.Outcome switch

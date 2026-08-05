@@ -45,5 +45,24 @@
 
   "gui.cell.unknown": "unknown",
   "gui.cell.noAccess": "no access",
-  "gui.cell.none": "none"
+  "gui.cell.none": "none",
+
+  "gui.cell.status.running": "Running",
+  "gui.cell.status.stopped": "Stopped",
+  "gui.cell.status.paused": "Paused",
+  "gui.cell.status.startPending": "Start pending",
+  "gui.cell.status.stopPending": "Stop pending",
+  "gui.cell.status.continuePending": "Continue pending",
+  "gui.cell.status.pausePending": "Pause pending",
+
+  "gui.cell.start.boot": "Boot",
+  "gui.cell.start.system": "System",
+  "gui.cell.start.automatic": "Automatic",
+  "gui.cell.start.manual": "Manual",
+  "gui.cell.start.disabled": "Disabled",
+
+  "gui.cell.start.delayed": "{0} (delayed)",
+  "gui.cell.start.delayUnknown": "{0} (delay unknown)",
+  "gui.cell.start.trigger": "{0}, on trigger",
+  "gui.cell.start.fileMissing": "{0}, file missing"
 }

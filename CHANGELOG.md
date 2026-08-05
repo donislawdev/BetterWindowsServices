@@ -212,6 +212,23 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The window's list can be scanned instead of read.** Status and start type now carry a
+  coloured mark beside the word rather than being one more column of grey text: filled means
+  the service is doing something, hollow means it is not. Process ids line up on their last
+  digit. Column headings are heavier and a size larger than the rows under them, and a line
+  runs between one row and the next so a row can be followed across the window.
+  - **The start type now says what changes its meaning**, the same way the command line
+    already did: delayed, on trigger, or file missing. A stopped automatic service that is
+    waiting to be asked for is no longer indistinguishable from one that failed to start.
+  - Text that does not fit ends in an ellipsis and carries the whole of itself in a tooltip.
+    It used to be cut in the middle of a character, which read as something being broken.
+  - The smallest text in the window went from 11 to 12 pixels, which is the smallest size
+    Microsoft's guidance considers readable. It carries the entry count and both messages.
+
+- **The PID column no longer cuts five-digit process ids in half.** It showed `14(` instead
+  of `14052` in an ordinary window. Every column now has a width chosen for what it has to
+  hold rather than for whatever happened to be on the first screenful.
+
 - **The delayed start setting is now recorded for every service, not only automatic ones.**
   Windows lets you mark any service as delayed, and it only does anything on an automatic
   one - but it is stored either way, and a snapshot that could not see it would miss the

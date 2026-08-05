@@ -22,18 +22,24 @@ public sealed class EntryRow : Observable
     private ScmEntry _entry;
     private string _displayName;
     private string _status;
+    private string _statusShape;
     private string _startType;
+    private string _startShape;
     private string _account;
     private string _processId;
     private bool _recentlyChanged;
 
     private EntryRow(ScmEntry entry)
     {
+        var qualifies = StartQualifiers.Of(entry);
+
         _entry = entry;
         ServiceName = entry.ServiceName;
         _displayName = entry.DisplayName;
-        _status = entry.Status.ToString();
-        _startType = Describe(entry.StartType, value => value.ToString());
+        _status = CellFaces.StatusLabel(entry.Status);
+        _statusShape = CellFaces.StatusShape(entry.Status);
+        _startType = CellFaces.StartLabel(entry, qualifies);
+        _startShape = CellFaces.StartShape(entry, qualifies);
         _account = Describe(entry.Account, value => value);
         _processId = Describe(entry.ProcessId, Number);
     }
@@ -57,10 +63,31 @@ public sealed class EntryRow : Observable
         private set => Set(ref _status, value);
     }
 
+    /// <summary>
+    /// Which shape the status wears, as a code the theme turns into a colour.
+    ///
+    /// Separate from <see cref="Status"/> rather than derived from it in the view, because the
+    /// word is translated and the shape is not. A trigger comparing against "Running" would go
+    /// quiet the day somebody adds a second language file, and go quiet is exactly what it
+    /// would do - the row would simply lose its colour with nothing said.
+    /// </summary>
+    public string StatusShape
+    {
+        get => _statusShape;
+        private set => Set(ref _statusShape, value);
+    }
+
     public string StartType
     {
         get => _startType;
         private set => Set(ref _startType, value);
+    }
+
+    /// <summary>Which shape the start type wears. Same split as <see cref="StatusShape"/>.</summary>
+    public string StartShape
+    {
+        get => _startShape;
+        private set => Set(ref _startShape, value);
     }
 
     public string Account
@@ -115,7 +142,8 @@ public sealed class EntryRow : Observable
 
         _entry = _entry with { Status = status.Status, ProcessId = status.ProcessId };
 
-        Status = _entry.Status.ToString();
+        Status = CellFaces.StatusLabel(_entry.Status);
+        StatusShape = CellFaces.StatusShape(_entry.Status);
         ProcessId = Describe(_entry.ProcessId, Number);
         ChangedAt = now;
         RecentlyChanged = true;
@@ -129,17 +157,25 @@ public sealed class EntryRow : Observable
     /// </summary>
     internal bool Absorb(ScmEntry entry, DateTimeOffset now)
     {
+        var qualifies = StartQualifiers.Of(entry);
+
+        // Compared against what the row currently SHOWS rather than against the entry behind
+        // it. The two are the same thing said twice, and the shown form is the one that now
+        // carries the qualifiers - so a file going missing under a service counts as the row
+        // moving, which it is.
         var moved = _entry.Status != entry.Status
             || !SameProcess(_entry.ProcessId, entry.ProcessId)
-            || Describe(_entry.StartType, value => value.ToString()) != Describe(entry.StartType, value => value.ToString())
-            || Describe(_entry.Account, value => value) != Describe(entry.Account, value => value)
+            || CellFaces.StartLabel(entry, qualifies) != _startType
+            || Describe(entry.Account, value => value) != _account
             || _entry.DisplayName != entry.DisplayName;
 
         _entry = entry;
 
         DisplayName = entry.DisplayName;
-        Status = entry.Status.ToString();
-        StartType = Describe(entry.StartType, value => value.ToString());
+        Status = CellFaces.StatusLabel(entry.Status);
+        StatusShape = CellFaces.StatusShape(entry.Status);
+        StartType = CellFaces.StartLabel(entry, qualifies);
+        StartShape = CellFaces.StartShape(entry, qualifies);
         Account = Describe(entry.Account, value => value);
         ProcessId = Describe(entry.ProcessId, Number);
 

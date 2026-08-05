@@ -124,6 +124,171 @@ public sealed class ListingTableTests
             read[0].Split("  ", StringSplitOptions.RemoveEmptyEntries).Length);
     }
 
+    /// <summary>
+    /// The start cell says everything that changes what the start type means, in the order it
+    /// has always said it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Written 2026-08-05 because the coverage gate went red and pointed at a real gap.</b>
+    /// The rule deciding WHICH qualifiers apply moved into `Bws.Core.StartQualifiers` when the
+    /// window started showing the same column - two copies of one rule was the alternative, and
+    /// this project has paid for that shape before. What stayed here is the WORDING, and the
+    /// wording had no test at all: the only thing watching it was a contract test running the
+    /// built executable against whatever this machine happens to have installed.
+    ///
+    /// So the gate did its job in the way `ADR-10` intends. Coverage fell because covered code
+    /// left this assembly, and the answer was the test that should have existed rather than a
+    /// lower floor. Backlog item 125.
+    /// </remarks>
+    [Fact]
+    public void The_start_cell_says_delayed_then_trigger_then_a_missing_file()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                StartType = Reading<StartType>.Present(StartType.Automatic),
+                DelayedAuto = Reading<bool>.Present(true),
+                Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                    [new ServiceTrigger(TriggerKind.Unknown, TriggerAction.Start)]),
+                BinaryOnDisk = Reading<bool>.Present(false)
+            }
+        ]);
+
+        var row = lines[1];
+
+        Assert.Contains("Automatic (delayed), on trigger, file missing", row, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Windows ignores the delay flag unless the entry starts automatically, so saying it beside
+    /// Manual would be a sentence about a setting with no effect - true of eight entries on the
+    /// machine this was measured on.
+    /// </summary>
+    [Fact]
+    // Named apart from the integration test making the same claim against a live machine, on
+    // purpose. Two tests with one method name are a filter waiting to match both and report
+    // "caught" when only one of them went red - the shape mutate.ps1 was itself caught in.
+    public void The_start_cell_marks_a_delay_only_where_it_changes_what_the_start_type_means()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                StartType = Reading<StartType>.Present(StartType.Manual),
+                DelayedAuto = Reading<bool>.Present(true)
+            }
+        ]);
+
+        Assert.DoesNotContain("delayed", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A trigger that stops an entry says nothing about whether it will come up, so marking it
+    /// where somebody is deciding whether a stopped service is broken answers a question nobody
+    /// asked with a fact about something else.
+    /// </summary>
+    [Fact]
+    public void A_trigger_that_only_stops_the_entry_is_not_marked_in_the_start_cell()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                StartType = Reading<StartType>.Present(StartType.Automatic),
+                Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                    [new ServiceTrigger(TriggerKind.Unknown, TriggerAction.Stop)])
+            }
+        ]);
+
+        Assert.DoesNotContain("trigger", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A refused reading is not an absent one. The cell says so in words, because a blank there
+    /// would read as "this entry has no start type", which is the one thing it never means.
+    /// </summary>
+    [Fact]
+    public void A_refused_start_type_says_so_rather_than_going_blank()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with { StartType = Reading<StartType>.Denied(5, "Access is denied.") }
+        ]);
+
+        Assert.Contains("no access", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A verdict carries whose name is on it, because "Trusted" alone answers half the question
+    /// an administrator is asking - trusted by whom.
+    /// </summary>
+    [Fact]
+    public void The_signature_cell_carries_the_publisher_beside_the_verdict()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                Signature = Reading<BinarySignature>.Present(
+                    new BinarySignature(SignatureStatus.Trusted, 0, "Contoso Systems"))
+            }
+        ]);
+
+        Assert.Contains("Trusted (Contoso Systems)", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// And a verdict with nobody's name on it says just the verdict, rather than an empty pair
+    /// of brackets that reads like something failed to fill in.
+    /// </summary>
+    [Fact]
+    public void A_signature_with_no_publisher_shows_the_verdict_on_its_own()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                Signature = Reading<BinarySignature>.Present(
+                    new BinarySignature(SignatureStatus.NotSigned, 0, null))
+            }
+        ]);
+
+        Assert.Contains("NotSigned", lines[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("(", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A memory figure never travels without how many entries it belongs to.
+    ///
+    /// Glossary pitfall P12, and it is the difference between a number and a misleading one:
+    /// a shared host process holds the memory of everything in it, so "36.1 MB" beside one
+    /// service reads as that service's cost and is not.
+    /// </summary>
+    [Fact]
+    public void A_shared_memory_figure_says_how_many_entries_share_it()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                Memory = Reading<ProcessMemory>.Present(new ProcessMemory(37_800_000, 20_000_000, 5))
+            }
+        ]);
+
+        Assert.Contains("shared by 5", lines[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// And a process holding one entry says only the number, because there is nothing to warn
+    /// about and a note on every row would teach people to stop reading it.
+    /// </summary>
+    [Fact]
+    public void A_memory_figure_belonging_to_one_entry_carries_no_note()
+    {
+        var lines = Rendered([
+            Entry("Aaa", "one") with
+            {
+                Memory = Reading<ProcessMemory>.Present(new ProcessMemory(37_800_000, 20_000_000, 1))
+            }
+        ]);
+
+        Assert.DoesNotContain("shared by", lines[1], StringComparison.Ordinal);
+    }
+
     private static string[] Rendered(IReadOnlyList<ScmEntry> entries) =>
         ListingTable.Render(entries).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 

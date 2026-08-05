@@ -530,16 +530,16 @@ public sealed class MainViewModel : Observable
     /// <summary>
     /// Makes the visible list match what the query selected.
     ///
-    /// Held back entirely while somebody is using the list - `A10`. Cells keep moving
-    /// underneath, and <see cref="Interacting"/> says why that half is not held back with it.
-    ///
+    /// Held back while somebody is using the list AND there is something to hold - `A10`, plus
+    /// <c>HoldingTests</c> for why the second half is not optional. Cells keep moving underneath
+    /// and <see cref="Interacting"/> says why that half is not held back with it.
     /// How the list becomes the other list is <see cref="RowList.Reconcile"/>, which is where it
     /// belongs: a collection that knows how to turn into another collection without losing the
     /// objects in it. This decides WHETHER to, which needs the things only a view model knows.
     /// </summary>
     private void Show(List<EntryRow> selected)
     {
-        if (_interacting)
+        if (_interacting && Rows.Count > 0)
         {
             _held = Rows.Count != selected.Count || !Rows.SequenceEqual(selected);
 

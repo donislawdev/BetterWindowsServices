@@ -60,7 +60,13 @@ public sealed class ContrastGuards
         // Ours, not WCAG's. Chosen at the point the state stops being visible at all: the
         // values these replaced measured 1.14 and 1.30.
         ["SurfaceHover"] = 1.5,
-        ["SurfaceChanged"] = 1.8
+        ["SurfaceChanged"] = 1.8,
+
+        // Ours too, and the lowest floor in the table on purpose. A line between two rows
+        // IDENTIFIES NOTHING - it only has to be seen between them, which is a smaller job than
+        // any state above. It also stays UNDER hover, so that pointing at a row remains the
+        // stronger of the two signals rather than competing with the furniture.
+        ["SurfaceRowLine"] = 1.25
     };
 
     [Fact]

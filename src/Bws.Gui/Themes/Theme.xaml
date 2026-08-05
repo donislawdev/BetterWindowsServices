@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
         The only file in this product allowed to hold an appearance value.
@@ -51,12 +52,85 @@
     <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
     <Thickness x:Key="MarginNone">0</Thickness>
 
+    <!-- The mark a meaningful cell wears, and the gap between it and its word. -->
+    <system:Double x:Key="ShapeMark">8</system:Double>
+    <system:Double x:Key="ShapeOutline">1.5</system:Double>
+    <Thickness x:Key="MarginAfterShape">0,0,8,0</Thickness>
+
     <!--
-        Type. Three sizes, because a fourth would need a reason nobody has yet.
+        COLUMN WIDTHS, AND THE THREE FIXED ONES ARE FIXED BECAUSE Auto WAS MEASURED AND IT LIES.
+
+        Measured 2026-08-05 with tools/gui-probe/columns.ps1, which drives the real window:
+        Width="Auto" on a DataGrid that virtualises its rows sizes to the rows REALISED SO FAR
+        and does not measure again as more scroll into view. The PID column sat at 36 pixels
+        through all 811 rows while the widest process id on screen went from 14052 to 103292 -
+        which needs 62 - so five and six digit numbers were cut in half by their own cell. That
+        is backlog item 53, and it is the whole of it: nothing ever overflowed the viewport, the
+        sum of the columns equalled it to the pixel in all five states measured.
+
+        The same run answered item 1 as a side effect. Account is declared 2* in MainWindow.xaml
+        and the grid reported 1.57514450867052* - the grid REWRITES star factors to pay for Auto
+        columns growing. Four attempts at tuning these proportions failed because the numbers
+        written in the view were not the numbers in force.
+
+        The fixed three are sized to their widest possible content plus the mark, not to today's
+        machine. The starred three carry text that will never fit at any width - a display name
+        wanted 476 pixels - so they get an ellipsis and a floor instead.
+
+        These are here rather than in the view because a width is an appearance value, ADR-23,
+        and because the columns are about to become a list somebody can add to and hide from.
+    -->
+    <DataGridLength x:Key="ColumnName">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnDisplayName">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnStatus">150</DataGridLength>
+    <DataGridLength x:Key="ColumnStart">215</DataGridLength>
+    <DataGridLength x:Key="ColumnAccount">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnProcessId">72</DataGridLength>
+
+    <!--
+        What a starred column may shrink to before it stops being worth reading. Below this the
+        ellipsis is most of the cell, and the answer is a narrower window rather than a wider
+        one - the owner chose no sideways scrolling on 2026-08-05, so the whole row stays on
+        screen and long text gives way.
+    -->
+    <system:Double x:Key="ColumnFloor">90</system:Double>
+
+    <!--
+        Type. Three sizes here and a fourth below, which arrived with the reason this line used
+        to say nobody had.
+
+        TextSizeSmall WAS 11 UNTIL 2026-08-05 AND 11 IS BELOW THE FLOOR. Microsoft's typography
+        guidance puts the minimum at 12 plain and 14 semibold, and the smallest size in this
+        window carried the count line, the notice and the query error - three of the four
+        sentences the window ever says. TypeScaleGuards holds the floor now, so it cannot go
+        back down without somebody arguing with a test.
+
+        TextSizeNormal stays at 13 and that is a decision rather than an oversight. The same
+        guidance calls Body 14, but 13 is above the floor and the owner has twice bought this
+        list's density with a measurement - their row spacing cost about 17% of the rows on
+        screen. A window whose job is 810 services spends nothing on a point of type it does
+        not need.
     -->
     <system:Double x:Key="TextSizeNormal">13</system:Double>
     <system:Double x:Key="TextSizeHeading">18</system:Double>
-    <system:Double x:Key="TextSizeSmall">11</system:Double>
+    <system:Double x:Key="TextSizeSmall">12</system:Double>
+
+    <!--
+        The fourth size, and the reason the comment above asked for. The floor for SEMIBOLD text
+        is 14, not 12 - a heavier stroke at a small size fills its own counters in - so a column
+        heading set semibold at TextSizeNormal would break the rule the same line of guidance
+        sets. It also earns its keep twice: a heading one point larger than its data is the
+        hierarchy this window had none of.
+    -->
+    <system:Double x:Key="TextSizeHeader">14</system:Double>
+
+    <!--
+        Semibold, and only for column headers. Bold is not on the ladder - the guidance says
+        semibold instead of bold, and never italic, "because it reduces readability, especially
+        for dyslexia". A header that looks like data is complaint 4 of the eleven.
+    -->
+    <FontWeight x:Key="TextWeightHeader">SemiBold</FontWeight>
+    <FontWeight x:Key="TextWeightNormal">Normal</FontWeight>
 
     <FontFamily x:Key="TextFace">Segoe UI</FontFamily>
 
@@ -144,6 +218,36 @@
     <SolidColorBrush x:Key="SurfaceSelected">#3F7099</SolidColorBrush>
     <SolidColorBrush x:Key="SurfaceHover">#454545</SolidColorBrush>
     <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
+
+    <!--
+        The line between one row and the next, so a row can be carried across six columns and
+        1650 pixels without the eye losing it. Complaint 2 of the eleven.
+
+        IT IS A LINE AND NOT A ZEBRA STRIPE, AND THAT IS A MEASUREMENT RATHER THAN A PREFERENCE.
+        The owner asked for stripes on 2026-08-05. Three ways of drawing them were tried against
+        the pixel and the first two failed:
+
+          1. AlternationCount plus a trigger on ItemsControl.AlternationIndex - nothing painted.
+             The grid coerces AlternationCount to nothing while AlternatingRowBackground is null.
+          2. DataGrid.AlternatingRowBackground - painted, and DISQUALIFIED BY WHAT THAT PROVED.
+             Set to one colour with our own row trigger set to another, the grid's colour is the
+             one on screen: it works by COERCION, which outranks every style trigger. Left in, it
+             would have taken selection, hover and the moved-a-moment-ago highlight off every
+             second row, silently.
+          3. A horizontal grid line - paints, at 1200,212 in the capture, and touches none of the
+             three row states because the grid draws it rather than the row's background.
+
+        FOUND ON THE WAY AND IT IS BIGGER THAN THIS BRUSH: a Background trigger in the ROW style
+        reaches no pixel at all under WPF UI, with either value. That is the mechanism the three
+        row states have been standing on since the migration, and whether THEY still arrive is
+        backlog item 49 - open, and needing the one instrument that must be run by hand.
+
+        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
+        a separator identifies nothing, it only has to be seen between two rows. #333333 measures
+        1.30 against the window, and deliberately stays under hover at 1.70 so that pointing at a
+        row still reads as the stronger signal.
+    -->
+    <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
 
     <!--
         A row that moved a moment ago. A10 rule three: a change has to be visible rather than
@@ -261,6 +365,129 @@
             the same decision as the margins on the row: keep the density this list had.
         -->
         <Setter Property="MinHeight" Value="{StaticResource SizeNone}" />
+    </Style>
+
+    <!--
+        WHAT EVERY CELL IN THE LIST IS MADE OF, AND THE TRIMMING IS THE POINT.
+
+        Without it a cell too narrow for its text cuts it wherever the pixels run out, halfway
+        through a character, with nothing to say it did - which reads as a rendering fault
+        rather than as "this does not fit". Measured on the real window: a display name wanted
+        476 pixels in a column of 365, and at 1039 pixels of window there is no width at which
+        the longest of them fits. Something has to give and the person has to be able to see
+        that it did.
+
+        The tooltip is the other half of the same rule. Text that gives way has to be gettable,
+        and a person who wants the whole of it should not have to widen the window and guess.
+    -->
+    <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
+    </Style>
+
+    <!--
+        Numbers line up on their last digit, text on its first. Complaint 3 of the eleven, and
+        it is how a column of process ids becomes comparable at a glance instead of being read
+        one row at a time.
+    -->
+    <Style x:Key="CellNumber" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <!--
+        The heading, so it stops looking like data. Complaint 4 of the eleven.
+    -->
+    <Style x:Key="ColumnHeading" TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+    </Style>
+
+    <!--
+        A heading over numbers sits where the numbers do, or the column reads as two columns.
+    -->
+    <Style x:Key="ColumnHeadingNumber" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ColumnHeading}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <!--
+        THE MARK BESIDE A MEANING, AND FILLED VERSUS HOLLOW IS NOT DECORATION.
+
+        Filled means the entry is doing something - running, or on its way somewhere. Hollow
+        means it is not. Colour separates within each pair, so the shape carries the coarse
+        answer and the colour the fine one. WCAG 2.2 SC 1.4.1 says colour may not be the only
+        visual means of conveying information, and the word beside the mark is the third
+        channel and always present.
+
+        The trigger compares against a CODE from the view model, never against the word. The
+        word is translated; the code is not, and a trigger matching on "Running" would quietly
+        stop matching the day a second language file appears - the row would just lose its
+        colour, with nothing anywhere saying why. This project has had four of those.
+    -->
+    <Style x:Key="StatusMark" TargetType="Ellipse">
+        <Setter Property="Width" Value="{StaticResource ShapeMark}" />
+        <Setter Property="Height" Value="{StaticResource ShapeMark}" />
+        <Setter Property="Margin" Value="{StaticResource MarginAfterShape}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Fill" Value="{x:Static media:Brushes.Transparent}" />
+        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusShape}" Value="shape.running">
+                <Setter Property="Fill" Value="{StaticResource MeaningRunning}" />
+                <Setter Property="Stroke" Value="{StaticResource MeaningRunning}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StatusShape}" Value="shape.transit">
+                <Setter Property="Fill" Value="{StaticResource MeaningWarning}" />
+                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StatusShape}" Value="shape.stopped">
+                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StatusShape}" Value="shape.paused">
+                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The start type's mark, and it is Hidden rather than Collapsed for the ordinary case.
+        Collapsed would give the space back and every word in the column would sit at a
+        different place depending on whether its entry had something to report, which is a
+        ragged column pretending to be information.
+
+        Waiting on a trigger deliberately gets NO mark. It is not a fault - it is why four of
+        the ten entries that read as "automatic and not running" on a real machine were fine.
+        It is said in words, next to the type, where it explains rather than accuses.
+    -->
+    <Style x:Key="StartMark" TargetType="Ellipse" BasedOn="{StaticResource StatusMark}">
+        <Setter Property="Visibility" Value="Hidden" />
+        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.missing">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
+                <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.disabled">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.unknown">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!--

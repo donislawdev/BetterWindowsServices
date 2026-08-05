@@ -94,7 +94,7 @@ public sealed class SizeRatchetGuards
     /// test file nobody checks, and this project leans on its tests harder than most, because
     /// they are the mechanism it trusts rather than review.
     /// </summary>
-    private const int LongestTestFile = 756;
+    private const int LongestTestFile = 742;
 
     /// <summary>
     /// How many files may be long at all, where long is <see cref="Long"/>.

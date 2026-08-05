@@ -717,40 +717,13 @@ public sealed class MainViewModelTests
         return model;
     }
 
-    private static ScmEntry Stopped(string name) => Entry(name) with
-    {
-        Status = EntryStatus.Stopped,
-        ProcessId = Reading<int>.Absent()
-    };
+    // The three factories moved to Rows.cs on 2026-08-05, when the ratchet asked for a seam and
+    // this was the honest one - CellFaceTests had arrived carrying a second copy of the same
+    // twenty lines. Forwarders rather than call-site changes, because renaming thirty call sites
+    // would be a large diff for no reading gain.
+    private static ScmEntry Stopped(string name) => Rows.Stopped(name);
 
-    private static ScmEntry Driver(string name) => Entry(name) with
-    {
-        EntryType = EntryType.KernelDriver
-    };
+    private static ScmEntry Driver(string name) => Rows.Driver(name);
 
-    private static ScmEntry Entry(string name) => new()
-    {
-        ServiceName = name,
-        DisplayName = name + " display name",
-        EntryType = EntryType.OwnProcess,
-        Status = EntryStatus.Running,
-        ProcessId = Reading<int>.Present(1234),
-        StartType = Reading<StartType>.Present(Core.StartType.Automatic),
-        DelayedAuto = Reading<bool>.Absent(),
-        Account = Reading<string>.Present("LocalSystem"),
-        DependsOn = Reading<IReadOnlyList<string>>.Absent(),
-        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
-        BinaryPath = Reading<string>.Absent(),
-        BinaryFile = Reading<string>.Absent(),
-        BinaryOnDisk = Reading<bool>.Absent(),
-        Signature = Reading<BinarySignature>.NotRead(),
-        FileVersion = Reading<string>.NotRead(),
-        BinaryHash = Reading<string>.NotRead(),
-        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
-        SidType = Reading<ServiceSidType>.Absent(),
-        SecurityDescriptor = Reading<string>.Absent(),
-        ErrorControl = Reading<ErrorControl>.Absent(),
-        LoadOrderGroup = Reading<string>.Absent(),
-        Memory = Reading<ProcessMemory>.NotRead()
-    };
+    private static ScmEntry Entry(string name) => Rows.Entry(name);
 }

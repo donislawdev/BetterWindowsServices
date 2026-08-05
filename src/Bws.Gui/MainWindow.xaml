@@ -129,30 +129,97 @@
                   Style="{StaticResource ListGrid}"
                   RowStyle="{StaticResource ListRow}"
                   CellStyle="{StaticResource ListCell}"
+                  ColumnHeaderStyle="{StaticResource ColumnHeading}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserSortColumns="False"
                   CanUserReorderColumns="False"
                   CanUserAddRows="False"
-                  GridLinesVisibility="None"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
                   HeadersVisibility="Column"
                   HorizontalScrollBarVisibility="Disabled"
                   SelectionUnit="FullRow"
                   SelectionMode="Single">
 
+            <!--
+                NOT ONE OF THESE WIDTHS IS Auto ANY MORE, AND THAT IS THE FIX FOR BACKLOG ITEM
+                53 RATHER THAN A TIDY-UP. Measured with tools/gui-probe/columns.ps1 against this
+                window: Auto sizes to the rows realised so far and never measures again as more
+                scroll into view, so the PID column stayed 36 pixels wide through all 811 rows
+                while the numbers in it grew to need 62. Every width now lives in Theme.xaml
+                with the measurement beside it.
+
+                Status and the start type are template columns because they carry a mark as well
+                as a word - docs/11 3.1, which asks for shape AND colour AND label and calls
+                any two of the three insufficient.
+
+                THE MARK AND THE WORD SIT IN A GRID, NOT A StackPanel, and that is load-bearing:
+                a horizontal StackPanel measures its children against infinite width, so the
+                text would never learn it has to give way and the ellipsis would never appear.
+                The trimming would be present, correct and dead - which is the shape of fault
+                this window has shipped four times.
+            -->
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{DynamicResource gui.column.name}"
-                                    Binding="{Binding ServiceName}" Width="2*" />
+                                    Binding="{Binding ServiceName}"
+                                    ElementStyle="{StaticResource CellText}"
+                                    MinWidth="{StaticResource ColumnFloor}"
+                                    Width="{StaticResource ColumnName}" />
+
                 <DataGridTextColumn Header="{DynamicResource gui.column.displayName}"
-                                    Binding="{Binding DisplayName}" Width="3*" />
-                <DataGridTextColumn Header="{DynamicResource gui.column.status}"
-                                    Binding="{Binding Status}" Width="Auto" />
-                <DataGridTextColumn Header="{DynamicResource gui.column.startType}"
-                                    Binding="{Binding StartType}" Width="Auto" />
+                                    Binding="{Binding DisplayName}"
+                                    ElementStyle="{StaticResource CellText}"
+                                    MinWidth="{StaticResource ColumnFloor}"
+                                    Width="{StaticResource ColumnDisplayName}" />
+
+                <DataGridTemplateColumn Header="{DynamicResource gui.column.status}"
+                                        Width="{StaticResource ColumnStatus}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Style="{StaticResource StatusMark}" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Status}"
+                                           Style="{StaticResource CellText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="{DynamicResource gui.column.startType}"
+                                        Width="{StaticResource ColumnStart}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Style="{StaticResource StartMark}" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding StartType}"
+                                           Style="{StaticResource CellText}" />
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="{DynamicResource gui.column.account}"
-                                    Binding="{Binding Account}" Width="2*" />
+                                    Binding="{Binding Account}"
+                                    ElementStyle="{StaticResource CellText}"
+                                    MinWidth="{StaticResource ColumnFloor}"
+                                    Width="{StaticResource ColumnAccount}" />
+
                 <DataGridTextColumn Header="{DynamicResource gui.column.processId}"
-                                    Binding="{Binding ProcessId}" Width="Auto" />
+                                    Binding="{Binding ProcessId}"
+                                    ElementStyle="{StaticResource CellNumber}"
+                                    HeaderStyle="{StaticResource ColumnHeadingNumber}"
+                                    Width="{StaticResource ColumnProcessId}" />
             </DataGrid.Columns>
         </DataGrid>
 
