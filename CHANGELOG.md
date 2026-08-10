@@ -35,6 +35,20 @@ Nothing has been released yet. Everything below is what the tool does today.
   word searches names, display names, accounts and launch paths.
 - **`bws stop`, `bws start` and `bws restart`** carry out one named entry's change through
   a plan: what will happen, in what order, and what came of every step.
+- **The regex switch beside the search box is gone, and nothing was lost with it.** Put a
+  word between slashes and it is a regular expression - `/^spool/` - and that was already
+  the way to write one everywhere else in the query language. Without the slashes it is
+  text, so a dot is a dot and a pasted path is a path. To search for text that has slashes
+  in it, quote it: `"/foo/"`. The window and the command line now read this the same way,
+  which they did not while the switch existed - the command line never had one.
+- **Clicking a column heading sorts the list**, and clicking it again reverses.
+- **Pressing a letter while the list has focus jumps to the next entry beginning with it**,
+  the way `services.msc` has always done it. Press it again to walk through the rest.
+- **The dots beside a start type say what they mean** when you point at them, and the one
+  for "this could not be read" is now a broken ring rather than a slightly different shade
+  of the ring used for "disabled".
+- **The title bar is dark**, like the rest of the window.
+- **The search box no longer changes size while you type in it.**
 - **After a write, the report ends with how to get back to where it started.** `bws stop
   Spooler` finishes by telling you that `bws start Spooler` puts it back, and a cascade
   hands the commands over in the order that works - the entry the others depend on first.

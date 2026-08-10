@@ -60,26 +60,30 @@ public static class QueryParser
     /// this number it will be able to keep behaving the way it did on the day it was
     /// written, including which fields a bare word searched back then.
     /// </summary>
-    public const int SyntaxVersion = 1;
+    public const int SyntaxVersion = 2;
 
     /// <summary>
     /// An empty query means everything, which has to be said out loud because the
     /// alternative - an empty search box showing an empty list - would be absurd.
     /// </summary>
-    /// <param name="bareWordsAreExpressions">
-    /// Whether a member without a field reads as a regular expression rather than as text to
-    /// be contained. This is the regex switch beside the search box in <c>A2</c>, and it lives
-    /// here rather than being spelled out in the interface for one reason: working out which
-    /// parts of the text are bare words is the scanner's job, and a second copy of that in the
-    /// window would drift from this one silently.
+    /// <remarks>
+    /// <b>A BARE WORD BETWEEN SLASHES IS A PATTERN, AND THERE IS NO LONGER A MODE.</b> Until
+    /// 2026-08-11 a switch beside the search box decided whether a word with no field was text
+    /// or a regular expression - so the same typing meant two things depending on a checkbox
+    /// elsewhere on the screen, and nothing in the text said which. The owner asked why the
+    /// switch existed, and the answer was that it should not.
     ///
-    /// Only bare words change. <c>name:spool*</c> keeps its own operators either way, so the
-    /// switch decides how the search half behaves and leaves the language half alone.
+    /// <b>The state went away rather than moving.</b> That is the part worth keeping: a mode has
+    /// to be stored beside a saved query for the query to still mean what it meant, which was
+    /// recorded as backlog 18 and is now moot - the text carries its own meaning, which is what
+    /// stored text has to do.
     ///
-    /// <b>Not part of the query text</b>, which matters later rather than now: a saved set is
-    /// stored text, so the day sets can be saved, this state has to be stored beside the text
-    /// or folded into it. Recorded as item 18 of the backlog.
-    /// </param>
+    /// It also closed a parity gap nobody had written down: the command line never offered the
+    /// switch at all, so <c>bws list --query "^spool"</c> and the same text in the window could
+    /// disagree. Now they cannot.
+    ///
+    /// Only bare words are affected. <c>name:spool*</c> keeps its own operators exactly as before.
+    /// </remarks>
     /// <param name="input">
     /// Whether this is text somebody has finished writing or text they are in the middle of.
     ///
@@ -104,7 +108,7 @@ public static class QueryParser
     /// and only the window has to ask for the other. Owner's decision, 2026-08-03.
     /// </param>
     public static QueryParseResult Parse(
-        string? query, bool bareWordsAreExpressions = false, QueryInput input = QueryInput.Finished)
+        string? query, QueryInput input = QueryInput.Finished)
     {
         var problems = new List<QueryProblem>();
 
@@ -137,7 +141,7 @@ public static class QueryParser
             // What was missing was not the choke point. It was somebody having said which of
             // the two situations the text is in, and now the caller says.
             var before = problems.Count;
-            var term = ReadMember(member, problems, bareWordsAreExpressions);
+            var term = ReadMember(member, problems);
 
             if (term is not null)
             {
@@ -204,7 +208,45 @@ public static class QueryParser
         return folded;
     }
 
-    private static QueryTerm? ReadMember(ScannedText member, List<QueryProblem> problems, bool asExpression)
+
+    /// <summary>
+    /// A member with no field on it: free search across everything a person would search.
+    ///
+    /// <b>BETWEEN SLASHES IT IS A PATTERN. ANYTHING ELSE IS TEXT.</b> This replaced a switch
+    /// beside the search box on 2026-08-11 at the owner's decision, and the argument against the
+    /// switch is the argument against modes in general - the same typing meant two different
+    /// things depending on a checkbox elsewhere on the screen, and nothing in the text said which.
+    ///
+    /// <b>"Treat every bare word as a pattern" was the other candidate and it is worse than
+    /// either.</b> A dot stops being a dot, so a search for <c>svchost.exe</c> starts matching
+    /// <c>svchostXexe</c>, and a pasted <c>C:\Windows</c> becomes a pattern with an invalid escape
+    /// in it. Whatever else changes, the common case has to stay the cheap one.
+    ///
+    /// <b>Quoting is the way back out, and it falls out of the scanner rather than being built.</b>
+    /// Quotes take the special meaning off the slashes, so <c>"/foo/"</c> searches for that text,
+    /// slashes and all. Nobody has to know the rule exists until it bites, and the fix is then the
+    /// one they already know from every other field.
+    ///
+    /// <b>NOTHING HERE READS THE SLASHES, AND THAT IS THE REAL FINDING OF 2026-08-11.</b> The first
+    /// version of this repair added that reading, and it was a second copy of a rule
+    /// <see cref="QueryValueReader.ReadTextValue"/> has carried all along - for values AND for free
+    /// search. So the syntax the owner asked for already existed, and the switch was a second way
+    /// of saying the same thing, applied to the whole word instead of what was between the marks.
+    ///
+    /// Which is why this repair is a deletion. The parity test next door had the answer written in
+    /// it the whole time: it drove the window with the switch on and the terminal with
+    /// <c>/^w/</c>, and expected them to agree.
+    /// </summary>
+    private static QueryTerm? ReadBareWord(ScannedText body, bool negated, List<QueryProblem> problems)
+    {
+        var free = QueryValueReader.ReadTextValue(body, forFreeSearch: true, problems);
+
+        return free is null
+            ? null
+            : new QueryTerm { Values = [free], Negated = negated, Written = [body.Text] };
+    }
+
+    private static QueryTerm? ReadMember(ScannedText member, List<QueryProblem> problems)
     {
         var negated = member.StartsWithSpecial('!');
         var body = negated ? member.Slice(1) : member;
@@ -251,13 +293,7 @@ public static class QueryParser
         // is an attempt to name a field.
         if (colon <= 0)
         {
-            var free = asExpression
-                ? QueryValueReader.ReadExpressionValue(body, problems)
-                : QueryValueReader.ReadTextValue(body, forFreeSearch: true, problems);
-
-            return free is null
-                ? null
-                : new QueryTerm { Values = [free], Negated = negated, Written = [body.Text] };
+            return ReadBareWord(body, negated, problems);
         }
 
         var fieldName = body.Slice(0, colon).Text;

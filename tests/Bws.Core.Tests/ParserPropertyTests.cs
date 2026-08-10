@@ -196,7 +196,7 @@ public sealed class ParserPropertyTests
         Awkward.Sample(
             text =>
             {
-                var parsed = QueryParser.Parse(text, bareWordsAreExpressions: true);
+                var parsed = QueryParser.Parse("/" + text + "/");
 
                 return parsed.IsValid ^ (parsed.Problems.Count > 0);
             },

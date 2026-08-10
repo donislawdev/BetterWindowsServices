@@ -31,11 +31,11 @@ public sealed class QuerySwitchTests
     }
 
     [Fact]
-    public void The_switch_leaves_a_member_with_a_field_alone()
+    public void The_marks_leave_a_member_with_a_field_alone()
     {
-        // Only the search half changes. Somebody who learned that a star is a wildcard does
-        // not have to find out that a switch elsewhere quietly made it a quantifier.
-        Assert.True(Expression("name:spool*").Match(Entries.Any).Matched);
+        // Only the search half is affected. Somebody who learned that a star is a wildcard does
+        // not have to find out that marks elsewhere in the line quietly made it a quantifier.
+        Assert.True(QueryParserTests.Valid("name:spool*").Match(Entries.Any).Matched);
 
         // And the same spelling read as an expression would match "Spoole" followed by any
         // number of r, which this entry is not - so the two readings are genuinely different
@@ -46,7 +46,7 @@ public sealed class QuerySwitchTests
     [Fact]
     public void An_expression_that_will_not_compile_is_refused_with_the_reason()
     {
-        var parsed = QueryParser.Parse("spooler(", bareWordsAreExpressions: true);
+        var parsed = QueryParser.Parse("/spooler(/");
 
         Assert.False(parsed.IsValid);
 
@@ -110,7 +110,9 @@ public sealed class QuerySwitchTests
 
     private static Query Expression(string text)
     {
-        var parsed = QueryParser.Parse(text, bareWordsAreExpressions: true);
+        // Wrapped here rather than at every call, so that the tests above read as the language
+        // rather than as its punctuation. Slashes are what a person types to mean a pattern.
+        var parsed = QueryParser.Parse("/" + text + "/");
 
         Assert.True(parsed.IsValid, $"Expected '{text}' to parse as an expression.");
 

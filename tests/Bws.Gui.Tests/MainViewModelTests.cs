@@ -222,7 +222,7 @@ public sealed class MainViewModelTests
         // the text being looked for.
         Assert.Empty(model.Rows);
 
-        model.BareWordsAreExpressions = true;
+        model.QueryText = "/^spooler$/";
 
         Assert.Equal(["Spooler"], model.Rows.Select(row => row.ServiceName));
     }
@@ -234,7 +234,7 @@ public sealed class MainViewModelTests
         // does not have to find out that a switch elsewhere silently made it something else.
         var model = await Loaded(Entry("Spooler"), Entry("Winmgmt"));
 
-        model.BareWordsAreExpressions = true;
+        // The marks belong to the search half only, so this member is unaffected either way.
         model.QueryText = "name:spool*";
 
         Assert.Equal(["Spooler"], model.Rows.Select(row => row.ServiceName));
@@ -245,12 +245,11 @@ public sealed class MainViewModelTests
     {
         var model = await Loaded(Entry("Spooler"), Entry("Winmgmt"));
 
-        model.BareWordsAreExpressions = true;
-        model.QueryText = "spooler";
+        model.QueryText = "/spooler/";
 
         Assert.Single(model.Rows);
 
-        model.QueryText = "spooler(";
+        model.QueryText = "/spooler(/";
 
         Assert.Single(model.Rows);
         Assert.NotEqual(string.Empty, model.Says.Problem);
@@ -608,8 +607,8 @@ public sealed class MainViewModelTests
             ("type nothing", () => { model.QueryText = string.Empty; return Task.CompletedTask; }),
             ("hide drivers", () => { model.ShowDrivers = false; return Task.CompletedTask; }),
             ("show drivers", () => { model.ShowDrivers = true; return Task.CompletedTask; }),
-            ("turn on expressions", () => { model.BareWordsAreExpressions = true; return Task.CompletedTask; }),
-            ("turn off expressions", () => { model.BareWordsAreExpressions = false; return Task.CompletedTask; }),
+            ("type an expression", () => { model.QueryText = "/^s/"; return Task.CompletedTask; }),
+            ("type plain text again", () => { model.QueryText = "spool"; return Task.CompletedTask; }),
             ("start using the list", () => { model.Interacting = true; return Task.CompletedTask; }),
             ("stop using the list", () => { model.Interacting = false; return Task.CompletedTask; }),
             ("a service stops", () => { machine.Stop("Spooler"); return Task.CompletedTask; }),
@@ -654,7 +653,7 @@ public sealed class MainViewModelTests
         // The line under the list always says something. "Reading" counts, emptiness does not.
         Assert.False(string.IsNullOrWhiteSpace(model.Says.Status), $"The line under the list is empty {after}.");
 
-        var parsed = QueryParser.Parse(model.QueryText, bareWordsAreExpressions: model.BareWordsAreExpressions);
+        var parsed = QueryParser.Parse(model.QueryText);
 
         // A query that does not read leaves the list where it was, so there is nothing to
         // hold it to - and the window has to have said so.
@@ -693,8 +692,7 @@ public sealed class MainViewModelTests
                      "gui.column.processId", "gui.status.reading", "gui.status.read",
                      "gui.status.matched", "gui.status.failed", "gui.status.partial",
                      "gui.status.tooCostly", "gui.status.holding", "gui.cell.unknown",
-                     "gui.cell.noAccess", "gui.search.hint", "gui.search.expressions",
-                     "gui.search.expressionsHint", "gui.search.showDrivers",
+                     "gui.cell.noAccess", "gui.search.hint", "gui.search.showDrivers",
                      "gui.search.showDriversHint", "gui.query.unreadSignatures",
                      "gui.query.unreadMemory", "gui.query.unknownField", "gui.query.unknownValue",
                      "gui.query.unknownValueNearest", "gui.query.badPattern",

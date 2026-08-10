@@ -54,7 +54,6 @@ public sealed class MainViewModel : Observable
     private Query _query = QueryParser.Parse(null).Query!;
 
     private string _queryText = string.Empty;
-    private bool _bareWordsAreExpressions;
     private bool _reading;
 
     /// <summary>Whether the last reading failed outright, which is not the same as admitting gaps.</summary>
@@ -174,24 +173,6 @@ public sealed class MainViewModel : Observable
         QueryText = string.Empty;
 
         return true;
-    }
-
-    /// <summary>
-    /// Whether a member without a field reads as a regular expression. The regex switch of
-    /// <c>A2</c>, and the same word the parser uses for it.
-    ///
-    /// Only bare words change. <c>name:spool*</c> keeps its own operators either way.
-    /// </summary>
-    public bool BareWordsAreExpressions
-    {
-        get => _bareWordsAreExpressions;
-        set
-        {
-            if (Set(ref _bareWordsAreExpressions, value))
-            {
-                Apply();
-            }
-        }
     }
 
     /// <summary>
@@ -450,7 +431,7 @@ public sealed class MainViewModel : Observable
         // teaches people to ignore the box. The command line says Finished, because by the time
         // text reaches it there is no later.
         var parsed = QueryParser.Parse(
-            _queryText, bareWordsAreExpressions: _bareWordsAreExpressions, input: QueryInput.BeingTyped);
+            _queryText, input: QueryInput.BeingTyped);
 
         if (!parsed.IsValid)
         {

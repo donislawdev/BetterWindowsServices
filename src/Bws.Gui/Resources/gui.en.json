@@ -15,8 +15,6 @@
   "gui.column.processId": "PID",
 
   "gui.search.hint": "Search, or write a query: start:auto !status:running",
-  "gui.search.expressions": "Regex",
-  "gui.search.expressionsHint": "A word on its own is read as a regular expression. Members like name:spool* are unaffected.",
   "gui.search.showDrivers": "Drivers",
   "gui.search.showDriversHint": "Kernel and file system drivers, which services.msc never shows. Turning this off writes !type:driver into the box.",
 

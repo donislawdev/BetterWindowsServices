@@ -124,21 +124,21 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
     }
 
     [Fact]
-    public async Task The_regex_switch_means_the_same_thing_as_writing_the_slashes()
+    public async Task The_window_and_the_terminal_read_the_same_marks_the_same_way()
     {
-        // The switch is not a second syntax. With it on, a bare word is the expression - which
-        // is what the language already writes between slashes, so the two spellings have to
-        // pick the same entries.
+        // THIS TEST HELD THE ANSWER TO BACKLOG 152 BEFORE ANYBODY ASKED THE QUESTION. It drove
+        // the window with the regex switch on and the terminal with slashes, and expected the
+        // two to agree - which is a test saying, in as many words, that the switch was a second
+        // way of writing something the language already had. On 2026-08-11 the switch went and
+        // the marks stayed, so both sides now say it the one way.
         //
-        // The expression is chosen so that the two readings genuinely differ. The first
-        // version of this test asked about ^sql, and on a machine with no SQL Server both
-        // sides answered with nothing - so it passed while checking nothing at all, the trap
-        // ADR-10 names. Found by mutation: turning the switch off in the view model left this
-        // test green.
+        // The expression is chosen so that the two readings genuinely differ. The first version
+        // asked about ^sql, and on a machine with no SQL Server both sides answered with nothing
+        // - so it passed while checking nothing at all, the trap ADR-10 names.
         var model = await Load();
 
-        model.BareWordsAreExpressions = true;
-        model.QueryText = "^w";
+
+        model.QueryText = "/^w/";
 
         var window = Names(model);
         var everything = Names(model, everything: true);
