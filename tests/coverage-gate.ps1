@@ -263,7 +263,7 @@ if (-not $floors.ContainsKey($Scope)) {
         Write-Host ("  {0,-10} {1,5} points {2,6}%" -f $assembly, $measured[$assembly].Points, $measured[$assembly].Percent)
     }
     Write-Host ""
-    Write-Host ("  powershell -File tests\coverage-gate.ps1 -Scope {0} -Mark" -f $Scope)
+    Write-Host ("  pwsh -File tests\coverage-gate.ps1 -Scope {0} -Mark" -f $Scope)
     exit 2
 }
 

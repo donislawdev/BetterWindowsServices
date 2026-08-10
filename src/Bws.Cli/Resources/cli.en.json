@@ -53,6 +53,9 @@
   "cli.run.wasInterrupted": "This run was interrupted. Steps that were never attempted say so above.",
   "cli.run.outranTheCeiling": "{0} took {1}, longer than the --timeout of {2}. That switch caps how long this tool waits once the manager has accepted a request. It cannot cap the manager's own answer, and here the manager took that long to answer - which it does when a service never reports itself to it.",
 
+  "cli.run.putBack.heading": "To put the machine back the way this run found it, in this order:",
+  "cli.run.putBack.line": "  bws {0} {1}",
+
   "cli.run.outcome.succeeded": "done in {0}",
   "cli.run.outcome.failed": "refused: {0} (error {1})",
   "cli.run.outcome.timedOut": "gave up after {0}, still {1}",

@@ -35,7 +35,14 @@ Nothing has been released yet. Everything below is what the tool does today.
   word searches names, display names, accounts and launch paths.
 - **`bws stop`, `bws start` and `bws restart`** carry out one named entry's change through
   a plan: what will happen, in what order, and what came of every step.
-- **`--dry-run`** on every write command shows the plan and changes nothing.
+- **After a write, the report ends with how to get back to where it started.** `bws stop
+  Spooler` finishes by telling you that `bws start Spooler` puts it back, and a cascade
+  hands the commands over in the order that works - the entry the others depend on first.
+  Nothing is undone for you and nothing is remembered between runs: these are the commands
+  you would type. A run that ended where it began, such as a restart that worked, says
+  nothing here, because there is nothing to put back.
+- **`--dry-run`** on every write command shows the plan and changes nothing. It offers no
+  way back either, because it moved nothing.
 - **`--dependents`** on `stop` and `restart` takes down the entries that would break as
   well. Without it the plan has one step and names who is standing in the way.
 - **`--timeout`** caps how long any one step is watched. It is a ceiling, not a deadline:

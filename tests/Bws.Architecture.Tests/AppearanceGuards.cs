@@ -152,10 +152,7 @@ public sealed class AppearanceGuards
     /// values and the application entry point that merges it in.
     /// </summary>
     private static IEnumerable<string> Views() =>
-        Directory
-            .EnumerateFiles(Path.Combine(SourceTree.Root(), "src"), "*.xaml", SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        Sources.ShippedMarkup()
             .Where(path => Path.GetFileName(path) != ThemeFile)
             .Where(path => Path.GetFileName(path) != "App.xaml");
 }

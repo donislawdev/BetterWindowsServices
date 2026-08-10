@@ -22,15 +22,29 @@ internal static class Sources
     /// </summary>
     internal static readonly TimeSpan Ceiling = TimeSpan.FromSeconds(5);
 
-    /// <summary>Every source file that ends up in the product.</summary>
-    internal static IEnumerable<string> Shipped() => Under("src");
+    /// <summary>Every C# file that ends up in the product.</summary>
+    internal static IEnumerable<string> Shipped() => Under("src", "*.cs");
 
-    /// <summary>Every source file that tests the product.</summary>
-    internal static IEnumerable<string> Testing() => Under("tests");
+    /// <summary>Every C# file that tests the product.</summary>
+    internal static IEnumerable<string> Testing() => Under("tests", "*.cs");
 
-    private static IEnumerable<string> Under(string folder) =>
+    /// <summary>
+    /// Every XAML file that ends up in the product.
+    ///
+    /// Kept apart from <see cref="Shipped"/> rather than folded into it, because the two are held
+    /// to different ceilings - the longest markup file here is two hundred and sixty lines past the
+    /// longest C# one, so one set would either forgive the C# number or demand the theme be split
+    /// on the day markup started being counted. Owner's decision 2026-08-10, backlog 132.
+    ///
+    /// <b>This method is why the name of the one above changed.</b> "Every source file that ends up
+    /// in the product" was true of neither once markup was in the tree, and a filter whose name
+    /// overstates its reach is how a guard ends up reading the wrong set of files.
+    /// </summary>
+    internal static IEnumerable<string> ShippedMarkup() => Under("src", "*.xaml");
+
+    private static IEnumerable<string> Under(string folder, string pattern) =>
         Directory
-            .EnumerateFiles(Path.Combine(SourceTree.Root(), folder), "*.cs", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(SourceTree.Root(), folder), pattern, SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 }

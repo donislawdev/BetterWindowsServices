@@ -113,6 +113,25 @@ internal static class PlanText
             }
         }
 
+        // The way back, last, because it is the one thing here that says what to do next rather
+        // than what happened. Only after a run, and only when something is actually somewhere
+        // else - PlanRun.Reversal works in net effects, so a restart that ended where it began
+        // prints nothing, which is the correct amount to say about it.
+        //
+        // Not offered by the dry run either, and that is not an oversight: a preview has moved
+        // nothing, so there is nothing to put back, and printing the commands anyway would read
+        // as though there were.
+        if (run is not null && run.Reversal.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine(Texts.Of("cli.run.putBack.heading"));
+
+            foreach (var step in run.Reversal)
+            {
+                text.AppendLine(Texts.Of("cli.run.putBack.line", Command(step.Operation), step.ServiceName));
+            }
+        }
+
         return text.ToString().TrimEnd();
     }
 
@@ -207,6 +226,19 @@ internal static class PlanText
         warning.Related.Count == 1 ? $"{key}.one" : $"{key}.many";
 
     private static string Verb(ActionKind kind) => Texts.Of($"cli.plan.action.{Camel(kind)}");
+
+    /// <summary>
+    /// The word to type, for an operation. <b>Deliberately not a text key, and it is the only
+    /// thing on screen here that is not.</b>
+    ///
+    /// Everything a person reads in this file comes out of the resource file, which is the rule.
+    /// This is not something a person reads, it is something a person pastes into a shell - and
+    /// the same word already exists there as prose, under cli.plan.operation.stop, where it is
+    /// free to be reworded. Building the command out of that key would mean a reworded line
+    /// renders a command that does not exist while looking exactly like one that does.
+    /// </summary>
+    private static string Command(StepOperation operation) =>
+        operation == StepOperation.Stop ? "stop" : "start";
 
     private static string Operation(StepOperation operation) => Texts.Of($"cli.plan.operation.{Camel(operation)}");
 

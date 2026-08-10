@@ -104,16 +104,39 @@ public sealed class SizeRatchetGuards
     /// naming a file stops proving anything the moment that file stops being longest - it came
     /// back MISSED for exactly that reason on 2026-08-02, and again on 2026-08-03.
     ///
-    /// <b>IT COUNTS NO XAML, AND ON 2026-08-05 THAT STOPPED BEING A DETAIL.</b> Sources.Shipped
-    /// enumerates *.cs only, so Themes/Theme.xaml is outside every number in this file - and it
-    /// is now 755 lines, two hundred past the longest thing this ceiling holds, after the row
-    /// gained its own control template. A file of appearance values plus templates is precisely
-    /// the shape that grows without anybody deciding to let it. <b>The header of mutate.ps1 says
-    /// the ratchet counts XAML. It does not, and that sentence is wrong.</b> Backlog 132 - the
-    /// decision is the owner's, because bringing it in means choosing a first ceiling for a file
-    /// that is already the longest.
+    /// <b>THIS NUMBER IS ABOUT C# ONLY, AND SINCE 2026-08-10 THAT IS A DECISION RATHER THAN A
+    /// HOLE.</b> It held no markup at all from the day it was written until then - Sources.Shipped
+    /// enumerated *.cs, so Themes/Theme.xaml sat outside every figure in this file while growing to
+    /// 799 lines, which is two hundred and sixty past this ceiling and makes it the longest file in
+    /// the product by a wide margin. Nothing was watching the one shape that grows without anybody
+    /// deciding to let it. <see cref="LongestShippedMarkupFile"/> now does, in its own pool and at
+    /// its own number.
     /// </summary>
     private const int LongestShippedFile = 536;
+
+    /// <summary>
+    /// The longest markup file in the product, measured 2026-08-10: Themes/Theme.xaml at 799 lines.
+    /// MainWindow.xaml is 362 and App.xaml is 34.
+    ///
+    /// <b>The owner chose a separate ceiling at today's value rather than folding markup into the
+    /// C# one</b>, backlog 132. Both alternatives were on the table and both were worse on the day:
+    /// one number for both would have demanded the theme be split immediately to reach 536, and
+    /// that split is not a move of text - <c>Theme.xaml</c> cannot be loaded on its own, because it
+    /// reaches WPF UI keys through StaticResource and those resolve while the file is being read.
+    /// Leaving markup out altogether was the third option and would have left the longest file in
+    /// the product with nothing holding it, for years.
+    ///
+    /// <b>So this is the same decision that was made for C# at 807 in July, only made knowingly:
+    /// the number is not a claim that 799 lines is a good length.</b> It says the longest markup
+    /// file is 799 lines and may not become 800, so the next line added to it starts with somebody
+    /// looking for a seam. Like every number here it may only ever go down, and lowering it is the
+    /// reward for doing that work rather than bookkeeping.
+    ///
+    /// <b>What weakens on its own while this stands high:</b> `ADR-23` promises that reading
+    /// Theme.xaml from top to bottom is the same as knowing how the product looks. That promise
+    /// gets thinner with every hundred lines, and no ceiling can hold it up - only a split can.
+    /// </summary>
+    private const int LongestShippedMarkupFile = 799;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
@@ -165,6 +188,18 @@ public sealed class SizeRatchetGuards
     private const int ShippedFilesAllowedToBeLong = 3;
     private const int TestFilesAllowedToBeLong = 2;
 
+    /// <summary>
+    /// How many markup files may be long at all, measured 2026-08-10: one, and it is Theme.xaml,
+    /// which is the file the markup ceiling was set for. MainWindow.xaml is next at 362, so it has
+    /// a hundred and thirty eight lines before it would trip this.
+    ///
+    /// <b>This dial earns more here than it does for C#</b>, because there are three markup files
+    /// in the whole product. The ceiling above watches the one that is already longest and can say
+    /// nothing about the other two - and a second markup file crossing 500 is exactly how the
+    /// appearance surface doubles without any single file looking like it grew.
+    /// </summary>
+    private const int ShippedMarkupFilesAllowedToBeLong = 1;
+
     [Fact]
     public void No_shipped_file_is_longer_than_the_longest_one_was()
     {
@@ -175,6 +210,20 @@ public sealed class SizeRatchetGuards
             $"A file grew past {LongestShippedFile} lines, which is where the longest one stood " +
             "when this ceiling was set. Split it, or move a piece of it somewhere it belongs - " +
             "and then lower the number, because it may only ever go down:" +
+            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+    }
+
+    [Fact]
+    public void No_shipped_markup_file_is_longer_than_the_longest_one_was()
+    {
+        var offenders = TooLong(Sources.ShippedMarkup(), LongestShippedMarkupFile);
+
+        Assert.True(
+            offenders.Length == 0,
+            $"A markup file grew past {LongestShippedMarkupFile} lines, which is where the longest " +
+            "one stood when this ceiling was set. Markup has no seam a compiler will show you, so " +
+            "the split is a resource dictionary merged in - and Theme.xaml cannot be loaded on its " +
+            "own, so check the window still draws rather than trusting a green build:" +
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
@@ -208,6 +257,16 @@ public sealed class SizeRatchetGuards
             $"{testing.Length} test files are over {Long} lines, against " +
             $"{TestFilesAllowedToBeLong} when this was set:" +
             Environment.NewLine + string.Join(Environment.NewLine, testing));
+
+        var markup = LongOnes(Sources.ShippedMarkup());
+
+        Assert.True(
+            markup.Length <= ShippedMarkupFilesAllowedToBeLong,
+            $"{markup.Length} markup files are over {Long} lines, against " +
+            $"{ShippedMarkupFilesAllowedToBeLong} when this was set. There are three markup files " +
+            "in this product, so this is the appearance surface spreading rather than one file " +
+            "growing:" +
+            Environment.NewLine + string.Join(Environment.NewLine, markup));
     }
 
     [Fact]
@@ -234,6 +293,14 @@ public sealed class SizeRatchetGuards
             LongestTestFile - longestTest <= Slack,
             $"The longest test file is now {longestTest} lines and the ceiling is still " +
             $"{LongestTestFile}. Lower it.");
+
+        var longestMarkup = Longest(Sources.ShippedMarkup());
+
+        Assert.True(
+            LongestShippedMarkupFile - longestMarkup <= Slack,
+            $"The longest markup file is now {longestMarkup} lines and the ceiling is still " +
+            $"{LongestShippedMarkupFile}. Lower it - and here it matters more than above, because " +
+            "this ceiling was set at a number nobody would choose on purpose.");
     }
 
     private static string[] TooLong(IEnumerable<string> files, int ceiling) =>

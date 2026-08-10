@@ -47,10 +47,8 @@ public sealed class UserFacingTextGuards
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
-    private static IEnumerable<string> ShippedSourceFiles() =>
-        Directory
-            .EnumerateFiles(Path.Combine(SourceTree.Root(), "src"), "*.cs", SearchOption.AllDirectories)
-            // Generated interop and build intermediates are not ours to police.
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+    // Generated interop and build intermediates are not ours to police, and Sources.Shipped already
+    // leaves both out. This used to carry its own copy of that filter - the third in this project,
+    // which is one more than the number Sources.cs was written to stop.
+    private static IEnumerable<string> ShippedSourceFiles() => Sources.Shipped();
 }
