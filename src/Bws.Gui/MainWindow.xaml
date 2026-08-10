@@ -58,7 +58,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="{StaticResource WidthCountLine}" />
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
@@ -157,7 +157,7 @@
                   ColumnHeaderStyle="{StaticResource ColumnHeading}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
-                  CanUserSortColumns="False"
+                  CanUserSortColumns="True"
                   CanUserReorderColumns="False"
                   CanUserAddRows="False"
                   GridLinesVisibility="Horizontal"
@@ -219,6 +219,7 @@
                                     Width="{StaticResource ColumnDisplayName}" />
 
                 <DataGridTemplateColumn Header="{DynamicResource gui.column.status}"
+                                        SortMemberPath="Status"
                                         Width="{StaticResource ColumnStatus}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -237,6 +238,7 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTemplateColumn Header="{DynamicResource gui.column.startType}"
+                                        SortMemberPath="StartType"
                                         Width="{StaticResource ColumnStart}">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -288,7 +290,7 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     IsHitTestVisible="False"
-                    MaxWidth="{StaticResource WidthEmptyState}">
+                    MaxWidth="{StaticResource WidthEmptyState}">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
                     <Style.Triggers>

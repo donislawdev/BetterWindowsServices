@@ -55,6 +55,23 @@
     <!-- The mark a meaningful cell wears, and the gap between it and its word. -->
     <system:Double x:Key="ShapeMark">8</system:Double>
     <system:Double x:Key="ShapeOutline">1.5</system:Double>
+
+    <!--
+        THE OUTLINE A MARK WEARS WHEN NOBODY COULD READ THE THING IT DESCRIBES, and it exists
+        because until 2026-08-10 that case was drawn as an ORDINARY HOLLOW CIRCLE in two columns,
+        separated from a real answer by nothing but two points of grey per channel.
+
+        Status said "stopped" with a hollow ring in #A0A0A0 and "could not read" with a hollow ring
+        in #9E9E9E. Start said "disabled" and "could not read" the same way. CellFaces.cs opens by
+        promising that shape and word are two channels and neither is optional - and for the one
+        case where the window knows the least, the shape channel was carrying nothing.
+
+        A broken ring for broken knowledge. Values are multiples of the stroke thickness, so 2,2 at
+        1.5 gives roughly four dashes around an eight pixel circle - a difference visible without
+        comparing two marks side by side, which is the only way a colour difference that small can
+        be seen at all.
+    -->
+    <DoubleCollection x:Key="ShapeUnreadableOutline">2,2</DoubleCollection>
     <Thickness x:Key="MarginAfterShape">0,0,8,0</Thickness>
 
     <!--
@@ -94,6 +111,13 @@
         screen and long text gives way.
     -->
     <system:Double x:Key="ColumnFloor">90</system:Double>
+
+    <!--
+        Fixed, because Auto here made the search box resize on every keystroke - the count shares
+        its row and took pixels from the starred column as its sentence changed width. Backlog
+        146, full reasoning in CHANGELOG-DEV 2026-08-10.
+    -->
+    <GridLength x:Key="WidthCountLine">210</GridLength>
 
     <!--
         Type. Three sizes here and a fourth below, which arrived with the reason this line used
@@ -645,6 +669,16 @@
             <DataTrigger Binding="{Binding StatusShape}" Value="shape.paused">
                 <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
             </DataTrigger>
+
+            <!--
+                Explicit rather than left to the style's default, which drew it identically to a
+                stopped entry. Backlog 149 - the mark now differs in shape, not in a shade of grey
+                nobody can separate.
+            -->
+            <DataTrigger Binding="{Binding StatusShape}" Value="shape.unknown">
+                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
+                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -663,20 +697,29 @@
         <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
 
         <Style.Triggers>
+            <!--
+                Each mark says what it means, backlog 149. Colour was the only carrier until
+                2026-08-10 and docs/11 forbids exactly that - the owner reported seeing dots that
+                were sometimes empty and sometimes red with no way to find out why.
+            -->
             <DataTrigger Binding="{Binding StartShape}" Value="shape.missing">
                 <Setter Property="Visibility" Value="Visible" />
                 <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
                 <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.missing}" />
             </DataTrigger>
 
             <DataTrigger Binding="{Binding StartShape}" Value="shape.disabled">
                 <Setter Property="Visibility" Value="Visible" />
                 <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.disabled}" />
             </DataTrigger>
 
             <DataTrigger Binding="{Binding StartShape}" Value="shape.unknown">
                 <Setter Property="Visibility" Value="Visible" />
                 <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
+                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.unknown}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -735,6 +778,13 @@
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
         <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+
+        <!--
+            Missing until 2026-08-10, and the count was black on a dark window. A regression from
+            slice 5, where it "stopped being grey" - the brush was removed rather than replaced,
+            so this style declared type and no colour and inherited one nobody chose. Backlog 145.
+        -->
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding Says.Narrowed}" Value="True">
                 <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />

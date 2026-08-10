@@ -146,6 +146,14 @@ public sealed class MainViewModel : Observable
     public string? SelectedDisplayName => Selected?.DisplayName;
 
     /// <summary>
+    /// The next entry beginning with a character, after the one chosen now. Backlog 151.
+    ///
+    /// One line, because the search belongs to the collection and only the selection belongs here.
+    /// <see cref="RowList.NextStartingWith"/> carries the reasoning.
+    /// </summary>
+    public EntryRow? NextStartingWith(char letter) => RowList.NextStartingWith(Rows, Selected, letter);
+
+    /// <summary>
     /// Empties the query, which is what Escape asks for - `docs/11` 9.1.
     ///
     /// <b>Answers whether it did anything, and the window needs that answer rather than a

@@ -34,6 +34,10 @@
   "gui.menu.copyName": "Copy name",
   "gui.menu.copyDisplayName": "Copy display name",
 
+  "gui.start.mark.missing": "The file this entry is set to launch is not on disk.",
+  "gui.start.mark.disabled": "Disabled. It will not start, by itself or on request.",
+  "gui.start.mark.unknown": "The start type could not be read on this account.",
+
   "gui.empty.loading": "Reading the service control manager...",
   "gui.empty.nothingMatched": "Nothing on this machine matches what you asked for.",
   "gui.empty.nothingMatchedWayOut": "Press Esc to empty the box and see everything again.",

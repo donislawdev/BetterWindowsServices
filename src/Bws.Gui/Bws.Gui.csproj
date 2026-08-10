@@ -14,6 +14,20 @@
   -->
   <ItemGroup>
     <PackageReference Include="WPF-UI" Version="4.3.0" />
+
+    <!--
+      CsWin32, for one call: telling the window manager that the title bar above this window is a
+      dark one. Merging the library's dark dictionaries styles everything INSIDE the window and
+      says nothing about the bar, so Windows drew its own in #4C4A48 against content at #202020 -
+      measured on screen 2026-08-10, backlog 148.
+      A build time generator rather than a new dependency for the product, which is the same
+      standing this package already has in Bws.Core - `ADR-2` and `ADR-15` say so in as many
+      words, and PrivateAssets keeps it out of what ships.
+    -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.298">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!--
@@ -29,6 +43,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
+    <!-- CsWin32 emits a pointer signature for DwmSetWindowAttribute, backlog 148. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

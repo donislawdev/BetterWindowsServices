@@ -1,0 +1,9 @@
+// Win32 surface used by the window, and it is one call.
+//
+// CsWin32 turns each name below into a P/Invoke at build time, so nothing here becomes a runtime
+// dependency - ADR-2 and ADR-15, the same standing this generator has in Bws.Core.
+//
+// Keeping the list explicit is the point: it is the honest inventory of what the window touches in
+// the operating system, and it belongs under review like any other contract. One name today.
+DwmSetWindowAttribute
+DWMWINDOWATTRIBUTE

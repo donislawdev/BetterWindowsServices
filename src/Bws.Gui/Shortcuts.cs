@@ -48,6 +48,31 @@ internal static class Shortcuts
             _ => Shortcut.None
         };
     }
+
+    /// <summary>
+    /// The character a press should jump to in the list, or null when the press is not that.
+    ///
+    /// <b>Typed text rather than a key code, and that is rule 3 rather than a preference.</b>
+    /// <c>Key.A</c> names a position on the keyboard, not a letter - on a keyboard that is not
+    /// American the key sitting there produces something else, and a jump built on key codes would
+    /// send somebody to the wrong entry while looking like it worked. What is wanted here is the
+    /// character the person actually typed, which is what a text input carries.
+    ///
+    /// Letters and digits only. Space is excluded on purpose: it belongs to the grid, which uses
+    /// it to select, and taking it would break something that already works to add something that
+    /// nobody would use.
+    /// </summary>
+    internal static char? JumpLetter(string? typed)
+    {
+        if (string.IsNullOrEmpty(typed) || typed.Length != 1)
+        {
+            return null;
+        }
+
+        var character = typed[0];
+
+        return char.IsLetterOrDigit(character) ? character : null;
+    }
 }
 
 /// <summary>What the window should do about a press. One member per thing a person can ask for.</summary>

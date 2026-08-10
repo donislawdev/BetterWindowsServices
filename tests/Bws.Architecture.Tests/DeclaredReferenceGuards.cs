@@ -62,6 +62,17 @@ public sealed class DeclaredReferenceGuards
         ["Bws.Core"] = ["Microsoft.Windows.CsWin32"],
         ["Bws.Cli"] = [],
 
+        // CsWin32 reached the window on 2026-08-10, for one call: DwmSetWindowAttribute, telling
+        // the window manager that the bar above this window is a dark one. Backlog 148, measured
+        // on screen - the bar came out #4C4A48 against content at #202020, and the control
+        // library has no lever for it that is not a translucent backdrop this product refuses.
+        //
+        // NOT A NEW DEPENDENCY FOR THE PRODUCT, which is why it is added here rather than argued
+        // in ADR-15 as a new one: it is a build time generator with PrivateAssets, leaving a
+        // P/Invoke behind and nothing else, and it already has that standing in Bws.Core. What
+        // this line records is that a second project now touches Win32 directly, which is a fact
+        // worth having somebody's name on.
+
         // WPF-UI, MIT, added 2026-08-02 with the owner's decision to build this window's
         // appearance on it. Registered in ADR-15 first and listed here second, which is the
         // order this guard exists to force - and it did force it, going red on the build that
@@ -72,7 +83,7 @@ public sealed class DeclaredReferenceGuards
         // 6.3 MB of assembly inside the executable, on a machine where the tool runs with
         // administrator rights. Its licence was read in the repository's own LICENSE file, and
         // what it costs is measured in docs/10-WPF-UI.md rather than assumed.
-        ["Bws.Gui"] = ["WPF-UI"]
+        ["Bws.Gui"] = ["WPF-UI", "Microsoft.Windows.CsWin32"]
     };
 
     [Theory]

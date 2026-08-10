@@ -22,6 +22,76 @@ namespace Bws.Gui.ViewModels;
 public sealed class RowList : ObservableCollection<EntryRow>
 {
     /// <summary>
+    /// The next entry whose name begins with a character, starting after the one given.
+    ///
+    /// <b>The behaviour admins already have in <c>services.msc</c></b>, asked for by name by the
+    /// owner - backlog 151. Press a letter on the list and land on the nearest entry that starts
+    /// with it.
+    ///
+    /// <b>Matched against the name rather than the display name, because the name is the column
+    /// the eye is on</b> - it is the first one in this window, where <c>services.msc</c> puts the
+    /// display name first. Somebody pressing a letter is looking at a column, not recalling a
+    /// convention.
+    ///
+    /// <b>Wraps, and starts AFTER the row given rather than at it.</b> Both halves are what makes
+    /// repeated presses walk through the entries beginning with that letter instead of standing on
+    /// the first one - and wrapping means the walk never dead-ends at the bottom of the list with
+    /// nothing to say for itself.
+    ///
+    /// Ordinal and case insensitive. Not the machine's culture: this compares an internal name,
+    /// which is `ADR-14` territory - those are not words in any language, and a Turkish culture
+    /// would famously disagree about what an upper case i is.
+    /// </summary>
+    /// <b>STATIC, AND TAKING THE ROWS RATHER THAN READING ITS OWN.</b> The moment the columns
+    /// became sortable, this list stopped being the order on screen - the grid keeps its own view
+    /// over these rows and sorts that. A jump that walked this collection would send somebody to a
+    /// row that is nowhere near where they are looking, and it would do it only after they had
+    /// sorted something, which is the worst kind of intermittent.
+    ///
+    /// <param name="rows">The order to walk, which is whatever the person is looking at.</param>
+    /// <param name="after">Where to start looking, exclusive. Null starts at the top.</param>
+    /// <param name="letter">What the name has to begin with.</param>
+    public static EntryRow? NextStartingWith(IReadOnlyList<EntryRow> rows, EntryRow? after, char letter)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+
+        if (rows.Count == 0)
+        {
+            return null;
+        }
+
+        var prefix = letter.ToString();
+        // Walked rather than asked, because IReadOnlyList has no IndexOf and materialising the
+        // sequence into something that does would copy 810 references on every key press.
+        var from = -1;
+
+        for (var index = 0; after is not null && index < rows.Count; index++)
+        {
+            if (ReferenceEquals(rows[index], after))
+            {
+                from = index;
+
+                break;
+            }
+        }
+
+        for (var step = 1; step <= rows.Count; step++)
+        {
+            // The second modulus is not decoration: a null starting row gives -1, and a row that
+            // is no longer in the list gives -1 as well, which is the case a reconciliation can
+            // produce between one press and the next.
+            var row = rows[((from + step) % rows.Count + rows.Count) % rows.Count];
+
+            if (row.ServiceName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return row;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Replaces everything and raises a single reset.
     ///
     /// <b>A reset is exactly what a DataGrid needs to throw away the selection and the scroll

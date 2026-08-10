@@ -104,6 +104,108 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Tells the window manager that the bar above this window is a dark one.
+    ///
+    /// <b>Here rather than in the constructor, and that is the whole of why the first attempt at
+    /// this did nothing.</b> The attribute is set against a window HANDLE, and a WPF window has no
+    /// handle until its source is initialised - so the same call one step earlier is a call about
+    /// a window that does not exist yet, and it fails in the quietest way there is: by succeeding.
+    ///
+    /// <b>Why it has to be asked for at all.</b> Merging the library's dark dictionaries styles
+    /// everything INSIDE the window and says nothing about the frame around it, which belongs to
+    /// Windows. Measured on screen 2026-08-10: the bar came out #4C4A48 against content at
+    /// #202020 two rows below it, on a machine whose system theme is dark. Backlog 148.
+    ///
+    /// <b>Tried first and rejected with a measurement:</b> `ApplicationThemeManager.Apply(this)`
+    /// from the control library, which changed the bar by nothing at all - #4C4A48 before and
+    /// after. The library's only other lever is <c>WindowBackdrop</c>, and that is the door Mica
+    /// and Acrylic come through, which this product refuses because a translucent background turns
+    /// ClearType off across all eight hundred rows.
+    ///
+    /// A failure here is deliberately ignored. A pale title bar is a blemish, and taking the
+    /// window down over one would be a far worse answer than the blemish.
+    /// </summary>
+    protected override unsafe void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var dark = 1;
+
+        _ = Windows.Win32.PInvoke.DwmSetWindowAttribute(
+            new Windows.Win32.Foundation.HWND(handle),
+            Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
+            &dark,
+            sizeof(int));
+    }
+
+    /// <summary>
+    /// A character typed while the list has focus goes to the next entry beginning with it.
+    ///
+    /// <b>Text input rather than key down, and the reason is rule 3.</b> A key code names a
+    /// position on the keyboard - on a keyboard that is not American the key where A sits produces
+    /// something else, and a jump built on codes would land on the wrong entry while looking like
+    /// it worked. This carries the character somebody actually typed.
+    ///
+    /// <b>Only while the list has focus.</b> Anywhere else the letter belongs to whatever is there,
+    /// starting with the query box, and a window that swallows letters typed into a text field is
+    /// a window nobody can search in.
+    /// </summary>
+    protected override void OnPreviewTextInput(TextCompositionEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+
+        base.OnPreviewTextInput(e);
+
+        if (!e.Handled && Entries.IsKeyboardFocusWithin)
+        {
+            e.Handled = JumpTo(Shortcuts.JumpLetter(e.Text));
+        }
+    }
+
+    /// <summary>
+    /// Moves the selection to the next entry beginning with a character, and says whether it moved.
+    ///
+    /// Apart from the handler for the same reason <see cref="Act"/> is: the half that can be
+    /// checked should not live inside the half that cannot. What it returns is the part that is
+    /// easy to get wrong - a press marked handled by something that did nothing is a press that
+    /// silently stops working for whatever needed it next.
+    /// </summary>
+    internal bool JumpTo(char? letter)
+    {
+        if (letter is null)
+        {
+            return false;
+        }
+
+        // The grid's own order, not the model's. Once a column can be sorted they are two
+        // different sequences, and the one somebody is looking at is this one.
+        var row = ViewModels.RowList.NextStartingWith(
+            [.. Entries.Items.Cast<ViewModels.EntryRow>()],
+            Entries.SelectedItem as ViewModels.EntryRow,
+            letter.Value);
+
+        if (row is null)
+        {
+            return false;
+        }
+
+        // The grid first, then the model, then the view. Setting the grid's selection is what
+        // raises the change that hands the row to the model everywhere else in this window, so
+        // doing it here keeps one path rather than two that can disagree.
+        Entries.SelectedItem = row;
+        Entries.ScrollIntoView(row);
+
+        return true;
+    }
+
+    /// <summary>
     /// Carries out one shortcut, and says whether it did anything.
     ///
     /// <b>Apart from the handler so that it can be checked at all</b> - a handler the framework
