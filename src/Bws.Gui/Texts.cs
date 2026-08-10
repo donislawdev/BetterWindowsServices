@@ -71,23 +71,46 @@ internal static class Texts
         }
     }
 
-    private static Dictionary<string, string> Load()
+    private static Dictionary<string, string> Load() =>
+        Assemble(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, Beside);
+
+    /// <summary>
+    /// Builds the strings for one language code, from whatever the two lookups can find.
+    ///
+    /// <b>Separated from <see cref="Load"/> on 2026-08-10 so that it could be tested at all, and
+    /// the reason it had to be is worth keeping.</b> Everything below was decided in `ADR-21`,
+    /// written at S6a and never once executed by a test: the language a machine asks for, an
+    /// unfinished translation, a file dropped beside the program. The whole mechanism was a
+    /// claim in a comment - in a product where a binding has compiled and painted nothing five
+    /// times.
+    ///
+    /// It could not be reached before because the choice lived inside a static initialiser
+    /// reading the machine's own culture, so a test could only ever exercise the one language
+    /// the machine happened to be set to.
+    ///
+    /// The two lookups are passed in rather than called directly for the same reason, and their
+    /// ORDER IS THE BEHAVIOUR: embedded wins, and a file beside the program is consulted only
+    /// when nothing is built in for that code. `ADR-21` left that precedence open and the code
+    /// answered it here - so a shipped translation cannot be overridden from outside.
+    /// </summary>
+    internal static Dictionary<string, string> Assemble(
+        string wanted,
+        Func<string, Stream?> embedded,
+        Func<string, Stream?> beside)
     {
         var strings = new Dictionary<string, string>(StringComparer.Ordinal);
 
         // English first, then the chosen language on top of it. A translation that is missing
         // a key falls back to a sentence rather than showing the key - an unfinished
         // translation should be usable, not a punishment.
-        using (var fallback = Embedded(Fallback))
+        using (var fallback = embedded(Fallback))
         {
             Merge(strings, fallback);
         }
 
-        var wanted = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
         if (!string.Equals(wanted, Fallback, StringComparison.OrdinalIgnoreCase))
         {
-            using var chosen = Embedded(wanted) ?? Beside(wanted);
+            using var chosen = embedded(wanted) ?? beside(wanted);
 
             Merge(strings, chosen);
         }
