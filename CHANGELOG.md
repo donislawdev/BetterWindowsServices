@@ -41,6 +41,13 @@ Nothing has been released yet. Everything below is what the tool does today.
   text, so a dot is a dot and a pasted path is a path. To search for text that has slashes
   in it, quote it: `"/foo/"`. The window and the command line now read this the same way,
   which they did not while the switch existed - the command line never had one.
+- **You choose which columns the list shows.** The **Columns** button beside the filters opens
+  a list of seventeen, six of them on to begin with. Eleven are things the window could read
+  all along and had nowhere to put: what kind of entry it is, the command it launches and the
+  file that command really runs, what it depends on, what starts it, which privileges it asks
+  for, its SID type, its error control, its load order group, its security descriptor, and
+  whether it is set to run and is not. Drag a heading to move a column and its edge to resize
+  it. **None of this is kept yet** - closing the window brings the first six back.
 - **Clicking a column heading sorts the list**, and clicking it again reverses.
 - **Pressing a letter while the list has focus jumps to the next entry beginning with it**,
   the way `services.msc` has always done it. Press it again to walk through the rest.
@@ -307,6 +314,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The PID column sorts as numbers.** Clicking its heading put `103292` before `9`, because
+  the column was ordered as text. Every column is now ordered by what it means rather than by
+  how it is written.
+- **A column heading too narrow for its name ends with an ellipsis** instead of being cut in
+  the middle of a word. Cells have given way like this since the widths were measured, and
+  headings had been left out - which nobody could see while every heading was short.
 - **A command that runs much longer than `--timeout` now says why.** That switch caps how
   long the tool waits once the service manager has accepted a request, and it cannot cap the
   manager's own answer - which takes tens of seconds when a service never reports itself.

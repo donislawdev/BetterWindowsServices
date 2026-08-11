@@ -22,11 +22,17 @@
         values that are ours. Neither of them loads on its own, because both resolve keys that
         arrive with ControlsDictionary.
 
-        THE THEME WAS ONE FILE UNTIL 2026-08-11 AND THE ORDER OF ITS TWO HALVES IS NOT A
-        STYLE CHOICE. Controls.xaml reaches the names in Values.xaml through StaticResource,
-        which resolves WHILE THE FILE IS BEING READ, so values go before styles and both go
-        after the library. Backlog 156. Anywhere else that builds this stack - WpfHost in the
-        tests, tools/wpfui-probe - repeats these four lines in this order for the same reason.
+        THE THEME WAS ONE FILE UNTIL 2026-08-11 AND THE ORDER OF ITS THREE PARTS IS NOT A
+        STYLE CHOICE. Both style files reach the names in Values.xaml through StaticResource,
+        which resolves WHILE THE FILE IS BEING READ, so values go before styles and all of
+        them go after the library. Backlog 156 for the first split, 163 for the second.
+        Anywhere else that builds this stack - WpfHost in the tests, tools/wpfui-probe -
+        repeats these five lines in this order for the same reason.
+
+        List.xaml IS LAST OF OURS AND THAT IS A DIRECTION RATHER THAN AN ACCIDENT. An
+        implicit style merged later wins, so the specialised half - the one screen this
+        product has - sits on top of the general one. Nothing in it is implicit today, so the
+        order costs nothing now and is the one that will still be right the day something is.
     -->
     <Application.Resources>
         <ResourceDictionary>
@@ -35,6 +41,7 @@
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="Themes/Values.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
+                <ResourceDictionary Source="Themes/List.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

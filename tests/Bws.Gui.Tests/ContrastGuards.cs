@@ -222,7 +222,7 @@ public sealed class ContrastGuards
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
         var text = string.Join(
             Environment.NewLine,
-            new[] { "Values.xaml", "Controls.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
+            new[] { "Values.xaml", "Controls.xaml", "List.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
 
         return Regex
             .Matches(text, @"<SolidColorBrush\s+x:Key=""([^""]+)""\s*>\s*(#[0-9A-Fa-f]{6})", RegexOptions.None, TimeSpan.FromSeconds(5))

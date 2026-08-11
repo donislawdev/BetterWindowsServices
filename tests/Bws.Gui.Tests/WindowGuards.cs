@@ -1,3 +1,5 @@
+using System.Windows;
+using System.Windows.Controls;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -162,6 +164,85 @@ public sealed class WindowGuards
         var window = WpfHost.Window();
 
         Assert.True(await WpfHost.On(() => window.Act(Shortcut.Refresh)));
+    }
+
+    /// <summary>
+    /// The Columns button carries the seventeen columns, and points its menu at itself.
+    ///
+    /// <b>THE FIRST VERSION OF THIS ASSERTED THAT THE MENU WAS OPEN, AND IT WAS FLAKY - which is
+    /// worse than not having it.</b> It passed on its own and failed inside a full check.ps1 run,
+    /// with the button reporting that it had opened a menu whose IsOpen read false. The window
+    /// these tests build is never SHOWN, and whether WPF will really open a popup over a window
+    /// that was never shown is a question about WPF rather than about this product.
+    ///
+    /// So what is claimed here is the part that is ours: the button has a menu, the menu is
+    /// pointed at the button, and it carries the seventeen choices - <b>handed over rather than
+    /// inherited</b>, because a menu hangs off a Popup, which is not in the visual tree, so what
+    /// it would inherit is a question with an answer nobody should have to know.
+    ///
+    /// <b>That the menu actually opens is guarded elsewhere and by a person</b>, which is stated
+    /// rather than left as a gap: <c>tools/window-journey</c> invokes this button on a real window
+    /// and then finds and ticks the items, which cannot work unless it opened - and it was watched
+    /// opening on the real window on 2026-08-11.
+    /// </summary>
+    [Fact]
+    public void The_columns_button_carries_the_seventeen_columns()
+    {
+        var window = WpfHost.Window();
+
+        var opened = WpfHost.On(() => window.OpenColumns());
+        var menu = WpfHost.On(() => window.ColumnsButton.ContextMenu);
+
+        Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
+        Assert.Equal(17, WpfHost.On(() => menu!.Items.Count));
+        Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
+
+        // Closed again, because this host is shared and a menu left open sits over whatever the
+        // next test builds - the same reason the probe that drives the real window shuts it.
+        WpfHost.On(() => menu!.IsOpen = false);
+    }
+
+    /// <summary>
+    /// A column heading gives way with an ellipsis, exactly as every cell has since 2026-08-05.
+    ///
+    /// <b>Complaint 6 of the eleven, in the one place the fix for it never reached.</b> Cells got
+    /// trimming and a tooltip when the widths were measured; headings did not, because all six of
+    /// them were short and there was nothing to see. S6d2 brought headings like "Against its start
+    /// type" and "Required privileges" over columns that shrink to a 90 unit floor, and the real
+    /// window was photographed reading "Required priv" - cut in the middle of a word, which
+    /// `docs/11` 3.5 says reads as a rendering fault rather than as "this does not fit".
+    ///
+    /// <b>It asks the STYLE rather than a pixel, and that limit is stated rather than implied.</b>
+    /// Whether the ellipsis appears is a question for a window at a real width, which is
+    /// <c>tools/gui-probe/columns-shot.ps1</c> and a person's eye. What can be held here is that
+    /// the setter exists and reaches the text - a heading is a ContentControl and TextTrimming
+    /// belongs to a TextBlock, so this only works through a template and it is easy to write a
+    /// setter that resolves, applies and does nothing.
+    /// </summary>
+    [Fact]
+    public void A_column_heading_gives_way_with_an_ellipsis_like_every_cell_does()
+    {
+        var heading = WpfHost.On(() => (Style)WpfHost.Resources["ColumnHeading"]);
+
+        var template = WpfHost.On(() =>
+            heading.Setters.OfType<Setter>()
+                .SingleOrDefault(setter => setter.Property == ContentControl.ContentTemplateProperty)?
+                .Value as DataTemplate);
+
+        Assert.True(
+            template is not null,
+            "The column heading has no ContentTemplate, so nothing carries its text and a heading "
+            + "too long for its column is cut mid-character. There is no setter on the header "
+            + "itself that reaches the text.");
+
+        var text = WpfHost.On(() => template!.LoadContent() as TextBlock);
+
+        Assert.True(
+            text is not null,
+            "The heading's template no longer builds a TextBlock, so whatever it does build decides "
+            + "the trimming and this guard can say nothing about it.");
+
+        Assert.Equal(TextTrimming.CharacterEllipsis, WpfHost.On(() => text!.TextTrimming));
     }
 
     [Fact]

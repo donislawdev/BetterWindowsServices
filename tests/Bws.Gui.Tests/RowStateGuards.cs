@@ -23,8 +23,8 @@ namespace Bws.Gui.Tests;
 ///
 /// <b>What it renders is composed by WPF, which is what makes the claim honest.</b>
 /// RenderTargetBitmap draws the visual tree the same way the screen does, with the real
-/// Themes/Values.xaml and Themes/Controls.xaml read off disk and the real WPF UI dictionaries
-/// merged underneath them, in the order App.xaml merges them. It is not a screenshot: it cannot
+/// Themes/Values.xaml, Themes/Controls.xaml and Themes/List.xaml read off disk and the real WPF
+/// UI dictionaries merged underneath them, in the order App.xaml merges them. It is not a screenshot: it cannot
 /// see what the desktop compositor does afterwards, which for a row background is nothing.
 ///
 /// <b>Two of the four states are here and two are not, and that is stated rather than left to be

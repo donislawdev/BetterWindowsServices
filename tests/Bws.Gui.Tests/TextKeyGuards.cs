@@ -60,12 +60,23 @@ public sealed class TextKeyGuards
     /// Here it cannot: the chip needs the key before it needs the words, because the words are
     /// read again whenever the language changes. So the constructor is named exactly, which is
     /// still a real place a key is asked for and still cannot be fooled by prose mentioning one.
+    ///
+    /// <b>A FOURTH SHAPE ARRIVED WITH THE CONFIGURABLE COLUMNS, 2026-08-11, AND IT IS THE SAME
+    /// SHAPE AS THE THIRD.</b> A column carries the key for its heading, which is also what the
+    /// picker calls it, and it reaches the loader through a property rather than at a call site -
+    /// for the same reason a chip does: the identifier is fixed and the words are read again in
+    /// whatever language the machine is set to.
+    ///
+    /// It anchors on the PROPERTY NAME rather than on a constructor, and that is the better of the
+    /// two anchors: <c>LabelKey = "gui.column.status"</c> can only be written where a label key is
+    /// being assigned, so no sentence mentioning a key can be mistaken for one.
     /// </remarks>
     private static readonly Regex[] Mentioned =
     [
         new(@"Texts\.Of\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
         new(@"\{\s*DynamicResource\s+(gui\.[^}\s]+)\s*\}", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
-        new(@"new FilterChip\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"new FilterChip\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+        new(@"LabelKey\s*=\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]

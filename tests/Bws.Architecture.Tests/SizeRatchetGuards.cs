@@ -115,8 +115,27 @@ public sealed class SizeRatchetGuards
     private const int LongestShippedFile = 536;
 
     /// <summary>
-    /// The longest markup file in the product, measured 2026-08-11: Themes/Controls.xaml at 530
-    /// lines. MainWindow.xaml is 357, Values.xaml is 356 and App.xaml is 39.
+    /// The longest markup file in the product. <b>Measured again the same evening after the second
+    /// split: Themes/List.xaml at 507, Values.xaml 403, MainWindow.xaml 397, Controls.xaml 192 and
+    /// App.xaml 48.</b>
+    ///
+    /// <b>530 -> 507, AND THE ARGUMENT FOR LEAVING IT AT 530 WAS WRITTEN HERE FIRST AND THEN
+    /// REFUTED BY THE MUTATION RUN AN HOUR LATER.</b> What stood here said: backlog 157 shows that
+    /// a ceiling set at today's value on a file under active work fires on the very next change,
+    /// List.xaml is the file S6d3 opens, and the drift test at the end of this class allows a
+    /// hundred lines of slack and saw only 23 - so the ceiling was still holding something.
+    ///
+    /// <b>It was not.</b> The entry that proves this guard can fail appends one line to the longest
+    /// markup file and expects red. At a ceiling of 530 over a file of 507 it came back MISSED,
+    /// which is the entry doing its job: <b>a ceiling the longest file cannot reach is holding
+    /// nothing</b>, and the drift test's hundred lines of slack is exactly the blind spot that
+    /// sentence describes. The same thing happened to the C# ceiling on 2026-08-02, and the lesson
+    /// is written further up this file: <b>the sharper of two guards over the same rule is the one
+    /// to believe.</b>
+    ///
+    /// So the cost predicted above is real and is accepted rather than argued away: the next line
+    /// added to List.xaml starts with somebody looking for a seam. Backlog 157 calls that the
+    /// ratchet working rather than failing.
     ///
     /// <b>The owner chose a separate ceiling at today's value rather than folding markup into the
     /// C# one</b>, backlog 132. Both alternatives were on the table and both were worse on the day:
@@ -147,7 +166,7 @@ public sealed class SizeRatchetGuards
     /// ceiling could have held that promise up - only a split could relieve it, and this is the
     /// bill. It is restated at the head of both files rather than left to rot.
     /// </summary>
-    private const int LongestShippedMarkupFile = 530;
+    private const int LongestShippedMarkupFile = 507;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
@@ -200,18 +219,18 @@ public sealed class SizeRatchetGuards
     private const int TestFilesAllowedToBeLong = 2;
 
     /// <summary>
-    /// How many markup files may be long at all, measured 2026-08-11: one, and it is
-    /// Themes/Controls.xaml, which is the file the markup ceiling is now set for. MainWindow.xaml
-    /// is next at 357, so it has a hundred and forty three lines before it would trip this.
+    /// How many markup files may be long at all, measured 2026-08-11: one, and after the second
+    /// split of that evening it is Themes/List.xaml at 507. Values.xaml is next at 403, so it has
+    /// ninety seven lines before it would trip this.
     ///
     /// <b>This dial earns more here than it does for C#</b>, because there are four markup files
     /// in the whole product. The ceiling above watches the one that is already longest and can say
     /// nothing about the other three - and a second markup file crossing 500 is exactly how the
     /// appearance surface doubles without any single file looking like it grew.
     ///
-    /// <b>It stayed at one through the split of 2026-08-11 and that is not an oversight.</b> The
-    /// theme became two files and the count did not move, because only one of the halves is long -
-    /// Values.xaml came out at 356. Had this been lowered to zero, the next honest hundred lines of
+    /// <b>It stayed at one through both splits of 2026-08-11 and that is not an oversight.</b> The
+    /// theme became two files and then three, and the count did not move either time, because only
+    /// ever one part is long. Had this been lowered to zero, the next honest hundred lines of
     /// styles would have to argue with two guards saying the same thing.
     /// </summary>
     private const int ShippedMarkupFilesAllowedToBeLong = 1;

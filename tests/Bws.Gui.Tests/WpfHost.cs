@@ -16,10 +16,10 @@ namespace Bws.Gui.Tests;
 /// thread. So a second test class cannot have its own, and the alternative to sharing is a
 /// second test that will not run.
 ///
-/// <b>The order below is App.xaml's order and that is load bearing.</b> Theme.xaml refers to WPF
-/// UI's keys with StaticResource, which is resolved WHILE THE FILE IS READ - so read on its own
-/// it fails outright on DefaultDataGridStyle. The merge in App.xaml works because all three are
-/// parsed as one unit with the application's own resources as the fallback for the lookup. That
+/// <b>The order below is App.xaml's order and that is load bearing.</b> Our theme files refer to
+/// WPF UI's keys with StaticResource, which is resolved WHILE THE FILE IS READ - so read on its
+/// own each one fails outright on DefaultDataGridStyle. The merge in App.xaml works because they
+/// are parsed in order with the application's own resources as the fallback for the lookup. That
 /// is a fact about the shipped window as much as about these tests.
 ///
 /// It costs a live thread and whatever it holds. Named here because this assembly measures the
@@ -101,13 +101,14 @@ internal static class WpfHost
         // The product's real files, read off disk rather than copied. A copy would answer a
         // question about the copy - the same rule tools/wpfui-probe is built on.
         //
-        // TWO FILES SINCE 2026-08-11 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Controls.xaml
-        // names keys declared in Values.xaml, StaticResource resolves them as the file is read,
-        // and each dictionary is added to the application before the next one is parsed - so the
-        // second finds the first the same way both find WPF UI's. Backlog 156.
+        // THREE FILES SINCE 2026-08-11 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Both styles
+        // files name keys declared in Values.xaml, StaticResource resolves them as the file is
+        // read, and each dictionary is added to the application before the next one is parsed - so
+        // the later ones find the first the same way all of them find WPF UI's. Backlog 156 for
+        // the first split and 163 for the second, and this is App.xaml's order in both cases.
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        foreach (var name in new[] { "Values.xaml", "Controls.xaml" })
+        foreach (var name in new[] { "Values.xaml", "Controls.xaml", "List.xaml" })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));
 

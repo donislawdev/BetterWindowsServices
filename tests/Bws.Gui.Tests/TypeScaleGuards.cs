@@ -117,11 +117,16 @@ public sealed class TypeScaleGuards
     /// <summary>
     /// The whole theme as one piece of text, which is what this guard has always read.
     ///
-    /// <b>It has to be both halves and they have to be joined, because this file asks a question
-    /// that spans the seam:</b> the sizes are declared in Values.xaml and the styles that set
-    /// them semibold are in Controls.xaml, so a guard reading either half alone would find sizes
+    /// <b>It has to be every part and they have to be joined, because this file asks a question
+    /// that spans the seams:</b> the sizes are declared in Values.xaml and the styles that set
+    /// them semibold are in the other two, so a guard reading one part alone would find sizes
     /// with nothing using them, or styles naming a size it cannot resolve. Split on 2026-08-11,
-    /// backlog 156.
+    /// backlog 156 and then 163.
+    ///
+    /// <b>The second split is why this list matters more than it looks.</b> The two semibold
+    /// styles ended up on opposite sides of it - ColumnHeading went to List.xaml and CountLine
+    /// stayed in Controls.xaml - so a version that had gone on reading two files would have
+    /// checked one of them and passed.
     /// </summary>
     private static string Theme()
     {
@@ -129,6 +134,6 @@ public sealed class TypeScaleGuards
 
         return string.Join(
             Environment.NewLine,
-            new[] { "Values.xaml", "Controls.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
+            new[] { "Values.xaml", "Controls.xaml", "List.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
     }
 }

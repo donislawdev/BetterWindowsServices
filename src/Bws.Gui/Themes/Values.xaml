@@ -3,8 +3,8 @@
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
 
     <!--
-        Every appearance value this product has, and not one style. The other half is
-        Controls.xaml, which holds the styles and no values.
+        Every appearance value this product has, and not one style. The styles live in
+        Controls.xaml and List.xaml, which hold no values.
 
         ADR-23. Everything else refers to these by name, and a guard in the architecture
         tests fails the build on a value written into a view. The reason is not tidiness:
@@ -13,22 +13,26 @@
 
         THE THEME WAS ONE FILE UNTIL 2026-08-11, AND THE PROMISE IT CARRIED HAS TO BE
         RESTATED RATHER THAN QUIETLY DROPPED. ADR-23 said that reading the theme from top to
-        bottom is the same thing as knowing what the product looks like. That is now two
-        readings rather than one: this file answers what the values ARE, Controls.xaml
-        answers what wears them. The seam is the honest one - there was no style above this
-        line and no value below it - but it is a seam, and the guard that used to name one
-        file now names two.
+        bottom is the same thing as knowing what the product looks like. That is now three
+        readings rather than one: this file answers what the values ARE, Controls.xaml and
+        List.xaml answer what wears them. Each seam is the honest one - there was no style
+        above the first line and no value below it, and the second fell between the list and
+        everything else - but they are seams, and the guard that used to name one file now
+        names three.
 
-        Why it was split at all: the markup ratchet stood at 799 lines and the file had
-        reached 849, so every further change to the window was refused by the build until
-        somebody found a seam. Backlog 156 carries the plan, 157 carries why a ceiling set on
-        a file that is under active work fires almost at once, which is the ceiling working
-        rather than failing.
+        Why it was split at all, twice in one day: the markup ratchet stood at 799 lines and
+        the file had reached 849, so every further change to the window was refused by the
+        build until somebody found a seam. Backlog 156 carries that plan and 157 carries why
+        a ceiling set on a file under active work fires almost at once, which is the ceiling
+        working rather than failing. The second split came the same evening, when the
+        configurable columns of S6d2 needed cell templates in a dictionary and the styles
+        half stood exactly on its new ceiling of 530. Backlog 163 had measured that seam in
+        advance.
 
-        THIS FILE IS MERGED BEFORE Controls.xaml AND THAT IS LOAD BEARING. Controls.xaml
-        reaches these keys through StaticResource, which is resolved WHILE THE FILE IS BEING
-        READ - so the order in App.xaml is WPF UI's dictionaries, then this, then Controls.
-        Neither of the two loads on its own.
+        THIS FILE IS MERGED BEFORE BOTH STYLES FILES AND THAT IS LOAD BEARING. They reach
+        these keys through StaticResource, which is resolved WHILE THE FILE IS BEING READ -
+        so the order in App.xaml is WPF UI's dictionaries, then this, then Controls, then
+        List. None of the three loads on its own.
 
         The base look comes from WPF UI in dark mode (ADR-24), so what lives here is only
         what is ours: the spacing scale, the type sizes, and the colours that mean something
@@ -119,6 +123,38 @@
     <DataGridLength x:Key="ColumnStart">215</DataGridLength>
     <DataGridLength x:Key="ColumnAccount">2*</DataGridLength>
     <DataGridLength x:Key="ColumnProcessId">72</DataGridLength>
+
+    <!--
+        THE ELEVEN COLUMNS `A8` PROMISES AND NOBODY COULD TURN ON UNTIL 2026-08-11, and every
+        width here is now a STARTING width rather than the last word. That distinction is the
+        sentence added to `ADR-23` the same day: the theme decides where a column begins, and a
+        person dragging its edge decides where it ends up, because S6d2 made the edge draggable.
+        Without that sentence this file and the layout would both claim to own the same number.
+
+        FIXED OR STARRED IS DECIDED THE SAME WAY THE FIRST SIX WERE. A column whose widest
+        possible content is known gets a number, because Width="Auto" measures the rows realised
+        so far and never measures again - that is backlog 53 and it cost a slice. A column
+        carrying text that will never fit at any width gets a star, an ellipsis and the floor
+        above, because something has to give and the person has to see that it did.
+
+        These starting numbers are ESTIMATES FROM THE HEADING AND THE VOCABULARY, not
+        measurements, and saying so is the difference between a number and a guess wearing a
+        number's clothes. The fixed ones are sized to the longest word each column can hold -
+        "File system driver", "Service SID type", "Against its start type" - at the semibold
+        heading size, which is larger than the data. tools/gui-probe/columns.ps1 is what measures
+        them on a real window, and it is a step of tools/check.ps1.
+    -->
+    <DataGridLength x:Key="ColumnEntryType">150</DataGridLength>
+    <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryPath">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryFile">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnLoadOrderGroup">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnErrorControl">120</DataGridLength>
+    <DataGridLength x:Key="ColumnSidType">140</DataGridLength>
+    <DataGridLength x:Key="ColumnDependsOn">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnTriggers">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>
 
     <!--
         What a starred column may shrink to before it stops being worth reading. Below this the

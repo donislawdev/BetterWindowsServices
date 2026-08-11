@@ -48,7 +48,7 @@ public sealed class CellFaceTests
         {
             var row = Row(Entry() with { Status = status });
 
-            Assert.False(string.IsNullOrWhiteSpace(row.Status), $"{status} has no word");
+            Assert.False(string.IsNullOrWhiteSpace(row["status"]), $"{status} has no word");
             Assert.False(string.IsNullOrWhiteSpace(row.StatusShape), $"{status} has no shape");
         }
     }
@@ -68,7 +68,7 @@ public sealed class CellFaceTests
         {
             var row = Row(Entry() with { Status = status });
 
-            Assert.NotEqual(row.Status, row.StatusShape);
+            Assert.NotEqual(row["status"], row.StatusShape);
         }
     }
 
@@ -84,9 +84,9 @@ public sealed class CellFaceTests
             BinaryOnDisk = Reading<bool>.Present(false)
         });
 
-        Assert.Contains("delayed", row.StartType, StringComparison.Ordinal);
-        Assert.Contains("trigger", row.StartType, StringComparison.Ordinal);
-        Assert.Contains("missing", row.StartType, StringComparison.Ordinal);
+        Assert.Contains("delayed", row["startType"], StringComparison.Ordinal);
+        Assert.Contains("trigger", row["startType"], StringComparison.Ordinal);
+        Assert.Contains("missing", row["startType"], StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public sealed class CellFaceTests
                 [new ServiceTrigger(TriggerKind.Unknown, TriggerAction.Start)])
         });
 
-        Assert.Contains("trigger", row.StartType, StringComparison.Ordinal);
+        Assert.Contains("trigger", row["startType"], StringComparison.Ordinal);
         Assert.Equal(CellShapes.Ordinary, row.StartShape);
     }
 
@@ -123,7 +123,7 @@ public sealed class CellFaceTests
                 [new ServiceTrigger(TriggerKind.Unknown, TriggerAction.Stop)])
         });
 
-        Assert.DoesNotContain("trigger", row.StartType, StringComparison.Ordinal);
+        Assert.DoesNotContain("trigger", row["startType"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class CellFaceTests
             DelayedAuto = Reading<bool>.Present(true)
         });
 
-        Assert.DoesNotContain("delayed", row.StartType, StringComparison.Ordinal);
+        Assert.DoesNotContain("delayed", row["startType"], StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -179,8 +179,8 @@ public sealed class CellFaceTests
         var absent = Row(Entry() with { StartType = Reading<StartType>.Absent() });
 
         Assert.Equal(CellShapes.Unknown, denied.StartShape);
-        Assert.NotEqual(string.Empty, denied.StartType);
-        Assert.Equal(string.Empty, absent.StartType);
+        Assert.NotEqual(string.Empty, denied["startType"]);
+        Assert.Equal(string.Empty, absent["startType"]);
     }
 
     /// <summary>
@@ -202,13 +202,13 @@ public sealed class CellFaceTests
         var absent = Row(Entry() with { StartType = Reading<StartType>.Absent() });
 
         Assert.Equal(CellShapes.Unknown, unread.StartShape);
-        Assert.NotEqual(string.Empty, unread.StartType);
+        Assert.NotEqual(string.Empty, unread["startType"]);
 
         // The three say three things. Without this the test above passes on a cell that answers
         // "unknown" to every question it was not given a value for, which is the collapse this
         // project spends most of its rules preventing.
-        Assert.NotEqual(denied.StartType, unread.StartType);
-        Assert.NotEqual(absent.StartType, unread.StartType);
+        Assert.NotEqual(denied["startType"], unread["startType"]);
+        Assert.NotEqual(absent["startType"], unread["startType"]);
     }
 
     /// <summary>
@@ -224,8 +224,8 @@ public sealed class CellFaceTests
     {
         var strange = Row(Entry() with { StartType = Reading<StartType>.Present(StartType.Unknown) });
 
-        Assert.NotEqual(string.Empty, strange.StartType);
-        Assert.DoesNotContain("0", strange.StartType, StringComparison.Ordinal);
+        Assert.NotEqual(string.Empty, strange["startType"]);
+        Assert.DoesNotContain("0", strange["startType"], StringComparison.Ordinal);
 
         // It is present, so it is not the shape for something nobody could read - the entry has
         // an answer, we just have no word of our own for it.
@@ -255,8 +255,8 @@ public sealed class CellFaceTests
             DelayedAuto = Reading<bool>.Present(false)
         });
 
-        Assert.NotEqual(plain.StartType, refused.StartType);
-        Assert.Contains(plain.StartType, refused.StartType, StringComparison.Ordinal);
+        Assert.NotEqual(plain["startType"], refused["startType"]);
+        Assert.Contains(plain["startType"], refused["startType"], StringComparison.Ordinal);
     }
 
     private static EntryRow Row(ScmEntry entry) => EntryRow.Of(entry);

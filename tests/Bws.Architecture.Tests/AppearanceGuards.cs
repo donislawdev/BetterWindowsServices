@@ -41,11 +41,52 @@ public sealed class AppearanceGuards
     /// of two files unchanged. What does NOT survive is the promise in `ADR-23` about one reading,
     /// and it is restated at the top of both files rather than left to rot.
     ///
-    /// <b>A folder is still not what this is.</b> Two named files with a stated seam - values in
-    /// one, styles in the other - is a different thing from a directory anybody may add to. The
-    /// day this array gains a third entry without an argument beside it, that difference is gone.
+    /// <b>A folder is still not what this is.</b> Named files with a stated seam is a different
+    /// thing from a directory anybody may add to. The sentence that stood here said the day this
+    /// array gained a third entry without an argument beside it, that difference would be gone -
+    /// <b>so here is the argument, on 2026-08-11, for the third entry.</b>
+    ///
+    /// Controls.xaml reached its own 530-line ceiling and the configurable columns of S6d2 need
+    /// cell templates a resource dictionary can hand to a column built in code, which is more
+    /// lines rather than fewer. Backlog 163 had already measured where the seam was, so the split
+    /// was not invented under pressure. <b>List.xaml is the one screen this product has</b> - the
+    /// grid, the row template, the cell, the headings and the marks - and Controls.xaml keeps
+    /// exactly what its own first line always claimed: the text styles, the field somebody types
+    /// into and the box somebody ticks.
+    ///
+    /// <b>What separates this from a folder is that each name says what is in it and each file
+    /// opens by claiming its own half</b>, which the last test in this class then checks. A fourth
+    /// entry needs the same two things: a name that answers "what is in there" without opening it,
+    /// and a claim at the head of the file that can be asserted.
+    ///
+    /// <b>Values.xaml is first in this array and the rest are the styles files</b>, which
+    /// <see cref="StyleFiles"/> depends on - values are merged before styles because styles
+    /// resolve their names while being read.
     /// </summary>
-    private static readonly string[] ThemeFiles = ["Values.xaml", "Controls.xaml"];
+    private static readonly string[] ThemeFiles = ["Values.xaml", "Controls.xaml", "List.xaml"];
+
+    /// <summary>The halves that hold styles and no values, which is every theme file but the first.</summary>
+    private static IEnumerable<string> StyleFiles => ThemeFiles.Skip(1);
+
+    /// <summary>
+    /// What a styles file is allowed to declare at the top level.
+    ///
+    /// <b>A list of what may be there rather than a list of what may not, and that is the whole
+    /// strength of it.</b> The rule this enforces is that no VALUE lives beside a style - and a
+    /// blacklist of value types passes the first time somebody declares a kind of value nobody
+    /// thought of. A whitelist fails instead, which is the direction a guard should fail in.
+    ///
+    /// <b>DataTemplate joined Style on 2026-08-11, and it is a decision rather than an
+    /// accommodation.</b> The columns became a list built in code, so the two cells that carry a
+    /// mark as well as a word needed names something could ask for - and a template is a control
+    /// composition, the same family as a style, rather than a number or a colour. What the rule
+    /// buys is that <c>ADR-23</c> can promise the values are all in one place, and a template
+    /// declares none.
+    ///
+    /// A third entry here means somebody decided a third kind of thing belongs beside the styles.
+    /// That is a decision worth making on purpose, which is what a whitelist forces.
+    /// </summary>
+    private static readonly string[] AllowedBesideStyles = ["Style", "DataTemplate"];
 
     /// <summary>
     /// Attributes that decide whether two screens look like the same product.
@@ -171,31 +212,36 @@ public sealed class AppearanceGuards
     }
 
     [Fact]
-    public void The_seam_between_the_two_theme_files_is_where_both_of_them_say_it_is()
+    public void The_seams_between_the_theme_files_are_where_all_of_them_say_they_are()
     {
-        // BOTH FILES OPEN BY PROMISING THIS AND UNTIL 2026-08-11 NOTHING CHECKED EITHER SENTENCE.
-        // Values.xaml says it holds every appearance value and not one style; Controls.xaml says
-        // it holds no value of its own. Prose is the one surface in this project with no guard at
-        // all, so a claim written at the head of a file is worth exactly one assertion.
+        // EVERY FILE OPENS BY PROMISING THIS AND UNTIL 2026-08-11 NOTHING CHECKED ANY OF THE
+        // SENTENCES. Values.xaml says it holds every appearance value and not one style; the
+        // styles files say they hold no value of their own. Prose is the one surface in this
+        // project with no guard at all, so a claim written at the head of a file is worth exactly
+        // one assertion.
         //
         // <b>It is not tidiness, because the merge order in App.xaml is load bearing.</b> Values
-        // are merged before styles, because Controls.xaml resolves their names through
+        // are merged before styles, because a styles file resolves their names through
         // StaticResource while it is being read. A style that drifts into Values.xaml is a style
-        // resolving names out of a dictionary merged after it, and a value that drifts into
-        // Controls.xaml is a value nobody reading the value file will ever find - which is the
+        // resolving names out of a dictionary merged after it, and a value that drifts into a
+        // styles file is a value nobody reading the value file will ever find - which is the
         // whole of what `ADR-23` buys.
+        //
+        // <b>WRITTEN OVER THE ARRAY RATHER THAN OVER TWO NAMED FILES, and that is the repair the
+        // second split asked for.</b> The first version named Values.xaml and Controls.xaml in
+        // its own body, so the day List.xaml arrived it would have gone on passing while saying
+        // nothing at all about the file holding most of the styles. A guard that has to be edited
+        // to keep covering what it is named after is a guard that will one day not be.
         //
         // <b>Read as XML rather than by indentation.</b> A resource dictionary is valid XML, so
         // "what are the top level entries" has an exact answer. A version counting leading spaces
         // would stop seeing anything the day somebody reformatted a file, which is the silent way
         // for a guard to die.
-        var values = TopLevel("Values.xaml");
-        var controls = TopLevel("Controls.xaml");
+        var values = TopLevel(ThemeFiles[0]);
 
-        // Neither pool may be empty, or the two claims below are kept by there being nothing to
-        // keep - the same failure the test above exists to prevent, one level down.
+        // No pool may be empty, or the claims below are kept by there being nothing to keep - the
+        // same failure the test above exists to prevent, one level down.
         Assert.NotEmpty(values);
-        Assert.NotEmpty(controls);
 
         var stylesAmongValues = values
             .Where(entry => entry.Name.LocalName == "Style")
@@ -204,21 +250,30 @@ public sealed class AppearanceGuards
 
         Assert.True(
             stylesAmongValues.Count == 0,
-            "Values.xaml says at the top that it holds no style, and it does. A style here is "
-            + "merged before the file the styles live in, so it resolves names against a "
+            $"{ThemeFiles[0]} says at the top that it holds no style, and it does. A style here is "
+            + "merged before the files the styles live in, so it resolves names against a "
             + "dictionary that is not there yet:"
             + Environment.NewLine + string.Join(Environment.NewLine, stylesAmongValues));
 
-        var valuesAmongControls = controls
-            .Where(entry => entry.Name.LocalName != "Style")
-            .Select(Describe)
-            .ToList();
+        foreach (var name in StyleFiles)
+        {
+            var styles = TopLevel(name);
 
-        Assert.True(
-            valuesAmongControls.Count == 0,
-            "Controls.xaml says at the top that it holds no value of its own. A value here is a "
-            + "value nobody reading the value file will find:"
-            + Environment.NewLine + string.Join(Environment.NewLine, valuesAmongControls));
+            Assert.NotEmpty(styles);
+
+            var valuesAmongStyles = styles
+                .Where(entry => !AllowedBesideStyles.Contains(entry.Name.LocalName, StringComparer.Ordinal))
+                .Select(Describe)
+                .ToList();
+
+            Assert.True(
+                valuesAmongStyles.Count == 0,
+                $"{name} says at the top that it holds no value of its own. A value here is a "
+                + "value nobody reading the value file will find. What may sit beside a style is "
+                + $"{string.Join(" and ", AllowedBesideStyles)}, and a third kind is a decision "
+                + "rather than an oversight:"
+                + Environment.NewLine + string.Join(Environment.NewLine, valuesAmongStyles));
+        }
     }
 
     /// <summary>The entries a theme file declares, which for a resource dictionary is its root's children.</summary>

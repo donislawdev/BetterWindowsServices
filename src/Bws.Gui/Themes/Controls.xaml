@@ -1,411 +1,31 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        What the controls in this window are made of, and not one value of its own. Every
-        number, every colour and every thickness below is a name declared in Values.xaml.
+        THE CONTROLS THIS WINDOW IS MADE OF, EVERYWHERE EXCEPT THE LIST - the text styles,
+        the sentences the window says, the field somebody types into and the box somebody
+        ticks. Not one value of its own: every number, colour and thickness below is a name
+        declared in Values.xaml.
 
-        ADR-23, the same rule as the other half: a value invented here would be as invisible
-        as one invented in a view, and the guard treats both theme files alike.
+        ADR-23, the same rule as the other two files.
 
-        NEITHER HALF LOADS ON ITS OWN, AND THIS ONE FAILS TWICE OVER. It reaches WPF UI's
-        keys - DefaultDataGridStyle, DefaultDataGridRowStyle, BodyTextBlockStyle and the rest
-        - and it reaches ours in Values.xaml, and StaticResource resolves both WHILE THE FILE
-        IS BEING READ. So the merge order in App.xaml is the library's dictionaries, then
-        Values.xaml, then this. Anything that loads this file elsewhere has to do the same,
-        which is why WpfHost and tools/wpfui-probe both build the stack in that order.
+        THIS FILE SHED THE LIST ON 2026-08-11 AND KEPT ITS NAME, because the name was always
+        describing what is still here. Themes/List.xaml took the grid, the row template, the
+        cell, the headings and the marks, unchanged and in the order they were in. It went
+        because this file stood exactly on its 530-line ceiling and the configurable columns
+        of S6d2 needed cell templates a resource dictionary could hand to a column built in
+        code.
 
-        Split out of Theme.xaml on 2026-08-11 with nothing rewritten - the styles below are
-        the ones that were there, in the order they were in. Backlog 156.
+        THE media PREFIX WENT WITH THE LIST, and nothing beyond x is declared here on
+        purpose. The mutation entry that proves a styles file holds no value has to inject a
+        type the file can actually parse, so it uses Thickness rather than system:Double -
+        which only works while neither styles file declares the system prefix.
+
+        NEITHER THIS FILE NOR List.xaml LOADS ON ITS OWN. Both reach WPF UI's keys and both
+        reach ours in Values.xaml, and StaticResource resolves them WHILE THE FILE IS BEING
+        READ. So the merge order in App.xaml is the library's dictionaries, then Values.xaml,
+        then this, then List.xaml.
     -->
-
-    <!--
-        Default look per control type, so a control is consistent without anybody remembering
-        to apply a style. The guard checks these too: every Value below points at a name.
-    -->
-    <!--
-        THE THREE ROW STATES LIVE ON THE ROW, AND THAT MOVED HERE FROM THE CELL ON 2026-08-02.
-        Read the next four paragraphs before touching either style - this exact question has
-        now been got wrong twice, in opposite directions, and both times silently.
-
-        Under the built-in Fluent theme the cell painted an OPAQUE background and covered the
-        row, so a Background setter on DataGridRow reached nothing. Three states sat there,
-        exactly one appeared, and it only appeared because the same brush was also on the cell.
-        Fourteen frames of a service stopping, and the declared #3A3320 never showed once.
-
-        Under WPF UI it is the other way round, and this is read out of their markup rather
-        than guessed: DefaultDataGridRowStyle templates its border as
-        Background="{TemplateBinding Background}", while DefaultDataGridCellStyle hardcodes
-        Background="Transparent" on its own border and never binds the property at all. So a
-        Background setter on the CELL is now the dead one.
-
-        THE PARAGRAPH THAT USED TO FOLLOW SAID WPF UI SUPPLIES NO FEEDBACK TO LEAN ON, BECAUSE
-        EVERY VisualState IN THEIR TEMPLATES IS EMPTY. The VisualStates are indeed empty and
-        that half was right. The conclusion was wrong, and it was wrong in the direction that
-        cost the most: their feedback lives in ControlTemplate.Triggers, not in visual states,
-        and it was drawing hover and selection all along - in THEIR brush, over ours, with the
-        two states sharing one colour so that they could not be told apart. Whoever reads a
-        template for this again: read the triggers, not only the states.
-
-        None of it applies to the row any more, because the row no longer uses their template.
-        The cell still does.
-
-        RowStyle and CellStyle are set explicitly on the DataGrid in MainWindow.xaml rather
-        than left to implicit lookup. Their DefaultDataGridStyle sets both properties itself,
-        and an explicit setter on the grid beats an implicit style - so leaving these keyed but
-        unreferenced would be a third way to make the same mistake.
-
-        tools/gui-probe/check.ps1 is the only instrument that can tell whether any of this
-        reaches a pixel. A property read says #3A3320 either way.
-    -->
-    <!--
-        The grid itself, and it exists for one setter that is not optional.
-
-        DataGridTextColumn TRANSFERS FontSize from the grid onto every TextBlock it generates,
-        as a LOCAL value - and a local value beats a default style. So the implicit TextBlock
-        style below, which carries our size, loses inside every cell of this list. Their
-        DefaultDataGridStyle sets FontSize to their own DefaultDataGridFontSize, and the first
-        build after the migration came out with rows a third taller and the PID column clipped
-        to two digits, because the wider text pushed the automatic columns past the viewport.
-
-        Neither symptom looked like a font size, and that is why this comment is here.
-    -->
-    <Style x:Key="ListGrid" TargetType="DataGrid" BasedOn="{StaticResource DefaultDataGridStyle}">
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-    </Style>
-
-    <!--
-        THE ROW OWNS ITS OWN TEMPLATE SINCE 2026-08-05, AND THAT IS THE FIX FOR A FAMILY OF
-        FAULTS RATHER THAN FOR ONE OF THEM. Read this before moving a state back into a style
-        trigger, because that is the shape that failed.
-
-        What was wrong: the four states were setters on DataGridRow.Background inside this
-        style. Their template feeds that property to its border through a TemplateBinding, so
-        it looks like it should arrive - and it never did. Their template also carries a
-        trigger on ItemsControl.AlternationIndex = 0 that sets the same border's Background
-        from the grid's RowBackground, and AlternationIndex is zero for every row while
-        AlternationCount is zero, so it is on for every row all the time. Inside a template,
-        a trigger's setter outranks a TemplateBinding on the same element. Our colour lost that
-        contest on every row, every frame, in silence.
-
-        This is the FIFTH time in this product that XAML bound correctly and painted something
-        else, after the empty list from internal members, column headers outside the visual
-        tree, the cell painting over the row under the built-in theme, and the white search
-        box. Rule 7 of the project notes says a problem that keeps coming back is a wrong
-        primitive rather than a missing tweak. The wrong primitive was borrowing a template and
-        arguing with it from outside.
-
-        WHAT WE GIVE UP BY OWNING IT: their template's future improvements, and about forty
-        lines to maintain. WHAT WE GET: four states that are template triggers, which is the
-        one place nothing can outrank, plus a zebra stripe that becomes possible again - the
-        two AlternationIndex triggers below are kept and come FIRST, so setting
-        AlternatingRowBackground on the grid would stripe the list without touching any state.
-        Backlog 123 asks for exactly that and could not have it while the states were dying.
-
-        STILL NOT PROVEN AT THE PIXEL. This explains a measurement rather than replacing one.
-        tools/gui-probe/check.ps1 is the instrument, and it needs a person.
-    -->
-    <Style x:Key="ListRow" TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
-        <!--
-            Margin and padding pulled back to nothing, against their 0,2 and 4. The owner chose
-            to keep this list's density on 2026-08-02: their spacing costs about 17% of the
-            rows on screen, measured twice, and this window exists to show 810 services.
-        -->
-        <Setter Property="Margin" Value="{StaticResource MarginNone}" />
-        <Setter Property="Padding" Value="{StaticResource MarginNone}" />
-
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="DataGridRow">
-                    <Border x:Name="RowSurface"
-                            Background="{TemplateBinding Background}"
-                            SnapsToDevicePixels="True">
-                        <Grid>
-                            <SelectiveScrollingGrid>
-                                <SelectiveScrollingGrid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </SelectiveScrollingGrid.ColumnDefinitions>
-                                <SelectiveScrollingGrid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </SelectiveScrollingGrid.RowDefinitions>
-
-                                <DataGridCellsPresenter
-                                    Grid.Column="1"
-                                    ItemsPanel="{TemplateBinding ItemsPanel}"
-                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-
-                                <DataGridDetailsPresenter
-                                    Grid.Column="1"
-                                    Grid.Row="1"
-                                    Visibility="{TemplateBinding DetailsVisibility}"
-                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Both" />
-
-                                <!--
-                                    The grid decides whether row headers show, through its own
-                                    converter. Theirs hardcodes Visible, which is a decision
-                                    taken away from HeadersVisibility on the grid.
-                                -->
-                                <DataGridRowHeader
-                                    Grid.Column="0"
-                                    Grid.Row="0"
-                                    Grid.RowSpan="2"
-                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
-                                    Visibility="{Binding HeadersVisibility,
-                                        ConverterParameter={x:Static DataGridHeadersVisibility.Row},
-                                        Converter={x:Static DataGrid.HeadersVisibilityConverter},
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
-                            </SelectiveScrollingGrid>
-
-                            <!--
-                                A sibling rather than a border on the row, so it costs no
-                                layout - an empty Border asks for two pixels and the cells
-                                beside it ask for more, so the row height is unchanged. Not
-                                hit testable, or the ring would swallow clicks on its own row.
-                            -->
-                            <Border x:Name="FocusOutline"
-                                    BorderBrush="{StaticResource FocusRing}"
-                                    BorderThickness="{StaticResource FocusRingThickness}"
-                                    Visibility="Collapsed"
-                                    IsHitTestVisible="False"
-                                    SnapsToDevicePixels="True" />
-                        </Grid>
-                    </Border>
-
-                    <ControlTemplate.Triggers>
-                        <!--
-                            The grid's own two, kept and kept FIRST. They are inert while the
-                            grid sets neither brush, and they are what a zebra stripe would
-                            come back through - underneath the states rather than over them,
-                            which is the arrangement backlog 123 needs.
-                        -->
-                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{Binding RowBackground,
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
-                        </Trigger>
-
-                        <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{Binding AlternatingRowBackground,
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
-                        </Trigger>
-
-                        <!--
-                            First of the three colours, so that pointing at a row or selecting
-                            it still wins. A person's own hand beats a notification about
-                            something that already happened.
-                        -->
-                        <DataTrigger Binding="{Binding RecentlyChanged}" Value="True">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{StaticResource SurfaceChanged}" />
-                        </DataTrigger>
-
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{StaticResource SurfaceHover}" />
-                        </Trigger>
-
-                        <!--
-                            LAST of the three, so selection beats the pointer, and that order is
-                            measured rather than assumed. With the pointer winning, a row went
-                            grey the instant it was clicked and stayed grey for as long as the
-                            hand did not move - so the one row the person had just chosen was
-                            the one row that did not look chosen.
-
-                            Foreground goes on the row rather than the border, because it has
-                            to reach the text inside the cells and it travels by inheritance.
-                        -->
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{StaticResource SurfaceSelected}" />
-                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-                        </Trigger>
-
-                        <!--
-                            Focus is not one of the three and does not compete with them: it
-                            shows an outline and changes no fill, so a row can be selected and
-                            focused and still look like both.
-
-                            IsKeyboardFocusWithin rather than IsFocused, because the keyboard
-                            lands on a CELL inside the row rather than on the row. Read out of
-                            their styles, which set KeyboardNavigation.IsTabStop to False on both
-                            the row and the cell, plus how a DataGrid moves focus when the current
-                            cell changes. NOT MEASURED at the pixel - that needs an active window,
-                            which a test process does not have. Backlog 131.
-                        -->
-                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                            <Setter TargetName="FocusOutline" Property="Visibility" Value="Visible" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!--
-        The cell carries spacing and nothing else. Any Background set here is discarded by
-        their template - see the block above.
-    -->
-    <Style x:Key="ListCell" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
-        <Setter Property="Padding" Value="{StaticResource PadListCell}" />
-        <!--
-            Against their MinHeight of 32. Row height is decided by the padding above, which is
-            the same decision as the margins on the row: keep the density this list had.
-        -->
-        <Setter Property="MinHeight" Value="{StaticResource SizeNone}" />
-    </Style>
-
-    <!--
-        WHAT EVERY CELL IN THE LIST IS MADE OF, AND THE TRIMMING IS THE POINT.
-
-        Without it a cell too narrow for its text cuts it wherever the pixels run out, halfway
-        through a character, with nothing to say it did - which reads as a rendering fault
-        rather than as "this does not fit". Measured on the real window: a display name wanted
-        476 pixels in a column of 365, and at 1039 pixels of window there is no width at which
-        the longest of them fits. Something has to give and the person has to be able to see
-        that it did.
-
-        The tooltip is the other half of the same rule. Text that gives way has to be gettable,
-        and a person who wants the whole of it should not have to widen the window and guess.
-    -->
-    <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
-    </Style>
-
-    <!--
-        Numbers line up on their last digit, text on its first. Complaint 3 of the eleven, and
-        it is how a column of process ids becomes comparable at a glance instead of being read
-        one row at a time.
-    -->
-    <Style x:Key="CellNumber" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-        <Setter Property="HorizontalAlignment" Value="Right" />
-    </Style>
-
-    <!--
-        The heading, so it stops looking like data. Complaint 4 of the eleven.
-    -->
-    <Style x:Key="ColumnHeading" TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
-    </Style>
-
-    <!--
-        A heading over numbers sits where the numbers do, or the column reads as two columns.
-    -->
-    <Style x:Key="ColumnHeadingNumber" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ColumnHeading}">
-        <Setter Property="HorizontalContentAlignment" Value="Right" />
-    </Style>
-
-    <!--
-        THE MARK BESIDE A MEANING, AND FILLED VERSUS HOLLOW IS NOT DECORATION.
-
-        Filled means the entry is doing something - running, or on its way somewhere. Hollow
-        means it is not. Colour separates within each pair, so the shape carries the coarse
-        answer and the colour the fine one. WCAG 2.2 SC 1.4.1 says colour may not be the only
-        visual means of conveying information, and the word beside the mark is the third
-        channel and always present.
-
-        The trigger compares against a CODE from the view model, never against the word. The
-        word is translated; the code is not, and a trigger matching on "Running" would quietly
-        stop matching the day a second language file appears - the row would just lose its
-        colour, with nothing anywhere saying why. This project has had four of those.
-    -->
-    <Style x:Key="StatusMark" TargetType="Ellipse">
-        <Setter Property="Width" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Height" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Margin" Value="{StaticResource MarginAfterShape}" />
-        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Fill" Value="{x:Static media:Brushes.Transparent}" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.running">
-                <Setter Property="Fill" Value="{StaticResource MeaningRunning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningRunning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.transit">
-                <Setter Property="Fill" Value="{StaticResource MeaningWarning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.stopped">
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.paused">
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <!--
-                Explicit rather than left to the style's default, which drew it identically to a
-                stopped entry. Backlog 149 - the mark now differs in shape, not in a shade of grey
-                nobody can separate.
-            -->
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.unknown">
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        The start type's mark, and it is Hidden rather than Collapsed for the ordinary case.
-        Collapsed would give the space back and every word in the column would sit at a
-        different place depending on whether its entry had something to report, which is a
-        ragged column pretending to be information.
-
-        Waiting on a trigger deliberately gets NO mark. It is not a fault - it is why four of
-        the ten entries that read as "automatic and not running" on a real machine were fine.
-        It is said in words, next to the type, where it explains rather than accuses.
-    -->
-    <Style x:Key="StartMark" TargetType="Ellipse" BasedOn="{StaticResource StatusMark}">
-        <Setter Property="Visibility" Value="Hidden" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-
-        <Style.Triggers>
-            <!--
-                Each mark says what it means, backlog 149. Colour was the only carrier until
-                2026-08-10 and docs/11 forbids exactly that - the owner reported seeing dots that
-                were sometimes empty and sometimes red with no way to find out why.
-            -->
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.missing">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.missing}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.disabled">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.disabled}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.unknown">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.unknown}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
     <!--
         BasedOn by NAME on WPF UI's own styles, not on {x:Type TextBlock}.
 
@@ -526,5 +146,47 @@
     <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <!--
+        ONE COLUMN IN THE LIST OF COLUMNS SOMEBODY CHOOSES FROM - `A8`, arriving 2026-08-11.
+
+        A MENU RATHER THAN A PANEL OF OUR OWN, AND THAT IS THE CHEAPEST HONEST SURFACE IN THIS
+        WINDOW. A floating panel needs a fill, an edge and both of their contrast ratios argued in
+        ContrastGuards, for a thing that is on screen while somebody clicks four times a year. A
+        menu is already themed by the control library, is already used by this window for copying a
+        name, and was already looked at by a person on the release build. Nothing new is declared
+        here and no colour is invented.
+
+        BasedOn OR THE LIBRARY IS INSTALLED AND INVISIBLE FOR THIS CONTROL - `docs/10` trap 4. An
+        explicit style REPLACES an implicit one rather than adding to it, so without this line the
+        items would come out in the built-in Windows look inside a Fluent window.
+
+        BasedOn ON THE TYPE RATHER THAN ON A NAME, AND THAT IS MEASURED. Every other BasedOn in
+        this product names one of their keys, so this one was written DefaultMenuItemStyle by
+        analogy - and there is no such key. WindowGuards went red at once with the resource name in
+        the message, which is the whole reason that guard builds a window rather than trusting a
+        compile. Their assembly declares DefaultMenuStyle, DefaultToolTipStyle, DefaultButtonStyle
+        and eighty others, and no named style for a menu ITEM: it is registered against the type.
+        So the base is asked for the same way the framework asks for it.
+    -->
+    <!--
+        WHAT THIS COSTS AND WHY IT IS ACCEPTED: an implicit style is looked up by type at merge
+        time, so this line goes quiet rather than red if the library ever stops registering one.
+        A named key throws. Nothing here can be named, so the honest arrangement is to say so.
+
+        StaysOpenOnClick, because turning on four columns is one errand rather than four. A menu
+        that shuts after every tick makes a person open it four times to do one thing.
+
+        Not one appearance value here, which is why this style is allowed to say nothing about how
+        it looks: what a column is CALLED, whether it is on, and whether it may be turned off are
+        all answered by the choice it is bound to.
+    -->
+    <Style x:Key="ColumnChoiceItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="IsCheckable" Value="True" />
+        <Setter Property="IsChecked" Value="{Binding IsShown, Mode=TwoWay}" />
+        <Setter Property="IsEnabled" Value="{Binding MayHide}" />
+        <Setter Property="StaysOpenOnClick" Value="True" />
     </Style>
 </ResourceDictionary>

@@ -21,13 +21,22 @@ public sealed class EntryRow : Observable
 {
     private ScmEntry _entry;
     private string _displayName;
-    private string _status;
     private string _statusShape;
-    private string _startType;
     private string _startShape;
-    private string _account;
-    private string _processId;
     private bool _recentlyChanged;
+
+    /// <summary>
+    /// The two cells whose text decides whether the row MOVED, kept because the decision is made
+    /// against what was SHOWN rather than against the entry behind it.
+    ///
+    /// <b>Not a cache and not a leftover.</b> The four cells that used to be properties here are
+    /// gone, because the columns read them through the indexer now. These two survive as fields
+    /// for one job: the shown form is the one carrying the qualifiers, so a file going missing
+    /// under a service counts as the row moving, and comparing the raw fields would miss it.
+    /// </summary>
+    private string _startType;
+
+    private string _account;
 
     private EntryRow(ScmEntry entry)
     {
@@ -36,12 +45,10 @@ public sealed class EntryRow : Observable
         _entry = entry;
         ServiceName = entry.ServiceName;
         _displayName = entry.DisplayName;
-        _status = CellFaces.StatusLabel(entry.Status);
         _statusShape = CellFaces.StatusShape(entry.Status);
-        _startType = CellFaces.StartLabel(entry, qualifies);
         _startShape = CellFaces.StartShape(entry, qualifies);
+        _startType = CellFaces.StartLabel(entry, qualifies);
         _account = Describe(entry.Account, value => value);
-        _processId = Describe(entry.ProcessId, Number);
     }
 
     /// <summary>
@@ -57,19 +64,17 @@ public sealed class EntryRow : Observable
         private set => Set(ref _displayName, value);
     }
 
-    public string Status
-    {
-        get => _status;
-        private set => Set(ref _status, value);
-    }
-
     /// <summary>
     /// Which shape the status wears, as a code the theme turns into a colour.
     ///
-    /// Separate from <see cref="Status"/> rather than derived from it in the view, because the
-    /// word is translated and the shape is not. A trigger comparing against "Running" would go
-    /// quiet the day somebody adds a second language file, and go quiet is exactly what it
-    /// would do - the row would simply lose its colour with nothing said.
+    /// Separate from the word rather than derived from it in the view, because the word is
+    /// translated and the shape is not. A trigger comparing against "Running" would go quiet the
+    /// day somebody adds a second language file, and go quiet is exactly what it would do - the
+    /// row would simply lose its colour with nothing said.
+    ///
+    /// <b>A property rather than a column, unlike every word on this row.</b> The mark is not a
+    /// cell - it sits beside one, inside a template - so nothing would ever ask a column for it,
+    /// and it notifies precisely where the cells notify in a batch.
     /// </summary>
     public string StatusShape
     {
@@ -77,29 +82,11 @@ public sealed class EntryRow : Observable
         private set => Set(ref _statusShape, value);
     }
 
-    public string StartType
-    {
-        get => _startType;
-        private set => Set(ref _startType, value);
-    }
-
     /// <summary>Which shape the start type wears. Same split as <see cref="StatusShape"/>.</summary>
     public string StartShape
     {
         get => _startShape;
         private set => Set(ref _startShape, value);
-    }
-
-    public string Account
-    {
-        get => _account;
-        private set => Set(ref _account, value);
-    }
-
-    public string ProcessId
-    {
-        get => _processId;
-        private set => Set(ref _processId, value);
     }
 
     /// <summary>
@@ -120,6 +107,43 @@ public sealed class EntryRow : Observable
 
     /// <summary>The entry behind this row, which is what a query is asked about.</summary>
     internal ScmEntry Entry => _entry;
+
+    /// <summary>
+    /// What this row says in one column, asked for by that column's own identifier.
+    ///
+    /// <b>An indexer rather than seventeen properties, and the reason is measured rather than
+    /// stylistic.</b> Eleven of the seventeen columns of `A8` are off by default and most of them
+    /// stay off - a security descriptor is several hundred characters and a privilege list runs to
+    /// twenty-eight names on this machine. Holding all of that as text on every one of 810 rows
+    /// would spend the whole of the 1.5 MB the row list is allowed by MemoryBudgetTests on cells
+    /// nobody has turned on. Computed here, only the cells a virtualised grid has realised are
+    /// ever worked out - about thirty rows of them.
+    ///
+    /// <b>Keyed by identifier and never by the heading.</b> The heading is translated and the
+    /// identifier is not, so a layout keyed on words would name different columns on a machine set
+    /// to a different language. Rule 3 of the project notes, the same one that makes the marks
+    /// compare against a code.
+    ///
+    /// An identifier nothing knows comes back as itself, which is what <see cref="Texts.Of"/> does
+    /// with a key nothing declares and for the same reason: a column that has gone away should
+    /// look wrong on screen rather than render as an empty cell, which is the one thing an empty
+    /// cell must never mean.
+    /// </summary>
+    public string this[string column] =>
+        Columns.Of(column) is { } known ? known.Reads(_entry) : column;
+
+    /// <summary>
+    /// The name WPF listens for when a binding goes through an indexer.
+    ///
+    /// <b>Raising this is the whole of what makes the cells above live, and nothing else does
+    /// it.</b> No cell has a property of its own any more, so nothing else says a word on this row
+    /// changed - a row whose launch path was rewritten would keep showing the old one, correctly,
+    /// forever, with every property on it telling the truth. That is the shape this window has
+    /// been caught by four times, and it is why the guard over this claims a NOTIFICATION rather
+    /// than a value: a computed cell answers correctly whenever it is asked, so asking it proves
+    /// nothing about whether anybody was told to ask.
+    /// </summary>
+    private const string EveryCell = "Item[]";
 
     /// <summary>When this row last moved, for whoever is clearing the highlight.</summary>
     internal DateTimeOffset ChangedAt { get; private set; }
@@ -142,9 +166,12 @@ public sealed class EntryRow : Observable
 
         _entry = _entry with { Status = status.Status, ProcessId = status.ProcessId };
 
-        Status = CellFaces.StatusLabel(_entry.Status);
         StatusShape = CellFaces.StatusShape(_entry.Status);
-        ProcessId = Describe(_entry.ProcessId, Number);
+
+        // The status and the process identifier as WORDS, which are cells and therefore say so
+        // here rather than one property at a time.
+        Raise(EveryCell);
+
         ChangedAt = now;
         RecentlyChanged = true;
 
@@ -172,12 +199,25 @@ public sealed class EntryRow : Observable
         _entry = entry;
 
         DisplayName = entry.DisplayName;
-        Status = CellFaces.StatusLabel(entry.Status);
         StatusShape = CellFaces.StatusShape(entry.Status);
-        StartType = CellFaces.StartLabel(entry, qualifies);
         StartShape = CellFaces.StartShape(entry, qualifies);
-        Account = Describe(entry.Account, value => value);
-        ProcessId = Describe(entry.ProcessId, Number);
+
+        _startType = CellFaces.StartLabel(entry, qualifies);
+        _account = Describe(entry.Account, value => value);
+
+        // UNCONDITIONAL, AND THAT IS NOT LAZINESS - IT IS THE ONLY HONEST ANSWER HERE. The five
+        // comparisons above decide whether the row MOVED, which is a question about what a person
+        // should be shown a highlight for. Whether a CELL changed is a different question over a
+        // different set of fields: eleven of the seventeen columns read parts of the entry nothing
+        // here compares, so a dependency list gaining a name, a launch path being rewritten or a
+        // descriptor changing would all leave their cells showing yesterday's answer with nothing
+        // anywhere reporting it.
+        //
+        // Comparing the whole entry instead was the other option and it does not work: ScmEntry is
+        // a record, so == is memberwise, and several of its members are lists compared by
+        // reference - two readings of an unchanged machine are already unequal. It would cost a
+        // comparison to arrive at the same answer this line gives for nothing.
+        Raise(EveryCell);
 
         if (moved)
         {
@@ -198,21 +238,15 @@ public sealed class EntryRow : Observable
     private static bool SameProcess(Reading<int> left, Reading<int> right) =>
         left.Outcome == right.Outcome && left.Value == right.Value;
 
-    private static string Number(int value) =>
-        value.ToString(System.Globalization.CultureInfo.CurrentCulture);
-
     /// <summary>
-    /// A reading as text, with each of the four states saying something different.
+    /// A reading as text. Four states, and the whole of the reasoning is in
+    /// <see cref="CellFaces.Say"/>, which is where this moved on 2026-08-11.
     ///
-    /// The empty string is only ever used for "there is genuinely nothing", which is the one
-    /// state where a blank cell tells the truth. The other two say so in words, because a
-    /// person scanning a column has no other way to tell them from a value nobody has.
+    /// One caller is left - the account, compared to decide whether the row moved. The
+    /// process identifier used to be the other, and formatting it went with it: a private
+    /// helper nothing points at survives every build and every test, which is how a dead
+    /// method sat in the core for a day earlier the same week.
     /// </summary>
-    private static string Describe<T>(Reading<T> reading, Func<T, string> text) => reading.Outcome switch
-    {
-        ReadOutcome.Present => text(reading.Value!),
-        ReadOutcome.Absent => string.Empty,
-        ReadOutcome.Denied => Texts.Of("gui.cell.noAccess"),
-        _ => Texts.Of("gui.cell.unknown")
-    };
+    private static string Describe<T>(Reading<T> reading, Func<T, string> text) =>
+        CellFaces.Say(reading, text);
 }

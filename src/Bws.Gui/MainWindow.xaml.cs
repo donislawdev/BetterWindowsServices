@@ -27,6 +27,17 @@ public partial class MainWindow : Window
     private static readonly TimeSpan AskEvery = TimeSpan.FromSeconds(1);
 
     private readonly MainViewModel _model = new();
+
+    /// <summary>
+    /// Which columns the list is showing - `A8`, and a view model of its own.
+    ///
+    /// <b>Not hung off <see cref="MainViewModel"/>, and the reasoning is at
+    /// <see cref="ColumnBar"/>.</b> The short of it: that class is about what the list CONTAINS,
+    /// and this is about what the rows are shown through. The window is the only thing that needs
+    /// both, so the window is where they meet.
+    /// </summary>
+    private readonly ColumnBar _columns = new();
+
     private readonly DispatcherTimer _timer;
 
     /// <summary>Whether the last right click landed on a row. Read by the menu, set by the click.</summary>
@@ -37,6 +48,20 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         DataContext = _model;
+
+        // BEFORE ANY ROW EXISTS, and the grid has no columns at all until this line runs. There
+        // are seventeen of them and eleven are off, which is a list somebody chooses from rather
+        // than a list written out - see ListColumns.
+        ListColumns.Fill(Entries, _columns);
+
+        // SET RATHER THAN BOUND, and that is the same trap the column headers fell into: a menu
+        // hangs off a Popup, which is not in the visual tree, so what it inherits is a question
+        // with an answer nobody should have to know. Handing it the choices costs one line and
+        // has no such question.
+        if (ColumnsButton.ContextMenu is { } menu)
+        {
+            menu.ItemsSource = _columns.Choices;
+        }
 
         // On the interface thread by design. The tick itself does nothing but start a reading
         // that runs elsewhere, and having it arrive here means nothing from a worker thread
@@ -284,6 +309,35 @@ public partial class MainWindow : Window
         {
             e.Handled = true;
         }
+    }
+
+    private void ChooseColumns(object sender, RoutedEventArgs e) => OpenColumns();
+
+    /// <summary>
+    /// Opens the list of columns under the button that asks for it.
+    ///
+    /// <b>A context menu opened by a left click, which is unusual and is the point.</b> The menu
+    /// is the surface - already themed, already used by this window - and the button is the
+    /// discoverability, because a column chooser hidden behind a right click on a heading is one
+    /// nobody finds. Placed under the button rather than at the pointer, so it reads as belonging
+    /// to it rather than as a menu about whatever was clicked.
+    ///
+    /// <b>Apart from the handler for the same reason <see cref="Act"/> is</b> - a handler the
+    /// framework calls is reachable only by clicking, and what this does is worth asserting: a
+    /// button that opens nothing looks exactly like a feature that is not there.
+    /// </summary>
+    internal bool OpenColumns()
+    {
+        if (ColumnsButton.ContextMenu is not { } menu)
+        {
+            return false;
+        }
+
+        menu.PlacementTarget = ColumnsButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+
+        return true;
     }
 
     private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(model => model.SelectedServiceName);

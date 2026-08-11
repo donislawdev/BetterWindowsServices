@@ -13,6 +13,20 @@
   "gui.column.startType": "Start",
   "gui.column.account": "Account",
   "gui.column.processId": "PID",
+  "gui.column.entryType": "Entry type",
+  "gui.column.runsAgainstItsStartType": "Against its start type",
+  "gui.column.binaryPath": "Binary path",
+  "gui.column.binaryFile": "Binary file",
+  "gui.column.loadOrderGroup": "Load order group",
+  "gui.column.errorControl": "Error control",
+  "gui.column.sidType": "Service SID type",
+  "gui.column.dependsOn": "Depends on",
+  "gui.column.triggers": "Triggers",
+  "gui.column.requiredPrivileges": "Required privileges",
+  "gui.column.securityDescriptor": "Security descriptor",
+
+  "gui.columns.button": "Columns",
+  "gui.columns.hint": "Choose what the list shows. Drag a heading to move a column and its edge to resize. None of it is kept yet, so closing the window brings the first six back.",
 
   "gui.search.hint": "Search, or write a query: start:auto !status:running",
 
@@ -67,6 +81,32 @@
 
   "gui.cell.unknown": "unknown",
   "gui.cell.noAccess": "no access",
+
+  "gui.cell.yes": "Yes",
+  "gui.cell.no": "No",
+  "gui.cell.list.separator": ", ",
+
+  "gui.cell.entryType.kernelDriver": "Kernel driver",
+  "gui.cell.entryType.fileSystemDriver": "File system driver",
+  "gui.cell.entryType.ownProcess": "Own process",
+  "gui.cell.entryType.sharedProcess": "Shared process",
+
+  "gui.cell.sidType.unrestricted": "Unrestricted",
+  "gui.cell.sidType.restricted": "Restricted",
+
+  "gui.cell.errorControl.ignore": "Ignore",
+  "gui.cell.errorControl.normal": "Normal",
+  "gui.cell.errorControl.severe": "Severe",
+  "gui.cell.errorControl.critical": "Critical",
+
+  "gui.cell.trigger.deviceArrival": "Device arrival",
+  "gui.cell.trigger.ipAddress": "IP address",
+  "gui.cell.trigger.domainJoin": "Domain join",
+  "gui.cell.trigger.firewallPort": "Firewall port",
+  "gui.cell.trigger.groupPolicy": "Group policy",
+  "gui.cell.trigger.networkEndpoint": "Network endpoint",
+  "gui.cell.trigger.custom": "Custom",
+  "gui.cell.trigger.systemState": "System state",
 
   "gui.cell.status.running": "Running",
   "gui.cell.status.stopped": "Stopped",

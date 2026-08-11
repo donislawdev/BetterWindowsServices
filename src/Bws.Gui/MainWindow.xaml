@@ -167,6 +167,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!--
@@ -206,6 +207,38 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+            <!--
+                WHICH COLUMNS THE LIST SHOWS, `A8`. A VISIBLE CONTROL RATHER THAN A MENU HIDDEN
+                UNDER THE COLUMN HEADINGS, and that is `docs/11` rather than taste: section 6 grades
+                "recognition rather than recall" as one of this window's two weakest heuristics, and
+                a feature reachable only by right clicking something is a feature you have to
+                already know about. The filters made the same choice one slice earlier - complaint 7
+                was closed with a visible row and a group label, not with a menu.
+
+                The list ITSELF is a menu, which is the opposite decision and is about surface
+                rather than discoverability: a panel of our own would need a fill, an edge and both
+                of their contrast ratios argued, for a thing somebody opens a few times. The theme
+                already dresses a menu and this window already uses one to copy a name.
+
+                It sits at the end of the filters row rather than beside the search box, because
+                what it changes is the list rather than the question - and the count line, which
+                answers the question, already owns the right-hand end of the row above.
+
+                Its own AutomationId, because tools/window-journey tells the labels of controls
+                apart from the sentences the window says about the answer, and it does that by
+                identity. This is the fourth time that lesson has been paid for in this file.
+            -->
+            <Button Grid.Column="2"
+                    x:Name="ColumnsButton"
+                    AutomationProperties.AutomationId="columnsButton"
+                    Content="{DynamicResource gui.columns.button}"
+                    ToolTip="{DynamicResource gui.columns.hint}"
+                    Click="ChooseColumns">
+                <Button.ContextMenu>
+                    <ContextMenu ItemContainerStyle="{StaticResource ColumnChoiceItem}" />
+                </Button.ContextMenu>
+            </Button>
         </Grid>
 
         <!--
@@ -213,9 +246,16 @@
             so a cell somebody could type into would be a way to change one without ever
             producing a plan.
 
-            Sorting and reordering are off rather than on and half working. They belong with
-            the slice that also answers what a sort does while the list refreshes underneath
-            it, which A10 has five rules about.
+            Sorting arrived on 2026-08-10 and reordering with S6d2 the day after. What A10 has
+            five rules about is answered the same way for both: the list reconciles itself in
+            place and holds still while somebody is using it, so a sorted or rearranged list
+            does not jump under a hand that is already on it.
+
+            NO COLUMNS ARE DECLARED HERE ANY MORE. Seventeen of them are built in code from
+            ViewModels/Columns.cs, because a list somebody chooses from cannot be a list written
+            out - and the six that were here would have been a second copy of six of the
+            seventeen. ListColumns.cs builds them and the two templated cells live in
+            Themes/List.xaml, which is where a column built in code can reach them.
         -->
         <DataGrid Grid.Row="2"
                   x:Name="Entries"
@@ -231,7 +271,7 @@
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserSortColumns="True"
-                  CanUserReorderColumns="False"
+                  CanUserReorderColumns="True"
                   CanUserAddRows="False"
                   GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
@@ -260,87 +300,6 @@
                 </ContextMenu>
             </DataGrid.ContextMenu>
 
-            <!--
-                NOT ONE OF THESE WIDTHS IS Auto ANY MORE, AND THAT IS THE FIX FOR BACKLOG ITEM
-                53 RATHER THAN A TIDY-UP. Measured with tools/gui-probe/columns.ps1 against this
-                window: Auto sizes to the rows realised so far and never measures again as more
-                scroll into view, so the PID column stayed 36 pixels wide through all 811 rows
-                while the numbers in it grew to need 62. Every width now lives in Values.xaml
-                with the measurement beside it.
-
-                Status and the start type are template columns because they carry a mark as well
-                as a word - docs/11 3.1, which asks for shape AND colour AND label and calls
-                any two of the three insufficient.
-
-                THE MARK AND THE WORD SIT IN A GRID, NOT A StackPanel, and that is load-bearing:
-                a horizontal StackPanel measures its children against infinite width, so the
-                text would never learn it has to give way and the ellipsis would never appear.
-                The trimming would be present, correct and dead - which is the shape of fault
-                this window has shipped four times.
-            -->
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="{DynamicResource gui.column.name}"
-                                    Binding="{Binding ServiceName}"
-                                    ElementStyle="{StaticResource CellText}"
-                                    MinWidth="{StaticResource ColumnFloor}"
-                                    Width="{StaticResource ColumnName}" />
-
-                <DataGridTextColumn Header="{DynamicResource gui.column.displayName}"
-                                    Binding="{Binding DisplayName}"
-                                    ElementStyle="{StaticResource CellText}"
-                                    MinWidth="{StaticResource ColumnFloor}"
-                                    Width="{StaticResource ColumnDisplayName}" />
-
-                <DataGridTemplateColumn Header="{DynamicResource gui.column.status}"
-                                        SortMemberPath="Status"
-                                        Width="{StaticResource ColumnStatus}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Ellipse Grid.Column="0" Style="{StaticResource StatusMark}" />
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding Status}"
-                                           Style="{StaticResource CellText}" />
-                            </Grid>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTemplateColumn Header="{DynamicResource gui.column.startType}"
-                                        SortMemberPath="StartType"
-                                        Width="{StaticResource ColumnStart}">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Ellipse Grid.Column="0" Style="{StaticResource StartMark}" />
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding StartType}"
-                                           Style="{StaticResource CellText}" />
-                            </Grid>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTextColumn Header="{DynamicResource gui.column.account}"
-                                    Binding="{Binding Account}"
-                                    ElementStyle="{StaticResource CellText}"
-                                    MinWidth="{StaticResource ColumnFloor}"
-                                    Width="{StaticResource ColumnAccount}" />
-
-                <DataGridTextColumn Header="{DynamicResource gui.column.processId}"
-                                    Binding="{Binding ProcessId}"
-                                    ElementStyle="{StaticResource CellNumber}"
-                                    HeaderStyle="{StaticResource ColumnHeadingNumber}"
-                                    Width="{StaticResource ColumnProcessId}" />
-            </DataGrid.Columns>
         </DataGrid>
 
         <!--

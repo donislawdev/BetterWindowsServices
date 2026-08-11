@@ -67,7 +67,7 @@ public sealed class MainViewModelTests
             Entry("Denied") with { Account = Reading<string>.Denied(5, "Access is denied.") },
             Entry("NotRead") with { Account = Reading<string>.NotRead() });
 
-        var cells = model.Rows.ToDictionary(row => row.ServiceName, row => row.Account, StringComparer.Ordinal);
+        var cells = model.Rows.ToDictionary(row => row.ServiceName, row => row["account"], StringComparer.Ordinal);
 
         Assert.Equal("LocalSystem", cells["Present"]);
         Assert.Equal(string.Empty, cells["Absent"]);
@@ -313,7 +313,7 @@ public sealed class MainViewModelTests
         machine.Stop("Spooler");
         await model.RefreshAsync();
 
-        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler").Status);
+        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler")["status"]);
     }
 
     [Fact]
@@ -331,7 +331,7 @@ public sealed class MainViewModelTests
         await model.RefreshAsync();
 
         Assert.Same(before, model.Rows.Single(row => row.ServiceName == "Spooler"));
-        Assert.Equal("Stopped", before.Status);
+        Assert.Equal("Stopped", before["status"]);
     }
 
     [Fact]
@@ -417,8 +417,8 @@ public sealed class MainViewModelTests
 
         var arrived = model.Rows.Single(row => row.ServiceName == "Fresh");
 
-        Assert.Equal("NT AUTHORITY\\LocalService", arrived.Account);
-        Assert.Equal("Automatic", arrived.StartType);
+        Assert.Equal("NT AUTHORITY\\LocalService", arrived["account"]);
+        Assert.Equal("Automatic", arrived["startType"]);
 
         // And the rows that were already there are the same objects afterwards. A full reading
         // happens on F5 too, and one that built every row again would drop the selection every
@@ -455,7 +455,7 @@ public sealed class MainViewModelTests
 
         // Still on screen, and visibly stopped. The cell moved, the list did not.
         Assert.Equal(2, model.Rows.Count);
-        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler").Status);
+        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler")["status"]);
 
         // And it says so, because a list quietly disagreeing with its own query is the silence
         // rule 8 forbids, arriving from the one direction where it looks like politeness.
@@ -499,7 +499,7 @@ public sealed class MainViewModelTests
         await model.RefreshAsync();
 
         Assert.False(model.Says.Incomplete);
-        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler").Status);
+        Assert.Equal("Stopped", model.Rows.Single(row => row.ServiceName == "Spooler")["status"]);
     }
 
     [Fact]
