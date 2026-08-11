@@ -1,12 +1,12 @@
 {
-  "everything": {
-    "Bws.Cli": 14.1,
-    "Bws.Core": 91.3,
-    "Bws.Gui": 87.5
-  },
   "anywhere": {
-    "Bws.Cli": 9.5,
     "Bws.Core": 71.9,
-    "Bws.Gui": 86.2
+    "Bws.Gui": 86.2,
+    "Bws.Cli": 9.5
+  },
+  "everything": {
+    "Bws.Core": 91.3,
+    "Bws.Gui": 88.3,
+    "Bws.Cli": 14.1
   }
 }

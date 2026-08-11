@@ -75,4 +75,38 @@ public sealed class AdmissionTests
             "The warning about a short list has to come first. It is the only sentence here that "
             + "is about the whole machine rather than about what was asked for:" + Environment.NewLine + notice);
     }
+
+    /// <summary>
+    /// Memory is the second expensive family and it had no test, which is how it came to be the
+    /// only branch in <c>Sentences.Admissions</c> nothing had ever executed - found on 2026-08-11
+    /// while repairing backlog 161.
+    ///
+    /// <b>It is a separate sentence from the one about signatures, not a shared "something was
+    /// not read".</b> The two cost different things and are read by different passes, so a person
+    /// whose query came back empty needs to know WHICH one the window skipped - otherwise the
+    /// remedy, which is to ask the command line instead, is a guess.
+    /// </summary>
+    [Fact]
+    public async Task Asking_about_memory_says_nobody_read_it_rather_than_that_it_was_refused()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock())
+        {
+            Says = new Says { Elevated = true }
+        };
+
+        await model.LoadAsync();
+
+        model.QueryText = "memory:>1MB";
+
+        var notice = model.Says.Notice;
+
+        Assert.NotEqual(string.Empty, notice);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.query.unreadMemory"), notice);
+
+        // The even claim, and it is the one that matters: this must not read as a refusal. "The
+        // machine would not let us" and "nobody asked" are the two states this project spends
+        // most of its rules keeping apart, and both arrive here as an empty list.
+        Assert.DoesNotContain(
+            Bws.Gui.Texts.Of("gui.status.partial", 1), notice, StringComparison.Ordinal);
+    }
 }

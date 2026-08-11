@@ -17,31 +17,16 @@ namespace Bws.Core.Querying;
 /// </summary>
 internal static class QueryValueReader
 {
-    /// <summary>
-    /// A bare word read as a regular expression, which is what the regex switch beside the
-    /// search box means.
-    ///
-    /// Nothing else is tried first - not the slashes, not the equals sign, not the wildcards.
-    /// With the switch on, the text is the expression and every character in it means what it
-    /// means to a regular expression, which is the only reading that does not need a person to
-    /// remember a second set of rules for when the switch is down.
-    /// </summary>
-    internal static IQueryValue? ReadExpressionValue(ScannedText value, List<QueryProblem> problems)
-    {
-        if (QueryPatterns.TryPattern(value.Text, out var compiled, out var failure))
-        {
-            return new TextValue(TextOperator.Pattern, value.Text, compiled);
-        }
-
-        problems.Add(new QueryProblem
-        {
-            Kind = QueryProblemKind.BadPattern,
-            Text = value.Text,
-            Detail = failure
-        });
-
-        return null;
-    }
+    // ReadExpressionValue STOOD HERE UNTIL 2026-08-11 AND HAD NO CALLER LEFT. It read a bare word
+    // as a regular expression, which is what the switch beside the search box used to mean, and
+    // the switch went the day before - backlog 152. The method survived the removal because
+    // nothing points at an unused internal method: the build stays green, the tests stay green,
+    // and the only thing that changes is a coverage figure nobody could see, because the suite
+    // was red for an unrelated reason. Backlog 161.
+    //
+    // Said here rather than deleted in silence, because the reading it carried is NOT gone - it
+    // moved to where it always also lived, ReadTextValue below, which has read slashes for values
+    // and for free search alike since the day the language was written.
 
     internal static IQueryValue? ReadValue(QueryField field, ScannedText value, List<QueryProblem> problems)
     {

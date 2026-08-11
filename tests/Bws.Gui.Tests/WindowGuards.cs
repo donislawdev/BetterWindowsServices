@@ -84,6 +84,86 @@ public sealed class WindowGuards
         Assert.Null(model.SelectedDisplayName);
     }
 
+    /// <summary>
+    /// The jump a letter makes, asked of the window rather than of the rule behind it.
+    ///
+    /// <b><see cref="MainWindow.JumpTo"/> was made internal so that it could be checked, and then
+    /// was not</b> - found on 2026-08-11 while repairing backlog 161, with the whole method
+    /// uncovered. <c>TypeToFindTests</c> holds the rule about WHICH row a letter picks;
+    /// what is here is the half only a window has: the grid's own order, the selection actually
+    /// moving, and the answer that decides whether the key press is passed on.
+    ///
+    /// <b>The rows are handed to the grid rather than loaded through the model, on purpose.</b>
+    /// The window builds its own view model and that model reads this machine's service control
+    /// manager - a unit test that did so would be measuring the machine. Setting ItemsSource is
+    /// also the honest shape for the claim: backlog 150 established that the jump has to follow
+    /// what is ON SCREEN rather than the model's order, because a sorted column makes those two
+    /// different sequences.
+    /// </summary>
+    [Fact]
+    public void A_letter_moves_the_selection_to_the_next_row_that_starts_with_it()
+    {
+        var window = WpfHost.Window();
+
+        var moved = WpfHost.On(() =>
+        {
+            window.Entries.ItemsSource = new[]
+            {
+                EntryRow.Of(Rows.Entry("Appinfo")),
+                EntryRow.Of(Rows.Entry("Spooler")),
+                EntryRow.Of(Rows.Entry("Winmgmt"))
+            };
+
+            return window.JumpTo('s');
+        });
+
+        Assert.True(moved);
+
+        var landed = WpfHost.On(() => (window.Entries.SelectedItem as EntryRow)?.ServiceName);
+
+        Assert.Equal("Spooler", landed);
+    }
+
+    /// <summary>
+    /// The two ways a jump does nothing, and both have to say so.
+    ///
+    /// <b>A press marked handled by something that did nothing is a press that silently stops
+    /// working for whatever needed it next</b> - which is the sentence the method's own comment
+    /// gives as the reason it returns a bool at all. So the claim is the answer, not the
+    /// selection: a letter nothing starts with, and no letter at all.
+    /// </summary>
+    [Fact]
+    public void A_letter_nothing_starts_with_is_handed_back()
+    {
+        var window = WpfHost.Window();
+
+        var answers = WpfHost.On(() =>
+        {
+            window.Entries.ItemsSource = new[] { EntryRow.Of(Rows.Entry("Spooler")) };
+
+            return (Nothing: window.JumpTo('q'), NoLetter: window.JumpTo(null));
+        });
+
+        Assert.False(answers.Nothing);
+        Assert.False(answers.NoLetter);
+    }
+
+    /// <summary>
+    /// F5 reads everything again, and reports that it did - so the key is not passed on to the
+    /// grid, which has its own plans for it.
+    ///
+    /// This is the one shortcut whose work is a real reading, so it is the one that costs a
+    /// moment. It reads THIS machine, deliberately: the window builds its own view model and the
+    /// point of the test is that the window's own path works, not that a fake can be refreshed.
+    /// </summary>
+    [Fact]
+    public async Task F5_reads_everything_again_and_says_it_did()
+    {
+        var window = WpfHost.Window();
+
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Refresh)));
+    }
+
     [Fact]
     public async Task The_chosen_row_is_what_a_copy_would_take()
     {

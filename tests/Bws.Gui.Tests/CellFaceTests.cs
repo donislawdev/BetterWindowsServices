@@ -183,6 +183,82 @@ public sealed class CellFaceTests
         Assert.Equal(string.Empty, absent.StartType);
     }
 
+    /// <summary>
+    /// The reading nobody has taken yet, which is the fourth state and the one that had no test.
+    ///
+    /// <b>NotRead is not Denied and it is not Absent</b>, and the whole of `ADR-13` depends on the
+    /// difference: expensive fields arrive in a second pass, so between the two passes every one
+    /// of them is legitimately unread. A cell that showed those as "no access" would accuse the
+    /// machine of refusing something nobody had asked for yet.
+    ///
+    /// Found uncovered on 2026-08-11 while repairing backlog 161 - the branch existed, was
+    /// correct, and nothing had ever executed it.
+    /// </summary>
+    [Fact]
+    public void A_start_type_nobody_has_read_yet_is_not_a_refusal_and_not_an_absence()
+    {
+        var unread = Row(Entry() with { StartType = Reading<StartType>.NotRead() });
+        var denied = Row(Entry() with { StartType = Reading<StartType>.Denied(5, "Access is denied.") });
+        var absent = Row(Entry() with { StartType = Reading<StartType>.Absent() });
+
+        Assert.Equal(CellShapes.Unknown, unread.StartShape);
+        Assert.NotEqual(string.Empty, unread.StartType);
+
+        // The three say three things. Without this the test above passes on a cell that answers
+        // "unknown" to every question it was not given a value for, which is the collapse this
+        // project spends most of its rules preventing.
+        Assert.NotEqual(denied.StartType, unread.StartType);
+        Assert.NotEqual(absent.StartType, unread.StartType);
+    }
+
+    /// <summary>
+    /// A start type the manager gave us and we have no name for.
+    ///
+    /// <c>StartType.Unknown</c> is the zero of that enum, so it is what a value outside the five
+    /// Windows documents becomes. Naming it "unknown" rather than printing the number is the same
+    /// rule as everywhere else here, and it is worth a test because the alternative - a cell
+    /// showing <c>0</c> - looks like data rather than like a gap.
+    /// </summary>
+    [Fact]
+    public void A_start_type_outside_the_five_is_named_rather_than_numbered()
+    {
+        var strange = Row(Entry() with { StartType = Reading<StartType>.Present(StartType.Unknown) });
+
+        Assert.NotEqual(string.Empty, strange.StartType);
+        Assert.DoesNotContain("0", strange.StartType, StringComparison.Ordinal);
+
+        // It is present, so it is not the shape for something nobody could read - the entry has
+        // an answer, we just have no word of our own for it.
+        Assert.Equal(CellShapes.Ordinary, strange.StartShape);
+    }
+
+    /// <summary>
+    /// Automatic, where the machine refused to say whether the delay applies.
+    ///
+    /// <b>The branch below "delayed" and it is the one that was never run.</b> Windows acts on
+    /// the delay flag only for automatic entries, so the qualifier asks about it only there - and
+    /// when the flag itself was refused, the cell has to say the delay is unknown rather than
+    /// silently reading as a plain automatic entry, which is rule 8 at the width of one word.
+    /// </summary>
+    [Fact]
+    public void An_automatic_entry_whose_delay_flag_was_refused_says_the_delay_is_unknown()
+    {
+        var refused = Row(Entry() with
+        {
+            StartType = Reading<StartType>.Present(StartType.Automatic),
+            DelayedAuto = Reading<bool>.Denied(5, "Access is denied.")
+        });
+
+        var plain = Row(Entry() with
+        {
+            StartType = Reading<StartType>.Present(StartType.Automatic),
+            DelayedAuto = Reading<bool>.Present(false)
+        });
+
+        Assert.NotEqual(plain.StartType, refused.StartType);
+        Assert.Contains(plain.StartType, refused.StartType, StringComparison.Ordinal);
+    }
+
     private static EntryRow Row(ScmEntry entry) => EntryRow.Of(entry);
 
     // Rows.cs, shared with MainViewModelTests. It arrived here as a second copy of the same
