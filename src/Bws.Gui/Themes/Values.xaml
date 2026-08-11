@@ -353,4 +353,15 @@
 
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
+
+    <!--
+        Between one filter chip and the next, and it is the only new appearance value the whole
+        clickable-filter slice needed.
+
+        Right and bottom rather than all four sides, because the chips wrap: a gap on the leading
+        edge would push the first chip of every line away from the search box above it, and the
+        eye reads that as an indent rather than as spacing. The bottom half is what keeps two
+        wrapped lines apart.
+    -->
+    <Thickness x:Key="MarginChip">0,0,8,4</Thickness>
 </ResourceDictionary>

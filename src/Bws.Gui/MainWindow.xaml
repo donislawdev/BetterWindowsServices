@@ -41,6 +41,15 @@
     <Grid Margin="{StaticResource PadPanel}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+
+            <!--
+                The filters, on their own row since 2026-08-11. Eight of them do not fit beside
+                a search box that has to stay wide enough to read a query in, and A5 will grow
+                this row rather than shrink it - account and signature are waiting on other
+                slices. Auto, so the row costs nothing on a window too narrow to show it.
+            -->
+            <RowDefinition Height="Auto" />
+
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -92,16 +101,12 @@
             </Grid>
 
             <!--
-                This one has no state of its own - it reads the query and writes into it. Turn
-                it off and !type:driver appears in the box, which is A5's promise arriving
-                early: the filter you clicked is the query you can read.
+                THE DRIVERS CHECKBOX STOOD HERE UNTIL 2026-08-11 AND IS NOW A CHIP IN THE ROW
+                BELOW. It was A5's promise arriving early - one control that read the query and
+                wrote into it - and A5 arrived, so it joined the others rather than sitting
+                beside them meaning the same thing in a different shape. docs/11 complaint 7
+                left the grouping of this row deliberately unfinished for exactly this moment.
             -->
-            <CheckBox Grid.Column="1"
-                      Margin="{StaticResource MarginBetweenControls}"
-                      VerticalAlignment="Center"
-                      IsChecked="{Binding ShowDrivers}"
-                      Content="{DynamicResource gui.search.showDrivers}"
-                      ToolTip="{DynamicResource gui.search.showDriversHint}" />
 
             <!--
                 THE COUNT, AND IT MOVED UP HERE FROM UNDER THE LIST. Complaint 8 of the eleven:
@@ -128,6 +133,82 @@
         </Grid>
 
         <!--
+            THE CLICKABLE FILTERS, A5. Each one stands for one member of the query, and clicking
+            it writes that member into the box above - which is the promise: the filter you
+            clicked is a query you can read, edit and learn from. The tooltip shows the member
+            before the click rather than after, so the box is not the only place it appears.
+
+            AN ItemsControl RATHER THAN EIGHT CONTROLS WRITTEN OUT. The chips are data - which
+            ones there are is decided in FilterChips.cs, where the reason for each is written
+            beside it - and markup listing them again would be a second copy that drifts. It
+            also means the row that account and signature chips will join is already built.
+
+            WrapPanel, so a narrow window stacks them instead of clipping them. The count line
+            beside the search box is the only thing in this window allowed to be cut, because it
+            carries a message of the system's own length.
+
+            NO STYLE OF OUR OWN, AND THAT IS MEASURED RATHER THAN LAZY. Themes/Controls.xaml
+            stood exactly on its 530-line ceiling on the day this was written, so a chip style
+            there would have forced a second split of the theme inside one session. WPF UI
+            already styles ToggleButton, and the only thing ours needed was the gap between
+            them. If these turn out to need a look of their own, that is a slice with a seam in
+            front of it rather than four lines squeezed in.
+        -->
+        <!--
+            THE TWO AutomationId VALUES BELOW ARE ON THE CONTROLS, NOT ON THIS GRID, AND THAT IS
+            A MEASURED CORRECTION. An id was put on the Grid first, and automation never saw it:
+            WPF builds a peer for controls, not for layout panels, so the identifier sat on an
+            element that is not in the tree at all. tools/window-journey needs to tell the labels
+            of controls apart from the sentences the window says about the answer, and it does
+            that by identity rather than by where things sit - the same lesson that file has now
+            learnt three times.
+        -->
+        <Grid Grid.Row="1" Margin="{StaticResource MarginBelowSearch}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--
+                THE GROUP LABEL COMPLAINT 7 ASKED FOR, and it waited here on purpose. docs/11
+                closed that complaint in half on 2026-08-05 and said the other half - a label
+                over the controls - was deliberately not built, because A5 was going to arrive
+                and rewrite the row. It has, so the label arrives with the row it labels rather
+                than being invented twice.
+
+                The hint is the tooltip rather than a second line, because the sentence explains
+                a mechanism somebody discovers by clicking once - it is worth having and not
+                worth a line of a window whose job is 810 rows.
+            -->
+            <TextBlock Grid.Column="0"
+                       AutomationProperties.AutomationId="filterGroup"
+                       Text="{DynamicResource gui.filter.group}"
+                       ToolTip="{DynamicResource gui.filter.hint}"
+                       Margin="{StaticResource MarginBetweenControls}"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource SubduedText}" />
+
+        <ItemsControl Grid.Column="1"
+                      AutomationProperties.AutomationId="filterChips"
+                      ItemsSource="{Binding Filters}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ToggleButton Margin="{StaticResource MarginChip}"
+                                  Content="{Binding Label}"
+                                  ToolTip="{Binding Member}"
+                                  IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        </Grid>
+
+        <!--
             Read only, and it stays that way. Every change to a service goes through a plan,
             so a cell somebody could type into would be a way to change one without ever
             producing a plan.
@@ -136,7 +217,7 @@
             the slice that also answers what a sort does while the list refreshes underneath
             it, which A10 has five rules about.
         -->
-        <DataGrid Grid.Row="1"
+        <DataGrid Grid.Row="2"
                   x:Name="Entries"
                   MouseEnter="ListEngaged"
                   MouseLeave="ListReleased"
@@ -278,7 +359,7 @@
             nothing, and offering to clear an empty query would be the window being confidently
             wrong.
         -->
-        <StackPanel Grid.Row="1"
+        <StackPanel Grid.Row="2"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     IsHitTestVisible="False"
@@ -327,7 +408,7 @@
             - complaint 8 - and what is left here is what a result has to ADMIT about itself and
             what is wrong with the question, which are two different things and stay apart.
         -->
-        <StackPanel Grid.Row="2" Margin="{StaticResource MarginAboveStatus}">
+        <StackPanel Grid.Row="3" Margin="{StaticResource MarginAboveStatus}">
 
             <TextBlock Text="{Binding Says.Notice}" TextWrapping="Wrap">
                 <TextBlock.Style>

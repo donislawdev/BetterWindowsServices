@@ -27,10 +27,14 @@ public sealed class MainViewModel : Observable
     /// writes these words into the box where they can be seen, which is the same promise `A5`
     /// makes about clickable filters: the query is what you are looking at.
     /// </summary>
-    private const string HideDrivers = Sentences.HideDrivers;
-
-    private const string DriverField = "type";
-    private const string DriverValue = "driver";
+    // THREE CONSTANTS STOOD HERE AND ALL THREE ARE GONE, 2026-08-11. HideDrivers was declared,
+    // documented and referenced by nothing - the same shape as QueryValueReader.ReadExpressionValue
+    // found the same day, and for the same reason: nothing points at an unused private constant,
+    // so it survives every build and every test. DriverField and DriverValue followed the switch
+    // into FilterChips, where the chip that stands for them lives.
+    //
+    // The member is still written into the box when the filter goes on. It is composed from the
+    // field and the value rather than spelled anywhere, which is why there is nothing left here.
 
     /// <summary>How long a row stays marked as having just moved. Lives with the rows it marks.</summary>
     internal static TimeSpan HighlightFor => RowIndex.HighlightFor;
@@ -54,6 +58,12 @@ public sealed class MainViewModel : Observable
     private Query _query = QueryParser.Parse(null).Query!;
 
     private string _queryText = string.Empty;
+
+    /// <summary>
+    /// The controls standing for members of the query. Declared after the text they read,
+    /// because they close over it.
+    /// </summary>
+    private readonly FilterBar _filters;
     private bool _reading;
 
     /// <summary>Whether the last reading failed outright, which is not the same as admitting gaps.</summary>
@@ -74,6 +84,13 @@ public sealed class MainViewModel : Observable
     {
         _catalog = catalog;
         _index = new RowIndex(clock);
+
+        // Reading the field and writing the property, which is deliberate and is the difference
+        // between a chip that filters and a chip that only edits text: the setter is what parses
+        // the query, applies it and tells the list, so a chip goes through the same door a
+        // keystroke does. Writing the field instead would change the box and leave the list
+        // showing the answer to the previous question.
+        _filters = new FilterBar(() => _queryText, text => QueryText = text);
     }
 
     /// <summary>
@@ -176,32 +193,25 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// Whether kernel drivers are in the list. <c>A7</c>, and it has no state of its own.
+    /// The controls standing for members of the query - the chips of `A5`, and the named drivers
+    /// switch of `A7` which turned out to be one of them.
     ///
-    /// Read from the query, so a person who types the exclusion by hand sees the switch move
-    /// on its own - the round trip `docs/07` asks for, in the one shape a single switch needs
-    /// it. Written by appending or removing the member at the end of the text.
+    /// <b>Moved out of this class on 2026-08-11 because the size ratchet asked, and the seam it
+    /// found was real.</b> What was here was the chips, the switch, and the loop telling both to
+    /// read the query again at the end of every <see cref="Apply"/> - and none of that is what
+    /// this class is about. It is the fourth seam this file has given up the same way, after
+    /// <see cref="Holding"/>, <see cref="RowIndex"/> and <see cref="Narrowing"/>.
     ///
-    /// <b>Only at the end</b>, and that is a limit worth stating rather than a bug. Cutting a
-    /// member out of the middle means finding it in text that may hold quotes, which is the
-    /// scanner's job, and a second scanner living here would drift from the real one in
-    /// silence. So the switch undoes what the switch could have written, and if somebody put
-    /// the exclusion somewhere else by hand it stays where they put it and the switch says so
-    /// by not moving.
+    /// The two below forward rather than reimplement, so the window and the tests keep the names
+    /// they had.
     /// </summary>
+    public IReadOnlyList<FilterChip> Filters => _filters.Chips;
+
+    /// <inheritdoc cref="FilterBar.ShowDrivers"/>
     public bool ShowDrivers
     {
-        get => !_query.Excludes(DriverField, DriverValue);
-
-        set
-        {
-            QueryText = value ? Sentences.WithoutHiddenDrivers(_queryText) : Sentences.WithHiddenDrivers(_queryText);
-
-            // Unconditional, because nothing was set. When the edit did not take - the member
-            // was somewhere this cannot reach - the switch reads the query again and goes back
-            // to where it was, which is the honest answer.
-            Raise(nameof(ShowDrivers));
-        }
+        get => _filters.ShowDrivers;
+        set => _filters.ShowDrivers = value;
     }
 
     /// <summary>
@@ -459,6 +469,10 @@ public sealed class MainViewModel : Observable
 
         Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
 
+        // The controls read the query again, all of them - see FilterBar.Rethink for why every
+        // one rather than the one that was clicked. Raised here as well because the window binds
+        // the switch through this class rather than through the bar.
+        _filters.Rethink();
         Raise(nameof(ShowDrivers));
     }
 

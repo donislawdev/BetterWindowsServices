@@ -192,13 +192,22 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task The_switch_will_not_undo_what_it_could_not_have_written()
+    public async Task The_switch_undoes_the_exclusion_wherever_somebody_put_it()
     {
-        // A known limit, pinned so it stays known. The switch appends at the end and takes
-        // back from the end, because cutting a member out of the middle of text that may hold
-        // quotes is the scanner's job, and a second scanner in the window would drift from the
-        // real one in silence. Somebody who put the exclusion first keeps it, and the switch
-        // says so by going back to where it was instead of pretending.
+        // THIS TEST PINNED THE OPPOSITE UNTIL 2026-08-11 AND THE LIMIT IT PINNED IS GONE.
+        //
+        // It was called The_switch_will_not_undo_what_it_could_not_have_written, and it was
+        // honest: the switch appended at the end and took back from the end, because cutting a
+        // member out of the middle of text that may hold quotes is the scanner's job, and a
+        // second scanner living in the window would drift from the real one in silence. So
+        // somebody who put the exclusion first kept it, and the switch said so by going back to
+        // where it was rather than pretending.
+        //
+        // The reasoning was right and the conclusion only held while nothing did the finding.
+        // `A5` needs eight chips that can each remove their own member from anywhere in the
+        // line, so QueryMembers now does it in the language - and this switch gets it for free.
+        // Kept as a test rather than deleted, because "the limit is gone" is worth as much as
+        // the limit was.
         var model = await Loaded(Entry("Spooler"), Driver("disk"));
 
         model.QueryText = "!type:driver status:running";
@@ -207,8 +216,8 @@ public sealed class MainViewModelTests
 
         model.ShowDrivers = true;
 
-        Assert.Equal("!type:driver status:running", model.QueryText);
-        Assert.False(model.ShowDrivers);
+        Assert.Equal("status:running", model.QueryText);
+        Assert.True(model.ShowDrivers);
     }
 
     [Fact]
@@ -692,8 +701,8 @@ public sealed class MainViewModelTests
                      "gui.column.processId", "gui.status.reading", "gui.status.read",
                      "gui.status.matched", "gui.status.failed", "gui.status.partial",
                      "gui.status.tooCostly", "gui.status.holding", "gui.cell.unknown",
-                     "gui.cell.noAccess", "gui.search.hint", "gui.search.showDrivers",
-                     "gui.search.showDriversHint", "gui.query.unreadSignatures",
+                     "gui.cell.noAccess", "gui.search.hint", "gui.filter.group",
+                     "gui.filter.hint", "gui.query.unreadSignatures",
                      "gui.query.unreadMemory", "gui.query.unknownField", "gui.query.unknownValue",
                      "gui.query.unknownValueNearest", "gui.query.badPattern",
                      "gui.query.unclosedQuote", "gui.query.badNumber", "gui.query.badSize"

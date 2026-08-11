@@ -49,10 +49,23 @@ public sealed class TextKeyGuards
     /// So the guard fails in the safe direction: an indirect key is reported as unused, which is
     /// a red test rather than a silent gap.
     /// </summary>
+    /// <remarks>
+    /// <b>A THIRD SHAPE ARRIVED WITH THE CLICKABLE FILTERS, 2026-08-11, AND IT IS A SHAPE RATHER
+    /// THAN A WIDENING.</b> A chip is built from a key, and the key is a literal sitting where
+    /// somebody chooses it - <c>new FilterChip("gui.filter.stopped", ...)</c> - but it reaches
+    /// the loader through a field, so the first pattern cannot see it.
+    ///
+    /// The precedent above was to move keys into their calls rather than widen the pattern, and
+    /// that was right for <c>ListState</c>, where the key could simply be written at the call.
+    /// Here it cannot: the chip needs the key before it needs the words, because the words are
+    /// read again whenever the language changes. So the constructor is named exactly, which is
+    /// still a real place a key is asked for and still cannot be fooled by prose mentioning one.
+    /// </remarks>
     private static readonly Regex[] Mentioned =
     [
         new(@"Texts\.Of\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
-        new(@"\{\s*DynamicResource\s+(gui\.[^}\s]+)\s*\}", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"\{\s*DynamicResource\s+(gui\.[^}\s]+)\s*\}", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+        new(@"new FilterChip\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]

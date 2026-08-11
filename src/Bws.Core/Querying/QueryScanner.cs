@@ -124,9 +124,34 @@ internal static class QueryScanner
     /// Splits into members on unquoted whitespace. Returns false and points at the opening
     /// quote when one never closes.
     /// </summary>
-    internal static bool TryScan(string query, out List<ScannedText> members, out int unclosedQuoteAt)
+    internal static bool TryScan(string query, out List<ScannedText> members, out int unclosedQuoteAt) =>
+        TryScan(query, out members, out _, out unclosedQuoteAt);
+
+    /// <summary>
+    /// The same scan, and where each member sat in the text it came from.
+    ///
+    /// <b>The spans are here rather than on <see cref="ScannedText"/>, and that is the whole
+    /// design decision.</b> A ScannedText is also produced by <see cref="ScannedText.Slice"/>
+    /// when a member is cut at its colon or split on its commas, and those pieces have no
+    /// position in the original query - only in their parent. A Start property on the record
+    /// would be right for members and quietly wrong for every slice, which is a worse thing to
+    /// own than no property at all.
+    ///
+    /// <b>What needs them:</b> editing a query by member. Adding a filter is appending text,
+    /// but REMOVING one means cutting exactly the characters it occupied and leaving the rest
+    /// of the line as the person typed it - their spacing, their quoting, their case. Without a
+    /// span the only options are re-printing the query from its parts, which loses all three,
+    /// or a second scanner living in the interface, which is the duplicated rule this project
+    /// keeps paying for.
+    ///
+    /// A span covers the member as WRITTEN, including its quotes and its escapes, so
+    /// <c>query[span]</c> is the text that would have to go.
+    /// </summary>
+    internal static bool TryScan(
+        string query, out List<ScannedText> members, out List<Range> spans, out int unclosedQuoteAt)
     {
         members = [];
+        spans = [];
         unclosedQuoteAt = -1;
 
         var text = new StringBuilder();
@@ -135,10 +160,19 @@ internal static class QueryScanner
         var quoting = false;
         var quoteStartedAt = -1;
         var quotedFrom = 0;
+        var startedAt = -1;
 
         for (var index = 0; index < query.Length; index++)
         {
             var character = query[index];
+
+            // Where this member began, which is the first character that belongs to it - the
+            // opening quote and the backslash of an escape included, because those are
+            // characters somebody typed and a cut that left them behind would leave debris.
+            if (startedAt < 0 && (quoting || !char.IsWhiteSpace(character)))
+            {
+                startedAt = index;
+            }
 
             if (character == '"')
             {
@@ -174,7 +208,8 @@ internal static class QueryScanner
 
             if (!quoting && char.IsWhiteSpace(character))
             {
-                Flush(members, text, literal, blanks);
+                Flush(members, spans, text, literal, blanks, startedAt, index);
+                startedAt = -1;
                 quotedFrom = 0;
                 continue;
             }
@@ -189,12 +224,18 @@ internal static class QueryScanner
             return false;
         }
 
-        Flush(members, text, literal, blanks);
+        Flush(members, spans, text, literal, blanks, startedAt, query.Length);
         return true;
     }
 
     private static void Flush(
-        List<ScannedText> members, StringBuilder text, List<bool> literal, List<int> blanks)
+        List<ScannedText> members,
+        List<Range> spans,
+        StringBuilder text,
+        List<bool> literal,
+        List<int> blanks,
+        int startedAt,
+        int endedAt)
     {
         // Nothing typed, so there is no member. An empty pair of quotes is not nothing typed:
         // it is a member that was finished and says nothing, and dropping it here is how
@@ -205,6 +246,12 @@ internal static class QueryScanner
         }
 
         members.Add(new ScannedText(text.ToString(), [.. literal], blanks.Count == 0 ? null : [.. blanks]));
+
+        // One span per member and in the same order, because the two lists are read by index.
+        // A member that got here without a start would be a member made of no characters, which
+        // the guard above has already sent back.
+        spans.Add(new Range(startedAt, endedAt));
+
         text.Clear();
         literal.Clear();
         blanks.Clear();

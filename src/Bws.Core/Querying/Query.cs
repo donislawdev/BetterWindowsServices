@@ -81,11 +81,32 @@ public sealed class Query
     /// clicked. Spelling is folded the same way the language folds it everywhere else, so
     /// <c>!TYPE:Driver</c> answers yes.
     ///
-    /// One member, one value. Deliberately not a general question about what a query contains:
-    /// the clickable filters of <c>A5</c> will want more, and they will want it in a shape
-    /// nobody can design before there are chips to design it for.
+    /// One member, one value. <b>Kept as its own name after the general question below arrived
+    /// on 2026-08-11</b>, because <c>Excludes("type", "driver")</c> reads as what the drivers
+    /// switch means and <c>Carries("type", "driver", negated: true)</c> reads as machinery.
+    /// It is one line and it delegates, so there is no second rule to drift.
     /// </remarks>
-    public bool Excludes(string field, string value)
+    public bool Excludes(string field, string value) => Carries(field, value, negated: true);
+
+    /// <summary>
+    /// Whether this query carries one value of one field, written the way a person would write
+    /// it, on the side asked about.
+    /// </summary>
+    /// <remarks>
+    /// <b>The general form the comment above said could not be designed yet</b> - it said the
+    /// clickable filters of <c>A5</c> would want more, in a shape nobody could choose before
+    /// there were chips to choose it for. There are now, and the shape they want is this: a
+    /// chip stands for one member and has to know whether that member is already in the text,
+    /// on the same side. <c>status:stopped</c> and <c>!status:stopped</c> are different chips
+    /// and a question that could not tell them apart would light the wrong one.
+    ///
+    /// Asks about the value as WRITTEN rather than about what it compiled to, and that is the
+    /// point rather than a shortcut: <c>type:driver</c> becomes two symbols, neither of them
+    /// the word that was clicked, so a chip labelled "drivers" would answer to an exclusion of
+    /// one driver kind. Spelling is folded the way the language folds it everywhere else, so
+    /// <c>!TYPE:Driver</c> answers yes to <c>("type", "driver", true)</c>.
+    /// </remarks>
+    public bool Carries(string field, string value, bool negated)
     {
         var wanted = QueryFields.Find(field);
 
@@ -98,7 +119,7 @@ public sealed class Query
 
         foreach (var term in _terms)
         {
-            if (!term.Negated || term.Field != wanted)
+            if (term.Negated != negated || term.Field != wanted)
             {
                 continue;
             }

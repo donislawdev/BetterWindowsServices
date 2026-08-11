@@ -23,7 +23,15 @@ internal static class Sentences
     /// rather than in the view model because the two methods below are the only code that
     /// looks for it in somebody typed text.
     /// </summary>
-    internal const string HideDrivers = "!type:driver";
+    // HideDrivers STOOD HERE UNTIL 2026-08-11 AND WENT WITH THE TWO METHODS THAT USED IT.
+    // WithHiddenDrivers and WithoutHiddenDrivers edited the query text by hand, the second one
+    // only at the end of the line, and both were replaced by QueryMembers in the core - where the
+    // scanner already lives and where a member can be found wherever somebody put it. The words
+    // are still written into the box, composed now from the field and the value in MainViewModel
+    // rather than spelled a second time here.
+    //
+    // The member is the same and so is the promise: turning the filter off writes what it stands
+    // for into the text, which is what `A5` asks of every chip.
 
     /// <summary>
     /// Everything this answer is not, in sentences.
@@ -88,33 +96,5 @@ internal static class Sentences
         }
 
         return string.Join(" ", notes);
-    }
-
-    internal static string WithHiddenDrivers(string text)
-    {
-        var trimmed = text.TrimEnd();
-
-        return trimmed.Length == 0 ? HideDrivers : trimmed + " " + HideDrivers;
-    }
-
-    /// <summary>
-    /// Takes the exclusion off the end, and leaves everything else exactly as it was typed.
-    ///
-    /// Cut at whitespace and nowhere else, so a quoted value earlier in the line is not so
-    /// much as looked at. Case is folded because Windows folds it everywhere else in this
-    /// language - the spelling this recognises is the one the switch itself writes.
-    /// </summary>
-    internal static string WithoutHiddenDrivers(string text)
-    {
-        var trimmed = text.TrimEnd();
-        var lastGap = trimmed.LastIndexOfAny([' ', '\t', '\n', '\r']);
-        var tail = trimmed[(lastGap + 1)..];
-
-        if (!string.Equals(tail, HideDrivers, StringComparison.OrdinalIgnoreCase))
-        {
-            return text;
-        }
-
-        return lastGap < 0 ? string.Empty : trimmed[..lastGap].TrimEnd();
     }
 }

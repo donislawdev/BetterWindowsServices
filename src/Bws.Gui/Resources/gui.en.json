@@ -15,8 +15,17 @@
   "gui.column.processId": "PID",
 
   "gui.search.hint": "Search, or write a query: start:auto !status:running",
-  "gui.search.showDrivers": "Drivers",
-  "gui.search.showDriversHint": "Kernel and file system drivers, which services.msc never shows. Turning this off writes !type:driver into the box.",
+
+  "gui.filter.group": "Filters",
+  "gui.filter.hint": "Each of these writes what it stands for into the box, so the filter you clicked is a query you can read and edit.",
+  "gui.filter.running": "Running",
+  "gui.filter.stopped": "Stopped",
+  "gui.filter.automatic": "Automatic",
+  "gui.filter.manual": "Manual",
+  "gui.filter.disabled": "Disabled",
+  "gui.filter.delayed": "Delayed",
+  "gui.filter.triggered": "Trigger-started",
+  "gui.filter.hideDrivers": "Hide drivers",
 
   "gui.status.reading": "Reading the service control manager...",
   "gui.status.read": "{0} entries.",
