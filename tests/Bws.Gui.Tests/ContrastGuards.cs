@@ -209,11 +209,20 @@ public sealed class ContrastGuards
             + Environment.NewLine + string.Join(Environment.NewLine, unspoken));
     }
 
-    /// <summary>Every brush the theme declares, read out of the file rather than held here.</summary>
+    /// <summary>
+    /// Every brush the theme declares, read out of the files rather than held here.
+    ///
+    /// <b>Both halves are read, even though every brush lives in Values.xaml today.</b> Reading
+    /// only the half that currently holds them would make this guard quietly stop covering the
+    /// first brush somebody declares beside the style that uses it - which is the natural place
+    /// to put one, and would arrive with no ratio and no test noticing.
+    /// </summary>
     private static List<(string Name, Color Colour)> Declared()
     {
-        var theme = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Theme.xaml");
-        var text = File.ReadAllText(theme);
+        var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
+        var text = string.Join(
+            Environment.NewLine,
+            new[] { "Values.xaml", "Controls.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
 
         return Regex
             .Matches(text, @"<SolidColorBrush\s+x:Key=""([^""]+)""\s*>\s*(#[0-9A-Fa-f]{6})", RegexOptions.None, TimeSpan.FromSeconds(5))

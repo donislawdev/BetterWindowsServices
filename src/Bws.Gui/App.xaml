@@ -18,16 +18,23 @@
         ClearType OFF on a translucent surface. Measured by counting text pixels carrying
         colour fringing - 0% before, 80.5% after. That was the blurry text.
 
-        Theme.xaml is merged LAST on purpose: a dictionary merged later wins, and ours holds
-        the values that are ours. It also no longer loads on its own, because it resolves keys
-        that arrive with ControlsDictionary.
+        Ours are merged LAST on purpose: a dictionary merged later wins, and ours hold the
+        values that are ours. Neither of them loads on its own, because both resolve keys that
+        arrive with ControlsDictionary.
+
+        THE THEME WAS ONE FILE UNTIL 2026-08-11 AND THE ORDER OF ITS TWO HALVES IS NOT A
+        STYLE CHOICE. Controls.xaml reaches the names in Values.xaml through StaticResource,
+        which resolves WHILE THE FILE IS BEING READ, so values go before styles and both go
+        after the library. Backlog 156. Anywhere else that builds this stack - WpfHost in the
+        tests, tools/wpfui-probe - repeats these four lines in this order for the same reason.
     -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
-                <ResourceDictionary Source="Themes/Theme.xaml" />
+                <ResourceDictionary Source="Themes/Values.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

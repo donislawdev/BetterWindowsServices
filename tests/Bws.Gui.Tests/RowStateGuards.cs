@@ -23,9 +23,9 @@ namespace Bws.Gui.Tests;
 ///
 /// <b>What it renders is composed by WPF, which is what makes the claim honest.</b>
 /// RenderTargetBitmap draws the visual tree the same way the screen does, with the real
-/// Themes/Theme.xaml read off disk and the real WPF UI dictionaries merged underneath it, in the
-/// order App.xaml merges them. It is not a screenshot: it cannot see what the desktop compositor
-/// does afterwards, which for a row background is nothing.
+/// Themes/Values.xaml and Themes/Controls.xaml read off disk and the real WPF UI dictionaries
+/// merged underneath them, in the order App.xaml merges them. It is not a screenshot: it cannot
+/// see what the desktop compositor does afterwards, which for a row background is nothing.
 ///
 /// <b>Two of the four states are here and two are not, and that is stated rather than left to be
 /// noticed.</b> Selected and moved-a-moment-ago can be set from code, so they are asserted.

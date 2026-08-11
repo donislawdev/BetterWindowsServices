@@ -106,37 +106,48 @@ public sealed class SizeRatchetGuards
     ///
     /// <b>THIS NUMBER IS ABOUT C# ONLY, AND SINCE 2026-08-10 THAT IS A DECISION RATHER THAN A
     /// HOLE.</b> It held no markup at all from the day it was written until then - Sources.Shipped
-    /// enumerated *.cs, so Themes/Theme.xaml sat outside every figure in this file while growing to
-    /// 799 lines, which is two hundred and sixty past this ceiling and makes it the longest file in
-    /// the product by a wide margin. Nothing was watching the one shape that grows without anybody
+    /// enumerated *.cs, so the theme sat outside every figure in this file while growing to 799
+    /// lines, which is two hundred and sixty past this ceiling and made it the longest file in the
+    /// product by a wide margin. Nothing was watching the one shape that grows without anybody
     /// deciding to let it. <see cref="LongestShippedMarkupFile"/> now does, in its own pool and at
-    /// its own number.
+    /// its own number - and it has since done the thing a ceiling is for, on 2026-08-11.
     /// </summary>
     private const int LongestShippedFile = 536;
 
     /// <summary>
-    /// The longest markup file in the product, measured 2026-08-10: Themes/Theme.xaml at 799 lines.
-    /// MainWindow.xaml is 362 and App.xaml is 34.
+    /// The longest markup file in the product, measured 2026-08-11: Themes/Controls.xaml at 530
+    /// lines. MainWindow.xaml is 357, Values.xaml is 356 and App.xaml is 39.
     ///
     /// <b>The owner chose a separate ceiling at today's value rather than folding markup into the
     /// C# one</b>, backlog 132. Both alternatives were on the table and both were worse on the day:
     /// one number for both would have demanded the theme be split immediately to reach 536, and
-    /// that split is not a move of text - <c>Theme.xaml</c> cannot be loaded on its own, because it
-    /// reaches WPF UI keys through StaticResource and those resolve while the file is being read.
-    /// Leaving markup out altogether was the third option and would have left the longest file in
-    /// the product with nothing holding it, for years.
+    /// that split is not a move of text - the theme cannot be loaded on its own, because it reaches
+    /// WPF UI keys through StaticResource and those resolve while the file is being read. Leaving
+    /// markup out altogether was the third option and would have left the longest file in the
+    /// product with nothing holding it, for years.
     ///
     /// <b>So this is the same decision that was made for C# at 807 in July, only made knowingly:
-    /// the number is not a claim that 799 lines is a good length.</b> It says the longest markup
-    /// file is 799 lines and may not become 800, so the next line added to it starts with somebody
+    /// the number is not a claim that 530 lines is a good length.</b> It says the longest markup
+    /// file is 530 lines and may not become 531, so the next line added to it starts with somebody
     /// looking for a seam. Like every number here it may only ever go down, and lowering it is the
     /// reward for doing that work rather than bookkeeping.
     ///
-    /// <b>What weakens on its own while this stands high:</b> `ADR-23` promises that reading
-    /// Theme.xaml from top to bottom is the same as knowing how the product looks. That promise
-    /// gets thinner with every hundred lines, and no ceiling can hold it up - only a split can.
+    /// <b>799 -> 530 ON 2026-08-11, AND THE WHOLE POINT OF A RATCHET HAPPENED HERE IN ONE DAY.</b>
+    /// The number was set at 799 on the morning of 2026-08-10, on what the theme measured then. By
+    /// that evening two fixes off the owner's list had taken it to 849 and this guard went red,
+    /// blocking every further change to the window - backlog 157, and it is the ceiling working
+    /// rather than failing. Theme.xaml then split along the seam it already had, with no style
+    /// above the line and no value below it: Values.xaml took the spacing scale, the type sizes,
+    /// the column widths and every brush, Controls.xaml took the styles and the row template.
+    /// <b>Nothing was rewritten and nothing was shortened to fit</b> - all 825 body lines were
+    /// checked to survive in order and exactly once.
+    ///
+    /// <b>What the split cost, said plainly:</b> `ADR-23` promised that reading the theme from top
+    /// to bottom is the same as knowing how the product looks, and that is now two readings. No
+    /// ceiling could have held that promise up - only a split could relieve it, and this is the
+    /// bill. It is restated at the head of both files rather than left to rot.
     /// </summary>
-    private const int LongestShippedMarkupFile = 799;
+    private const int LongestShippedMarkupFile = 530;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
@@ -189,14 +200,19 @@ public sealed class SizeRatchetGuards
     private const int TestFilesAllowedToBeLong = 2;
 
     /// <summary>
-    /// How many markup files may be long at all, measured 2026-08-10: one, and it is Theme.xaml,
-    /// which is the file the markup ceiling was set for. MainWindow.xaml is next at 362, so it has
-    /// a hundred and thirty eight lines before it would trip this.
+    /// How many markup files may be long at all, measured 2026-08-11: one, and it is
+    /// Themes/Controls.xaml, which is the file the markup ceiling is now set for. MainWindow.xaml
+    /// is next at 357, so it has a hundred and forty three lines before it would trip this.
     ///
-    /// <b>This dial earns more here than it does for C#</b>, because there are three markup files
+    /// <b>This dial earns more here than it does for C#</b>, because there are four markup files
     /// in the whole product. The ceiling above watches the one that is already longest and can say
-    /// nothing about the other two - and a second markup file crossing 500 is exactly how the
+    /// nothing about the other three - and a second markup file crossing 500 is exactly how the
     /// appearance surface doubles without any single file looking like it grew.
+    ///
+    /// <b>It stayed at one through the split of 2026-08-11 and that is not an oversight.</b> The
+    /// theme became two files and the count did not move, because only one of the halves is long -
+    /// Values.xaml came out at 356. Had this been lowered to zero, the next honest hundred lines of
+    /// styles would have to argue with two guards saying the same thing.
     /// </summary>
     private const int ShippedMarkupFilesAllowedToBeLong = 1;
 
@@ -222,8 +238,8 @@ public sealed class SizeRatchetGuards
             offenders.Length == 0,
             $"A markup file grew past {LongestShippedMarkupFile} lines, which is where the longest " +
             "one stood when this ceiling was set. Markup has no seam a compiler will show you, so " +
-            "the split is a resource dictionary merged in - and Theme.xaml cannot be loaded on its " +
-            "own, so check the window still draws rather than trusting a green build:" +
+            "the split is a resource dictionary merged in - and neither half of the theme can be " +
+            "loaded on its own, so check the window still draws rather than trusting a green build:" +
             Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 

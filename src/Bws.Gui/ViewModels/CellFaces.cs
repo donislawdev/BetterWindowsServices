@@ -10,8 +10,9 @@ namespace Bws.Gui.ViewModels;
 /// what WPF is gets proved by that project compiling at all. A brush here would end that, and
 /// end it silently.
 ///
-/// So the mapping from a code to a colour lives in Themes/Theme.xaml, where `ADR-23` says every
-/// appearance value lives, and these strings are the joint between the two. They are constants
+/// So the mapping from a code to a colour lives in Themes/Controls.xaml, in the mark styles that
+/// trigger on these codes, and the colours they reach for are named in Themes/Values.xaml, where
+/// `ADR-23` says every appearance value lives. These strings are the joint between the two. They are constants
 /// rather than an enum because the other end of the joint is a XAML DataTrigger, which compares
 /// against text.
 /// </summary>

@@ -114,6 +114,21 @@ public sealed class TypeScaleGuards
             .Matches(Theme(), @"<Style\b.*?</Style>", RegexOptions.Singleline, Ceiling)
             .Select(match => match.Value);
 
-    private static string Theme() =>
-        File.ReadAllText(Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Theme.xaml"));
+    /// <summary>
+    /// The whole theme as one piece of text, which is what this guard has always read.
+    ///
+    /// <b>It has to be both halves and they have to be joined, because this file asks a question
+    /// that spans the seam:</b> the sizes are declared in Values.xaml and the styles that set
+    /// them semibold are in Controls.xaml, so a guard reading either half alone would find sizes
+    /// with nothing using them, or styles naming a size it cannot resolve. Split on 2026-08-11,
+    /// backlog 156.
+    /// </summary>
+    private static string Theme()
+    {
+        var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
+
+        return string.Join(
+            Environment.NewLine,
+            new[] { "Values.xaml", "Controls.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
+    }
 }

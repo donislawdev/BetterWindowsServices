@@ -10,7 +10,7 @@
         Height="700" Width="1100">
 
     <!--
-        Every appearance value here points at a name in Themes/Theme.xaml, and a guard in the
+        Every appearance value here points at a name in Themes/Values.xaml, and a guard in the
         architecture tests fails the build on one written in place - ADR-23. Height and Width
         are the window's own size, which is a one-off rather than something two screens can
         disagree about, so they are not policed.
@@ -184,7 +184,7 @@
                 53 RATHER THAN A TIDY-UP. Measured with tools/gui-probe/columns.ps1 against this
                 window: Auto sizes to the rows realised so far and never measures again as more
                 scroll into view, so the PID column stayed 36 pixels wide through all 811 rows
-                while the numbers in it grew to need 62. Every width now lives in Theme.xaml
+                while the numbers in it grew to need 62. Every width now lives in Values.xaml
                 with the measurement beside it.
 
                 Status and the start type are template columns because they carry a mark as well

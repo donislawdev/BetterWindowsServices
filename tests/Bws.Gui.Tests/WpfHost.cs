@@ -98,12 +98,19 @@ internal static class WpfHost
 
         application.Resources.MergedDictionaries.Add(new Wpf.Ui.Markup.ControlsDictionary());
 
-        // The product's real file, read off disk rather than copied. A copy would answer a
+        // The product's real files, read off disk rather than copied. A copy would answer a
         // question about the copy - the same rule tools/wpfui-probe is built on.
-        var path = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Theme.xaml");
+        //
+        // TWO FILES SINCE 2026-08-11 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Controls.xaml
+        // names keys declared in Values.xaml, StaticResource resolves them as the file is read,
+        // and each dictionary is added to the application before the next one is parsed - so the
+        // second finds the first the same way both find WPF UI's. Backlog 156.
+        var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        using (var stream = File.OpenRead(path))
+        foreach (var name in new[] { "Values.xaml", "Controls.xaml" })
         {
+            using var stream = File.OpenRead(Path.Combine(themes, name));
+
             application.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
         }
 
