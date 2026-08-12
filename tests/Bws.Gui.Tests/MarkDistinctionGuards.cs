@@ -57,12 +57,38 @@ public sealed class MarkDistinctionGuards
         CellShapes.Missing, CellShapes.Disabled, CellShapes.Unknown, CellShapes.Ordinary
     ];
 
+    /// <summary>
+    /// The third column, from 2026-08-12 - backlog 165. Three codes and no more: an entry either
+    /// contradicts its start type, does not, or nobody could work it out.
+    /// </summary>
+    private static readonly string[] AgainstVocabulary =
+    [
+        CellShapes.Against, CellShapes.Ordinary, CellShapes.Unknown
+    ];
+
+    /// <summary>
+    /// Which codes each mark can be asked about, by the field it reads.
+    ///
+    /// <b>A lookup rather than a conditional, and that is the third column paying for itself
+    /// already.</b> What stood here was a two way ternary on "is this the status one", which had
+    /// no room for a third answer and would have handed the start column's vocabulary to a mark
+    /// that cannot produce any of it - comparing shapes that can never appear in the same cell,
+    /// which is the thing the comment above this pair exists to prevent.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> Vocabularies = new(StringComparer.Ordinal)
+    {
+        ["StatusShape"] = StatusVocabulary,
+        ["StartShape"] = StartVocabulary,
+        ["AgainstShape"] = AgainstVocabulary
+    };
+
     [Theory]
     [InlineData("StatusMark", "StatusShape")]
     [InlineData("StartMark", "StartShape")]
+    [InlineData("AgainstMark", "AgainstShape")]
     public void No_two_marks_differ_only_by_a_shade_of_the_same_colour(string style, string field)
     {
-        var marks = Marks(style, field, field == "StatusShape" ? StatusVocabulary : StartVocabulary);
+        var marks = Marks(style, field, Vocabularies[field]);
         var complaints = new List<string>();
 
         foreach (var (first, second) in Pairs(marks.Keys))
@@ -96,19 +122,20 @@ public sealed class MarkDistinctionGuards
     public void The_mark_for_something_nobody_could_read_is_a_broken_ring()
     {
         // The specific answer the rule above was satisfied with, pinned so that a later session
-        // cannot satisfy it again by nudging a grey. A broken ring for broken knowledge - and it
-        // is the only shape in either column that is not a whole one.
-        foreach (var style in new[] { "StatusMark", "StartMark" })
+        // cannot satisfy it again by nudging a grey. A broken outline for broken knowledge - and it
+        // is the only shape in any of the three columns that is not a whole one.
+        //
+        // THE PAIRS COME FROM THE LOOKUP RATHER THAN FROM A CONDITIONAL HERE, which is what makes
+        // a fourth mark one line rather than an edit to a ternary that already had no room for the
+        // third.
+        foreach (var (field, vocabulary) in Vocabularies)
         {
-            var status = style == "StatusMark";
-            var marks = Marks(
-                style,
-                status ? "StatusShape" : "StartShape",
-                status ? StatusVocabulary : StartVocabulary);
+            var style = field.Replace("Shape", "Mark", StringComparison.Ordinal);
+            var marks = Marks(style, field, vocabulary);
 
             Assert.True(
                 marks["shape.unknown"].Dashes,
-                $"{style} draws an unreadable value as a whole ring, like every value it did read.");
+                $"{style} draws an unreadable value as a whole outline, like every value it did read.");
 
             foreach (var (shape, mark) in marks)
             {
@@ -117,6 +144,63 @@ public sealed class MarkDistinctionGuards
                     $"{style} draws {shape} broken, which is the mark reserved for what could not be read.");
             }
         }
+    }
+
+    /// <summary>
+    /// A mark is moved by the field of its OWN column and by nothing else.
+    ///
+    /// <b>Backlog 166, and the two guards above were green through the whole life of it.</b> The
+    /// start type's mark was <c>BasedOn</c> the status mark, so it inherited every one of that
+    /// style's triggers - and those read <c>StatusShape</c>, the run state. An entry that was
+    /// running hit the "running" trigger, which sets Fill and Stroke; the start column's own
+    /// "disabled" trigger then set Stroke and left the Fill where it was. So a service that was
+    /// running while set to Disabled wore a GREEN FILLED DOT in the column about its next start -
+    /// a column saying something confident and false about the present. Measured on the pixel:
+    /// #6CCB5F, the same green as the status dot two columns to its left.
+    ///
+    /// <b>Why nothing caught it.</b> <see cref="Marks"/> reads <c>declared.Triggers</c> - a style's
+    /// OWN triggers - and never walks <c>BasedOn</c>. Inherited triggers were invisible to it, so
+    /// the cross-wiring could not appear in any comparison it made. A guard that reads one link of
+    /// a chain cannot see what the chain does.
+    ///
+    /// <b>This is the general rule rather than the instance.</b> Repairing 166 by hand would have
+    /// left the next mark free to inherit the same way. What is asserted is the property the theme
+    /// has to keep: a column's mark may not change because of a field belonging to another column.
+    /// </summary>
+    [Theory]
+    [InlineData("StatusMark", "StatusShape")]
+    [InlineData("StartMark", "StartShape")]
+    [InlineData("AgainstMark", "AgainstShape")]
+    public void A_mark_is_moved_only_by_the_field_of_its_own_column(string style, string field)
+    {
+        var foreign = WpfHost.On(() =>
+        {
+            var complaints = new List<string>();
+
+            // The whole chain, because that is what WPF applies. A style with no triggers of its
+            // own is not a style with no triggers.
+            for (var declared = (Style?)WpfHost.Resources[style]; declared is not null; declared = declared.BasedOn)
+            {
+                foreach (var trigger in declared.Triggers.OfType<DataTrigger>())
+                {
+                    if (trigger.Binding is Binding binding
+                        && binding.Path?.Path is { Length: > 0 } path
+                        && !string.Equals(path, field, StringComparison.Ordinal))
+                    {
+                        complaints.Add($"a trigger on {path} = {trigger.Value}");
+                    }
+                }
+            }
+
+            return complaints;
+        });
+
+        Assert.True(
+            foreign.Count == 0,
+            $"{style} draws the column that shows {field}, and something else moves it. Whatever "
+            + "that other field says, this mark will repeat it in a column that is not about it - "
+            + "which is how a running service came to wear a green dot under its start type:"
+            + Environment.NewLine + string.Join(Environment.NewLine, foreign));
     }
 
     /// <summary>What one shape code makes the mark look like, read out of the theme itself.</summary>
@@ -153,8 +237,8 @@ public sealed class MarkDistinctionGuards
 
             foreach (var shape in vocabulary)
             {
-                var trigger = declared.Triggers
-                    .OfType<DataTrigger>()
+                var trigger = Chain(declared)
+                    .SelectMany(step => step.Triggers.OfType<DataTrigger>())
                     .FirstOrDefault(candidate =>
                         candidate.Binding is Binding binding
                         && binding.Path?.Path == field
@@ -167,13 +251,40 @@ public sealed class MarkDistinctionGuards
         });
 
     /// <summary>
-    /// The style's own values, with the trigger's laid over them - which is what WPF does. A shape
-    /// with no trigger gets the style's own values and nothing else, which is exactly the case
+    /// A style and everything it is based on, the base first - which is the order WPF applies them
+    /// in, so a derived setter laid over a base one wins the way it does on screen.
+    ///
+    /// <b>Added 2026-08-12, and the mutation registry is what asked for it.</b> When the marks were
+    /// split into Themes/Cells.xaml the geometry and the default colours moved into a shared base,
+    /// <c>MarkShape</c> - and this file went on reading a style's OWN setters, which were now
+    /// empty. The case it exists to catch, a shape with no trigger at all, stopped reading as "the
+    /// style's default" and started reading as transparent, so the entry for it came back MISSED
+    /// while every test was green. A guard that reads one link of a chain cannot see what the
+    /// chain does, which is the same sentence the trigger guard above is written from.
+    /// </summary>
+    private static IEnumerable<Style> Chain(Style declared)
+    {
+        var steps = new List<Style>();
+
+        for (var step = (Style?)declared; step is not null; step = step.BasedOn)
+        {
+            steps.Add(step);
+        }
+
+        steps.Reverse();
+
+        return steps;
+    }
+
+    /// <summary>
+    /// The style's values, with the trigger's laid over them - which is what WPF does. A shape
+    /// with no trigger gets the style's values and nothing else, which is exactly the case
     /// this guard exists to catch.
     /// </summary>
     private static Mark Read(Style declared, DataTrigger? trigger)
     {
-        var setters = declared.Setters.OfType<Setter>()
+        var setters = Chain(declared)
+            .SelectMany(step => step.Setters.OfType<Setter>())
             .Concat(trigger?.Setters.OfType<Setter>() ?? [])
             .ToList();
 

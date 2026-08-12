@@ -701,8 +701,9 @@ public sealed class MainViewModelTests
                      "gui.column.processId", "gui.status.reading", "gui.status.read",
                      "gui.status.matched", "gui.status.failed", "gui.status.partial",
                      "gui.status.tooCostly", "gui.status.holding", "gui.cell.unknown",
-                     "gui.cell.noAccess", "gui.search.hint", "gui.filter.group",
-                     "gui.filter.hint", "gui.query.unreadSignatures",
+                     "gui.cell.noAccess", "gui.search.hint",
+                     "gui.filter.group.state", "gui.filter.group.start", "gui.filter.group.about",
+                     "gui.filter.hint.adds", "gui.filter.hint.narrows", "gui.query.unreadSignatures",
                      "gui.query.unreadMemory", "gui.query.unknownField", "gui.query.unknownValue",
                      "gui.query.unknownValueNearest", "gui.query.badPattern",
                      "gui.query.unclosedQuote", "gui.query.badNumber", "gui.query.badSize"

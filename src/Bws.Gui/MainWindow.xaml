@@ -69,6 +69,25 @@
                 <ColumnDefinition Width="{StaticResource WidthCountLine}" />
             </Grid.ColumnDefinitions>
 
+            <!--
+                THE SYNTAX MOVED OUT OF THE PLACEHOLDER HERE, 2026-08-12 - it vanished at the first
+                keystroke and took the only sign of the query language with it. What replaced it,
+                and why these six questions, is argued in QueryExamples.cs.
+            -->
+            <Button Grid.Column="1"
+                    x:Name="ExamplesButton"
+                    AutomationProperties.AutomationId="examplesButton"
+                    Content="{DynamicResource gui.examples.button}"
+                    ToolTip="{DynamicResource gui.examples.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    Click="ShowExamples">
+                <Button.ContextMenu>
+                    <ContextMenu ItemContainerStyle="{StaticResource QueryExampleItem}"
+                                 MaxHeight="{StaticResource HeightMenu}"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </Button.ContextMenu>
+            </Button>
+
             <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
                 <!--
                     Updated on every keystroke rather than when the field loses focus. The
@@ -181,31 +200,26 @@
                 a mechanism somebody discovers by clicking once - it is worth having and not
                 worth a line of a window whose job is 810 rows.
             -->
-            <TextBlock Grid.Column="0"
-                       AutomationProperties.AutomationId="filterGroup"
-                       Text="{DynamicResource gui.filter.group}"
-                       ToolTip="{DynamicResource gui.filter.hint}"
-                       Margin="{StaticResource MarginBetweenControls}"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource SubduedText}" />
+        <!--
+            THREE GROUPS SINCE 2026-08-12. Why these three and what each one may contain is decided
+            in FilterChips.cs, with the measurement that settled the boundary - it is not repeated
+            here. The single "Filters" label is gone: it named the row rather than any question in
+            it.
 
+            THE LABELS LIVE INSIDE THE CHIPS CONTAINER ON PURPOSE. tools/window-journey tells the
+            labels of controls apart from the sentences the window says about the answer, and it
+            does that by asking whether the chips' ItemsControl is an ancestor. A label outside it
+            would arrive as one of the window's sentences.
+        -->
         <ItemsControl Grid.Column="1"
                       AutomationProperties.AutomationId="filterChips"
-                      ItemsSource="{Binding Filters}">
+                      ItemsSource="{Binding FilterGroups}"
+                      ItemTemplate="{StaticResource FilterGroupTemplate}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel />
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
-
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <ToggleButton Margin="{StaticResource MarginChip}"
-                                  Content="{Binding Label}"
-                                  ToolTip="{Binding Member}"
-                                  IsChecked="{Binding IsOn, Mode=TwoWay}" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
         </ItemsControl>
 
             <!--
@@ -236,7 +250,14 @@
                     ToolTip="{DynamicResource gui.columns.hint}"
                     Click="ChooseColumns">
                 <Button.ContextMenu>
-                    <ContextMenu ItemContainerStyle="{StaticResource ColumnChoiceItem}" />
+                    <!--
+                        A CEILING AND A SCROLLBAR, because seventeen items is taller than a short
+                        screen and a menu that runs off the bottom loses the last of them with
+                        nothing saying so. The headings come from a grouped view built in the
+                        window - see the constructor.
+                    -->
+                    <ContextMenu MaxHeight="{StaticResource HeightMenu}"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
                 </Button.ContextMenu>
             </Button>
         </Grid>

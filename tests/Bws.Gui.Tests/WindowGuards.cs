@@ -185,6 +185,33 @@ public sealed class WindowGuards
     /// and then finds and ticks the items, which cannot work unless it opened - and it was watched
     /// opening on the real window on 2026-08-11.
     /// </summary>
+    /// <summary>
+    /// The examples button carries the six questions and points at itself - `P5`, 2026-08-12.
+    ///
+    /// The same claim as the columns button below, for the same reason: a button whose menu carries
+    /// nothing looks exactly like a feature that is not there, and the syntax now lives behind this
+    /// one rather than in a placeholder that vanished at the first keystroke.
+    ///
+    /// <b>That clicking an item writes the query is guarded elsewhere</b> - the handler is on the
+    /// menu rather than on each item, and it was driven end to end on the real window: six items
+    /// offered, the click wrote <c>start:disabled status:running</c> and the count line answered
+    /// 5 of 809.
+    /// </summary>
+    [Fact]
+    public void The_examples_button_carries_the_questions_to_start_from()
+    {
+        var window = WpfHost.Window();
+
+        var opened = WpfHost.On(() => window.OpenExamples());
+        var menu = WpfHost.On(() => window.ExamplesButton.ContextMenu);
+
+        Assert.True(opened, "The button has no menu to open, so the query language has no way in.");
+        Assert.Equal(6, WpfHost.On(() => menu!.Items.Count));
+        Assert.Same(WpfHost.On(() => (object)window.ExamplesButton), WpfHost.On(() => menu!.PlacementTarget));
+
+        WpfHost.On(() => menu!.IsOpen = false);
+    }
+
     [Fact]
     public void The_columns_button_carries_the_seventeen_columns()
     {
@@ -194,7 +221,14 @@ public sealed class WindowGuards
         var menu = WpfHost.On(() => window.ColumnsButton.ContextMenu);
 
         Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
-        Assert.Equal(17, WpfHost.On(() => menu!.Items.Count));
+
+        // TWENTY ONE SINCE 2026-08-12: seventeen columns and four headings, which are items in the
+        // same flat list rather than groups around it. Grouping a menu with GroupStyle takes its
+        // contents out of the automation tree entirely - measured on the real window, where an open
+        // picker offered twelve togglable elements, all of them filter chips, and none of the
+        // columns. The count is asserted whole rather than filtered so that a heading quietly
+        // becoming tickable, or a column quietly becoming a heading, still moves it.
+        Assert.Equal(21, WpfHost.On(() => menu!.Items.Count));
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

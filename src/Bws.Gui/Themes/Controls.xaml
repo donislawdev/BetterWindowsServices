@@ -182,6 +182,109 @@
         it looks: what a column is CALLED, whether it is on, and whether it may be turned off are
         all answered by the choice it is bound to.
     -->
+    <!--
+        A CHIP THAT IS ON HAS TO LOOK ON FROM ACROSS THE ROOM - backlog 163, and it was recorded as
+        a decision rather than an oversight: on 2026-08-11 Controls.xaml stood exactly on its own
+        ceiling, so a chip style would have forced a second split of the theme inside one session.
+        The theme has been split since, so the reason is spent.
+
+        WHAT WAS WRONG WITH THE DEFAULT. WPF UI's ToggleButton marks "checked" with a fill a shade
+        lighter than "not checked", against a window that is already dark. Whether a filter is on is
+        the single thing this row exists to say, and saying it in a shade is the same failure as
+        `docs/11` complaint 1 - the most important state on screen carried by the least visible
+        difference.
+
+        SurfaceSelected AND TextOnSurface RATHER THAN A NEW PAIR. Those two are the row selection
+        colours - already declared, already carrying a contrast threshold `ContrastGuards` enforces,
+        and already meaning "this one is picked" everywhere else in this window. A new brush would
+        be a new threshold to argue for a meaning the theme already has a colour for.
+
+        BasedOn THEIRS, WHICH IS TRAP 4 OF `docs/10` OBEYED RATHER THAN AVOIDED: their style sets
+        OverridesDefaultStyle and supplies a whole template, so a style of our own that did not
+        inherit it would silently throw away every other state - hover, pressed, disabled, focus.
+        What we override is three brushes it template-binds.
+
+        AND IT IS CHECKED ON THE PIXEL, not on the property. The same library hardcodes a
+        background inside its DataGrid cell template, where a Background setter is dead
+        unconditionally - so "the setter is there" is not evidence about the screen.
+    -->
+    <Style x:Key="FilterChip" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
+                <Setter Property="BorderBrush" Value="{StaticResource SurfaceSelected}" />
+                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        ONE FACET: ITS NAME, THEN ITS CHIPS. Here rather than inside MainWindow.xaml because what a
+        chip looks like is decided four lines above, and a template drawing chips is the same
+        subject - the window was carrying a nested ItemsControl whose only job was to apply the
+        style declared here. It also kept the window under the markup ceiling without shortening a
+        single reason, which is what a seam is for.
+
+        The hint sits on every group label rather than once beside the row, because the sentence is
+        about the boundary BETWEEN groups and a person reads whichever label they arrive at.
+    -->
+    <DataTemplate x:Key="FilterGroupTemplate">
+        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginGroup}">
+            <TextBlock Text="{Binding Label}"
+                       ToolTip="{Binding Hint}"
+                       Margin="{StaticResource MarginBetweenControls}"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource SubduedText}" />
+
+            <ItemsControl ItemsSource="{Binding Chips}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Margin="{StaticResource MarginChip}"
+                                      Style="{StaticResource FilterChip}"
+                                      Content="{Binding Label}"
+                                      ToolTip="{Binding Member}"
+                                      IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!--
+        One example query in the menu beside the search box. The tooltip carries the query itself,
+        so it is read BEFORE it is used - the same promise the chips make, where seeing the member
+        before clicking is half of what teaches the language.
+
+        NO EventSetter HERE, AND THAT IS A CONSTRAINT RATHER THAN A CHOICE: an EventSetter needs a
+        code-behind class on the dictionary it lives in, and a theme file has none. The click is
+        taken in the window instead, on the menu, through the routed event every item raises - one
+        handler for the whole list rather than one per item.
+    -->
+    <Style x:Key="QueryExampleItem" TargetType="MenuItem">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="ToolTip" Value="{Binding Query}" />
+    </Style>
+
+    <!--
+        The heading over one group of columns in the picker. Subdued, unticked and NOT ENABLED, so
+        it reads as a divider with a name rather than as an eighteenth choice - and so the keyboard
+        walks past it rather than stopping on something that does nothing.
+
+        A MenuItem rather than a group header, and that is the repair described in
+        ColumnEntryStyles: grouping a menu takes its items out of the automation tree entirely.
+    -->
+    <Style x:Key="ColumnHeadingItem" TargetType="MenuItem">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="IsEnabled" Value="False" />
+        <Setter Property="Padding" Value="{StaticResource MarginGroupHeading}" />
+    </Style>
+
     <Style x:Key="ColumnChoiceItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
         <Setter Property="Header" Value="{Binding Label}" />
         <Setter Property="IsCheckable" Value="True" />

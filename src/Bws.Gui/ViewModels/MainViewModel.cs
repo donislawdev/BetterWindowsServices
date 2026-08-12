@@ -207,6 +207,12 @@ public sealed class MainViewModel : Observable
     /// </summary>
     public IReadOnlyList<FilterChip> Filters => _filters.Chips;
 
+    /// <inheritdoc cref="FilterBar.Groups"/>
+    public IReadOnlyList<FilterGroup> FilterGroups => _filters.Groups;
+
+    /// <summary>Questions somebody can start from, each one a query they can then edit.</summary>
+    public IReadOnlyList<QueryExample> Examples => QueryExamples.All;
+
     /// <inheritdoc cref="FilterBar.ShowDrivers"/>
     public bool ShowDrivers
     {

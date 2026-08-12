@@ -32,6 +32,16 @@ public sealed class ColumnChoice : Observable
     /// <summary>What it is called, in the language of whoever is reading it.</summary>
     public string Label => Texts.Of(_labelKey);
 
+    /// <summary>
+    /// The heading this one sits under in the picker.
+    ///
+    /// Seventeen ticks in one column is a list somebody scans rather than reads, and eleven of them
+    /// are off - so the ones a person has never seen are exactly the ones hardest to find. Which
+    /// heading each column belongs to is decided in <see cref="Columns"/>, where the whole grouping
+    /// can be looked at at once.
+    /// </summary>
+    public string Group => Columns.GroupOf(Column.Id) is { } key ? Texts.Of(key) : string.Empty;
+
     /// <summary>Whether the column is in the list right now.</summary>
     public bool IsShown
     {
@@ -73,11 +83,48 @@ public sealed class ColumnChoice : Observable
 /// what the window says about them. Which columns those rows are shown through is a different
 /// subject, and the window is the only thing that needs both.
 /// </summary>
+/// <summary>
+/// A heading in the column picker, as an ITEM rather than as a group.
+///
+/// <b>It is an item because grouping a menu takes its contents out of the automation tree, and
+/// that was measured rather than feared.</b> The picker was grouped with <c>GroupStyle</c> on
+/// 2026-08-12 and looked right on screen - and from outside, a window whose menu was open offered
+/// twelve togglable elements, all of them filter chips, and not one of the seventeen columns. WPF
+/// builds a <c>GroupItem</c> between the menu and its items, and the menu's peer does not reach
+/// through it. A screen reader sees what the probe saw.
+///
+/// So the headings are items in the same flat list, told apart by a style selector: every entry
+/// stays a real <c>MenuItem</c> with a peer of its own, and the grouping is drawn rather than
+/// structural.
+/// </summary>
+public sealed class ColumnHeading
+{
+    private readonly string _labelKey;
+
+    internal ColumnHeading(string labelKey) => _labelKey = labelKey;
+
+    /// <summary>What this heading says, in the language of whoever is reading it.</summary>
+    public string Label => Texts.Of(_labelKey);
+}
+
 public sealed class ColumnBar
 {
     public ColumnBar()
     {
         Choices = [.. Columns.All.Select(column => new ColumnChoice(column))];
+
+        // THE FLAT LIST THE MENU IS HANDED: a heading, then the columns under it, then the next.
+        // Built once, in the catalogue's order, because the picker is a chooser rather than a
+        // readout and a list that rearranges itself under the pointer is harder to use.
+        var entries = new List<object>();
+
+        foreach (var group in Choices.GroupBy(choice => choice.Group, StringComparer.Ordinal))
+        {
+            entries.Add(new ColumnHeading(Columns.GroupOf(group.First().Column.Id)!));
+            entries.AddRange(group);
+        }
+
+        Entries = entries;
 
         foreach (var choice in Choices)
         {
@@ -102,6 +149,9 @@ public sealed class ColumnBar
     /// a heading is for.
     /// </summary>
     public IReadOnlyList<ColumnChoice> Choices { get; }
+
+    /// <summary>The same choices with their headings between them, which is what the menu shows.</summary>
+    public IReadOnlyList<object> Entries { get; }
 
     /// <summary>The columns that are on, in the catalogue's order.</summary>
     public IEnumerable<ColumnChoice> Shown => Choices.Where(choice => choice.IsShown);

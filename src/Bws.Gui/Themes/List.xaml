@@ -3,13 +3,18 @@
                     xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
-        THE LIST, WHICH IS THE ONE SCREEN THIS PRODUCT HAS. The grid, the row and the
-        template it owns, the cell, the headings, the two marks and the templates the
-        meaningful columns are drawn with. Not one value of its own - every number, colour
-        and thickness below is a name declared in Values.xaml.
+        WHAT THE LIST IS BUILT FROM. The grid, the row and the template it owns, and the
+        headings. Not one value of its own - every number, colour and thickness below is a
+        name declared in Values.xaml.
 
-        ADR-23, the same rule as the other two files: a value invented here would be as
-        invisible as one invented in a view, and the guard treats all three alike.
+        WHAT A CELL IS AND WHAT IT SHOWS MOVED TO Cells.xaml ON 2026-08-12 - the cell, the
+        four ways a word is written in one, the two marks and the two templated cells. The
+        seam is between what a person READS and what the list is MADE OF, and it was cut
+        because this file stood exactly on the 507-line markup ceiling while backlog 166
+        needed more lines to repair the start mark.
+
+        ADR-23, the same rule as the other three files: a value invented here would be as
+        invisible as one invented in a view, and the guard treats all four alike.
 
         SPLIT OUT OF Controls.xaml ON 2026-08-11 WITH NOTHING REWRITTEN - the styles below
         are the ones that were there, in the order they were in. Controls.xaml stood exactly
@@ -20,18 +25,18 @@
         TextBox and CheckBox, which are not text. Naming each half after what is in it beat
         naming it after which one moved.
 
-        NONE OF THE THREE LOADS ON ITS OWN, AND THIS ONE FAILS TWICE OVER. It reaches WPF
-        UI's keys - DefaultDataGridStyle, DefaultDataGridRowStyle, BodyTextBlockStyle and the
-        rest - and it reaches ours in Values.xaml, and StaticResource resolves both WHILE THE
-        FILE IS BEING READ. So the merge order in App.xaml is the library's dictionaries,
-        then Values.xaml, then Controls.xaml, then this. Anything that loads these files
+        NONE OF THE FOUR LOADS ON ITS OWN, AND THIS ONE FAILS TWICE OVER. It reaches WPF
+        UI's keys - DefaultDataGridStyle, DefaultDataGridRowStyle and the rest - and it
+        reaches ours in Values.xaml, and StaticResource resolves both WHILE THE FILE IS BEING
+        READ. So the merge order in App.xaml is the library's dictionaries, then Values.xaml,
+        then Controls.xaml, then this, then Cells.xaml. Anything that loads these files
         elsewhere has to do the same, which is why WpfHost and tools/wpfui-probe both build
         the stack in that order.
 
-        LAST OF OURS, AND THAT IS A DIRECTION RATHER THAN AN ACCIDENT. An implicit style
-        merged later wins, so the specialised half sits on top of the general one. Nothing
-        here is implicit today, so the order costs nothing now and is the one that will still
-        be right the day something is.
+        NO LONGER LAST OF OURS - Cells.xaml is, since 2026-08-12, and the reason that
+        direction exists is unchanged: an implicit style merged later wins, so the more
+        specialised half sits on top. Nothing in either is implicit today, so the order costs
+        nothing now and is the one that will still be right the day something is.
     -->
     <!--
         Default look per control type, so a control is consistent without anybody remembering
@@ -265,49 +270,6 @@
     </Style>
 
     <!--
-        The cell carries spacing and nothing else. Any Background set here is discarded by
-        their template - see the block above.
-    -->
-    <Style x:Key="ListCell" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
-        <Setter Property="Padding" Value="{StaticResource PadListCell}" />
-        <!--
-            Against their MinHeight of 32. Row height is decided by the padding above, which is
-            the same decision as the margins on the row: keep the density this list had.
-        -->
-        <Setter Property="MinHeight" Value="{StaticResource SizeNone}" />
-    </Style>
-
-    <!--
-        WHAT EVERY CELL IN THE LIST IS MADE OF, AND THE TRIMMING IS THE POINT.
-
-        Without it a cell too narrow for its text cuts it wherever the pixels run out, halfway
-        through a character, with nothing to say it did - which reads as a rendering fault
-        rather than as "this does not fit". Measured on the real window: a display name wanted
-        476 pixels in a column of 365, and at 1039 pixels of window there is no width at which
-        the longest of them fits. Something has to give and the person has to be able to see
-        that it did.
-
-        The tooltip is the other half of the same rule. Text that gives way has to be gettable,
-        and a person who wants the whole of it should not have to widen the window and guess.
-    -->
-    <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
-    </Style>
-
-    <!--
-        Numbers line up on their last digit, text on its first. Complaint 3 of the eleven, and
-        it is how a column of process ids becomes comparable at a glance instead of being read
-        one row at a time.
-    -->
-    <Style x:Key="CellNumber" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-        <Setter Property="HorizontalAlignment" Value="Right" />
-    </Style>
-
-    <!--
         The heading, so it stops looking like data. Complaint 4 of the eleven.
 
         AND IT GIVES WAY WITH AN ELLIPSIS SINCE 2026-08-11, WHICH EVERY CELL HAS DONE SINCE
@@ -349,159 +311,4 @@
         <Setter Property="HorizontalContentAlignment" Value="Right" />
     </Style>
 
-    <!--
-        THE MARK BESIDE A MEANING, AND FILLED VERSUS HOLLOW IS NOT DECORATION.
-
-        Filled means the entry is doing something - running, or on its way somewhere. Hollow
-        means it is not. Colour separates within each pair, so the shape carries the coarse
-        answer and the colour the fine one. WCAG 2.2 SC 1.4.1 says colour may not be the only
-        visual means of conveying information, and the word beside the mark is the third
-        channel and always present.
-
-        The trigger compares against a CODE from the view model, never against the word. The
-        word is translated; the code is not, and a trigger matching on "Running" would quietly
-        stop matching the day a second language file appears - the row would just lose its
-        colour, with nothing anywhere saying why. This project has had four of those.
-    -->
-    <Style x:Key="StatusMark" TargetType="Ellipse">
-        <Setter Property="Width" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Height" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Margin" Value="{StaticResource MarginAfterShape}" />
-        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Fill" Value="{x:Static media:Brushes.Transparent}" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.running">
-                <Setter Property="Fill" Value="{StaticResource MeaningRunning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningRunning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.transit">
-                <Setter Property="Fill" Value="{StaticResource MeaningWarning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.stopped">
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.paused">
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <!--
-                Explicit rather than left to the style's default, which drew it identically to a
-                stopped entry. Backlog 149 - the mark now differs in shape, not in a shade of grey
-                nobody can separate.
-            -->
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.unknown">
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        The start type's mark, and it is Hidden rather than Collapsed for the ordinary case.
-        Collapsed would give the space back and every word in the column would sit at a
-        different place depending on whether its entry had something to report, which is a
-        ragged column pretending to be information.
-
-        Waiting on a trigger deliberately gets NO mark. It is not a fault - it is why four of
-        the ten entries that read as "automatic and not running" on a real machine were fine.
-        It is said in words, next to the type, where it explains rather than accuses.
-    -->
-    <Style x:Key="StartMark" TargetType="Ellipse" BasedOn="{StaticResource StatusMark}">
-        <Setter Property="Visibility" Value="Hidden" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-
-        <Style.Triggers>
-            <!--
-                Each mark says what it means, backlog 149. Colour was the only carrier until
-                2026-08-10 and docs/11 forbids exactly that - the owner reported seeing dots that
-                were sometimes empty and sometimes red with no way to find out why.
-            -->
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.missing">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.missing}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.disabled">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.disabled}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.unknown">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.unknown}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        MONOSPACED, AND ONLY WHERE ALIGNMENT CARRIES MEANING - a launch path and a security
-        descriptor. `docs/03` part 4 names those two and a hash: reading a hash in a proportional
-        face is how two different hashes come to look the same, and the same is true of two paths
-        differing by one character deep inside them.
-
-        Everything else about it is CellText, including the trimming, which matters more here
-        than anywhere: a descriptor is several hundred characters and will never fit.
-    -->
-    <Style x:Key="CellFixed" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-        <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
-    </Style>
-
-    <!--
-        THE TWO CELLS THAT CARRY A MARK AS WELL AS A WORD, AND THEY MOVED HERE FROM THE MIDDLE OF
-        MainWindow.xaml ON 2026-08-11. `docs/11` 3.1 asks for shape AND colour AND label and calls
-        any two of the three insufficient, which is why these two columns are templated at all.
-
-        <b>They are here rather than in the view because the columns are built in code now.</b>
-        A template written inline inside a column definition has no name, so nothing can ask for
-        it - and S6d2 turns seventeen columns into a list somebody chooses from, which means the
-        columns are constructed rather than declared. A resource dictionary is the one place a
-        column built in code can reach.
-
-        THE MARK AND THE WORD SIT IN A GRID, NOT A StackPanel, and that is load-bearing: a
-        horizontal StackPanel measures its children against infinite width, so the text would
-        never learn it has to give way and the ellipsis would never appear. The trimming would be
-        present, correct and dead - which is the shape of fault this window has shipped four times.
-
-        THE WORD COMES THROUGH THE INDEXER AND THE MARK THROUGH A PROPERTY, and that is not an
-        inconsistency. The word is a cell, so it is asked for by the column's identifier like
-        every other cell in the list. The mark is not a cell - it sits beside one - and it is a
-        code rather than a word precisely so that a trigger never compares against translated text.
-    -->
-    <DataTemplate x:Key="StatusCell">
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Ellipse Grid.Column="0" Style="{StaticResource StatusMark}" />
-            <TextBlock Grid.Column="1"
-                       Text="{Binding [status]}"
-                       Style="{StaticResource CellText}" />
-        </Grid>
-    </DataTemplate>
-
-    <DataTemplate x:Key="StartTypeCell">
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Ellipse Grid.Column="0" Style="{StaticResource StartMark}" />
-            <TextBlock Grid.Column="1"
-                       Text="{Binding [startType]}"
-                       Style="{StaticResource CellText}" />
-        </Grid>
-    </DataTemplate>
 </ResourceDictionary>

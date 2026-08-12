@@ -60,7 +60,38 @@ public partial class MainWindow : Window
         // has no such question.
         if (ColumnsButton.ContextMenu is { } menu)
         {
-            menu.ItemsSource = _columns.Choices;
+            // HEADINGS AS ITEMS, NOT AS GROUPS, AND THAT IS A REPAIR RATHER THAN A PREFERENCE. The
+            // first version of this used GroupStyle with a grouped collection view. It looked right
+            // and it took the whole menu out of the automation tree: with it open, the window
+            // offered twelve togglable elements - all of them filter chips - and none of the
+            // seventeen columns. WPF puts a GroupItem between a menu and its items and the menu's
+            // peer does not reach through it, so a screen reader sees what the probe saw.
+            //
+            // A flat list of headings and choices keeps every entry a real MenuItem with a peer of
+            // its own. Which style each one wears is decided by the selector below.
+            menu.ItemsSource = _columns.Entries;
+            menu.ItemContainerStyleSelector = new ColumnEntryStyles();
+        }
+
+        // THE EXAMPLES, AND THE CLICK IS TAKEN ON THE MENU RATHER THAN ON EACH ITEM. A theme file
+        // has no code-behind class, so an EventSetter in the item style is not available - and one
+        // handler over the whole list is the better shape anyway: adding a seventh example needs no
+        // wiring at all.
+        if (ExamplesButton.ContextMenu is { } examples)
+        {
+            examples.ItemsSource = _model.Examples;
+
+            examples.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, clicked) =>
+            {
+                if ((clicked.OriginalSource as MenuItem)?.DataContext is ViewModels.QueryExample example)
+                {
+                    // Into the box rather than into the filter, so what happens next is a query the
+                    // person can read, edit and learn from - the same promise a chip makes.
+                    _model.QueryText = example.Query;
+                    QueryBox.Focus();
+                    QueryBox.CaretIndex = QueryBox.Text.Length;
+                }
+            }));
         }
 
         // On the interface thread by design. The tick itself does nothing but start a reading
@@ -161,13 +192,43 @@ public partial class MainWindow : Window
             return;
         }
 
+        var window = new Windows.Win32.Foundation.HWND(handle);
         var dark = 1;
 
         _ = Windows.Win32.PInvoke.DwmSetWindowAttribute(
-            new Windows.Win32.Foundation.HWND(handle),
+            window,
             Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
             &dark,
             sizeof(int));
+
+        // AND THE COLOUR ITSELF, BECAUSE THE DARK MODE FLAG DOES NOT DELIVER WHAT THIS FILE SAID IT
+        // DID. Measured 2026-08-12 on the release build, both states: the caption is #4C4A48 over
+        // content at #202020, active and inactive alike. The note above claimed that flag closed
+        // backlog 148 - it darkens the caption from the light default and stops well short of the
+        // window's own colour, so the window still reads as two programs stacked.
+        //
+        // DWMWA_CAPTION_COLOR is Windows 11 only and a failure here is ignored for the same reason
+        // as above: a pale title bar is a blemish, and taking the window down over one would be a
+        // far worse answer than the blemish.
+        //
+        // THE COLOUR COMES FROM THE WINDOW'S OWN BACKGROUND RATHER THAN FROM A NUMBER HERE, which
+        // is `ADR-23` reaching the one surface it could not otherwise reach: the frame belongs to
+        // Windows, so it cannot be styled, but it can be handed the brush the theme already chose.
+        // A literal here would be a second copy of the background, and the two would drift the
+        // first time anybody changed the theme.
+        if (Background is System.Windows.Media.SolidColorBrush brush)
+        {
+            // COLORREF is 0x00BBGGRR, which is the opposite order from every other colour in this
+            // product - and getting it backwards produces a plausible wrong colour rather than an
+            // error, so it is written out rather than packed in one expression.
+            var colour = (uint)(brush.Color.R | (brush.Color.G << 8) | (brush.Color.B << 16));
+
+            _ = Windows.Win32.PInvoke.DwmSetWindowAttribute(
+                window,
+                Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
+                &colour,
+                sizeof(uint));
+        }
     }
 
     /// <summary>
@@ -334,6 +395,29 @@ public partial class MainWindow : Window
         }
 
         menu.PlacementTarget = ColumnsButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+
+        return true;
+    }
+
+    private void ShowExamples(object sender, RoutedEventArgs e) => OpenExamples();
+
+    /// <summary>
+    /// Opens the list of example queries under the button that asks for it.
+    ///
+    /// The same arrangement as <see cref="OpenColumns"/>, and apart from its handler for the same
+    /// reason: a button that opens nothing looks exactly like a feature that is not there, and a
+    /// handler the framework calls can only be reached by clicking.
+    /// </summary>
+    internal bool OpenExamples()
+    {
+        if (ExamplesButton.ContextMenu is not { } menu)
+        {
+            return false;
+        }
+
+        menu.PlacementTarget = ExamplesButton;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
         menu.IsOpen = true;
 

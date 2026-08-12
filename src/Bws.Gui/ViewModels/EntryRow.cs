@@ -23,6 +23,7 @@ public sealed class EntryRow : Observable
     private string _displayName;
     private string _statusShape;
     private string _startShape;
+    private string _againstShape;
     private bool _recentlyChanged;
 
     /// <summary>
@@ -47,6 +48,7 @@ public sealed class EntryRow : Observable
         _displayName = entry.DisplayName;
         _statusShape = CellFaces.StatusShape(entry.Status);
         _startShape = CellFaces.StartShape(entry, qualifies);
+        _againstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
         _startType = CellFaces.StartLabel(entry, qualifies);
         _account = Describe(entry.Account, value => value);
     }
@@ -87,6 +89,21 @@ public sealed class EntryRow : Observable
     {
         get => _startShape;
         private set => Set(ref _startShape, value);
+    }
+
+    /// <summary>
+    /// Which shape the disagreement between the run state and the start type wears - backlog 165.
+    ///
+    /// <b>It is worked out from BOTH, so it moves when either does - and one of them moves every
+    /// second.</b> That is the trap this property carries: a service starting turns this from
+    /// nothing into a mark without any configuration changing, so the cheap reading has to
+    /// recompute it. A version that only did so on a full reading would draw a mark that was true
+    /// when the window opened and quietly false afterwards, which is worse than no mark at all.
+    /// </summary>
+    public string AgainstShape
+    {
+        get => _againstShape;
+        private set => Set(ref _againstShape, value);
     }
 
     /// <summary>
@@ -168,6 +185,12 @@ public sealed class EntryRow : Observable
 
         StatusShape = CellFaces.StatusShape(_entry.Status);
 
+        // AND THE DISAGREEMENT, WHICH IS THE HALF THAT IS EASY TO LEAVE OUT. Nothing about the
+        // configuration changed here - the start type is the same as it was - but whether the entry
+        // is doing the opposite of it depends on the state that just moved. A service starting is
+        // exactly how a row goes from ordinary to marked, and it arrives through this path.
+        AgainstShape = CellFaces.AgainstShape(_entry.RunsAgainstItsStartType);
+
         // The status and the process identifier as WORDS, which are cells and therefore say so
         // here rather than one property at a time.
         Raise(EveryCell);
@@ -201,6 +224,7 @@ public sealed class EntryRow : Observable
         DisplayName = entry.DisplayName;
         StatusShape = CellFaces.StatusShape(entry.Status);
         StartShape = CellFaces.StartShape(entry, qualifies);
+        AgainstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
 
         _startType = CellFaces.StartLabel(entry, qualifies);
         _account = Describe(entry.Account, value => value);

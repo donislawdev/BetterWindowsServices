@@ -132,6 +132,13 @@ public static class QueryFields
                 new QueryValueName("running", "running"),
                 new QueryValueName("stopped", "stopped"),
                 new QueryValueName("paused", "paused"),
+
+                // FOUR STATES UNDER ONE WORD, the same shape as type:driver and signed:no. Nobody
+                // arrives asking whether a service is specifically continue-pending - they ask
+                // what is in the middle of something, and that is one question with four answers.
+                // Added 2026-08-12 for the chips, and an ADDITION rather than a change of meaning.
+                new QueryValueName("pending", "startpending", "stoppending", "pausepending", "continuepending"),
+
                 new QueryValueName("startPending", "startpending"),
                 new QueryValueName("stopPending", "stoppending"),
                 new QueryValueName("pausePending", "pausepending"),

@@ -165,8 +165,46 @@ public sealed class SizeRatchetGuards
     /// to bottom is the same as knowing how the product looks, and that is now two readings. No
     /// ceiling could have held that promise up - only a split could relieve it, and this is the
     /// bill. It is restated at the head of both files rather than left to rot.
+    ///
+    /// <b>507 -> 403 ON 2026-08-12, AND THE COST PREDICTED FOUR PARAGRAPHS UP WAS PAID EXACTLY AS
+    /// WRITTEN.</b> That paragraph said the next line added to List.xaml would start with somebody
+    /// looking for a seam. Backlog 166 needed those lines - the start type's mark was BasedOn the
+    /// status mark and inherited triggers reading the run state, so a running entry wore a green
+    /// fill in the column about its next start, and breaking that inheritance needs a shared base
+    /// with no triggers. The seam was found rather than invented: <b>Cells.xaml took what a person
+    /// reads - the cell, its words and its marks - and List.xaml kept what the list is built
+    /// from</b>, the grid, the row and the headings. 507 -> 271 and 225.
+    ///
+    /// <b>417 -> 420 IS NOT A LOWERING AND IS WRITTEN DOWN AS SUCH.</b> The ceiling was moved twice
+    /// on 2026-08-12 while the work was still in flight - 507 to 403, then to 417 - and both were
+    /// measurements taken mid-session on a file that was still being added to. The direction that
+    /// matters held across the day: <b>507 in the morning, 420 at the end, and no file grew that
+    /// was not being worked on</b>. What was wrong was the habit of tightening a ceiling before the
+    /// work resting on it had finished, and the lesson is to set it once, at the end.
+    ///
+    /// <b>Values.xaml reached this ceiling three times in one session, and the seam is already
+    /// identified rather than waiting to be invented under pressure</b>: eighteen of its entries are
+    /// COLUMN WIDTHS, which is a different subject from the spacing scale, the type sizes and the
+    /// brushes. Backlog 173. It was not split today because a values file costs six surfaces to
+    /// split - the dictionary, App.xaml, WpfHost, the guard's own array and two tools - and the
+    /// afternoon was owed to the window rather than to the theme.
+    ///
+    /// <b>The number below is what the longest markup file measures at the END of that day's work,
+    /// and it was set once, there.</b> MainWindow.xaml at 423 after the title bar, the grouped
+    /// column picker and the example queries - Values.xaml is 420 behind it. Everything above about
+    /// setting a ceiling mid-flight is the mistake this stopped repeating. Not one of the six is over
+    /// five hundred lines any more.
+    ///
+    /// <b>IT WAS WRITTEN AS 403 FIRST AND THE RATCHET IMMEDIATELY FIRED, WHICH IS WORTH KEEPING.</b>
+    /// 403 was Values.xaml measured after the split and before backlog 165 added a value to it -
+    /// the triangle the mismatch column wears. The next test run went red on the file the number
+    /// had just been taken from. <b>The rule this respects is the one that matters: 507 at the
+    /// start of the day, 417 at the end, and nothing went up.</b> A mid-session measurement is not
+    /// a floor to defend, and splitting a values file over fifteen lines would have been a seam
+    /// invented under pressure - which is the thing the entry above says the 2026-08-11 split
+    /// was not.
     /// </summary>
-    private const int LongestShippedMarkupFile = 507;
+    private const int LongestShippedMarkupFile = 423;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

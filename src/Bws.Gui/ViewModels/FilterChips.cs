@@ -127,6 +127,64 @@ public sealed class FilterChip : Observable
 ///                                                         to the query language is a change to a
 ///                                                         surface people write scripts against
 /// </summary>
+/// <summary>
+/// One facet: chips that answer the same question, under a name saying which question.
+///
+/// <b>Three groups rather than one row of eight, from 2026-08-12.</b> The row mixed three fields -
+/// what an entry is DOING, what it is SET to do, and facts about the entry itself - and presented
+/// them as one undifferentiated line, so nothing on screen said that two of them add up while a
+/// third narrows.
+///
+/// <b>The grouping is not decoration: it is the semantics, drawn.</b> Measured on this machine
+/// before the row was rebuilt - <c>status:running</c> gives 323, <c>status:stopped</c> 485, and the
+/// two together 808, which is their sum. Across fields it multiplies instead:
+/// <c>status:running start:automatic</c> gives 90. So chips in one group ADD and chips in different
+/// groups NARROW, and a person who cannot see the boundary cannot predict either.
+/// </summary>
+public sealed class FilterGroup
+{
+    private readonly string _labelKey;
+
+    internal FilterGroup(string labelKey, IReadOnlyList<FilterChip> chips)
+    {
+        _labelKey = labelKey;
+        Chips = chips;
+    }
+
+    /// <summary>What this group is called, in the language of whoever is reading it.</summary>
+    public string Label => Texts.Of(_labelKey);
+
+    public IReadOnlyList<FilterChip> Chips { get; }
+
+    /// <summary>
+    /// Whether clicking two of these shows MORE rather than less.
+    ///
+    /// <b>Worked out from the chips rather than declared, because it is a fact about the query
+    /// rather than a choice about the row.</b> One field means the language ORs them and the group
+    /// adds up. Several fields mean it ANDs them and each chip narrows on its own.
+    ///
+    /// <b>This property exists because the guard for it went red on the first row that was
+    /// built.</b> Three groups were drawn and two of them added up - the third holds a trigger
+    /// question and a driver question, which are different fields, so the label above it was
+    /// promising something the parser does not do. The answer is not to force the two apart into
+    /// groups of one, it is to stop claiming the same thing about both kinds.
+    /// </summary>
+    public bool AddsUp => Chips.Select(chip => chip.Field).Distinct(StringComparer.Ordinal).Count() == 1;
+
+    /// <summary>
+    /// The sentence under this group's name, which differs by the answer above.
+    ///
+    /// Two calls rather than one with a choice inside it, and that is <c>TextKeyGuards</c>'s own
+    /// precedent obeyed rather than worked around: a key travelling as anything but a literal in
+    /// the call is invisible to it, and the fix it chose for <c>ListState</c> was to move the keys
+    /// into their calls instead of widening the pattern. A key visible where it is chosen is
+    /// better for a reader too.
+    /// </summary>
+    public string Hint => AddsUp
+        ? Texts.Of("gui.filter.hint.adds")
+        : Texts.Of("gui.filter.hint.narrows");
+}
+
 public sealed class FilterBar : Observable
 {
     private readonly IReadOnlyList<FilterChip> _chips;
@@ -134,7 +192,8 @@ public sealed class FilterBar : Observable
 
     internal FilterBar(Func<string> read, Action<string> write)
     {
-        _chips = FilterChips.All(read, write);
+        Groups = FilterChips.Grouped(read, write);
+        _chips = [.. Groups.SelectMany(group => group.Chips)];
 
         // Found by what it stands for rather than by its position, so reordering the row cannot
         // silently point the named switch at a different filter.
@@ -146,6 +205,9 @@ public sealed class FilterBar : Observable
 
     /// <summary>The chips, in the order they are shown.</summary>
     public IReadOnlyList<FilterChip> Chips => _chips;
+
+    /// <summary>The same chips, in the facets they belong to. What the window draws.</summary>
+    public IReadOnlyList<FilterGroup> Groups { get; }
 
     /// <summary>
     /// Whether kernel drivers are in the list. <c>A7</c>, which had a name before <c>A5</c> had
@@ -189,34 +251,89 @@ internal static class FilterChips
     internal const string DriverValue = "driver";
 
     /// <summary>
-    /// The chips, in the order they are shown.
+    /// The chips, in the facets they belong to and in the order they are shown.
     ///
-    /// Ordered by how often the question gets asked rather than by field, because the row is read
-    /// left to right and the first two are what somebody opening this on an unknown server wants:
-    /// what is running, and what should be and is not.
+    /// <b>Three groups since 2026-08-12, and the boundary between them is the query's own
+    /// semantics.</b> Chips inside a group are members of ONE field, so the language ORs them and
+    /// clicking two shows both. Chips in different groups are different fields, so it ANDs them and
+    /// clicking two narrows. Both halves measured on this machine before the row was rebuilt, not
+    /// assumed - the numbers are in <see cref="FilterGroup"/>.
+    ///
+    /// <b>What arrived with the groups, and each one closes something that could not be clicked at
+    /// all:</b> Paused and In transition, so that the state facet can express more than two of the
+    /// eight values the language accepts - on this machine "running or stopped" is 808 of 809, so
+    /// exactly one entry had no chip that could reach it. Boot and System, two start types that
+    /// account for a large share of the list and had no control. And Automatic (delayed) now says
+    /// what the Start column says, instead of "Delayed".
+    ///
+    /// <b>Still not the cross product, and the argument for that is unchanged.</b> The four
+    /// enumerations accept twenty-nine values between them and a row of twenty-nine controls is a
+    /// worse instrument than the box above it. What is here is a facet a person can complete a
+    /// thought in - every value of the state, every value of the start type - rather than every
+    /// value of every field. The eleven trigger kinds stay behind <c>trigger:any</c>, because
+    /// somebody asking which kind is already looking at triggers.
+    ///
+    /// <b>What is deliberately NOT here, said rather than left to be noticed:</b> a chip for
+    /// "against its start type". The window has a column for it since backlog 165, and the query
+    /// language has no field for it at all - so the chip would have nothing to write into the box,
+    /// and a chip that cannot be expressed as a member is the one thing this design forbids.
+    /// Adding the field is a change to a surface people write scripts against, which is a decision
+    /// rather than a slice of this one.
     /// </summary>
-    internal static IReadOnlyList<FilterChip> All(Func<string> read, Action<string> write) =>
+    internal static IReadOnlyList<FilterGroup> Grouped(Func<string> read, Action<string> write) =>
     [
-        new FilterChip("gui.filter.running", "status", "running", negated: false, read, write),
-        new FilterChip("gui.filter.stopped", "status", "stopped", negated: false, read, write),
+        new FilterGroup("gui.filter.group.state",
+        [
+            new FilterChip("gui.filter.running", "status", "running", negated: false, read, write),
+            new FilterChip("gui.filter.stopped", "status", "stopped", negated: false, read, write),
+            new FilterChip("gui.filter.paused", "status", "paused", negated: false, read, write),
 
-        new FilterChip("gui.filter.automatic", "start", "automatic", negated: false, read, write),
-        new FilterChip("gui.filter.manual", "start", "manual", negated: false, read, write),
-        new FilterChip("gui.filter.disabled", "start", "disabled", negated: false, read, write),
+            // One word for the four pending states, added to the language for this chip. Nobody
+            // arrives asking whether something is specifically continue-pending - they ask what is
+            // in the middle of something, and that is one question with four answers.
+            new FilterChip("gui.filter.pending", "status", "pending", negated: false, read, write)
+        ]),
 
-        // Its own value in the language rather than a qualifier on "automatic", which is what
-        // made it expressible at all - checked before this chip was written rather than assumed.
-        new FilterChip("gui.filter.delayed", "start", "delayed", negated: false, read, write),
+        new FilterGroup("gui.filter.group.start",
+        [
+            new FilterChip("gui.filter.automatic", "start", "automatic", negated: false, read, write),
 
-        // "any" is the language's reserved word for "this was read and there is something in
-        // it", so this asks for entries that have a trigger at all rather than one of the eleven
-        // kinds. The kinds are a question for somebody already looking at triggers.
-        new FilterChip("gui.filter.triggered", "trigger", QueryFields.Any, negated: false, read, write),
+            // Its own value in the language rather than a qualifier on "automatic", which is what
+            // made it expressible at all - checked before this chip was written rather than assumed.
+            new FilterChip("gui.filter.delayed", "start", "delayed", negated: false, read, write),
 
-        // THE ONE THAT REPLACES A CONTROL RATHER THAN ADDING ONE. The drivers switch was a
-        // checkbox beside the search box with its own text-editing helpers, and `docs/11`
-        // complaint 7 left the grouping of that row deliberately unfinished, because `A5` was
-        // going to arrive and rewrite it. It has.
-        new FilterChip("gui.filter.hideDrivers", DriverField, DriverValue, negated: true, read, write)
+            new FilterChip("gui.filter.manual", "start", "manual", negated: false, read, write),
+            new FilterChip("gui.filter.disabled", "start", "disabled", negated: false, read, write),
+
+            // The two that belong to drivers and had no control at all. They are a large share of
+            // the list and the row that hides drivers is right beside them, so somebody who does
+            // not want them can say so in one click either way.
+            new FilterChip("gui.filter.boot", "start", "boot", negated: false, read, write),
+            new FilterChip("gui.filter.system", "start", "system", negated: false, read, write)
+        ]),
+
+        new FilterGroup("gui.filter.group.about",
+        [
+            // NOT A START TYPE, WHICH IS WHY IT MOVED. A service can be Manual and trigger-started
+            // at once - services.msc writes that as "Manual (Trigger Start)" and so does this
+            // window's Start column. It is an orthogonal fact about the entry, and standing it
+            // among the start types said it was one of them.
+            //
+            // "any" is the language's reserved word for "this was read and there is something in
+            // it", so this asks for entries that have a trigger at all rather than one of the
+            // eleven kinds.
+            new FilterChip("gui.filter.triggered", "trigger", QueryFields.Any, negated: false, read, write),
+
+            // THE ONE THAT REPLACES A CONTROL RATHER THAN ADDING ONE. The drivers switch was a
+            // checkbox beside the search box with its own text-editing helpers, and `docs/11`
+            // complaint 7 left the grouping of that row deliberately unfinished, because `A5` was
+            // going to arrive and rewrite it. It has.
+            //
+            // It sits here rather than in a scope control of its own, and that is a smaller answer
+            // than the UI document asked for. Its argument - that scope is not a facet - is real,
+            // but this chip IS a query member like every other one, and a segmented services /
+            // drivers / all control is an IA change rather than a grouping. Named, not smuggled.
+            new FilterChip("gui.filter.hideDrivers", DriverField, DriverValue, negated: true, read, write)
+        ])
     ];
 }

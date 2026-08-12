@@ -59,11 +59,21 @@ public sealed class AppearanceGuards
     /// entry needs the same two things: a name that answers "what is in there" without opening it,
     /// and a claim at the head of the file that can be asserted.
     ///
+    /// <b>And here is the argument for the FOURTH entry, on 2026-08-12, in the same shape.</b>
+    /// List.xaml stood exactly on the 507-line markup ceiling, and backlog 166 could not be
+    /// repaired without adding lines to it: the start type's mark was BasedOn the status mark, so
+    /// it inherited triggers reading the RUN STATE and a running entry wore a green fill in the
+    /// column about its NEXT start. Breaking that inheritance needs a shared base with no
+    /// triggers, which is more lines rather than fewer. <b>Cells.xaml keeps what a person reads -
+    /// the cell, its words and its marks - and List.xaml keeps what the list is BUILT from</b>:
+    /// the grid, the row and the template it owns, the headings. Everything about a cell is on
+    /// one side of that seam, which is what makes the name answerable without opening the file.
+    ///
     /// <b>Values.xaml is first in this array and the rest are the styles files</b>, which
     /// <see cref="StyleFiles"/> depends on - values are merged before styles because styles
     /// resolve their names while being read.
     /// </summary>
-    private static readonly string[] ThemeFiles = ["Values.xaml", "Controls.xaml", "List.xaml"];
+    private static readonly string[] ThemeFiles = ["Values.xaml", "Controls.xaml", "List.xaml", "Cells.xaml"];
 
     /// <summary>The halves that hold styles and no values, which is every theme file but the first.</summary>
     private static IEnumerable<string> StyleFiles => ThemeFiles.Skip(1);

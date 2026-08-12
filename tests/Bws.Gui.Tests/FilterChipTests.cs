@@ -28,6 +28,70 @@ public sealed class FilterChipTests
     /// Asked of the parser rather than of a list kept here, so adding a chip for a value the
     /// language gains later needs no second edit.
     /// </summary>
+    /// <summary>
+    /// EVERY CHIP IN A GROUP ASKS ABOUT THE SAME FIELD, which is what makes the grouping true
+    /// rather than tidy.
+    ///
+    /// <b>The row says something about the language and this is what keeps it honest.</b> Members
+    /// of one field are ORed by the parser and members of different fields are ANDed - measured on
+    /// the real window before the row was rebuilt: <c>status:running</c> 323, <c>status:stopped</c>
+    /// 485, both together 808, while <c>status:running start:automatic</c> gives 90. So a group is
+    /// a promise that its chips ADD UP, and one chip from another field quietly turns that group
+    /// into a narrowing - with three labels on screen still claiming otherwise.
+    ///
+    /// It is a property of the CATALOGUE rather than of any one chip, which is why it cannot be
+    /// checked by the test below however carefully that one is written.
+    /// </summary>
+    /// <summary>
+    /// A group that adds up and a group that narrows do not say the same sentence.
+    ///
+    /// <b>The claim on screen has to differ where the behaviour differs, or the labels are
+    /// decoration.</b> Two chips in the state group show both; two chips in the last group narrow
+    /// each other, because they are different fields. A single hint over both would be true for one
+    /// of them and false for the other - which is how a window teaches somebody the wrong rule and
+    /// then behaves correctly.
+    /// </summary>
+    [Fact]
+    public void A_group_that_adds_up_says_something_different_from_one_that_narrows()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        var adding = model.FilterGroups.First(group => group.AddsUp);
+        var narrowing = model.FilterGroups.First(group => !group.AddsUp);
+
+        Assert.NotEqual(adding.Hint, narrowing.Hint);
+        Assert.NotEmpty(adding.Hint);
+        Assert.NotEmpty(narrowing.Hint);
+    }
+
+    [Fact]
+    public void No_group_says_its_chips_add_up_while_the_query_narrows_them()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        Assert.NotEmpty(model.FilterGroups);
+
+        foreach (var group in model.FilterGroups)
+        {
+            var fields = group.Chips.Select(chip => chip.Field).Distinct(StringComparer.Ordinal).ToList();
+
+            // The claim on screen and the fact underneath it, asserted against each other rather
+            // than the claim being taken on trust.
+            Assert.Equal(fields.Count == 1, group.AddsUp);
+
+            // AND THE HALF WITH TEETH. A group of several fields is a row of independent switches
+            // and says so - but two chips of the SAME field inside it would be ORed with each other
+            // while everything around them ANDs, which is one group behaving two ways with nothing
+            // on screen dividing it.
+            Assert.True(
+                group.AddsUp || fields.Count == group.Chips.Count,
+                $"The group '{group.Label}' mixes fields AND repeats one of them - "
+                + string.Join(", ", group.Chips.Select(chip => chip.Field))
+                + ". Two chips of one field are ORed by the language while the rest of the group is "
+                + "ANDed, so half of this group adds up and half narrows, under one name.");
+        }
+    }
+
     [Fact]
     public void Every_chip_stands_for_a_member_the_language_knows()
     {

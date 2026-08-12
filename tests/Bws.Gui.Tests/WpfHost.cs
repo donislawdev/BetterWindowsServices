@@ -101,14 +101,15 @@ internal static class WpfHost
         // The product's real files, read off disk rather than copied. A copy would answer a
         // question about the copy - the same rule tools/wpfui-probe is built on.
         //
-        // THREE FILES SINCE 2026-08-11 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Both styles
-        // files name keys declared in Values.xaml, StaticResource resolves them as the file is
+        // FOUR FILES SINCE 2026-08-12 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Every styles
+        // file names keys declared in Values.xaml, StaticResource resolves them as the file is
         // read, and each dictionary is added to the application before the next one is parsed - so
         // the later ones find the first the same way all of them find WPF UI's. Backlog 156 for
-        // the first split and 163 for the second, and this is App.xaml's order in both cases.
+        // the first split, 163 for the second and 166 for the third, and this is App.xaml's order
+        // in every case.
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        foreach (var name in new[] { "Values.xaml", "Controls.xaml", "List.xaml" })
+        foreach (var name in new[] { "Values.xaml", "Controls.xaml", "List.xaml", "Cells.xaml" })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));
 

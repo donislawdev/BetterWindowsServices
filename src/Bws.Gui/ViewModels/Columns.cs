@@ -28,7 +28,16 @@ internal enum ColumnFace
     Status,
 
     /// <summary>A mark plus the word - the start type and what qualifies it.</summary>
-    StartType
+    StartType,
+
+    /// <summary>
+    /// A mark plus the word - whether the entry is doing the opposite of its start type.
+    ///
+    /// A third shape family rather than a third use of the dot, because this is a persistent
+    /// disagreement between two settings and neither of the other two columns means that.
+    /// Backlog 165.
+    /// </summary>
+    Mismatch
 }
 
 /// <summary>
@@ -182,7 +191,7 @@ internal static class Columns
             Id = "runsAgainstItsStartType",
             LabelKey = "gui.column.runsAgainstItsStartType",
             WidthKey = "ColumnAgainstStartType",
-            Face = ColumnFace.Text,
+            Face = ColumnFace.Mismatch,
             ShownAtFirst = false,
             Reads = entry => CellFaces.Judgement(entry.RunsAgainstItsStartType)
         },
@@ -324,6 +333,54 @@ internal static class Columns
         private IComparable? Key(object? row) =>
             row is EntryRow entry ? column.SortKey(entry.Entry) : null;
     }
+
+    /// <summary>
+    /// Which heading in the picker each column sits under.
+    ///
+    /// <b>One map rather than a field on seventeen declarations, and that is not a saving.</b> A
+    /// grouping is only useful if somebody can see the whole of it at once and ask whether it makes
+    /// sense - spread across seventeen entries it becomes seventeen local decisions, and nobody
+    /// notices when a group is left with one item in it.
+    ///
+    /// <b>The groups are about what a person came looking for, not about where the data comes
+    /// from.</b> The first is what the list shows without being asked. The rest are three questions
+    /// somebody arrives with: who is this running as and is it behaving, what does it run, and the
+    /// details you go looking for once you already suspect something.
+    ///
+    /// A column missing here is a failed test rather than a default, because a default would put it
+    /// quietly under whichever heading was least wrong.
+    /// </summary>
+    private static readonly Dictionary<string, string> Groups = new(StringComparer.Ordinal)
+    {
+        ["serviceName"] = Basics,
+        ["displayName"] = Basics,
+        ["status"] = Basics,
+        ["startType"] = Basics,
+        ["account"] = Basics,
+        ["processId"] = Basics,
+
+        ["entryType"] = About,
+        ["runsAgainstItsStartType"] = About,
+        ["sidType"] = About,
+
+        ["binaryPath"] = Binary,
+        ["binaryFile"] = Binary,
+
+        ["loadOrderGroup"] = Advanced,
+        ["errorControl"] = Advanced,
+        ["dependsOn"] = Advanced,
+        ["triggers"] = Advanced,
+        ["requiredPrivileges"] = Advanced,
+        ["securityDescriptor"] = Advanced
+    };
+
+    internal const string Basics = "gui.columns.group.basics";
+    internal const string About = "gui.columns.group.about";
+    internal const string Binary = "gui.columns.group.binary";
+    internal const string Advanced = "gui.columns.group.advanced";
+
+    /// <summary>The heading a column sits under, or null when nobody gave it one.</summary>
+    internal static string? GroupOf(string id) => Groups.GetValueOrDefault(id);
 
     private static readonly Dictionary<string, Column> Index =
         All.ToDictionary(column => column.Id, StringComparer.Ordinal);

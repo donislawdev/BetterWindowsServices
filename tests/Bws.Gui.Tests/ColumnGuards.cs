@@ -132,6 +132,35 @@ public sealed class ColumnGuards
     }
 
     /// <summary>
+    /// The mark about the start type follows a CHEAP reading, not only a full one - backlog 165.
+    ///
+    /// <b>This is the trap that column carries.</b> Whether an entry runs against its start type is
+    /// worked out from the start type AND the running state, and the running state is what the
+    /// per-second reading watches. Nothing about the configuration changes when a service stops -
+    /// so a mark recomputed only on a full reading would be true when the window opened and
+    /// quietly false a second later, which is worse than no mark at all.
+    ///
+    /// It asserts the VALUE here rather than the notice, and that is the opposite of the two tests
+    /// below on purpose: this is a property with a backing field, so the question is whether
+    /// anything recomputed it, not whether anybody was told.
+    /// </summary>
+    [Fact]
+    public void The_mark_about_the_start_type_follows_a_cheap_reading()
+    {
+        // Automatic and running, which is the ordinary case and wears no mark.
+        var row = EntryRow.Of(Rows.Entry("Spooler"));
+
+        Assert.Equal(CellShapes.Ordinary, row.AgainstShape);
+
+        // And then it stops, with nothing waiting to start it. Same configuration, different answer.
+        row.Absorb(
+            new ScmStatus("Spooler", EntryStatus.Stopped, Reading<int>.Absent()),
+            DateTimeOffset.UnixEpoch);
+
+        Assert.Equal(CellShapes.Against, row.AgainstShape);
+    }
+
+    /// <summary>
     /// And the full reading, which says so even when nothing it compares moved.
     ///
     /// <b>This is the half that is easy to get wrong and the reason the notice is

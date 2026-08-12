@@ -50,6 +50,23 @@ public static class CellShapes
 
     /// <summary>The file the manager would run is not there, so it cannot do anything at all.</summary>
     public const string Missing = Prefix + "missing";
+
+    /// <summary>
+    /// Set to start automatically and not running, with nothing waiting to start it.
+    ///
+    /// <b>Narrower than the column's own name, and that was checked rather than assumed.</b>
+    /// <c>ScmEntry.Judge</c> answers false for anything whose start type is not Automatic - so a
+    /// service that is switched off and running anyway is NOT this. The first draft of the tooltip
+    /// beside this said it was, which would have been a sentence on screen that the code disagrees
+    /// with.
+    ///
+    /// <b>Its own code rather than one of the two above, and its own shape family in the theme.</b>
+    /// This is a PERSISTENT disagreement between two settings, not a state something is passing
+    /// through, so it may share neither the vocabulary of the running state nor the amber that
+    /// means "on its way somewhere". `docs/11` 3.1 asks for shape and colour and word, and the
+    /// column had the word alone until 2026-08-12 - backlog 165.
+    /// </summary>
+    public const string Against = Prefix + "against";
 }
 
 /// <summary>
@@ -253,6 +270,26 @@ internal static class CellFaces
     /// </summary>
     public static string Judgement(Reading<bool> reading) =>
         Say(reading, against => against ? Texts.Of("gui.cell.yes") : Texts.Of("gui.cell.no"));
+
+    /// <summary>
+    /// Which shape that judgement wears - backlog 165, and it closes the sentence three paragraphs
+    /// up which admitted this column had the word alone.
+    ///
+    /// <b>Only a definite YES gets a mark.</b> An entry doing what its start type says is the
+    /// ordinary case and marking it would put a shape beside seven hundred rows that are fine,
+    /// which is the same argument the start column already makes for waiting on a trigger.
+    ///
+    /// <b>Anything that is not a definite yes or no is UNKNOWN, including a state this can never
+    /// produce today.</b> <c>RunsAgainstItsStartType</c> yields present, denied or not-read and
+    /// never absent - but a switch that answered "ordinary" to a case it does not recognise would
+    /// be rendering "I could not check" as "everything is fine", which is the one thing rule 8
+    /// forbids in as many words.
+    /// </summary>
+    public static string AgainstShape(Reading<bool> reading) => reading.Outcome switch
+    {
+        ReadOutcome.Present => reading.Value ? CellShapes.Against : CellShapes.Ordinary,
+        _ => CellShapes.Unknown
+    };
 
     /// <summary>
     /// A list of names as one cell - dependencies and required privileges.

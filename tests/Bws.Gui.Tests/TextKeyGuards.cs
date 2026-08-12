@@ -70,13 +70,33 @@ public sealed class TextKeyGuards
     /// It anchors on the PROPERTY NAME rather than on a constructor, and that is the better of the
     /// two anchors: <c>LabelKey = "gui.column.status"</c> can only be written where a label key is
     /// being assigned, so no sentence mentioning a key can be mistaken for one.
+    ///
+    /// <b>A FIFTH SHAPE ARRIVED WITH THE GROUPED FILTERS, 2026-08-12, AND THE PRECEDENT DECIDED
+    /// IT.</b> A facet carries the key for its own name and reaches the loader through a field,
+    /// exactly as a chip does and for the same reason - the grouping is fixed and the words are
+    /// read again whenever the language changes. So it gets a named anchor rather than a wider
+    /// pattern, which is what this file has done every time and why it still cannot be fooled by a
+    /// comment that mentions a key.
     /// </remarks>
     private static readonly Regex[] Mentioned =
     [
         new(@"Texts\.Of\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
         new(@"\{\s*DynamicResource\s+(gui\.[^}\s]+)\s*\}", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
         new(@"new FilterChip\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
-        new(@"LabelKey\s*=\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"new FilterGroup\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+        new(@"LabelKey\s*=\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+
+        // A SIXTH SHAPE, 2026-08-12: a key held as a NAMED CONSTANT. The column picker's four
+        // headings are chosen once, in a map from column to heading, and reach the loader through
+        // that map - so no call site carries the text. The constant's declaration is where somebody
+        // chooses the key, which is the same thing this file has anchored on five times already,
+        // and a constant declaration cannot be a sentence mentioning a key.
+        new(@"const string \w+ = ""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+
+        // A SEVENTH, 2026-08-12: an example query carries the key for its own question, exactly as
+        // a chip carries the key for its label and for exactly the same reason. Named rather than
+        // widened, which is now the seventh time this file has answered the question that way.
+        new(@"new QueryExample\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]
