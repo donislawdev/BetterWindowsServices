@@ -28,8 +28,8 @@ Nothing has been released yet. Everything below is what the tool does today.
   a person or with `--json` for a script. Drivers are included, which is why the count is
   larger than the one `services.msc` shows.
 - **`--query`** narrows the listing with a language shared by the command line and, later,
-  the window. Fields: `name`, `display`, `type`, `status`, `start`, `account`, `pid`,
-  `trigger`, `path` and `file`. Values combine with spaces for "all of these" and commas
+  the window. Fields: `name`, `display`, `description`, `type`, `status`, `start`, `account`,
+  `pid`, `trigger`, `path` and `file`. Values combine with spaces for "all of these" and commas
   for "any of these", `!` excludes, and `none`, `any` and `?` ask whether a field is empty,
   filled or could not be read. Text fields take wildcards and regular expressions. A bare
   word searches names, display names, accounts and launch paths.
@@ -42,8 +42,8 @@ Nothing has been released yet. Everything below is what the tool does today.
   in it, quote it: `"/foo/"`. The window and the command line now read this the same way,
   which they did not while the switch existed - the command line never had one.
 - **You choose which columns the list shows.** The **Columns** button beside the filters opens
-  a list of seventeen, six of them on to begin with. Eleven are things the window could read
-  all along and had nowhere to put: what kind of entry it is, the command it launches and the
+  a list of eighteen, six of them on to begin with. Twelve are things the window could read
+  all along and had nowhere to put: what it says about itself, what kind of entry it is, the command it launches and the
   file that command really runs, what it depends on, what starts it, which privileges it asks
   for, its SID type, its error control, its load order group, its security descriptor, and
   whether it is set to run and is not. Drag a heading to move a column and its edge to resize
