@@ -279,6 +279,159 @@ public sealed class WindowGuards
         Assert.Equal(TextTrimming.CharacterEllipsis, WpfHost.On(() => text!.TextTrimming));
     }
 
+    /// <summary>
+    /// The list scrolls sideways, which is the owner's decision of 2026-08-12 reversing his own of
+    /// 2026-08-05.
+    ///
+    /// <b>A guard over one attribute, and what makes it worth having is what the attribute costs
+    /// when it goes back.</b> Photographed with all seventeen columns on before this changed:
+    /// nothing ran past the right edge, and seven columns collapsed to twenty pixels each - Status,
+    /// Start, PID, Entry type, Against its start type, Error control and Service SID type, every
+    /// heading a single full stop over a column of sliced dots. Seven columns saying nothing while
+    /// the window claims to show them is rule 8 of the project notes, and Disabled is one word away.
+    ///
+    /// Auto rather than Visible, because a scrollbar under a list that fits is a control that never
+    /// does anything, and the six columns the window opens with do fit.
+    /// </summary>
+    [Fact]
+    public void The_list_scrolls_sideways_rather_than_crushing_its_columns()
+    {
+        var window = WpfHost.Window();
+
+        Assert.Equal(
+            ScrollBarVisibility.Auto,
+            WpfHost.On(() => window.Entries.HorizontalScrollBarVisibility));
+    }
+
+    /// <summary>
+    /// No column can be squeezed below the width it was sized for.
+    ///
+    /// <b>This is the line that actually made seventeen columns readable, and turning the scrollbar
+    /// on did not.</b> Measured on the real window with all seventeen on and sideways scrolling
+    /// already enabled: seven columns still sat at twenty pixels each. A width is a request - when
+    /// the columns want more room than there is, DataGrid takes it back from whatever it can, down
+    /// to its own MinColumnWidth of twenty, and a scrollbar does not stop it. A floor is what says
+    /// the number is not negotiable. Measured again with the floor in place: Status 150, Start 215,
+    /// PID 72, Entry type 150, Against its start type 175, Error control 120, Service SID type 140,
+    /// the starred ones at their own floor of 90, and 1922 pixels of row behind a 1039 viewport.
+    ///
+    /// <b>What it cannot say is what the pixels do</b>, and that limit is worth stating precisely
+    /// because a harness got this wrong: a grid laid out in these tests reported the fixed columns
+    /// holding their widths while the real window had them at twenty, and its own scroll extent
+    /// contradicted its own column widths. So a width claim belongs to
+    /// <c>tools/gui-probe/columns.ps1</c> and <c>columns-shot.ps1</c> on a real window. What is held
+    /// here is the instruction the window is given, which is the half that can be checked anywhere.
+    /// </summary>
+    [Fact]
+    public void No_column_can_be_squeezed_below_the_width_it_was_sized_for()
+    {
+        _ = WpfHost.Resources;
+
+        var bar = new ColumnBar();
+
+        var grid = WpfHost.On(() =>
+        {
+            var built = new DataGrid();
+
+            ListColumns.Fill(built, bar);
+
+            return built;
+        });
+
+        var floor = WpfHost.On(() => (double)WpfHost.Resources["ColumnFloor"]);
+
+        var squeezable = WpfHost.On(() => grid.Columns
+            .Where(column => column.MinWidth < (column.Width.IsStar ? floor : column.Width.Value))
+            .Select(column => $"{column.Header} may shrink to {column.MinWidth} from {column.Width}")
+            .ToList());
+
+        Assert.True(
+            squeezable.Count == 0,
+            "A column with no floor under it is one DataGrid may take down to twenty pixels when the "
+            + "row runs out of room - which is a heading reading as a single full stop over a column "
+            + "of sliced dots, with nothing on screen saying so:"
+            + Environment.NewLine + string.Join(Environment.NewLine, squeezable));
+    }
+
+    /// <summary>
+    /// The frozen column is the leftmost one ON SCREEN, through both things that can move it.
+    ///
+    /// <b>This is the guard for a fault that a literal number in the markup has and this window does
+    /// not.</b> WPF freezes the first N of the DISPLAY order, and a collapsed column keeps its
+    /// place in it - so with the count written as one, turning the name column off leaves the freeze
+    /// on a column nobody can see, and the row's identity scrolls away exactly as if nothing had
+    /// been frozen at all. Measured on a built window on 2026-08-12 before the count was worked
+    /// out: name collapsed and still frozen, "Display name" leftmost on screen and not frozen.
+    ///
+    /// <b>Driven through the picker rather than by setting Visibility on the column</b>, because the
+    /// wiring is the thing under test. Reaching past <see cref="ColumnBar"/> into the grid would set
+    /// the state without ever calling what keeps the two in step, and the guard would fail against a
+    /// window that works.
+    ///
+    /// <b>What this cannot say:</b> whether a person DRAGGING a heading can reach the first place at
+    /// all while a column is frozen. That is WPF's drag handler, it needs a real mouse, and clicking
+    /// by coordinate is closed on this machine - <c>tools/gui-probe/interact.ps1</c> refuses because
+    /// Windows will not hand the foreground to a background session. What is held here is the
+    /// programmatic move, which is the half that is ours.
+    /// </summary>
+    [Fact]
+    public void The_frozen_column_follows_whichever_one_is_leftmost_on_screen()
+    {
+        // FORCED HERE RATHER THAN LEFT TO A NEIGHBOUR, and this test needed the reminder: the
+        // columns read their widths and cell styles out of the theme with FindResource, which throws
+        // on a grid whose application has no dictionaries yet. Run inside the class it passed,
+        // because another test had already merged them - which is the arrangement WpfHost's own
+        // comment records as having been green for the wrong reason once before.
+        _ = WpfHost.Resources;
+
+        var bar = new ColumnBar();
+
+        var grid = WpfHost.On(() =>
+        {
+            var built = new DataGrid();
+
+            ListColumns.Fill(built, bar);
+
+            return built;
+        });
+
+        Assert.Equal(1, WpfHost.On(() => grid.FrozenColumnCount));
+
+        // The name column off, which is the state the literal one gets wrong. Its own place in the
+        // display order stays where it was, so the count has to grow to reach past it.
+        WpfHost.On(() => bar.Choices[0].IsShown = false);
+
+        Assert.True(
+            WpfHost.On(() => grid.Columns[1].IsFrozen),
+            "With the name column turned off, the leftmost column on screen is not frozen - so "
+            + "scrolling right leaves nothing saying which service a row belongs to.");
+
+        // NOW A REORDER WHILE THAT COLUMN IS STILL OFF, and the two halves have to be combined like
+        // this or the second one proves nothing. Measured by the mutation runner: with every column
+        // on, reading the COLLECTION's order instead of the grid's display order gives the same
+        // answer, because moving a column to the front pushes the name column to second place in
+        // both. It is a hidden column sitting before the moved one that tells them apart - so this
+        // moves PID to the front with the name column collapsed, where the collection order says two
+        // columns are frozen and the display order says one.
+        WpfHost.On(() => grid.Columns[5].DisplayIndex = 0);
+
+        Assert.True(
+            WpfHost.On(() => grid.Columns[5].IsFrozen),
+            "A column moved to the front is not the frozen one, so the freeze is still on whatever "
+            + "used to be there.");
+
+        Assert.Equal(1, WpfHost.On(() => grid.FrozenColumnCount));
+
+        // Put back, so what follows is about turning the column on rather than about the move.
+        WpfHost.On(() => grid.Columns[5].DisplayIndex = 5);
+
+        // And the name column back on, because a freeze that only ever grew would leave two columns
+        // frozen out of a window that asked for one.
+        WpfHost.On(() => bar.Choices[0].IsShown = true);
+
+        Assert.Equal(1, WpfHost.On(() => grid.FrozenColumnCount));
+    }
+
     [Fact]
     public async Task The_chosen_row_is_what_a_copy_would_take()
     {

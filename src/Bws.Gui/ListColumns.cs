@@ -48,6 +48,7 @@ internal static class ListColumns
                 if (changed.PropertyName == nameof(ColumnChoice.IsShown))
                 {
                     Show(column, choice.IsShown);
+                    Freeze(grid);
                 }
             };
 
@@ -55,6 +56,61 @@ internal static class ListColumns
         }
 
         grid.Sorting += SortByWhatTheCellSays;
+
+        // BOTH THINGS THAT CAN MOVE THE LEFT EDGE, and dragging is the one that is easy to
+        // forget: turning a column off is handled above, and reordering by dragging a heading
+        // changes which column is leftmost without changing what is on.
+        grid.ColumnDisplayIndexChanged += (_, _) => Freeze(grid);
+
+        Freeze(grid);
+    }
+
+    /// <summary>
+    /// Keeps the leftmost column that is ON SCREEN the frozen one.
+    ///
+    /// <b>A count worked out rather than the number one, and the difference is measured rather
+    /// than argued.</b> WPF freezes the first N columns of the DISPLAY ORDER, and a collapsed
+    /// column keeps its place in that order - measured on 2026-08-12 with a built window: with the
+    /// count set to one and the name column turned off, the name column stayed frozen while
+    /// collapsed and "Display name", the leftmost column actually on screen, did not. So a literal
+    /// one in the markup would freeze a column nobody can see, which is a frozen region that
+    /// scrolls away - the failure looks exactly like the feature never having been built.
+    ///
+    /// <b>Why freeze anything at all:</b> seventeen columns need about 1900 pixels and the window
+    /// opens with room for a thousand, so somebody reading a security descriptor is looking at a
+    /// row whose name is off the left of the screen. A list that cannot say which service a row
+    /// belongs to is the same uselessness as the collapsed columns this scrolling replaced, just
+    /// arrived at from the other side.
+    ///
+    /// <b>Nothing frozen when nothing is shown</b>, rather than a count of one against an empty
+    /// list. <see cref="ColumnChoice.MayHide"/> stops a person reaching that state by refusing to
+    /// turn the last column off, so this is the second lock on a door rather than the first - but a
+    /// count that assumes a visible column would be a crash in a state this class cannot rule out
+    /// on its own.
+    ///
+    /// <b>IT ASKS THE GRID WHICH COLUMN SITS AT EACH POSITION, AND THE FIRST VERSION READ
+    /// DisplayIndex INSTEAD - which was wrong in a way that a green build and a working window both
+    /// hid.</b> Measured on 2026-08-12, on the real window straight after its constructor: every
+    /// column reported <c>DisplayIndex</c> of MINUS ONE, so a count worked out from the smallest one
+    /// came to zero and froze nothing at all. WPF fills that property in lazily - the display order
+    /// exists, but nothing had asked for it yet, and reading the property does not ask.
+    /// <c>ColumnFromDisplayIndex</c> is the question rather than a workaround for it: it returns the
+    /// grid's own display order, it answers correctly before the window has ever been shown, and
+    /// asking is what materialises the map the property reads from.
+    /// </summary>
+    private static void Freeze(DataGrid grid)
+    {
+        for (var position = 0; position < grid.Columns.Count; position++)
+        {
+            if (grid.ColumnFromDisplayIndex(position).Visibility == Visibility.Visible)
+            {
+                grid.FrozenColumnCount = position + 1;
+
+                return;
+            }
+        }
+
+        grid.FrozenColumnCount = 0;
     }
 
     private static void Show(DataGridColumn column, bool shown) =>
@@ -75,13 +131,24 @@ internal static class ListColumns
         built.Header = Texts.Of(column.LabelKey);
         built.Width = (DataGridLength)grid.FindResource(column.WidthKey);
 
-        // A starred column gives way and needs a floor under it. A fixed one is already sized to
-        // the widest thing it can hold, and a floor on top of that would be a second number
-        // claiming to decide the same width.
-        if (built.Width.IsStar)
-        {
-            built.MinWidth = (double)grid.FindResource("ColumnFloor");
-        }
+        // A starred column gives way and needs a floor under it.
+        //
+        // A FIXED ONE NEEDS ONE TOO, AND THE SENTENCE THAT USED TO STAND HERE IS WHY SEVEN COLUMNS
+        // WERE UNREADABLE. It said a floor under a fixed column would be a second number claiming to
+        // decide the same width - which is true of a DIFFERENT number and false of this one. The
+        // width alone is a request: when the columns want more room than there is, DataGrid takes it
+        // back from whatever it can, down to its own MinColumnWidth of twenty. Photographed with all
+        // seventeen columns on, before this line existed: Status, Start, PID, Entry type, Against its
+        // start type, Error control and Service SID type all at twenty pixels, every heading a single
+        // full stop over a column of sliced dots, and nothing on screen saying so.
+        //
+        // The same number as a floor says the width is not negotiable, which is what "sized to the
+        // widest thing it can hold" meant all along. What gives way instead is the starred columns,
+        // down to their floor, and then the row gets wider than the window and gains a scrollbar -
+        // which is the owner's decision of 2026-08-12.
+        built.MinWidth = built.Width.IsStar
+            ? (double)grid.FindResource("ColumnFloor")
+            : built.Width.Value;
 
         // NOT USED BY THE GRID, WHICH IS WHY IT CAN CARRY THIS. Sorting is handled below rather
         // than left to the grid, so this path is never resolved against a row - it is how the

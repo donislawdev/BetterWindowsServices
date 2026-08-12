@@ -165,9 +165,17 @@
 
     <!--
         What a starred column may shrink to before it stops being worth reading. Below this the
-        ellipsis is most of the cell, and the answer is a narrower window rather than a wider
-        one - the owner chose no sideways scrolling on 2026-08-05, so the whole row stays on
-        screen and long text gives way.
+        ellipsis is most of the cell.
+
+        WHAT HAPPENS ONCE IT REACHES THIS FLOOR CHANGED ON 2026-08-12, and the sentence that stood
+        here said the opposite: that the whole row stayed on screen and long text gave way, because
+        the owner had chosen no sideways scrolling on 2026-08-05. He reversed that, so a row whose
+        starred columns are all on the floor now gets WIDER THAN THE WINDOW and gains a scrollbar.
+        Measured with all seventeen columns on: 1922 pixels of row behind a 1039 viewport.
+
+        A FIXED WIDTH IS ITS OWN FLOOR, and that is not written here because it is not a number -
+        ListColumns says it, because it says the width and the floor are the same value. Before it
+        did, the seven fixed columns were the ones that gave way, all the way to twenty pixels.
     -->
     <system:Double x:Key="ColumnFloor">90</system:Double>
 

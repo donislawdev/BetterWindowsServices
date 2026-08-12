@@ -48,6 +48,14 @@ Nothing has been released yet. Everything below is what the tool does today.
   for, its SID type, its error control, its load order group, its security descriptor, and
   whether it is set to run and is not. Drag a heading to move a column and its edge to resize
   it. **None of this is kept yet** - closing the window brings the first six back.
+- **Turn on more columns than fit and the list scrolls sideways, with the first column staying
+  put.** Before this, the columns beyond the width of the window did not go anywhere - they were
+  squeezed until seven of them were twenty pixels wide, headings included, and nothing said so.
+  Each column now keeps the width it was measured for and the row gets wider than the window
+  instead. The leftmost column stays where it is while you scroll, so a row still says which
+  service it belongs to when you have scrolled out to its security descriptor. With the six
+  columns the window opens with, nothing changes: they fill the width as before and there is no
+  scrollbar.
 - **Clicking a column heading sorts the list**, and clicking it again reverses.
 - **Pressing a letter while the list has focus jumps to the next entry beginning with it**,
   the way `services.msc` has always done it. Press it again to walk through the rest.

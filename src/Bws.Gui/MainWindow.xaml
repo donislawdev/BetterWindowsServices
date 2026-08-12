@@ -277,6 +277,17 @@
             out - and the six that were here would have been a second copy of six of the
             seventeen. ListColumns.cs builds them and the two templated cells live in
             Themes/List.xaml, which is where a column built in code can reach them.
+
+            IT SCROLLS SIDEWAYS SINCE 2026-08-12, reversing the refusal of 2026-08-05 - the
+            owner's decision, taken once the window could show seventeen columns rather than
+            six. Photographed with all seventeen on before it changed: nothing ran past the
+            right edge and SEVEN COLUMNS SAT AT TWENTY PIXELS, each heading a single full stop
+            over a column of sliced dots, with nothing on screen saying so.
+
+            One word here is not the whole of it, and the rest is in ListColumns rather than
+            repeated here: a scrollbar alone left those seven columns exactly as they were, and
+            the first column is frozen by a count worked out from what is on screen rather than
+            by the number one.
         -->
         <DataGrid Grid.Row="2"
                   x:Name="Entries"
@@ -297,7 +308,7 @@
                   GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
                   HeadersVisibility="Column"
-                  HorizontalScrollBarVisibility="Disabled"
+                  HorizontalScrollBarVisibility="Auto"
                   SelectionUnit="FullRow"
                   SelectionMode="Single"
                   PreviewMouseRightButtonDown="PointAtRowBeforeMenu"

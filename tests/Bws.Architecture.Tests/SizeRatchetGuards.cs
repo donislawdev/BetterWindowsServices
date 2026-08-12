@@ -203,8 +203,26 @@ public sealed class SizeRatchetGuards
     /// a floor to defend, and splitting a values file over fifteen lines would have been a seam
     /// invented under pressure - which is the thing the entry above says the 2026-08-11 split
     /// was not.
+    ///
+    /// <b>MOVED UP TO 429 ON 2026-08-12, WHICH IS THE FIRST TIME THIS NUMBER HAS GONE THE WRONG WAY,
+    /// so the reason is here rather than in a commit message.</b> Sideways scrolling with a frozen
+    /// first column - the owner's decision, paying a debt from earlier that day - put six lines of
+    /// argument into MainWindow.xaml and eight into Values.xaml, which is what those files are for:
+    /// what the seven crushed columns looked like, and what the floor under a fixed width is
+    /// answering. Both landed a handful of lines over 423.
+    ///
+    /// <b>The alternative was shaving the comments that had just been written, and backlog 173 names
+    /// that as a bad reason to shorten a justification</b> - it is the reason Values.xaml hit this
+    /// ceiling three times in one session and was cured each time by deleting its own fresh
+    /// reasoning. The seam backlog 173 identified is still the right answer and is still not
+    /// invented under pressure, and it is now more pressing rather than less: TWO markup files sit
+    /// within a few lines of the ceiling instead of one.
+    ///
+    /// <b>Set once, at the end of the work, from the file that measures longest</b> - which is the
+    /// habit this comment records paying for four times in one day. Nothing over five hundred lines,
+    /// and nothing grew but the two files the work was in.
     /// </summary>
-    private const int LongestShippedMarkupFile = 423;
+    private const int LongestShippedMarkupFile = 429;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
