@@ -49,7 +49,8 @@ internal readonly record struct ScmConfiguration(
     Reading<IReadOnlyList<string>> RequiredPrivileges,
     Reading<ServiceSidType> SidType,
     Reading<ErrorControl> ErrorControl,
-    Reading<string> LoadOrderGroup)
+    Reading<string> LoadOrderGroup,
+    Reading<string> Description)
 {
     /// <summary>
     /// A refusal, carrying both halves: the system's number for a script and the system's
@@ -67,6 +68,7 @@ internal readonly record struct ScmConfiguration(
         Denied<IReadOnlyList<string>>(code),
         Denied<ServiceSidType>(code),
         Denied<ErrorControl>(code),
+        Denied<string>(code),
         Denied<string>(code));
 
     /// <summary>

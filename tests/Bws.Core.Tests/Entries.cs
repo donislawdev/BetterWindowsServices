@@ -28,6 +28,16 @@ internal static class Entries
     {
         ServiceName = "Spooler",
         DisplayName = "Print Spooler",
+
+        // Spooler's own sentence, as the manager resolves it on this machine. Present rather
+        // than absent even though absent is the commoner state overall, because absent is
+        // dominated by DRIVERS - 384 of 819 entries have none, and nearly every one of those is
+        // a driver, while a service that describes itself is the ordinary service. The driver
+        // has a specimen of its own, as do the long one and the one nobody could resolve.
+        Description = Reading<string>.Present(
+            "This service spools print jobs and handles interaction with the printer. "
+            + "If you turn off this service, you won't be able to print or see your printers."),
+
         EntryType = EntryType.OwnProcess,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),

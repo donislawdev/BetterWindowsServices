@@ -251,7 +251,16 @@ public sealed class SnapshotContractTests : IDisposable
         var compared = CommandLineTool.Run("snapshot", "diff", original, copy);
 
         Assert.Equal(0, compared.ExitCode);
-        Assert.Contains("No differences", compared.StandardOutput, StringComparison.Ordinal);
+
+        // NOTHING DIFFERS, WHICH IS THE CLAIM - and it used to be asserted as the literal words
+        // "No differences", which stopped being what this prints on 2026-08-12. The description
+        // arrived, and eight entries of 809 on this machine carry one the manager will not resolve
+        // into words - so a file compared against a byte-identical copy of itself correctly reports
+        // that eight entries hold a field nobody could put a value to. Both summaries say "nothing
+        // differs" and that is the half this test is about: the subject here is the ENCODING, and a
+        // mark honoured means the copy reads back as the same machine.
+        Assert.Contains("nothing differs", compared.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("Changed", compared.StandardOutput, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -288,6 +297,23 @@ public sealed class SnapshotContractTests : IDisposable
         Assert.Equal(2, compared.ExitCode);
         Assert.Contains(recoded, compared.StandardError, StringComparison.Ordinal);
         Assert.Equal(string.Empty, compared.StandardOutput.Trim());
+
+        // AND IT SAYS THE ENCODING IS THE REASON, WHICH IS THE HALF THIS GUARD WAS MISSING UNTIL
+        // 2026-08-12. The three assertions above are satisfied by ANY refusal, and on 2026-08-12
+        // the mutation entry that flips throwOnInvalidBytes came back MISSED for exactly that: with
+        // the encoding check off, the file is refused anyway, because the description field arrived
+        // and a single-byte re-encoding of it now produces JSON the parser rejects outright -
+        // "'n' is invalid after a value" at entries[461]. Two different refusals, three assertions
+        // that cannot tell them apart, and a guard that would have gone on passing after somebody
+        // removed the thing it is named for.
+        //
+        // The sentence is read from the product's own language file rather than written here, which
+        // is the same rule tools/window-journey follows: a copy of a sentence drifts from the
+        // sentence, and then the guard is about the copy.
+        Assert.Contains(
+            Sentences.Of("cli.diff.notUtf8", "").Trim(),
+            compared.StandardError,
+            StringComparison.Ordinal);
     }
 
     [Fact]

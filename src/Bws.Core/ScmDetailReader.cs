@@ -232,6 +232,73 @@ internal static class ScmDetailReader
     }
 
     /// <summary>
+    /// The sentence a person reads to find out what this entry is for.
+    ///
+    /// <b>The manager is asked rather than the registry, and that is measured rather than a
+    /// reflex about not taking shortcuts.</b> Over 819 entries on 2026-08-12, <b>398 of the 444
+    /// descriptions the registry holds are indirections</b> of the form
+    /// <c>@%SystemRoot%\system32\adpsvc.dll,-103</c> rather than sentences - the text lives in a
+    /// resource inside a binary, and only the manager resolves it. It resolved <b>388</b> of
+    /// them. Reading the key would hand a person the indirection and call it a description.
+    ///
+    /// <b>The ten it does not resolve come back refused rather than absent</b>, because those are
+    /// different answers about a service: absent means the entry has no description, and this
+    /// means it has one nobody could turn into words. The manager reports the failure by handing
+    /// back the indirection unresolved, so a value still arriving with a leading <c>@</c> is the
+    /// shape that has to be caught here - nothing in the return code says so.
+    ///
+    /// <b>Absent is the ordinary case and not an edge:</b> 384 of 819 entries have no description
+    /// at all, which is nearly every driver. An empty string would claim the manager answered
+    /// with emptiness.
+    ///
+    /// Variable length, so the same two-call dance as the triggers, on the handle the
+    /// configuration already opened - this level needs no right the listing does not have. The
+    /// whole family costs <b>212-223 ms over 819 entries</b>, four warm runs, which puts it in the
+    /// cheap pass beside the privileges rather than in the second pass of `ADR-13` beside the
+    /// signatures at 4620-7656 ms.
+    ///
+    /// <b>Translated, like the display name, so it is never an identity</b> - `ADR-14`. The
+    /// longest one measured is 1251 characters and two contain a newline, which is a fact for
+    /// whatever shows it rather than for this method.
+    /// </summary>
+    internal static unsafe Reading<string> ReadDescription(SafeHandle service)
+    {
+        PInvoke.QueryServiceConfig2W(
+            service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, default, out var needed);
+
+        if (needed == 0)
+        {
+            return Refused<string>(Marshal.GetLastWin32Error());
+        }
+
+        var buffer = new byte[needed];
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, buffer, out _))
+        {
+            return Refused<string>(Marshal.GetLastWin32Error());
+        }
+
+        if (buffer.Length < sizeof(SERVICE_DESCRIPTIONW))
+        {
+            // Room reported for less than the structure the call promises. Nothing to read.
+            return Reading<string>.Absent();
+        }
+
+        fixed (byte* start = buffer)
+        {
+            // The structure is one pointer into this very buffer, so the string is read inside
+            // the fixed block for the same reason the triggers are.
+            //
+            // Which of the three answers it is lives in ServiceDescription, public and checkable
+            // without a machine - the shape that matters most is the one the system reports by NOT
+            // failing, and a rule reachable only through this method could never be tested for the
+            // ten entries it applies to.
+            return ServiceDescription.Of(((SERVICE_DESCRIPTIONW*)start)->lpDescription.ToString());
+        }
+    }
+
+    /// <summary>
     /// Who may do what to this entry, in the text form the system reads and writes.
     ///
     /// The one field in a listing that opens a handle of its own, and the reason is measured

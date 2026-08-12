@@ -48,6 +48,18 @@ Nothing has been released yet. Everything below is what the tool does today.
   for, its SID type, its error control, its load order group, its security descriptor, and
   whether it is set to run and is not. Drag a heading to move a column and its edge to resize
   it. **None of this is kept yet** - closing the window brings the first six back.
+- **Every entry now carries its description - the sentence that says what it is for.** It is the
+  one column `services.msc` has that this tool did not, and it is the only answer to "what even
+  is this" on a machine you have never seen. Turn on the **Description** column in the window,
+  narrow the list with `--query description:printer`, or read it from `bws list --json`. Where an
+  entry has no description at all the cell is empty, which is most drivers. Where Windows has one
+  but cannot turn it into words, the tool says so rather than showing you the file path it failed
+  to read - eight entries on the machine this was measured on. It is not a column in the terminal
+  table, because a description is a paragraph and the table has seven columns to fit.
+- **A snapshot comparison now tells you when it could not compare something.** If neither side
+  could read a field, it is listed as not fully compared instead of counting as unchanged.
+- **Searching with `*` now works on text that runs over more than one line.** Before, a wildcard
+  silently matched nothing against such a value.
 - **Turn on more columns than fit and the list scrolls sideways, with the first column staying
   put.** Before this, the columns beyond the width of the window did not go anywhere - they were
   squeezed until seven of them were twenty pixels wide, headings included, and nothing said so.

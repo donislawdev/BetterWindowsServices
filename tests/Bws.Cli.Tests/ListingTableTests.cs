@@ -330,6 +330,7 @@ public sealed class ListingTableTests
     {
         ServiceName = name,
         DisplayName = displayName,
+        Description = Reading<string>.Present(name + " description"),
         EntryType = EntryType.OwnProcess,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),

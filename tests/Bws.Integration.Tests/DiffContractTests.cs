@@ -103,18 +103,40 @@ public sealed class DiffContractTests
             // would show up here rather than as silence.
             Assert.Empty(document.GetProperty("neitherRead").EnumerateArray());
 
-            // And none went uncompared on one side either, which is the assertion that
-            // actually holds the live reading to its word. If the live side skipped
-            // signatures and hashes, every entry would land here with three fields nobody
-            // could compare - and every other assertion in this test would still pass, since
-            // an uncompared field is not a difference. Found by asking what this test would
-            // miss rather than by watching it fail.
-            var notFullyCompared = document.GetProperty("notFullyCompared").EnumerateArray().Count();
+            // And nothing went uncompared for a reason other than the machine refusing it, which
+            // is the assertion that actually holds the live reading to its word. If the live side
+            // skipped signatures and hashes, every entry would land here with three fields nobody
+            // could compare - and every other assertion in this test would still pass, since an
+            // uncompared field is not a difference. Found by asking what this test would miss
+            // rather than by watching it fail.
+            //
+            // IT ASKED FOR ZERO UNTIL 2026-08-12, AND ZERO STOPPED BEING THE HONEST NUMBER when
+            // the description arrived - it is the first field a normal elevated session is
+            // genuinely REFUSED for. Eight entries of 809 on this machine carry a description the
+            // manager will not resolve into words, Tcpip6 and UCPD among them, and Tcpip6's own
+            // display name comes back as "@todo.dll,-100;Microsoft IPv6 Protocol Driver", which
+            // says what kind of entry these are. Both sides refuse it, both sides say so, and a
+            // comparison that reported "no change" about a value neither side could read would be
+            // the confident wrong answer rule 8 exists to prevent.
+            //
+            // So the claim is now the one that was always meant: every field nobody could compare
+            // is a field the machine refused, and the refusal is visible. A field going
+            // uncomparable for any OTHER reason - a live reading quietly skipping what the file
+            // holds - still fails here, because such a field would not be in this list.
+            var refusable = new[] { "description" };
+
+            var unexplained = document.GetProperty("notFullyCompared").EnumerateArray()
+                .SelectMany(entry => entry.GetProperty("incomparable").EnumerateArray()
+                    .Select(field => (Entry: entry.GetProperty("serviceName").GetString(), Field: field.GetString())))
+                .Where(pair => !refusable.Contains(pair.Field, StringComparer.Ordinal))
+                .Select(pair => $"{pair.Entry}.{pair.Field}")
+                .ToArray();
 
             Assert.True(
-                notFullyCompared == 0,
-                $"{notFullyCompared} entries carry a field only one side read. The live reading " +
-                "is skipping something the file holds.");
+                unexplained.Length == 0,
+                "A field went uncompared for a reason other than the machine refusing it, which " +
+                "means the live reading is skipping something the file holds: " +
+                string.Join(", ", unexplained));
         }
         finally
         {

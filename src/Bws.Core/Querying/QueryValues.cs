@@ -459,7 +459,24 @@ internal static class QueryPatterns
             // file, and the reason is written at Ceiling: it is what turns a mistake in the
             // choice of engine into a red test rather than a run that never ends. This call
             // used to be the one place in the language that left it off.
-            compiled = new Regex(pattern.Append('$').ToString(), Shared | RegexOptions.NonBacktracking, Ceiling);
+            //
+            // SINGLELINE SINCE 2026-08-12, AND WITHOUT IT A WILDCARD COULD NEVER MATCH A VALUE
+            // WITH A LINE BREAK IN IT. This pattern is anchored at both ends, and by default a dot
+            // does not cross a newline - so `*printer*` against a two-line value asks the dot after
+            // "printer" to reach the end of a string it cannot get to, and the answer is silently
+            // NOTHING. Found by the description arriving on 2026-08-12: it is the first field a
+            // value with a line break can come out of, two entries of 819 on this machine have one,
+            // and until then no field could reach this at all.
+            //
+            // ONLY the wildcard, deliberately. A wildcard is this language's own idea and `*` means
+            // "any characters", newline included. A user's own expression between slashes is
+            // ordinary regular expression syntax, where a dot not matching a newline is what
+            // everybody who writes one expects - changing that would rewrite the meaning of
+            // patterns people have already written.
+            compiled = new Regex(
+                pattern.Append('$').ToString(),
+                Shared | RegexOptions.NonBacktracking | RegexOptions.Singleline,
+                Ceiling);
             failure = null;
 
             return true;

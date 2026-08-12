@@ -133,6 +133,20 @@ internal static class Columns
         },
         new Column
         {
+            // THE SECOND COLUMN OF services.msc, and the only one that answers "what even is
+            // this". Off at the start despite being second there, and that is a decision rather
+            // than an oversight: it is prose, so at any width a person can spare it shows a
+            // fragment and an ellipsis, and this window's six default columns are the ones that
+            // answer a question in a glance. Somebody who wants it turns it on and widens it.
+            Id = "description",
+            LabelKey = "gui.column.description",
+            WidthKey = "ColumnDescription",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.Say(entry.Description, value => value)
+        },
+        new Column
+        {
             Id = "status",
             LabelKey = "gui.column.status",
             WidthKey = "ColumnStatus",
@@ -354,6 +368,7 @@ internal static class Columns
     {
         ["serviceName"] = Basics,
         ["displayName"] = Basics,
+        ["description"] = Basics,
         ["status"] = Basics,
         ["startType"] = Basics,
         ["account"] = Basics,

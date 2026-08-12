@@ -9,6 +9,7 @@
 
   "gui.column.name": "Name",
   "gui.column.displayName": "Display name",
+  "gui.column.description": "Description",
   "gui.column.status": "Status",
   "gui.column.startType": "Start",
   "gui.column.account": "Account",

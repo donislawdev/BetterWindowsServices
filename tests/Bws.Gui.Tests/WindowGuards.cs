@@ -167,7 +167,7 @@ public sealed class WindowGuards
     }
 
     /// <summary>
-    /// The Columns button carries the seventeen columns, and points its menu at itself.
+    /// The Columns button carries the eighteen columns, and points its menu at itself.
     ///
     /// <b>THE FIRST VERSION OF THIS ASSERTED THAT THE MENU WAS OPEN, AND IT WAS FLAKY - which is
     /// worse than not having it.</b> It passed on its own and failed inside a full check.ps1 run,
@@ -176,7 +176,7 @@ public sealed class WindowGuards
     /// that was never shown is a question about WPF rather than about this product.
     ///
     /// So what is claimed here is the part that is ours: the button has a menu, the menu is
-    /// pointed at the button, and it carries the seventeen choices - <b>handed over rather than
+    /// pointed at the button, and it carries the eighteen choices - <b>handed over rather than
     /// inherited</b>, because a menu hangs off a Popup, which is not in the visual tree, so what
     /// it would inherit is a question with an answer nobody should have to know.
     ///
@@ -213,7 +213,7 @@ public sealed class WindowGuards
     }
 
     [Fact]
-    public void The_columns_button_carries_the_seventeen_columns()
+    public void The_columns_button_carries_the_eighteen_columns()
     {
         var window = WpfHost.Window();
 
@@ -222,13 +222,14 @@ public sealed class WindowGuards
 
         Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
 
-        // TWENTY ONE SINCE 2026-08-12: seventeen columns and four headings, which are items in the
-        // same flat list rather than groups around it. Grouping a menu with GroupStyle takes its
-        // contents out of the automation tree entirely - measured on the real window, where an open
-        // picker offered twelve togglable elements, all of them filter chips, and none of the
-        // columns. The count is asserted whole rather than filtered so that a heading quietly
-        // becoming tickable, or a column quietly becoming a heading, still moves it.
-        Assert.Equal(21, WpfHost.On(() => menu!.Items.Count));
+        // TWENTY TWO SINCE 2026-08-12: eighteen columns and four headings, which are items in
+        // the same flat list rather than groups around it. It was twenty one earlier the same day,
+        // and the description made it twenty two - backlog 171. Grouping a menu with GroupStyle
+        // takes its contents out of the automation tree entirely - measured on the real window,
+        // where an open picker offered twelve togglable elements, all of them filter chips, and
+        // none of the columns. The count is asserted whole rather than filtered so that a heading
+        // quietly becoming tickable, or a column quietly becoming a heading, still moves it.
+        Assert.Equal(22, WpfHost.On(() => menu!.Items.Count));
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

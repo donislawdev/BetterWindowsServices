@@ -372,6 +372,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             SidType = configuration.SidType,
             ErrorControl = configuration.ErrorControl,
             LoadOrderGroup = configuration.LoadOrderGroup,
+            Description = configuration.Description,
 
             // Read outside the configuration, and not because of tidiness. It needs a
             // different right on a different handle, so an entry whose configuration was
@@ -429,7 +430,12 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             DelayedAuto = ScmDetailReader.ReadDelayedAuto(service, enumerated),
             Triggers = ScmDetailReader.ReadTriggers(service),
             RequiredPrivileges = ScmDetailReader.ReadRequiredPrivileges(service),
-            SidType = ScmDetailReader.ReadSidType(service)
+            SidType = ScmDetailReader.ReadSidType(service),
+
+            // On this handle rather than in the second pass, and that is a measurement rather
+            // than a convenience: the whole description family costs 212-223 ms over 819 entries,
+            // which is the privileges' order of magnitude and not the signatures' 4620-7656 ms.
+            Description = ScmDetailReader.ReadDescription(service)
         };
 
         return withOwnCalls.WithBinary(enumerated, WindowsDirectory, networkPaths);
@@ -487,10 +493,11 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
                 BinaryFile: Reading<string>.NotRead(),
                 BinaryOnDisk: Reading<bool>.NotRead(),
 
-                // Two more levels of the same call as the triggers, filled in by their own
+                // Three more levels of the same call as the triggers, filled in by their own
                 // calls for the same reason: this buffer holds none of them.
                 RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
                 SidType: Reading<ServiceSidType>.NotRead(),
+                Description: Reading<string>.NotRead(),
 
                 ErrorControl: Reading<ErrorControl>.Present(ManagerTerms.ErrorControl(configuration.dwErrorControl)),
 

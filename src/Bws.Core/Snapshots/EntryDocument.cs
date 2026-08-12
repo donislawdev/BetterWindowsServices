@@ -63,6 +63,21 @@ public sealed record EntryDocument
 {
     public required string ServiceName { get; init; }
     public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// What the entry says it is for. Added 2026-08-12, and adding a field is not a break -
+    /// see <see cref="Snapshot.CurrentSchemaVersion"/>, which stays at one for exactly this case.
+    ///
+    /// <b>Null covers two different answers and the third tells them apart</b>, like every field
+    /// here: 384 entries of 819 genuinely have none, and ten have one the manager could not turn
+    /// into words. The second kind is named in "unreadable" and the first is not.
+    ///
+    /// <b>It can carry a newline, which is new for this format</b> - two of 819 do. JSON escapes
+    /// it, so nothing downstream has to change, but anything printing a snapshot field on one
+    /// line of a terminal now has a case it did not have before.
+    /// </summary>
+    public required string? Description { get; init; }
+
     public required string EntryType { get; init; }
     public required string Status { get; init; }
     public required int? ProcessId { get; init; }
@@ -224,12 +239,14 @@ public sealed record EntryDocument
         Note(unreadable, notRead, nameof(entry.SecurityDescriptor), entry.SecurityDescriptor);
         Note(unreadable, notRead, nameof(entry.ErrorControl), entry.ErrorControl);
         Note(unreadable, notRead, nameof(entry.LoadOrderGroup), entry.LoadOrderGroup);
+        Note(unreadable, notRead, nameof(entry.Description), entry.Description);
         Note(unreadable, notRead, nameof(entry.Memory), entry.Memory);
 
         return new EntryDocument
         {
             ServiceName = entry.ServiceName,
             DisplayName = entry.DisplayName,
+            Description = entry.Description.IsPresent ? entry.Description.Value : null,
             EntryType = entry.EntryType.ToString(),
             Status = entry.Status.ToString(),
             ProcessId = entry.ProcessId.IsPresent ? entry.ProcessId.Value : null,

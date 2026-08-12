@@ -160,6 +160,7 @@ public sealed class RowListTests
     {
         ServiceName = name,
         DisplayName = name,
+        Description = Reading<string>.Absent(),
         EntryType = EntryType.OwnProcess,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1),

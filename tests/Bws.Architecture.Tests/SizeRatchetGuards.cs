@@ -111,8 +111,24 @@ public sealed class SizeRatchetGuards
     /// product by a wide margin. Nothing was watching the one shape that grows without anybody
     /// deciding to let it. <see cref="LongestShippedMarkupFile"/> now does, in its own pool and at
     /// its own number - and it has since done the thing a ceiling is for, on 2026-08-11.
+    /// <b>536 TO 559 ON 2026-08-12, AND THIS NUMBER HAD ONLY EVER GONE DOWN BEFORE, so the reason
+    /// belongs beside it.</b> The description arrived - backlog 171 - and `QueryFields.cs` is the
+    /// file the language's field table lives in, so a new field is new lines there by construction.
+    /// Its own opening comment argues against splitting it in as many words: the table exists to
+    /// keep the field list in ONE place, and a split would put it in several, which is the drift
+    /// this whole project pays most for.
+    ///
+    /// <b>What was cut first, so this is not a ceiling raised in place of doing the work:</b> the
+    /// comment added beside the new field repeated what `ServiceDescription.cs` and `docs/07`
+    /// already carry, and it came down from eighteen lines to five. 564 became 559. The rest is the
+    /// table growing by one entry.
+    ///
+    /// <b>The seam is recorded rather than invented under pressure - backlog 176.</b> The candidate
+    /// is the VALUE lists: the enumeration fields carry their own accepted spellings inline, which
+    /// is a different subject from which fields exist. That is the same shape of answer backlog 173
+    /// holds for the theme, and it is deliberately not done in the slice that noticed it.
     /// </summary>
-    private const int LongestShippedFile = 536;
+    private const int LongestShippedFile = 559;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second
@@ -221,8 +237,17 @@ public sealed class SizeRatchetGuards
     /// <b>Set once, at the end of the work, from the file that measures longest</b> - which is the
     /// habit this comment records paying for four times in one day. Nothing over five hundred lines,
     /// and nothing grew but the two files the work was in.
+    /// <b>429 TO 436 THE SAME EVENING, and it is the second move in one day for the same reason
+    /// rather than a habit forming.</b> The description became an eighteenth column, so
+    /// `Values.xaml` gained its starting width and the sentence saying why no width fits 1251
+    /// characters. The comment was cut from six lines to five before this moved.
+    ///
+    /// <b>Backlog 173 is now the pressing one.</b> Eighteen of this file's entries were column
+    /// widths when that was written and there are nineteen now, against a file that has hit its
+    /// ceiling twice in a day. The seam has been identified since 2026-08-12 and this is the third
+    /// time it has been the cheapest thing not done.
     /// </summary>
-    private const int LongestShippedMarkupFile = 429;
+    private const int LongestShippedMarkupFile = 436;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.
@@ -230,8 +255,22 @@ public sealed class SizeRatchetGuards
     /// Held to the same rule as the product, deliberately. A test file nobody can read is a
     /// test file nobody checks, and this project leans on its tests harder than most, because
     /// they are the mechanism it trusts rather than review.
+    ///
+    /// <b>742 TO 793 ON 2026-08-12, and the file is Specimens.cs, which is the one place where
+    /// growth is the point rather than the symptom.</b> The description arrived - backlog 171 - and
+    /// with it two shapes measured on a real machine that nothing in the catalogue could produce
+    /// before: an entry whose description the manager will not resolve into words, and one carrying
+    /// 1251 characters with a line break in the middle. The second of those found a real fault in
+    /// the query language the same afternoon, which is exactly what a specimen is for.
+    ///
+    /// <b>The seam here is real and is deliberately not taken yet.</b> This file is a catalogue of
+    /// awkward shapes, and it is already sectioned by comment - names and accounts, start types,
+    /// dependencies, descriptions. Splitting it by section is available whenever it is worth doing;
+    /// what makes it wait is that every one of these specimens is reached through
+    /// <c>Specimens.All</c>, so the split is a partial class or a second list, and a second list is
+    /// how a specimen quietly stops being in the catalogue everything queries. Backlog 177.
     /// </summary>
-    private const int LongestTestFile = 742;
+    private const int LongestTestFile = 793;
 
     /// <summary>
     /// How many files may be long at all, where long is <see cref="Long"/>.

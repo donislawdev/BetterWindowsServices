@@ -121,6 +121,29 @@ public sealed record ScmEntry
     /// <summary>Label for a human. Translated to the system language, never an identity.</summary>
     public required string DisplayName { get; init; }
 
+    /// <summary>
+    /// What the entry says it is for, in the words its author wrote for a person to read.
+    ///
+    /// <b>The second column of services.msc, and the only one that answers "what even is
+    /// this".</b> It arrived on 2026-08-12, delegated by the owner and settled by measurement
+    /// rather than by preference - see <see cref="ScmDetailReader.ReadDescription"/> for why it
+    /// must come from the manager and never from the registry, and for the cost that puts it in
+    /// the cheap pass.
+    ///
+    /// <b>A reading rather than a string, and all four states really happen here.</b> Over 819
+    /// entries: 384 have none at all, which is nearly every driver and is a fact about the entry
+    /// rather than a failure. Ten have one the manager could not resolve into words, which is a
+    /// failure and not an absence.
+    ///
+    /// <b>Translated, so never an identity</b> - `ADR-14`, the same rule as
+    /// <see cref="DisplayName"/>. Nothing may match, key or compare entries on this text.
+    ///
+    /// <b>It can be long and it can contain a newline</b>, which is a fact whatever displays it
+    /// has to hold: the longest measured is 1251 characters and two carry a line break. A cell
+    /// showing it in one line is backlog 167.
+    /// </summary>
+    public required Reading<string> Description { get; init; }
+
     public required EntryType EntryType { get; init; }
 
     public required EntryStatus Status { get; init; }

@@ -126,6 +126,14 @@
     -->
     <DataGridLength x:Key="ColumnName">2*</DataGridLength>
     <DataGridLength x:Key="ColumnDisplayName">3*</DataGridLength>
+    <!--
+        The widest starred factor there is, because this column carries PROSE rather than a label
+        and the longest measured is 1251 characters - no width fits it, so the only question is
+        how much of a sentence arrives before the ellipsis. Off at the start, so it costs the
+        default view nothing.
+    -->
+    <DataGridLength x:Key="ColumnDescription">4*</DataGridLength>
+
     <DataGridLength x:Key="ColumnStatus">150</DataGridLength>
     <DataGridLength x:Key="ColumnStart">215</DataGridLength>
     <DataGridLength x:Key="ColumnAccount">2*</DataGridLength>

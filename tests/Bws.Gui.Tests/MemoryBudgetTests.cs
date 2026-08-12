@@ -179,6 +179,18 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
     {
         ServiceName = name,
         DisplayName = name + " display name, about as long as a real one is",
+
+        // ABOUT AS LONG AS A REAL ONE, AND THIS FIELD IS THE LONGEST TEXT A LISTING NOW CARRIES.
+        // The longest measured on this machine is 1251 characters, which would be a fixture
+        // measuring the worst case rather than the ordinary one - the sentence below is the
+        // length a Windows description usually runs to. Whether the average is nearer this or
+        // nearer 1251 is NOT MEASURED, and it matters to this test alone rather than to the
+        // product, because a listing holds one of these per entry.
+        Description = Reading<string>.Present(
+            name + " keeps something on this machine working. If you turn this service off, "
+            + "whatever depends on it stops working, and anything that explicitly depends on it "
+            + "will fail to start."),
+
         EntryType = EntryType.OwnProcess,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),

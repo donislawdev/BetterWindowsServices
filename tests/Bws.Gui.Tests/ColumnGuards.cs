@@ -4,7 +4,7 @@ using Bws.Gui.ViewModels;
 namespace Bws.Gui.Tests;
 
 /// <summary>
-/// The seventeen columns of `A8`, and the row that answers through them.
+/// The eighteen columns of `A8`, and the row that answers through them.
 ///
 /// <b>Written against the CATALOGUE rather than against the window, on purpose.</b> What a column
 /// is - its identifier, what its cell says, what it sorts by - has no WPF in it, so it can be
@@ -17,15 +17,20 @@ public sealed class ColumnGuards
     /// <summary>
     /// The arithmetic behind the number, kept where it can fail.
     ///
-    /// `ScmEntry` carries 22 fields and one derived answer. Four are refused because the second
+    /// `ScmEntry` carries 23 fields and one derived answer. Four are refused because the second
     /// phase of `ADR-13` reads them and the window has no second phase, and two are already on
-    /// screen inside the start type cell. That leaves seventeen, and the day somebody adds a field
+    /// screen inside the start type cell. That leaves eighteen, and the day somebody adds a field
     /// this test says so rather than the column quietly not existing.
+    ///
+    /// <b>EIGHTEEN SINCE 2026-08-12, and the field that moved it is the description</b> - backlog
+    /// 171, the second column of services.msc and the only one that answers what an entry even is.
+    /// This test is the reason the count is a decision rather than a drift: it failed the moment
+    /// the field arrived, which is exactly what its last sentence promised.
     /// </summary>
     [Fact]
-    public void Seventeen_columns_are_offered_and_each_is_named_exactly_once()
+    public void Eighteen_columns_are_offered_and_each_is_named_exactly_once()
     {
-        Assert.Equal(17, Columns.All.Count);
+        Assert.Equal(18, Columns.All.Count);
 
         var twice = Columns.All
             .GroupBy(column => column.Id, StringComparer.Ordinal)
@@ -190,8 +195,14 @@ public sealed class ColumnGuards
     }
 
     /// <summary>
-    /// The four read states stay apart in the new columns, which is rule 8 arriving in eleven
+    /// The four read states stay apart in the new columns, which is rule 8 arriving in twelve
     /// places that never had to keep it before.
+    ///
+    /// <b>The description joined on 2026-08-12 and it is the one entry here that is not
+    /// hypothetical.</b> Every other column in this list is refused only under a restricted token -
+    /// on an elevated session they read fine. Eight entries of 809 refuse their description to an
+    /// ELEVATED session, because the manager hands back an unresolved indirection, so this is the
+    /// first column where "I could not read it" is a state a person will actually meet.
     ///
     /// Present says the value, absent says nothing at all because that is the one state a blank
     /// cell tells the truth about, and the other two say so in words. A column where "I was not
@@ -199,6 +210,7 @@ public sealed class ColumnGuards
     /// complete and is not.
     /// </summary>
     [Theory]
+    [InlineData("description")]
     [InlineData("binaryPath")]
     [InlineData("binaryFile")]
     [InlineData("loadOrderGroup")]
@@ -442,6 +454,7 @@ public sealed class ColumnGuards
         BinaryPath = Read<string>(outcome),
         BinaryFile = Read<string>(outcome),
         LoadOrderGroup = Read<string>(outcome),
+        Description = Read<string>(outcome),
         SecurityDescriptor = Read<string>(outcome),
         SidType = Read<ServiceSidType>(outcome),
         ErrorControl = Read<ErrorControl>(outcome)

@@ -103,6 +103,19 @@ public static class QueryFields
 
         new QueryField
         {
+            // "Which of these touches the printer" is a question the name and the display name
+            // cannot answer and this one can. It is also the only text field where `none` and
+            // `?` are worth asking - 384 entries of 819 have none and eight have one nobody
+            // could resolve, so both are real populations rather than the empty sets they are
+            // for a name. Why it is refused rather than absent is at ServiceDescription.
+            Name = "description",
+            Kind = QueryFieldKind.Text,
+            OutcomeOf = entry => entry.Description.Outcome,
+            TextOf = entry => entry.Description.ValueOr(null)
+        },
+
+        new QueryField
+        {
             Name = "type",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
@@ -504,6 +517,18 @@ public static class QueryFields
     /// not only an addition. Harmless today because a query has nowhere to be saved until
     /// phase four - and the version stamp exists precisely so that stops being true then.
     /// </summary>
+    /// <remarks>
+    /// <b>The description is deliberately NOT here, and that is a question for the owner rather
+    /// than a decision taken quietly.</b> The argument above applies to it word for word - a
+    /// column somebody can see but not search reads as a bug - and it is a searchable field, so
+    /// <c>description:printer</c> works today. What is withheld is the BARE word.
+    ///
+    /// The reason to withhold it is that a description is prose while the four fields above are
+    /// labels: a bare word would start matching a sentence somewhere inside 819 paragraphs, and a
+    /// common word would widen a free search from a few entries to dozens. That is a change
+    /// somebody would notice in the box they already use, so it belongs to whoever owns what the
+    /// window feels like. Backlog 175.
+    /// </remarks>
     private static QueryField[] BuildFreeSearch() =>
     [
         Required("name"),

@@ -107,7 +107,7 @@
   "cli.diff.removed": "Removed ({0}):",
   "cli.diff.uncertain": "Cannot tell ({0}) - present in the elevated snapshot, and the other was taken without elevation, so the manager may simply not have handed these over:",
   "cli.diff.changed": "Changed ({0}):",
-  "cli.diff.notFullyCompared": "Not fully compared ({0}) - nothing differs, and one of the two snapshots never read a field, so nobody can say either way:",
+  "cli.diff.notFullyCompared": "Not fully compared ({0}) - nothing differs, and a field one of the two could not put a value to, so nobody can say either way:",
   "cli.diff.entry": "  {0}  {1}",
   "cli.diff.field.configuration": "    {0}: {1} -> {2}",
   "cli.diff.field.state": "    {0}: {1} -> {2}  (running state, not configuration)",

@@ -139,6 +139,17 @@ SERVICE_STATUS_CURRENT_STATE
 SERVICE_STATUS_PROCESS
 SERVICE_CONFIG
 SERVICE_DELAYED_AUTO_START_INFO
+
+// The description a person reads, at another level of the same call. It is NOT in the
+// configuration structure and it is deliberately not read out of the registry either,
+// which is the one place this project would otherwise be tempted to look.
+//
+// Measured 2026-08-12 over 819 entries: 398 of the 444 descriptions the registry holds are
+// indirections of the form @file,-id rather than sentences, and this call resolves 388 of
+// them into text. Reading the registry would hand a person the string
+// "@%SystemRoot%\system32\adpsvc.dll,-103" and call it a description. The ten it does not
+// resolve are unreadable rather than empty, which is a different answer and stays one.
+SERVICE_DESCRIPTIONW
 SERVICE_TRIGGER_INFO
 SERVICE_TRIGGER
 WIN32_ERROR

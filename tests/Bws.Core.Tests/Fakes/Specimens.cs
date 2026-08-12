@@ -60,7 +60,56 @@ internal static class Specimens
     {
         RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
         SidType = Reading<ServiceSidType>.Absent(),
-        SecurityDescriptor = Reading<string>.Present(CommonDescriptor)
+        SecurityDescriptor = Reading<string>.Present(CommonDescriptor),
+
+        // Drivers are where the absent description lives. Measured 2026-08-12: 384 of 819 entries
+        // have none, and nearly every one of those is a driver - so a driver specimen carrying a
+        // description would make the rare case the ordinary one.
+        Description = Reading<string>.Absent()
+    };
+
+    // -- descriptions ---------------------------------------------------------------------
+
+    /// <summary>
+    /// An entry whose description the manager will not resolve into words.
+    ///
+    /// <b>Not a curiosity: eight entries of 809 on a real machine are this, and it is the first
+    /// field an ORDINARY elevated session is refused for.</b> The text in the registry is an
+    /// indirection into a binary's resources - <c>@%SystemRoot%\system32\drivers\tcpip.sys,-40007</c>
+    /// - and when the resource is not there the manager hands the indirection straight back rather
+    /// than failing. So the shape has to be recognised by what it looks like, and a value beginning
+    /// with an at sign is a read that produced no description.
+    ///
+    /// It matters beyond the cell that shows it: a snapshot compared against the machine it came
+    /// from now reports these entries as not fully compared, because a field neither side could put
+    /// a value to must not be reported as unchanged.
+    /// </summary>
+    internal static ScmEntry DescriptionRefused => Entries.Any with
+    {
+        ServiceName = "Tcpip6",
+        DisplayName = "Microsoft IPv6 Protocol Driver",
+        Description = Reading<string>.Denied(1332, "The resource could not be found."),
+        Status = EntryStatus.Running
+    };
+
+    /// <summary>
+    /// The longest kind of description there is, and it carries a line break.
+    ///
+    /// Measured on a real machine 2026-08-12: the longest is 1251 characters and two of 819 contain
+    /// a newline. Both are facts for whatever DISPLAYS this rather than for the reading - a cell on
+    /// one line, a terminal table, and a snapshot field that now has to escape a break it never had
+    /// to before.
+    /// </summary>
+    internal static ScmEntry DescriptionLongAndMultiLine => Entries.Any with
+    {
+        ServiceName = "ContosoSyncHost",
+        DisplayName = "Contoso Sync Host",
+        Description = Reading<string>.Present(
+            "Keeps files, settings and mail in step between this device and the service."
+            + Environment.NewLine
+            + "If this service is stopped, anything that depends on it explicitly will fail to "
+            + "start, and content will stop being kept up to date until the service is started "
+            + "again. Stopping it does not remove anything already on this device.")
     };
 
     // -- names and accounts -------------------------------------------------------------
@@ -674,7 +723,9 @@ internal static class Specimens
         DriverWithNoPathOfItsOwn,
         NothingToRun,
         RestrictedIdentity,
-        DescriptorRefused
+        DescriptorRefused,
+        DescriptionRefused,
+        DescriptionLongAndMultiLine
     ];
 
     /// <summary>A manager that hands back the whole catalogue.</summary>

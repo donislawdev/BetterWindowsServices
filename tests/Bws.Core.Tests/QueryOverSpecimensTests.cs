@@ -164,6 +164,72 @@ public sealed class QueryOverSpecimensTests
         Assert.Equal(Specimens.All.Count, Names("").Length);
     }
 
+    /// <summary>
+    /// The description is searchable, and its two empty-looking states are asked about separately.
+    ///
+    /// <b>This is the field where `none` and `?` finally earn their keep.</b> For a name they are
+    /// empty questions - every entry has one - but 384 entries of 819 on a real machine have no
+    /// description and eight have one nobody could resolve, so both are real populations. A language
+    /// that answered the same for both would be reporting a machine as described when it is not.
+    /// </summary>
+    [Fact]
+    public void The_description_is_searchable_and_its_two_kinds_of_emptiness_stay_apart()
+    {
+        Assert.Contains("Spooler", Names("description:*print*"));
+
+        // Having none, and having one nobody could read. Different questions, different answers,
+        // and no entry may be in both.
+        var none = Names("description:none");
+        var unreadable = Names("description:?");
+
+        Assert.Contains("Tcpip6", unreadable);
+        Assert.DoesNotContain("Tcpip6", none);
+        Assert.Empty(none.Intersect(unreadable, StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// A wildcard matches across a line break, which it could not until 2026-08-12.
+    ///
+    /// <b>A latent fault the description exposed rather than caused.</b> A wildcard compiles to a
+    /// pattern anchored at both ends, and by default a dot does not cross a newline - so
+    /// <c>*step*</c> against a two-line value asked the dot after the word to reach an end of string
+    /// it could not get to, and the answer was silently NOTHING. No field could carry a line break
+    /// before the description, so nothing had ever reached it.
+    ///
+    /// <b>Both halves are asserted, because the fault was invisible from one side.</b> The same
+    /// pattern shape matched a single-line description perfectly, which is why this needs a value
+    /// with a break in it and a word on each side of the break.
+    /// </summary>
+    [Fact]
+    public void A_wildcard_reaches_past_a_line_break_in_a_value()
+    {
+        // Before the break, and after it. The word after is the half that proves the pattern is not
+        // simply stopping at the first line.
+        Assert.Contains("ContosoSyncHost", Names("description:*step*"));
+        Assert.Contains("ContosoSyncHost", Names("description:*explicitly*"));
+
+        // And the control: a word in no description at all still matches nothing, so the fix is not
+        // a pattern that matches everything.
+        Assert.DoesNotContain("ContosoSyncHost", Names("description:*chrysanthemum*"));
+    }
+
+    /// <summary>
+    /// A bare word does NOT reach the description, which is the boundary the owner has not been
+    /// asked about yet - backlog 175. Held as a test so that widening it becomes a deliberate act
+    /// rather than something that happens because somebody added a field to a list.
+    /// </summary>
+    [Fact]
+    public void A_free_word_does_not_reach_the_description()
+    {
+        // A word that appears in a specimen's description and nowhere in its name, display name,
+        // account or launch path. Asked as a field it matches, asked bare it does not.
+        //
+        // One word rather than a phrase, and that is the language rather than a shortcut: an
+        // unquoted space separates two members, and quoting a value takes the wildcards with it.
+        Assert.Contains("ContosoSyncHost", Names("description:*step*"));
+        Assert.DoesNotContain("ContosoSyncHost", Names("step"));
+    }
+
     private static QueryResult Run(string text) =>
         QueryParserTests.Valid(text).Filter(Specimens.Catalog().ReadAll());
 

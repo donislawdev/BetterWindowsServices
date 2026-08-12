@@ -15,6 +15,22 @@ internal static class ListingTable
 {
     private const string Nothing = "";
 
+    /// <remarks>
+    /// <b>THE DESCRIPTION IS DELIBERATELY NOT A COLUMN HERE, and it is in <c>--json</c>.</b> It
+    /// arrived on 2026-08-12 and every other field of a listing reached both outputs, so the
+    /// absence needs its reason written down rather than left to look like an oversight.
+    ///
+    /// A description is prose, not a label. The longest one measured on this machine is 1251
+    /// characters and two contain a newline, against a table whose seven columns share the width
+    /// of a terminal - so a column for it either takes the room the other seven need or shows
+    /// four words and an ellipsis on every row. The window can offer it as a column somebody
+    /// turns on and drags wider, and a machine reading <c>--json</c> gets the whole thing. A
+    /// terminal table is the one surface where it cannot be either.
+    ///
+    /// <b>It is still reachable from here</b>, which is what makes this a choice about layout
+    /// rather than about the data: <c>--query description:printer</c> narrows the listing by it,
+    /// and <c>--query description:none</c> finds the 384 entries of 819 that have none.
+    /// </remarks>
     internal static string Render(IReadOnlyList<ScmEntry> entries)
     {
         // The signature column appears only when there is something in it, and the answer
