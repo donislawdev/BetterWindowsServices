@@ -33,6 +33,14 @@
   "gui.columns.group.advanced": "Advanced",
   "gui.columns.hint": "Choose what the list shows. Drag a heading to move a column and its edge to resize. What you choose is kept, so the list opens the way you left it.",
 
+  "gui.details.group.notRead": "Not read by this window",
+  "gui.details.notRead": "Not read",
+  "gui.details.notRead.why": "These four are read by a second pass this window does not have, so nobody looked. The command line reads them with bws list --signatures and --memory.",
+  "gui.column.signature": "Signature",
+  "gui.column.fileVersion": "File version",
+  "gui.column.binaryHash": "File hash",
+  "gui.column.memory": "Memory",
+
   "gui.layout.ignored": "The kept column layout names columns this window could not use, so they were left out: {0}",
   "gui.layout.noneShown": "The kept column layout hides every column, so the usual ones are shown instead.",
   "gui.layout.widths": "A kept width could not be read for these columns, so they start where the theme puts them: {0}",
