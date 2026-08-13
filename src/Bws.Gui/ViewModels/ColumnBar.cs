@@ -133,12 +133,25 @@ public sealed class ColumnBar
                 if (changed.PropertyName == nameof(ColumnChoice.IsShown))
                 {
                     Rethink();
+                    Changed?.Invoke(this, EventArgs.Empty);
                 }
             };
         }
 
         Rethink();
     }
+
+    /// <summary>
+    /// Somebody has turned a column on or off - the one layout change that happens through this
+    /// class rather than through the grid.
+    ///
+    /// <b>Raised from the subscription rather than from <see cref="Rethink"/>, which also runs
+    /// once while this object is being built.</b> A change announced from a constructor is a
+    /// change nobody could have subscribed to in time, and the listener that matters here writes a
+    /// file - so it would have been either a write of the defaults on every startup or a handler
+    /// that has to know it is being lied to.
+    /// </summary>
+    internal event EventHandler? Changed;
 
     /// <summary>
     /// Every column, in the order they are offered.
@@ -155,6 +168,34 @@ public sealed class ColumnBar
 
     /// <summary>The columns that are on, in the catalogue's order.</summary>
     public IEnumerable<ColumnChoice> Shown => Choices.Where(choice => choice.IsShown);
+
+    /// <summary>
+    /// Turns on what a kept layout had on, and turns the rest off.
+    ///
+    /// <b>Only the shown flags, because they are the only part of a layout that lives here.</b>
+    /// The order somebody dragged a heading into and the width they dragged an edge to are held by
+    /// the grid and nowhere else, so the same plan is applied in two places rather than copied
+    /// into a third.
+    ///
+    /// <b>It expects a plan rather than a file</b>, and that is what makes it total: a plan names
+    /// every column this build has, exactly once, with at least one of them shown. A column the
+    /// plan somehow does not mention keeps what it already had rather than being turned off, which
+    /// is the second lock on a door <see cref="ColumnPlan.Of"/> already closes.
+    /// </summary>
+    internal void Follow(ColumnPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var kept = plan.Layout.Columns.ToDictionary(column => column.Id, StringComparer.Ordinal);
+
+        foreach (var choice in Choices)
+        {
+            if (kept.TryGetValue(choice.Column.Id, out var column))
+            {
+                choice.IsShown = column.Shown;
+            }
+        }
+    }
 
     /// <summary>
     /// Works out which choices may still be turned off.

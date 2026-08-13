@@ -334,7 +334,8 @@ public sealed class WindowGuards
         {
             var built = new DataGrid();
 
-            ListColumns.Fill(built, bar);
+            // No layout, which is what a first run hands it and what these two are about.
+            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null));
 
             return built;
         });
@@ -391,7 +392,8 @@ public sealed class WindowGuards
         {
             var built = new DataGrid();
 
-            ListColumns.Fill(built, bar);
+            // No layout, which is what a first run hands it and what these two are about.
+            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null));
 
             return built;
         });

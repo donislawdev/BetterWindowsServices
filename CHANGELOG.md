@@ -47,7 +47,17 @@ Nothing has been released yet. Everything below is what the tool does today.
   file that command really runs, what it depends on, what starts it, which privileges it asks
   for, its SID type, its error control, its load order group, its security descriptor, and
   whether it is set to run and is not. Drag a heading to move a column and its edge to resize
-  it. **None of this is kept yet** - closing the window brings the first six back.
+  it.
+- **The list opens the way you left it.** Which columns are on, the order you dragged their
+  headings into and any width you dragged yourself are kept between sessions, in
+  `%APPDATA%\BetterWindowsServices\bws-preferences.json`. It is a small text file you can read,
+  copy to another machine or delete - deleting it brings back the six columns the window starts
+  with. A column you never touched keeps following the theme rather than being frozen at
+  whatever it happened to be that day. If the file cannot be read - hand edited into something
+  that is not, or written by a newer version of this program - the window says so in the line
+  under the search box and shows the usual columns rather than guessing. A file it cannot read
+  is moved aside with the date in its name, never overwritten, and one from a version it does
+  not know is left exactly where it is.
 - **Every entry now carries its description - the sentence that says what it is for.** It is the
   one column `services.msc` has that this tool did not, and it is the only answer to "what even
   is this" on a machine you have never seen. Turn on the **Description** column in the window,

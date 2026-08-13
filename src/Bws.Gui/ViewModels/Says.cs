@@ -24,6 +24,7 @@ public sealed class Says : Observable
     private string _notice = string.Empty;
     private string _problem = string.Empty;
     private string _refusal = string.Empty;
+    private string _layout = string.Empty;
     private bool _incomplete;
     private bool _narrowed;
     private ListState _list = ListState.Of(reading: true, failed: false, shown: 0, everything: 0);
@@ -72,7 +73,9 @@ public sealed class Says : Observable
     /// Snackbar for it - `docs/10` section 4. This line is where it goes until there is a slice
     /// that puts one in.
     /// </summary>
-    public string Problem => _refusal.Length > 0 ? _refusal : _problem;
+    public string Problem => _refusal.Length > 0 ? _refusal
+        : _problem.Length > 0 ? _problem
+        : _layout;
 
     /// <summary>
     /// Whether the reading admitted to gaps. Shown, never swallowed.
@@ -145,15 +148,39 @@ public sealed class Says : Observable
         Raise(nameof(Problem));
     }
 
+    /// <summary>
+    /// What a kept column layout could not give the window, said once at startup.
+    ///
+    /// <b>The quietest of the three, and last in the order for that reason.</b> A query problem is
+    /// about what somebody is doing right now and an action's refusal is about what just failed -
+    /// both are newer news than a file read before the window appeared. It outlives the first tick
+    /// on purpose: the reading finishes in half a second, and a sentence gone by then is a
+    /// sentence nobody was given.
+    ///
+    /// Rule 8 in the one place a window can break it without anything looking wrong. A layout half
+    /// applied looks exactly like a layout somebody misremembers arranging.
+    /// </summary>
+    internal void AboutTheLayout(string sentence)
+    {
+        _layout = sentence;
+
+        Raise(nameof(Problem));
+    }
+
     /// <summary>Puts away what the last action could not do, because the person asked for something else.</summary>
     internal void Moved()
     {
-        if (_refusal.Length == 0)
+        if (_refusal.Length == 0 && _layout.Length == 0)
         {
             return;
         }
 
         _refusal = string.Empty;
+
+        // The layout note goes with it. Somebody who has started typing a query has been in the
+        // window long enough to have read a line that was there when it opened, and a startup
+        // admission still standing an hour later reads as though it just happened.
+        _layout = string.Empty;
 
         Raise(nameof(Problem));
     }

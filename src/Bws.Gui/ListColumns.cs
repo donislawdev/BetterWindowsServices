@@ -31,15 +31,29 @@ internal static class ListColumns
     /// back the width they left it and in the place they dragged it to - because it is the same
     /// object, still carrying its Width and its DisplayIndex. Rebuilding it would silently throw
     /// both away, and the person would have no way to tell that from a bug.
+    ///
+    /// <b>The plan decides the width and the order, and the theme decides where a column starts</b>
+    /// - which is `ADR-23` with the sentence added to it on 2026-08-11. A column nobody has ever
+    /// dragged carries no width in the plan and takes the theme's, so changing the theme still
+    /// reaches everybody who has not moved that particular edge.
+    ///
+    /// What comes back is the identifiers whose saved width could not be read, which is the one
+    /// thing this can find out and the caller cannot: the plan carries text, and only here is
+    /// there something that knows what a width means.
     /// </summary>
-    internal static void Fill(DataGrid grid, ColumnBar bar)
+    internal static IReadOnlyList<string> Fill(DataGrid grid, ColumnBar bar, ColumnPlan plan)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(bar);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var refused = new List<string>();
+        var built = new Dictionary<string, DataGridColumn>(StringComparer.Ordinal);
 
         foreach (var choice in bar.Choices)
         {
-            var column = Build(choice.Column, grid);
+            var kept = plan.Layout.Columns.FirstOrDefault(column => column.Id == choice.Column.Id);
+            var column = Build(choice.Column, grid, kept?.Width, refused);
 
             Show(column, choice.IsShown);
 
@@ -53,6 +67,19 @@ internal static class ListColumns
             };
 
             grid.Columns.Add(column);
+            built[choice.Column.Id] = column;
+        }
+
+        // THE ORDER, AFTER EVERY COLUMN EXISTS. Setting a display index moves whichever column is
+        // already there, so a permutation only comes out right if it is applied to a complete
+        // collection - and applied in increasing order of the position being claimed, which is what
+        // walking the plan does.
+        for (var position = 0; position < plan.Layout.Columns.Count; position++)
+        {
+            if (built.TryGetValue(plan.Layout.Columns[position].Id, out var column))
+            {
+                column.DisplayIndex = position;
+            }
         }
 
         grid.Sorting += SortByWhatTheCellSays;
@@ -63,7 +90,73 @@ internal static class ListColumns
         grid.ColumnDisplayIndexChanged += (_, _) => Freeze(grid);
 
         Freeze(grid);
+
+        return refused;
     }
+
+    /// <summary>
+    /// What the grid looks like right now, in the form a file can hold.
+    ///
+    /// <b>Read off the grid rather than out of the view models, because the grid is where two of
+    /// the three answers live.</b> Which columns are on is in both places, but the order somebody
+    /// dragged a heading into and the width they dragged an edge to exist nowhere else - WPF holds
+    /// them on the column object, and nothing tells a view model when they move.
+    ///
+    /// <b>A width is written only once somebody has moved it</b>, and the comparison is on the
+    /// unit and the value alone. A <c>DataGridLength</c> also carries a desired and a displayed
+    /// size that a layout pass fills in, so comparing whole values would report every column as
+    /// moved the moment the window had been drawn once.
+    ///
+    /// <b>What a drag does to the Width property is NOT VERIFIED by us.</b> WPF may record a
+    /// resize as a pixel length or as a changed share - this writes down faithfully whatever is
+    /// there and restores the same thing, so both answers come back the way they were left. The
+    /// case that would defeat it is a resize recorded nowhere in Width at all, which would mean a
+    /// width that is not kept rather than a wrong one in the file.
+    /// </summary>
+    internal static ColumnLayout Harvest(DataGrid grid)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+
+        var kept = new List<KeptColumn>();
+
+        for (var position = 0; position < grid.Columns.Count; position++)
+        {
+            var column = grid.ColumnFromDisplayIndex(position);
+
+            if (Columns.Of(column.SortMemberPath ?? string.Empty) is not { } known)
+            {
+                continue;
+            }
+
+            kept.Add(new KeptColumn(
+                known.Id,
+                column.Visibility == Visibility.Visible,
+                Moved(grid, known, column.Width)));
+        }
+
+        return new ColumnLayout(kept);
+    }
+
+    private static string? Moved(FrameworkElement grid, Column known, DataGridLength width)
+    {
+        var start = (DataGridLength)grid.FindResource(known.WidthKey);
+
+        return width.UnitType == start.UnitType && width.Value.Equals(start.Value)
+            ? null
+            : Widths.ConvertTo(null, System.Globalization.CultureInfo.InvariantCulture, width, typeof(string))
+                as string;
+    }
+
+    /// <summary>
+    /// The one place a width turns into text and back, and it never asks the machine's culture.
+    ///
+    /// A layout file is copied between machines - that is what section H of the specification
+    /// promises - so a share written as <c>2,5*</c> on one and read on another would be a width
+    /// that stops being a width when it crosses a border. The same reasoning as `ADR-14`, one
+    /// layer down: what goes in a file is the neutral form, and the machine's own habits belong to
+    /// what a person is shown.
+    /// </summary>
+    private static readonly DataGridLengthConverter Widths = new();
 
     /// <summary>
     /// Keeps the leftmost column that is ON SCREEN the frozen one.
@@ -116,7 +209,8 @@ internal static class ListColumns
     private static void Show(DataGridColumn column, bool shown) =>
         column.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
-    private static DataGridColumn Build(Column column, FrameworkElement grid)
+    private static DataGridColumn Build(
+        Column column, FrameworkElement grid, string? kept, List<string> refused)
     {
         var built = column.Face switch
         {
@@ -129,7 +223,7 @@ internal static class ListColumns
         };
 
         built.Header = Texts.Of(column.LabelKey);
-        built.Width = (DataGridLength)grid.FindResource(column.WidthKey);
+        built.Width = Wide(grid, column, kept, refused);
 
         // A starred column gives way and needs a floor under it.
         //
@@ -146,9 +240,15 @@ internal static class ListColumns
         // widest thing it can hold" meant all along. What gives way instead is the starred columns,
         // down to their floor, and then the row gets wider than the window and gains a scrollbar -
         // which is the owner's decision of 2026-08-12.
-        built.MinWidth = built.Width.IsStar
-            ? (double)grid.FindResource("ColumnFloor")
-            : built.Width.Value;
+        //
+        // THE FLOOR FOLLOWS THE WIDTH THAT WAS ACTUALLY USED, which matters now that a width can
+        // come from a file: a column somebody dragged to 300 pixels needs 300 as its floor, or the
+        // grid takes it back to twenty the moment the row is wider than the window. Asked as "is
+        // this an absolute number" rather than "is this a share", because a hand written Auto is
+        // now reachable and has no pixel value to use as its own floor.
+        built.MinWidth = built.Width.IsAbsolute
+            ? built.Width.Value
+            : (double)grid.FindResource("ColumnFloor");
 
         // NOT USED BY THE GRID, WHICH IS WHY IT CAN CARRY THIS. Sorting is handled below rather
         // than left to the grid, so this path is never resolved against a row - it is how the
@@ -157,6 +257,55 @@ internal static class ListColumns
         built.SortMemberPath = column.Id;
 
         return built;
+    }
+
+    /// <summary>
+    /// How wide a column starts: what a file kept for it, or what the theme says.
+    ///
+    /// <b>A width that cannot be read falls back to the theme and is named to the caller</b>,
+    /// rather than taking the window down or quietly resizing a column somebody had set. This is
+    /// the one field in the layout a person can plausibly hand edit into nonsense - the
+    /// identifiers are checked against the catalogue and the flags are true or false - so it is
+    /// also the one that needs an answer for nonsense.
+    /// </summary>
+    private static DataGridLength Wide(
+        FrameworkElement grid, Column column, string? kept, List<string> refused)
+    {
+        if (kept is not null)
+        {
+            if (Parsed(kept) is { } saved)
+            {
+                return saved;
+            }
+
+            refused.Add(column.Id);
+        }
+
+        return (DataGridLength)grid.FindResource(column.WidthKey);
+    }
+
+    private static DataGridLength? Parsed(string text)
+    {
+        // Three exceptions rather than one broad catch, because they are the three the converter
+        // documents itself as throwing and a broad one here would need an argument in
+        // BroadCatchGuards that this does not have: nothing about a width is unknowable.
+        try
+        {
+            return Widths.ConvertFrom(null, System.Globalization.CultureInfo.InvariantCulture, text)
+                as DataGridLength?;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
 
     private static DataGridColumn Templated(FrameworkElement grid, string template) =>

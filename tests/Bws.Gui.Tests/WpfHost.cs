@@ -52,7 +52,29 @@ internal static class WpfHost
     {
         _ = Resources;
 
-        return On(() => new MainWindow());
+        return On(() => new MainWindow(Nowhere()));
+    }
+
+    /// <summary>
+    /// Somewhere to keep a layout that is not the profile of whoever is running the tests.
+    ///
+    /// <b>Without this every test that builds a window reads the layout of the person at the
+    /// keyboard and then writes over it.</b> Both halves are faults: a test asserting six columns
+    /// would fail because somebody had turned one off last night, and a test run would silently
+    /// rearrange their window. The same seam is what keeps the width probes measuring the theme
+    /// rather than a layout they saved themselves.
+    ///
+    /// Emptied rather than made unique, so a run never inherits the file the previous run left and
+    /// the temporary folder does not grow one directory per run.
+    /// </summary>
+    internal static PreferencesFile Nowhere()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "bws-gui-tests");
+
+        Directory.CreateDirectory(directory);
+        File.Delete(Path.Combine(directory, PreferencesFile.Name));
+
+        return new PreferencesFile(directory);
     }
 
     /// <summary>The colour the theme declares under a name, so no expected value is written twice.</summary>

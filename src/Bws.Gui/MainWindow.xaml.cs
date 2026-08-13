@@ -44,15 +44,39 @@ public partial class MainWindow : Window
     private bool _pointedAtARow;
 
     public MainWindow()
+        : this(new PreferencesFile())
+    {
+    }
+
+    /// <summary>
+    /// A window that keeps its layout somewhere else, which is how anything but a person gets one.
+    ///
+    /// A seam, because every test and every probe here builds this window: without it they would
+    /// all read and then overwrite the layout of whoever is logged in. <see cref="KeptColumns"/>
+    /// carries the rest of that argument.
+    /// </summary>
+    internal MainWindow(PreferencesFile preferences)
     {
         InitializeComponent();
 
         DataContext = _model;
 
+        // THE KEPT LAYOUT, BEFORE THE GRID HAS A SINGLE COLUMN - which columns are on, in what
+        // order, how wide. A file that is unreadable, stale or from another build is reconciled
+        // into something usable first, and whatever could not be honoured is said out loud.
+        var kept = new KeptColumns(preferences);
+
+        _columns.Follow(kept.Plan);
+
         // BEFORE ANY ROW EXISTS, and the grid has no columns at all until this line runs. There
-        // are seventeen of them and eleven are off, which is a list somebody chooses from rather
+        // are eighteen of them and twelve are off, which is a list somebody chooses from rather
         // than a list written out - see ListColumns.
-        ListColumns.Fill(Entries, _columns);
+        if (kept.Trouble(ListColumns.Fill(Entries, _columns, kept.Plan)) is { } trouble)
+        {
+            _model.Says.AboutTheLayout(trouble);
+        }
+
+        kept.Watch(this, Entries, _columns, _model.Says);
 
         // SET RATHER THAN BOUND, and that is the same trap the column headers fell into: a menu
         // hangs off a Popup, which is not in the visual tree, so what it inherits is a question
@@ -160,75 +184,17 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Tells the window manager that the bar above this window is a dark one.
+    /// Hands the bar above this window over to <see cref="TitleBar"/>, once there is a handle.
     ///
-    /// <b>Here rather than in the constructor, and that is the whole of why the first attempt at
-    /// this did nothing.</b> The attribute is set against a window HANDLE, and a WPF window has no
-    /// handle until its source is initialised - so the same call one step earlier is a call about
-    /// a window that does not exist yet, and it fails in the quietest way there is: by succeeding.
-    ///
-    /// <b>Why it has to be asked for at all.</b> Merging the library's dark dictionaries styles
-    /// everything INSIDE the window and says nothing about the frame around it, which belongs to
-    /// Windows. Measured on screen 2026-08-10: the bar came out #4C4A48 against content at
-    /// #202020 two rows below it, on a machine whose system theme is dark. Backlog 148.
-    ///
-    /// <b>Tried first and rejected with a measurement:</b> `ApplicationThemeManager.Apply(this)`
-    /// from the control library, which changed the bar by nothing at all - #4C4A48 before and
-    /// after. The library's only other lever is <c>WindowBackdrop</c>, and that is the door Mica
-    /// and Acrylic come through, which this product refuses because a translucent background turns
-    /// ClearType off across all eight hundred rows.
-    ///
-    /// A failure here is deliberately ignored. A pale title bar is a blemish, and taking the
-    /// window down over one would be a far worse answer than the blemish.
+    /// Here rather than in the constructor because the attribute is set against a window HANDLE,
+    /// and a WPF window has none until its source is initialised - the same call one step earlier
+    /// fails in the quietest way there is, by succeeding.
     /// </summary>
-    protected override unsafe void OnSourceInitialized(EventArgs e)
+    protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
 
-        var handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        var window = new Windows.Win32.Foundation.HWND(handle);
-        var dark = 1;
-
-        _ = Windows.Win32.PInvoke.DwmSetWindowAttribute(
-            window,
-            Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE,
-            &dark,
-            sizeof(int));
-
-        // AND THE COLOUR ITSELF, BECAUSE THE DARK MODE FLAG DOES NOT DELIVER WHAT THIS FILE SAID IT
-        // DID. Measured 2026-08-12 on the release build, both states: the caption is #4C4A48 over
-        // content at #202020, active and inactive alike. The note above claimed that flag closed
-        // backlog 148 - it darkens the caption from the light default and stops well short of the
-        // window's own colour, so the window still reads as two programs stacked.
-        //
-        // DWMWA_CAPTION_COLOR is Windows 11 only and a failure here is ignored for the same reason
-        // as above: a pale title bar is a blemish, and taking the window down over one would be a
-        // far worse answer than the blemish.
-        //
-        // THE COLOUR COMES FROM THE WINDOW'S OWN BACKGROUND RATHER THAN FROM A NUMBER HERE, which
-        // is `ADR-23` reaching the one surface it could not otherwise reach: the frame belongs to
-        // Windows, so it cannot be styled, but it can be handed the brush the theme already chose.
-        // A literal here would be a second copy of the background, and the two would drift the
-        // first time anybody changed the theme.
-        if (Background is System.Windows.Media.SolidColorBrush brush)
-        {
-            // COLORREF is 0x00BBGGRR, which is the opposite order from every other colour in this
-            // product - and getting it backwards produces a plausible wrong colour rather than an
-            // error, so it is written out rather than packed in one expression.
-            var colour = (uint)(brush.Color.R | (brush.Color.G << 8) | (brush.Color.B << 16));
-
-            _ = Windows.Win32.PInvoke.DwmSetWindowAttribute(
-                window,
-                Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_CAPTION_COLOR,
-                &colour,
-                sizeof(uint));
-        }
+        TitleBar.Darken(this);
     }
 
     /// <summary>
