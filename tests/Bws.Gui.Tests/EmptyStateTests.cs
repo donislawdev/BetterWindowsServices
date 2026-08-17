@@ -143,4 +143,49 @@ public sealed class EmptyStateTests
 
         Assert.False(model.Says.Narrowed);
     }
+
+    /// <summary>
+    /// A REFRESH DOES NOT TAKE THE EMPTY STATE OFF THE SCREEN - owner's report, 2026-08-13.
+    ///
+    /// <b>What it looked like: the sentence saying nothing matched flickered once a second.</b>
+    /// `A10` reads the machine every second, each reading raised and lowered the reading flag, and
+    /// a list with no rows on screen answered "reading the manager" for as long as the flag was up.
+    /// So the answer was replaced by a progress message and put back, over and over, while somebody
+    /// was reading it.
+    ///
+    /// <b>The claim is the NOTIFICATION rather than the value, and that is the difference between
+    /// this test and one that would have passed all along.</b> The message ends where it started
+    /// either way - what a person sees is the two changes in between, and only a listener can see
+    /// those. This project has been caught four times by a value that is right everywhere except
+    /// where somebody is looking.
+    /// </summary>
+    [Fact]
+    public async Task A_refresh_does_not_take_the_empty_state_off_the_screen()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "name:nothingiscallledthis";
+
+        var before = model.Says.ListMessage;
+
+        Assert.NotEqual(string.Empty, before);
+
+        var announced = new List<string>();
+
+        model.Says.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(Says.ListMessage))
+            {
+                announced.Add(model.Says.ListMessage);
+            }
+        };
+
+        await model.RefreshAsync();
+
+        Assert.Equal(before, model.Says.ListMessage);
+
+        Assert.Empty(announced);
+    }
 }

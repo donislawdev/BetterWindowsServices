@@ -1,0 +1,107 @@
+<UserControl x:Class="Bws.Gui.FilterRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        HOW THE WINDOW ASKS - the chips, their group labels and the button saying which columns the
+        list shows. It stood in MainWindow.xaml until 2026-08-13, moved into the theme as a style
+        carrying a template the same day (backlog 182), and became a UserControl the day after
+        (backlog 185) once the details panel showed what the right shape was.
+
+        THE SEAM IS A SUBJECT RATHER THAN A LINE COUNT: this row is how the window ASKS, and the
+        rest of MainWindow.xaml is what the window IS.
+
+        WHY IT IS A UserControl AND NOT A TEMPLATE, WHICH IS THE OWNER'S DECISION OF 2026-08-13
+        AFTER THE PANEL MADE THE CHOICE VISIBLE. A theme file has no code-behind class, so a button
+        living there had to be found by name at construction, refused with an exception when the
+        part was missing, and have its click taken by the window - three mechanisms for one button.
+        A UserControl has a class of its own, so the button is a field and the click is a handler,
+        and the theme gets its hundred and fifty lines back. One mechanism for "a part of the window
+        in its own file" rather than two that have to be told apart.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
+        ContentControl is BOTH BY DEFAULT - measured, not assumed. Without them this row is a tab
+        stop that does nothing, in front of the chips it holds. `docs/10` trap 8.
+
+        THE CLICKABLE FILTERS, A5. Each one stands for one member of the query, and clicking it
+        writes that member into the box above - which is the promise: the filter you clicked is a
+        query you can read, edit and learn from. The tooltip shows the member before the click
+        rather than after, so the box is not the only place it appears.
+
+        AN ItemsControl RATHER THAN EIGHT CONTROLS WRITTEN OUT. The chips are data - which ones
+        there are is decided in FilterChips.cs, where the reason for each is written beside it - and
+        markup listing them again would be a second copy that drifts. It also means the row that
+        account and signature chips will join is already built.
+
+        WrapPanel, so a narrow window stacks them instead of clipping them. The count line beside
+        the search box is the only thing in this window allowed to be cut, because it carries a
+        message of the system's own length.
+
+        THE TWO AutomationId VALUES BELOW ARE ON THE CONTROLS, NOT ON THE GRID, AND THAT IS A
+        MEASURED CORRECTION. An id was put on the Grid first, and automation never saw it: WPF
+        builds a peer for controls, not for layout panels, so the identifier sat on an element that
+        is not in the tree at all. tools/window-journey needs to tell the labels of controls apart
+        from the sentences the window says about the answer, and it does that by identity rather
+        than by where things sit - the same lesson that file has now learnt three times.
+    -->
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <ItemsControl Grid.Column="1"
+                      AutomationProperties.AutomationId="filterChips"
+                      ItemsSource="{Binding FilterGroups}"
+                      ItemTemplate="{StaticResource FilterGroupTemplate}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+
+        <!--
+            WHICH COLUMNS THE LIST SHOWS, `A8`. A VISIBLE CONTROL RATHER THAN A MENU HIDDEN UNDER
+            THE COLUMN HEADINGS, and that is `docs/11` rather than taste: section 6 grades
+            "recognition rather than recall" as one of this window's two weakest heuristics, and a
+            feature reachable only by right clicking something is a feature you have to already
+            know about. The filters made the same choice one slice earlier - complaint 7 was closed
+            with a visible row and a group label, not with a menu.
+
+            The list ITSELF is a menu, which is the opposite decision and is about surface rather
+            than discoverability: a panel of our own would need a fill, an edge and both of their
+            contrast ratios argued, for a thing somebody opens a few times. The theme already
+            dresses a menu and this window already uses one to copy a name.
+
+            It sits at the end of the filters row rather than beside the search box, because what it
+            changes is the list rather than the question - and the count line, which answers the
+            question, already owns the right-hand end of the row above.
+
+            Its own AutomationId, because tools/window-journey tells the labels of controls apart
+            from the sentences the window says about the answer, and it does that by identity. This
+            is the fourth time that lesson has been paid for in this row.
+        -->
+        <Button Grid.Column="2"
+                x:Name="ColumnsButton"
+                AutomationProperties.AutomationId="columnsButton"
+                Content="{DynamicResource gui.columns.button}"
+                ToolTip="{DynamicResource gui.columns.hint}"
+                Click="ChooseColumns">
+            <Button.ContextMenu>
+                <!--
+                    A CEILING AND A SCROLLBAR, because eighteen items is taller than a short screen
+                    and a menu that runs off the bottom loses the last of them with nothing saying
+                    so. The headings come from a flat list built in the window - see its
+                    constructor.
+                -->
+                <ContextMenu MaxHeight="{StaticResource HeightMenu}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Button.ContextMenu>
+        </Button>
+    </Grid>
+</UserControl>

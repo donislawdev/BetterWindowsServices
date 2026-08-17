@@ -30,7 +30,18 @@ public sealed class KeyboardTests
 
     [Fact]
     public void Escape_backs_out_of_what_was_typed_the_way_it_does_everywhere_in_windows() =>
-        Assert.Equal(Shortcut.ClearQuery, Shortcuts.For(Key.Escape, ModifierKeys.None));
+        Assert.Equal(Shortcut.Back, Shortcuts.For(Key.Escape, ModifierKeys.None));
+
+    /// <summary>
+    /// Enter asks for everything about the chosen entry - `docs/11` 9.1, backlog 59.
+    ///
+    /// <b>What this does NOT say is where the press came from.</b> Enter belongs to the list rather
+    /// than to the window, and that half is asked in <see cref="MainWindow"/> because where the
+    /// keyboard is happens to be the one piece of state only a window can answer.
+    /// </summary>
+    [Fact]
+    public void Enter_asks_for_the_details_of_the_chosen_entry() =>
+        Assert.Equal(Shortcut.OpenDetails, Shortcuts.For(Key.Enter, ModifierKeys.None));
 
     /// <summary>
     /// A key with a modifier nobody asked for belongs to whatever claims it.
@@ -77,6 +88,10 @@ public sealed class KeyboardTests
 
         await model.LoadAsync();
 
+        // The window opens with kernel drivers hidden, which is a query like any other - so the
+        // first clear has something to do and the second is the one this test is about.
+        Assert.True(model.ClearQuery());
+
         Assert.False(model.ClearQuery());
     }
 
@@ -102,5 +117,58 @@ public sealed class KeyboardTests
 
         Assert.True(model.ShowDrivers);
         Assert.Equal(2, model.Rows.Count);
+    }
+
+    /// <summary>
+    /// Escape closes the panel first and empties the query only when there is no panel.
+    ///
+    /// <b>The order is the decision, and it is the whole reason Escape has a branch at all.</b> One
+    /// press doing both at once takes somebody's query away while they were reaching for the panel,
+    /// and a query is much the more expensive of the two to type again. Decided in `docs/04` at
+    /// Paczka 1 rather than here.
+    ///
+    /// Driven through the window rather than through the two objects, because the ORDER is the
+    /// thing being claimed and it lives in the window - asking the panel and the query separately
+    /// would pass on a window that had them the wrong way round.
+    /// </summary>
+    [Fact]
+    public async Task Escape_closes_the_panel_before_it_touches_the_query()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        // ON THE INTERFACE THREAD, because this model is the window's DataContext - setting a
+        // property on it from the test thread raises PropertyChanged into live bindings, which only
+        // fails when the machine is busy enough for the two to overlap.
+        WpfHost.On(() => model.QueryText = "name:spooler");
+        WpfHost.On(() => model.Chosen.Row = EntryRow.Of(Rows.Entry("Spooler")));
+
+        Assert.True(WpfHost.On(() => model.Chosen.Show()));
+
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.False(model.Chosen.Showing);
+        Assert.Equal("name:spooler", model.QueryText);
+
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.Equal(string.Empty, model.QueryText);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Enter with no row chosen is handed back rather than swallowed.
+    ///
+    /// The window takes Enter in preview, before the list gets a look at it, so a press claimed by
+    /// something that opened nothing is a press that silently stops working for whatever needed it
+    /// next.
+    /// </summary>
+    [Fact]
+    public async Task Enter_with_no_row_chosen_is_handed_back()
+    {
+        var window = WpfHost.Window();
+
+        Assert.False(await WpfHost.On(() => window.Act(Shortcut.OpenDetails)));
+
+        WpfHost.On(window.Close);
     }
 }

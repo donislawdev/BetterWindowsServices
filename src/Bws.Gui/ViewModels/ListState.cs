@@ -73,10 +73,21 @@ internal readonly record struct ListState
             return Say(ListFace.Failed, Texts.Of("gui.empty.failed"), Texts.Of("gui.empty.failedWayOut"));
         }
 
-        // Only while nothing has arrived yet. A refresh over a list that already has rows leaves
-        // them on screen, which is what `A10` asks for and why this is not simply "is a reading
-        // out right now".
-        if (reading)
+        // ONLY WHILE NOTHING HAS ARRIVED YET, AND THE SECOND HALF OF THAT WAS MISSING UNTIL
+        // 2026-08-13 - owner's report. The comment here always said a reading over a list that has
+        // already been read must not take the answer off the screen, and the condition did not do
+        // it: the guard above only catches a list with rows ON SCREEN, which is exactly what a
+        // query matching nothing does not have.
+        //
+        // What it looked like: type something that matches nothing, and the sentence saying so was
+        // replaced by "reading the manager" and back again ONCE A SECOND, for as long as it stood
+        // there. `A10` reads the machine every second, and every one of those readings raised and
+        // lowered this flag.
+        //
+        // `everything` is what tells the two apart - it is how many entries this window has ever
+        // seen, so a reading with entries already behind it is a refresh rather than the first
+        // look. Nothing else here can distinguish them.
+        if (reading && everything == 0)
         {
             return Say(ListFace.Loading, Texts.Of("gui.empty.loading"), string.Empty);
         }

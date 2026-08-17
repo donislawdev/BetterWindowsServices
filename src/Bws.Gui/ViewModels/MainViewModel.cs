@@ -57,7 +57,8 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private Query _query = QueryParser.Parse(null).Query!;
 
-    private string _queryText = string.Empty;
+    /// <summary>What the box says before anybody types - <see cref="FilterChips.OpeningQuery"/>.</summary>
+    private string _queryText = FilterChips.OpeningQuery;
 
     /// <summary>
     /// The controls standing for members of the query. Declared after the text they read,
@@ -140,26 +141,14 @@ public sealed class MainViewModel : Observable
     }
 
     /// <summary>
-    /// The row the person has chosen, or nothing.
+    /// The entry the window is looking at, and everything it says about that one entry.
     ///
-    /// <b>Handed in at the moment it is needed rather than bound to the list, and that is a
-    /// repair.</b> It was a two way binding on SelectedItem for one afternoon, and the window
-    /// journey turned flaky inside it - passages reporting a grid that disagreed with its own
-    /// count line, with the window saying it was holding still. A binding into a list that
-    /// reconciles itself once a second is another party in the middle of `A10`, and nothing here
-    /// needs it: the selection is only ever read when somebody asks for a copy.
-    ///
-    /// What it is for is that <b>every question about the chosen entry has an answer that can be
-    /// checked without opening a window</b> - which is why the two below live here rather than in
-    /// the handler that copies them.
+    /// <b>Its own object since 2026-08-13, and the size ratchet is what asked.</b> This class stood
+    /// at exactly five hundred lines with every allowance for a long file spent, so the details
+    /// panel could not add a property here - and the seam that found is real: this class is about
+    /// the LIST, and none of the questions about one chosen row are.
     /// </summary>
-    public EntryRow? Selected { get; set; }
-
-    /// <summary>What a copy of the name would put on the clipboard, or nothing when no row is chosen.</summary>
-    public string? SelectedServiceName => Selected?.ServiceName;
-
-    /// <summary>The same for the display name, which is the one a person recognises.</summary>
-    public string? SelectedDisplayName => Selected?.DisplayName;
+    public Chosen Chosen { get; } = new();
 
     /// <summary>
     /// The next entry beginning with a character, after the one chosen now. Backlog 151.
@@ -167,7 +156,7 @@ public sealed class MainViewModel : Observable
     /// One line, because the search belongs to the collection and only the selection belongs here.
     /// <see cref="RowList.NextStartingWith"/> carries the reasoning.
     /// </summary>
-    public EntryRow? NextStartingWith(char letter) => RowList.NextStartingWith(Rows, Selected, letter);
+    public EntryRow? NextStartingWith(char letter) => RowList.NextStartingWith(Rows, Chosen.Row, letter);
 
     /// <summary>
     /// Empties the query, which is what Escape asks for - `docs/11` 9.1.
@@ -212,6 +201,9 @@ public sealed class MainViewModel : Observable
 
     /// <summary>Questions somebody can start from, each one a query they can then edit.</summary>
     public IReadOnlyList<QueryExample> Examples => QueryExamples.All;
+
+    /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
+    public string SearchTip => QueryExamples.Tip(Examples);
 
     /// <inheritdoc cref="FilterBar.ShowDrivers"/>
     public bool ShowDrivers
@@ -463,6 +455,13 @@ public sealed class MainViewModel : Observable
         _query = parsed.Query!;
 
         var everything = _index.Ordered;
+
+        // AGAINST THE WHOLE LISTING RATHER THAN AGAINST WHAT THE QUERY LEFT, which is why it is
+        // asked here and not after the narrowing. A row leaves the visible list on almost every
+        // keystroke, and an open panel calling that "this entry is gone" would be the window being
+        // confidently wrong about a service that is running.
+        Chosen.StillIn(everything);
+
         var narrowed = Narrowing.Of(_query, everything);
 
         Show(narrowed.Selected);

@@ -239,6 +239,69 @@ public sealed class FilterChipTests
     }
 
     /// <summary>
+    /// EVERY CHIP OF ONE FIELD STAYS LIT WHEN THE NEXT ONE IS CLICKED - owner's report, 2026-08-13.
+    ///
+    /// <b>The case no test had, and the one a person reaches for first.</b> The tests above click
+    /// two chips of DIFFERENT fields, which the query ANDs - so nothing here ever asked what happens
+    /// when three chips of one field are on at once, which is the thing the whole grouping of this
+    /// row is about: <see cref="FilterGroup.AddsUp"/> promises that a group adds up, and a row where
+    /// only the last click shows is that promise visibly broken.
+    ///
+    /// Both halves are claimed, because they can fail apart: the TEXT has to carry all three, and
+    /// every chip has to READ itself out of it. Measured against the machine first - start:manual is
+    /// 566 entries, start:disabled 50, start:boot 54, and all three together 670, which is their
+    /// sum - so the language was never the part in doubt.
+    /// </summary>
+    [Fact]
+    public async Task Every_chip_of_one_field_stays_lit_when_the_next_one_is_clicked()
+    {
+        var model = await Loaded();
+
+        var manual = Chip(model, "start", "manual");
+        var disabled = Chip(model, "start", "disabled");
+        var boot = Chip(model, "start", "boot");
+
+        manual.IsOn = true;
+        disabled.IsOn = true;
+        boot.IsOn = true;
+
+        Assert.Equal("start:manual start:disabled start:boot", model.QueryText);
+
+        // One assertion over all three, because which of them went out is the whole diagnosis and
+        // three separate ones report only the first to fail.
+        Assert.Equal(
+            "manual=True disabled=True boot=True",
+            $"manual={manual.IsOn} disabled={disabled.IsOn} boot={boot.IsOn}");
+    }
+
+    /// <summary>
+    /// The same for the state facet, and in the opposite click order.
+    ///
+    /// <b>Order is asserted because a person clicks in whatever order they think in.</b> A row that
+    /// only worked left to right would pass the test above and fail in front of somebody.
+    /// </summary>
+    [Fact]
+    public async Task Turning_one_chip_of_a_group_off_leaves_the_others_lit()
+    {
+        var model = await Loaded();
+
+        var paused = Chip(model, "status", "paused");
+        var stopped = Chip(model, "status", "stopped");
+
+        paused.IsOn = true;
+        stopped.IsOn = true;
+
+        Assert.True(paused.IsOn);
+        Assert.True(stopped.IsOn);
+
+        paused.IsOn = false;
+
+        Assert.False(paused.IsOn);
+        Assert.True(stopped.IsOn, "Turning one chip of a group off took another one with it.");
+        Assert.Equal("status:stopped", model.QueryText);
+    }
+
+    /// <summary>
     /// The named switch of `A7` and the chip of `A5` are one control, so they cannot disagree.
     /// Without this they are two views over one member that nothing holds together.
     /// </summary>
@@ -275,6 +338,33 @@ public sealed class FilterChipTests
         Assert.Equal("!type:driver", model.Filters.Single(chip => chip.Negated).Member);
     }
 
+    /// <summary>
+    /// THE WINDOW OPENS WITH KERNEL DRIVERS HIDDEN - owner's decision, 2026-08-13, because
+    /// <c>services.msc</c> does and that is the tool people will compare this against.
+    ///
+    /// <b>The whole of the decision is that it is a MEMBER OF THE QUERY rather than a hidden
+    /// default</b>, so all three halves are asserted here: the box says it, the chip is lit, and one
+    /// Escape gives the machine back. A default that did not appear in the box would be a filter
+    /// nothing on screen admits to, which is rule 8 broken by the first thing a person sees.
+    /// </summary>
+    [Fact]
+    public async Task The_window_opens_with_kernel_drivers_hidden()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("beep")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        Assert.Equal("!type:driver", model.QueryText);
+        Assert.False(model.ShowDrivers);
+        Assert.Single(model.Rows);
+
+        Assert.True(model.ClearQuery());
+
+        Assert.True(model.ShowDrivers);
+        Assert.Equal(2, model.Rows.Count);
+    }
+
     /// <summary>Every chip says something a person can read, from the language file.</summary>
     [Fact]
     public async Task Every_chip_has_a_label_that_is_not_its_key()
@@ -291,12 +381,26 @@ public sealed class FilterChipTests
     private static FilterChip Chip(MainViewModel model, string field, string value) =>
         model.Filters.Single(chip => chip.Field == field && chip.Value == value && !chip.Negated);
 
+    /// <summary>
+    /// A window that has read a small machine, with the box emptied.
+    ///
+    /// <b>Emptied on purpose, since 2026-08-13.</b> The window now opens with kernel drivers hidden -
+    /// <see cref="FilterChips.OpeningQuery"/>, owner's decision - and every test in this file is
+    /// about what a CLICK does, not about what the window opens with. Leaving the opening member in
+    /// the box would make each of them assert two things at once and report the wrong one first.
+    ///
+    /// <b>That the window opens with it is asserted once, on its own</b>, in
+    /// <see cref="The_window_opens_with_kernel_drivers_hidden"/> - which is where a change to that
+    /// decision should go red, rather than in fourteen tests about something else.
+    /// </summary>
     private static async Task<MainViewModel> Loaded()
     {
         var model = new MainViewModel(
             new LiveMachine(Rows.Entry("Spooler"), Rows.Entry("Winmgmt")), new SteppedClock());
 
         await model.LoadAsync();
+
+        model.ClearQuery();
 
         return model;
     }

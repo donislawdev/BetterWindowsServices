@@ -35,6 +35,24 @@ internal static class WpfHost
     /// <summary>Runs something on the interface thread.</summary>
     internal static void On(Action work) => Thread.Value.Invoke(work);
 
+    /// <summary>
+    /// Waits until bindings and triggers have caught up, before anything asks what the window shows.
+    ///
+    /// <b>Because a property somebody sets and a property WPF then works out are not the same
+    /// moment.</b> A trigger hanging off a binding is re-evaluated by the dispatcher at a lower
+    /// priority than the code that changed the source - so reading the result immediately gets the
+    /// value from before, and only when the machine is busy enough to make the gap visible.
+    ///
+    /// <b>Found the hard way, twice, on 2026-08-13:</b> a guard over the details panel passed on
+    /// its own, passed with its whole project, and failed in a full solution run - which is the
+    /// worst shape a test can have, because it looks like a regression somewhere else.
+    ///
+    /// ContextIdle rather than Background: it is below every priority WPF uses for binding and
+    /// layout, so an empty callback at that level cannot run until they have.
+    /// </summary>
+    internal static void Settled() =>
+        Thread.Value.Invoke(() => { }, DispatcherPriority.ContextIdle);
+
     /// <summary>Everything the window merges, in the order it merges it.</summary>
     internal static ResourceDictionary Resources => Merged.Value;
 

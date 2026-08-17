@@ -259,11 +259,22 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
             "against the 50 ms in section 8.1 of the specification.");
     }
 
+    /// <summary>
+    /// A window that has read the real machine, with the box emptied.
+    ///
+    /// <b>Emptied since 2026-08-13, and it matters more here than anywhere else.</b> The window now
+    /// opens with kernel drivers hidden - owner's decision - and these tests compare what the WINDOW
+    /// selects against what the TERMINAL selects for the same text. A window carrying an opening
+    /// member the terminal was never given is a window answering a different question, and the
+    /// comparison would be between two different queries while looking like a parity failure.
+    /// </summary>
     private static async Task<MainViewModel> Load()
     {
         var model = new MainViewModel(new WindowsScmCatalog(), new SystemClock());
 
         await model.LoadAsync();
+
+        model.ClearQuery();
 
         Assert.NotEmpty(model.Rows);
 

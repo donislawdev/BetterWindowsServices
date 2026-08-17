@@ -33,6 +33,9 @@
   "gui.columns.group.advanced": "Advanced",
   "gui.columns.hint": "Choose what the list shows. Drag a heading to move a column and its edge to resize. What you choose is kept, so the list opens the way you left it.",
 
+  "gui.details.close": "Close",
+  "gui.details.close.hint": "Close the panel. Escape does the same, and clears the query when there is no panel.",
+  "gui.details.gone": "This entry is no longer in the listing, so what is below is the last thing this window read about it.",
   "gui.details.group.notRead": "Not read by this window",
   "gui.details.notRead": "Not read",
   "gui.details.notRead.why": "These four are read by a second pass this window does not have, so nobody looked. The command line reads them with bws list --signatures and --memory.",
@@ -51,8 +54,9 @@
   "gui.layout.noProfile": "Windows names no application data folder for this account, so there is nowhere to keep the layout.",
 
   "gui.search.hint": "Search services and drivers",
-  "gui.examples.button": "Examples",
-  "gui.examples.hint": "Questions to start from. Each one writes a query into the box, which you can then read and edit.",
+  "gui.search.tip.what": "Type a word to search, or write a query: a field, a colon and a value. Put ! in front of a member to exclude it, and give a field twice to mean either.",
+  "gui.search.tip.regex": "Between slashes it is a regular expression, so /^win.*svc$/ finds names that begin with win and end in svc.",
+  "gui.search.tip.examples": "Questions to start from:",
   "gui.example.shouldBeRunning": "Set to start and not running",
   "gui.example.servicesOnly": "Services only, no drivers",
   "gui.example.disabledButRunning": "Switched off and running anyway",
@@ -91,6 +95,8 @@
 
   "gui.menu.copyName": "Copy name",
   "gui.menu.copyDisplayName": "Copy display name",
+  "gui.menu.copyDescription": "Copy description",
+  "gui.menu.copyAll": "Copy everything",
 
   "gui.start.mark.missing": "The file this entry is set to launch is not on disk.",
   "gui.start.mark.disabled": "Disabled. It will not start, by itself or on request.",

@@ -1,0 +1,223 @@
+<UserControl x:Class="Bws.Gui.DetailsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False"
+             Grid.IsSharedSizeScope="True"
+             Width="380">
+
+    <!--
+        EVERYTHING THIS WINDOW KNOWS ABOUT ONE ENTRY - the second half of `S7`, built 2026-08-13.
+
+        A UserControl RATHER THAN A TEMPLATE IN THE THEME, AND THAT IS A DECISION ABOUT WHAT KIND OF
+        THING THIS IS. The theme files hold the LOOK OF A CONTROL - a chip, a cell, a heading. This is
+        a PART OF THE WINDOW, like the list and the row of filters, and a part of the window with its
+        own file is what a UserControl is for. It also gets what a template cannot: a code-behind
+        class, so the close button needs no lookup by name.
+
+        It carries its own budget under the same markup ceiling as every other file here, which is
+        the whole reason backlog 183 does not need answering - the panel asked for no room in
+        Controls.xaml, because it declares no style of its own. Every face below is one the window
+        already had.
+
+        WIDTH IS A NUMBER WRITTEN HERE AND THAT IS THE ONE DEVIATION, SAID RATHER THAN HIDDEN.
+        `ADR-23` wants appearance values named in Themes/Values.xaml, and that file stands EXACTLY on
+        the markup ceiling, which may only ever go down - so there is nowhere to put a name today.
+        `Width` is not among the attributes AppearanceGuards polices, and this window already carries
+        its own size the same way for the same kind of reason, so no guard is being worked around.
+        It moves into the theme the day backlog 173 gives Values.xaml room.
+
+        Fixed rather than shared, because the content decides nothing useful: a description of 1251
+        characters and a security descriptor of several hundred would make a panel as wide as the
+        screen, and the list is what the window is for.
+
+        Focusable and IsTabStop are off because a ContentControl - which is what a UserControl is -
+        is BOTH BY DEFAULT, measured rather than assumed on 2026-08-13. Without them the panel is a
+        tab stop that does nothing, in front of the close button that does. `docs/10` trap 8.
+    -->
+
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <!--
+                CLOSED UNTIL SOMEBODY ASKS, and it collapses rather than hiding so the column it
+                sits in gives its width back to the list. The layout file of `S6d3` deliberately
+                does not remember whether it was open - that would be a change to a schema frozen
+                the day before, and the panel is one key press away.
+            -->
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Showing}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+
+    <UserControl.Resources>
+        <!--
+            ONE FIELD: WHAT IT IS CALLED, AND WHAT THIS ENTRY SAYS IN IT.
+
+            The label column is shared across every section - Grid.IsSharedSizeScope above - so all
+            five sections line up in one column of labels rather than five columns that nearly do.
+            Auto rather than a number, so the widest heading decides and nothing is cut.
+
+            THE FIXED WIDTH FACE IS A TRIGGER RATHER THAN A SECOND TEMPLATE. A launch path and a
+            security descriptor are values where alignment carries meaning and two different things
+            must not be able to look the same - `docs/03` part 4, and the list already draws them
+            that way. Which fields those are is decided in the catalogue, not here.
+
+            BasedOn ON THE IMPLICIT STYLE, WHICH IS TRAP 4 OF `docs/10` OBEYED. An explicit style
+            REPLACES an implicit one rather than adding to it, so without this line these values
+            would come out in the framework's own face inside a Fluent window.
+        -->
+        <DataTemplate x:Key="DetailLineTemplate">
+            <Grid Margin="{StaticResource MarginBetweenControls}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="DetailLabel" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Label}"
+                           Margin="{StaticResource MarginBetweenControls}"
+                           Style="{StaticResource SubduedText}" />
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Value}"
+                           TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FixedWidth}" Value="True">
+                                    <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </DataTemplate>
+
+        <!--
+            ONE HEADED GROUP OF FIELDS. The headings are the column picker's own groups, decided
+            once in ViewModels/Columns.cs, so somebody who learned where a field lives while
+            choosing columns finds it in the same place while reading about an entry.
+
+            SECTIONS RATHER THAN TABS, and that is a deliberate departure from the word "tabbed" in
+            section B of the specification. At five sections with nothing to edit, one scroll is
+            read faster than tabs that hide four fifths of the answer. What will undo that is
+            events, history and recovery arriving - content nobody reads in one pass.
+
+            The note is empty on all but one of them, which is the ordinary case, so it takes no
+            room when there is nothing to say.
+        -->
+        <DataTemplate x:Key="DetailSectionTemplate">
+            <StackPanel Margin="{StaticResource MarginGroup}">
+                <TextBlock Text="{Binding Heading}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding Heading}"
+                           Style="{StaticResource HeadingText}" />
+
+                <TextBlock Text="{Binding Note}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginBetweenControls}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Note}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Lines}"
+                              ItemTemplate="{StaticResource DetailLineTemplate}" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="{StaticResource PadPanel}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--
+            BOTH NAMES, AND NEITHER STANDS ALONE - `ADR-14`. The display name reads as the heading
+            because it is the one somebody recognises, and the internal name is under it because it
+            is the one they will type into a command. Each gives way with an ellipsis and carries
+            the whole of itself in a tooltip, exactly as every cell in the list does.
+        -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="{Binding ShownLabel}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding ShownLabel}"
+                           Style="{StaticResource HeadingText}" />
+
+                <TextBlock Text="{Binding ShownName}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding ShownName}"
+                           Style="{StaticResource SubduedText}" />
+            </StackPanel>
+
+            <!--
+                A VISIBLE WAY OUT, not only a key. Escape closes this and the tooltip says so, but
+                a panel whose only exit is a key nobody was told about is the third of Nielsen's
+                heuristics broken - `docs/11` 9.2 names it as this product's weakest. It is also
+                the only thing in this panel the keyboard stops on, which is why the panel itself
+                is not a tab stop.
+            -->
+            <Button Grid.Column="1"
+                    AutomationProperties.AutomationId="detailsClose"
+                    Content="{DynamicResource gui.details.close}"
+                    ToolTip="{DynamicResource gui.details.close.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    VerticalAlignment="Top"
+                    Click="CloseRequested" />
+        </Grid>
+
+        <!--
+            THE ENTRY LEFT THE MACHINE WHILE THIS WAS OPEN, and rule 8 is why this line exists: a
+            panel that carried on showing the last reading would answer questions about a service
+            that is not there. It says the values below are the last thing read rather than blanking
+            them, because what was read is still the most useful thing anybody has.
+        -->
+        <TextBlock Grid.Row="1"
+                   AutomationProperties.AutomationId="detailsNotice"
+                   Text="{Binding Notice}"
+                   TextWrapping="Wrap"
+                   Margin="{StaticResource MarginAboveStatus}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Notice}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <!--
+            Scrolls vertically and never sideways. A value too long for the width wraps, because
+            this panel is the place a person comes to READ a description of 1251 characters - the
+            cell it came from is the place that trims.
+        -->
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl AutomationProperties.AutomationId="detailSections"
+                          ItemsSource="{Binding Sections}"
+                          ItemTemplate="{StaticResource DetailSectionTemplate}" />
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -175,6 +175,19 @@ public static class QueryParser
     /// match anything, and ticking two boxes is the most ordinary thing a person does. So
     /// the rule is forced by the promise that clicking filters writes a query, not chosen
     /// for elegance.
+    ///
+    /// <b>BOTH HALVES OF A TERM ARE FOLDED, AND CARRYING ONLY THE FIRST WAS A REAL DEFECT -
+    /// owner's report, 2026-08-13.</b> A term holds what it MATCHES and what it was WRITTEN as,
+    /// and they answer different questions: the values decide which entries come back, the
+    /// spellings decide which chip in the window is lit. Folding the values and dropping the
+    /// spellings gave a query that filtered on all three start types and admitted to exactly one -
+    /// so clicking Manual, then Disabled, then Boot left a single chip lit over a list that was
+    /// correctly showing all three.
+    ///
+    /// <b>It was invisible from every direction but that one.</b> The list was right, the count was
+    /// right, the command line was right, and the parity guard between them agreed - because all of
+    /// those read the values. Only <see cref="Query.Carries"/> reads the spellings, and only the
+    /// chips ask it.
     /// </summary>
     private static List<QueryTerm> Fold(List<QueryTerm> terms)
     {
@@ -195,7 +208,8 @@ public static class QueryParser
             {
                 folded[position] = folded[position] with
                 {
-                    Values = [.. folded[position].Values, .. term.Values]
+                    Values = [.. folded[position].Values, .. term.Values],
+                    Written = [.. folded[position].Written, .. term.Written]
                 };
 
                 continue;

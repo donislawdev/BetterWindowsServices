@@ -207,8 +207,24 @@ public sealed class Says : Observable
     /// </summary>
     internal void AboutTheList(bool reading, bool failed, int shown, int everything)
     {
-        _list = ListState.Of(reading, failed, shown, everything);
-        _narrowed = shown != everything;
+        var list = ListState.Of(reading, failed, shown, everything);
+        var narrowed = shown != everything;
+
+        // SAID ONLY WHEN IT MOVED, SINCE 2026-08-13. This runs on every keystroke and on every
+        // tick, which is once a second for as long as the window is open - so an unconditional
+        // announcement is three bindings re-read about eighty thousand times an hour to be told
+        // nothing changed. A record struct compares by value, so this costs one comparison.
+        //
+        // It is not only waste: WPF re-evaluates the triggers hanging off these, and a person
+        // watching a sentence that is being reassigned every second is the complaint this went in
+        // with.
+        if (_list == list && _narrowed == narrowed)
+        {
+            return;
+        }
+
+        _list = list;
+        _narrowed = narrowed;
 
         Raise(nameof(ListMessage));
         Raise(nameof(ListWayOut));

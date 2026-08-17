@@ -1,6 +1,7 @@
 <Window x:Class="Bws.Gui.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Bws.Gui"
         Title="{DynamicResource gui.window.title}"
         Background="{DynamicResource ApplicationBackgroundBrush}"
         UseLayoutRounding="True"
@@ -55,6 +56,17 @@
         </Grid.RowDefinitions>
 
         <!--
+            TWO COLUMNS SINCE 2026-08-13, and only the list row is divided. The question, the
+            filters and what the window admits about the answer are about the whole listing, so
+            they span both - the panel is about ONE entry and stands beside the rows rather than
+            beside the search box. Auto, so a closed panel costs nothing at all.
+        -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!--
             One field for all three of A1, A2 and A3, which is the point rather than a saving:
             a person types a word, learns one operator, and never moves to a different box.
             The same text handed to the query switch of bws list picks the same entries.
@@ -62,7 +74,7 @@
             Both switches sit beside it because both are about how the text is read, and one
             of them writes into it.
         -->
-        <Grid Grid.Row="0" Margin="{StaticResource MarginBelowSearch}">
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="{StaticResource MarginBelowSearch}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -70,31 +82,29 @@
             </Grid.ColumnDefinitions>
 
             <!--
-                THE SYNTAX MOVED OUT OF THE PLACEHOLDER HERE, 2026-08-12 - it vanished at the first
-                keystroke and took the only sign of the query language with it. What replaced it,
-                and why these six questions, is argued in QueryExamples.cs.
-            -->
-            <Button Grid.Column="1"
-                    x:Name="ExamplesButton"
-                    AutomationProperties.AutomationId="examplesButton"
-                    Content="{DynamicResource gui.examples.button}"
-                    ToolTip="{DynamicResource gui.examples.hint}"
-                    Margin="{StaticResource MarginBetweenControls}"
-                    Click="ShowExamples">
-                <Button.ContextMenu>
-                    <ContextMenu ItemContainerStyle="{StaticResource QueryExampleItem}"
-                                 MaxHeight="{StaticResource HeightMenu}"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
-                </Button.ContextMenu>
-            </Button>
+                THE SYNTAX LEFT THE PLACEHOLDER ON 2026-08-12 AND THE BUTTON THAT TOOK IT LEFT ON
+                2026-08-13 - owner's decision. It was called "Examples" and it was one click away
+                from the box those examples go into, which is one click too many for the thing this
+                window is best at. `docs/11` section 6: the language has to be discoverable from the
+                field it is typed into.
 
+                It is all in the tooltip below now, composed in QueryExamples.cs - which also argues
+                why a composed string rather than a panel of controls.
+            -->
             <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
                 <!--
                     Updated on every keystroke rather than when the field loses focus. The
                     filtering is the feature, and a list that waits for Tab is a list that
                     does not filter as you type.
+
+                    THE TOOLTIP IS THE ONLY PLACE THE QUERY LANGUAGE IS EXPLAINED, so it carries
+                    what can be typed, the one piece of syntax nobody guesses - a regular expression
+                    between slashes - and six questions to start from. Bound on the BOX rather than
+                    inside the tooltip: a tooltip hangs off a Popup, which is not in the visual tree,
+                    and what a Popup inherits is a question this window has already paid to learn.
                 -->
                 <TextBox x:Name="QueryBox"
+                         ToolTip="{Binding SearchTip}"
                          Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}" />
 
                 <!--
@@ -152,115 +162,22 @@
         </Grid>
 
         <!--
-            THE CLICKABLE FILTERS, A5. Each one stands for one member of the query, and clicking
-            it writes that member into the box above - which is the promise: the filter you
-            clicked is a query you can read, edit and learn from. The tooltip shows the member
-            before the click rather than after, so the box is not the only place it appears.
+            HOW THE WINDOW ASKS, in its own file since 2026-08-13 - backlog 182 for the seam and 185
+            for the shape. What it holds and why is argued at the head of FilterRow.xaml.
 
-            AN ItemsControl RATHER THAN EIGHT CONTROLS WRITTEN OUT. The chips are data - which
-            ones there are is decided in FilterChips.cs, where the reason for each is written
-            beside it - and markup listing them again would be a second copy that drifts. It
-            also means the row that account and signature chips will join is already built.
+            THE SEAM IS A SUBJECT AND NOT A LINE COUNT: this row is how the window ASKS, and the
+            rest of this file is what the window IS. The detail panel of `S7` needed room under the
+            markup ceiling, and this was the block that was already about something else.
 
-            WrapPanel, so a narrow window stacks them instead of clipping them. The count line
-            beside the search box is the only thing in this window allowed to be cut, because it
-            carries a message of the system's own length.
-
-            NO STYLE OF OUR OWN, AND THAT IS MEASURED RATHER THAN LAZY. Themes/Controls.xaml
-            stood exactly on its 530-line ceiling on the day this was written, so a chip style
-            there would have forced a second split of the theme inside one session. WPF UI
-            already styles ToggleButton, and the only thing ours needed was the gap between
-            them. If these turn out to need a look of their own, that is a slice with a seam in
-            front of it rather than four lines squeezed in.
+            A UserControl, exactly like the panel below - ONE mechanism for "a part of the window in
+            its own file" rather than two. It spent a day as a style carrying a template in the
+            theme, which cost a lookup by name, a refusal and a handler in the window for one
+            button.
         -->
-        <!--
-            THE TWO AutomationId VALUES BELOW ARE ON THE CONTROLS, NOT ON THIS GRID, AND THAT IS
-            A MEASURED CORRECTION. An id was put on the Grid first, and automation never saw it:
-            WPF builds a peer for controls, not for layout panels, so the identifier sat on an
-            element that is not in the tree at all. tools/window-journey needs to tell the labels
-            of controls apart from the sentences the window says about the answer, and it does
-            that by identity rather than by where things sit - the same lesson that file has now
-            learnt three times.
-        -->
-        <Grid Grid.Row="1" Margin="{StaticResource MarginBelowSearch}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <!--
-                THE GROUP LABEL COMPLAINT 7 ASKED FOR, and it waited here on purpose. docs/11
-                closed that complaint in half on 2026-08-05 and said the other half - a label
-                over the controls - was deliberately not built, because A5 was going to arrive
-                and rewrite the row. It has, so the label arrives with the row it labels rather
-                than being invented twice.
-
-                The hint is the tooltip rather than a second line, because the sentence explains
-                a mechanism somebody discovers by clicking once - it is worth having and not
-                worth a line of a window whose job is 810 rows.
-            -->
-        <!--
-            THREE GROUPS SINCE 2026-08-12. Why these three and what each one may contain is decided
-            in FilterChips.cs, with the measurement that settled the boundary - it is not repeated
-            here. The single "Filters" label is gone: it named the row rather than any question in
-            it.
-
-            THE LABELS LIVE INSIDE THE CHIPS CONTAINER ON PURPOSE. tools/window-journey tells the
-            labels of controls apart from the sentences the window says about the answer, and it
-            does that by asking whether the chips' ItemsControl is an ancestor. A label outside it
-            would arrive as one of the window's sentences.
-        -->
-        <ItemsControl Grid.Column="1"
-                      AutomationProperties.AutomationId="filterChips"
-                      ItemsSource="{Binding FilterGroups}"
-                      ItemTemplate="{StaticResource FilterGroupTemplate}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-        </ItemsControl>
-
-            <!--
-                WHICH COLUMNS THE LIST SHOWS, `A8`. A VISIBLE CONTROL RATHER THAN A MENU HIDDEN
-                UNDER THE COLUMN HEADINGS, and that is `docs/11` rather than taste: section 6 grades
-                "recognition rather than recall" as one of this window's two weakest heuristics, and
-                a feature reachable only by right clicking something is a feature you have to
-                already know about. The filters made the same choice one slice earlier - complaint 7
-                was closed with a visible row and a group label, not with a menu.
-
-                The list ITSELF is a menu, which is the opposite decision and is about surface
-                rather than discoverability: a panel of our own would need a fill, an edge and both
-                of their contrast ratios argued, for a thing somebody opens a few times. The theme
-                already dresses a menu and this window already uses one to copy a name.
-
-                It sits at the end of the filters row rather than beside the search box, because
-                what it changes is the list rather than the question - and the count line, which
-                answers the question, already owns the right-hand end of the row above.
-
-                Its own AutomationId, because tools/window-journey tells the labels of controls
-                apart from the sentences the window says about the answer, and it does that by
-                identity. This is the fourth time that lesson has been paid for in this file.
-            -->
-            <Button Grid.Column="2"
-                    x:Name="ColumnsButton"
-                    AutomationProperties.AutomationId="columnsButton"
-                    Content="{DynamicResource gui.columns.button}"
-                    ToolTip="{DynamicResource gui.columns.hint}"
-                    Click="ChooseColumns">
-                <Button.ContextMenu>
-                    <!--
-                        A CEILING AND A SCROLLBAR, because seventeen items is taller than a short
-                        screen and a menu that runs off the bottom loses the last of them with
-                        nothing saying so. The headings come from a grouped view built in the
-                        window - see the constructor.
-                    -->
-                    <ContextMenu MaxHeight="{StaticResource HeightMenu}"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
-                </Button.ContextMenu>
-            </Button>
-        </Grid>
+        <local:FilterRow Grid.Row="1"
+                         Grid.ColumnSpan="2"
+                         x:Name="Filters"
+                         Margin="{StaticResource MarginBelowSearch}" />
 
         <!--
             Read only, and it stays that way. Every change to a service goes through a plan,
@@ -329,6 +246,16 @@
                 <ContextMenu>
                     <MenuItem Header="{DynamicResource gui.menu.copyName}" Click="CopyServiceName" />
                     <MenuItem Header="{DynamicResource gui.menu.copyDisplayName}" Click="CopyDisplayName" />
+                    <MenuItem Header="{DynamicResource gui.menu.copyDescription}" Click="CopyDescription" />
+
+                    <!--
+                        THE WHOLE ENTRY, AND IT IS WHAT Ctrl+C DOES TOO - owner's request,
+                        2026-08-13. Everything the catalogue knows rather than the columns that
+                        happen to be on, because somebody copying an entry into a ticket wants what
+                        there is to know and the twelve columns that are off by default are exactly
+                        the ones too long to have kept on screen.
+                    -->
+                    <MenuItem Header="{DynamicResource gui.menu.copyAll}" Click="CopyEverything" />
                 </ContextMenu>
             </DataGrid.ContextMenu>
 
@@ -395,11 +322,29 @@
         </StackPanel>
 
         <!--
+            EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
+            Escape - which is the last of the three keys `docs/11` 9.1 asked for on 2026-08-05 and
+            the one that waited for a screen to open, backlog 59.
+
+            Beside the list rather than under it, because the list is what the window is for and a
+            panel across the bottom would take rows away from every window height. Its own file,
+            because it is a part of the window rather than the look of a control - the reasoning is
+            at the head of DetailsView.xaml.
+
+            Bound to the chosen entry rather than to the whole model, so nothing in the panel can
+            reach the list, the query or the reading. What it may say is exactly what Chosen holds.
+        -->
+        <local:DetailsView Grid.Row="2"
+                           Grid.Column="1"
+                           x:Name="DetailsPanel"
+                           DataContext="{Binding Chosen}" />
+
+        <!--
             Two lines now, and never more than two. The count moved up beside the box it answers
             - complaint 8 - and what is left here is what a result has to ADMIT about itself and
             what is wrong with the question, which are two different things and stay apart.
         -->
-        <StackPanel Grid.Row="3" Margin="{StaticResource MarginAboveStatus}">
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
 
             <TextBlock Text="{Binding Says.Notice}" TextWrapping="Wrap">
                 <TextBlock.Style>

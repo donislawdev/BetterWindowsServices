@@ -43,6 +43,17 @@ public partial class MainWindow : Window
     /// <summary>Whether the last right click landed on a row. Read by the menu, set by the click.</summary>
     private bool _pointedAtARow;
 
+    /// <summary>
+    /// The button that opens the list of columns, which belongs to the row of filters.
+    ///
+    /// <b>A field again since 2026-08-13, and losing this line was what the theme cost.</b> While
+    /// the filters row was a style carrying a template, this button had to be found by name at
+    /// construction and refused with an exception when the part was missing - because a theme file
+    /// has no code-behind class. Backlog 185 chose the UserControl instead, so the button is a
+    /// field on the control that owns it and this is one line of forwarding.
+    /// </summary>
+    internal Button ColumnsButton => Filters.Picker;
+
     public MainWindow()
         : this(new PreferencesFile())
     {
@@ -97,26 +108,10 @@ public partial class MainWindow : Window
             menu.ItemContainerStyleSelector = new ColumnEntryStyles();
         }
 
-        // THE EXAMPLES, AND THE CLICK IS TAKEN ON THE MENU RATHER THAN ON EACH ITEM. A theme file
-        // has no code-behind class, so an EventSetter in the item style is not available - and one
-        // handler over the whole list is the better shape anyway: adding a seventh example needs no
-        // wiring at all.
-        if (ExamplesButton.ContextMenu is { } examples)
-        {
-            examples.ItemsSource = _model.Examples;
-
-            examples.AddHandler(MenuItem.ClickEvent, new RoutedEventHandler((_, clicked) =>
-            {
-                if ((clicked.OriginalSource as MenuItem)?.DataContext is ViewModels.QueryExample example)
-                {
-                    // Into the box rather than into the filter, so what happens next is a query the
-                    // person can read, edit and learn from - the same promise a chip makes.
-                    _model.QueryText = example.Query;
-                    QueryBox.Focus();
-                    QueryBox.CaretIndex = QueryBox.Text.Length;
-                }
-            }));
-        }
+        // THE EXAMPLES MENU AND ITS BUTTON WENT ON 2026-08-13, owner's decision, and there is
+        // nothing to wire in their place: the six questions are in the search box's tooltip now,
+        // composed as one string in QueryExamples.cs. A tooltip bound on the box needs no handler,
+        // no ItemsSource handed over and no Popup to reason about.
 
         // On the interface thread by design. The tick itself does nothing but start a reading
         // that runs elsewhere, and having it arrive here means nothing from a worker thread
@@ -179,8 +174,30 @@ public partial class MainWindow : Window
 
         if (!e.Handled)
         {
-            e.Handled = await Act(Shortcuts.For(e.Key, e.KeyboardDevice.Modifiers)).ConfigureAwait(true);
+            e.Handled = await Act(Wanted(e.Key, e.KeyboardDevice.Modifiers)).ConfigureAwait(true);
         }
+    }
+
+    /// <summary>
+    /// What a press means here, which is what it means anywhere except for the one key that
+    /// belongs to the list.
+    ///
+    /// <b>The focus question is asked here rather than in <see cref="Shortcuts"/>, on purpose.</b>
+    /// That class says it is deliberately ignorant of state, and where the keyboard is happens to
+    /// be the one piece of state only a window can answer - the same split, and the same reason,
+    /// as the letter that jumps to an entry.
+    ///
+    /// <b>Enter belongs to the list.</b> A preview handler sees the press before the query box
+    /// does, so taking it unconditionally would mean somebody finishing a query gets a panel about
+    /// whatever row happened to be selected - which is a window answering a question nobody asked.
+    /// </summary>
+    private Shortcut Wanted(Key key, ModifierKeys modifiers)
+    {
+        var wanted = Shortcuts.For(key, modifiers);
+
+        var theListPress = wanted is Shortcut.OpenDetails or Shortcut.CopyRow;
+
+        return theListPress && !Entries.IsKeyboardFocusWithin ? Shortcut.None : wanted;
     }
 
     /// <summary>
@@ -286,8 +303,25 @@ public partial class MainWindow : Window
 
                 return true;
 
-            case Shortcut.ClearQuery:
-                return _model.ClearQuery();
+            case Shortcut.OpenDetails:
+                // The grid's own selection rather than the model's, because the model is only told
+                // at the moment somebody asks for something - see Copy, and the repair its comment
+                // describes. This is that moment.
+                _model.Chosen.Row = Entries.SelectedItem as EntryRow;
+
+                return _model.Chosen.Show();
+
+            case Shortcut.CopyRow:
+                // The same thing the menu's last item does, because two ways to one answer that
+                // are written twice are two answers waiting to disagree.
+                return Copy(model => model.Chosen.Everything);
+
+            case Shortcut.Back:
+                // THE PANEL FIRST, THE QUERY SECOND, and the order is the decision rather than the
+                // implementation - `docs/04` at Paczka 1. One press doing both at once takes
+                // somebody's query away while they were reaching for the panel, and a query is the
+                // more expensive of the two to type again.
+                return _model.Chosen.Hide() || _model.ClearQuery();
 
             default:
                 return false;
@@ -338,61 +372,24 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ChooseColumns(object sender, RoutedEventArgs e) => OpenColumns();
-
     /// <summary>
-    /// Opens the list of columns under the button that asks for it.
+    /// The one menu this window opens under a button: which columns the list shows.
     ///
-    /// <b>A context menu opened by a left click, which is unusual and is the point.</b> The menu
-    /// is the surface - already themed, already used by this window - and the button is the
-    /// discoverability, because a column chooser hidden behind a right click on a heading is one
-    /// nobody finds. Placed under the button rather than at the pointer, so it reads as belonging
-    /// to it rather than as a menu about whatever was clicked.
-    ///
-    /// <b>Apart from the handler for the same reason <see cref="Act"/> is</b> - a handler the
-    /// framework calls is reachable only by clicking, and what this does is worth asserting: a
-    /// button that opens nothing looks exactly like a feature that is not there.
+    /// <b>Apart from its handler for the same reason <see cref="Act"/> is</b> - a handler the
+    /// framework calls is reachable only by clicking, and what it does is worth asserting. How a
+    /// menu opens under a button lives in <see cref="ButtonMenu"/>, which is where it went while
+    /// there were two of these and the reasoning was written twice. The second was the examples
+    /// button, and it went on 2026-08-13 - its six questions are in the search box's tooltip now.
     /// </summary>
-    internal bool OpenColumns()
-    {
-        if (ColumnsButton.ContextMenu is not { } menu)
-        {
-            return false;
-        }
+    internal bool OpenColumns() => Filters.OpenColumns();
 
-        menu.PlacementTarget = ColumnsButton;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.IsOpen = true;
+    private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.ServiceName);
 
-        return true;
-    }
+    private void CopyDisplayName(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.DisplayName);
 
-    private void ShowExamples(object sender, RoutedEventArgs e) => OpenExamples();
+    private void CopyDescription(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.Description);
 
-    /// <summary>
-    /// Opens the list of example queries under the button that asks for it.
-    ///
-    /// The same arrangement as <see cref="OpenColumns"/>, and apart from its handler for the same
-    /// reason: a button that opens nothing looks exactly like a feature that is not there, and a
-    /// handler the framework calls can only be reached by clicking.
-    /// </summary>
-    internal bool OpenExamples()
-    {
-        if (ExamplesButton.ContextMenu is not { } menu)
-        {
-            return false;
-        }
-
-        menu.PlacementTarget = ExamplesButton;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.IsOpen = true;
-
-        return true;
-    }
-
-    private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(model => model.SelectedServiceName);
-
-    private void CopyDisplayName(object sender, RoutedEventArgs e) => Copy(model => model.SelectedDisplayName);
+    private void CopyEverything(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.Everything);
 
     /// <summary>
     /// Puts one field of the chosen row on the clipboard, or says why it could not.
@@ -411,14 +408,18 @@ public partial class MainWindow : Window
     /// service.
     ///
     /// Which row and which field is decided by the view model, where it can be checked.
+    ///
+    /// <b>It answers whether it did anything, since 2026-08-13, because a key press asks.</b> Ctrl+C
+    /// over a list with nothing chosen has to be handed back rather than swallowed - the same rule
+    /// every other shortcut in this window follows, and the reason it returns a value at all.
     /// </summary>
-    private void Copy(Func<MainViewModel, string?> field)
+    private bool Copy(Func<MainViewModel, string?> field)
     {
-        _model.Selected = Entries.SelectedItem as EntryRow;
+        _model.Chosen.Row = Entries.SelectedItem as EntryRow;
 
-        if (field(_model) is not string text)
+        if (field(_model) is not string text || text.Length == 0)
         {
-            return;
+            return false;
         }
 
         try
@@ -431,6 +432,10 @@ public partial class MainWindow : Window
         {
             _model.Says.CouldNotDo(refusal.Message);
         }
+
+        // The press did something either way: it either copied, or it said out loud that it could
+        // not. Handing it back after saying so would let it reach whatever is behind this window.
+        return true;
     }
 
     /// <summary>

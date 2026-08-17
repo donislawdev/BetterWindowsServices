@@ -58,7 +58,12 @@ public sealed class WindowGuards
     {
         var window = WpfHost.Window();
 
-        Assert.False(await WpfHost.On(() => window.Act(Shortcut.ClearQuery)));
+        // THE BOX IS NOT EMPTY WHEN THE WINDOW OPENS, SINCE 2026-08-13 - it carries the member that
+        // hides kernel drivers. So "nothing to clear" has to be arranged rather than assumed, and
+        // the first Escape here is the one that empties it.
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+
+        Assert.False(await WpfHost.On(() => window.Act(Shortcut.Back)));
     }
 
     [Fact]
@@ -82,8 +87,8 @@ public sealed class WindowGuards
 
         await model.LoadAsync();
 
-        Assert.Null(model.SelectedServiceName);
-        Assert.Null(model.SelectedDisplayName);
+        Assert.Null(model.Chosen.ServiceName);
+        Assert.Null(model.Chosen.DisplayName);
     }
 
     /// <summary>
@@ -185,32 +190,6 @@ public sealed class WindowGuards
     /// and then finds and ticks the items, which cannot work unless it opened - and it was watched
     /// opening on the real window on 2026-08-11.
     /// </summary>
-    /// <summary>
-    /// The examples button carries the six questions and points at itself - `P5`, 2026-08-12.
-    ///
-    /// The same claim as the columns button below, for the same reason: a button whose menu carries
-    /// nothing looks exactly like a feature that is not there, and the syntax now lives behind this
-    /// one rather than in a placeholder that vanished at the first keystroke.
-    ///
-    /// <b>That clicking an item writes the query is guarded elsewhere</b> - the handler is on the
-    /// menu rather than on each item, and it was driven end to end on the real window: six items
-    /// offered, the click wrote <c>start:disabled status:running</c> and the count line answered
-    /// 5 of 809.
-    /// </summary>
-    [Fact]
-    public void The_examples_button_carries_the_questions_to_start_from()
-    {
-        var window = WpfHost.Window();
-
-        var opened = WpfHost.On(() => window.OpenExamples());
-        var menu = WpfHost.On(() => window.ExamplesButton.ContextMenu);
-
-        Assert.True(opened, "The button has no menu to open, so the query language has no way in.");
-        Assert.Equal(6, WpfHost.On(() => menu!.Items.Count));
-        Assert.Same(WpfHost.On(() => (object)window.ExamplesButton), WpfHost.On(() => menu!.PlacementTarget));
-
-        WpfHost.On(() => menu!.IsOpen = false);
-    }
 
     [Fact]
     public void The_columns_button_carries_the_eighteen_columns()
@@ -236,6 +215,7 @@ public sealed class WindowGuards
         // next test builds - the same reason the probe that drives the real window shuts it.
         WpfHost.On(() => menu!.IsOpen = false);
     }
+
 
     /// <summary>
     /// A column heading gives way with an ellipsis, exactly as every cell has since 2026-08-05.
@@ -443,9 +423,9 @@ public sealed class WindowGuards
 
         await model.LoadAsync();
 
-        model.Selected = model.Rows[0];
+        model.Chosen.Row = model.Rows[0];
 
-        Assert.Equal("Spooler", model.SelectedServiceName);
-        Assert.Equal("Print Spooler", model.SelectedDisplayName);
+        Assert.Equal("Spooler", model.Chosen.ServiceName);
+        Assert.Equal("Print Spooler", model.Chosen.DisplayName);
     }
 }

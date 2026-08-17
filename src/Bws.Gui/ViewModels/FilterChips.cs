@@ -251,6 +251,31 @@ internal static class FilterChips
     internal const string DriverValue = "driver";
 
     /// <summary>
+    /// What the box says before anybody types: kernel drivers hidden - owner's decision, 2026-08-13.
+    ///
+    /// <b>Because <c>services.msc</c> does, and that is the tool people will compare this
+    /// against.</b> On this machine drivers are 470 of 810 entries, so a window that shows them all
+    /// opens with more than half its list being things almost nobody came to look at.
+    ///
+    /// <b>AS A MEMBER OF THE QUERY RATHER THAN AS A HIDDEN DEFAULT, and that is the decision rather
+    /// than the implementation.</b> `docs/07` settled it once already, by the owner: the drivers
+    /// switch IS this member and is not a state beside the query. So the window opens with the
+    /// member visible in the box - the chip is lit, the count says how many were held back, and
+    /// Escape clears it exactly like anything else somebody typed. A default living anywhere else
+    /// would be a filter nothing on screen admits to, which is rule 8 broken by the first thing a
+    /// person sees.
+    ///
+    /// <b>What this costs, said rather than discovered:</b> the window no longer opens on the whole
+    /// machine, so every count a person compares against <c>sc query</c> is a count of services.
+    /// One click on the chip, or one Escape, gives back the full listing - and the box says which
+    /// of the two they are looking at.
+    ///
+    /// Composed rather than spelled, so the one place that decides how a member is written stays
+    /// the one place.
+    /// </summary>
+    internal static string OpeningQuery => QueryMembers.Member(DriverField, DriverValue, negated: true);
+
+    /// <summary>
     /// The chips, in the facets they belong to and in the order they are shown.
     ///
     /// <b>Three groups since 2026-08-12, and the boundary between them is the query's own

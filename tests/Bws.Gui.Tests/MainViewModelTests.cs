@@ -716,11 +716,23 @@ public sealed class MainViewModelTests
     private static async Task<MainViewModel> Loaded(params ScmEntry[] entries) =>
         await Loaded(new LiveMachine(entries));
 
+    /// <summary>
+    /// A window that has read a machine, with the box emptied.
+    ///
+    /// <b>Emptied since 2026-08-13, when the window started opening with kernel drivers hidden</b> -
+    /// <see cref="FilterChips.OpeningQuery"/>, owner's decision. Every test reached through here is
+    /// about the list, the reading or a query it sets itself, and none of them is about what the
+    /// window opens with. That one claim is asserted on its own in
+    /// <c>FilterChipTests.The_window_opens_with_kernel_drivers_hidden</c>, so a change to the
+    /// decision goes red in one place rather than in thirty about something else.
+    /// </summary>
     private static async Task<MainViewModel> Loaded(LiveMachine machine)
     {
         var model = new MainViewModel(machine, new SteppedClock());
 
         await model.LoadAsync();
+
+        model.ClearQuery();
 
         return model;
     }

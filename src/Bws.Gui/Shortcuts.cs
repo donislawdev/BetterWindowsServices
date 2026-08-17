@@ -35,6 +35,14 @@ internal static class Shortcuts
             return Shortcut.FocusQuery;
         }
 
+        // Ctrl+C means copy everywhere in Windows, and over a list of things it means copy the
+        // thing - owner's request, 2026-08-13. Which row, and whether the press belongs to this
+        // window at all, is decided where the keyboard is known.
+        if (key == Key.C && modifiers == ModifierKeys.Control)
+        {
+            return Shortcut.CopyRow;
+        }
+
         // The rest carry no modifier at all, for the same reason.
         if (modifiers != ModifierKeys.None)
         {
@@ -44,7 +52,8 @@ internal static class Shortcuts
         return key switch
         {
             Key.F5 => Shortcut.Refresh,
-            Key.Escape => Shortcut.ClearQuery,
+            Key.Escape => Shortcut.Back,
+            Key.Enter => Shortcut.OpenDetails,
             _ => Shortcut.None
         };
     }
@@ -87,6 +96,36 @@ internal enum Shortcut
     /// <summary>Put the cursor in the query box, with what is there already selected.</summary>
     FocusQuery,
 
-    /// <summary>Empty the query box.</summary>
-    ClearQuery
+    /// <summary>
+    /// Back out of the innermost thing that can be backed out of.
+    ///
+    /// <b>Named for what the person means rather than for what happens, and that changed on
+    /// 2026-08-13.</b> It was <c>ClearQuery</c>, which was the whole of what Escape did while the
+    /// window had one thing to leave. It now has two - the details panel closes first and the query
+    /// is emptied only when there is no panel - and a member still called ClearQuery would be a
+    /// name that lies about the branch below it. Which order, and why that order, is argued in
+    /// <c>docs/04</c> at Paczka 1: one press doing both at once loses somebody their query while
+    /// they were reaching for the panel.
+    /// </summary>
+    Back,
+
+    /// <summary>
+    /// Show everything about the chosen entry - `docs/11` 9.1, and the last of the three keys it
+    /// asked for on 2026-08-05.
+    ///
+    /// It waited for a screen to open, deliberately: backlog 59 records that inventing a target for
+    /// Enter before `S7` existed would mean `S7` rewriting it.
+    /// </summary>
+    OpenDetails,
+
+    /// <summary>
+    /// Put everything about the chosen entry on the clipboard - owner's request, 2026-08-13.
+    ///
+    /// <b>Everything rather than the cell under the cursor</b>, which is what Ctrl+C over a grid
+    /// usually gives and is almost never what somebody wanted: the columns that are off by default
+    /// are the long ones, so a copy limited to what is on screen leaves out the part worth pasting.
+    /// The same thing is in the menu under the right button, because a keystroke nobody was told
+    /// about is a feature nobody has.
+    /// </summary>
+    CopyRow
 }

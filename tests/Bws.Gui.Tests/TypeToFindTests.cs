@@ -75,7 +75,7 @@ public sealed class TypeToFindTests
         // somebody uses once.
         var model = Listing("Appinfo", "Fax", "FontCache", "FrameServer");
 
-        model.Selected = model.NextStartingWith('f');
+        model.Chosen.Row = model.NextStartingWith('f');
 
         Assert.Equal("FontCache", model.NextStartingWith('f')?.ServiceName);
     }
@@ -85,8 +85,8 @@ public sealed class TypeToFindTests
     {
         var model = Listing("Appinfo", "Fax", "FontCache");
 
-        model.Selected = model.NextStartingWith('f');
-        model.Selected = model.NextStartingWith('f');
+        model.Chosen.Row = model.NextStartingWith('f');
+        model.Chosen.Row = model.NextStartingWith('f');
 
         Assert.Equal("Fax", model.NextStartingWith('f')?.ServiceName);
     }

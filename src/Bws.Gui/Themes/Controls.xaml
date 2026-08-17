@@ -226,7 +226,23 @@
         single reason, which is what a seam is for.
 
         The hint sits on every group label rather than once beside the row, because the sentence is
-        about the boundary BETWEEN groups and a person reads whichever label they arrive at.
+        about the boundary BETWEEN groups and a person reads whichever label they arrive at. It is
+        a tooltip rather than a second line: it explains a mechanism somebody discovers by clicking
+        once, which is worth having and not worth a line of a window whose job is 810 rows.
+
+        THE GROUP LABEL IS WHAT COMPLAINT 7 ASKED FOR, and it waited for this row on purpose.
+        docs/11 closed that complaint in half on 2026-08-05 and said the other half - a label over
+        the controls - was deliberately not built, because A5 was going to arrive and rewrite the
+        row. It has, so the label arrives with the row it labels rather than being invented twice.
+
+        THREE GROUPS SINCE 2026-08-12. Why these three and what each one may contain is decided in
+        FilterChips.cs, with the measurement that settled the boundary - it is not repeated here.
+        The single "Filters" label is gone: it named the row rather than any question in it.
+
+        THE LABELS LIVE INSIDE THE CHIPS CONTAINER ON PURPOSE. tools/window-journey tells the labels
+        of controls apart from the sentences the window says about the answer, and it does that by
+        asking whether the chips' ItemsControl is an ancestor. A label outside it would arrive as
+        one of the window's sentences.
     -->
     <DataTemplate x:Key="FilterGroupTemplate">
         <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginGroup}">
@@ -255,21 +271,6 @@
             </ItemsControl>
         </StackPanel>
     </DataTemplate>
-
-    <!--
-        One example query in the menu beside the search box. The tooltip carries the query itself,
-        so it is read BEFORE it is used - the same promise the chips make, where seeing the member
-        before clicking is half of what teaches the language.
-
-        NO EventSetter HERE, AND THAT IS A CONSTRAINT RATHER THAN A CHOICE: an EventSetter needs a
-        code-behind class on the dictionary it lives in, and a theme file has none. The click is
-        taken in the window instead, on the menu, through the routed event every item raises - one
-        handler for the whole list rather than one per item.
-    -->
-    <Style x:Key="QueryExampleItem" TargetType="MenuItem">
-        <Setter Property="Header" Value="{Binding Label}" />
-        <Setter Property="ToolTip" Value="{Binding Query}" />
-    </Style>
 
     <!--
         The heading over one group of columns in the picker. Subdued, unticked and NOT ENABLED, so

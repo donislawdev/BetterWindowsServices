@@ -190,6 +190,42 @@ public sealed class QueryMemberTests
     }
 
     /// <summary>
+    /// EVERY VALUE OF A REPEATED FIELD IS CARRIED, NOT THE FIRST ONE - owner's report, 2026-08-13.
+    ///
+    /// <b>A term holds what it MATCHES and what it was WRITTEN as, and folding kept only the
+    /// first.</b> Repeated mentions of one field are collapsed into an alternative, which is what
+    /// makes <c>status:running status:stopped</c> mean either rather than both - and the fold
+    /// merged the compiled values while dropping the spellings. So the query filtered on all three
+    /// start types and admitted to exactly one.
+    ///
+    /// <b>Nothing else in this product could see it, and that is why it lived.</b> The list, the
+    /// count, the command line and the parity guard between them all read the VALUES. Only
+    /// <see cref="Query.Carries"/> reads the spellings, and only a clickable filter asks it - so
+    /// the fault existed exactly where one control in one window looks and nowhere else.
+    ///
+    /// Measured against the machine before it was fixed: start:manual is 566 entries,
+    /// start:disabled 50, start:boot 54, all three together 670. The answer was always right.
+    /// </summary>
+    [Fact]
+    public void Every_value_of_a_repeated_field_is_carried_rather_than_the_first()
+    {
+        const string three = "start:manual start:disabled start:boot";
+
+        Assert.Equal(
+            "manual=True disabled=True boot=True",
+            $"manual={QueryMembers.Carries(three, "start", "manual", negated: false)} "
+            + $"disabled={QueryMembers.Carries(three, "start", "disabled", negated: false)} "
+            + $"boot={QueryMembers.Carries(three, "start", "boot", negated: false)}");
+
+        // And taking one out leaves the other two carried, which is what a chip turning off means.
+        var left = QueryMembers.Without(three, "start", "disabled", negated: false);
+
+        Assert.Equal("start:manual start:boot", left);
+        Assert.True(QueryMembers.Carries(left, "start", "manual", negated: false));
+        Assert.True(QueryMembers.Carries(left, "start", "boot", negated: false));
+    }
+
+    /// <summary>
     /// The round trip, which is the property a chip actually needs: on, then off, and the line
     /// is what it was.
     /// </summary>
