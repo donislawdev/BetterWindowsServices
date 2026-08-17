@@ -41,6 +41,27 @@ Nothing has been released yet. Everything below is what the tool does today.
   text, so a dot is a dot and a pasted path is a path. To search for text that has slashes
   in it, quote it: `"/foo/"`. The window and the command line now read this the same way,
   which they did not while the switch existed - the command line never had one.
+- **Press Enter on a row and everything the window knows about that entry opens beside the
+  list.** Five sections in the picker's own order, so a field is where you already looked for
+  it, and every value says exactly what its column would say. **Escape closes the panel, and
+  only closes the query box when there is no panel** - one press never takes both. Choosing a
+  row does not open it, because the list is a tool for searching and a panel that appeared on
+  every click would take a third of it away from anybody scrolling.
+  - **The last section is the one that makes it honest: what this window did not read.**
+    Signature, file version, file hash and memory are named there rather than left out, so a
+    panel that looks complete cannot be one that quietly is not. The command line reads them
+    today with `--signatures` and `--memory`.
+  - A description of twelve hundred characters is readable here, wrapped, which is the one
+    place in the window it is not a single trimmed line.
+- **Ctrl+C over the list copies everything about the chosen entry**, as a label, a tab and a
+  value per line - ready for a ticket or a spreadsheet. It copies the whole catalogue rather
+  than the columns that happen to be on, because the ones that are off by default are the long
+  ones worth pasting. The same thing is in the right-click menu as **Copy everything**, next to
+  **Copy description**, which the menu gained at the same time.
+- **The search box tells you what goes in it.** Point at it and it says what can be typed, that
+  a word between slashes is a regular expression - `/^win.*svc$/` - and six questions to start
+  from. **The Examples button is gone**, and its six questions are these: the language is now
+  explained by the box it is typed into rather than by a control beside it.
 - **You choose which columns the list shows.** The **Columns** button beside the filters opens
   a list of eighteen, six of them on to begin with. Twelve are things the window could read
   all along and had nowhere to put: what it says about itself, what kind of entry it is, the command it launches and the
@@ -233,10 +254,12 @@ Nothing has been released yet. Everything below is what the tool does today.
   - **When the answer is not the whole answer, it says so** under the count. That covers
     entries judged on something the machine would not let us read, expressions that ran out
     of time, and questions about things the window has not read.
-  - **Two switches beside the box.** `Regex` reads a word on its own as a regular
-    expression. `Drivers` puts kernel drivers in or out - and turning it off writes
-    `!type:driver` into the box where you can see it, edit it, or copy it into a terminal.
-    Type that yourself and the switch moves on its own.
+  - **The filters are a row of chips under the box, in three groups.** Each one stands for one
+    member of the query and clicking it writes that member into the box, where you can read it,
+    edit it or copy it into a terminal - and typing the member yourself lights the chip. Chips
+    in one group add up, chips in different groups narrow each other, and the label over each
+    group says which. *(This began as two switches called `Regex` and `Drivers`. The first is
+    gone because slashes already said it, and the second is now one of the chips.)*
   - **Signatures and memory cannot be asked about here yet.** `signed:no` and
     `memory:>100MB` are real questions and the window says plainly that nobody read those
     for a listing, rather than answering with an empty list that reads like "there are
@@ -273,6 +296,15 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The window opens with kernel drivers hidden**, which is what `services.msc` does and what
+  people compare this against. It is not a hidden setting: the member `!type:driver` is in the
+  search box where you can read it, the **Hide drivers** chip is lit, and the count says how
+  many were held back. One `Escape`, or one click on the chip, gives you the whole machine
+  back. The command line is unchanged and still lists everything.
+- **`Escape` now backs out of the innermost thing first.** With the details panel open it
+  closes the panel and leaves your query alone. With no panel it empties the box, as before.
+  One press never does both, because a query costs more to type again than a panel does to
+  reopen.
 - **The window's list can be scanned instead of read.** Status and start type now carry a
   coloured mark beside the word rather than being one more column of grey text: filled means
   the service is doing something, hollow means it is not. Process ids line up on their last
@@ -344,6 +376,15 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **Filters in one group now all light up at once.** Clicking Manual, then Disabled, then Boot
+  left only one of them lit, while the list correctly showed all three. The list, the count and
+  the command line were right the whole time - a query keeps both what it matches and how it
+  was written, and collapsing repeated mentions of a field kept the first and dropped the rest.
+  Only a clickable filter ever asks how a query was written, so nothing else could see it.
+- **The message in an empty list no longer flickers.** With a query that matched nothing, the
+  sentence saying so was replaced by "reading the manager" and put back once a second, because
+  the list is read once a second and a list with no rows answered as though it had never been
+  read. It now stays put while you read it.
 - **The PID column sorts as numbers.** Clicking its heading put `103292` before `9`, because
   the column was ordered as text. Every column is now ordered by what it means rather than by
   how it is written.
