@@ -291,64 +291,20 @@
         </DataGrid>
 
         <!--
-            WHAT THE MIDDLE OF THE WINDOW SAYS WHEN IT HAS NO ROWS. Complaint 9 of the eleven,
-            and the one the line under the list could not answer: an empty rectangle does not
-            say whether nothing matched or something broke, and a line of grey text below the
-            grid is read after the grid, if at all.
+            WHAT THE MIDDLE OF THE WINDOW SAYS WHEN IT HAS NO ROWS, in its own file since
+            2026-08-18. Complaint 9 of the eleven. Why it sits OVER the grid rather than instead
+            of it, why it takes no clicks, and why five states are worked out in ListState rather
+            than in markup are all at the head of EmptyState.xaml.
 
-            It sits OVER the grid rather than instead of it, so the column headings stay where
-            they are - a list whose headings vanish reads as a window that fell over, and at the
-            empty state the rows come back on the next key press. Not hit testable, so the grid
-            underneath still takes a click.
+            IT LEFT THIS FILE BECAUSE THIS FILE HAD NOWHERE LEFT TO GO, and the number is worth
+            keeping: MainWindow stood at 403 lines against a markup ceiling of 403, which may only
+            ever go down. The packet that puts operations in this window could not have added one
+            line here. Same wall the details panel met on 2026-08-13, same answer.
 
-            Five states rather than four, and the fifth is why this is worked out in ListState
-            rather than here: a machine that hands over nothing is not a query that matched
-            nothing, and offering to clear an empty query would be the window being confidently
-            wrong.
+            Bound to what the window SAYS rather than to the whole model, so nothing in it can
+            reach the list, the query or the reading.
         -->
-        <StackPanel Grid.Row="2"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsHitTestVisible="False"
-                    MaxWidth="{StaticResource WidthEmptyState}"
->
-            <StackPanel.Style>
-                <Style TargetType="StackPanel">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Says.ListMessage}" Value="">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </StackPanel.Style>
-
-            <TextBlock Text="{Binding Says.ListMessage}"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Style="{StaticResource EmptyStateText}" />
-
-            <!--
-                The way out, and it is the only place in this window that says these two keys
-                exist. Nielsen's third heuristic - `docs/11` 9.2 names it as this product's
-                weakest - and both keys were added the day before and are invisible everywhere
-                else. Empty when there is none to offer, which is the loading state and a machine
-                with nothing on it.
-            -->
-            <TextBlock Text="{Binding Says.ListWayOut}"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Margin="{StaticResource MarginAboveStatus}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Says.ListWayOut}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-        </StackPanel>
+        <local:EmptyState Grid.Row="2" x:Name="ListEmptyState" DataContext="{Binding Says}" />
 
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with

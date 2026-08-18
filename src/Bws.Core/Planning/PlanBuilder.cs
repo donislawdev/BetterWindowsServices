@@ -185,46 +185,27 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
     }
 
     /// <summary>
-    /// Puts the cascade in the order it has to happen: an entry may stop only once
-    /// everything that depends on it has stopped.
+    /// Puts the cascade in the order it has to happen: an entry may stop only once everything
+    /// that depends on it has stopped.
     ///
-    /// Costs one question per member. That is affordable because a cascade is small - and
-    /// where it is not, the plan is about to take down half the machine and a moment spent
-    /// getting the order right is not the expensive part.
+    /// <b>The rule itself moved to <see cref="DependentsFirst"/> on 2026-08-18, because the bulk
+    /// plan of `C2` asks it about a SELECTION as well as about a cascade.</b> Identical question,
+    /// and two implementations of it would be two things that have to agree about which service
+    /// goes down first - where disagreeing means an outage rather than an oddity.
+    ///
+    /// What stays here is the mapping back to entries, because the steps carry a display name and
+    /// the ordering has no business knowing there is such a thing.
     /// </summary>
     private List<ScmEntry> Order(List<ScmEntry> cascade)
     {
-        var blockedBy = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-        var names = cascade.Select(entry => entry.ServiceName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var byName = cascade.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var entry in cascade)
-        {
-            var theirs = catalog.ReadDependents(entry.ServiceName);
-
-            blockedBy[entry.ServiceName] = theirs.IsPresent
-                ? [.. theirs.Value!.Where(names.Contains)]
-                : [];
-        }
-
-        var ordered = new List<ScmEntry>(cascade.Count);
-        var remaining = new List<ScmEntry>(cascade);
-        var done = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        while (remaining.Count > 0)
-        {
-            var ready = remaining.FirstOrDefault(entry => blockedBy[entry.ServiceName].All(done.Contains));
-
-            // A cycle would leave nothing ready. None was ever observed, and looping forever
-            // over one is a far worse answer than an order the manager will reject with a
-            // message the step outcome can report.
-            ready ??= remaining[0];
-
-            ordered.Add(ready);
-            done.Add(ready.ServiceName);
-            remaining.Remove(ready);
-        }
-
-        return ordered;
+        return
+        [
+            .. DependentsFirst
+                .Order(catalog, [.. cascade.Select(entry => entry.ServiceName)])
+                .Select(name => byName[name])
+        ];
     }
 
     private void AddWarnings(

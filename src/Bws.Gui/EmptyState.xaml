@@ -1,0 +1,88 @@
+<UserControl x:Class="Bws.Gui.EmptyState"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Center"
+             Focusable="False"
+             IsTabStop="False"
+             IsHitTestVisible="False"
+             MaxWidth="{StaticResource WidthEmptyState}">
+
+    <!--
+        WHAT THE MIDDLE OF THE WINDOW SAYS WHEN IT HAS NO ROWS. Complaint 9 of the eleven, and the
+        one the line under the list could not answer: an empty rectangle does not say whether
+        nothing matched or something broke, and a line of grey text below the grid is read after
+        the grid, if at all.
+
+        It sits OVER the grid rather than instead of it, so the column headings stay where they
+        are - a list whose headings vanish reads as a window that fell over, and at the empty state
+        the rows come back on the next key press.
+
+        Five states rather than four, and the fifth is why this is worked out in ListState rather
+        than here: a machine that hands over nothing is not a query that matched nothing, and
+        offering to clear an empty query would be the window being confidently wrong.
+
+        ITS OWN FILE SINCE 2026-08-18, AND THE MEASUREMENT THAT ASKED IS WORTH KEEPING. MainWindow
+        stood at 403 lines against a markup ceiling of 403, which may only ever go down - so the
+        operations packet could not add a single line to it, exactly as the details panel could not
+        on 2026-08-13. The criterion for where this goes was already written down then: a theme file
+        describes the look of ONE CONTROL, and a part of the window lives in its own file beside
+        MainWindow.xaml. That entry names the empty state by name as the next case it fits, so this
+        is that criterion applied rather than a new one invented to justify a move.
+
+        THREE DEFAULTS ARE TURNED OFF HERE THAT THE STACKPANEL NEVER HAD, and leaving any of them
+        would be a fault nothing in the build would report. A UserControl is a ContentControl, and
+        a ContentControl arrives Focusable and IsTabStop - measured on this product on 2026-08-13,
+        `docs/10` trap 8 - so without the two attributes above this becomes a tab stop that does
+        nothing, in front of the list. IsHitTestVisible is the third and it is not a default at
+        all: the panel covers the middle of the grid, so without it the rows underneath stop taking
+        a click at exactly the moment somebody is trying to get back to them.
+
+        Bound to what the window SAYS rather than to the whole model, the same narrowing the
+        details panel makes: nothing here can reach the list, the query or the reading, and what it
+        may say is exactly what Says holds.
+    -->
+
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ListMessage}" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+
+    <StackPanel>
+
+        <TextBlock x:Name="MessageText"
+                   Text="{Binding ListMessage}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Style="{StaticResource EmptyStateText}" />
+
+        <!--
+            The way out, and it is the only place in this window that says these two keys exist.
+            Nielsen's third heuristic - `docs/11` 9.2 names it as this product's weakest - and both
+            keys are invisible everywhere else. Empty when there is none to offer, which is the
+            loading state and a machine with nothing on it.
+        -->
+        <TextBlock x:Name="WayOutText"
+                   Text="{Binding ListWayOut}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="{StaticResource MarginAboveStatus}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ListWayOut}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+    </StackPanel>
+
+</UserControl>
