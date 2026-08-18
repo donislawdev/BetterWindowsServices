@@ -55,46 +55,15 @@ public sealed class Chosen : Observable
             // it was - Enter is what moves it, which is the same key that opened it.
             _row = value;
 
+            // ONE NOTIFICATION, SINCE THE COPY FIELDS LEFT THIS CLASS ON 2026-08-18. Two more
+            // stood here for the two names a copy used to read from the chosen row, and they now
+            // belong to the selection rather than to the panel - Copying answers for however many
+            // rows somebody picked. Raising the name of a property that no longer exists does not
+            // fail, and nothing about the panel would look wrong, so it is worth saying that these
+            // went with the properties rather than being forgotten beside them.
             Raise(nameof(Row));
-            Raise(nameof(ServiceName));
-            Raise(nameof(DisplayName));
         }
     }
-
-    /// <summary>What a copy of the name would put on the clipboard, or nothing when no row is chosen.</summary>
-    public string? ServiceName => Row?.ServiceName;
-
-    /// <summary>The same for the display name, which is the one a person recognises.</summary>
-    public string? DisplayName => Row?.DisplayName;
-
-    /// <summary>
-    /// What this entry says about itself, which is the field a cell can hold least of.
-    ///
-    /// Read through the catalogue like every other cell, so a copy cannot say something the column
-    /// does not - the same rule the whole panel rests on.
-    /// </summary>
-    public string? Description => Row?["description"];
-
-    /// <summary>
-    /// Everything the window knows about the chosen entry, as text somebody can paste.
-    ///
-    /// <b>The catalogue rather than the row on screen, so a copy does not depend on which columns
-    /// happen to be turned on.</b> Somebody copying an entry to put in a ticket wants what there is
-    /// to know, not what they had room for - and the twelve columns that are off by default are
-    /// exactly the ones too long to have kept.
-    ///
-    /// <b>A label, a tab and a value per line.</b> Tab because that is what a spreadsheet and a
-    /// ticket both take, and one field per line because several of these values run to hundreds of
-    /// characters - a single line would be unreadable in every destination.
-    ///
-    /// The section headings are kept, on their own lines. They are how the picker groups the same
-    /// fields, so a person who copies this recognises the shape of it.
-    /// </summary>
-    public string? Everything => Row is not { } row ? null : string.Join(
-        Environment.NewLine,
-        Details.Of(row.Entry).SelectMany(section => section.Lines
-            .Select(line => line.Label + "\t" + line.Value)
-            .Prepend(section.Heading)));
 
     /// <summary>
     /// Whether the details panel is on screen.

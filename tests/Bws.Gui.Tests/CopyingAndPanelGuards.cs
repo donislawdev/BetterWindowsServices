@@ -44,7 +44,7 @@ public sealed class CopyingAndPanelGuards
         Choose(window);
         WpfHost.Settled();
 
-        var wanted = WpfHost.On(() => model.Chosen.Everything);
+        var wanted = WpfHost.On(() => Copying.Everything([.. window.Entries.SelectedItems.OfType<EntryRow>()]));
 
         Assert.False(string.IsNullOrWhiteSpace(wanted), "There is nothing to copy, so this proves nothing.");
 
@@ -83,10 +83,13 @@ public sealed class CopyingAndPanelGuards
 
         var promises = new[]
         {
-            WpfHost.On(() => model.Chosen.Row!.ServiceName),
-            WpfHost.On(() => model.Chosen.Row!.DisplayName),
-            WpfHost.On(() => model.Chosen.Description),
-            WpfHost.On(() => model.Chosen.Everything)
+            // ASKED OF THE SELECTION RATHER THAN OF THE PANEL SINCE 2026-08-18. A copy is about the
+            // rows somebody picked, which is a different set from the one entry the panel shows, and
+            // the four menu items promise the first of those.
+            WpfHost.On(() => Copying.Name(Picked(window))),
+            WpfHost.On(() => Copying.DisplayName(Picked(window))),
+            WpfHost.On(() => Copying.Description(Picked(window))),
+            WpfHost.On(() => Copying.Everything(Picked(window)))
         };
 
         for (var index = 0; index < items.Count; index++)
@@ -332,6 +335,67 @@ public sealed class CopyingAndPanelGuards
         text.Length <= 60 ? text : text[..60] + "...";
 
     /// <summary>
+    /// Ctrl+C over TWO chosen rows puts both of them on the clipboard.
+    ///
+    /// <b>THIS TEST EXISTS BECAUSE THE MUTATION REGISTRY REPORTED THE FIRST ATTEMPT AS MISSED, and the
+    /// finding was about the test rather than about the window.</b> The version in SelectionGuards asks
+    /// Copying directly, so a window that copied only the FIRST of five rows would satisfy it - the
+    /// mutation that does exactly that changed nothing there. Everything about a copy that matters
+    /// happens on the path from a key press to the clipboard, and that path only runs through here.
+    ///
+    /// The long form rather than the names, because it is the one that goes into a ticket and the one
+    /// Ctrl+C is bound to.
+    /// </summary>
+    [Fact]
+    public async Task Control_C_over_two_chosen_rows_copies_both_of_them()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        var rows = ChooseTwo(window);
+
+        var wanted = WpfHost.On(() => Copying.Everything(rows));
+
+        Assert.False(string.IsNullOrWhiteSpace(wanted), "There is nothing to copy, so this proves nothing.");
+
+        // The second row really is in what we are about to compare against, so a window that copied
+        // only the first cannot pass by accident.
+        Assert.Contains("W32Time", wanted!, StringComparison.Ordinal);
+
+        await Copies(model, wanted!, "Ctrl+C over two rows", async () =>
+            Assert.True(
+                await WpfHost.On(() => window.Act(Shortcut.CopyRow)),
+                "Ctrl+C reported that it did nothing, so there was nothing to copy."));
+    }
+
+    /// <summary>
+    /// Two rows picked, arranged the way the product reads them.
+    ///
+    /// The grid rather than the model, for the reason written at <see cref="Choose"/>: MainWindow reads
+    /// the selection out of the grid at the moment somebody asks, so a test that arranged it anywhere
+    /// else would be a test about itself.
+    /// </summary>
+    private static IReadOnlyList<EntryRow> ChooseTwo(MainWindow window)
+    {
+        var rows = new[]
+        {
+            EntryRow.Of(Rows.Entry("Spooler", "Print Spooler")),
+            EntryRow.Of(Rows.Entry("W32Time", "Windows Time"))
+        };
+
+        WpfHost.On(() =>
+        {
+            window.Entries.ItemsSource = rows;
+            window.Entries.SelectedItem = rows[0];
+            window.Entries.SelectedItems.Add(rows[1]);
+        });
+
+        WpfHost.Settled();
+
+        return rows;
+    }
+
+    /// <summary>
     /// One entry in the grid, selected, which is where the window looks.
     ///
     /// <b>THE GRID RATHER THAN THE MODEL, AND THE FIRST VERSION OF THIS FILE GOT IT WRONG.</b> It
@@ -360,4 +424,14 @@ public sealed class CopyingAndPanelGuards
 
         return row;
     }
+
+    /// <summary>
+    /// The rows the grid is holding, which is what a copy acts on.
+    ///
+    /// Read at the moment it is asked for, exactly as the window does it - the selection is never
+    /// kept anywhere, because a binding into a list that reconciles itself once a second is another
+    /// party in the middle of `A10`.
+    /// </summary>
+    private static IReadOnlyList<EntryRow> Picked(MainWindow window) =>
+        [.. window.Entries.SelectedItems.OfType<EntryRow>()];
 }

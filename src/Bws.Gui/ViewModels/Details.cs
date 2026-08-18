@@ -116,4 +116,44 @@ internal static class Details
 
         return sections;
     }
+
+    /// <summary>
+    /// One entry as text somebody can paste.
+    ///
+    /// <b>Here rather than in <see cref="Chosen"/>, because the selection can hold more than one
+    /// entry and the panel only ever shows one.</b> Both roads have to say the same thing about the
+    /// same entry - a copy that disagreed with the panel would be two catalogues - so the text is
+    /// built once, in the class that already decides what the fields are.
+    ///
+    /// <b>The catalogue rather than the row on screen, so a copy does not depend on which columns
+    /// happen to be turned on.</b> Somebody copying an entry into a ticket wants what there is to
+    /// know, not what they had room for, and the columns that are off by default are exactly the
+    /// ones too long to have kept.
+    ///
+    /// <b>A label, a tab and a value per line.</b> Tab because a spreadsheet and a ticket both take
+    /// it, and one field per line because several of these values run to hundreds of characters.
+    /// The section headings stay, on their own lines, because they are how the picker groups the
+    /// same fields - somebody who copies this recognises the shape of it.
+    /// </summary>
+    internal static string AsText(ScmEntry entry) => string.Join(
+        Environment.NewLine,
+        Of(entry).SelectMany(section => section.Lines
+            .Select(line => line.Label + "	" + line.Value)
+            .Prepend(section.Heading)));
+
+    /// <summary>
+    /// Several entries as text, in the order they were handed over.
+    ///
+    /// <b>A blank line between them and nothing else, which is a decision rather than a default.</b>
+    /// Each entry is already several dozen lines of label and value, so a separator that is itself a
+    /// line of text would read as another field. A blank line is what every destination this text
+    /// goes to - a ticket, a mail, a spreadsheet cell - already treats as a break.
+    ///
+    /// <b>The order is the caller's, and for the window that is the order on screen</b> rather than
+    /// the order somebody clicked in. A copy of five entries is read top to bottom against the list
+    /// it came from, and reordering it would make that comparison fail for no reason.
+    /// </summary>
+    internal static string AsText(IEnumerable<ScmEntry> entries) => string.Join(
+        Environment.NewLine + Environment.NewLine,
+        entries.Select(AsText));
 }

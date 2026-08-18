@@ -96,8 +96,10 @@ public sealed class WindowGuards
 
         await model.LoadAsync();
 
-        Assert.Null(model.Chosen.ServiceName);
-        Assert.Null(model.Chosen.DisplayName);
+        // Nothing picked, so there is nothing to copy - and null rather than an empty string is what
+        // lets Ctrl+C be handed back to whatever is behind this window instead of being swallowed.
+        Assert.Null(Copying.Name([]));
+        Assert.Null(Copying.DisplayName([]));
     }
 
     /// <summary>
@@ -435,7 +437,7 @@ public sealed class WindowGuards
 
         model.Chosen.Row = model.Rows[0];
 
-        Assert.Equal("Spooler", model.Chosen.ServiceName);
-        Assert.Equal("Print Spooler", model.Chosen.DisplayName);
+        Assert.Equal("Spooler", Copying.Name([model.Rows[0]]));
+        Assert.Equal("Print Spooler", Copying.DisplayName([model.Rows[0]]));
     }
 }

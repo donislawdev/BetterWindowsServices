@@ -314,7 +314,7 @@ public partial class MainWindow : Window
             case Shortcut.CopyRow:
                 // The same thing the menu's last item does, because two ways to one answer that
                 // are written twice are two answers waiting to disagree.
-                return Copy(model => model.Chosen.Everything);
+                return Copy(Copying.Everything);
 
             case Shortcut.Back:
                 // THE PANEL FIRST, THE QUERY SECOND, and the order is the decision rather than the
@@ -347,10 +347,43 @@ public partial class MainWindow : Window
 
         _pointedAtARow = row is not null;
 
-        if (row is not null)
+        if (row?.Item is EntryRow entry)
         {
-            row.IsSelected = true;
+            PointAt(entry);
         }
+    }
+
+    /// <summary>
+    /// Puts one entry under the menu, and leaves a selection it is already part of alone.
+    ///
+    /// <b>A ROW ALREADY PICKED KEEPS THE WHOLE SELECTION, AND ONE OUTSIDE IT REPLACES IT.</b> Since
+    /// the grid started taking more than one row this became the difference between a menu that acts
+    /// on what somebody pointed at and one that acts on that PLUS whatever was highlighted earlier -
+    /// the confidently wrong answer the handler above exists to prevent, arriving by the back door.
+    /// Marking a row selected only ever ADDS.
+    ///
+    /// Right clicking inside a selection has to keep it, or there would be no way to reach the menu
+    /// for five rows at once, which is what the selection is for. Every list in Windows works this
+    /// way round.
+    ///
+    /// <b>Apart from the handler so that it can be checked at all, and on the ENTRY rather than on
+    /// the row container.</b> A handler the framework calls is reachable only by clicking, and a
+    /// container exists only for rows the grid has realised - so a test written against containers
+    /// would be a test about scrolling.
+    /// </summary>
+    internal void PointAt(EntryRow entry)
+    {
+        if (Entries.SelectedItems.Contains(entry))
+        {
+            return;
+        }
+
+        // ONE LINE, AND THE SECOND WAS MEASURED AWAY RATHER THAN REASONED AWAY. This began as an
+        // UnselectAll followed by this, on the assumption that marking one row selected would only add
+        // to the others. The mutation registry reported that UnselectAll as MISSED - taking it out
+        // broke nothing - because assigning SelectedItem on a grid in Extended mode already clears
+        // what else was picked. A line nothing can break is a line that does nothing.
+        Entries.SelectedItem = entry;
     }
 
     /// <summary>
@@ -383,13 +416,13 @@ public partial class MainWindow : Window
     /// </summary>
     internal bool OpenColumns() => Filters.OpenColumns();
 
-    private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.ServiceName);
+    private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(Copying.Name);
 
-    private void CopyDisplayName(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.DisplayName);
+    private void CopyDisplayName(object sender, RoutedEventArgs e) => Copy(Copying.DisplayName);
 
-    private void CopyDescription(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.Description);
+    private void CopyDescription(object sender, RoutedEventArgs e) => Copy(Copying.Description);
 
-    private void CopyEverything(object sender, RoutedEventArgs e) => Copy(model => model.Chosen.Everything);
+    private void CopyEverything(object sender, RoutedEventArgs e) => Copy(Copying.Everything);
 
     /// <summary>
     /// Puts one field of the chosen row on the clipboard, or says why it could not.
@@ -413,11 +446,19 @@ public partial class MainWindow : Window
     /// over a list with nothing chosen has to be handed back rather than swallowed - the same rule
     /// every other shortcut in this window follows, and the reason it returns a value at all.
     /// </summary>
-    private bool Copy(Func<MainViewModel, string?> field)
+    private bool Copy(Func<IReadOnlyList<EntryRow>, string?> field)
     {
-        _model.Chosen.Row = Entries.SelectedItem as EntryRow;
+        // EVERY ROW THAT IS PICKED, SINCE THE GRID STARTED TAKING MORE THAN ONE. A menu opened over
+        // five highlighted rows and acting on one of them is the same confidently wrong answer that
+        // PointAtRowBeforeMenu exists to prevent, and it would arrive with nothing on screen to say
+        // which of the five had been used.
+        //
+        // Read here rather than kept, which is the repair described above. Filtered by type rather
+        // than cast, so a grid holding something unexpected drops it instead of throwing over a
+        // clipboard operation.
+        var rows = Entries.SelectedItems.OfType<EntryRow>().ToList();
 
-        if (field(_model) is not string text || text.Length == 0)
+        if (field(rows) is not string text || text.Length == 0)
         {
             return false;
         }

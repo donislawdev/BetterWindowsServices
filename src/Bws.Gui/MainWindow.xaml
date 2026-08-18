@@ -256,9 +256,23 @@
                   VirtualizingPanel.ScrollUnit="Pixel"
                   VirtualizingPanel.VirtualizationMode="Recycling"
                   SelectionUnit="FullRow"
-                  SelectionMode="Single"
+                  SelectionMode="Extended"
                   PreviewMouseRightButtonDown="PointAtRowBeforeMenu"
                   ContextMenuOpening="OfferTheMenuOnlyOnARow">
+
+            <!--
+                MORE THAN ONE ROW SINCE 2026-08-18, packet 2 of `S7`. `C2` asks for Shift and Ctrl
+                beside an action, and the operations that use it arrive in this packet.
+
+                NOTHING IN THIS WINDOW BINDS TO THE SELECTION and that is a repair rather than an
+                omission - the argument is at Copy in the code behind. The selection is read at the
+                moment somebody asks for something, because a binding into a list that reconciles
+                itself once a second is another party in the middle of `A10`.
+
+                One consequence lives in the code behind rather than here, and it is the one that
+                would otherwise be a silent wrong answer: a right click on a row OUTSIDE the
+                selection has to replace it, because setting a row selected only ever adds.
+            -->
 
             <!--
                 READ ONLY, LIKE THE LIST. Everything that changes a service goes through a plan,
