@@ -428,6 +428,37 @@ public sealed record ScmEntry
         };
 
     /// <summary>
+    /// The other direction: the entry is switched off and is running anyway.
+    ///
+    /// <b>ITS OWN FACT RATHER THAN A WIDER <see cref="RunsAgainstItsStartType"/>, and that was the
+    /// decision - backlog 170, 2026-08-18.</b> One boolean answering two opposite questions destroys
+    /// the part of the answer somebody needs in order to act: a true would stop saying WHICH of the
+    /// two situations they have, and the remedies are opposite. A stopped automatic entry gets
+    /// started or investigated; this one is a decision about whether to stop it or to re-enable it.
+    /// The same discipline the four states of a <see cref="Reading{T}"/> already keep.
+    ///
+    /// <b>What it means on a real machine, because it is not a corner case.</b> The manager could
+    /// not have started this at boot, and it is up - so either somebody disabled it while it was
+    /// already running, where the change takes effect at the next start, or something started it
+    /// out of band. The owner's screenshot of services.msc from 2026-08-12 carries one:
+    /// two columns side by side saying opposite things, and nothing in that window names it.
+    ///
+    /// Unknown when the start type could not be read, for the reason its sibling gives: "I could
+    /// not check" must never render as "everything is fine". The status needs no such care - it is
+    /// not a <see cref="Reading{T}"/>, because the manager hands it over with the listing or hands
+    /// over nothing at all.
+    /// </summary>
+    public Reading<bool> RunsWhileDisabled =>
+        StartType.Outcome switch
+        {
+            ReadOutcome.Present => Reading<bool>.Present(
+                StartType.Value == Core.StartType.Disabled && Status == EntryStatus.Running),
+
+            ReadOutcome.Denied => Reading<bool>.Denied(StartType.ErrorCode, StartType.Reason!),
+            _ => Reading<bool>.NotRead()
+        };
+
+    /// <summary>
     /// Whether the entry not running is a failure, once the triggers are taken into account.
     ///
     /// An automatic entry that is stopped used to be the whole answer. It is not: an entry

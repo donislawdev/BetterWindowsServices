@@ -42,11 +42,12 @@ public sealed class ConcurrencyGuards
             "The publisher cache the pass above reads from several threads at once. A plain " +
             "dictionary here would be the quiet kind of race: right on most runs.",
 
-        ["MainViewModel.cs"] =
+        ["Readings.cs"] =
             "Reading the manager off the interface thread, because a full reading takes about " +
             "half a second and a window that stops answering for half a second looks broken. " +
             "Only the reading runs out there - nothing it returns touches anything on screen " +
-            "until it is back.",
+            "until it is back. It was MainViewModel.cs until 2026-08-18, when the state machine " +
+            "was cut out into its own file - backlog 198.",
 
         ["Execution.cs"] =
             "Ctrl+C, and this file was concurrent long before it said so. The handler behind " +

@@ -63,12 +63,28 @@ Nothing has been released yet. Everything below is what the tool does today.
   from. **The Examples button is gone**, and its six questions are these: the language is now
   explained by the box it is typed into rather than by a control beside it.
 - **You choose which columns the list shows.** The **Columns** button beside the filters opens
-  a list of eighteen, six of them on to begin with. Twelve are things the window could read
+  a list of twenty-six, six of them on to begin with. Twelve are things the window could read
   all along and had nowhere to put: what it says about itself, what kind of entry it is, the command it launches and the
   file that command really runs, what it depends on, what starts it, which privileges it asks
   for, its SID type, its error control, its load order group, its security descriptor, and
   whether it is set to run and is not. Drag a heading to move a column and its edge to resize
   it.
+- **The window can now tell you who signed a service's file, and what it is using.** Five more
+  columns: the signature, who signed it, the file's own version, its hash, and how much memory
+  the running process holds. They are off to begin with, and turning one on is what sends the
+  window to look - opening several hundred files takes a moment, so it is not done for people
+  who never ask for it. Until then the columns say nobody has looked, rather than showing you a
+  blank that reads like "there is nothing here".
+- **The search box can ask about signatures too, and so can the filter buttons.** `signed:no`
+  finds what Windows would not run quietly - unsigned, expired, revoked or altered since it was
+  signed. Three buttons under **Signature** ask the same thing without typing: trusted, not
+  trusted, and the one that matters in an audit - **could not check**.
+- **A service that disagrees with itself can now be found, in both directions.** The window has
+  shown "set to run and is not" as a column for a while and there was no way to search for it.
+  There is now, and the opposite case has been given a name of its own: a service switched off
+  that is running anyway. `mismatch:stopped` and `mismatch:running`, or the two buttons under
+  **Disagrees with itself**. They are kept apart on purpose, because what you do about them is
+  opposite: one you start or investigate, the other you decide whether to stop or re-enable.
 - **The list opens the way you left it.** Which columns are on, the order you dragged their
   headings into and any width you dragged yourself are kept between sessions, in
   `%APPDATA%\BetterWindowsServices\bws-preferences.json`. It is a small text file you can read,
@@ -376,6 +392,10 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **On a machine the manager hands over nothing for, the message saying so no longer flickers.**
+  The sentence in the middle of the empty list was replaced by "reading the manager" and put
+  back once a second, for as long as you stood there reading it. The same fault was fixed for a
+  search that matched nothing a few days earlier; this was the one case that fix did not cover.
 - **Filters in one group now all light up at once.** Clicking Manual, then Disabled, then Boot
   left only one of them lit, while the list correctly showed all three. The list, the count and
   the command line were right the whole time - a query keeps both what it matches and how it

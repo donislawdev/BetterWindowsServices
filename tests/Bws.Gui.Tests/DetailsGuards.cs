@@ -58,25 +58,37 @@ public sealed class DetailsGuards
     }
 
     /// <summary>
-    /// The four fields this window does not read are named, and the panel says why.
+    /// THE FIELDS THIS PANEL USED TO APOLOGISE FOR ARE ORDINARY LINES NOW - backlog 21.
     ///
-    /// <b>Rule 8 in the place a details panel breaks it most easily.</b> Leaving them out entirely
-    /// would let the panel read as complete when it is not - somebody looking for a signature
-    /// would conclude the tool cannot see one, rather than that this window did not look. They are
-    /// not columns for the opposite reason: in a cell they would write "nobody looked" eight
-    /// hundred times.
+    /// <b>This replaces a test rather than joining the file, and the replacement is the whole
+    /// record of what changed.</b> What stood here asserted that four fields were named with
+    /// "nobody looked" and that the note pointed at `--signatures` on the command line. That was
+    /// rule 8 done properly for a window that did not read them. The window reads them now, so the
+    /// same assertion would be pinning an apology the product has stopped owing - and an apology
+    /// nobody retracts is how a panel starts lying politely.
+    ///
+    /// What is asserted instead is the other half of the same rule: each of them carries a value
+    /// worked out from the entry, and no section is left making an excuse.
     /// </summary>
     [Fact]
-    public void The_four_fields_nobody_looked_at_are_named_and_the_panel_says_why()
+    public void The_fields_this_panel_once_apologised_for_carry_values_now()
     {
-        var sections = Details.Of(Rows.Entry("Spooler"));
-        var admitted = sections.Single(section => section.Note.Length > 0);
+        var entry = Rows.Entry("Spooler");
+        var sections = Details.Of(entry);
+        var lines = sections.SelectMany(section => section.Lines).ToList();
 
-        Assert.Equal(4, admitted.Lines.Count);
-        Assert.All(admitted.Lines, line => Assert.Equal(Texts.Of("gui.details.notRead"), line.Value));
+        foreach (var id in new[] { "signature", "publisher", "fileVersion", "binaryHash", "memory" })
+        {
+            var column = Columns.Of(id);
 
-        // The sentence has to point somewhere, or it is an admission with no way out of it.
-        Assert.Contains("--signatures", admitted.Note, StringComparison.Ordinal);
+            Assert.NotNull(column);
+
+            var line = lines.Single(shown => shown.Label == Texts.Of(column!.LabelKey));
+
+            Assert.Equal(column!.Reads(entry), line.Value);
+        }
+
+        Assert.All(sections, section => Assert.Equal(string.Empty, section.Note));
     }
 
     /// <summary>

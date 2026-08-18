@@ -37,9 +37,11 @@ public sealed class BroadCatchGuards
             "file can be malformed are not a list anybody finishes. One bad file must cost its " +
             "own answer rather than the other eight hundred.",
 
-        ["MainViewModel.cs"] =
+        ["Readings.cs"] =
             "The window's first reading. A failure has to arrive as a line under an empty list " +
-            "rather than as a dialog nobody can act on, or a window that disappears."
+            "rather than as a dialog nobody can act on, or a window that disappears. " +
+            "It was MainViewModel.cs until 2026-08-18, when the state machine was cut out into " +
+            "its own file - backlog 198. The argument moved with the code, unchanged."
     };
 
     [Fact]

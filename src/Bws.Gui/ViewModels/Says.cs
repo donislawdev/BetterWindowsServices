@@ -27,7 +27,7 @@ public sealed class Says : Observable
     private string _layout = string.Empty;
     private bool _incomplete;
     private bool _narrowed;
-    private ListState _list = ListState.Of(reading: true, failed: false, shown: 0, everything: 0);
+    private ListState _list = ListState.Of(firstLook: true, failed: false, shown: 0, everything: 0);
 
     /// <summary>
     /// The count, beside the box that changes it.
@@ -131,8 +131,9 @@ public sealed class Says : Observable
     /// holding here - so the view model never has to know that elevation is one of the things
     /// worth saying.
     /// </summary>
-    internal void AboutTheAnswer(Query query, bool held, int unreadable, int tooCostly) =>
-        Notice = Sentences.Admissions(query, held, unreadable, tooCostly, Elevated);
+    internal void AboutTheAnswer(
+        Query query, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling) =>
+        Notice = Sentences.Admissions(query, held, unreadable, tooCostly, Elevated, have, filling);
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.
@@ -205,9 +206,9 @@ public sealed class Says : Observable
     /// the four facts it reads move at different times: a reading starting, a reading failing,
     /// a query narrowing the list, the machine handing over nothing.
     /// </summary>
-    internal void AboutTheList(bool reading, bool failed, int shown, int everything)
+    internal void AboutTheList(bool firstLook, bool failed, int shown, int everything)
     {
-        var list = ListState.Of(reading, failed, shown, everything);
+        var list = ListState.Of(firstLook, failed, shown, everything);
         var narrowed = shown != everything;
 
         // SAID ONLY WHEN IT MOVED, SINCE 2026-08-13. This runs on every keystroke and on every

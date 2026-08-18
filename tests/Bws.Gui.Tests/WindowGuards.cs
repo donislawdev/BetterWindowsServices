@@ -218,7 +218,7 @@ public sealed class WindowGuards
         // where an open picker offered twelve togglable elements, all of them filter chips, and
         // none of the columns. The count is asserted whole rather than filtered so that a heading
         // quietly becoming tickable, or a column quietly becoming a heading, still moves it.
-        Assert.Equal(24, WpfHost.On(() => menu!.Items.Count));
+        Assert.Equal(30, WpfHost.On(() => menu!.Items.Count));
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

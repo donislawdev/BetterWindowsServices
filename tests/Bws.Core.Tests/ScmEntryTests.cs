@@ -132,6 +132,70 @@ public sealed class ScmEntryTests
     private static ScmEntry Automatic() =>
         Entry(EntryStatus.Stopped, Reading<StartType>.Present(StartType.Automatic));
 
+    /// <summary>
+    /// THE OTHER DIRECTION, AND services.msc DOES NOT NAME IT EITHER - backlog 170, decided
+    /// 2026-08-18.
+    ///
+    /// <b>Its own fact rather than a wider RunsAgainstItsStartType, because the remedies are
+    /// opposite.</b> A stopped automatic entry gets started or investigated. This one is a decision
+    /// about whether to stop it or to re-enable it - and one boolean answering both would stop
+    /// saying which of the two somebody has.
+    ///
+    /// The owner's screenshot from 2026-08-12 carries a real one: two columns side by side saying
+    /// opposite things, with nothing anywhere naming the contradiction.
+    /// </summary>
+    [Theory]
+    [InlineData(StartType.Disabled, EntryStatus.Running, true)]
+    [InlineData(StartType.Disabled, EntryStatus.Stopped, false)]
+    [InlineData(StartType.Automatic, EntryStatus.Running, false)]
+    [InlineData(StartType.Manual, EntryStatus.Running, false)]
+    [InlineData(StartType.Automatic, EntryStatus.Stopped, false)]
+    public void A_disabled_entry_that_is_running_anyway_is_its_own_signal(
+        StartType startType, EntryStatus status, bool expected)
+    {
+        var entry = Entry(status, Reading<StartType>.Present(startType));
+
+        Assert.Equal(ReadOutcome.Present, entry.RunsWhileDisabled.Outcome);
+        Assert.Equal(expected, entry.RunsWhileDisabled.Value);
+    }
+
+    /// <summary>
+    /// AND THE TWO ARE NEVER TRUE TOGETHER, which is what makes one enumeration field able to
+    /// carry both without losing the direction - backlog 172.
+    ///
+    /// One needs an automatic entry that is stopped and the other a disabled entry that is running,
+    /// so no entry can wear both marks. Asserted rather than assumed, because the query field
+    /// leans on it.
+    /// </summary>
+    [Theory]
+    [InlineData(StartType.Automatic, EntryStatus.Stopped)]
+    [InlineData(StartType.Disabled, EntryStatus.Running)]
+    [InlineData(StartType.Manual, EntryStatus.Running)]
+    public void No_entry_disagrees_with_itself_in_both_directions_at_once(
+        StartType startType, EntryStatus status)
+    {
+        var entry = Entry(status, Reading<StartType>.Present(startType));
+
+        Assert.False(entry.RunsAgainstItsStartType.Value && entry.RunsWhileDisabled.Value);
+    }
+
+    /// <summary>
+    /// A start type nobody could read leaves this unknown too, for the reason its sibling gives:
+    /// "I could not check" must never render as "everything is fine".
+    /// </summary>
+    [Fact]
+    public void An_unreadable_start_type_leaves_the_other_direction_unknown_as_well()
+    {
+        var refused = Entry(EntryStatus.Running, Reading<StartType>.Denied(5, "access denied"));
+
+        Assert.Equal(ReadOutcome.Denied, refused.RunsWhileDisabled.Outcome);
+        Assert.Equal(5, refused.RunsWhileDisabled.ErrorCode);
+
+        var unread = Entry(EntryStatus.Running, Reading<StartType>.NotRead());
+
+        Assert.Equal(ReadOutcome.NotRead, unread.RunsWhileDisabled.Outcome);
+    }
+
     private static ScmEntry Entry(EntryStatus status, Reading<StartType> startType) =>
         Entries.Any with
         {

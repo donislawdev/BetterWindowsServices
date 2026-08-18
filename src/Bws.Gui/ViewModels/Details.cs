@@ -83,33 +83,17 @@ public sealed class DetailSection
 /// already read, which is what keeps this slice free of the questions `ADR-13` exists to answer -
 /// no cost, no background thread, no field that is expensive on somebody else's machine.
 ///
-/// <b>The last section is the one that makes this panel honest.</b> Four fields are deliberately
-/// not read by this window - signature, file version, hash and memory, all of them the second pass
-/// of `ADR-13` that the window does not have. In a cell they would write "nobody looked" eight
-/// hundred times, which is why they are not columns. In a panel about ONE entry, saying it once is
-/// exactly right - and leaving them out entirely would let the panel read as complete when it is
-/// not, which is rule 8 in the place a details panel breaks it most easily.
+/// <b>THE SECTION THAT MADE THIS PANEL HONEST HAS BEEN DELETED, 2026-08-18, AND THAT IS THE POINT
+/// OF THE CHANGE RATHER THAN A LOSS.</b> Until backlog 21 the last section named four fields this
+/// window deliberately did not read - signature, file version, hash and memory - because saying so
+/// once in a panel about ONE entry is right where writing "nobody looked" into eight hundred cells
+/// is not. The window reads them now, so they are columns like everything else and the panel gets
+/// them the same way it gets the rest. A section still apologising for them would be the panel
+/// being confidently wrong, which is the same fault the section existed to prevent, pointing the
+/// other way.
 /// </summary>
 internal static class Details
 {
-    // NAMED CONSTANTS RATHER THAN LITERALS IN THE ARRAY, and that is not a style preference.
-    // TextKeyGuards finds the keys a window can say by the shapes in which somebody CHOOSES one -
-    // a call to Texts.Of, a LabelKey assignment, a constant declaration - and a literal sitting in
-    // a collection initialiser is none of them. Written as literals there, these four would be
-    // reported as text that reaches no screen, which is the guard failing in its safe direction and
-    // a red run for a correct panel.
-    private const string SignatureLabel = "gui.column.signature";
-    private const string FileVersionLabel = "gui.column.fileVersion";
-    private const string BinaryHashLabel = "gui.column.binaryHash";
-    private const string MemoryLabel = "gui.column.memory";
-
-    private const string NotReadHeading = "gui.details.group.notRead";
-    private const string NotReadNote = "gui.details.notRead.why";
-
-    /// <summary>The four fields this window does not read, in the order the specification lists them.</summary>
-    private static readonly string[] NotRead =
-        [SignatureLabel, FileVersionLabel, BinaryHashLabel, MemoryLabel];
-
     /// <summary>Everything the window can say about one entry, in the picker's own order.</summary>
     internal static IReadOnlyList<DetailSection> Of(ScmEntry entry)
     {
@@ -129,11 +113,6 @@ internal static class Details
 
             sections.Add(new DetailSection(heading, lines));
         }
-
-        sections.Add(new DetailSection(
-            NotReadHeading,
-            [.. NotRead.Select(key => new DetailLine(key, Texts.Of("gui.details.notRead"), fixedWidth: false))],
-            NotReadNote));
 
         return sections;
     }

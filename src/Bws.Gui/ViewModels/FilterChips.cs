@@ -337,6 +337,45 @@ internal static class FilterChips
             new FilterChip("gui.filter.system", "start", "system", negated: false, read, write)
         ]),
 
+        // THE SEVENTH OF THE EIGHT FAMILIES `A5` ASKED FOR - backlog 162, unblocked by backlog 21.
+        // It could not exist while the window read no signatures: a chip filtering on something
+        // nobody had looked at answers with an empty list plus a sentence saying nobody looked,
+        // which reads as "there are none". The window reads them now, ON DEMAND - and one of these
+        // chips is exactly what asks. Clicking one is what sends the window to open eight hundred
+        // files, which is why that pass is not paid by anybody who never asks.
+        //
+        // THREE CHIPS AND NONE OF THEM IS A SUBSET OF ANOTHER, which is the whole reason there are
+        // three. `no` is already a GROUP - an expired signature is a signature, and the question
+        // somebody has is "would Windows run this quietly" - so a chip for `notSigned` beside it
+        // would OR into exactly what `no` already covers and teach that clicking more does more.
+        // The third is not a narrower `no`: it asks what could not be CHECKED, which in an audit
+        // tool is a question in its own right and the only way to see what a partial answer left
+        // out. The individual verdicts stay askable by typing.
+        new FilterGroup("gui.filter.group.signature",
+        [
+            new FilterChip("gui.filter.signedYes", "signed", "yes", negated: false, read, write),
+            new FilterChip("gui.filter.signedNo", "signed", "no", negated: false, read, write),
+            new FilterChip("gui.filter.signedUnknown", "signed", QueryFields.Unreadable, negated: false, read, write)
+        ]),
+
+        // A FAMILY OF ITS OWN, AND THE GUARD IS WHAT DECIDED THAT - backlog 162, 170 and 172.
+        // These two were written into the group above first, where they reddened
+        // FilterChipTests.No_group_says_its_chips_add_up_while_the_query_narrows_them: chips of ONE
+        // field are ORed by the language and chips of different fields are ANDed, so a group
+        // holding both makes its own hint true for half of itself. Two chips on `mismatch` add up -
+        // "show me either kind of disagreement" - and that is a different promise from the group
+        // beside it.
+        //
+        // TWO CHIPS RATHER THAN ONE, because the directions are opposites and so are the remedies -
+        // backlog 170. One is a service that ought to be running and is not; the other is switched
+        // off and running anyway. A single chip saying "something disagrees here" would be shorter
+        // and would send somebody to start a service they may need to stop.
+        new FilterGroup("gui.filter.group.mismatch",
+        [
+            new FilterChip("gui.filter.shouldRun", "mismatch", "stopped", negated: false, read, write),
+            new FilterChip("gui.filter.runsDisabled", "mismatch", "running", negated: false, read, write)
+        ]),
+
         new FilterGroup("gui.filter.group.about",
         [
             // NOT A START TYPE, WHICH IS WHY IT MOVED. A service can be Manual and trigger-started
@@ -348,6 +387,7 @@ internal static class FilterChips
             // it", so this asks for entries that have a trigger at all rather than one of the
             // eleven kinds.
             new FilterChip("gui.filter.triggered", "trigger", QueryFields.Any, negated: false, read, write),
+
 
             // THE ONE THAT REPLACES A CONTROL RATHER THAN ADDING ONE. The drivers switch was a
             // checkbox beside the search box with its own text-editing helpers, and `docs/11`

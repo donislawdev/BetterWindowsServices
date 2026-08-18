@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bws.Core;
 
 namespace Bws.Gui.ViewModels;
@@ -358,6 +359,65 @@ internal static class CellFaces
         ReadOutcome.Present => reading.Value ? CellShapes.Against : CellShapes.Ordinary,
         _ => CellShapes.Unknown
     };
+
+    /// <summary>
+    /// What the system thinks of the signature on the file - the second phase of `ADR-13`.
+    ///
+    /// <b>The words are ours rather than the enum's, and that is a difference from the command
+    /// line on purpose.</b> ListingTable prints Status.ToString(), which is an identifier and is
+    /// fine in a terminal where the reader is holding the documentation. Anything a person reads in
+    /// this window is a key in the language file - rule 13 - so these are seven sentences rather
+    /// than seven enum names.
+    ///
+    /// <b>Unknown is a verdict, not a gap.</b> It means the trust provider answered with something
+    /// this code cannot name, and BinarySignature.ResultCode still carries the number. A cell that
+    /// showed it as blank would read as "not read yet", which is the one thing the four states of
+    /// a Reading exist to keep apart.
+    /// </summary>
+    public static string SignatureLabel(Reading<BinarySignature> reading) => Say(reading, signature =>
+        signature.Status switch
+        {
+            SignatureStatus.Trusted => Texts.Of("gui.cell.signature.trusted"),
+            SignatureStatus.NotSigned => Texts.Of("gui.cell.signature.notSigned"),
+            SignatureStatus.UntrustedRoot => Texts.Of("gui.cell.signature.untrustedRoot"),
+            SignatureStatus.Expired => Texts.Of("gui.cell.signature.expired"),
+            SignatureStatus.Revoked => Texts.Of("gui.cell.signature.revoked"),
+            SignatureStatus.Tampered => Texts.Of("gui.cell.signature.tampered"),
+            _ => Texts.Of("gui.cell.unknown")
+        });
+
+    /// <summary>
+    /// Who signed it, in a column of its own rather than in brackets beside the verdict.
+    ///
+    /// <b>The command line puts both in one cell and this window does not, which is a considered
+    /// difference rather than a drift.</b> ListingTable says why in its own comment: a listing is
+    /// already 260 characters across on a real machine. A window has a column chooser, so the
+    /// person who wants to sort by publisher can have it and everybody else leaves it off.
+    ///
+    /// An unsigned file has no publisher, and that is Absent rather than empty - the signature was
+    /// read and there is genuinely nobody, which is not the same as nobody having looked.
+    /// </summary>
+    public static string PublisherLabel(Reading<BinarySignature> reading) =>
+        reading.IsPresent && reading.Value!.Publisher is null
+            ? string.Empty
+            : Say(reading, signature => signature.Publisher!);
+
+    /// <summary>
+    /// What a process is holding, in megabytes with one decimal.
+    ///
+    /// <b>The same unit and the same decimal as the command line and as Task Manager</b>, because
+    /// the number is only useful if it can be compared against what somebody already has open.
+    /// Sharing is said out loud for the reason the glossary gives: several entries in one svchost
+    /// each report the whole process, so a column of them adds up to far more than the machine has.
+    /// </summary>
+    public static string MemoryLabel(Reading<ProcessMemory> reading) => Say(reading, memory =>
+    {
+        var size = Texts.Of(
+            "gui.cell.megabytes",
+            (memory.WorkingSet / (1024.0 * 1024)).ToString("N1", CultureInfo.InvariantCulture));
+
+        return memory.IsShared ? Texts.Of("gui.cell.memoryShared", size, memory.SharedBy) : size;
+    });
 
     /// <summary>
     /// A list of names as one cell - dependencies and required privileges.

@@ -2,112 +2,6 @@ using Bws.Core;
 
 namespace Bws.Gui.ViewModels;
 
-/// <summary>
-/// How a cell is drawn, as far as a view model is allowed to know.
-///
-/// <b>A shape rather than a template name</b>, for the same reason <see cref="CellShapes"/> is a
-/// code rather than a brush: `Bws.Integration.Tests` references this assembly deliberately WITHOUT
-/// UseWPF, so a view model naming a WPF type would end that, and end it silently. Which template
-/// each of these turns into is decided in <c>ListColumns</c>, beside the window.
-/// </summary>
-internal enum ColumnFace
-{
-    /// <summary>Words, left aligned, trimmed with an ellipsis and a tooltip.</summary>
-    Text,
-
-    /// <summary>Digits, right aligned - `docs/11` 3.3, so a column of them is comparable at a glance.</summary>
-    Number,
-
-    /// <summary>
-    /// Monospaced. A launch path and a security descriptor, where alignment carries meaning and
-    /// two different values must not be able to look the same - `docs/03`, part 4.
-    /// </summary>
-    Fixed,
-
-    /// <summary>A mark plus the word - the running state.</summary>
-    Status,
-
-    /// <summary>A mark plus the word - the start type and what qualifies it.</summary>
-    StartType,
-
-    /// <summary>
-    /// A mark plus the word - whether the entry is doing the opposite of its start type.
-    ///
-    /// A third shape family rather than a third use of the dot, because this is a persistent
-    /// disagreement between two settings and neither of the other two columns means that.
-    /// Backlog 165.
-    /// </summary>
-    Mismatch
-}
-
-/// <summary>
-/// One column somebody can turn on, and everything about it that is not WPF.
-///
-/// <b>The identifier is a frozen contract in waiting and is spelled from the glossary.</b> S6d3
-/// writes the layout to disk, and what it writes is these strings - so `docs/03` part 4 decides
-/// them, not this file. A column named here with an invented word is a word that ends up in
-/// people's configuration files.
-/// </summary>
-internal sealed record Column
-{
-    /// <summary>What this column IS, in the glossary's own spelling. Never a translated word.</summary>
-    public required string Id { get; init; }
-
-    /// <summary>The key for its heading, which is also what the picker calls it.</summary>
-    public required string LabelKey { get; init; }
-
-    /// <summary>
-    /// The name of its starting width in Themes/Values.xaml.
-    ///
-    /// A name rather than a number, `ADR-23` - and the word STARTING is load bearing since
-    /// 2026-08-11: the theme decides where a column begins and a person dragging its edge decides
-    /// where it ends up. See the note added to `ADR-23` that day.
-    /// </summary>
-    public required string WidthKey { get; init; }
-
-    public required ColumnFace Face { get; init; }
-
-    /// <summary>Whether it is on before anybody chooses anything.</summary>
-    public required bool ShownAtFirst { get; init; }
-
-    /// <summary>What its cell says about one entry.</summary>
-    public required Func<ScmEntry, string> Reads { get; init; }
-
-    /// <summary>
-    /// What to sort it by, when that is not simply what the cell says.
-    ///
-    /// <b>Only the process identifier needs it today, and it needs it badly.</b> Sorted as text,
-    /// 103292 comes before 9 - which is what this window did from the day sorting was turned on
-    /// until 2026-08-11, because the column bound to a string property and DataGrid sorts by the
-    /// binding path.
-    /// </summary>
-    public Func<ScmEntry, IComparable?>? Sorts { get; init; }
-
-    /// <summary>What two rows are compared by when this column is sorted.</summary>
-    public IComparable? SortKey(ScmEntry entry) => Sorts is null ? Reads(entry) : Sorts(entry);
-}
-
-/// <summary>
-/// The seventeen columns of `A8`, and why exactly these.
-///
-/// <b>The count is arithmetic rather than taste, and it closes exactly.</b> `ScmEntry` carries 22
-/// fields plus one derived. Four are refused because the second phase of `ADR-13` reads them and
-/// the window has no second phase - signature, file version, binary hash and memory - so a column
-/// for any of them would write "nobody looked" 809 times, which is a promise the window cannot
-/// keep. Backlog 21 brings them back the day that phase exists. Two more are absent because they
-/// are already on screen inside another cell: the delayed flag and whether the file is on disk are
-/// both qualifiers the start type carries, exactly as the command line prints them. 23 - 4 - 2 is
-/// seventeen. Owner's decision, 2026-08-11.
-///
-/// <b>Six are on at the start and that is also a decision rather than the status quo.</b> `A8`
-/// names Name, Status, Start, Account, PID and RAM - and RAM belongs to the phase that does not
-/// exist, so the display name keeps its place instead. It carries the text a person recognises,
-/// translated on this machine, which no other column does.
-///
-/// <b>The order is the order they are offered in</b>, which is what somebody reads down the picker
-/// and what the grid uses before anybody drags anything: the six that are on, then the cheap facts
-/// about what an entry IS, then the three lists, then the two that are mostly for an audit.
-/// </summary>
 internal static class Columns
 {
     /// <summary>Every column, in the order they are offered.</summary>
@@ -246,6 +140,86 @@ internal static class Columns
             Face = ColumnFace.Mismatch,
             ShownAtFirst = false,
             Reads = entry => CellFaces.Judgement(entry.RunsAgainstItsStartType)
+        },
+        // THE SECOND PHASE OF `ADR-13`, arriving 2026-08-18 - backlog 21. Until this slice the
+        // window read none of these and said so, which was honest and left the fields invisible.
+        //
+        // FIVE RATHER THAN THE FOUR THE BACKLOG ESTIMATED, and the difference is that the
+        // signature carries two facts: what the system thinks of it, and who signed it. The
+        // dictionary has separate names for them, so they are separate columns.
+        //
+        // ALL OFF AT THE START, and that is not the usual caution about width. Turning one on is
+        // what makes the window go and read them, and the reading measured 8.86-9.42 s of processor
+        // against 1.39-1.42 s without it, over about 810 entries. A column shown by default would
+        // spend that on every F5 for everybody.
+        new Column
+        {
+            Id = "signature",
+            LabelKey = "gui.column.signature",
+            WidthKey = "ColumnSignature",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.SignatureLabel(entry.Signature)
+        },
+        new Column
+        {
+            Id = "publisher",
+            LabelKey = "gui.column.publisher",
+            WidthKey = "ColumnPublisher",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.PublisherLabel(entry.Signature)
+        },
+        new Column
+        {
+            Id = "fileVersion",
+            LabelKey = "gui.column.fileVersion",
+            WidthKey = "ColumnFileVersion",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.Say(entry.FileVersion, value => value)
+        },
+        new Column
+        {
+            // Monospaced, and this is the column the rule was written for: sixty-four hexadecimal
+            // characters where two different values must not be able to look the same - `docs/03`,
+            // part 4. Proportional digits make that exactly what they do.
+            Id = "binaryHash",
+            LabelKey = "gui.column.binaryHash",
+            WidthKey = "ColumnBinaryHash",
+            Face = ColumnFace.Fixed,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.Say(entry.BinaryHash, value => value)
+        },
+        new Column
+        {
+            // Right aligned, because it is the one column in this window somebody scans down
+            // looking for the big one - `docs/11` 3.3.
+            Id = "memory",
+            LabelKey = "gui.column.memory",
+            WidthKey = "ColumnMemory",
+            Face = ColumnFace.Number,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.MemoryLabel(entry.Memory),
+
+            // By the number rather than by the words, for the same reason the process id sorts
+            // that way: "9.9 MB" sorts above "10.0 MB" as text, and a column nobody can order is
+            // most of the reason to have this one at all.
+            Sorts = entry => entry.Memory.IsPresent ? entry.Memory.Value!.WorkingSet : null
+        },
+        new Column
+        {
+            // THE OTHER DIRECTION, and services.msc does not name it either - backlog 170. Two of
+            // its columns say opposite things side by side and nothing joins them up. Its own
+            // column rather than a wider version of the one above, for the reason the fact itself
+            // is separate: the remedies are opposite, so a single mark saying "something is wrong
+            // here" would send somebody to start a service they may need to stop.
+            Id = "runsWhileDisabled",
+            LabelKey = "gui.column.runsWhileDisabled",
+            WidthKey = "ColumnRunsWhileDisabled",
+            Face = ColumnFace.Mismatch,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.Judgement(entry.RunsWhileDisabled)
         },
         new Column
         {
@@ -425,12 +399,26 @@ internal static class Columns
         ["account"] = Basics,
         ["processId"] = Basics,
 
+        // Beside the process id in meaning, and the grouping follows meaning rather than cost -
+        // this is the only column here that is a MEASUREMENT of a running process rather than a
+        // setting, and the process id is the other half of that pair.
+        ["memory"] = Basics,
+
         ["entryType"] = About,
         ["runsAgainstItsStartType"] = About,
+        ["runsWhileDisabled"] = About,
         ["sidType"] = About,
 
         ["binaryPath"] = Binary,
         ["binaryFile"] = Binary,
+
+        // Under Binary rather than under a heading of their own, because every one of them is a
+        // fact about the FILE the entry runs rather than about the entry - which is exactly what
+        // this heading means. Backlog 21.
+        ["signature"] = Binary,
+        ["publisher"] = Binary,
+        ["fileVersion"] = Binary,
+        ["binaryHash"] = Binary,
 
         // The third one this heading has wanted since it was drawn. "What does it run" is answered
         // by a command, by the file that command resolves to, and by whether that file is there -

@@ -98,8 +98,19 @@
 
     <DataGridLength x:Key="ColumnEntryType">150</DataGridLength>
     <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
+
+    <!-- The other direction of the same disagreement - backlog 170. -->
+    <DataGridLength x:Key="ColumnRunsWhileDisabled">175</DataGridLength>
     <DataGridLength x:Key="ColumnBinaryPath">3*</DataGridLength>
     <DataGridLength x:Key="ColumnBinaryFile">3*</DataGridLength>
+
+    <!-- The second phase of ADR-13, backlog 21. The hash is a fixed sixty-four characters and is
+         given room for them: a truncated hash is not a shorter answer, it is a different one. -->
+    <DataGridLength x:Key="ColumnSignature">130</DataGridLength>
+    <DataGridLength x:Key="ColumnPublisher">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnFileVersion">130</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryHash">4*</DataGridLength>
+    <DataGridLength x:Key="ColumnMemory">110</DataGridLength>
     <DataGridLength x:Key="ColumnLoadOrderGroup">2*</DataGridLength>
     <DataGridLength x:Key="ColumnErrorControl">120</DataGridLength>
     <DataGridLength x:Key="ColumnSidType">140</DataGridLength>

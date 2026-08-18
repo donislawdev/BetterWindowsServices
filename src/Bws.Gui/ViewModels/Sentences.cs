@@ -40,7 +40,9 @@ internal static class Sentences
     /// that explains an empty list, and somebody staring at one should not have to read past
     /// anything to find out why.
     /// </summary>
-    internal static string Admissions(Query query, bool held, int unreadable, int tooCostly, bool elevated)
+    internal static string Admissions(
+        Query query, bool held, int unreadable, int tooCostly, bool elevated,
+        ExtraRead have, bool filling)
     {
         var needs = query.Needs;
         var notes = new List<string>();
@@ -58,18 +60,29 @@ internal static class Sentences
             notes.Add(Texts.Of("gui.status.notElevated"));
         }
 
-        // This window reads what a listing reads and no more. The command line answers a
-        // question about signatures by going and verifying them, measured at 1100-1245 ms over
-        // 810 entries and 544 files - a price a listing pays once and a search box cannot pay
-        // on every keystroke. Doing it in the background is its own slice after S6c.
-        if (needs.HasFlag(ExtraRead.Signatures))
+        // THREE ANSWERS RATHER THAN TWO, SINCE 2026-08-18 - backlog 21, the second half of
+        // `ADR-13`. "Nobody has looked" and "this is being looked at right now" are not the same
+        // apology, and once the pass has run neither of them is true and the window should say
+        // nothing at all. A window that went on apologising after it had the answer would teach
+        // people to distrust a line that is usually right.
+        //
+        // WRITTEN OUT TWICE RATHER THAN DRIVEN FROM A TABLE OF KEYS, and the guard is what settled
+        // that. The first version paired each family with its two keys and looked up the one it
+        // wanted, which reddened TextKeyGuards immediately: a key travelling as a variable is
+        // invisible to the check that every declared sentence reaches a screen, so both new
+        // sentences read as orphans. ListState.Say carries the same note for the same reason.
+        if (needs.HasFlag(ExtraRead.Signatures) && !have.HasFlag(ExtraRead.Signatures))
         {
-            notes.Add(Texts.Of("gui.query.unreadSignatures"));
+            notes.Add(filling
+                ? Texts.Of("gui.query.readingSignatures")
+                : Texts.Of("gui.query.unreadSignatures"));
         }
 
-        if (needs.HasFlag(ExtraRead.Memory))
+        if (needs.HasFlag(ExtraRead.Memory) && !have.HasFlag(ExtraRead.Memory))
         {
-            notes.Add(Texts.Of("gui.query.unreadMemory"));
+            notes.Add(filling
+                ? Texts.Of("gui.query.readingMemory")
+                : Texts.Of("gui.query.unreadMemory"));
         }
 
         // Suppressed when the query asked about something nobody has read, and this is a
@@ -97,4 +110,5 @@ internal static class Sentences
 
         return string.Join(" ", notes);
     }
+
 }

@@ -37,7 +37,7 @@ public sealed class ColumnGuards
     [Fact]
     public void Every_column_is_offered_and_each_is_named_exactly_once()
     {
-        Assert.Equal(20, Columns.All.Count);
+        Assert.Equal(26, Columns.All.Count);
 
         var twice = Columns.All
             .GroupBy(column => column.Id, StringComparer.Ordinal)

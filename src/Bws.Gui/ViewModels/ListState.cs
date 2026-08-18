@@ -61,7 +61,7 @@ internal readonly record struct ListState
     /// window that answered "nothing matched" after the manager refused to open would be blaming
     /// the person for the machine.
     /// </summary>
-    public static ListState Of(bool reading, bool failed, int shown, int everything)
+    public static ListState Of(bool firstLook, bool failed, int shown, int everything)
     {
         if (shown > 0)
         {
@@ -73,21 +73,25 @@ internal readonly record struct ListState
             return Say(ListFace.Failed, Texts.Of("gui.empty.failed"), Texts.Of("gui.empty.failedWayOut"));
         }
 
-        // ONLY WHILE NOTHING HAS ARRIVED YET, AND THE SECOND HALF OF THAT WAS MISSING UNTIL
-        // 2026-08-13 - owner's report. The comment here always said a reading over a list that has
-        // already been read must not take the answer off the screen, and the condition did not do
-        // it: the guard above only catches a list with rows ON SCREEN, which is exactly what a
-        // query matching nothing does not have.
+        // ONLY WHILE NOTHING HAS ARRIVED YET, AND THIS QUESTION HAS NOW BEEN ASKED WRONG TWICE.
+        // Both times what a person saw was the same: the sentence saying the list was empty got
+        // replaced by "reading the manager" and put back ONCE A SECOND, for as long as they stood
+        // there reading it. `A10` reads the machine every second and every one of those readings
+        // raises and lowers the reading flag.
         //
-        // What it looked like: type something that matches nothing, and the sentence saying so was
-        // replaced by "reading the manager" and back again ONCE A SECOND, for as long as it stood
-        // there. `A10` reads the machine every second, and every one of those readings raised and
-        // lowered this flag.
+        // The first version asked `reading`, and took the answer off the screen for a query that
+        // matched nothing - owner's report, 2026-08-13. The second asked `reading && everything ==
+        // 0` and fixed four faces out of five: `everything` is how many entries this window has
+        // ever seen, so it separates a refresh from the first look EXCEPT on the machine that hands
+        // over nothing, where it stays zero forever and every tick flickers again. Measured
+        // 2026-08-18, backlog 196 - a listener on the sentence saw two announcements per tick.
         //
-        // `everything` is what tells the two apart - it is how many entries this window has ever
-        // seen, so a reading with entries already behind it is a refresh rather than the first
-        // look. Nothing else here can distinguish them.
-        if (reading && everything == 0)
+        // BOTH WERE THE SAME MISTAKE: A PROXY STANDING IN FOR A QUESTION NOBODY HELD THE ANSWER TO.
+        // What this branch wants to know is whether any reading has ever finished, and neither the
+        // flag nor the count can say it - the flag is about now and the count is about rows. So the
+        // caller keeps that bit and hands it in already decided, which is why this parameter is
+        // named for the question rather than for the flag behind it.
+        if (firstLook)
         {
             return Say(ListFace.Loading, Texts.Of("gui.empty.loading"), string.Empty);
         }

@@ -127,8 +127,19 @@ public sealed class SizeRatchetGuards
     /// is the VALUE lists: the enumeration fields carry their own accepted spellings inline, which
     /// is a different subject from which fields exist. That is the same shape of answer backlog 173
     /// holds for the theme, and it is deliberately not done in the slice that noticed it.
+    ///
+    /// <b>559 -> 536 ON 2026-08-18, AT THE CLOSE OF THE BUNDLE, AND THE MUTATION ENTRY IS WHAT
+    /// ASKED.</b> The seam above was taken, twice: QueryFields.cs went to 382 with the spellings
+    /// into QueryValueNames.cs and the per-entry readings into QuerySymbols.cs. That made
+    /// CommandLine.cs the longest at 536 - and this dial, still reading 559, had twenty-three lines
+    /// of slack in it. The full run came back MISSED: a line added to the longest file changed
+    /// nothing, so the guard was no longer holding the thing it is named after. The same shape the
+    /// count below records from 2026-08-11, which is why the entry exists at all.
+    ///
+    /// The dial comes down at the close of a bundle rather than mid-slice, which is the project's
+    /// own convention: mid-slice it would be a number chased on every edit.
     /// </summary>
-    private const int LongestShippedFile = 559;
+    private const int LongestShippedFile = 536;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second
@@ -316,8 +327,14 @@ public sealed class SizeRatchetGuards
     /// that proves it can fail is what noticed: at an allowance of four with three files long,
     /// making one more long changed nothing and it came back MISSED. <b>A dial with slack in it
     /// is not holding the thing it is named after.</b>
+    ///
+    /// <b>AND IT HAPPENED AGAIN ON 2026-08-18, WHICH IS THE ARGUMENT FOR KEEPING THAT ENTRY.</b>
+    /// Three seams in one bundle - Readings.cs out of MainViewModel.cs, Column.cs out of
+    /// Columns.cs, and two files out of QueryFields.cs - took the count from three to two, and this
+    /// dial went on allowing three. The full mutation run said so and nothing else did: every test
+    /// was green, because a loose dial is green by construction.
     /// </summary>
-    private const int ShippedFilesAllowedToBeLong = 3;
+    private const int ShippedFilesAllowedToBeLong = 2;
     private const int TestFilesAllowedToBeLong = 2;
 
     /// <summary>

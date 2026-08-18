@@ -188,4 +188,49 @@ public sealed class EmptyStateTests
 
         Assert.Empty(announced);
     }
+
+    /// <summary>
+    /// AND ON THE MACHINE THAT HANDS OVER NOTHING, which is the face the 2026-08-13 fix left out.
+    ///
+    /// <b>Backlog 196. The fix above asked `everything == 0` to mean "nothing has arrived yet", and
+    /// on this machine that is true forever</b> - so the sentence saying the manager handed over no
+    /// entries was replaced by "reading the manager" and put back, once a second, exactly the
+    /// complaint the fix was answering. Measured before the change: the listener saw two
+    /// announcements per tick.
+    ///
+    /// <b>A separate test rather than a case inside the one above, because they fail for different
+    /// reasons.</b> That one is about a query narrowing a list to nothing and this one is about a
+    /// machine with nothing on it - the two faces this product refuses to collapse, and a shared
+    /// test would let either of them go quiet while the other kept it green.
+    ///
+    /// The claim is the NOTIFICATION rather than the value, for the reason written above it.
+    /// </summary>
+    [Fact]
+    public async Task A_refresh_does_not_take_the_empty_state_off_the_screen_on_an_empty_machine()
+    {
+        var model = new MainViewModel(new LiveMachine(), new SteppedClock());
+
+        await model.LoadAsync();
+
+        var before = model.Says.ListMessage;
+
+        Assert.Equal(ListFace.NothingToShow, model.Says.Face);
+        Assert.NotEqual(string.Empty, before);
+
+        var announced = new List<string>();
+
+        model.Says.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(Says.ListMessage))
+            {
+                announced.Add(model.Says.ListMessage);
+            }
+        };
+
+        await model.RefreshAsync();
+
+        Assert.Equal(before, model.Says.ListMessage);
+
+        Assert.Empty(announced);
+    }
 }

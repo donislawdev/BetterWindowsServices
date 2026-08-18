@@ -120,18 +120,7 @@ public static class QueryFields
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
             SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.EntryType.ToString())),
-            Values =
-            [
-                // "driver" covers both driver kinds. Windows keeps drivers and services in
-                // one place, so telling them apart is the first thing anyone asks for, and
-                // spelling out two values for it would be a poor answer to a common question.
-                new QueryValueName("driver", "kerneldriver", "filesystemdriver"),
-                new QueryValueName("kernelDriver", "kerneldriver"),
-                new QueryValueName("fileSystemDriver", "filesystemdriver"),
-                new QueryValueName("ownProcess", "ownprocess"),
-                new QueryValueName("sharedProcess", "sharedprocess"),
-                new QueryValueName("unknown", "unknown")
-            ]
+            Values = QueryValueNames.Type
         },
 
         new QueryField
@@ -140,24 +129,7 @@ public static class QueryFields
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
             SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.Status.ToString())),
-            Values =
-            [
-                new QueryValueName("running", "running"),
-                new QueryValueName("stopped", "stopped"),
-                new QueryValueName("paused", "paused"),
-
-                // FOUR STATES UNDER ONE WORD, the same shape as type:driver and signed:no. Nobody
-                // arrives asking whether a service is specifically continue-pending - they ask
-                // what is in the middle of something, and that is one question with four answers.
-                // Added 2026-08-12 for the chips, and an ADDITION rather than a change of meaning.
-                new QueryValueName("pending", "startpending", "stoppending", "pausepending", "continuepending"),
-
-                new QueryValueName("startPending", "startpending"),
-                new QueryValueName("stopPending", "stoppending"),
-                new QueryValueName("pausePending", "pausepending"),
-                new QueryValueName("continuePending", "continuepending"),
-                new QueryValueName("unknown", "unknown")
-            ]
+            Values = QueryValueNames.Status
         },
 
         new QueryField
@@ -165,29 +137,8 @@ public static class QueryFields
             Name = "start",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = entry => entry.StartType.Outcome,
-            SymbolsOf = StartSymbols,
-            Values =
-            [
-                new QueryValueName("automatic", "automatic"),
-
-                // An alias means the same thing as the word it stands for. "auto" therefore
-                // covers delayed entries too, because "automatic" does. Somebody who wants
-                // the distinction asks for "delayed", and somebody who wants automatic
-                // without delayed writes: start:auto !start:delayed
-                new QueryValueName("auto", "automatic"),
-
-                // Not a start type Windows reports. The manager returns the same number, 2,
-                // for both, and the delay is a separate piece of configuration. It is a
-                // value here because that is how a person thinks about it and how
-                // services.msc shows it.
-                new QueryValueName("delayed", "delayed"),
-
-                new QueryValueName("manual", "manual"),
-                new QueryValueName("disabled", "disabled"),
-                new QueryValueName("boot", "boot"),
-                new QueryValueName("system", "system"),
-                new QueryValueName("unknown", "unknown")
-            ]
+            SymbolsOf = QuerySymbols.StartSymbols,
+            Values = QueryValueNames.Start
         },
 
         new QueryField
@@ -219,24 +170,8 @@ public static class QueryFields
             Name = "trigger",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = entry => entry.Triggers.Outcome,
-            SymbolsOf = TriggerSymbols,
-            Values =
-            [
-                new QueryValueName("device", "devicearrival"),
-                new QueryValueName("ip", "ipaddress"),
-                new QueryValueName("domain", "domainjoin"),
-                new QueryValueName("firewall", "firewallport"),
-                new QueryValueName("policy", "grouppolicy"),
-                new QueryValueName("network", "networkendpoint"),
-                new QueryValueName("custom", "custom"),
-                new QueryValueName("state", "customsystemstatechange"),
-                new QueryValueName("unknown", "unknown"),
-
-                // Not a kind but an action, and worth asking about on its own: a trigger
-                // that stops a service is a very different fact from one that starts it.
-                new QueryValueName("start", "start"),
-                new QueryValueName("stop", "stop")
-            ]
+            SymbolsOf = QuerySymbols.TriggerSymbols,
+            Values = QueryValueNames.Trigger
         },
 
         new QueryField
@@ -266,12 +201,8 @@ public static class QueryFields
             Name = "file",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = entry => entry.BinaryOnDisk.Outcome,
-            SymbolsOf = FileSymbols,
-            Values =
-            [
-                new QueryValueName("present", "present"),
-                new QueryValueName("missing", "missing")
-            ]
+            SymbolsOf = QuerySymbols.FileSymbols,
+            Values = QueryValueNames.File
         },
 
         new QueryField
@@ -288,23 +219,8 @@ public static class QueryFields
             Kind = QueryFieldKind.Enumeration,
             Needs = ExtraRead.Signatures,
             OutcomeOf = entry => entry.Signature.Outcome,
-            SymbolsOf = SignatureSymbols,
-            Values =
-            [
-                new QueryValueName("yes", "trusted"),
-                new QueryValueName("no", "notsigned", "untrustedroot", "expired", "revoked", "tampered"),
-                new QueryValueName("trusted", "trusted"),
-                new QueryValueName("notSigned", "notsigned"),
-                new QueryValueName("untrustedRoot", "untrustedroot"),
-                new QueryValueName("expired", "expired"),
-                new QueryValueName("revoked", "revoked"),
-                new QueryValueName("tampered", "tampered"),
-
-                // Deliberately not inside "no". A result this code could not name is not a
-                // finding about the file, it is a gap in our naming, and sweeping it in with
-                // the untrusted ones would turn our own ignorance into an accusation.
-                new QueryValueName("unknown", "unknown")
-            ]
+            SymbolsOf = QuerySymbols.SignatureSymbols,
+            Values = QueryValueNames.Signed
         },
 
         new QueryField
@@ -314,7 +230,7 @@ public static class QueryFields
             Name = "publisher",
             Kind = QueryFieldKind.Text,
             Needs = ExtraRead.Signatures,
-            OutcomeOf = PublisherOutcome,
+            OutcomeOf = QuerySymbols.PublisherOutcome,
             TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null
         },
 
@@ -347,13 +263,8 @@ public static class QueryFields
             Name = "sidtype",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = entry => entry.SidType.Outcome,
-            SymbolsOf = SidTypeSymbols,
-            Values =
-            [
-                new QueryValueName("unrestricted", "unrestricted"),
-                new QueryValueName("restricted", "restricted"),
-                new QueryValueName("unknown", "unknown")
-            ]
+            SymbolsOf = QuerySymbols.SidTypeSymbols,
+            Values = QueryValueNames.Sidtype
         },
 
         new QueryField
@@ -392,118 +303,30 @@ public static class QueryFields
             Needs = ExtraRead.Memory,
             OutcomeOf = entry => entry.Memory.Outcome,
             SizeOf = entry => entry.Memory.IsPresent ? entry.Memory.Value!.WorkingSet : null
+        },
+
+        new QueryField
+        {
+            // BOTH DIRECTIONS UNDER ONE NAME, AND THE VALUES KEEP THEM APART - backlog 170 and 172.
+            // The window has carried the first of these as a column since backlog 165 and nobody
+            // could ask about it, which is the asymmetry this closes: a fact you can see and cannot
+            // filter on is half a feature.
+            //
+            // ONE FIELD RATHER THAN TWO BOOLEANS, for three reasons that are all checkable here. A
+            // chip has to be able to write itself as a member somebody can read, and
+            // mismatch:running reads like trigger:device. One field is one addition to a surface
+            // people keep in scripts rather than two, and a surface does not narrow again. And the
+            // enumeration keeps the DIRECTION that backlog 170 refused to collapse - any and none
+            // arrive free from the reserved words, so the convenience costs no information.
+            Name = "mismatch",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = QuerySymbols.MismatchOutcome,
+            SymbolsOf = QuerySymbols.MismatchSymbols,
+            Values = QueryValueNames.Mismatch
         }
     ];
 
 #pragma warning restore MA0051
-
-    /// <summary>
-    /// Whether the entry has an identity of its own, and which kind.
-    ///
-    /// An entry with none reports no symbols and is not incomplete: there is genuinely
-    /// nothing here, which is what <c>sidtype:none</c> asks about.
-    /// </summary>
-    private static FieldSymbols SidTypeSymbols(ScmEntry entry) => entry.SidType.Outcome switch
-    {
-        ReadOutcome.Present => FieldSymbols.Of(Normalise(entry.SidType.Value.ToString())),
-        ReadOutcome.Absent => FieldSymbols.Of(),
-        _ => FieldSymbols.Nothing
-    };
-
-    /// <summary>
-    /// What the system concluded about the signature.
-    ///
-    /// A file with nothing to be signed - an entry naming no binary at all - reports no
-    /// symbols and is not incomplete. There is genuinely nothing here, which is what
-    /// <c>signed:none</c> asks about.
-    /// </summary>
-    private static FieldSymbols SignatureSymbols(ScmEntry entry) => entry.Signature.Outcome switch
-    {
-        ReadOutcome.Present => FieldSymbols.Of(Normalise(entry.Signature.Value!.Status.ToString())),
-        ReadOutcome.Absent => FieldSymbols.Of(),
-        _ => FieldSymbols.Nothing
-    };
-
-    /// <summary>
-    /// Whether there is a publisher to ask about.
-    ///
-    /// Its own function because the answer is not simply the signature's outcome. A file
-    /// that was read and turned out to be unsigned has a signature reading that is present
-    /// and a publisher that is genuinely absent - and absent is what <c>publisher:none</c>
-    /// has to find, rather than nothing at all.
-    /// </summary>
-    private static ReadOutcome PublisherOutcome(ScmEntry entry) =>
-        entry.Signature.Outcome != ReadOutcome.Present ? entry.Signature.Outcome
-            : entry.Signature.Value!.Publisher is null ? ReadOutcome.Absent
-            : ReadOutcome.Present;
-
-    /// <summary>
-    /// Whether the file the entry runs is on disk.
-    ///
-    /// An entry naming no file at all reports neither symbol and is not incomplete: there
-    /// is genuinely nothing to be present or missing, which is what <c>file:none</c> asks.
-    /// </summary>
-    private static FieldSymbols FileSymbols(ScmEntry entry) => entry.BinaryOnDisk.Outcome switch
-    {
-        ReadOutcome.Present => FieldSymbols.Of(entry.BinaryOnDisk.Value ? "present" : "missing"),
-        ReadOutcome.Absent => FieldSymbols.Of(),
-        _ => FieldSymbols.Nothing
-    };
-
-    /// <summary>
-    /// Every kind an entry's triggers carry, plus the actions they take.
-    ///
-    /// Kinds and actions share one list of symbols on purpose. They are two questions about
-    /// the same thing and a person asking "what starts this by itself" should not have to
-    /// learn which of the two words they need. The names cannot collide - the kinds are
-    /// conditions and the actions are the two verbs this tool already uses everywhere.
-    /// </summary>
-    private static FieldSymbols TriggerSymbols(ScmEntry entry)
-    {
-        if (!entry.Triggers.IsPresent)
-        {
-            return entry.Triggers.Outcome == ReadOutcome.Absent
-                ? FieldSymbols.Of()
-                : FieldSymbols.Nothing;
-        }
-
-        return FieldSymbols.Of(
-        [
-            .. entry.Triggers.Value!
-                .SelectMany(trigger => new[] { Normalise(trigger.Kind.ToString()), Normalise(trigger.Action.ToString()) })
-                .Distinct(StringComparer.Ordinal)
-        ]);
-    }
-
-    /// <summary>
-    /// The start type, plus "delayed" when the entry carries the delay flag.
-    ///
-    /// An automatic entry whose delay flag could not be read reports "automatic" and admits
-    /// the gap. Reporting only "automatic" would answer <c>start:delayed</c> with a
-    /// confident no, and a confident no about something we did not read is the failure
-    /// this tool exists to avoid.
-    /// </summary>
-    private static FieldSymbols StartSymbols(ScmEntry entry)
-    {
-        if (!entry.StartType.IsPresent)
-        {
-            return FieldSymbols.Nothing;
-        }
-
-        var startType = Normalise(entry.StartType.Value.ToString());
-
-        if (entry.StartType.Value != StartType.Automatic)
-        {
-            return FieldSymbols.Of(startType);
-        }
-
-        return entry.DelayedAuto.Outcome switch
-        {
-            ReadOutcome.Present when entry.DelayedAuto.Value => FieldSymbols.Of(startType, "delayed"),
-            ReadOutcome.Present or ReadOutcome.Absent => FieldSymbols.Of(startType),
-            _ => FieldSymbols.Partial(startType)
-        };
-    }
 
     /// <summary>
     /// What a bare word searches.

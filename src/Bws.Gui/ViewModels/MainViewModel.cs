@@ -39,13 +39,15 @@ public sealed class MainViewModel : Observable
     /// <summary>How long a row stays marked as having just moved. Lives with the rows it marks.</summary>
     internal static TimeSpan HighlightFor => RowIndex.HighlightFor;
 
-    private readonly IScmCatalog _catalog;
 
     /// <summary>Whether the list may rearrange itself right now, and what it owes if it may not.</summary>
     private readonly Holding _holding = new();
 
     /// <summary>Every row that exists, kept in step with the machine.</summary>
     private readonly RowIndex _index;
+
+    /// <summary>What the machine said, and whether anybody is still asking. Backlog 198.</summary>
+    private readonly Readings _readings;
 
     /// <summary>
     /// The last query that parsed, which is not always the last query that was typed.
@@ -65,14 +67,18 @@ public sealed class MainViewModel : Observable
     /// because they close over it.
     /// </summary>
     private readonly FilterBar _filters;
-    private bool _reading;
 
-    /// <summary>Whether the last reading failed outright, which is not the same as admitting gaps.</summary>
-    private bool _failed;
+
 
 
     public MainViewModel()
-        : this(new WindowsScmCatalog(), new SystemClock())
+        : this(
+            new WindowsScmCatalog(),
+            new SystemClock(),
+            // Skip, exactly as the command line defaults, because a launch path on a share can
+            // hang on a machine that cannot reach it - and this one runs on every full reading.
+            new WindowsBinaryInspector(NetworkPaths.Skip),
+            new WindowsProcessMemoryReader())
     {
     }
 
@@ -81,10 +87,18 @@ public sealed class MainViewModel : Observable
     /// the cases a real machine will not produce on demand: a refusal, an empty machine, a
     /// service that stops between one second and the next, three seconds passing at once.
     /// </summary>
-    public MainViewModel(IScmCatalog catalog, IClock clock)
+    public MainViewModel(
+        IScmCatalog catalog,
+        IClock clock,
+        IBinaryInspector? inspector = null,
+        IProcessMemoryReader? reader = null)
     {
-        _catalog = catalog;
         _index = new RowIndex(clock);
+
+        // Says is fetched rather than handed over, because a caller may replace it after this
+        // constructor has run - see the argument on Readings._look.
+        _readings = new Readings(
+            catalog, _index, () => Says, Apply, TellTheList, inspector, reader, () => _query.Needs);
 
         // Reading the field and writing the property, which is deliberate and is the difference
         // between a chip that filters and a chip that only edits text: the setter is what parses
@@ -241,145 +255,15 @@ public sealed class MainViewModel : Observable
 
 
     /// <summary>
-    /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks
-    /// for afterwards.
+    /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks for.
     ///
-    /// A second call arriving while one is out is dropped rather than queued. Without that,
-    /// two presses of F5 send two readings and the one that <b>finished later</b> wins rather
-    /// than the one that <b>read later</b> - so the list can settle on the older of two
-    /// answers and say nothing about it. Nothing here corrupts, because every continuation
-    /// comes back to the interface thread, which is precisely why the hole was invisible: it
-    /// is a question of ordering rather than of two threads touching one field.
+    /// Handed straight on, because the window binds to this class and the state machine behind it
+    /// is not something a window should have to know the name of.
     /// </summary>
-    public async Task LoadAsync()
-    {
-        if (Reading)
-        {
-            return;
-        }
+    public Task LoadAsync() => _readings.LoadAsync();
 
-        Reading = true;
-
-        try
-        {
-            await LoadEverything().ConfigureAwait(true);
-        }
-        finally
-        {
-            Reading = false;
-        }
-    }
-
-    /// <summary>
-    /// The reading itself, without the guard, because the tick already holds it when it finds
-    /// out that it needs a full one.
-    /// </summary>
-    private async Task LoadEverything()
-    {
-        Says.Status = Texts.Of("gui.status.reading");
-
-        // Said before the reading rather than after it, or the one state this announces would be
-        // announced only once it had stopped being true.
-        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
-
-        IReadOnlyList<ScmEntry> entries;
-
-        try
-        {
-            entries = await Task.Run(_catalog.ReadAll).ConfigureAwait(true);
-        }
-#pragma warning disable CA1031
-        // Broad, and it is the same argument as the entry point of the command line tool:
-        // the failure reaches the person, in the line under the list, instead of taking the
-        // window down with a dialog nobody can act on. The message is the system's, so it
-        // carries its own number and its own language.
-        catch (Exception failure)
-        {
-            Fail(failure);
-
-            return;
-        }
-#pragma warning restore CA1031
-
-        Says.Incomplete = false;
-        _failed = false;
-        _index.Absorb(entries);
-        Apply();
-    }
-
-    /// <summary>
-    /// One tick of the live list: asks what is running and moves whatever moved.
-    ///
-    /// Driven from outside rather than by a loop in here, and that is a deliberate shape. A
-    /// loop would need a thread, a cancellation and a rule about what happens when the window
-    /// closes mid-read - three things to get wrong. A window that calls this on a timer needs
-    /// none of them, and a test can call it whenever it likes instead of waiting for seconds
-    /// to pass.
-    ///
-    /// The cheap reading measures 13-22 ms over 810 entries against 423-500 ms for a full one,
-    /// which is what makes asking once a second reasonable rather than rude.
-    /// </summary>
-    public async Task RefreshAsync()
-    {
-        // A tick arriving while any reading is still out is dropped rather than queued. The
-        // reading is short, so this only happens when the machine is busy - and answering a
-        // late tick with a second reading would make it busier.
-        //
-        // One flag for both kinds of reading, not two. They rebuild the same state, so two
-        // flags would let a tick and an F5 overlap and leave whichever finished last on
-        // screen, which is not the same thing as whichever looked last.
-        if (Reading)
-        {
-            return;
-        }
-
-        Reading = true;
-
-        try
-        {
-            IReadOnlyList<ScmStatus> statuses;
-
-            try
-            {
-                statuses = await Task.Run(_catalog.ReadStatuses).ConfigureAwait(true);
-            }
-#pragma warning disable CA1031
-            // Same argument as above, and it earns its place here rather than inheriting it:
-            // this runs unattended once a second, so an exception nobody caught would take the
-            // window down while its owner was somewhere else entirely.
-            catch (Exception failure)
-            {
-                Fail(failure);
-
-                return;
-            }
-#pragma warning restore CA1031
-
-            Says.Incomplete = false;
-
-            switch (_index.Absorb(statuses))
-            {
-                case Freshening.CompositionChanged:
-                    // The unguarded one, because the guard above is already held. Calling the
-                    // public entry point here would find its own flag raised and quietly do
-                    // nothing, which is the sort of deadlock-by-politeness that looks like the
-                    // machine simply never installing anything.
-                    await LoadEverything().ConfigureAwait(true);
-                    break;
-
-                case Freshening.Moved:
-                    Apply();
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        finally
-        {
-            Reading = false;
-        }
-    }
+    /// <summary>One tick of the live list: asks what is running and moves whatever moved.</summary>
+    public Task RefreshAsync() => _readings.RefreshAsync();
 
     /// <summary>
     /// Takes the highlight off the rows that have worn it long enough. Driven by the same tick
@@ -389,40 +273,13 @@ public sealed class MainViewModel : Observable
 
 
     /// <summary>
-    /// Whether a reading is out, and the face follows it.
+    /// Tells the empty middle of the window what the list is doing now.
     ///
-    /// <b>A property rather than a field, and the reason is a fault this had for ten minutes.</b>
-    /// The face was worked out at the end of a reading, while this was still true - so a query
-    /// that matched nothing after F5 came out as "reading the manager" and stayed there, because
-    /// nothing ran again once the reading ended. Every path that lowers this now says so, which
-    /// is cheaper than every path remembering to.
+    /// It lives here rather than in <see cref="Readings"/> because it needs both halves: what the
+    /// machine said, and how many rows came through the query onto the screen.
     /// </summary>
-    private bool Reading
-    {
-        get => _reading;
-
-        set
-        {
-            if (_reading == value)
-            {
-                return;
-            }
-
-            _reading = value;
-
-            Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
-        }
-    }
-
-
-    private void Fail(Exception failure)
-    {
-        Says.Status = Texts.Of("gui.status.failed", failure.Message);
-        Says.Incomplete = true;
-        _failed = true;
-
-        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
-    }
+    private void TellTheList() =>
+        Says.AboutTheList(_readings.FirstLook, _readings.Failed, Rows.Count, _index.Ordered.Count);
 
     /// <summary>
     /// Reads the query and narrows the list to what it selects.
@@ -470,9 +327,11 @@ public sealed class MainViewModel : Observable
             ? Texts.Of("gui.status.read", everything.Count)
             : Texts.Of("gui.status.matched", narrowed.Selected.Count, everything.Count);
 
-        Says.AboutTheAnswer(_query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly);
+        Says.AboutTheAnswer(
+            _query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
+            _readings.Have, _readings.Filling);
 
-        Says.AboutTheList(_reading, _failed, Rows.Count, _index.Ordered.Count);
+        TellTheList();
 
         // The controls read the query again, all of them - see FilterBar.Rethink for why every
         // one rather than the one that was clicked. Raised here as well because the window binds

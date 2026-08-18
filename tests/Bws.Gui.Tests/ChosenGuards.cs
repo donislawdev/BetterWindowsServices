@@ -60,7 +60,7 @@ public sealed class ChosenGuards
         // Five, and the count is asserted whole rather than "more than none": four groups of the
         // column picker plus the one naming what this window did not read. A group quietly
         // disappearing is exactly the shape that would leave a panel looking complete.
-        Assert.Equal(5, chosen.Sections.Count);
+        Assert.Equal(4, chosen.Sections.Count);
     }
 
     /// <summary>
