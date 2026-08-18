@@ -82,12 +82,21 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
             $"Only {answered} of {entries.Count} entries came back with a signature read either " +
             "way. A second pass that answers nothing is fast for the wrong reason.");
 
+        // THE MESSAGE NAMES THE PARALLEL RUN FIRST, AND IT DID NOT UNTIL 2026-08-18. It used to open
+        // with "this is not a slow machine", which sent three separate readings that day off hunting
+        // for a regression in a pass nothing had touched. A clock budget measured beside four other
+        // test projects does not measure the budget - it measures how much machine was left over -
+        // and the sentence a red run prints is the only thing anybody reads before deciding where to
+        // look. Backlog 200. What this test measures is deliberately unchanged: the budget is the
+        // promise, and moving it to suit the harness would be moving the promise.
         Assert.True(
             elapsed < budget,
             $"Verifying every binary took {elapsed.TotalSeconds:F1} s over {entries.Count} entries, " +
-            $"past the {budget.TotalSeconds:F0} s section 8.1 allows for expensive data. Measured at " +
-            "1100-1245 ms on 2026-08-02, so this is not a slow machine - it is a change in how the " +
-            "pass asks, most likely one file per entry instead of one per distinct file, or the " +
-            "parallelism gone.");
+            $"past the {budget.TotalSeconds:F0} s section 8.1 allows for expensive data. CHECK WHAT " +
+            "ELSE WAS RUNNING BEFORE LOOKING AT THE CODE. Measured on 2026-08-18 on one build: 10.7 s, " +
+            "11.9 s and 11.2 s inside tools/state.ps1, which runs five test projects at once, against " +
+            "1262, 1422 and 1328 ms for this test on its own. Backlog 200. If it WAS on its own, then " +
+            "it is a change in how the pass asks - most likely one file per entry instead of one per " +
+            "distinct file, or the parallelism gone. Measured at 1100-1245 ms on 2026-08-02.");
     }
 }
