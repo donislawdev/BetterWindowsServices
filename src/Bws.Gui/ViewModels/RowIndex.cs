@@ -104,6 +104,25 @@ internal sealed class RowIndex
     }
 
     /// <summary>
+    /// Every entry the window is holding, as the machine last described it.
+    ///
+    /// <b>ALL of them, never the ones on screen, and that distinction is a correctness one rather
+    /// than a convenience.</b> A plan asks the listing who a service is and who shares its process,
+    /// so a plan built from the FILTERED rows would look those up in a set a query had narrowed - a
+    /// cascade member hidden by the query would be found as nothing and quietly left out of the
+    /// preview. A preview shorter than what will happen is the worst thing `ADR-11` can produce.
+    ///
+    /// <b>The entries here are fresher than the ones the last full reading handed over</b>, because
+    /// the cheap tick writes the status and the process identifier back into each row. So this is the
+    /// best answer the window has without going to the manager again.
+    ///
+    /// <b>What it still cannot be: current to the millisecond.</b> Configuration moves only on a full
+    /// reading, so a start type up to one of those old can put a step in a plan for an entry already
+    /// where it was asked to be - which the runner reports as "already there", honestly.
+    /// </summary>
+    internal IReadOnlyList<ScmEntry> Everything => [.. _order.Select(row => row.Entry)];
+
+    /// <summary>
     /// Takes the highlight off the rows that have worn it long enough.
     ///
     /// One sweep rather than a timer per row. Called by the same tick that refreshes, and also

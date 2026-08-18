@@ -299,6 +299,17 @@
                         the ones too long to have kept on screen.
                     -->
                     <MenuItem Header="{DynamicResource gui.menu.copyAll}" Click="CopyEverything" />
+
+                    <Separator />
+
+                    <!--
+                        WORDED AS QUESTIONS RATHER THAN AS VERBS. These open a plan and nothing else,
+                        so an item called "Stop" would be a lie to somebody's hand. The wording changes
+                        when the runner arrives, with the button that accepts - PlanView.xaml.
+                    -->
+                    <MenuItem Header="{DynamicResource gui.menu.previewStop}" Click="PreviewStop" />
+                    <MenuItem Header="{DynamicResource gui.menu.previewStart}" Click="PreviewStart" />
+                    <MenuItem Header="{DynamicResource gui.menu.previewRestart}" Click="PreviewRestart" />
                 </ContextMenu>
             </DataGrid.ContextMenu>
 
@@ -337,6 +348,16 @@
                            Grid.Column="1"
                            x:Name="DetailsPanel"
                            DataContext="{Binding Chosen}" />
+
+        <!--
+            WHAT AN OPERATION OVER THE SELECTION WOULD DO, in the SAME CELL as the details panel and
+            mutually exclusive with it - the window closes one when it opens the other. Why that is
+            right, and why this file is a UserControl, are at the head of PlanView.xaml.
+        -->
+        <local:PlanView Grid.Row="2"
+                        Grid.Column="1"
+                        x:Name="PlanPanel"
+                        DataContext="{Binding Planned}" />
 
         <!--
             Two lines now, and never more than two. The count moved up beside the box it answers

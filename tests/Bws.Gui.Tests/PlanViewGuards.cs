@@ -1,0 +1,278 @@
+using System.Windows;
+using Bws.Core.Planning;
+using Bws.Gui.ViewModels;
+
+namespace Bws.Gui.Tests;
+
+/// <summary>
+/// The plan panel as a thing on a window. Packet 2 of `S7`, the window's dry run.
+///
+/// <b>Everything the panel SAYS is decided in <see cref="Planned"/> and everything it WOULD DO is
+/// decided in the core, so what is left for this file is the one question neither can ask: whether
+/// any of it reaches a window.</b> This project has been caught four times by markup that binds
+/// correctly and paints something else - an empty list from internal view models, headings outside
+/// the visual tree, a dead row background, a text box whose style replaced the library's.
+///
+/// <b>The model is loaded BEFORE it is handed to the window</b>, so no reading happens while bindings
+/// are live and nothing here touches the interface from the test thread.
+/// </summary>
+public sealed class PlanViewGuards
+{
+    [Fact]
+    public async Task The_panel_is_off_the_window_until_somebody_asks_and_off_again_after()
+    {
+        var window = await Ready();
+
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        Assert.True(WpfHost.On(() => window.PlanPanel.Dismiss()));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// What the panel says is about the rows somebody picked.
+    ///
+    /// <b>Read off the window rather than off the model, which is the whole point of this file.</b>
+    /// The heading and the steps are separate bindings, and either can be dead on its own.
+    /// </summary>
+    [Fact]
+    public async Task What_it_shows_is_the_plan_for_the_picked_rows()
+    {
+        var window = await Ready();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        var heading = WpfHost.On(() => window.PlanPanel.Heading.Text);
+        var steps = WpfHost.On(() => window.PlanPanel.StepLines);
+        var notice = WpfHost.On(() => window.PlanPanel.Notice.Text);
+
+        Assert.NotEqual(string.Empty, heading);
+
+        // Both picked entries have a step, and the one nobody picked does not.
+        Assert.Contains(steps, line => line.Contains("Spooler", StringComparison.Ordinal));
+        Assert.Contains(steps, line => line.Contains("W32Time", StringComparison.Ordinal));
+        Assert.DoesNotContain(steps, line => line.Contains("Dnscache", StringComparison.Ordinal));
+
+        // AND THAT NOTHING HAS HAPPENED, which is the most important line in the panel: everything
+        // above it is written in the conditional and a list of steps still reads as a report.
+        Assert.NotEqual(string.Empty, notice);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// The commands are the ones the core renders, rather than a second spelling of them.
+    ///
+    /// <b>`E5`, and the reason this is asserted through the window:</b> a command that looks right and
+    /// is not one fails when somebody pastes it, and nothing on screen would say so. What makes these
+    /// real is that the core writes them and a guard in the command line's own tests holds that the
+    /// command line accepts them.
+    /// </summary>
+    [Fact]
+    public async Task The_commands_on_screen_are_the_ones_the_core_renders()
+    {
+        var window = await Ready();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Restart)));
+        WpfHost.Settled();
+
+        var shown = WpfHost.On(() => window.PlanPanel.CommandLines);
+
+        Assert.Contains("bws restart Spooler", shown);
+        Assert.Contains("bws restart W32Time", shown);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// THE TWO PANELS SHARE A COLUMN, so opening one puts the other away.
+    ///
+    /// Arranged by the window rather than by either panel - neither has any business knowing the other
+    /// exists. Without it both would be visible in one cell and the narrower one would be drawn over
+    /// the other, which looks like a rendering fault rather than like two open panels.
+    /// </summary>
+    [Fact]
+    public async Task Opening_one_panel_puts_the_other_away()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() => model.Chosen.Row = model.Rows[0]);
+        Assert.True(WpfHost.On(() => model.Chosen.Show()));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.DetailsPanel.Visibility));
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.DetailsPanel.Visibility));
+
+        // And back the other way, which is the half that is easy to leave out.
+        WpfHost.On(() => model.Chosen.Row = model.Rows[0]);
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.OpenDetails)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.DetailsPanel.Visibility));
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Escape backs out of the plan before it touches anything else.
+    ///
+    /// <b>The order is the decision rather than the implementation</b>, exactly as it was when the
+    /// details panel joined the same queue: one press doing two things at once takes somebody's query
+    /// away while they were reaching for a panel.
+    /// </summary>
+    [Fact]
+    public async Task Escape_closes_the_plan_before_it_clears_the_query()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() => model.QueryText = "name:Spooler");
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        // The query survived that press, which is the half worth asserting.
+        Assert.Equal("name:Spooler", WpfHost.On(() => model.QueryText));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Nothing picked opens nothing, and says it opened nothing.
+    ///
+    /// A panel that came up empty would look exactly like a broken feature, and a menu item that
+    /// silently did nothing would look like one too - so the answer is handed back.
+    /// </summary>
+    [Fact]
+    public async Task With_nothing_picked_there_is_no_plan_to_show()
+    {
+        var window = await Ready();
+
+        WpfHost.On(() => window.Entries.UnselectAll());
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// AN ENTRY THE PLAN REFUSES IS ON SCREEN, and the panel still opens for the rest.
+    ///
+    /// Owner's decision, 2026-08-18: a refusal belongs to its own entry and the rest of the selection
+    /// carries on. The price is that the preview carries two lists, and this is the guard that the
+    /// second one reaches a window - without it, a selection of two with one refused would look
+    /// exactly like a selection of one.
+    /// </summary>
+    [Fact]
+    public async Task An_entry_with_no_plan_is_named_on_screen()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        // THE QUERY IS CLEARED FIRST, AND THAT IS THE PRODUCT RATHER THAN THE TEST. The window opens
+        // with kernel drivers hidden - a member of the query, visible in the box - so a driver is not
+        // among the rows until somebody asks for it. The first version of this test reached for one
+        // anyway and threw, which is the double doing its job: the row genuinely was not there.
+        //
+        // This is also the real road to this state: somebody turns the driver filter off and then
+        // rubber-bands a range that happens to include one.
+        WpfHost.On(() => model.QueryText = string.Empty);
+        WpfHost.Settled();
+
+        WpfHost.On(() =>
+        {
+            window.Entries.UnselectAll();
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "amdkmdag");
+        });
+
+        WpfHost.Settled();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        var problems = WpfHost.On(() => window.PlanPanel.ProblemLines);
+
+        Assert.Contains(problems, line => line.Contains("amdkmdag", StringComparison.Ordinal));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// It takes no focus of its own, but it does take clicks - unlike the empty state.
+    ///
+    /// A UserControl is a ContentControl and arrives Focusable and a tab stop, `docs/10` trap 8. Hit
+    /// testing has to stay on here, because the panel holds the button that closes it.
+    /// </summary>
+    [Fact]
+    public void It_takes_no_focus_of_its_own_and_still_takes_clicks()
+    {
+        var window = WpfHost.Window();
+
+        Assert.False(WpfHost.On(() => window.PlanPanel.Focusable));
+        Assert.False(WpfHost.On(() => window.PlanPanel.IsTabStop));
+        Assert.True(WpfHost.On(() => window.PlanPanel.IsHitTestVisible));
+
+        WpfHost.On(window.Close);
+    }
+
+    // -- fixtures --------------------------------------------------------------------------
+
+    /// <summary>
+    /// A window looking at a small machine, with two entries picked and a third left alone.
+    ///
+    /// <b>The reading happens before the model reaches the window</b>, so nothing is read while
+    /// bindings are live - the same order <see cref="SelectionGuards"/> uses and for the same reason.
+    /// </summary>
+    private static async Task<MainWindow> Ready()
+    {
+        var machine = new LiveMachine(
+            Rows.Entry("Spooler", "Print Spooler"),
+            Rows.Entry("W32Time", "Windows Time"),
+            Rows.Entry("Dnscache", "DNS Client"),
+            Rows.Driver("amdkmdag"));
+
+        var model = new MainViewModel(machine, new SteppedClock());
+
+        await model.LoadAsync();
+
+        // HANDED TO THE WINDOW RATHER THAN ASSIGNED AFTERWARDS. Replacing DataContext leaves the
+        // window's own handlers talking to the model it built for itself, so a plan would be shown on
+        // one object while the panel watched another - which is how the first version of this file
+        // failed, silently and in five places at once.
+        var window = WpfHost.Window(model);
+
+        WpfHost.On(() =>
+        {
+            window.Entries.ItemsSource = model.Rows;
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
+            window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "W32Time"));
+        });
+
+        WpfHost.Settled();
+
+        return window;
+    }
+}

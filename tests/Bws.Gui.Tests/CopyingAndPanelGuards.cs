@@ -77,9 +77,17 @@ public sealed class CopyingAndPanelGuards
         Choose(window);
         WpfHost.Settled();
 
-        var items = WpfHost.On(() => window.Entries.ContextMenu!.Items.OfType<MenuItem>().ToList());
+        var all = WpfHost.On(() => window.Entries.ContextMenu!.Items.OfType<MenuItem>().ToList());
 
-        Assert.Equal(4, items.Count);
+        // THE COPY BLOCK RATHER THAN THE WHOLE MENU, SINCE THE MENU GREW IN PACKET 2. It now also
+        // holds three items that open a plan, and they copy nothing - a count over everything reddened
+        // here the day they arrived, which is the guard working rather than a nuisance.
+        //
+        // The first four, in the order they are declared, because the promises below are matched to
+        // them by position and that is the whole claim: item three copies what item three says.
+        Assert.True(all.Count >= 4, $"The menu has {all.Count} items, so there is no copy block to check.");
+
+        var items = all.Take(4).ToList();
 
         var promises = new[]
         {

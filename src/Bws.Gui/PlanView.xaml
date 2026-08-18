@@ -1,0 +1,198 @@
+<UserControl x:Class="Bws.Gui.PlanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False"
+             Width="380">
+
+    <!--
+        WHAT AN OPERATION OVER THE SELECTION WOULD DO - the window's dry run, packet 2 of `S7`.
+
+        A UserControl in its own file, for the criterion written down when the details panel met the
+        same question: a theme file describes the look of ONE CONTROL, and a part of the window lives
+        in its own file beside MainWindow.xaml. It declares no style of its own - every face below is
+        one this window already had - so it asks the theme for no room at all.
+
+        IT SHARES ITS COLUMN WITH THE DETAILS PANEL AND THE TWO ARE MUTUALLY EXCLUSIVE, which is a
+        decision rather than a saving. The details panel is opened by Enter on one row and this by a
+        menu over a selection, so they are never both the thing somebody is looking at - and a panel
+        across the bottom would take rows away at every window height, which is the argument the
+        details panel already carries against that shape.
+
+        Focusable and IsTabStop are off because a UserControl is a ContentControl and arrives with
+        both - `docs/10` trap 8, measured on this product. Hit testing stays ON, unlike the empty
+        state, because this panel holds a button somebody has to be able to press.
+
+        Width is a number here for the reason DetailsView gives for the same line: `ADR-23` wants
+        appearance values named in the theme, the values file has no room to name one, and Width is
+        not among the attributes AppearanceGuards polices. It moves into the theme with the panel next
+        door, on the day backlog 173 gives that file room.
+    -->
+
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Setter Property="Visibility" Value="Collapsed" />
+
+            <Style.Triggers>
+                <!--
+                    Collapsed rather than hidden, so the column gives its width back to the list
+                    while nobody is looking at a plan - the same reason the details panel collapses.
+                -->
+                <DataTrigger Binding="{Binding Showing}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+
+    <UserControl.Resources>
+        <!--
+            ONE STEP. The number is part of the sentence rather than a column, because a plan is read
+            as prose - "3. stop Netlogon (would break otherwise)" - and a person counting steps wants
+            to see where they are in the order.
+
+            WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
+            promise is that the plan warns stopping three drags in seven, so the seven have to be
+            findable at a glance rather than by reading every line. Subdued for the ones nobody asked
+            for, which is the quieter of the two and therefore the right way round - the entries a
+            person picked are the ones they are looking for.
+        -->
+        <DataTemplate x:Key="PlanLineTemplate">
+            <TextBlock Text="{Binding Text}"
+                       TextWrapping="Wrap"
+                       Margin="{StaticResource MarginBetweenControls}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Asked}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+
+        <!-- One sentence in a list of them: a warning, a refusal, or a command to paste. -->
+        <DataTemplate x:Key="PlanSentenceTemplate">
+            <TextBlock Text="{Binding}"
+                       TextWrapping="Wrap"
+                       Margin="{StaticResource MarginBetweenControls}" />
+        </DataTemplate>
+
+        <!--
+            A COMMAND LINE, IN THE FIXED WIDTH FACE. `docs/03` part 4 asks for it wherever two
+            different things must not be able to look the same, and a command somebody is about to
+            paste into a terminal is exactly that - one wrong character is a different service.
+        -->
+        <DataTemplate x:Key="PlanCommandTemplate">
+            <TextBlock Text="{Binding}"
+                       TextWrapping="Wrap"
+                       FontFamily="{StaticResource TextFaceFixed}"
+                       Margin="{StaticResource MarginBetweenControls}" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="{StaticResource MarginGroup}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       x:Name="PlanHeading"
+                       AutomationProperties.AutomationId="planHeading"
+                       Text="{Binding Heading}"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource HeadingText}" />
+
+            <!--
+                The visible way out, beside Escape which is the fast one. Nielsen's third heuristic,
+                which this product's own review names as its weakest - and it is the only thing in
+                this panel the keyboard stops on, which is why the panel itself is not a tab stop.
+            -->
+            <Button Grid.Column="1"
+                    AutomationProperties.AutomationId="planClose"
+                    Content="{DynamicResource gui.plan.close}"
+                    ToolTip="{DynamicResource gui.plan.close.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    VerticalAlignment="Top"
+                    Click="CloseRequested" />
+        </Grid>
+
+        <!--
+            THAT NOTHING HAS HAPPENED, AND IT IS THE MOST IMPORTANT LINE IN THIS PANEL. Everything
+            below is written in the conditional, and a list of steps still reads as a report of
+            something done. This window cannot carry a plan out yet, so saying so is the difference
+            between a preview and a false record of a change to somebody's machine.
+        -->
+        <TextBlock Grid.Row="1"
+                   x:Name="PlanNotice"
+                   AutomationProperties.AutomationId="planNotice"
+                   Text="{Binding Notice}"
+                   TextWrapping="Wrap"
+                   Margin="{StaticResource MarginBetweenControls}"
+                   Style="{StaticResource NoticeText}" />
+
+        <!-- Scrolls vertically and never sideways, so a long command wraps rather than hides. -->
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource gui.plan.steps}"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource HeadingText}" />
+
+                <ItemsControl x:Name="StepList"
+                              AutomationProperties.AutomationId="planSteps"
+                              ItemsSource="{Binding Steps}"
+                              ItemTemplate="{StaticResource PlanLineTemplate}" />
+
+                <TextBlock AutomationProperties.AutomationId="planExtra"
+                           Text="{Binding Extra}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource NoticeText}" />
+
+                <TextBlock AutomationProperties.AutomationId="planOverlapping"
+                           Text="{Binding Overlapping}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginBetweenControls}"
+                           Style="{StaticResource SubduedText}" />
+
+                <TextBlock Text="{DynamicResource gui.plan.warnings}"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource HeadingText}" />
+
+                <ItemsControl AutomationProperties.AutomationId="planWarnings"
+                              ItemsSource="{Binding Warnings}"
+                              ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+
+                <TextBlock Text="{DynamicResource gui.plan.problems}"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource HeadingText}" />
+
+                <ItemsControl x:Name="ProblemList"
+                              AutomationProperties.AutomationId="planProblems"
+                              ItemsSource="{Binding Problems}"
+                              ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+
+                <TextBlock Text="{DynamicResource gui.plan.commands}"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource HeadingText}" />
+
+                <ItemsControl x:Name="CommandList"
+                              AutomationProperties.AutomationId="planCommands"
+                              ItemsSource="{Binding Commands}"
+                              ItemTemplate="{StaticResource PlanCommandTemplate}" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -99,6 +99,49 @@
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
   "gui.status.couldNotDo": "That did not happen. {0}",
 
+  "gui.menu.previewStop": "What stopping these would do",
+  "gui.menu.previewStart": "What starting these would do",
+  "gui.menu.previewRestart": "What restarting these would do",
+
+  "gui.plan.doing.stop": "stopping",
+  "gui.plan.doing.start": "starting",
+  "gui.plan.doing.restart": "restarting",
+
+  "gui.plan.heading.one": "What {0} {1} would do",
+  "gui.plan.heading.many": "What {0} these {1} entries would do",
+
+  "gui.plan.nothingDone": "Nothing has been done. This is what would happen - this window cannot carry it out yet, so use the commands below or the command line.",
+
+  "gui.plan.steps": "In this order:",
+  "gui.plan.step": "{0}. {1} {2} {3}",
+  "gui.plan.operation.stop": "stop",
+  "gui.plan.operation.start": "start",
+  "gui.plan.reason.requested": "(asked for)",
+  "gui.plan.reason.cascade": "(would break otherwise)",
+  "gui.plan.reason.restore": "(put back)",
+
+  "gui.plan.extra.one": "One entry comes along that nobody picked: {0}",
+  "gui.plan.extra.many": "{0} entries come along that nobody picked: {1}",
+  "gui.plan.overlapping": "Named more than once, because one pick is inside another's cascade: {0}. The second attempt finds it already where the first put it.",
+
+  "gui.plan.warnings": "Worth knowing:",
+  "gui.plan.warning.cascade": "Stopping {0} also stops {1} other entries: {2}",
+  "gui.plan.warning.inTheWay": "These are running and need {0}, and they are not included: {1}. The stop will be refused while they run.",
+  "gui.plan.warning.sharedProcess": "{0} shares its process with: {1}. Those keep running and the process does not go away.",
+  "gui.plan.warning.returnsAfterReboot": "{0} starts automatically, so this lasts until the machine restarts.",
+  "gui.plan.warning.cascadeUnreadable": "Could not read what depends on {0}, so more may stop than this shows.",
+  "gui.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
+
+  "gui.plan.problems": "Not included, and why:",
+  "gui.plan.problem.unknownService": "There is no service called {0} any more.",
+  "gui.plan.problem.notOperable": "{0} is a driver. This tool shows drivers but does not start or stop them.",
+  "gui.plan.problem.cascadeNotOperable": "Getting to {0} would mean stopping these drivers first: {1}. This tool does not stop drivers.",
+  "gui.plan.problem.cannotComeBack": "Restarting {0} would take these down and could not start them again, because they are disabled: {1}",
+
+  "gui.plan.commands": "The same thing from a terminal:",
+  "gui.plan.close": "Close",
+  "gui.plan.close.hint": "Close this. Escape does the same.",
+
   "gui.menu.copyName": "Copy name",
   "gui.menu.copyDisplayName": "Copy display name",
   "gui.menu.copyDescription": "Copy description",

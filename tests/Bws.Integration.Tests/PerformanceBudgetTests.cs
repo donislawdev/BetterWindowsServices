@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Bws.Core;
 using Xunit.Abstractions;
+using Bws.Core.Planning;
 
 namespace Bws.Integration.Tests;
 
@@ -98,5 +99,76 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
             "1262, 1422 and 1328 ms for this test on its own. Backlog 200. If it WAS on its own, then " +
             "it is a change in how the pass asks - most likely one file per entry instead of one per " +
             "distinct file, or the parallelism gone. Measured at 1100-1245 ms on 2026-08-02.");
+    }
+    /// <summary>
+    /// A PLAN OVER A LARGE SELECTION, ON THE THREAD THAT DRAWS THE WINDOW.
+    ///
+    /// <b>This test exists to answer a question the window's design rests on rather than to watch a
+    /// number.</b> Building a plan asks the manager who depends on each entry, so a selection of
+    /// twenty costs a question per entry plus one per cascade member - and the window works that out
+    /// on the interface thread, with no background pass, no cancellation and no generation counter.
+    /// That choice was made on a measurement and this is the measurement kept where it can go red.
+    ///
+    /// <b>What was measured before the code, through the command line, five runs each with the first
+    /// discarded:</b> a plan with a thirteen member cascade took 316-360 ms end to end and the same
+    /// plan with no cascade took 325-366 ms. The spread was wider than the difference, so by this
+    /// project's own rule there was no difference - but that bounded ONE plan, and the honest gap was
+    /// twenty of them. This closes it.
+    ///
+    /// <b>The budget is the second the window has for a first row</b>, section 8.1, because that is
+    /// the longest a person waits for this window without thinking it has stopped. It is deliberately
+    /// not tighter: what would make this red is the cost turning out to scale with the selection,
+    /// which is the thing the design assumes it does not.
+    ///
+    /// <b>The reading of the machine is outside the clock</b>, because the window already has its
+    /// listing when somebody opens a preview. Timing that here would measure the same half second the
+    /// test above already owns.
+    /// </summary>
+    [Fact]
+    public void A_plan_over_a_large_selection_is_worked_out_inside_the_window_s_budget()
+    {
+        var budget = TimeSpan.FromSeconds(1);
+
+        var catalog = new WindowsScmCatalog();
+        var entries = catalog.ReadAll();
+
+        // Twenty entries a person could really pick together: running, not drivers, so each one gets
+        // a plan rather than a refusal that costs nothing to work out.
+        var picked = entries
+            .Where(entry => !entry.IsDriver && entry.Status == EntryStatus.Running)
+            .Take(20)
+            .Select(entry => entry.ServiceName)
+            .ToList();
+
+        // The cascade is asked for, which is the expensive shape rather than the default one. Without
+        // it the ordering question is asked once per selected entry and never per cascade member, so
+        // the test would measure the cheap half and report the budget as met.
+        var action = new BulkAction(ActionKind.Stop, picked, IncludeDependents: true);
+
+        var before = Stopwatch.GetTimestamp();
+        var plan = new BulkPlanBuilder(entries, catalog).Build(action);
+        var elapsed = Stopwatch.GetElapsedTime(before);
+
+        output.WriteLine(
+            $"BULK PLAN {elapsed.TotalMilliseconds:F0} ms over {picked.Count} picked of {entries.Count} " +
+            $"entries, {plan.Plans.Count} plans, {plan.Steps.Count()} steps, {plan.Problems.Count} refused, " +
+            $"budget {budget.TotalSeconds:F0} s");
+
+        // The other half, and without it this passes on a build that plans nothing at all - which is
+        // the fastest possible implementation and the useless one. Two empty answers are equal, and a
+        // timing test with no claim about the answer is that trap wearing a stopwatch.
+        Assert.True(
+            plan.Plans.Count + plan.Problems.Count == picked.Count,
+            $"{picked.Count} entries were picked and {plan.Plans.Count} got a plan with " +
+            $"{plan.Problems.Count} refused. Every entry has to come out as one or the other, or this " +
+            "is fast for the wrong reason.");
+
+        Assert.True(
+            elapsed < budget,
+            $"Working out a plan for {picked.Count} entries took {elapsed.TotalMilliseconds:F0} ms, past " +
+            $"the {budget.TotalSeconds:F0} s section 8.1 gives this window for an answer. CHECK WHAT " +
+            "ELSE WAS RUNNING BEFORE LOOKING AT THE CODE - backlog 200 is about exactly that shape on " +
+            "the test above. If the run was alone, the cost has started scaling with the selection, and " +
+            "the window works this out on the thread that draws it.");
     }
 }

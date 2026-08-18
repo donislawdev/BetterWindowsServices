@@ -96,8 +96,32 @@ internal sealed class LiveMachine : IScmCatalog
         return [.. _order.Select(name => new ScmStatus(name, _entries[name].Status, _entries[name].ProcessId))];
     }
 
+    private readonly Dictionary<string, IReadOnlyList<string>> _dependents =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Says that these entries break if that one stops.
+    ///
+    /// <b>Added 2026-08-18 for the plan panel, and the default below is deliberately unchanged.</b>
+    /// Until then this double answered Absent to every such question, which is a machine where nothing
+    /// depends on anything - fine for a listing and useless for a plan, because a cascade is the half
+    /// of a plan worth previewing. Every test written before this one keeps the answer it had.
+    ///
+    /// <b>The transitive set, stated as the manager states it.</b> Measured on a real machine on
+    /// 2026-08-01: the manager's own answer already reaches past the first hop, so a double that
+    /// listed only direct dependants would be a double of something else.
+    /// </summary>
+    internal LiveMachine DependedOnBy(string serviceName, params string[] dependents)
+    {
+        _dependents[serviceName] = dependents;
+
+        return this;
+    }
+
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
-        Reading<IReadOnlyList<string>>.Absent();
+        _dependents.TryGetValue(serviceName, out var dependents)
+            ? Reading<IReadOnlyList<string>>.Present(dependents)
+            : Reading<IReadOnlyList<string>>.Absent();
 
     private void Throw()
     {

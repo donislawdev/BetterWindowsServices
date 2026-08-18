@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Bws.Core;
+using Bws.Core.Planning;
 using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
@@ -45,6 +46,16 @@ public sealed class MainViewModel : Observable
 
     /// <summary>Every row that exists, kept in step with the machine.</summary>
     private readonly RowIndex _index;
+
+    /// <summary>
+    /// The manager, kept because a plan asks it who breaks.
+    ///
+    /// <b>Held here as well as inside <see cref="Readings"/>, and that is one object with two
+    /// readers rather than two copies of anything.</b> Reading the listing belongs to Readings.
+    /// Working out what an operation would do is a different question asked at a different moment -
+    /// when somebody opens a preview - and it is this class the window talks to.
+    /// </summary>
+    private readonly IScmCatalog _catalog;
 
     /// <summary>What the machine said, and whether anybody is still asking. Backlog 198.</summary>
     private readonly Readings _readings;
@@ -94,6 +105,7 @@ public sealed class MainViewModel : Observable
         IProcessMemoryReader? reader = null)
     {
         _index = new RowIndex(clock);
+        _catalog = catalog;
 
         // Says is fetched rather than handed over, because a caller may replace it after this
         // constructor has run - see the argument on Readings._look.
@@ -126,6 +138,16 @@ public sealed class MainViewModel : Observable
     /// of this class is about rows, queries and threads.
     /// </summary>
     public Says Says { get; init; } = new();
+
+    /// <summary>
+    /// What an operation over the selection would do, and whether that is on screen.
+    ///
+    /// <b>Beside <see cref="Chosen"/> rather than inside it, because they answer about different
+    /// things on different schedules</b> - one entry somebody opened with Enter, and a selection
+    /// somebody asked a question about. They share a column in the window and are mutually exclusive
+    /// there, which the window arranges rather than either of them knowing about the other.
+    /// </summary>
+    public Planned Planned { get; } = new();
 
 
     /// <summary>
@@ -355,4 +377,26 @@ public sealed class MainViewModel : Observable
             Rows.Reconcile(selected);
         }
     }
+
+    /// <summary>
+    /// What an operation over a selection would do. Works it out and changes nothing.
+    ///
+    /// <b>On the calling thread, and that is a measurement rather than an oversight.</b> Building a
+    /// plan asks the manager who depends on each entry, so the obvious worry is that a selection
+    /// costs a question per entry per cascade member. Measured on this machine on 2026-08-18 through
+    /// the command line, five runs each with the first discarded: a plan with a thirteen member
+    /// cascade took 316-360 ms end to end and the same plan with no cascade at all took 325-366 ms.
+    /// The spread is wider than the difference, so by this project's own rule there is no
+    /// difference - the whole figure is process start and the reading of 810 entries.
+    ///
+    /// So no background work, no cancellation and no generation counter. That is the lesson of
+    /// backlog 21 applied a second time: the machinery there turned out to answer a race that did
+    /// not exist, and the limit was in a mechanism nobody had needed.
+    ///
+    /// <b>Every entry the window holds is handed in, never the rows on screen</b>, and the reason is
+    /// at <see cref="RowIndex.Everything"/>: a plan looks entries up by name, so building one
+    /// against a filtered set would silently shorten a cascade.
+    /// </summary>
+    internal BulkPlan Plan(BulkAction action) =>
+        new BulkPlanBuilder(_index.Everything, _catalog).Build(action);
 }

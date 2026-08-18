@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
 
@@ -71,6 +72,23 @@ internal static class WpfHost
         _ = Resources;
 
         return On(() => new MainWindow(Nowhere()));
+    }
+
+    /// <summary>
+    /// A window looking at a machine the caller chose.
+    ///
+    /// <b>Handed to the window rather than assigned afterwards, and that distinction cost an
+    /// afternoon on 2026-08-18.</b> This window keeps its model in a field as well as in its
+    /// DataContext, so a test that replaced the DataContext moved every binding and left every
+    /// handler talking to the model the window had built for itself. A plan opened on one and a panel
+    /// watching the other looks exactly like markup that was never wired up, and the build says
+    /// nothing.
+    /// </summary>
+    internal static MainWindow Window(MainViewModel model)
+    {
+        _ = Resources;
+
+        return On(() => new MainWindow(Nowhere(), model));
     }
 
     /// <summary>
