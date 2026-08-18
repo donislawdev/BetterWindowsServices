@@ -42,8 +42,29 @@ public static class CellShapes
     /// <summary>Nobody was able to find out. Never the same as "there is none" - rule 8.</summary>
     public const string Unknown = Prefix + "unknown";
 
-    /// <summary>Nothing about this start type needs pointing at.</summary>
+    /// <summary>Nothing about this state needs pointing at. The start column stopped producing it
+    /// on 2026-08-17, when each start type got a mark of its own - the disagreement mark still
+    /// does, for an entry doing exactly what its start type says.</summary>
     public const string Ordinary = Prefix + "ordinary";
+
+    /// <summary>
+    /// The four start types, each with a mark of its own - owner's decision, 2026-08-17. Until
+    /// then all four shared <see cref="Ordinary"/>, which is to say they shared no mark at all.
+    ///
+    /// <b>PREFIXED, UNLIKE EVERY OTHER CODE HERE, AND FOR A REASON WORTH ONE LINE.</b> The obvious
+    /// name for the second of them is <c>System</c>, and a constant called that inside this class
+    /// shadows the namespace of the same name for everything written after it. The compiler would
+    /// not complain here today and would complain somewhere else later, which is the worst shape a
+    /// name can have. The <c>shape.start.</c> prefix also says which column a code belongs to,
+    /// which the older ones leave to the reader.
+    /// </summary>
+    public const string StartBoot = Prefix + "start.boot";
+
+    public const string StartSystem = Prefix + "start.system";
+
+    public const string StartAutomatic = Prefix + "start.automatic";
+
+    public const string StartManual = Prefix + "start.manual";
 
     /// <summary>Switched off. A fact about the entry rather than a shade of one - `docs/11` 3.1.</summary>
     public const string Disabled = Prefix + "disabled";
@@ -121,6 +142,16 @@ internal static class CellFaces
     /// somebody made rather than a fault. Waiting on a trigger gets no shape and is said in
     /// words only - it is information, not a problem, and giving it a colour would put a mark
     /// beside entries that are working exactly as intended.
+    ///
+    /// <b>AND FROM 2026-08-17 EVERY START TYPE HAS ITS OWN, owner's decision.</b> Until then Boot,
+    /// System, Automatic and Manual all came back as <see cref="CellShapes.Ordinary"/>, which the
+    /// theme draws as nothing - so the column's mark answered "is something wrong" and never "what
+    /// is this set to".
+    ///
+    /// <b>The order of the two checks above is unchanged and that is the whole of how the alarm
+    /// survives.</b> A missing file still wins, and it is still the only FILLED mark in this
+    /// column - so an entry whose file is gone does not quietly become a purple ring saying
+    /// Automatic. The four below are outlines in quiet colours, argued where they are declared.
     /// </summary>
     public static string StartShape(ScmEntry entry, StartQualifiers qualifies)
     {
@@ -136,7 +167,29 @@ internal static class CellFaces
             return CellShapes.Unknown;
         }
 
-        return entry.StartType.Value == StartType.Disabled ? CellShapes.Disabled : CellShapes.Ordinary;
+        return entry.StartType.Value switch
+        {
+            StartType.Boot => CellShapes.StartBoot,
+            StartType.System => CellShapes.StartSystem,
+            StartType.Automatic => CellShapes.StartAutomatic,
+            StartType.Manual => CellShapes.StartManual,
+            StartType.Disabled => CellShapes.Disabled,
+
+            // NO MARK, AND THIS LINE WAS WRONG FOR ONE BUILD - it said Unknown, and an existing
+            // test caught it within the hour.
+            //
+            // StartType.Unknown is the zero of that enumeration, which is what a value outside the
+            // five Windows documents becomes. The entry HAS an answer and the manager gave it to
+            // us - we have no word of our own for it. CellShapes.Unknown means the opposite: that
+            // nobody could read it. Rule 8 spends most of its weight on not letting those two
+            // sentences stand in for each other, and painting a broken ring here would have said
+            // "denied" about a reading that succeeded.
+            //
+            // So it keeps the answer the column gave every start type until today: nothing. The
+            // WORD in the cell says "Unknown", which is the honest channel for a category we
+            // cannot name, and inventing a fifth colour for it would claim we had named it.
+            _ => CellShapes.Ordinary
+        };
     }
 
     /// <summary>
@@ -268,8 +321,23 @@ internal static class CellFaces
     /// while the two columns beside it carry marks. A mark here would be a fifth shape family and
     /// a row in MarkDistinctionGuards. Backlog 165.
     /// </summary>
-    public static string Judgement(Reading<bool> reading) =>
-        Say(reading, against => against ? Texts.Of("gui.cell.yes") : Texts.Of("gui.cell.no"));
+    public static string Judgement(Reading<bool> reading) => YesOrNo(reading);
+
+    /// <summary>
+    /// A read boolean as a cell, in the four states every reading has.
+    ///
+    /// <b>Split out of <see cref="Judgement"/> on 2026-08-17 rather than copied, when two more
+    /// columns needed the same four answers</b> - whether a service starts late, and whether the
+    /// file behind it is on disk. The whole argument three paragraphs up applies to each of them
+    /// unchanged: yes and no in words, never a word and a blank, because an empty cell already
+    /// means "there is genuinely nothing" everywhere else in this window.
+    ///
+    /// <see cref="Judgement"/> stays as its own name because the comment above it is about ONE
+    /// column and would be false over these two - a delayed start is not a disagreement between
+    /// two settings, it is a setting.
+    /// </summary>
+    public static string YesOrNo(Reading<bool> reading) =>
+        Say(reading, value => value ? Texts.Of("gui.cell.yes") : Texts.Of("gui.cell.no"));
 
     /// <summary>
     /// Which shape that judgement wears - backlog 165, and it closes the sentence three paragraphs

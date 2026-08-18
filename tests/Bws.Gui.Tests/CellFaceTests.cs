@@ -106,7 +106,17 @@ public sealed class CellFaceTests
         });
 
         Assert.Contains("trigger", row["startType"], StringComparison.Ordinal);
-        Assert.Equal(CellShapes.Ordinary, row.StartShape);
+
+        // NOT A FAULT MARK, WHICH IS WHAT THIS TEST IS NAMED FOR - and from 2026-08-17 that is a
+        // different assertion from "no mark at all". Every start type wears one now, so a
+        // trigger-started automatic entry gets the automatic ring like any other. What it must
+        // never get is one of the three marks that mean something is wrong, because the whole
+        // point of this test is that four healthy services were being sent for investigation.
+        Assert.Equal(CellShapes.StartAutomatic, row.StartShape);
+
+        Assert.DoesNotContain(
+            row.StartShape,
+            new[] { CellShapes.Missing, CellShapes.Disabled, CellShapes.Unknown });
     }
 
     /// <summary>
@@ -145,9 +155,44 @@ public sealed class CellFaceTests
             CellShapes.Disabled,
             Row(Entry() with { StartType = Reading<StartType>.Present(StartType.Disabled) }).StartShape);
 
+        // Against the mark a Manual entry actually wears, which stopped being "none" on
+        // 2026-08-17. The claim in the name is unchanged: switched off has to look different from
+        // switched on, and it does.
         Assert.Equal(
-            CellShapes.Ordinary,
+            CellShapes.StartManual,
             Row(Entry() with { StartType = Reading<StartType>.Present(StartType.Manual) }).StartShape);
+    }
+
+    /// <summary>
+    /// Every start type wears a mark of its own - owner's decision, 2026-08-17.
+    ///
+    /// <b>The behaviour has no other guard, and that is why this is here rather than left to
+    /// MarkDistinctionGuards.</b> That one reads the THEME: it would go on passing over a switch
+    /// that had been collapsed back to one shape, because the four triggers would still be sitting
+    /// in Cells.xaml answering to codes nothing produces any more. This asks the code.
+    /// </summary>
+    [Fact]
+    public void Each_start_type_wears_a_mark_of_its_own()
+    {
+        var marks = new[] { StartType.Boot, StartType.System, StartType.Automatic, StartType.Manual, StartType.Disabled }
+            .Select(type => Row(Entry() with { StartType = Reading<StartType>.Present(type) }).StartShape)
+            .ToList();
+
+        // A MARK AT ALL, AND THIS ASSERTION WAS MISSING FROM THE FIRST VERSION - the mutation
+        // registry caught it within the hour and the runner's sentence was exact: a MISSED entry
+        // means the guard does not check what its name says.
+        //
+        // What stood here alone was the distinctness check below, and distinctness survives the
+        // fault. Collapse one type back to Ordinary - the code the theme draws as NOTHING - and
+        // the five answers are still five different strings, so the test went on passing over a
+        // column that had quietly stopped marking automatic entries.
+        Assert.DoesNotContain(CellShapes.Ordinary, marks);
+
+        // And none of them is the mark for something nobody could read, which is the one code in
+        // this column that must never stand for an answer we were given.
+        Assert.DoesNotContain(CellShapes.Unknown, marks);
+
+        Assert.Equal(marks.Count, marks.Distinct(StringComparer.Ordinal).Count());
     }
 
     /// <summary>

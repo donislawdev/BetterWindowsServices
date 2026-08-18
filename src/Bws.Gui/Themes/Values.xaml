@@ -3,8 +3,8 @@
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
 
     <!--
-        Every appearance value this product has, and not one style. The styles live in
-        Controls.xaml and List.xaml, which hold no values.
+        The scale this product is built on - how big a gap is, how big a letter is, what shape a
+        mark is. Not one colour, not one column width, and not one style.
 
         ADR-23. Everything else refers to these by name, and a guard in the architecture
         tests fails the build on a value written into a view. The reason is not tidiness:
@@ -13,30 +13,33 @@
 
         THE THEME WAS ONE FILE UNTIL 2026-08-11, AND THE PROMISE IT CARRIED HAS TO BE
         RESTATED RATHER THAN QUIETLY DROPPED. ADR-23 said that reading the theme from top to
-        bottom is the same thing as knowing what the product looks like. That is now three
-        readings rather than one: this file answers what the values ARE, Controls.xaml and
-        List.xaml answer what wears them. Each seam is the honest one - there was no style
-        above the first line and no value below it, and the second fell between the list and
-        everything else - but they are seams, and the guard that used to name one file now
-        names three.
+        bottom is the same thing as knowing what the product looks like. That is now several
+        readings rather than one, and each seam is the honest one - there was no style above the
+        first line and no value below it, and the second fell between the list and everything
+        else - but they are seams, and the guard that used to name one file now names the set.
 
-        Why it was split at all, twice in one day: the markup ratchet stood at 799 lines and
-        the file had reached 849, so every further change to the window was refused by the
-        build until somebody found a seam. Backlog 156 carries that plan and 157 carries why
-        a ceiling set on a file under active work fires almost at once, which is the ceiling
-        working rather than failing. The second split came the same evening, when the
-        configurable columns of S6d2 needed cell templates in a dictionary and the styles
-        half stood exactly on its new ceiling of 530. Backlog 163 had measured that seam in
-        advance.
+        Why it was split, and the third time is 2026-08-17. The markup ratchet stood at 799 lines
+        and this file had reached 849, so every further change to the window was refused by the
+        build until somebody found a seam. Backlog 156 carries that plan and 157 carries why a
+        ceiling set on a file under active work fires almost at once, which is the ceiling working
+        rather than failing. The second split came the same evening, when the configurable columns
+        of S6d2 needed cell templates in a dictionary and the styles half stood exactly on its new
+        ceiling of 530. Backlog 163 had measured that seam in advance.
 
-        THIS FILE IS MERGED BEFORE BOTH STYLES FILES AND THAT IS LOAD BEARING. They reach
-        these keys through StaticResource, which is resolved WHILE THE FILE IS BEING READ -
-        so the order in App.xaml is WPF UI's dictionaries, then this, then Controls, then
-        List. None of the three loads on its own.
+        THE THIRD SPLIT IS THE VALUES THEMSELVES, owner's decision, and it is what backlog 189
+        was waiting on. This file stood exactly on the ceiling of 436, which blocked two things at
+        once: a new column needs a width here and a new mark needs a brush here. The two largest
+        blocks left, measured before the cut rather than guessed - 162 lines of brushes and 85 of
+        column widths - and each answers a question somebody arrives with on its own. Colours.xaml
+        answers "what colour" and Columns.xaml answers "how wide is that column".
+
+        THE VALUE FILES ARE MERGED BEFORE THE STYLES FILES AND THAT IS LOAD BEARING. The styles
+        reach these keys through StaticResource, which is resolved WHILE THE FILE IS BEING READ -
+        so the order in App.xaml is WPF UI's dictionaries, then the value files, then Controls,
+        then List, then Cells. None of them loads on its own.
 
         The base look comes from WPF UI in dark mode (ADR-24), so what lives here is only
-        what is ours: the spacing scale, the type sizes, and the colours that mean something
-        about an entry rather than merely decorating it.
+        what is ours: the spacing scale, the type sizes, and the shapes a mark is drawn in.
     -->
 
     <!--
@@ -102,90 +105,20 @@
     <Geometry x:Key="ShapeAgainst">M 4,0 L 8,8 L 0,8 Z</Geometry>
 
     <!--
-        COLUMN WIDTHS, AND THE THREE FIXED ONES ARE FIXED BECAUSE Auto WAS MEASURED AND IT LIES.
+        One pixel, and the outline is an OVERLAY rather than the row's own border. A border on
+        the row takes layout space, and two pixels per row over 810 rows is about a tenth of
+        the list - a price this window has twice refused to pay for looks, and refuses again
+        for a ring that is only on one row at a time.
 
-        Measured 2026-08-05 with tools/gui-probe/columns.ps1, which drives the real window:
-        Width="Auto" on a DataGrid that virtualises its rows sizes to the rows REALISED SO FAR
-        and does not measure again as more scroll into view. The PID column sat at 36 pixels
-        through all 811 rows while the widest process id on screen went from 14052 to 103292 -
-        which needs 62 - so five and six digit numbers were cut in half by their own cell. That
-        is backlog item 53, and it is the whole of it: nothing ever overflowed the viewport, the
-        sum of the columns equalled it to the pixel in all five states measured.
-
-        The same run answered item 1 as a side effect. Account is declared 2* in MainWindow.xaml
-        and the grid reported 1.57514450867052* - the grid REWRITES star factors to pay for Auto
-        columns growing. Four attempts at tuning these proportions failed because the numbers
-        written in the view were not the numbers in force.
-
-        The fixed three are sized to their widest possible content plus the mark, not to today's
-        machine. The starred three carry text that will never fit at any width - a display name
-        wanted 476 pixels - so they get an ellipsis and a floor instead.
-
-        These are here rather than in the view because a width is an appearance value, ADR-23,
-        and because the columns are about to become a list somebody can add to and hide from.
+        IT STAYED HERE WHILE THE RING'S COLOUR WENT TO Colours.xaml ON 2026-08-17, and the split
+        dropped it for one build. A thickness is a number and belongs with the scale - but it sat
+        directly under the brush it goes with, so cutting the colours out by eye took it along.
+        Three guards went red at once and all three said the same thing: a name referenced by a
+        style and declared by nobody. That is the reference guard doing the job the emptiness one
+        cannot, and it is why FocusRing and FocusRingThickness now sit in different files with a
+        sentence in each saying so.
     -->
-    <DataGridLength x:Key="ColumnName">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnDisplayName">3*</DataGridLength>
-    <!--
-        The widest starred factor there is, because this column carries PROSE rather than a label
-        and the longest measured is 1251 characters - no width fits it, so the only question is
-        how much of a sentence arrives before the ellipsis. Off at the start, so it costs the
-        default view nothing.
-    -->
-    <DataGridLength x:Key="ColumnDescription">4*</DataGridLength>
-
-    <DataGridLength x:Key="ColumnStatus">150</DataGridLength>
-    <DataGridLength x:Key="ColumnStart">215</DataGridLength>
-    <DataGridLength x:Key="ColumnAccount">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnProcessId">72</DataGridLength>
-
-    <!--
-        THE ELEVEN COLUMNS `A8` PROMISES AND NOBODY COULD TURN ON UNTIL 2026-08-11, and every
-        width here is now a STARTING width rather than the last word. That distinction is the
-        sentence added to `ADR-23` the same day: the theme decides where a column begins, and a
-        person dragging its edge decides where it ends up, because S6d2 made the edge draggable.
-        Without that sentence this file and the layout would both claim to own the same number.
-
-        FIXED OR STARRED IS DECIDED THE SAME WAY THE FIRST SIX WERE. A column whose widest
-        possible content is known gets a number, because Width="Auto" measures the rows realised
-        so far and never measures again - that is backlog 53 and it cost a slice. A column
-        carrying text that will never fit at any width gets a star, an ellipsis and the floor
-        above, because something has to give and the person has to see that it did.
-
-        These starting numbers are ESTIMATES FROM THE HEADING AND THE VOCABULARY, not
-        measurements, and saying so is the difference between a number and a guess wearing a
-        number's clothes. The fixed ones are sized to the longest word each column can hold -
-        "File system driver", "Service SID type", "Against its start type" - at the semibold
-        heading size, which is larger than the data. tools/gui-probe/columns.ps1 is what measures
-        them on a real window, and it is a step of tools/check.ps1.
-    -->
-    <DataGridLength x:Key="ColumnEntryType">150</DataGridLength>
-    <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
-    <DataGridLength x:Key="ColumnBinaryPath">3*</DataGridLength>
-    <DataGridLength x:Key="ColumnBinaryFile">3*</DataGridLength>
-    <DataGridLength x:Key="ColumnLoadOrderGroup">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnErrorControl">120</DataGridLength>
-    <DataGridLength x:Key="ColumnSidType">140</DataGridLength>
-    <DataGridLength x:Key="ColumnDependsOn">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnTriggers">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
-    <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>
-
-    <!--
-        What a starred column may shrink to before it stops being worth reading. Below this the
-        ellipsis is most of the cell.
-
-        WHAT HAPPENS ONCE IT REACHES THIS FLOOR CHANGED ON 2026-08-12, and the sentence that stood
-        here said the opposite: that the whole row stayed on screen and long text gave way, because
-        the owner had chosen no sideways scrolling on 2026-08-05. He reversed that, so a row whose
-        starred columns are all on the floor now gets WIDER THAN THE WINDOW and gains a scrollbar.
-        Measured with all seventeen columns on: 1922 pixels of row behind a 1039 viewport.
-
-        A FIXED WIDTH IS ITS OWN FLOOR, and that is not written here because it is not a number -
-        ListColumns says it, because it says the width and the floor are the same value. Before it
-        did, the seven fixed columns were the ones that gave way, all the way to twenty pixels.
-    -->
-    <system:Double x:Key="ColumnFloor">90</system:Double>
+    <Thickness x:Key="FocusRingThickness">1</Thickness>
 
     <!--
         Fixed, because Auto here made the search box resize on every keystroke - the count shares
@@ -241,167 +174,18 @@
     <FontFamily x:Key="TextFaceFixed">Consolas</FontFamily>
 
     <!--
-        Colours that say something.
+        HOW WIDE A TOOLTIP MAY GET BEFORE IT STOPS BEING READABLE - backlog 167.
 
-        Deliberately not a palette. The controls take their look from the Fluent dark theme,
-        so what is defined here is the small set that makes a claim about an entry - and each
-        one is named after what it means rather than after what it looks like. A brush called
-        "Red" gets used for the next red thing somebody needs. A brush called "Untrusted"
-        does not.
+        The three list columns are what asked for a number here. The longest required-privileges
+        list on this machine holds 28 names, which is about 700 characters, and a tooltip does not
+        wrap on its own - so it came out as one line across half the screen, unreadable exactly
+        where it was supposed to help.
+
+        Narrower than the empty-state sentence below on purpose. That one is prose somebody reads
+        once and typography guidance puts a line of prose at about seventy characters. A tooltip is
+        a list being scanned, sitting over the thing it describes, so it is better tall than wide.
     -->
-    <!--
-        EVERY COLOUR BELOW IS CHOSEN BY CALCULATION, NOT BY EYE, and a test enforces it -
-        ContrastGuards reads this file, resolves the background out of WPF UI's own dictionary
-        and fails the build below the threshold for the brush's role. Adding a brush here
-        without giving it a role fails too, so the guard cannot quietly miss one.
-
-        It exists because five of ten brushes did not pass when somebody finally counted, on
-        2026-08-02. The worst was this one: #E81123 gave 3.52 against 4.5 required, and it
-        carries the two most important sentences in the tool - an untrusted signature and a
-        query with a mistake in it. The least readable colour on the least forgiving message.
-
-        tools/contrast/contrast.ps1 is the instrument for choosing a replacement. WCAG 2.2
-        SC 1.4.3 for text, SC 1.4.11 for surfaces.
-    -->
-    <SolidColorBrush x:Key="MeaningUntrusted">#F1707A</SolidColorBrush>
-    <SolidColorBrush x:Key="MeaningWarning">#FFB900</SolidColorBrush>
-    <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
-
-    <!--
-        What the person wrote and we cannot read - a query with a mistake in it.
-
-        Its own name rather than the untrusted one, even though the colour is the same today.
-        A brush borrowed for a second meaning is how the next session ends up changing the
-        colour of a rejected query by adjusting what an untrusted signature looks like.
-    -->
-    <SolidColorBrush x:Key="MeaningRejected">#F1707A</SolidColorBrush>
-
-    <!--
-        What nobody could read. Its own colour because it is its own state: this project
-        spends most of its rules on not letting "unknown" look like "nothing", and the
-        interface is the last place that could undo all of it.
-    -->
-    <SolidColorBrush x:Key="MeaningUnknown">#9E9E9E</SolidColorBrush>
-
-    <!--
-        Text that is present but subordinate - a display name beside a service name, a count
-        beside a group. Not a colour decision so much as a hierarchy one.
-    -->
-    <SolidColorBrush x:Key="TextSubdued">#A0A0A0</SolidColorBrush>
-
-    <!--
-        Selection, and it is here because the built-in theme does not cover it.
-
-        Measured by looking: with ThemeMode="Dark" the Fluent theme styles the controls but
-        leaves DataGrid's own selection alone, so a selected row came out light grey with
-        dark text on a dark window - and the focused cell drew a box that reads as somewhere
-        to type, on a list that is read only. That is the "two products in one window" this
-        whole file exists to prevent, arriving from the one direction ADR-24 assumed was
-        covered.
-    -->
-    <!--
-        Selection has to be TELLABLE APART from an ordinary row, which is what WCAG 2.2
-        SC 1.4.11 asks of a component state, so it answers to 3:1 against the list background
-        and not to taste. The old #2D4F6C gave 1.90.
-
-        Two ratios pull against each other here and both are checked: lighten the surface and
-        it separates better from the background while white text on it separates worse.
-        #3F7099 gives 3.09 against the background and 5.26 for white on top - the only pair in
-        the search where both clear their threshold with room.
-
-        Hover answers to a floor of OUR choosing and that is said plainly rather than dressed
-        up as a standard: 1.4.11 covers states needed to IDENTIFY a component, and a pointer
-        already says where the pointer is. What is not defensible is 1.14, which is what
-        #2A2A2A gave - below the point where the state can be seen at all.
-    -->
-    <SolidColorBrush x:Key="SurfaceSelected">#3F7099</SolidColorBrush>
-    <SolidColorBrush x:Key="SurfaceHover">#454545</SolidColorBrush>
-    <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
-
-    <!--
-        The line between one row and the next, so a row can be carried across six columns and
-        1650 pixels without the eye losing it. Complaint 2 of the eleven.
-
-        IT IS A LINE AND NOT A ZEBRA STRIPE, AND THAT IS A MEASUREMENT RATHER THAN A PREFERENCE.
-        The owner asked for stripes on 2026-08-05. Three ways of drawing them were tried against
-        the pixel and the first two failed:
-
-          1. AlternationCount plus a trigger on ItemsControl.AlternationIndex - nothing painted.
-             The grid coerces AlternationCount to nothing while AlternatingRowBackground is null.
-          2. DataGrid.AlternatingRowBackground - painted, and DISQUALIFIED BY WHAT THAT PROVED.
-             Set to one colour with our own row trigger set to another, the grid's colour is the
-             one on screen. Left in, it would have taken selection, hover and the
-             moved-a-moment-ago highlight off every second row, silently.
-          3. A horizontal grid line - paints, at 1200,212 in the capture, and touches none of the
-             three row states because the grid draws it rather than the row's background.
-
-        WHY 2 BEAT OUR TRIGGER WAS WRITTEN HERE AS "COERCION" AND THAT WAS WRONG. Read out of
-        their markup on 2026-08-05 with tools/wpfui-probe template: their row template carries
-        a trigger on ItemsControl.AlternationIndex = 0 which sets the border's Background from
-        the grid's RowBackground - and AlternationIndex is zero for every row while
-        AlternationCount is, so that trigger is ALWAYS ON. A setter inside a control template's
-        triggers outranks the TemplateBinding on the same element, so our row Background died
-        there rather than to any coercion. Naming it coercion made the whole family look
-        unfixable, when the real answer was to stop borrowing the template - see ListRow.
-
-        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
-        a separator identifies nothing, it only has to be seen between two rows. #333333 measures
-        1.30 against the window, and deliberately stays under hover at 1.70 so that pointing at a
-        row still reads as the stronger signal.
-    -->
-    <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
-
-    <!--
-        A row that moved a moment ago. A10 rule three: a change has to be visible rather than
-        stealthy, because a list that quietly corrects itself is one where somebody looking
-        away misses the thing they were waiting for.
-
-        Deliberately dim. It marks every service that starts or stops while the window is
-        open, which on a working machine is a steady trickle - loud enough to catch the eye
-        from across the screen and it would be a fairground.
-
-        DIM IS NOT THE SAME AS INVISIBLE, and #3A3320 was the second. It measured 1.30 against
-        the background, and that number explains an argument this project could not settle for
-        three slices: whether the colour was reaching a pixel at all. At 1.30 it hardly shows
-        when it does arrive, so a rendering fault and a contrast fault looked identical from
-        the outside. #63563A keeps the amber and measures 2.27.
-    -->
-    <SolidColorBrush x:Key="SurfaceChanged">#63563A</SolidColorBrush>
-
-    <!--
-        WHERE THE KEYBOARD IS. The fourth row state, and the only one that is a formal
-        requirement rather than a courtesy - WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator,
-        and `ADR-24` removed the only one this list had when it took the box off the focused
-        cell. That was the right call about appearance: the box read as somewhere to type, on a
-        list nobody can type into. It was also the removal of the whole indicator.
-
-        IT ANSWERS TO FOUR BACKGROUNDS, NOT ONE, AND THAT IS WHY IT IS THIS PALE. A ring is
-        drawn against whatever the row already is, so the ratio that matters is the worst of
-        the four a row can take. Measured with tools/contrast/contrast.ps1 against each:
-
-          #202020  the window          11.21
-          #454545  hover                6.60
-          #63563A  moved a moment ago   4.94
-          #3F7099  selected             3.62   <- the one that decided the colour
-
-        Every brush above answers to the window background alone, which is the ordinary case
-        and is what ContrastGuards measures. This one has its own test in that file, because a
-        guard that checked it against the window would pass it at 11.21 and never look at the
-        3.62 that is the real floor.
-
-        DRAWN AS AN OUTLINE AND NOT A FILL, and that is not only taste. A fill would have to
-        beat the three states it lands on top of, so focus and selection would fight over the
-        same pixel. An outline sits at the edge and leaves the state underneath legible.
-    -->
-    <SolidColorBrush x:Key="FocusRing">#D6D6D6</SolidColorBrush>
-
-    <!--
-        One pixel, and the outline is an OVERLAY rather than the row's own border. A border on
-        the row takes layout space, and two pixels per row over 810 rows is about a tenth of
-        the list - a price this window has twice refused to pay for looks, and refuses again
-        for a ring that is only on one row at a time.
-    -->
-    <Thickness x:Key="FocusRingThickness">1</Thickness>
+    <system:Double x:Key="WidthToolTip">420</system:Double>
 
     <!--
         How wide a sentence in the middle of an empty list may get before it stops being one.

@@ -186,6 +186,44 @@ internal static class Columns
             Sorts = entry => entry.ProcessId.IsPresent ? entry.ProcessId.Value : null
         },
 
+        // THE TWO FIELDS THAT WERE READ, SHOWN, AND HAD NO COLUMN - added 2026-08-17 on the
+        // owner's report that the window shows too few columns. Backlog 190 counted it: ScmEntry
+        // carries twenty-three fields and there were eighteen columns, and of the five without one,
+        // four are second phase (backlog 21) and these two were folded into the start column as
+        // qualifiers - "Automatic (delayed)" and "file missing".
+        //
+        // WHY A QUALIFIER IS NOT A COLUMN, which is the whole reason these are worth the lines. A
+        // word inside another cell cannot be sorted on, cannot be scanned down, and cannot be
+        // turned off by somebody who does not care about it. The start column keeps saying both
+        // things, because that is what somebody reading one row wants - these are for somebody
+        // asking the question of the whole machine.
+        //
+        // NEITHER COSTS A READING. Both arrive in the buffers the listing already fills, which is
+        // what made them the two that could be added at all - everything else needs either the
+        // second phase or a change to ScmEntry, and that is a frozen contract rather than a slice.
+        new Column
+        {
+            Id = "delayedAuto",
+            LabelKey = "gui.column.delayedAuto",
+            WidthKey = "ColumnDelayedAuto",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.YesOrNo(entry.DelayedAuto)
+        },
+        new Column
+        {
+            // NOT the same question as binaryFile, and the pair is easy to read as one. That column
+            // says WHICH file the command resolves to, which is an answer even when nothing is
+            // there. This says whether that file EXISTS - so a row can carry a path, a resolved
+            // file, and No.
+            Id = "binaryOnDisk",
+            LabelKey = "gui.column.binaryOnDisk",
+            WidthKey = "ColumnBinaryOnDisk",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.YesOrNo(entry.BinaryOnDisk)
+        },
+
         // WHAT AN ENTRY IS. Free to read - all of these arrive in the buffers the listing already
         // fills - and each answers a question somebody arrives at an unknown server with.
         new Column
@@ -351,10 +389,16 @@ internal static class Columns
     /// <summary>
     /// Which heading in the picker each column sits under.
     ///
-    /// <b>One map rather than a field on seventeen declarations, and that is not a saving.</b> A
+    /// <b>One map rather than a field on every declaration, and that is not a saving.</b> A
     /// grouping is only useful if somebody can see the whole of it at once and ask whether it makes
-    /// sense - spread across seventeen entries it becomes seventeen local decisions, and nobody
-    /// notices when a group is left with one item in it.
+    /// sense - spread across the entries it becomes one local decision each, and nobody notices
+    /// when a group is left with one item in it.
+    ///
+    /// <b>THIS MAP IS WHY TWO NEW COLUMNS COST SIX RED TESTS ON 2026-08-17 AND NOT ONE, and that is
+    /// the design working.</b> Adding a column to the catalogue without adding it here left it
+    /// under no heading at all - and the picker, the details panel and the button's menu all went
+    /// red about it separately, because each of them is built from this map rather than from a
+    /// default. The sentence below promised exactly that outcome before it happened.
     ///
     /// <b>The groups are about what a person came looking for, not about where the data comes
     /// from.</b> The first is what the list shows without being asked. The rest are three questions
@@ -371,6 +415,13 @@ internal static class Columns
         ["description"] = Basics,
         ["status"] = Basics,
         ["startType"] = Basics,
+
+        // Beside the start type rather than under About, because it is a QUALIFIER on that column
+        // and not a separate fact about the entry - the start cell says "Automatic (delayed)" from
+        // the same field. Somebody who turns this on is refining what the start column already
+        // told them, which is what Basics is.
+        ["delayedAuto"] = Basics,
+
         ["account"] = Basics,
         ["processId"] = Basics,
 
@@ -380,6 +431,12 @@ internal static class Columns
 
         ["binaryPath"] = Binary,
         ["binaryFile"] = Binary,
+
+        // The third one this heading has wanted since it was drawn. "What does it run" is answered
+        // by a command, by the file that command resolves to, and by whether that file is there -
+        // and the last of the three was the one folded into another column as the words
+        // "file missing".
+        ["binaryOnDisk"] = Binary,
 
         ["loadOrderGroup"] = Advanced,
         ["errorControl"] = Advanced,

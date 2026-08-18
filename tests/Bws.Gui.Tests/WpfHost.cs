@@ -141,15 +141,25 @@ internal static class WpfHost
         // The product's real files, read off disk rather than copied. A copy would answer a
         // question about the copy - the same rule tools/wpfui-probe is built on.
         //
-        // FOUR FILES SINCE 2026-08-12 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Every styles
-        // file names keys declared in Values.xaml, StaticResource resolves them as the file is
+        // SIX FILES SINCE 2026-08-17 AND THE LOOP IS ORDERED, NOT A CONVENIENCE. Every styles
+        // file names keys declared in a value file, StaticResource resolves them as the file is
         // read, and each dictionary is added to the application before the next one is parsed - so
-        // the later ones find the first the same way all of them find WPF UI's. Backlog 156 for
-        // the first split, 163 for the second and 166 for the third, and this is App.xaml's order
-        // in every case.
+        // the later ones find the earlier the same way all of them find WPF UI's. Backlog 156 for
+        // the first split, 163 for the second, 166 for the third and 189 for the values splitting
+        // into three, and this is App.xaml's order in every case.
+        //
+        // SPELLED OUT RATHER THAN GLOBBED, unlike the guards that read these files looking for a
+        // declaration. Those want every file and do not care in which order they see them. This
+        // one is building a real application, so the order IS the behaviour - a directory listing
+        // happens to be alphabetical, which would put Cells.xaml first and leave every name in it
+        // resolving to nothing.
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        foreach (var name in new[] { "Values.xaml", "Controls.xaml", "List.xaml", "Cells.xaml" })
+        foreach (var name in new[]
+                 {
+                     "Values.xaml", "Colours.xaml", "Columns.xaml",
+                     "Controls.xaml", "List.xaml", "Cells.xaml"
+                 })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));
 

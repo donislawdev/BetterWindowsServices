@@ -123,17 +123,21 @@ public sealed class TypeScaleGuards
     /// with nothing using them, or styles naming a size it cannot resolve. Split on 2026-08-11,
     /// backlog 156 and then 163.
     ///
-    /// <b>The second split is why this list matters more than it looks.</b> The two semibold
+    /// <b>The second split is why this mattered more than it looked.</b> The two semibold
     /// styles ended up on opposite sides of it - ColumnHeading went to List.xaml and CountLine
     /// stayed in Controls.xaml - so a version that had gone on reading two files would have
     /// checked one of them and passed.
+    ///
+    /// <b>WHICH IS EXACTLY WHY THE LIST IS GONE FROM 2026-08-17.</b> It named three files and the
+    /// theme had four - Cells.xaml had been unread here since 2026-08-12 - and the values then
+    /// split into three more. A guard that has to be edited on every split is a guard that spends
+    /// part of its life not covering the thing it is named after, and the paragraph above proves
+    /// that is not hypothetical. It takes the directory now, so the next seam costs it nothing.
     /// </summary>
     private static string Theme()
     {
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        return string.Join(
-            Environment.NewLine,
-            new[] { "Values.xaml", "Controls.xaml", "List.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
+        return string.Join(Environment.NewLine, Directory.EnumerateFiles(themes, "*.xaml").Select(File.ReadAllText));
     }
 }

@@ -293,4 +293,41 @@
         <Setter Property="IsEnabled" Value="{Binding MayHide}" />
         <Setter Property="StaysOpenOnClick" Value="True" />
     </Style>
+
+    <!--
+        EVERY TOOLTIP IN THIS WINDOW WRAPS - backlog 167, and it is the third answer to a question
+        the owner asked twice.
+
+        WHAT WAS WRONG. CellText binds a cell's tooltip to its own text, which is how a truncated
+        cell can still be read in full. Three columns carry lists - dependencies, triggers,
+        required privileges - and the longest privilege list on this machine holds 28 names, about
+        700 characters. A tooltip does not wrap on its own, so it arrived as ONE LINE ACROSS HALF
+        THE SCREEN: the control that exists to make a long value readable was the least readable
+        thing on the screen.
+
+        BasedOn IS NOT OPTIONAL AND THAT IS TRAP 4 OF `docs/10`. A style with a TargetType the
+        control library also styles REPLACES theirs outright rather than adding to it - so a
+        tooltip declared without this line would lose their background, border and shadow and come
+        out as black text on nothing. DefaultToolTipStyle is the name they give it.
+
+        IMPLICIT RATHER THAN KEYED, so it reaches the ones nobody would remember to opt in: the
+        cells, the marks in the start column, the search box's own tip. A keyed style would have
+        wrapped the cells and left the eleven others exactly as they were.
+
+        THE TEMPLATE IS WHAT ACTUALLY WRAPS. MaxWidth alone does not - a tooltip whose content is
+        a string measures that string on one line and then gets clipped, which looks like the
+        width being ignored. The content has to be presented by something that knows how to break
+        a line, so it is a TextBlock with TextWrapping.
+    -->
+    <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}">
+        <Setter Property="MaxWidth" Value="{StaticResource WidthToolTip}" />
+
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

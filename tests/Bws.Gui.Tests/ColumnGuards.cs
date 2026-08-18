@@ -4,7 +4,7 @@ using Bws.Gui.ViewModels;
 namespace Bws.Gui.Tests;
 
 /// <summary>
-/// The eighteen columns of `A8`, and the row that answers through them.
+/// The columns of `A8`, and the row that answers through them.
 ///
 /// <b>Written against the CATALOGUE rather than against the window, on purpose.</b> What a column
 /// is - its identifier, what its cell says, what it sorts by - has no WPF in it, so it can be
@@ -18,19 +18,26 @@ public sealed class ColumnGuards
     /// The arithmetic behind the number, kept where it can fail.
     ///
     /// `ScmEntry` carries 23 fields and one derived answer. Four are refused because the second
-    /// phase of `ADR-13` reads them and the window has no second phase, and two are already on
-    /// screen inside the start type cell. That leaves eighteen, and the day somebody adds a field
-    /// this test says so rather than the column quietly not existing.
+    /// phase of `ADR-13` reads them and the window has no second phase. That leaves twenty, and
+    /// the day somebody adds a field this test says so rather than the column quietly not existing.
     ///
-    /// <b>EIGHTEEN SINCE 2026-08-12, and the field that moved it is the description</b> - backlog
-    /// 171, the second column of services.msc and the only one that answers what an entry even is.
-    /// This test is the reason the count is a decision rather than a drift: it failed the moment
-    /// the field arrived, which is exactly what its last sentence promised.
+    /// <b>TWENTY SINCE 2026-08-17, and the two that moved it were already on screen</b> - backlog
+    /// 190, on the owner's report that the window shows too few columns. The delayed start and
+    /// whether the binary is on disk were folded into the start type cell as qualifiers, which is
+    /// readable for one row and unsortable and unscannable for a machine. Eighteen since 2026-08-12
+    /// before that, when the description arrived - backlog 171.
+    ///
+    /// <b>THE NUMBER LEFT THIS TEST'S NAME ON 2026-08-17 AND THAT IS THE POINT OF THE RENAME.</b>
+    /// It was called Eighteen_columns_are_offered..., which had to be false before anybody could
+    /// notice it needed changing - a name that has to lie first is a name that gets renamed under
+    /// pressure, and this project deprecates identifiers rather than renaming them precisely
+    /// because renames are where mistakes hide. The count is asserted in the body, where being
+    /// wrong reddens instead of merely reading oddly.
     /// </summary>
     [Fact]
-    public void Eighteen_columns_are_offered_and_each_is_named_exactly_once()
+    public void Every_column_is_offered_and_each_is_named_exactly_once()
     {
-        Assert.Equal(18, Columns.All.Count);
+        Assert.Equal(20, Columns.All.Count);
 
         var twice = Columns.All
             .GroupBy(column => column.Id, StringComparer.Ordinal)

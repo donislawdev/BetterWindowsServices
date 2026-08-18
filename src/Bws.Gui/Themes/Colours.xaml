@@ -1,0 +1,221 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Every brush this product has, and not one number and not one style.
+
+        SPLIT OUT OF Values.xaml ON 2026-08-17, owner's decision, and the seam is the honest one:
+        this file answers "what colour" and nothing else. Values.xaml answers "how big" and
+        Widths.xaml answers "how wide is that column" - three questions somebody arrives with
+        separately, which is what makes each name answerable without opening the file.
+
+        WHY IT WAS SPLIT AT ALL. Values.xaml stood exactly on the markup ceiling of 436, and the
+        ratchet may only go down - so every further column and every further mark was refused by
+        the build until somebody found a seam. Backlog 189 carries the plan, 173 the measurement,
+        and 190 the two things that were blocked behind it. The brushes were the largest block in
+        that file by a wide margin: 162 lines of its 436.
+
+        THIS FILE IS MERGED BEFORE THE STYLES FILES, like every value file. They reach these keys
+        through StaticResource, which is resolved WHILE THE FILE IS BEING READ - so the order in
+        App.xaml is WPF UI's dictionaries, then the value files, then Controls, List and Cells.
+        None of them loads on its own.
+
+        The base look comes from WPF UI in dark mode (ADR-24), so what lives here is only what is
+        ours: the colours that mean something about an entry rather than merely decorating it.
+    -->
+
+    <!--
+        Colours that say something.
+
+        Deliberately not a palette. The controls take their look from the Fluent dark theme,
+        so what is defined here is the small set that makes a claim about an entry - and each
+        one is named after what it means rather than after what it looks like. A brush called
+        "Red" gets used for the next red thing somebody needs. A brush called "Untrusted"
+        does not.
+    -->
+    <!--
+        EVERY COLOUR BELOW IS CHOSEN BY CALCULATION, NOT BY EYE, and a test enforces it -
+        ContrastGuards reads this file, resolves the background out of WPF UI's own dictionary
+        and fails the build below the threshold for the brush's role. Adding a brush here
+        without giving it a role fails too, so the guard cannot quietly miss one.
+
+        It exists because five of ten brushes did not pass when somebody finally counted, on
+        2026-08-02. The worst was this one: #E81123 gave 3.52 against 4.5 required, and it
+        carries the two most important sentences in the tool - an untrusted signature and a
+        query with a mistake in it. The least readable colour on the least forgiving message.
+
+        tools/contrast/contrast.ps1 is the instrument for choosing a replacement. WCAG 2.2
+        SC 1.4.3 for text, SC 1.4.11 for surfaces.
+    -->
+    <SolidColorBrush x:Key="MeaningUntrusted">#F1707A</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningWarning">#FFB900</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
+
+    <!--
+        What the person wrote and we cannot read - a query with a mistake in it.
+
+        Its own name rather than the untrusted one, even though the colour is the same today.
+        A brush borrowed for a second meaning is how the next session ends up changing the
+        colour of a rejected query by adjusting what an untrusted signature looks like.
+    -->
+    <SolidColorBrush x:Key="MeaningRejected">#F1707A</SolidColorBrush>
+
+    <!--
+        What nobody could read. Its own colour because it is its own state: this project
+        spends most of its rules on not letting "unknown" look like "nothing", and the
+        interface is the last place that could undo all of it.
+    -->
+    <SolidColorBrush x:Key="MeaningUnknown">#9E9E9E</SolidColorBrush>
+
+    <!--
+        THE FOUR START TYPES, AND THEY ARE DELIBERATELY QUIET - owner's decision, 2026-08-17, on
+        his report that Boot, System, Automatic and Manual all shared one mark.
+
+        WHAT THE DECISION WAS BETWEEN, because the obvious version is the wrong one. Giving each
+        type a full-strength colour turns this column from "something here needs looking at" into
+        "which category is this", and eight hundred coloured rows is how the two marks that DO mean
+        trouble - a missing file and a disabled entry - stop being seen. So these four separate
+        from each other and stay out of the way, and the alarm stays with the faults.
+
+        NONE OF THEM GOES NEAR THE GREEN OF A RUNNING SERVICE, and that is backlog 166 remembered
+        rather than rediscovered. That entry was a running service wearing a GREEN FILLED DOT in the
+        column about its NEXT start, measured on the pixel at #6CCB5F - two dots side by side, the
+        same colour, meaning different things. A start type painted green would draw that picture
+        again on purpose.
+
+        DRAWN AS OUTLINES, WHICH IS THE OTHER HALF OF KEEPING THE ALARM. A filled mark in this
+        column means the manager cannot carry out the setting at all, and only the missing file
+        earns that. These four are rings.
+
+        CHOSEN BY CALCULATION, NOT BY EYE. Measured with tools/contrast/contrast.ps1 against the
+        window at #202020, where SC 1.4.11 asks 3.0 of a component state:
+
+          #7FA6D9  boot        6.49
+          #4FC2AE  system      7.50
+          #B58CD9  automatic   5.99
+          #C9A45E  manual      6.95
+
+        AND AGAINST EACH OTHER, which is the second check and a different one - MarkDistinctionGuards
+        asks 24 points on the widest channel between two marks of the same shape, because these are
+        never seen side by side. The closest pair here is boot against system at 32. They are all
+        rings like the disabled mark, so each also had to clear #A0A0A0: the tightest is system at
+        81. An earlier system green measured exactly 24 against it and was moved for sitting on the
+        threshold rather than over it.
+    -->
+    <SolidColorBrush x:Key="StartBoot">#7FA6D9</SolidColorBrush>
+    <SolidColorBrush x:Key="StartSystem">#4FC2AE</SolidColorBrush>
+    <SolidColorBrush x:Key="StartAutomatic">#B58CD9</SolidColorBrush>
+    <SolidColorBrush x:Key="StartManual">#C9A45E</SolidColorBrush>
+
+    <!--
+        Text that is present but subordinate - a display name beside a service name, a count
+        beside a group. Not a colour decision so much as a hierarchy one.
+    -->
+    <SolidColorBrush x:Key="TextSubdued">#A0A0A0</SolidColorBrush>
+
+    <!--
+        Selection, and it is here because the built-in theme does not cover it.
+
+        Measured by looking: with ThemeMode="Dark" the Fluent theme styles the controls but
+        leaves DataGrid's own selection alone, so a selected row came out light grey with
+        dark text on a dark window - and the focused cell drew a box that reads as somewhere
+        to type, on a list that is read only. That is the "two products in one window" this
+        whole file exists to prevent, arriving from the one direction ADR-24 assumed was
+        covered.
+    -->
+    <!--
+        Selection has to be TELLABLE APART from an ordinary row, which is what WCAG 2.2
+        SC 1.4.11 asks of a component state, so it answers to 3:1 against the list background
+        and not to taste. The old #2D4F6C gave 1.90.
+
+        Two ratios pull against each other here and both are checked: lighten the surface and
+        it separates better from the background while white text on it separates worse.
+        #3F7099 gives 3.09 against the background and 5.26 for white on top - the only pair in
+        the search where both clear their threshold with room.
+
+        Hover answers to a floor of OUR choosing and that is said plainly rather than dressed
+        up as a standard: 1.4.11 covers states needed to IDENTIFY a component, and a pointer
+        already says where the pointer is. What is not defensible is 1.14, which is what
+        #2A2A2A gave - below the point where the state can be seen at all.
+    -->
+    <SolidColorBrush x:Key="SurfaceSelected">#3F7099</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceHover">#454545</SolidColorBrush>
+    <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
+
+    <!--
+        The line between one row and the next, so a row can be carried across six columns and
+        1650 pixels without the eye losing it. Complaint 2 of the eleven.
+
+        IT IS A LINE AND NOT A ZEBRA STRIPE, AND THAT IS A MEASUREMENT RATHER THAN A PREFERENCE.
+        The owner asked for stripes on 2026-08-05. Three ways of drawing them were tried against
+        the pixel and the first two failed:
+
+          1. AlternationCount plus a trigger on ItemsControl.AlternationIndex - nothing painted.
+             The grid coerces AlternationCount to nothing while AlternatingRowBackground is null.
+          2. DataGrid.AlternatingRowBackground - painted, and DISQUALIFIED BY WHAT THAT PROVED.
+             Set to one colour with our own row trigger set to another, the grid's colour is the
+             one on screen. Left in, it would have taken selection, hover and the
+             moved-a-moment-ago highlight off every second row, silently.
+          3. A horizontal grid line - paints, at 1200,212 in the capture, and touches none of the
+             three row states because the grid draws it rather than the row's background.
+
+        WHY 2 BEAT OUR TRIGGER WAS WRITTEN HERE AS "COERCION" AND THAT WAS WRONG. Read out of
+        their markup on 2026-08-05 with tools/wpfui-probe template: their row template carries
+        a trigger on ItemsControl.AlternationIndex = 0 which sets the border's Background from
+        the grid's RowBackground - and AlternationIndex is zero for every row while
+        AlternationCount is, so that trigger is ALWAYS ON. A setter inside a control template's
+        triggers outranks the TemplateBinding on the same element, so our row Background died
+        there rather than to any coercion. Naming it coercion made the whole family look
+        unfixable, when the real answer was to stop borrowing the template - see ListRow.
+
+        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
+        a separator identifies nothing, it only has to be seen between two rows. #333333 measures
+        1.30 against the window, and deliberately stays under hover at 1.70 so that pointing at a
+        row still reads as the stronger signal.
+    -->
+    <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
+
+    <!--
+        A row that moved a moment ago. A10 rule three: a change has to be visible rather than
+        stealthy, because a list that quietly corrects itself is one where somebody looking
+        away misses the thing they were waiting for.
+
+        Deliberately dim. It marks every service that starts or stops while the window is
+        open, which on a working machine is a steady trickle - loud enough to catch the eye
+        from across the screen and it would be a fairground.
+
+        DIM IS NOT THE SAME AS INVISIBLE, and #3A3320 was the second. It measured 1.30 against
+        the background, and that number explains an argument this project could not settle for
+        three slices: whether the colour was reaching a pixel at all. At 1.30 it hardly shows
+        when it does arrive, so a rendering fault and a contrast fault looked identical from
+        the outside. #63563A keeps the amber and measures 2.27.
+    -->
+    <SolidColorBrush x:Key="SurfaceChanged">#63563A</SolidColorBrush>
+
+    <!--
+        WHERE THE KEYBOARD IS. The fourth row state, and the only one that is a formal
+        requirement rather than a courtesy - WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator,
+        and `ADR-24` removed the only one this list had when it took the box off the focused
+        cell. That was the right call about appearance: the box read as somewhere to type, on a
+        list nobody can type into. It was also the removal of the whole indicator.
+
+        IT ANSWERS TO FOUR BACKGROUNDS, NOT ONE, AND THAT IS WHY IT IS THIS PALE. A ring is
+        drawn against whatever the row already is, so the ratio that matters is the worst of
+        the four a row can take. Measured with tools/contrast/contrast.ps1 against each:
+
+          #202020  the window          11.21
+          #454545  hover                6.60
+          #63563A  moved a moment ago   4.94
+          #3F7099  selected             3.62   <- the one that decided the colour
+
+        Every brush above answers to the window background alone, which is the ordinary case
+        and is what ContrastGuards measures. This one has its own test in that file, because a
+        guard that checked it against the window would pass it at 11.21 and never look at the
+        3.62 that is the real floor.
+
+        DRAWN AS AN OUTLINE AND NOT A FILL, and that is not only taste. A fill would have to
+        beat the three states it lands on top of, so focus and selection would fight over the
+        same pixel. An outline sits at the edge and leaves the state underneath legible.
+    -->
+    <SolidColorBrush x:Key="FocusRing">#D6D6D6</SolidColorBrush>
+</ResourceDictionary>

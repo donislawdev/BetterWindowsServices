@@ -43,6 +43,8 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="Themes/Values.xaml" />
+                <ResourceDictionary Source="Themes/Colours.xaml" />
+                <ResourceDictionary Source="Themes/Columns.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />

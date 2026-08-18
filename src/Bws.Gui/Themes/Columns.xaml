@@ -1,0 +1,126 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        How wide every column starts, and how narrow any of them may get. Nothing else.
+
+        SPLIT OUT OF Values.xaml ON 2026-08-17, owner's decision. Values.xaml answers "how big is
+        a gap, a letter, a mark", Colours.xaml answers "what colour", and this answers "how wide
+        is that column" - three questions somebody arrives with separately, which is what makes
+        each name answerable without opening the file.
+
+        WHY IT WAS SPLIT AT ALL. Values.xaml stood exactly on the markup ceiling of 436 and the
+        ratchet may only go down, so every new column and every new mark was refused by the build
+        until somebody found a seam. Backlog 189 carries the decision and 173 the measurement:
+        eighteen of that file's entries were column widths.
+
+        NOTHING IN ANY STYLE POINTS AT THESE KEYS, and that was checked rather than assumed before
+        the split. Every one of them is read from CODE, by the WidthKey on each entry of
+        ViewModels/Columns.cs, because S6d2 builds the columns rather than declaring them. So the
+        merge order that the other value files depend on does not decide anything here - a
+        StaticResource is resolved while a file is read, and there is no StaticResource on any of
+        these. It is still merged with the other value files, because that is where a value file
+        belongs and because a reader should not have to know this paragraph to place it.
+    -->
+
+    <!--
+        COLUMN WIDTHS, AND THE THREE FIXED ONES ARE FIXED BECAUSE Auto WAS MEASURED AND IT LIES.
+
+        Measured 2026-08-05 with tools/gui-probe/columns.ps1, which drives the real window:
+        Width="Auto" on a DataGrid that virtualises its rows sizes to the rows REALISED SO FAR
+        and does not measure again as more scroll into view. The PID column sat at 36 pixels
+        through all 811 rows while the widest process id on screen went from 14052 to 103292 -
+        which needs 62 - so five and six digit numbers were cut in half by their own cell. That
+        is backlog item 53, and it is the whole of it: nothing ever overflowed the viewport, the
+        sum of the columns equalled it to the pixel in all five states measured.
+
+        The same run answered item 1 as a side effect. Account is declared 2* in MainWindow.xaml
+        and the grid reported 1.57514450867052* - the grid REWRITES star factors to pay for Auto
+        columns growing. Four attempts at tuning these proportions failed because the numbers
+        written in the view were not the numbers in force.
+
+        The fixed three are sized to their widest possible content plus the mark, not to today's
+        machine. The starred three carry text that will never fit at any width - a display name
+        wanted 476 pixels - so they get an ellipsis and a floor instead.
+
+        These are here rather than in the view because a width is an appearance value, ADR-23,
+        and because the columns are about to become a list somebody can add to and hide from.
+    -->
+    <DataGridLength x:Key="ColumnName">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnDisplayName">3*</DataGridLength>
+    <!--
+        The widest starred factor there is, because this column carries PROSE rather than a label
+        and the longest measured is 1251 characters - no width fits it, so the only question is
+        how much of a sentence arrives before the ellipsis. Off at the start, so it costs the
+        default view nothing.
+    -->
+    <DataGridLength x:Key="ColumnDescription">4*</DataGridLength>
+
+    <DataGridLength x:Key="ColumnStatus">150</DataGridLength>
+    <DataGridLength x:Key="ColumnStart">215</DataGridLength>
+    <DataGridLength x:Key="ColumnAccount">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnProcessId">72</DataGridLength>
+
+    <!--
+        THE ELEVEN COLUMNS `A8` PROMISES AND NOBODY COULD TURN ON UNTIL 2026-08-11, and every
+        width here is now a STARTING width rather than the last word. That distinction is the
+        sentence added to `ADR-23` the same day: the theme decides where a column begins, and a
+        person dragging its edge decides where it ends up, because S6d2 made the edge draggable.
+        Without that sentence this file and the layout would both claim to own the same number.
+
+        FIXED OR STARRED IS DECIDED THE SAME WAY THE FIRST SIX WERE. A column whose widest
+        possible content is known gets a number, because Width="Auto" measures the rows realised
+        so far and never measures again - that is backlog 53 and it cost a slice. A column
+        carrying text that will never fit at any width gets a star, an ellipsis and the floor
+        above, because something has to give and the person has to see that it did.
+
+        These starting numbers are ESTIMATES FROM THE HEADING AND THE VOCABULARY, not
+        measurements, and saying so is the difference between a number and a guess wearing a
+        number's clothes. The fixed ones are sized to the longest word each column can hold -
+        "File system driver", "Service SID type", "Against its start type" - at the semibold
+        heading size, which is larger than the data. tools/gui-probe/columns.ps1 is what measures
+        them on a real window, and it is a step of tools/check.ps1.
+    -->
+    <!--
+        THE TWO COLUMNS THAT COST NO NEW READING, added 2026-08-17 on the owner's report that the
+        window shows too few columns. Both fields arrive in the buffers the listing already fills
+        and both were already ON SCREEN - folded into the start column as "Automatic (delayed)" and
+        "file missing". A column each makes them sortable and filterable by eye, which a qualifier
+        inside another cell can never be.
+
+        Fixed, and sized to the heading rather than to the data, because the data is Yes or No and
+        the heading is the widest thing either column will ever hold. Estimates from the vocabulary,
+        like the eleven below - tools/gui-probe/columns.ps1 is what measures them on a real window.
+    -->
+    <DataGridLength x:Key="ColumnDelayedAuto">120</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryOnDisk">130</DataGridLength>
+
+    <DataGridLength x:Key="ColumnEntryType">150</DataGridLength>
+    <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryPath">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnBinaryFile">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnLoadOrderGroup">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnErrorControl">120</DataGridLength>
+    <DataGridLength x:Key="ColumnSidType">140</DataGridLength>
+    <DataGridLength x:Key="ColumnDependsOn">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnTriggers">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>
+
+    <!--
+        What a starred column may shrink to before it stops being worth reading. Below this the
+        ellipsis is most of the cell.
+
+        WHAT HAPPENS ONCE IT REACHES THIS FLOOR CHANGED ON 2026-08-12, and the sentence that stood
+        here said the opposite: that the whole row stayed on screen and long text gave way, because
+        the owner had chosen no sideways scrolling on 2026-08-05. He reversed that, so a row whose
+        starred columns are all on the floor now gets WIDER THAN THE WINDOW and gains a scrollbar.
+        Measured with all seventeen columns on: 1922 pixels of row behind a 1039 viewport.
+
+        A FIXED WIDTH IS ITS OWN FLOOR, and that is not written here because it is not a number -
+        ListColumns says it, because it says the width and the floor are the same value. Before it
+        did, the seven fixed columns were the ones that gave way, all the way to twenty pixels.
+    -->
+    <system:Double x:Key="ColumnFloor">90</system:Double>
+</ResourceDictionary>

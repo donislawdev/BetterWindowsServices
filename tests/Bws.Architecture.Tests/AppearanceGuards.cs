@@ -69,14 +69,31 @@ public sealed class AppearanceGuards
     /// the grid, the row and the template it owns, the headings. Everything about a cell is on
     /// one side of that seam, which is what makes the name answerable without opening the file.
     ///
-    /// <b>Values.xaml is first in this array and the rest are the styles files</b>, which
-    /// <see cref="StyleFiles"/> depends on - values are merged before styles because styles
-    /// resolve their names while being read.
+    /// <b>AND HERE IS THE ARGUMENT FOR THE FIFTH AND SIXTH, ON 2026-08-17, WHICH ARE VALUE FILES
+    /// RATHER THAN STYLES ONES - so this stopped being one array with a position that means
+    /// something.</b> Values.xaml stood exactly on the markup ceiling of 436 and the ratchet only
+    /// goes down, which blocked two of the owner's requests at once: a new column needs a width in
+    /// that file and a new mark needs a brush in it. Backlog 189.
+    ///
+    /// The two blocks taken out were measured before the cut rather than guessed - 162 lines of
+    /// brushes and 85 of column widths, out of 436. <b>Colours.xaml answers "what colour" and
+    /// Columns.xaml answers "how wide is that column"</b>, which is the same test every entry here
+    /// has had to pass: a name that says what is inside without opening it, and a claim at the head
+    /// of the file that the last test in this class can assert.
+    ///
+    /// <b>THE POSITIONAL ARRAY IS GONE AND THAT IS THE REPAIR RATHER THAN A TIDY-UP.</b> What stood
+    /// here was one array where index zero meant "the values file" and Skip(1) meant "the rest are
+    /// styles". That encoding cannot express a second values file at all - it would have quietly
+    /// asserted that Colours.xaml holds no value of its own, which is the opposite of true. Two
+    /// named pools say what the one array was always trying to.
     /// </summary>
-    private static readonly string[] ThemeFiles = ["Values.xaml", "Controls.xaml", "List.xaml", "Cells.xaml"];
+    private static readonly string[] ValueFiles = ["Values.xaml", "Colours.xaml", "Columns.xaml"];
 
-    /// <summary>The halves that hold styles and no values, which is every theme file but the first.</summary>
-    private static IEnumerable<string> StyleFiles => ThemeFiles.Skip(1);
+    /// <summary>The halves that hold styles and no value of their own.</summary>
+    private static readonly string[] StyleFiles = ["Controls.xaml", "List.xaml", "Cells.xaml"];
+
+    /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>
+    private static IEnumerable<string> ThemeFiles => ValueFiles.Concat(StyleFiles);
 
     /// <summary>
     /// What a styles file is allowed to declare at the top level.
@@ -212,12 +229,22 @@ public sealed class AppearanceGuards
 
             Assert.True(File.Exists(theme), $"A file allowed to hold appearance values is missing: {theme}");
 
-            var text = File.ReadAllText(theme);
-
-            Assert.True(
-                Policed.Any(attribute => text.Contains(attribute, StringComparison.Ordinal)),
-                $"{name} holds no appearance values at all, so the rule that everything lives " +
-                "in the theme is being kept by there being nothing to keep.");
+            // ASKED OF THE DICTIONARY RATHER THAN OF THE FILE'S TEXT, AND THAT IS STRICTER THAN
+            // WHAT STOOD HERE - which matters, because loosening a guard to let a new file through
+            // would have been the dishonest way to do backlog 189.
+            //
+            // The old version looked for the NAME OF A POLICED ATTRIBUTE anywhere in the file:
+            // Margin, Foreground, Padding and nine others. That was a proxy for "this file has
+            // something in it", and it was wrong in both directions. It PASSED a file with zero
+            // resources and the word "Padding" in a comment. And it FAILED a file full of real
+            // values that happen not to be attributes - a dictionary of <DataGridLength> entries
+            // has keys and no attribute names at all, which is precisely Columns.xaml and is what
+            // blocked the split for four days.
+            //
+            // What this test says it is for, in its own first paragraph, is catching ABSENCE. A
+            // resource dictionary is valid XML, so "does this declare anything" has an exact
+            // answer and the machinery for it is already in this class.
+            Assert.NotEmpty(TopLevel(name));
         }
     }
 
@@ -247,23 +274,30 @@ public sealed class AppearanceGuards
         // "what are the top level entries" has an exact answer. A version counting leading spaces
         // would stop seeing anything the day somebody reformatted a file, which is the silent way
         // for a guard to die.
-        var values = TopLevel(ThemeFiles[0]);
+        // OVER EVERY VALUE FILE SINCE 2026-08-17, WHERE IT USED TO BE ThemeFiles[0]. There are
+        // three of them now, and an index into a shared array said "the first one is the values
+        // one" - a sentence that was true by accident and stopped being expressible the moment a
+        // second values file existed.
+        foreach (var name in ValueFiles)
+        {
+            var values = TopLevel(name);
 
-        // No pool may be empty, or the claims below are kept by there being nothing to keep - the
-        // same failure the test above exists to prevent, one level down.
-        Assert.NotEmpty(values);
+            // No pool may be empty, or the claims below are kept by there being nothing to keep -
+            // the same failure the test above exists to prevent, one level down.
+            Assert.NotEmpty(values);
 
-        var stylesAmongValues = values
-            .Where(entry => entry.Name.LocalName == "Style")
-            .Select(Describe)
-            .ToList();
+            var stylesAmongValues = values
+                .Where(entry => entry.Name.LocalName == "Style")
+                .Select(Describe)
+                .ToList();
 
-        Assert.True(
-            stylesAmongValues.Count == 0,
-            $"{ThemeFiles[0]} says at the top that it holds no style, and it does. A style here is "
-            + "merged before the files the styles live in, so it resolves names against a "
-            + "dictionary that is not there yet:"
-            + Environment.NewLine + string.Join(Environment.NewLine, stylesAmongValues));
+            Assert.True(
+                stylesAmongValues.Count == 0,
+                $"{name} says at the top that it holds no style, and it does. A style here is "
+                + "merged before the files the styles live in, so it resolves names against a "
+                + "dictionary that is not there yet:"
+                + Environment.NewLine + string.Join(Environment.NewLine, stylesAmongValues));
+        }
 
         foreach (var name in StyleFiles)
         {

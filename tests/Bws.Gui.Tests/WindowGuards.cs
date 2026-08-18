@@ -77,8 +77,17 @@ public sealed class WindowGuards
     /// <summary>
     /// What a copy would put on the clipboard is decided where it can be checked.
     ///
-    /// The clipboard call itself needs a window and cannot be tested - which is the reason the
-    /// decision was moved out of it rather than left beside it.
+    /// <b>THE SENTENCE THAT STOOD HERE WAS WRONG AND IS WITHDRAWN, 2026-08-17.</b> It said the
+    /// clipboard call needs a window and CANNOT BE TESTED. Rule 9 of the project notes is about
+    /// exactly this shape: a recorded impossibility has no guard, later sessions read it as a fact,
+    /// and four features the owner asked for on 2026-08-13 went without end-to-end cover because of
+    /// one clause. The rule says to check whether the limit comes from the problem or from the
+    /// mechanism somebody picked, and here it was the mechanism - WpfHost already runs a real
+    /// Application on a real STA thread, so Clipboard works in these tests exactly as it does in
+    /// the product. <c>CopyingAndPanelGuards</c> does it.
+    ///
+    /// What survives is the half that was always true: deciding WHAT to copy belongs somewhere a
+    /// test can reach without a window, which is why this one can ask its question at all.
     /// </summary>
     [Fact]
     public async Task With_no_row_chosen_there_is_nothing_to_copy()
@@ -172,7 +181,7 @@ public sealed class WindowGuards
     }
 
     /// <summary>
-    /// The Columns button carries the eighteen columns, and points its menu at itself.
+    /// The Columns button carries every column, and points its menu at itself.
     ///
     /// <b>THE FIRST VERSION OF THIS ASSERTED THAT THE MENU WAS OPEN, AND IT WAS FLAKY - which is
     /// worse than not having it.</b> It passed on its own and failed inside a full check.ps1 run,
@@ -181,7 +190,7 @@ public sealed class WindowGuards
     /// that was never shown is a question about WPF rather than about this product.
     ///
     /// So what is claimed here is the part that is ours: the button has a menu, the menu is
-    /// pointed at the button, and it carries the eighteen choices - <b>handed over rather than
+    /// pointed at the button, and it carries every choice - <b>handed over rather than
     /// inherited</b>, because a menu hangs off a Popup, which is not in the visual tree, so what
     /// it would inherit is a question with an answer nobody should have to know.
     ///
@@ -192,7 +201,7 @@ public sealed class WindowGuards
     /// </summary>
 
     [Fact]
-    public void The_columns_button_carries_the_eighteen_columns()
+    public void The_columns_button_carries_every_column()
     {
         var window = WpfHost.Window();
 
@@ -201,14 +210,15 @@ public sealed class WindowGuards
 
         Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
 
-        // TWENTY TWO SINCE 2026-08-12: eighteen columns and four headings, which are items in
-        // the same flat list rather than groups around it. It was twenty one earlier the same day,
-        // and the description made it twenty two - backlog 171. Grouping a menu with GroupStyle
+        // TWENTY FOUR SINCE 2026-08-17: twenty columns and four headings, which are items in
+        // the same flat list rather than groups around it. It was twenty two from 2026-08-12, and
+        // the delayed start and binary-on-disk columns made it twenty four - backlog 190, on the
+        // owner's report that the window shows too few columns. Grouping a menu with GroupStyle
         // takes its contents out of the automation tree entirely - measured on the real window,
         // where an open picker offered twelve togglable elements, all of them filter chips, and
         // none of the columns. The count is asserted whole rather than filtered so that a heading
         // quietly becoming tickable, or a column quietly becoming a heading, still moves it.
-        Assert.Equal(22, WpfHost.On(() => menu!.Items.Count));
+        Assert.Equal(24, WpfHost.On(() => menu!.Items.Count));
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

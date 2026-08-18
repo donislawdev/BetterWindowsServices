@@ -52,9 +52,21 @@ public sealed class MarkDistinctionGuards
         CellShapes.Running, CellShapes.Stopped, CellShapes.Paused, CellShapes.Transit, CellShapes.Unknown
     ];
 
+    /// <summary>
+    /// The start column, four codes longer since 2026-08-17 - each start type has a mark of its
+    /// own now instead of the four of them sharing no mark at all.
+    ///
+    /// <b><c>Ordinary</c> STAYS, AND IT WAS TAKEN OUT FOR ONE BUILD BEFORE A TEST PUT IT BACK.</b>
+    /// The reasoning for removing it was that the column could no longer produce it - which was
+    /// true of the four named types and false of the fifth case: a start type the manager gave us
+    /// and we have no word for still gets no mark, because a broken ring would say "nobody could
+    /// read this" about a reading that succeeded. The list has to match what the switch can return,
+    /// and checking that by reading the switch beats reasoning about it.
+    /// </summary>
     private static readonly string[] StartVocabulary =
     [
-        CellShapes.Missing, CellShapes.Disabled, CellShapes.Unknown, CellShapes.Ordinary
+        CellShapes.Missing, CellShapes.Disabled, CellShapes.Unknown, CellShapes.Ordinary,
+        CellShapes.StartBoot, CellShapes.StartSystem, CellShapes.StartAutomatic, CellShapes.StartManual
     ];
 
     /// <summary>

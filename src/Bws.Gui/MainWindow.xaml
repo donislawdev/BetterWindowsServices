@@ -206,6 +206,33 @@
             the first column is frozen by a count worked out from what is on screen rather than
             by the number one.
         -->
+        <!--
+            HOW THE LIST SCROLLS, AND BOTH ATTRIBUTES ARE ABOUT SMOOTHNESS RATHER THAN SPEED -
+            owner's report, 2026-08-17, that dragging the scrollbar slowly feels like it snags.
+
+            NOTHING ABOUT SCROLLING WAS SET BEFORE, so the grid ran on the registered defaults - and
+            the timing probes could not see the problem at all. They measure how long the window
+            takes to answer, and a jump that happens instantly is fast AND jerky. A latency
+            instrument cannot report a smoothness fault, which is why three clean runs came first.
+
+            ScrollUnit is the one that answers the complaint. A DataGrid scrolls by ITEM by default,
+            so the viewport can only ever stop on a row boundary - at 811 entries in a viewport of
+            about thirty, one pixel of thumb travel is worth several rows, and a slow drag therefore
+            moves in visible jumps. Pixel lets it stop between boundaries. It is NOT the same as
+            turning CanContentScroll off, which buys the same smoothness by disabling virtualisation
+            and building all 811 rows - Microsoft's performance guidance lists that as one of the
+            four ways to lose virtualisation without noticing.
+
+            Recycling is the cheaper half. The default, Standard, creates a container as a row
+            enters the viewport and throws it away as it leaves, so a drag down the list allocates
+            and collects the whole way. Recycling reuses the containers instead.
+
+            WHAT IS DELIBERATELY NOT HERE: EnableColumnVirtualization. It is off by default, so
+            turning it on is a real change rather than a no-op - but this grid sets
+            FrozenColumnCount from code (ListColumns.cs) and those two are a known pair to get wrong
+            together. It is a separate experiment with its own look, not a third attribute smuggled
+            in beside two that are about scrolling.
+        -->
         <DataGrid Grid.Row="2"
                   x:Name="Entries"
                   MouseEnter="ListEngaged"
@@ -226,6 +253,8 @@
                   HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
                   HeadersVisibility="Column"
                   HorizontalScrollBarVisibility="Auto"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
                   SelectionUnit="FullRow"
                   SelectionMode="Single"
                   PreviewMouseRightButtonDown="PointAtRowBeforeMenu"

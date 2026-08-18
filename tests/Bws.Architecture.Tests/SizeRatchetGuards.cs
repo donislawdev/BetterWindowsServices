@@ -242,12 +242,19 @@ public sealed class SizeRatchetGuards
     /// `Values.xaml` gained its starting width and the sentence saying why no width fits 1251
     /// characters. The comment was cut from six lines to five before this moved.
     ///
-    /// <b>Backlog 173 is now the pressing one.</b> Eighteen of this file's entries were column
-    /// widths when that was written and there are nineteen now, against a file that has hit its
-    /// ceiling twice in a day. The seam has been identified since 2026-08-12 and this is the third
-    /// time it has been the cheapest thing not done.
+    /// <b>436 TO 403 ON 2026-08-17, AND THIS IS THE DIAL GOING THE WAY IT IS ALLOWED TO GO.</b>
+    /// Backlog 173 was called the pressing one in the paragraph that used to end here, and it was:
+    /// `Values.xaml` sat exactly on 436, so a new column needed a width it had no room for and a
+    /// new mark needed a brush it had no room for - two of the owner's requests blocked by one
+    /// number. The values were split into three files by his decision, backlog 189, and that file
+    /// came down to 220.
+    ///
+    /// The longest markup is now `MainWindow.xaml` at 403, so the ceiling follows it down. <b>It is
+    /// lowered at the CLOSE of a package rather than in the middle of one</b>, which is the rule
+    /// this project keeps about ratchets: a dial moved while work is in flight is a dial somebody
+    /// tuned to fit what they were writing.
     /// </summary>
-    private const int LongestShippedMarkupFile = 436;
+    private const int LongestShippedMarkupFile = 403;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

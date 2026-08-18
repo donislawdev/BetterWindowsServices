@@ -207,6 +207,45 @@
                 <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
                 <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.unknown}" />
             </DataTrigger>
+
+            <!--
+                THE FOUR START TYPES, 2026-08-17, owner's decision - until then all four were drawn
+                as nothing at all, so the mark in this column answered "is something wrong" and
+                never "what is this set to".
+
+                RINGS, NOT FILLS, AND THE THREE TRIGGERS ABOVE ARE WHY. A filled mark here means
+                the manager cannot carry out the setting - only the missing file earns that, and it
+                is declared first so it wins. These four set Stroke and leave Fill alone, which the
+                base style has already put at Transparent.
+
+                Their colours are argued in Themes/Colours.xaml, where they are measured: quiet on
+                purpose, separated from each other by calculation, and none of them anywhere near
+                the green a running service wears two columns to the left. That last one is backlog
+                166, which was exactly this picture arriving by accident.
+            -->
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.boot">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource StartBoot}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.boot}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.system">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource StartSystem}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.system}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.automatic">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource StartAutomatic}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.automatic}" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.manual">
+                <Setter Property="Visibility" Value="Visible" />
+                <Setter Property="Stroke" Value="{StaticResource StartManual}" />
+                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.manual}" />
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 

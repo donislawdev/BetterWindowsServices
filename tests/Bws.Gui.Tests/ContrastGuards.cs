@@ -73,7 +73,20 @@ public sealed class ContrastGuards
         // and clears anything - which would be a guard passing for the wrong reason, because a
         // ring is drawn on top of whatever state the row already has. Its real floor is the
         // worst of four surfaces and lives in its own test further down.
-        ["FocusRing"] = ForState
+        ["FocusRing"] = ForState,
+
+        // THE FOUR START TYPES, 2026-08-17. SC 1.4.11 rather than the text floor, and the
+        // distinction is not a rounding: nobody reads these, they are rings beside a word that
+        // carries the same answer in text. What they have to do is be TELLABLE from the window and
+        // from each other, which is exactly what 1.4.11 covers.
+        //
+        // Being tellable from each other is a second check this table cannot make, and it is made
+        // by MarkDistinctionGuards instead - a ratio against the background says nothing about two
+        // marks that never appear side by side. Both are required and neither implies the other.
+        ["StartBoot"] = ForState,
+        ["StartSystem"] = ForState,
+        ["StartAutomatic"] = ForState,
+        ["StartManual"] = ForState
     };
 
     /// <summary>
@@ -212,17 +225,23 @@ public sealed class ContrastGuards
     /// <summary>
     /// Every brush the theme declares, read out of the files rather than held here.
     ///
-    /// <b>Both halves are read, even though every brush lives in Values.xaml today.</b> Reading
-    /// only the half that currently holds them would make this guard quietly stop covering the
-    /// first brush somebody declares beside the style that uses it - which is the natural place
-    /// to put one, and would arrive with no ratio and no test noticing.
+    /// <b>EVERY THEME FILE IS READ, AND FROM 2026-08-17 THE LIST IS NOT WRITTEN DOWN HERE.</b> It
+    /// used to name three, which was already one short: Cells.xaml arrived on 2026-08-12 and
+    /// nothing added it, so a brush declared beside a mark's style would have had no ratio and no
+    /// test noticing - the exact hole the sentence that stood here promised to close. Naming files
+    /// in a guard means the guard stops covering the theme on the day somebody splits it, and this
+    /// theme has now been split three times.
+    ///
+    /// So it takes the directory. A guard that has to be edited to keep covering what it is named
+    /// after is a guard that will one day not be - the same sentence AppearanceGuards writes over
+    /// its own array.
     /// </summary>
     private static List<(string Name, Color Colour)> Declared()
     {
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
         var text = string.Join(
             Environment.NewLine,
-            new[] { "Values.xaml", "Controls.xaml", "List.xaml" }.Select(name => File.ReadAllText(Path.Combine(themes, name))));
+            Directory.EnumerateFiles(themes, "*.xaml").Select(File.ReadAllText));
 
         return Regex
             .Matches(text, @"<SolidColorBrush\s+x:Key=""([^""]+)""\s*>\s*(#[0-9A-Fa-f]{6})", RegexOptions.None, TimeSpan.FromSeconds(5))
