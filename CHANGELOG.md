@@ -48,9 +48,22 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **And the command lines that ask for the same thing**, one per entry, in the order that
   works - ready to paste into a terminal or a runbook. They are written by the same part of
   the tool the command line itself uses, so they are commands it really accepts.
-- **This window still cannot carry any of it out, and it says so.** The menu items are
-  worded as questions and the panel opens with a line telling you nothing has happened. Use
-  the commands it shows you, or the command line, until the button arrives.
+- **And a button under the plan that carries it out.** The panel opens by telling you
+  nothing has happened, and nothing does until you press it - the menu items stay worded as
+  questions, so the only road to a change goes past the steps you just read. While it runs
+  the window stays usable and says which step it is on, and a second button stops it before
+  the next one. Closing the window during a run does not abandon it: the window waits, and
+  anything the run took down on the way is put back first.
+- **Afterwards it says what did not work, and how to get back.** Every entry that would not
+  move is named with the reason the system gave, and under it are the commands that would
+  put the machine back where the run found it - worked out as where each entry started
+  against where it ended, so a restart that finished where it began offers nothing.
+- **It refuses when it cannot do it, before you press anything.** Running without
+  administrator rights, the button is dead and the panel says why and what to do about it -
+  rather than letting you press it and handing back a column of refusals from Windows.
+- **The panel is its own surface now**, with a heading you can find, sections that appear only
+  when they have something in them, and the button joined to the plan it acts on rather than
+  floating at the bottom of the window.
 
 - **`bws stop`, `bws start` and `bws restart`** carry out one named entry's change through
   a plan: what will happen, in what order, and what came of every step.

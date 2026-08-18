@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Gui.ViewModels;
@@ -30,15 +31,17 @@ public sealed class PlanLine
 /// <summary>
 /// What an operation over the selection would do, and the window's promise that it has not done it.
 ///
-/// <b>THE WINDOW'S DRY RUN.</b> `ADR-11` says a plan can be shown, turned into a command, reversed or
-/// carried out, and those are one object seen from four sides rather than four features. This is the
-/// first two sides reaching a window: the steps in the order they would happen, and the command line
-/// that would ask for the same thing.
+/// <b>THE WINDOW'S DRY RUN, AND SINCE 2026-08-19 THE REPORT THAT FOLLOWS IT.</b> `ADR-11` says a
+/// plan can be shown, turned into a command, reversed or carried out, and those are one object seen
+/// from four sides rather than four features. All four now reach a window: the steps in the order
+/// they would happen, the command line that would ask for the same thing, what came of carrying it
+/// out, and what it would take to put the machine back.
 ///
-/// <b>IT CANNOT CARRY ANYTHING OUT AND SAYS SO IN AS MANY WORDS.</b> That is why the menu items that
-/// open it are worded as questions rather than as verbs - an item called "Stop" that only draws a
-/// plan would be a lie to somebody's hand. When the runner arrives this class gains a way to accept,
-/// and the wording changes with it rather than before it.
+/// <b>IT STILL CARRIES NOTHING OUT ITSELF, and the sentence above changed on the day that stopped
+/// being the whole story rather than before or after it.</b> The window owns the run - it holds the
+/// token that stops one and it is on the short list of files allowed to build a writer at all. What
+/// this class owns is the three states a person sees: nothing done, doing it, done. The menu items
+/// that open it are still worded as questions, because they still only open a plan.
 ///
 /// <b>Nothing here decides what would happen.</b> Cascade, order, warnings and refusals are all
 /// worked out in the core, where they are testable without a machine to break. What this adds is
@@ -49,6 +52,9 @@ public sealed class Planned : Observable
 {
     private bool _showing;
     private BulkPlan? _plan;
+    private BulkRun? _run;
+    private bool _busy;
+    private string _progress = string.Empty;
 
     /// <summary>Whether the panel is on screen. Closed until somebody asks.</summary>
     public bool Showing
@@ -57,12 +63,106 @@ public sealed class Planned : Observable
         private set => Set(ref _showing, value);
     }
 
+    /// <summary>
+    /// The plan on screen, for whoever carries it out.
+    ///
+    /// <b>Handed out rather than acted on here, and that is the seam that keeps this class
+    /// testable.</b> Carrying a plan out means building something able to change a machine, so a
+    /// view model that did it would be a view model no test could call. What this class owns is
+    /// what the panel SAYS about a run - which is checkable at a desk, and is the half that gets
+    /// a person's decision wrong when it is wrong.
+    /// </summary>
+    internal BulkPlan? Plan => _plan;
+
+    /// <summary>Whether a run is happening right now.</summary>
+    public bool Busy
+    {
+        get => _busy;
+        private set => Set(ref _busy, value);
+    }
+
+    /// <summary>
+    /// Whether there is something to carry out and nothing in the way of carrying it.
+    ///
+    /// <b>A plan already carried out gives false, and that is the one clause worth arguing for.</b>
+    /// The panel keeps showing the steps after a run so somebody can read what happened against what
+    /// was going to - so the button has to go quiet, or a second press would ask the machine to do
+    /// it all again while the screen still reads like a preview.
+    ///
+    /// <b>AND ELEVATION, ADDED 2026-08-19 BECAUSE IT WAS MISSING AND A SCREENSHOT SHOWED IT.</b> The
+    /// owner's decision of 2026-08-18 was that the window refuses and says how to run it, with such
+    /// actions marked BEFORE anybody clicks. The first look at this panel was on a session without
+    /// administrator rights, and the button was live with nothing to say so - which is the decision
+    /// broken in the direction that costs the most: a press, a column of refusals from the manager,
+    /// and a person left working out why.
+    /// </summary>
+    public bool CanCarryOut =>
+        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true };
+
+    /// <summary>
+    /// Whether this session can change anything at all.
+    ///
+    /// <b>Its own property rather than a reach into <see cref="Says"/>, and settable for the reason
+    /// that one gives: a working session cannot produce the other answer on demand.</b> Asked
+    /// through the identifier S-1-5-32-544 rather than by the name of a group, which is rule 3 of
+    /// the project's untouchable rules - on a localised Windows the group is not called
+    /// Administrators.
+    /// </summary>
+    internal bool Elevated { get; init; } = Session.IsElevated();
+
+    /// <summary>
+    /// Why this cannot be carried out here, said before anybody presses anything.
+    ///
+    /// Empty when there is nothing in the way, rather than a reassuring sentence - a line saying
+    /// everything is fine is a line somebody has to read to learn nothing.
+    /// </summary>
+    public string Blocked => Showing && !Elevated ? Texts.Of("gui.plan.blocked.notElevated") : string.Empty;
+
+    /// <summary>
+    /// Whether each section has anything in it.
+    ///
+    /// <b>These exist so a section can take its heading off the screen with it.</b> A heading
+    /// reading "Not included, and why" over nothing states something false, and the owner saw
+    /// exactly that on the first look at this panel - backlog 203. Bound properties rather than a
+    /// style trigger per section, because six trigger blocks would have taken this file past the
+    /// markup ceiling to say one thing six times.
+    /// </summary>
+    public bool HasExtra => Extra.Length > 0;
+
+    /// <summary>Whether an entry is named by more than one plan.</summary>
+    public bool HasOverlapping => Overlapping.Length > 0;
+
+    /// <summary>Whether there is anything worth knowing before pressing.</summary>
+    public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>Whether any entry got no plan at all.</summary>
+    public bool HasProblems => Problems.Count > 0;
+
+    /// <summary>Whether anything failed. Never true before a run.</summary>
+    public bool HasFailures => Failures.Count > 0;
+
+    /// <summary>Whether there is a way back. Never true before a run.</summary>
+    public bool HasWayBack => WayBack.Count > 0;
+
+    /// <summary>
+    /// Which step is happening, while it happens.
+    ///
+    /// <b>Empty except during a run.</b> A person watching a stop that takes half a minute has
+    /// nothing else to tell them the window is alive - and this window has measured half a minute on
+    /// a single step, so the line is not decoration.
+    /// </summary>
+    public string Progress
+    {
+        get => _progress;
+        private set => Set(ref _progress, value);
+    }
+
     /// <summary>What the panel is called, naming the action and how much it touches.</summary>
     public string Heading => _plan is not { } plan
         ? string.Empty
         : Asked(plan) == 1
-            ? Texts.Of("gui.plan.heading.one", Doing(plan.Action.Kind), Only(plan))
-            : Texts.Of("gui.plan.heading.many", Doing(plan.Action.Kind), Asked(plan));
+            ? Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
+            : Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan));
 
     /// <summary>Every step, in the order it would happen, numbered as a person would count them.</summary>
     public IReadOnlyList<PlanLine> Steps => _plan is not { } plan
@@ -75,7 +175,7 @@ public sealed class Planned : Observable
                     ? Texts.Of("gui.plan.operation.stop")
                     : Texts.Of("gui.plan.operation.start"),
                 step.ServiceName,
-                Reason(step.Reason)),
+                PlanWords.Reason(step.Reason)),
             step.Reason == StepReason.Requested))];
 
     /// <summary>
@@ -104,7 +204,7 @@ public sealed class Planned : Observable
     /// <summary>Everything worth knowing before anybody presses anything.</summary>
     public IReadOnlyList<string> Warnings => _plan is not { } plan
         ? []
-        : [.. plan.Warnings.Select(Describe)];
+        : [.. plan.Warnings.Select(PlanWords.Describe)];
 
     /// <summary>
     /// The entries that get no plan at all, and why.
@@ -116,7 +216,7 @@ public sealed class Planned : Observable
     /// </summary>
     public IReadOnlyList<string> Problems => _plan is not { } plan
         ? []
-        : [.. plan.Problems.Select(Describe)];
+        : [.. plan.Problems.Select(PlanWords.Describe)];
 
     /// <summary>
     /// The same thing from a terminal, one line per entry. `E5`.
@@ -128,14 +228,125 @@ public sealed class Planned : Observable
     public IReadOnlyList<string> Commands => _plan is not { } plan ? [] : EquivalentCommand.For(plan);
 
     /// <summary>
-    /// That nothing has happened.
+    /// Where this panel is in the only sequence it has: nothing done, doing it, done.
     ///
-    /// <b>Always present while the panel is open, never conditional.</b> A panel full of steps in the
-    /// present tense reads as a report of something done, and this window cannot do any of it yet.
-    /// `docs/11` 9.2: never ask about a thing whose effect you have not shown - and never show an
-    /// effect somebody might think has already landed.
+    /// <b>Always present while the panel is open, never conditional, and that survived the arrival of
+    /// the button.</b> A panel full of steps in the present tense reads as a report of something
+    /// done - which was a lie while the window could not carry anything out, and is a DIFFERENT lie
+    /// now that it can, because a person who has not pressed anything would read their selection as
+    /// already stopped. `docs/11` 9.2: never show an effect somebody might think has already landed.
+    ///
+    /// <b>The sentence changed together with the button rather than before it or after it</b>, which
+    /// is what the note left at Krok 5 asked for in as many words.
     /// </summary>
-    public string Notice => Showing ? Texts.Of("gui.plan.nothingDone") : string.Empty;
+    public string Notice => !Showing ? string.Empty
+        : Busy ? Texts.Of("gui.plan.notice.running")
+        : _run is not { } run ? Texts.Of("gui.plan.notice.notYet")
+        : Arrived(run) == run.Runs.Count
+            ? Texts.Of("gui.plan.notice.done", run.Runs.Count)
+            : Texts.Of("gui.plan.notice.partly", Arrived(run), run.Runs.Count);
+
+    /// <summary>
+    /// The entries that did not get where they were asked to go, one line each, with the manager's
+    /// own words where it refused.
+    ///
+    /// <b>Rule 8 of the untouchable rules, at the moment it matters most.</b> A run that half worked
+    /// and says only "done" is the silent partial answer that rule exists against - and here the
+    /// person is holding a machine somebody else depends on.
+    ///
+    /// Steps never attempted are not listed. They are not failures and the counts in
+    /// <see cref="Notice"/> already carry them, so a line each would bury the one or two lines
+    /// somebody has to act on.
+    /// </summary>
+    public IReadOnlyList<string> Failures => _run is not { } run
+        ? []
+        : [.. run.Results.Where(Failed).Select(PlanWords.Describe)];
+
+    /// <summary>
+    /// What somebody would type to put the machine back where this run found it. `ADR-11`'s
+    /// reversible promise, in the cheapest honest form it has.
+    ///
+    /// One answer for the whole selection rather than one per plan, worked out as a net effect per
+    /// entry - so a restart that ended where it began says nothing, and a selection dealt with
+    /// dependants first hands the lines back in an order whose first line works. All of that is
+    /// `NetEffect` in the core, and none of it is decided here.
+    /// </summary>
+    public IReadOnlyList<string> WayBack => _run is not { } run
+        ? []
+        : [.. run.Reversal.Select(EquivalentCommand.For)];
+
+    /// <summary>
+    /// A run has begun.
+    ///
+    /// <b>Told rather than started here</b> - the seam described at <see cref="Plan"/>. What this
+    /// owns is that the button goes quiet and the sentence changes before the first step, not after
+    /// it: a button still live while the manager is being asked is a second ask waiting to happen.
+    /// </summary>
+    internal void Starting()
+    {
+        Busy = true;
+        Progress = string.Empty;
+
+        Raise(nameof(CanCarryOut));
+        Raise(nameof(Notice));
+    }
+
+    /// <summary>
+    /// A step is about to be attempted, with its place across the whole selection.
+    ///
+    /// <b>The number is the step's place in the plan, never a count of attempts</b>, and it arrives
+    /// that way from the runner for a reason written there: steps get skipped, and a counter of
+    /// attempts calls the sixth step the third one while somebody is trying to work out where a run
+    /// has got to.
+    /// </summary>
+    internal void Announce(PlanStep step, int number) =>
+        Progress = Texts.Of(
+            "gui.plan.progress",
+            number,
+            _plan?.Steps.Count() ?? 0,
+            step.Operation == StepOperation.Stop
+                ? Texts.Of("gui.plan.operation.stop")
+                : Texts.Of("gui.plan.operation.start"),
+            step.ServiceName);
+
+    /// <summary>
+    /// A run has ended, whether it finished or was interrupted.
+    ///
+    /// <b>The plan stays on screen beside it, which is the whole of `ADR-11`'s promise arriving in a
+    /// window:</b> what was going to happen and what did, side by side, without anybody having to
+    /// remember the first half.
+    /// </summary>
+    internal void Finished(BulkRun run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+
+        _run = run;
+        Busy = false;
+        Progress = string.Empty;
+
+        Raise(nameof(CanCarryOut));
+        Raise(nameof(Notice));
+        Raise(nameof(Failures));
+        Raise(nameof(WayBack));
+        RaiseTheCounts();
+    }
+
+    /// <summary>
+    /// That every section may have appeared or gone.
+    ///
+    /// One call rather than six lines wherever the plan or the run changes, because a section that
+    /// keeps its heading after its content went is the fault these properties exist to prevent, and
+    /// it would arrive by somebody adding a Raise in three places out of four.
+    /// </summary>
+    private void RaiseTheCounts()
+    {
+        Raise(nameof(HasExtra));
+        Raise(nameof(HasOverlapping));
+        Raise(nameof(HasWarnings));
+        Raise(nameof(HasProblems));
+        Raise(nameof(HasFailures));
+        Raise(nameof(HasWayBack));
+    }
 
     /// <summary>
     /// Puts a plan on screen, and says whether there was anything to put there.
@@ -153,9 +364,20 @@ public sealed class Planned : Observable
             return false;
         }
 
+        // A NEW PLAN DROPS THE OLD RUN, and getting this wrong would be the worst bug this panel
+        // could have: a report of what happened to five services, sitting under the steps of a plan
+        // for five different ones, with nothing on screen to say the two do not belong together.
         _plan = plan;
+        _run = null;
+        Busy = false;
+        Progress = string.Empty;
         Showing = true;
 
+        Raise(nameof(CanCarryOut));
+        Raise(nameof(Blocked));
+        Raise(nameof(Failures));
+        Raise(nameof(WayBack));
+        RaiseTheCounts();
         Raise(nameof(Heading));
         Raise(nameof(Steps));
         Raise(nameof(Extra));
@@ -184,8 +406,16 @@ public sealed class Planned : Observable
         }
 
         _plan = null;
+        _run = null;
+        Busy = false;
+        Progress = string.Empty;
         Showing = false;
 
+        Raise(nameof(CanCarryOut));
+        Raise(nameof(Blocked));
+        Raise(nameof(Failures));
+        Raise(nameof(WayBack));
+        RaiseTheCounts();
         Raise(nameof(Heading));
         Raise(nameof(Steps));
         Raise(nameof(Extra));
@@ -198,6 +428,27 @@ public sealed class Planned : Observable
         return true;
     }
 
+    /// <summary>
+    /// How many of the entries somebody asked about ended where they asked.
+    ///
+    /// <b>Counted over runs rather than over steps, because that is the unit a person picked.</b>
+    /// Somebody selected five rows, so "three of five" is the sentence they can act on - "twenty
+    /// nine of thirty two steps" is arithmetic about our internals, and most of those steps are
+    /// cascade members nobody chose.
+    /// </summary>
+    private static int Arrived(BulkRun run) => run.Runs.Count(one => one.Completed);
+
+    /// <summary>
+    /// A step worth putting in front of somebody.
+    ///
+    /// A refusal and a step we stopped watching, and nothing else. Skipped steps were never tried,
+    /// which the counts already say, and one that was already where it was asked to be is the plan
+    /// working rather than failing.
+    /// </summary>
+    private static bool Failed(StepResult result) =>
+        result.Outcome is StepOutcome.Failed or StepOutcome.TimedOut;
+
+
     private static int Asked(BulkPlan plan) =>
         plan.Action.ServiceNames.Distinct(StringComparer.OrdinalIgnoreCase).Count();
 
@@ -205,67 +456,4 @@ public sealed class Planned : Observable
         ? string.Empty
         : plan.Action.ServiceNames[0];
 
-    /// <summary>
-    /// The verb as a person reads it, with the key INSIDE each call.
-    ///
-    /// <b>Written first as one Texts.Of around a switch that chose the key, and TextKeyGuards
-    /// reddened - correctly.</b> A key travelling as the value of an expression is invisible to it, so
-    /// all three came back as strings that never reach a screen. This project has the lesson recorded
-    /// already, from ListState.Say, and the recorded answer is this one rather than a wider pattern: a
-    /// key visible where it is chosen is better for a reader too.
-    /// </summary>
-    private static string Doing(ActionKind kind) => kind switch
-    {
-        ActionKind.Stop => Texts.Of("gui.plan.doing.stop"),
-        ActionKind.Start => Texts.Of("gui.plan.doing.start"),
-        _ => Texts.Of("gui.plan.doing.restart")
-    };
-
-    /// <summary>Why a step is there, with the key inside each call for the reason above.</summary>
-    private static string Reason(StepReason reason) => reason switch
-    {
-        StepReason.Requested => Texts.Of("gui.plan.reason.requested"),
-        StepReason.Cascade => Texts.Of("gui.plan.reason.cascade"),
-        _ => Texts.Of("gui.plan.reason.restore")
-    };
-
-    /// <summary>
-    /// A warning in words. The kinds come from the core and the sentences belong here.
-    ///
-    /// <b>Written out rather than composed from the name of the value</b>, for the reason the command
-    /// line gives about the same six: flattening a name to lower case works for as long as every one
-    /// is a single word and then quietly asks for a key nobody wrote.
-    /// </summary>
-    private static string Describe(PlanWarning warning) => warning.Kind switch
-    {
-        PlanWarningKind.Cascade => Texts.Of(
-            "gui.plan.warning.cascade", warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        PlanWarningKind.DependentsInTheWay => Texts.Of(
-            "gui.plan.warning.inTheWay", warning.ServiceName, Listed(warning.Related)),
-
-        PlanWarningKind.SharedProcess => Texts.Of(
-            "gui.plan.warning.sharedProcess", warning.ServiceName, Listed(warning.Related)),
-
-        PlanWarningKind.ReturnsAfterReboot => Texts.Of("gui.plan.warning.returnsAfterReboot", warning.ServiceName),
-
-        PlanWarningKind.CascadeUnreadable => Texts.Of("gui.plan.warning.cascadeUnreadable", warning.ServiceName),
-
-        _ => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName)
-    };
-
-    /// <summary>A refusal in words, with the entry it belongs to named first.</summary>
-    private static string Describe(PlanProblem problem) => problem.Kind switch
-    {
-        PlanProblemKind.UnknownService => Texts.Of("gui.plan.problem.unknownService", problem.ServiceName),
-
-        PlanProblemKind.NotOperable => Texts.Of("gui.plan.problem.notOperable", problem.ServiceName),
-
-        PlanProblemKind.CascadeNotOperable => Texts.Of(
-            "gui.plan.problem.cascadeNotOperable", problem.ServiceName, Listed(problem.Related)),
-
-        _ => Texts.Of("gui.plan.problem.cannotComeBack", problem.ServiceName, Listed(problem.Related))
-    };
-
-    private static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);
 }

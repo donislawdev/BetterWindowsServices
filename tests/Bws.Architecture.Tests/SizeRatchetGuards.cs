@@ -260,12 +260,19 @@ public sealed class SizeRatchetGuards
     /// number. The values were split into three files by his decision, backlog 189, and that file
     /// came down to 220.
     ///
-    /// The longest markup is now `MainWindow.xaml` at 403, so the ceiling follows it down. <b>It is
-    /// lowered at the CLOSE of a package rather than in the middle of one</b>, which is the rule
-    /// this project keeps about ratchets: a dial moved while work is in flight is a dial somebody
-    /// tuned to fit what they were writing.
+    /// The longest markup is `MainWindow.xaml`, so the ceiling follows it down. <b>It is lowered at
+    /// the CLOSE of a package rather than in the middle of one</b>, which is the rule this project
+    /// keeps about ratchets: a dial moved while work is in flight is a dial somebody tuned to fit
+    /// what they were writing.
+    ///
+    /// <b>403 to 397 at the close of packet 2 of `S7`, 2026-08-19, and it was 403 for exactly one
+    /// packet.</b> The room came from taking the empty state out to its own file at the start of
+    /// that packet and was spent on the operations that packet is about, which is what the room was
+    /// made for. `MainWindow.xaml` now sits ON this number rather than under it - so the next change
+    /// to that file needs a seam before it needs anything else, and that is the ratchet working
+    /// rather than the ratchet being in the way.
     /// </summary>
-    private const int LongestShippedMarkupFile = 403;
+    private const int LongestShippedMarkupFile = 397;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

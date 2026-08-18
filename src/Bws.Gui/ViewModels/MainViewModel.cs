@@ -147,7 +147,7 @@ public sealed class MainViewModel : Observable
     /// somebody asked a question about. They share a column in the window and are mutually exclusive
     /// there, which the window arranges rather than either of them knowing about the other.
     /// </summary>
-    public Planned Planned { get; } = new();
+    public Planned Planned { get; init; } = new();
 
 
     /// <summary>

@@ -50,11 +50,17 @@ public sealed record BulkRun
     ///
     /// <b>Joining per-run answers is the obvious implementation and it is wrong in two ways at
     /// once</b>, which is why this hands every step of every run to <see cref="NetEffect"/> in one
-    /// go. The order comes out reversed across the whole selection rather than within each run -
-    /// otherwise the first line handed back is one the manager refuses, since a selection is dealt
-    /// with dependants first and putting it back has to start with what they depend on. And an
-    /// entry moved by two of the runs is named once rather than twice, because two lines about one
-    /// service, one of them wrong, is worse than no lines at all.
+    /// go. The order comes out reversed across the whole SELECTION rather than within each run - a
+    /// joined list is ordered by plan, and a way back has to be in the reverse of the order things
+    /// moved. And an entry moved by two of the runs is named once rather than twice, because two
+    /// lines about one service, one of them wrong, is worse than no lines at all.
+    ///
+    /// <b>What that costs when it is wrong was measured rather than reasoned, on 2026-08-19</b>, and
+    /// the first version of this comment had the direction backwards. It is the STOPS that fail: on
+    /// Windows Server 2025, stopping LanmanWorkstation while SessionEnv depended on it returned
+    /// error 1051, while starting SessionEnv with LanmanWorkstation stopped simply worked, because
+    /// the manager brings up what a service needs. So the way back after a bulk START is where a
+    /// joined order hands somebody a first line that fails.
     ///
     /// The worked example, and everything that decided the arithmetic, is at <see cref="NetEffect"/>.
     /// </summary>

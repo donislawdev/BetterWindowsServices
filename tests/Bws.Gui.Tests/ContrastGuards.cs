@@ -68,6 +68,15 @@ public sealed class ContrastGuards
         // stronger of the two signals rather than competing with the furniture.
         ["SurfaceRowLine"] = 1.25,
 
+        // THE PANEL AND ITS EDGE, 2026-08-19. Ours as well, and the floors say what each one is
+        // for. The fill only has to make a whole column of the window tellable as its own
+        // surface - a large region, which reads at a lower ratio than any thin thing in this
+        // table - so it sits beside the row line rather than beside hover. The edge is the one
+        // line the panel has and separates two regions doing different jobs, so it clears more
+        // than the line between two rows of the same kind.
+        ["SurfacePanel"] = 1.25,
+        ["SurfacePanelEdge"] = 1.5,
+
         // WCAG 2.2 SC 1.4.11 again, and THE NUMBER HERE IS THE WEAKER OF THE TWO CHECKS IT GETS.
         // The test below this table measures it against the window, where it comes out at 11.21
         // and clears anything - which would be a guard passing for the wrong reason, because a

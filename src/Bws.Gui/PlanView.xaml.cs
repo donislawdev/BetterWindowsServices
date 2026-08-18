@@ -12,15 +12,36 @@ namespace Bws.Gui;
 /// the same reason. What is left here is the one thing only a control knows: that somebody pressed
 /// the button.
 ///
-/// <b>It has no way to carry a plan out and that is the state of the packet rather than an oversight.</b>
-/// The menu items that open it are worded as questions for the same reason. When the runner arrives,
-/// the button it needs belongs here and the wording changes with it.
+/// <b>IT ASKS RATHER THAN CARRIES OUT, and that is the seam rather than a limitation.</b> Since
+/// 2026-08-19 this panel has a button that changes a machine - and what it does when pressed is
+/// raise an event. The window is what owns the run: it holds the token that stops it, it refuses to
+/// close while one is in flight, and it is on the list of files allowed to build a writer at all.
+/// A panel that reached for the manager itself would be a second composition point, which is
+/// precisely what rule 1 of the project's untouchable rules exists to keep to one.
 /// </summary>
 public partial class PlanView : UserControl
 {
+    /// <summary>
+    /// Somebody pressed the button under the plan.
+    ///
+    /// <b>An event rather than a call, for the reason at the head of this class</b> - and the same
+    /// shape this window already uses to reach a menu opened under a button, so it introduces no
+    /// mechanism of its own.
+    /// </summary>
+    internal event EventHandler? CarryOutRequest;
+
+    /// <summary>Somebody asked a run in progress to stop before its next step.</summary>
+    internal event EventHandler? InterruptRequest;
+
     public PlanView() => InitializeComponent();
 
     private void CloseRequested(object sender, RoutedEventArgs e) => Dismiss();
+
+    private void CarryOutRequested(object sender, RoutedEventArgs e) =>
+        CarryOutRequest?.Invoke(this, EventArgs.Empty);
+
+    private void InterruptRequested(object sender, RoutedEventArgs e) =>
+        InterruptRequest?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Puts the panel away, and says whether there was one to put away.
@@ -50,6 +71,15 @@ public partial class PlanView : UserControl
     internal TextBlock Notice => PlanNotice;
 
     /// <summary>
+    /// The line saying why this cannot be carried out here.
+    ///
+    /// <b>Read off the control rather than off the model</b>, because the fault it exists against is
+    /// exactly the one a dead binding produces: a session that cannot change anything, a live
+    /// button, and nothing on screen to say so.
+    /// </summary>
+    internal TextBlock Blocked => PlanBlocked;
+
+    /// <summary>
     /// The steps as they reach the screen.
     ///
     /// Read off the control's own items rather than off the model, so a binding that resolved to
@@ -63,4 +93,41 @@ public partial class PlanView : UserControl
 
     /// <summary>The command lines, as they reach the screen. `E5`.</summary>
     internal IReadOnlyList<string> CommandLines => [.. CommandList.Items.OfType<string>()];
+
+    /// <summary>What did not work, as it reaches the screen.</summary>
+    internal IReadOnlyList<string> FailureLines => [.. FailureList.Items.OfType<string>()];
+
+    /// <summary>The way back, as it reaches the screen.</summary>
+    internal IReadOnlyList<string> WayBackLines => [.. WayBackList.Items.OfType<string>()];
+
+    /// <summary>
+    /// Whether the refusals section is on the screen at all, heading included.
+    ///
+    /// <b>Its visibility rather than its contents, because those are two different faults.</b> An
+    /// empty list under a heading reading "Not included, and why" states something false, and the
+    /// list being empty is exactly what a test reading only the lines would call correct.
+    ///
+    /// <b>The section's own Visibility rather than IsVisible on the list inside it</b>, and that is
+    /// a fact about the harness rather than about the panel: a window built for a test is never put
+    /// on a screen, so IsVisible answers false for everything in it - a guard reading that would
+    /// pass by agreeing with nothing. Found by writing the guard and watching it fail on the half
+    /// that was supposed to be true.
+    /// </summary>
+    internal bool ProblemsShown => ProblemSection.Visibility == Visibility.Visible;
+
+    /// <summary>Whether the way back is on the screen at all. Never before a run.</summary>
+    internal bool WayBackShown => WayBackSection.Visibility == Visibility.Visible;
+
+    /// <summary>
+    /// The button that changes a machine, so a test can ask whether it is live.
+    ///
+    /// <b>The control rather than the model's answer, and the difference is the whole point.</b>
+    /// Planned.CanCarryOut can be perfectly right while nothing binds to it, and a button that stays
+    /// live through a run is a second ask one click away - which is exactly the kind of fault a
+    /// binding that resolves to nothing produces in silence.
+    /// </summary>
+    internal Button CarryOut => CarryOutButton;
+
+    /// <summary>The way to stop a run, which only exists while there is one.</summary>
+    internal Button Interrupt => InterruptButton;
 }

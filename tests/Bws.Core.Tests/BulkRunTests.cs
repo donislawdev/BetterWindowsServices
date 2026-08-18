@@ -70,10 +70,12 @@ public sealed class BulkRunTests
     /// every step of every run to the arithmetic in one go.
     ///
     /// Both entries were selected and one needs the other, so the selection is dealt with dependants
-    /// first - LanmanWorkstation, then MRxSmb20. Asking each run separately and joining the answers
-    /// gives "start LanmanWorkstation" as the first line, and the manager refuses it: it cannot
-    /// start while what it needs is stopped. A way out whose first line fails is worse than
-    /// admitting there is none.
+    /// first - LanmanWorkstation, then MRxSmb20. A joined list would be ordered by plan, and a way
+    /// back has to be in the reverse of the order things moved.
+    ///
+    /// <b>What a wrong order actually costs is asserted next door rather than here</b>, in
+    /// <see cref="The_way_back_after_a_start_is_the_order_the_manager_will_accept"/> - because the
+    /// manager rescues a bad START order and refuses a bad STOP one, measured on 2026-08-19.
     /// </summary>
     [Fact]
     public void The_way_back_is_one_answer_for_the_whole_selection_in_the_reverse_order()
@@ -94,6 +96,47 @@ public sealed class BulkRunTests
             run.Reversal.Select(step => step.ServiceName));
 
         Assert.All(run.Reversal, step => Assert.Equal(StepOperation.Start, step.Operation));
+    }
+
+    /// <summary>
+    /// THE DIRECTION WHERE A JOINED ORDER REALLY FAILS, and it is the opposite one to the direction
+    /// this file first claimed - a run on a real machine on 2026-08-19 corrected it.
+    ///
+    /// <b>The asymmetry is the manager's, and it is the same one <see cref="BulkPlanBuilder"/>
+    /// records about ordering a selection at all.</b> Measured on Windows Server 2025, on SessionEnv
+    /// which needs LanmanWorkstation: <c>sc start SessionEnv</c> with LanmanWorkstation stopped
+    /// SUCCEEDED and brought the other up with it, because the manager starts what a service needs.
+    /// <c>sc stop LanmanWorkstation</c> while SessionEnv was running returned <b>error 1051</b> - it
+    /// rescues nothing in that direction.
+    ///
+    /// So a bulk START, whose way back is a list of STOPS, is where the order is load bearing. A
+    /// start selection is not reordered, so joining run by run hands the stops back in the order the
+    /// plans ran, depended upon first, which is exactly the order the manager refuses. Reversed over
+    /// the whole run, the dependant goes first and every line works.
+    /// </summary>
+    [Fact]
+    public void The_way_back_after_a_start_is_the_order_the_manager_will_accept()
+    {
+        var plan = Bulk(ActionKind.Start, ["MRxSmb20", "LanmanWorkstation"]);
+
+        var control = new FakeScmControl()
+            .At("MRxSmb20", EntryStatus.Stopped)
+            .At("LanmanWorkstation", EntryStatus.Stopped);
+
+        var run = Run(plan, control);
+
+        // A start selection keeps the order it came in, so the plans ran depended upon first.
+        Assert.Equal(
+            ["MRxSmb20", "LanmanWorkstation"],
+            run.Runs.Select(one => one.Plan.Action.ServiceName));
+
+        // And the way back is the reverse of that: the dependant is stopped first, which is the
+        // only order a manager accepts. Joined plan by plan it would be the other way round.
+        Assert.Equal(
+            ["LanmanWorkstation", "MRxSmb20"],
+            run.Reversal.Select(step => step.ServiceName));
+
+        Assert.All(run.Reversal, step => Assert.Equal(StepOperation.Stop, step.Operation));
     }
 
     /// <summary>

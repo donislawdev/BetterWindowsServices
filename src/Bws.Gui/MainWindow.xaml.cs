@@ -42,6 +42,20 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _timer;
 
     /// <summary>
+    /// The run that is happening, while one is, so that closing the window can wait for it.
+    ///
+    /// <b>Held rather than started and forgotten, which is what BackgroundWorkGuards is about</b> -
+    /// and here it buys something specific rather than tidiness: without it, closing the window
+    /// during a run ends the process, and this is the tool that leaves half a cascade switched off.
+    /// The command line has three levels of Ctrl+C for that failure, found on a virtual machine
+    /// rather than by reasoning.
+    /// </summary>
+    private Task? _running;
+
+    /// <summary>Asks the run in progress to stop before its next step. Null when none is.</summary>
+    private CancellationTokenSource? _stopping;
+
+    /// <summary>
     /// The button that opens the list of columns, which belongs to the row of filters.
     ///
     /// <b>A field again since 2026-08-13, and losing this line was what the theme cost.</b> While
@@ -161,7 +175,115 @@ public partial class MainWindow : Window
             }
         };
 
+        // THE ONLY PLACE IN THIS WINDOW THAT LEADS TO A MACHINE CHANGING. An async lambda on an
+        // event, which is the shape this constructor already uses twice above - so the run is
+        // awaited by something rather than started and dropped.
+        PlanPanel.CarryOutRequest += async (_, _) => await CarryOut().ConfigureAwait(true);
+
+        // Not async: cancelling is instant and the waiting belongs to whoever is awaiting the run.
+        PlanPanel.InterruptRequest += (_, _) => _stopping?.Cancel();
+
         Closed += (_, _) => _timer.Stop();
+    }
+
+    /// <summary>
+    /// Carries out the plan on screen, off the drawing thread, and shows what came of it.
+    ///
+    /// <b>The window owns this rather than the panel or the view model, and each of the three
+    /// reasons is a different one.</b> The panel must not reach for a manager, or rule 1 would have
+    /// two composition points instead of one. The view model must not either, or it becomes a class
+    /// no test can call without touching a machine. And the token has to outlive the button press,
+    /// because closing the window uses it too.
+    ///
+    /// <b>Asked again here rather than trusted from the button being live.</b> A disabled button is
+    /// a statement about pixels, and the press that matters is the one arriving while a run is
+    /// already going - from a second click, or from the keyboard, at the moment the first one has
+    /// not yet reached the screen.
+    /// </summary>
+    internal async Task<bool> CarryOut()
+    {
+        if (!_model.Planned.CanCarryOut || _model.Planned.Plan is not { } plan)
+        {
+            return false;
+        }
+
+        using var stopping = new CancellationTokenSource();
+
+        _stopping = stopping;
+        _model.Planned.Starting();
+
+        // ON THE INTERFACE THREAD, WHICH IS WHAT MAKES THE LINE BELOW SAFE. Progress<T> takes the
+        // context it is built on and posts back to it, so the steps arriving from a worker thread
+        // reach a bound property here rather than there. Built per run rather than kept, because
+        // building it anywhere else would capture whatever thread happened to be there.
+        var announce = new Progress<(PlanStep Step, int Number)>(
+            what => _model.Planned.Announce(what.Step, what.Number));
+
+        try
+        {
+            var running = Carrying.Out(
+                plan,
+                stopping.Token,
+                (step, number) => ((IProgress<(PlanStep, int)>)announce).Report((step, number)));
+
+            _running = running;
+
+            _model.Planned.Finished(await running.ConfigureAwait(true));
+
+            // Whatever moved, moved. Asking now rather than waiting up to a second means the list
+            // agrees with the panel by the time somebody looks up from it.
+            await _model.LoadAsync().ConfigureAwait(true);
+
+            return true;
+        }
+        catch (InvalidOperationException refusal)
+        {
+            // The one this path documents: a plan with problems, which CanCarryOut should already
+            // have refused. Said out loud rather than swallowed - and rather than left to end the
+            // process, because a tool that changes services and then vanishes is the worst way to
+            // learn that something was wrong with the plan.
+            _model.Planned.Finished(new BulkRun { Plan = plan, Runs = [] });
+            _model.Says.CouldNotDo(refusal.Message);
+
+            return false;
+        }
+        finally
+        {
+            _running = null;
+            _stopping = null;
+        }
+    }
+
+    /// <summary>
+    /// The window refuses to disappear while it is half way through changing a machine.
+    ///
+    /// <b>THE STATE (T) OF RULE 10, AND THE ONE THIS PROJECT HAS ALREADY PAID FOR ONCE.</b> WPF
+    /// ends the process when the last window closes, so without this a run interrupted by somebody
+    /// reaching for the corner of the window leaves a cascade switched off and prints nothing at
+    /// all - which is exactly what two presses of Ctrl+C used to do in the command line, found by a
+    /// run on a virtual machine rather than by thinking about it.
+    ///
+    /// So the close is refused ONCE, the run is asked to stop, and the close is asked for again
+    /// when it has. The steps that give back what earlier steps took still run, because that is what
+    /// asking to stop means here - the same first level the command line offers, and deliberately
+    /// not its second.
+    /// </summary>
+    protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+
+        if (_running is not { IsCompleted: false } running)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        _stopping?.Cancel();
+
+        await running.ConfigureAwait(true);
+
+        // The run is over, so the check above lets it through this time.
+        Close();
     }
 
     private async Task Tick()

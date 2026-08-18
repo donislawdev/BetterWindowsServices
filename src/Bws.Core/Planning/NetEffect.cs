@@ -11,13 +11,26 @@ namespace Bws.Core.Planning;
 ///
 /// <b>The bulk case is not the single case repeated, and that is the whole reason this could not
 /// stay a loop inside PlanRun.</b> Asking each run separately and joining the answers reproduces,
-/// one level up, exactly the mistake this arithmetic exists to avoid. Worked example, from the
-/// chain measured on a real machine on 2026-08-01: stop a selection of LanmanWorkstation and
-/// MRxSmb20, where the first needs the second. <see cref="DependentsFirst"/> deals with
-/// LanmanWorkstation first, so run one leaves "start LanmanWorkstation" and run two leaves "start
-/// MRxSmb20". Joined run by run, the first line handed to somebody is the one the manager refuses -
-/// LanmanWorkstation cannot start while what it needs is stopped. A way out that does not work is
-/// worse than admitting there is none.
+/// one level up, exactly the mistake this arithmetic exists to avoid: the joined list comes out in
+/// the order the PLANS ran, and a way back has to be in the reverse of the order things MOVED.
+///
+/// <b>THE WORKED EXAMPLE WAS WRITTEN THE WRONG WAY ROUND FIRST, AND A RUN ON A REAL MACHINE ON
+/// 2026-08-19 SAID SO.</b> It claimed a bulk STOP was the dangerous case - that the joined way back
+/// would say "start the dependant first" and the manager would refuse. Measured on Windows Server
+/// 2025 with SessionEnv, which needs LanmanWorkstation: with both stopped, <c>sc start SessionEnv</c>
+/// <b>succeeded</b> and brought LanmanWorkstation up with it. The manager starts what a service
+/// needs, so a bad start order is rescued and the example proved nothing.
+///
+/// <b>The real case is the other direction, and it is the manager's own asymmetry - the same one
+/// <see cref="BulkPlanBuilder"/> records.</b> After a bulk START, the way back is a list of STOPS,
+/// and the manager rescues nothing there: measured on the same machine, <c>sc stop
+/// LanmanWorkstation</c> while SessionEnv was running returned <b>error 1051, "a stop control has
+/// been sent to a service that other running services are dependent on"</b>. A start selection is
+/// not reordered, so joining run by run hands back the stops in the order the plans ran - depended
+/// upon first - which is precisely the order that fails. Reversed over the whole run, the dependant
+/// goes first and every line works.
+///
+/// A way out whose first line fails is worse than admitting there is none.
 ///
 /// Everything else about the arithmetic is described at <see cref="Of"/>, which is where it was
 /// before this file existed.

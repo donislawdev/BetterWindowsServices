@@ -176,6 +176,28 @@
     <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
 
     <!--
+        THE PLAN PANEL'S OWN SURFACE, 2026-08-19, and it exists because the owner looked at the
+        panel for the first time and the first thing he said was that it looks bad.
+
+        HE WAS RIGHT AND THE CAUSE WAS THIS: the panel had no fill at all, so it was drawn
+        straight over the list. The Account column ran under its first line and a selected row
+        carried its blue behind the text. Nothing said the right hand side was a different
+        surface, which is why the button at the bottom of it looked like it belonged to nothing.
+
+        A LARGE REGION READS AT A LOWER RATIO THAN A THIN LINE, which is why this sits near the
+        row line rather than near hover: it is a whole column of the window rather than a state
+        a row takes, and lifting it further would make the list look like it was in a hole.
+    -->
+    <SolidColorBrush x:Key="SurfacePanel">#343434</SolidColorBrush>
+
+    <!--
+        The line between the list and the panel. Stronger than the line between two rows, and
+        deliberately: that one separates two things of the same kind, this one separates two
+        regions doing different jobs, and it is the only edge the panel has.
+    -->
+    <SolidColorBrush x:Key="SurfacePanelEdge">#4A4A4A</SolidColorBrush>
+
+    <!--
         A row that moved a moment ago. A10 rule three: a change has to be visible rather than
         stealthy, because a list that quietly corrects itself is one where somebody looking
         away misses the thing they were waiting for.

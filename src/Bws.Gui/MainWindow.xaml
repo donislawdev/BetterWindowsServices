@@ -303,9 +303,12 @@
                     <Separator />
 
                     <!--
-                        WORDED AS QUESTIONS RATHER THAN AS VERBS. These open a plan and nothing else,
-                        so an item called "Stop" would be a lie to somebody's hand. The wording changes
-                        when the runner arrives, with the button that accepts - PlanView.xaml.
+                        WORDED AS QUESTIONS RATHER THAN AS VERBS, AND THEY STAYED THAT WAY WHEN THE
+                        RUNNER ARRIVED ON 2026-08-19. These still open a plan and nothing else, so an
+                        item called "Stop" would still be a lie to somebody's hand - what changed is
+                        that the plan now has a button under it. Items that acted straight from here
+                        would be a second road to a write, and the one thing `docs/11` 9.2 refuses is
+                        asking about an effect nobody has been shown.
                     -->
                     <MenuItem Header="{DynamicResource gui.menu.previewStop}" Click="PreviewStop" />
                     <MenuItem Header="{DynamicResource gui.menu.previewStart}" Click="PreviewStart" />

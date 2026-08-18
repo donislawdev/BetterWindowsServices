@@ -91,108 +91,240 @@
                        FontFamily="{StaticResource TextFaceFixed}"
                        Margin="{StaticResource MarginBetweenControls}" />
         </DataTemplate>
+        <!--
+            One converter for six sections, and it is the framework's own. Six style blocks with a
+            DataTrigger each would say the same thing six times and take this file past the markup
+            ceiling - which is exactly the room the empty state was moved out to make.
+        -->
+        <BooleanToVisibilityConverter x:Key="WhenTrue" />
     </UserControl.Resources>
 
-    <Grid Margin="{StaticResource MarginGroup}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <!--
+        THE PANEL'S OWN SURFACE, AND UNTIL 2026-08-19 IT HAD NONE. The owner looked at this panel for
+        the first time and said it looks bad, and this was why: with no fill and no edge it was drawn
+        straight over the list. The Account column ran underneath its first line and a selected row
+        carried its blue behind the text, so nothing said the right hand side of the window was a
+        different thing - which is also why the button at the bottom looked like it belonged to
+        nothing at all.
 
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        Padding as well as fill. Without it the first character sits on the edge, and the fill alone
+        then fails to separate the two.
+    -->
+    <Border Background="{StaticResource SurfacePanel}"
+            BorderBrush="{StaticResource SurfacePanelEdge}"
+            BorderThickness="{StaticResource BorderPanelEdge}"
+            Padding="{StaticResource PaddingPanel}">
 
-            <TextBlock Grid.Column="0"
-                       x:Name="PlanHeading"
-                       AutomationProperties.AutomationId="planHeading"
-                       Text="{Binding Heading}"
-                       TextWrapping="Wrap"
-                       Style="{StaticResource HeadingText}" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           x:Name="PlanHeading"
+                           AutomationProperties.AutomationId="planHeading"
+                           Text="{Binding Heading}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginGroup}"
+                           Style="{StaticResource HeadingText}" />
+
+                <!--
+                    The visible way out, beside Escape which is the fast one. Nielsen's third
+                    heuristic, which this product's own review names as its weakest.
+                -->
+                <Button Grid.Column="1"
+                        AutomationProperties.AutomationId="planClose"
+                        Content="{DynamicResource gui.plan.close}"
+                        ToolTip="{DynamicResource gui.plan.close.hint}"
+                        VerticalAlignment="Top"
+                        Click="CloseRequested" />
+            </Grid>
+
+            <StackPanel Grid.Row="1">
+                <!--
+                    WHERE THIS PANEL IS IN THE ONLY SEQUENCE IT HAS, AND IT IS STILL THE MOST
+                    IMPORTANT LINE IN IT. A list of steps reads as a report of something done in
+                    every one of the three states, so this line is what tells a person which one
+                    they are looking at.
+
+                    IT WORE THE WARNING ORANGE UNTIL 2026-08-19 AND THAT WAS A FAULT rather than a
+                    style choice: it is the same colour as the line at the bottom of the window
+                    saying the session has no administrator rights, so a sentence reporting that
+                    NOTHING HAS HAPPENED read as something having gone wrong. It carries by weight
+                    now, and the colour is left for the line under it, which really is a warning.
+                -->
+                <TextBlock x:Name="PlanNotice"
+                           AutomationProperties.AutomationId="planNotice"
+                           Text="{Binding Notice}"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource PlanNoticeText}" />
+
+                <!--
+                    WHY IT CANNOT BE CARRIED OUT HERE, SAID BEFORE ANYBODY PRESSES ANYTHING - the
+                    owner's decision of 2026-08-18, which the first version of this panel did not
+                    keep. It only appears when something is in the way, so no empty line is ever
+                    reserved for reassurance.
+                -->
+                <TextBlock x:Name="PlanBlocked"
+                           AutomationProperties.AutomationId="planBlocked"
+                           Text="{Binding Blocked}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginAboveStatus}"
+                           Style="{StaticResource NoticeText}" />
+            </StackPanel>
+
+            <!-- Scrolls vertically and never sideways, so a long command wraps rather than hides. -->
+            <ScrollViewer Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <!--
+                        EVERY SECTION TAKES ITS HEADING OFF THE SCREEN WITH IT, since 2026-08-19 and
+                        backlog 203. A heading reading "Not included, and why" over nothing states
+                        something false, and that is what the owner saw on the first look at this
+                        panel. The steps carry no such switch, because a plan with no steps never
+                        opens this panel at all.
+                    -->
+                    <TextBlock Text="{DynamicResource gui.plan.steps}"
+                               Margin="{StaticResource MarginSection}"
+                               Style="{StaticResource SectionHeadingText}" />
+
+                    <ItemsControl x:Name="StepList"
+                                  AutomationProperties.AutomationId="planSteps"
+                                  ItemsSource="{Binding Steps}"
+                                  ItemTemplate="{StaticResource PlanLineTemplate}" />
+
+                    <TextBlock AutomationProperties.AutomationId="planExtra"
+                               Text="{Binding Extra}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource MarginAboveStatus}"
+                               Visibility="{Binding HasExtra, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource NoticeText}" />
+
+                    <TextBlock AutomationProperties.AutomationId="planOverlapping"
+                               Text="{Binding Overlapping}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource MarginAboveStatus}"
+                               Visibility="{Binding HasOverlapping, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SubduedText}" />
+
+                    <StackPanel Visibility="{Binding HasWarnings, Converter={StaticResource WhenTrue}}">
+                        <TextBlock Text="{DynamicResource gui.plan.warnings}"
+                                   Margin="{StaticResource MarginSection}"
+                                   Style="{StaticResource SectionHeadingText}" />
+
+                        <ItemsControl AutomationProperties.AutomationId="planWarnings"
+                                      ItemsSource="{Binding Warnings}"
+                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="ProblemSection"
+                                Visibility="{Binding HasProblems, Converter={StaticResource WhenTrue}}">
+                        <TextBlock Text="{DynamicResource gui.plan.problems}"
+                                   Margin="{StaticResource MarginSection}"
+                                   Style="{StaticResource SectionHeadingText}" />
+
+                        <ItemsControl x:Name="ProblemList"
+                                      AutomationProperties.AutomationId="planProblems"
+                                      ItemsSource="{Binding Problems}"
+                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{Binding HasFailures, Converter={StaticResource WhenTrue}}">
+                        <TextBlock Text="{DynamicResource gui.plan.failures}"
+                                   Margin="{StaticResource MarginSection}"
+                                   Style="{StaticResource SectionHeadingText}" />
+
+                        <ItemsControl x:Name="FailureList"
+                                      AutomationProperties.AutomationId="planFailures"
+                                      ItemsSource="{Binding Failures}"
+                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="WayBackSection"
+                                Visibility="{Binding HasWayBack, Converter={StaticResource WhenTrue}}">
+                        <TextBlock Text="{DynamicResource gui.plan.wayBack}"
+                                   Margin="{StaticResource MarginSection}"
+                                   Style="{StaticResource SectionHeadingText}" />
+
+                        <ItemsControl x:Name="WayBackList"
+                                      AutomationProperties.AutomationId="planWayBack"
+                                      ItemsSource="{Binding WayBack}"
+                                      ItemTemplate="{StaticResource PlanCommandTemplate}" />
+                    </StackPanel>
+
+                    <TextBlock Text="{DynamicResource gui.plan.commands}"
+                               Margin="{StaticResource MarginSection}"
+                               Style="{StaticResource SectionHeadingText}" />
+
+                    <ItemsControl x:Name="CommandList"
+                                  AutomationProperties.AutomationId="planCommands"
+                                  ItemsSource="{Binding Commands}"
+                                  ItemTemplate="{StaticResource PlanCommandTemplate}" />
+                </StackPanel>
+            </ScrollViewer>
 
             <!--
-                The visible way out, beside Escape which is the fast one. Nielsen's third heuristic,
-                which this product's own review names as its weakest - and it is the only thing in
-                this panel the keyboard stops on, which is why the panel itself is not a tab stop.
+                THE FOOTER, AND THE RULE ABOVE IT IS WHY THE BUTTON STOPPED LOOKING ORPHANED. It sits
+                at the bottom of the panel rather than under the steps, which is right - `docs/11`
+                9.2 wants the effect shown before the ask, and a way to say yes that has to be
+                scrolled to is one somebody presses without reaching the end. What was missing was
+                anything joining it to the panel: with no fill and no rule it was a button floating
+                in the dark half a screen away from the plan it acts on.
+
+                INTERRUPT IS A SEPARATE BUTTON RATHER THAN THIS ONE CHANGING ITS WORD, and that is a
+                safety decision. A button whose verb changes under a finger turns a double click into
+                an instruction nobody gave. It appears to the LEFT and grows into the progress line,
+                so the rectangle a person aimed at never becomes something else - it becomes disabled.
             -->
-            <Button Grid.Column="1"
-                    AutomationProperties.AutomationId="planClose"
-                    Content="{DynamicResource gui.plan.close}"
-                    ToolTip="{DynamicResource gui.plan.close.hint}"
-                    Margin="{StaticResource MarginBetweenControls}"
-                    VerticalAlignment="Top"
-                    Click="CloseRequested" />
+            <Border Grid.Row="3"
+                    BorderBrush="{StaticResource SurfacePanelEdge}"
+                    BorderThickness="{StaticResource BorderFooterRule}"
+                    Padding="{StaticResource PaddingFooter}"
+                    Margin="{StaticResource MarginAboveStatus}">
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               x:Name="PlanProgress"
+                               AutomationProperties.AutomationId="planProgress"
+                               Text="{Binding Progress}"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource SubduedText}" />
+
+                    <Button Grid.Column="1"
+                            x:Name="InterruptButton"
+                            AutomationProperties.AutomationId="planInterrupt"
+                            Content="{DynamicResource gui.plan.interrupt}"
+                            ToolTip="{DynamicResource gui.plan.interrupt.hint}"
+                            Margin="{StaticResource MarginBetweenControls}"
+                            Visibility="{Binding Busy, Converter={StaticResource WhenTrue}}"
+                            Click="InterruptRequested" />
+
+                    <Button Grid.Column="2"
+                            x:Name="CarryOutButton"
+                            AutomationProperties.AutomationId="planCarryOut"
+                            Content="{DynamicResource gui.plan.carryOut}"
+                            ToolTip="{DynamicResource gui.plan.carryOut.hint}"
+                            IsEnabled="{Binding CanCarryOut}"
+                            Click="CarryOutRequested" />
+                </Grid>
+            </Border>
         </Grid>
-
-        <!--
-            THAT NOTHING HAS HAPPENED, AND IT IS THE MOST IMPORTANT LINE IN THIS PANEL. Everything
-            below is written in the conditional, and a list of steps still reads as a report of
-            something done. This window cannot carry a plan out yet, so saying so is the difference
-            between a preview and a false record of a change to somebody's machine.
-        -->
-        <TextBlock Grid.Row="1"
-                   x:Name="PlanNotice"
-                   AutomationProperties.AutomationId="planNotice"
-                   Text="{Binding Notice}"
-                   TextWrapping="Wrap"
-                   Margin="{StaticResource MarginBetweenControls}"
-                   Style="{StaticResource NoticeText}" />
-
-        <!-- Scrolls vertically and never sideways, so a long command wraps rather than hides. -->
-        <ScrollViewer Grid.Row="2"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
-                <TextBlock Text="{DynamicResource gui.plan.steps}"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource HeadingText}" />
-
-                <ItemsControl x:Name="StepList"
-                              AutomationProperties.AutomationId="planSteps"
-                              ItemsSource="{Binding Steps}"
-                              ItemTemplate="{StaticResource PlanLineTemplate}" />
-
-                <TextBlock AutomationProperties.AutomationId="planExtra"
-                           Text="{Binding Extra}"
-                           TextWrapping="Wrap"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource NoticeText}" />
-
-                <TextBlock AutomationProperties.AutomationId="planOverlapping"
-                           Text="{Binding Overlapping}"
-                           TextWrapping="Wrap"
-                           Margin="{StaticResource MarginBetweenControls}"
-                           Style="{StaticResource SubduedText}" />
-
-                <TextBlock Text="{DynamicResource gui.plan.warnings}"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource HeadingText}" />
-
-                <ItemsControl AutomationProperties.AutomationId="planWarnings"
-                              ItemsSource="{Binding Warnings}"
-                              ItemTemplate="{StaticResource PlanSentenceTemplate}" />
-
-                <TextBlock Text="{DynamicResource gui.plan.problems}"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource HeadingText}" />
-
-                <ItemsControl x:Name="ProblemList"
-                              AutomationProperties.AutomationId="planProblems"
-                              ItemsSource="{Binding Problems}"
-                              ItemTemplate="{StaticResource PlanSentenceTemplate}" />
-
-                <TextBlock Text="{DynamicResource gui.plan.commands}"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource HeadingText}" />
-
-                <ItemsControl x:Name="CommandList"
-                              AutomationProperties.AutomationId="planCommands"
-                              ItemsSource="{Binding Commands}"
-                              ItemTemplate="{StaticResource PlanCommandTemplate}" />
-            </StackPanel>
-        </ScrollViewer>
-    </Grid>
+    </Border>
 </UserControl>

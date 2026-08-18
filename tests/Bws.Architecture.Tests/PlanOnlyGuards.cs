@@ -40,7 +40,15 @@ public sealed class PlanOnlyGuards
         ["Execution.cs"] =
             "The command line's one composition point. It hands the writer straight to a " +
             "PlanRunner and keeps no reference of its own, which is what the second guard below " +
-            "checks rather than takes on trust."
+            "checks rather than takes on trust.",
+
+        ["Carrying.cs"] =
+            "The window's one composition point, added 2026-08-18 on the owner's decision when " +
+            "the window learned to carry a plan out. Same shape as the line above: built and " +
+            "handed straight to a runner, no reference kept. Named Carrying rather than " +
+            "Execution BECAUSE OF THIS LIST - the keys below are bare file names, so a second " +
+            "Execution.cs would overwrite the command line's entry and leave one permission " +
+            "standing for two files."
     };
 
     /// <summary>

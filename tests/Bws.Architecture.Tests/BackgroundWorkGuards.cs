@@ -37,9 +37,13 @@ public sealed class BackgroundWorkGuards
     private static readonly Dictionary<string, string> AllowedVoid = new(StringComparer.Ordinal)
     {
         ["MainWindow.xaml.cs"] =
-            "An overridden key handler. The framework declares it as returning nothing, so " +
-            "there is no task to hand back and no way to write this differently. Everything " +
-            "it awaits reports its own failures into the window rather than throwing."
+            "Two overridden handlers, and the language has no alternative for either: the " +
+            "framework declares both as returning nothing, so there is no task to hand back. " +
+            "One is the key handler. The other is OnClosing, added 2026-08-19, which has to " +
+            "await a run in progress before letting the window go - without it, closing the " +
+            "window mid-run ends the process and leaves a cascade switched off with nothing " +
+            "printed, which is the failure the command line pays three levels of Ctrl+C for. " +
+            "Everything either of them awaits reports its own failures into the window."
     };
 
     /// <summary>

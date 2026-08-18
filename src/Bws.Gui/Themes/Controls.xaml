@@ -64,6 +64,42 @@
     </Style>
 
     <!--
+        A HEADING INSIDE A PANEL, WHICH IS NOT THE SAME THING AS THE PANEL'S OWN TITLE. Added
+        2026-08-19, after the owner looked at the plan panel and could not find where to start
+        reading: five headings and the title were all TextSizeHeading, so nothing was the top of
+        anything.
+
+        TextSizeHeader rather than TextSizeNormal because 14 is the floor for semibold text in
+        the guidance TypeScaleGuards holds, and a section heading in a wall of sentences has to
+        be seen without being read.
+    -->
+    <Style x:Key="SectionHeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        WHERE THE PLAN PANEL IS IN ITS SEQUENCE - nothing done, doing it, done.
+        <b>NOT NoticeText, and that was the fault the owner saw.</b> This line wore the warning
+        orange, which is the same colour as the line at the bottom of the window saying the
+        session has no administrator rights - so the sentence telling somebody that NOTHING HAS
+        HAPPENED read as something having gone wrong.
+
+        TextSizeHeader rather than TextSizeNormal, and TypeScaleGuards is what said so: 14 is the
+        floor for semibold in the guidance it holds, and this style is semibold always. It is the
+        most important line in the panel, so it is weight rather than colour that
+        carries it. The colour is left for the thing that really is a warning.
+    -->
+    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
         THE COUNT, WHICH MOVED OUT FROM UNDER THE LIST AND STOPPED BEING SUBDUED. Complaint 8 of
         the eleven says it was the least visible thing on the screen and is the main answer to
         every keystroke - small, grey and at the bottom is three ways of saying "ignore me".

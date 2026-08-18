@@ -215,6 +215,33 @@
         bottom of a short screen and losing its last items silently.
     -->
     <Thickness x:Key="MarginGroup">0,0,20,0</Thickness>
+
+    <!--
+        THE GAP ABOVE A SECTION HEADING, 2026-08-19, and it exists because MarginGroup has NO
+        VERTICAL COMPONENT AT ALL - it is 0,0,20,0, a right margin. Every heading in the plan
+        panel used it and every one of them therefore sat flush against the sentence above,
+        which is what the owner saw as one wall of text with no hierarchy.
+
+        Bottom is small on purpose: a heading belongs to what is under it, so the space above it
+        has to be larger than the space below or the eye groups it with the wrong block.
+    -->
+    <Thickness x:Key="MarginSection">0,18,0,4</Thickness>
+
+    <!--
+        Inside the plan panel, between its edge and its text. Without it the first character sits
+        on the line separating the panel from the list, which is what made the two read as one
+        surface however the fill was chosen.
+    -->
+    <Thickness x:Key="PaddingPanel">14,12,14,12</Thickness>
+
+    <!-- The panel's one edge, on the side the list is. -->
+    <Thickness x:Key="BorderPanelEdge">1,0,0,0</Thickness>
+
+    <!-- The rule above the panel's footer, so the button reads as part of the panel. -->
+    <Thickness x:Key="BorderFooterRule">0,1,0,0</Thickness>
+
+    <!-- Between that rule and the button under it. -->
+    <Thickness x:Key="PaddingFooter">0,10,0,0</Thickness>
     <system:Double x:Key="HeightMenu">420</system:Double>
     <Thickness x:Key="MarginGroupHeading">12,8,12,2</Thickness>
 </ResourceDictionary>

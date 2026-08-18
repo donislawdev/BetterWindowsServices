@@ -60,6 +60,27 @@ public sealed class ConcurrencyGuards
             "made the file concurrent, and that is worth knowing: this list is only as good " +
             "as the constructs it looks for, and an event handler is not one of them.",
 
+        ["Carrying.cs"] =
+            "Carrying a plan out off the interface thread, added 2026-08-19. The measurement " +
+            "points the OPPOSITE way to the one that decided how a plan is built: building one " +
+            "over twenty selected entries took 37-40 ms and stayed on the calling thread, while " +
+            "a single StartService for a service that never reports itself took 30 375-30 450 ms " +
+            "across three runs on Windows Server 2025 - half a minute on one step, and a " +
+            "selection has many. Two things cross the boundary and no more. The BulkRun comes " +
+            "back through an await, so nothing it holds is touched out there. The progress " +
+            "callback is handed over by MainWindow wrapped in a Progress<T> built on the " +
+            "interface thread, which posts back to it - the one place this could go wrong " +
+            "silently, since a bound property written from a worker thread is right often " +
+            "enough to pass a test. There is no shared state at all: WindowsScmControl has no " +
+            "instance fields and opens its own handle per call, which is what lets the " +
+            "once-a-second reading keep running beside a run. WHAT IS AND IS NOT COVERED, said " +
+            "plainly: CarryingGuards drives the panel through every state a run puts it in and " +
+            "reads what reaches the screen, and it asserts that a press with nothing to carry " +
+            "out never gets here at all. NO TEST CROSSES THIS THREAD BOUNDARY, because a test " +
+            "that pressed the button would stop real services on the machine running it - that " +
+            "half is covered by a run on a throwaway machine, which is the project's hard rule " +
+            "about writes rather than a gap nobody noticed.",
+
         ["WindowsScmCatalog.cs"] =
             "Describing entries several at a time, added 2026-08-02. The same loop over the " +
             "same 810 entries costs 13-22 ms without opening a handle per entry and 455-475 " +
