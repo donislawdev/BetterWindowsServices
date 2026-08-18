@@ -33,6 +33,25 @@ Nothing has been released yet. Everything below is what the tool does today.
   for "any of these", `!` excludes, and `none`, `any` and `?` ask whether a field is empty,
   filled or could not be read. Text fields take wildcards and regular expressions. A bare
   word searches names, display names, accounts and launch paths.
+- **The list takes more than one row.** Shift and Ctrl pick a range or a scattered handful,
+  the way every other list in Windows does. A right click on a row you have not picked
+  selects that one instead, and a right click inside your selection keeps it.
+- **Copying acts on everything you picked.** Ctrl+C and all four items of the row menu now
+  work on the whole selection rather than on one row, one entry under another. An entry with
+  nothing to say in that field is left out rather than pasted as a blank line.
+- **The row menu shows what an operation WOULD do, without doing it.** Pick some entries and
+  ask what stopping, starting or restarting them would do: you get the steps in the order
+  they would happen, which entries come along that you did not pick, which of your entries
+  cannot be operated on and why, and a warning for anything worth knowing first - a service
+  that starts automatically and would come back after a restart, one that shares its process
+  with others, or dependants that are in the way.
+- **And the command lines that ask for the same thing**, one per entry, in the order that
+  works - ready to paste into a terminal or a runbook. They are written by the same part of
+  the tool the command line itself uses, so they are commands it really accepts.
+- **This window still cannot carry any of it out, and it says so.** The menu items are
+  worded as questions and the panel opens with a line telling you nothing has happened. Use
+  the commands it shows you, or the command line, until the button arrives.
+
 - **`bws stop`, `bws start` and `bws restart`** carry out one named entry's change through
   a plan: what will happen, in what order, and what came of every step.
 - **The regex switch beside the search box is gone, and nothing was lost with it.** Put a
