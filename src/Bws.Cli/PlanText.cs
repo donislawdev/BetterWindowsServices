@@ -128,7 +128,7 @@ internal static class PlanText
 
             foreach (var step in run.Reversal)
             {
-                text.AppendLine(Texts.Of("cli.run.putBack.line", Command(step.Operation), step.ServiceName));
+                text.AppendLine(Texts.Of("cli.run.putBack.line", EquivalentCommand.For(step)));
             }
         }
 
@@ -226,19 +226,6 @@ internal static class PlanText
         warning.Related.Count == 1 ? $"{key}.one" : $"{key}.many";
 
     private static string Verb(ActionKind kind) => Texts.Of($"cli.plan.action.{Camel(kind)}");
-
-    /// <summary>
-    /// The word to type, for an operation. <b>Deliberately not a text key, and it is the only
-    /// thing on screen here that is not.</b>
-    ///
-    /// Everything a person reads in this file comes out of the resource file, which is the rule.
-    /// This is not something a person reads, it is something a person pastes into a shell - and
-    /// the same word already exists there as prose, under cli.plan.operation.stop, where it is
-    /// free to be reworded. Building the command out of that key would mean a reworded line
-    /// renders a command that does not exist while looking exactly like one that does.
-    /// </summary>
-    private static string Command(StepOperation operation) =>
-        operation == StepOperation.Stop ? "stop" : "start";
 
     private static string Operation(StepOperation operation) => Texts.Of($"cli.plan.operation.{Camel(operation)}");
 
