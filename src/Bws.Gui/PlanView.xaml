@@ -62,7 +62,7 @@
                        TextWrapping="Wrap"
                        Margin="{StaticResource MarginBetweenControls}">
                 <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource PlanStepText}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Asked}" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
@@ -179,6 +179,7 @@
                            Text="{Binding Blocked}"
                            TextWrapping="Wrap"
                            Margin="{StaticResource MarginAboveStatus}"
+                           Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
                            Style="{StaticResource NoticeText}" />
             </StackPanel>
 
@@ -262,14 +263,30 @@
                                       ItemTemplate="{StaticResource PlanCommandTemplate}" />
                     </StackPanel>
 
-                    <TextBlock Text="{DynamicResource gui.plan.commands}"
-                               Margin="{StaticResource MarginSection}"
-                               Style="{StaticResource SectionHeadingText}" />
+                    <!--
+                        THE COMMAND THAT WOULD ASK FOR THE SAME THING - and it goes away once
+                        something has been asked. `E5` is a part of the PREVIEW, which is why Krok 2
+                        of this packet built it before anything could run: it is the plan rendered as
+                        text somebody could type INSTEAD of pressing.
 
-                    <ItemsControl x:Name="CommandList"
-                                  AutomationProperties.AutomationId="planCommands"
-                                  ItemsSource="{Binding Commands}"
-                                  ItemTemplate="{StaticResource PlanCommandTemplate}" />
+                        Left standing after a run it becomes the wrong command in the most prominent
+                        place on the panel. The owner's screenshot of 2026-08-19 shows it under the
+                        way back, so the last two lines read "to put this back: bws start Spooler"
+                        and then "bws stop Spooler" - the second describing something that already
+                        happened, sitting where a reader scanning upwards from the button lands
+                        first.
+                    -->
+                    <StackPanel x:Name="CommandSection"
+                                Visibility="{Binding HasCommands, Converter={StaticResource WhenTrue}}">
+                        <TextBlock Text="{DynamicResource gui.plan.commands}"
+                                   Margin="{StaticResource MarginSection}"
+                                   Style="{StaticResource SectionHeadingText}" />
+
+                        <ItemsControl x:Name="CommandList"
+                                      AutomationProperties.AutomationId="planCommands"
+                                      ItemsSource="{Binding Commands}"
+                                      ItemTemplate="{StaticResource PlanCommandTemplate}" />
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
 

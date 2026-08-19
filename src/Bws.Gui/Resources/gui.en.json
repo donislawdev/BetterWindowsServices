@@ -99,9 +99,9 @@
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
   "gui.status.couldNotDo": "That did not happen. {0}",
 
-  "gui.menu.previewStop": "What stopping these would do",
-  "gui.menu.previewStart": "What starting these would do",
-  "gui.menu.previewRestart": "What restarting these would do",
+  "gui.menu.previewStop": "What stopping would do",
+  "gui.menu.previewStart": "What starting would do",
+  "gui.menu.previewRestart": "What restarting would do",
 
   "gui.plan.doing.stop": "stopping",
   "gui.plan.doing.start": "starting",
@@ -109,6 +109,8 @@
 
   "gui.plan.heading.one": "What {0} {1} would do",
   "gui.plan.heading.many": "What {0} these {1} entries would do",
+  "gui.plan.heading.done.one": "What {0} {1} did",
+  "gui.plan.heading.done.many": "What {0} these {1} entries did",
 
   "gui.plan.blocked.notElevated": "This session is not running as administrator, so the service manager will refuse every step. Start the tool as administrator to carry this out.",
   "gui.plan.notice.notYet": "Nothing has been done. This is what would happen if you carried it out.",
@@ -137,7 +139,7 @@
   "gui.plan.warning.inTheWay.many": "These are running and need {0}, and they are not included: {1}. The stop will be refused while they run.",
   "gui.plan.warning.sharedProcess.one": "{0} shares its process with: {1}. That keeps running and the process does not go away.",
   "gui.plan.warning.sharedProcess.many": "{0} shares its process with: {1}. Those keep running and the process does not go away.",
-  "gui.plan.warning.returnsAfterReboot": "{0} starts automatically, so this lasts until the machine restarts.",
+  "gui.plan.warning.returnsAfterReboot": "{0} starts automatically, so it will be back after the next restart.",
   "gui.plan.warning.cascadeUnreadable": "Could not read what depends on {0}, so more may stop than this shows.",
   "gui.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
 

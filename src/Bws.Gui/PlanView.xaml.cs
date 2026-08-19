@@ -119,6 +119,15 @@ public partial class PlanView : UserControl
     internal bool WayBackShown => WayBackSection.Visibility == Visibility.Visible;
 
     /// <summary>
+    /// Whether the command that would ask for the same thing is on the screen. Never after a run.
+    ///
+    /// The mirror of the line above, and the pair is the point: before a run the panel offers the
+    /// command that would do this, after one it offers the command that would undo it. Both at once
+    /// puts a stale instruction in the most prominent place on the panel.
+    /// </summary>
+    internal bool CommandsShown => CommandSection.Visibility == Visibility.Visible;
+
+    /// <summary>
     /// The button that changes a machine, so a test can ask whether it is live.
     ///
     /// <b>The control rather than the model's answer, and the difference is the whole point.</b>

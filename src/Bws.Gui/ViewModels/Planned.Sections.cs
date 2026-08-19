@@ -1,0 +1,90 @@
+namespace Bws.Gui.ViewModels;
+
+/// <summary>
+/// Which parts of the plan panel are on the screen at all, and the one call that says they moved.
+///
+/// <b>Its own file since 2026-08-19, and the size ratchet is what asked - for the sixth time in this
+/// window and the sixth time pointing at a real seam.</b> The rest of <see cref="Planned"/> decides
+/// what the panel SAYS: the three states, the heading, the steps, the sentences. This decides what
+/// is THERE, and the two are different questions that happen to be answered by the same object.
+///
+/// <b>The whole group exists for one recorded decision, which is why it belongs together.</b>
+/// Backlog 203: a heading reading "Not included, and why" over nothing states something false, and
+/// the owner saw exactly that on the first look at this panel. Every one of these is a bound
+/// boolean whose only consumer is markup, and whose only job is to take a heading off the screen
+/// with the thing it labelled.
+///
+/// <b>Bound properties rather than a style trigger per section, and that was a size decision
+/// too.</b> Six trigger blocks would have said one thing six times and taken the markup past its
+/// own ceiling - which is the room the empty state had just been moved out to make.
+/// </summary>
+public sealed partial class Planned
+{
+    /// <summary>
+    /// Whether each section has anything in it.
+    ///
+    /// <b>These exist so a section can take its heading off the screen with it.</b> A heading
+    /// reading "Not included, and why" over nothing states something false, and the owner saw
+    /// exactly that on the first look at this panel - backlog 203. Bound properties rather than a
+    /// style trigger per section, because six trigger blocks would have taken this file past the
+    /// markup ceiling to say one thing six times.
+    /// </summary>
+    public bool HasExtra => Extra.Length > 0;
+
+    /// <summary>
+    /// Whether there is anything in the way of carrying this out.
+    ///
+    /// <b>The block backlog 203 missed, found 2026-08-19 by reading the markup rather than by any
+    /// test.</b> Every other conditional block in that panel took its heading off the screen with
+    /// it, and this one - alone - had no visibility of its own. It stood in the tree always, empty,
+    /// carrying its margin, which is a gap nobody put there sitting between the state sentence and
+    /// the first section. A section closed everywhere but one place is a section that looks closed.
+    /// </summary>
+    public bool HasBlocked => Blocked.Length > 0;
+
+    /// <summary>
+    /// Whether the command that would ask for the same thing still belongs on screen.
+    ///
+    /// <b>False once there is a result, and that is `E5` read as it was written rather than as a
+    /// field that happens to be full.</b> The equivalent command is part of the PREVIEW - the plan
+    /// rendered as something a person could type INSTEAD of pressing - which is why it was built
+    /// before this window could run anything at all. After a run it describes something that has
+    /// already happened, and it sits directly under the way back, so the last thing a reader meets
+    /// scanning up from the button is the command they do not want.
+    /// </summary>
+    public bool HasCommands => _run is null && Commands.Count > 0;
+
+    /// <summary>Whether an entry is named by more than one plan.</summary>
+    public bool HasOverlapping => Overlapping.Length > 0;
+
+    /// <summary>Whether there is anything worth knowing before pressing.</summary>
+    public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>Whether any entry got no plan at all.</summary>
+    public bool HasProblems => Problems.Count > 0;
+
+    /// <summary>Whether anything failed. Never true before a run.</summary>
+    public bool HasFailures => Failures.Count > 0;
+
+    /// <summary>Whether there is a way back. Never true before a run.</summary>
+    public bool HasWayBack => WayBack.Count > 0;
+
+    /// <summary>
+    /// That every section may have appeared or gone.
+    ///
+    /// One call rather than six lines wherever the plan or the run changes, because a section that
+    /// keeps its heading after its content went is the fault these properties exist to prevent, and
+    /// it would arrive by somebody adding a Raise in three places out of four.
+    /// </summary>
+    private void RaiseTheCounts()
+    {
+        Raise(nameof(HasExtra));
+        Raise(nameof(HasBlocked));
+        Raise(nameof(HasCommands));
+        Raise(nameof(HasOverlapping));
+        Raise(nameof(HasWarnings));
+        Raise(nameof(HasProblems));
+        Raise(nameof(HasFailures));
+        Raise(nameof(HasWayBack));
+    }
+}

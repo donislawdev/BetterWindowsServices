@@ -48,7 +48,7 @@ public sealed class PlanLine
 /// words, and the core deliberately carries none: a warning holds a kind and the facts, because the
 /// same warning reads differently in a window and in a terminal.
 /// </summary>
-public sealed class Planned : Observable
+public sealed partial class Planned : Observable
 {
     private bool _showing;
     private BulkPlan? _plan;
@@ -119,32 +119,6 @@ public sealed class Planned : Observable
     public string Blocked => Showing && !Elevated ? Texts.Of("gui.plan.blocked.notElevated") : string.Empty;
 
     /// <summary>
-    /// Whether each section has anything in it.
-    ///
-    /// <b>These exist so a section can take its heading off the screen with it.</b> A heading
-    /// reading "Not included, and why" over nothing states something false, and the owner saw
-    /// exactly that on the first look at this panel - backlog 203. Bound properties rather than a
-    /// style trigger per section, because six trigger blocks would have taken this file past the
-    /// markup ceiling to say one thing six times.
-    /// </summary>
-    public bool HasExtra => Extra.Length > 0;
-
-    /// <summary>Whether an entry is named by more than one plan.</summary>
-    public bool HasOverlapping => Overlapping.Length > 0;
-
-    /// <summary>Whether there is anything worth knowing before pressing.</summary>
-    public bool HasWarnings => Warnings.Count > 0;
-
-    /// <summary>Whether any entry got no plan at all.</summary>
-    public bool HasProblems => Problems.Count > 0;
-
-    /// <summary>Whether anything failed. Never true before a run.</summary>
-    public bool HasFailures => Failures.Count > 0;
-
-    /// <summary>Whether there is a way back. Never true before a run.</summary>
-    public bool HasWayBack => WayBack.Count > 0;
-
-    /// <summary>
     /// Which step is happening, while it happens.
     ///
     /// <b>Empty except during a run.</b> A person watching a stop that takes half a minute has
@@ -157,12 +131,35 @@ public sealed class Planned : Observable
         private set => Set(ref _progress, value);
     }
 
-    /// <summary>What the panel is called, naming the action and how much it touches.</summary>
+    /// <summary>
+    /// What the panel is called, naming the action and how much it touches.
+    ///
+    /// <b>IT CHANGES TENSE WHEN THERE IS A RESULT, SINCE 2026-08-19, AND UNTIL THEN IT WAS A
+    /// SENTENCE THAT STOPPED BEING TRUE.</b> The owner's screenshot after a run shows "What
+    /// stopping Spooler would do" over "Done. The entry is where you asked." and over a row already
+    /// reading Stopped - a conditional question about the future, standing on top of a report of the
+    /// past.
+    ///
+    /// <b>The switch is on the RESULT, not on the run being under way, and that is deliberate.</b>
+    /// While a run is happening there is nothing to report yet, and the notice says in as many words
+    /// that it is happening now - so the plan on screen is still a plan. The moment a result exists,
+    /// the panel is a report and says so.
+    ///
+    /// <b>Dropped rather than kept was considered and rejected.</b> The title is what says WHICH
+    /// plan the report belongs to, and a report sitting under the steps of a different plan is the
+    /// worst bug this panel could have - which is why <c>Show</c> drops the old run and why a guard
+    /// holds it. Taking the title away after a run would remove the label that makes the pair
+    /// readable.
+    /// </summary>
     public string Heading => _plan is not { } plan
         ? string.Empty
-        : Asked(plan) == 1
-            ? Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
-            : Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan));
+        : _run is null
+            ? Asked(plan) == 1
+                ? Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
+                : Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan))
+            : Asked(plan) == 1
+                ? Texts.Of("gui.plan.heading.done.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
+                : Texts.Of("gui.plan.heading.done.many", PlanWords.Doing(plan.Action.Kind), Asked(plan));
 
     /// <summary>Every step, in the order it would happen, numbered as a person would count them.</summary>
     public IReadOnlyList<PlanLine> Steps => _plan is not { } plan
@@ -345,27 +342,17 @@ public sealed class Planned : Observable
 
         Raise(nameof(CanCarryOut));
         Raise(nameof(Notice));
+
+        // THE TITLE CHANGES TENSE HERE AND NOWHERE ELSE, so it has to be said here. Without this
+        // line the panel reports a finished run under a heading asking what would happen - which is
+        // exactly the sentence this raise exists to retire, still on screen because nothing asked
+        // the binding to look again.
+        Raise(nameof(Heading));
         Raise(nameof(Failures));
         Raise(nameof(WayBack));
         RaiseTheCounts();
     }
 
-    /// <summary>
-    /// That every section may have appeared or gone.
-    ///
-    /// One call rather than six lines wherever the plan or the run changes, because a section that
-    /// keeps its heading after its content went is the fault these properties exist to prevent, and
-    /// it would arrive by somebody adding a Raise in three places out of four.
-    /// </summary>
-    private void RaiseTheCounts()
-    {
-        Raise(nameof(HasExtra));
-        Raise(nameof(HasOverlapping));
-        Raise(nameof(HasWarnings));
-        Raise(nameof(HasProblems));
-        Raise(nameof(HasFailures));
-        Raise(nameof(HasWayBack));
-    }
 
     /// <summary>
     /// Puts a plan on screen, and says whether there was anything to put there.

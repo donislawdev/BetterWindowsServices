@@ -43,7 +43,7 @@
   "cli.plan.warning.inTheWay.one": "One running entry needs {0} and is not included: {2}. The stop will be refused while it runs. Add --dependents to take it down too.",
   "cli.plan.warning.inTheWay.many": "{1} running entries need {0} and are not included: {2}. The stop will be refused while they run. Add --dependents to take them down too.",
   "cli.plan.warning.sharedProcess": "{0} shares its process with: {1}. Those keep running and the process does not go away.",
-  "cli.plan.warning.returnsAfterReboot": "{0} starts automatically, so this lasts until the next restart of the machine.",
+  "cli.plan.warning.returnsAfterReboot": "{0} starts automatically, so it will be back after the next restart.",
   "cli.plan.warning.cascadeUnreadable": "Could not read what depends on {0}, so more may stop than this plan shows.",
   "cli.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
 

@@ -47,9 +47,16 @@
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>
 
+    <!--
+        A PANEL'S OWN TITLE. SemiBold since 2026-08-19, and measured rather than preferred: it set a
+        size and no weight, so it arrived Normal while the sentence under it was SemiBold - the
+        largest text on the panel was the THINNEST thing on it. Both panels using this key had the
+        same fault, so one setter fixes both.
+    -->
     <Style x:Key="HeadingText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
     </Style>
 
     <Style x:Key="FixedText" TargetType="TextBlock">
@@ -87,16 +94,35 @@
         session has no administrator rights - so the sentence telling somebody that NOTHING HAS
         HAPPENED read as something having gone wrong.
 
-        TextSizeHeader rather than TextSizeNormal, and TypeScaleGuards is what said so: 14 is the
-        floor for semibold in the guidance it holds, and this style is semibold always. It is the
-        most important line in the panel, so it is weight rather than colour that
-        carries it. The colour is left for the thing that really is a warning.
+        <b>SEMIBOLD CAME OFF ON 2026-08-19, THE DAY AFTER IT WENT ON, AND THE MEASUREMENT IS WHY.</b>
+        This style and SectionHeadingText above had IDENTICAL setters - same face, same 14, same
+        SemiBold, same colour - so "Nothing has been done" was rendered exactly like "In this
+        order:". The panel had four headings and no body. Fixing the colour fault above created a
+        weight fault here, which is the shape rule 11 of the project notes is about: a correction is
+        a claim and needs checking as one.
+        Size still separates it from the body at 13 and position separates it from everything -
+        it is the only line between the title and the sections. Weight is what it gives up, because
+        weight is now the only thing that says "this is a section label".
     -->
     <Style x:Key="PlanNoticeText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
         <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        ONE STEP OF A PLAN, AND UNTIL 2026-08-19 IT HAD NO STYLE OF ITS OWN. It was built on
+        SubduedText, which is TextSizeSmall - so what will happen to the machine was rendered at 12
+        under a section heading at 14 SemiBold. The label was larger and heavier than the thing it
+        labelled, and the eye slid off three bold labels without stopping on any content.
+        The subdued FOREGROUND is kept and the subdued SIZE is not: a step nobody asked for should be
+        dimmer rather than smaller, because `C2` wants those findable at a glance and a size
+        difference makes them hard to read rather than easy to skip.
+    -->
+    <Style x:Key="PlanStepText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
     </Style>
 
     <!--

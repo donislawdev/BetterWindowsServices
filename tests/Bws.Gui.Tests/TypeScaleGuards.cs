@@ -96,6 +96,97 @@ public sealed class TypeScaleGuards
             + Environment.NewLine + string.Join(Environment.NewLine, offenders));
     }
 
+    /// <summary>
+    /// Two styles that mean different things do not render the same.
+    ///
+    /// <b>WRITTEN 2026-08-19 BECAUSE THEY DID, FOR A WHOLE DAY, AND NOTHING NOTICED.</b>
+    /// <c>PlanNoticeText</c> - where the plan panel is in its sequence, the line telling somebody
+    /// whether anything has happened yet - and <c>SectionHeadingText</c> - the label over a list -
+    /// had IDENTICAL setters: same face, same 14, same SemiBold, same colour. So "Nothing has been
+    /// done" was drawn exactly like "In this order:", and the panel had four headings and no body.
+    ///
+    /// <b>It arrived through a correction rather than through carelessness, which is the part worth
+    /// guarding.</b> The notice wore the warning colour, that was a real fault, and moving it onto
+    /// weight fixed it - straight onto the other style's exact values. A fix is a claim and needs
+    /// checking as one.
+    ///
+    /// <b>Deliberately not a rule about which of them should be heavier.</b> That is a judgement
+    /// this file has no business holding. What it holds is that they are distinguishable at all,
+    /// which is checkable without taste.
+    /// </summary>
+    [Fact]
+    public void A_state_sentence_is_not_dressed_as_a_section_label()
+    {
+        var notice = Setters("PlanNoticeText");
+        var heading = Setters("SectionHeadingText");
+
+        Assert.True(notice.Count > 0, "PlanNoticeText was not found in the theme, so this guard checks nothing.");
+        Assert.True(heading.Count > 0, "SectionHeadingText was not found in the theme, so this guard checks nothing.");
+
+        // SORTED, so that reordering two identical setter lists cannot be mistaken for a
+        // difference. What is being asked is whether the two styles SAY the same thing, and the
+        // order somebody wrote them in is not part of that.
+        Assert.False(
+            notice.Order(StringComparer.Ordinal).SequenceEqual(heading.Order(StringComparer.Ordinal), StringComparer.Ordinal),
+            "PlanNoticeText and SectionHeadingText set exactly the same things, so a sentence about "
+            + "what has happened is drawn as a label for a list. One of them has to differ in size, "
+            + "weight or colour - which one is a judgement, that they differ is not:"
+            + Environment.NewLine + string.Join(Environment.NewLine, notice));
+    }
+
+    /// <summary>
+    /// The substance of a plan is not smaller than the label above it.
+    ///
+    /// <b>It was, and that is why the panel read as a wall of bold labels with nothing under
+    /// them.</b> A step was drawn by a style built on <c>SubduedText</c>, which is
+    /// <c>TextSizeSmall</c>, under a section heading at <c>TextSizeHeader</c> SemiBold - so what
+    /// will happen to the machine was the smallest text on the panel and the words "In this order"
+    /// were among the largest.
+    ///
+    /// Asked as a comparison rather than against a number, so rescaling the whole theme cannot
+    /// quietly reintroduce it.
+    /// </summary>
+    [Fact]
+    public void The_substance_of_a_plan_is_not_smaller_than_the_label_above_it()
+    {
+        var sizes = Sizes();
+        var step = Named(Setters("PlanStepText"), "FontSize");
+        var heading = Named(Setters("SectionHeadingText"), "FontSize");
+
+        Assert.NotNull(step);
+        Assert.NotNull(heading);
+        Assert.True(sizes.ContainsKey(step) && sizes.ContainsKey(heading), $"{step} or {heading} is not a declared size.");
+
+        Assert.True(
+            sizes[step] >= sizes[heading] - 1,
+            string.Create(CultureInfo.InvariantCulture, $"A step is {sizes[step]} and the heading over it is {sizes[heading]}.")
+            + " The label is bigger than the thing it labels, so a reader's eye stops on the word"
+            + " \"steps\" rather than on what would happen to their machine.");
+    }
+
+    /// <summary>Every setter of one named style, as text, in the order the theme declares them.</summary>
+    private static List<string> Setters(string key) =>
+        Regex
+            .Matches(
+                // NO \b AFTER THE CLOSING QUOTE, and the first version had one. A word boundary
+                // between a quote and a space is not a boundary at all, so the pattern matched
+                // nothing and the guard failed saying the style was absent - which is the safe
+                // direction, and only because it was written to say so rather than to pass on
+                // finding none. The quotes already make the key exact.
+                Regex.Match(Theme(), $@"<Style\s+x:Key=""{Regex.Escape(key)}"".*?</Style>", RegexOptions.Singleline, Ceiling).Value,
+                @"<Setter\s+Property=""(\w+)""\s+Value=""([^""]*)""",
+                RegexOptions.None,
+                Ceiling)
+            .Select(match => $"{match.Groups[1].Value}={match.Groups[2].Value}")
+            .ToList();
+
+    /// <summary>The key a named setter points at, with the StaticResource wrapper taken off.</summary>
+    private static string? Named(List<string> setters, string property) =>
+        setters
+            .Where(setter => setter.StartsWith($"{property}=", StringComparison.Ordinal))
+            .Select(setter => Regex.Match(setter, @"\{StaticResource\s+(\w+)\}", RegexOptions.None, Ceiling).Groups[1].Value)
+            .FirstOrDefault(name => name.Length > 0);
+
     /// <summary>Every text size the theme declares, read out of the file.</summary>
     private static Dictionary<string, double> Sizes() =>
         Regex

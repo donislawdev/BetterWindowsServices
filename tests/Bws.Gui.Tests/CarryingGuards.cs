@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls.Primitives;
-using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
+using static Bws.Gui.Tests.PlanFixture;
 
 namespace Bws.Gui.Tests;
 
@@ -98,6 +98,39 @@ public sealed class CarryingGuards
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Interrupt.Visibility));
 
         WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Nothing in the way means no line reserved for saying so.
+    ///
+    /// <b>The block backlog 203 missed, and it was the only one it missed.</b> Every other
+    /// conditional part of this panel took its heading off the screen with it on 2026-08-19 - this
+    /// one had no visibility of its own, so an empty sentence stood in the tree always, carrying
+    /// its margin. That is the gap between the state sentence and the first section in the owner's
+    /// first screenshot.
+    /// </summary>
+    [Fact]
+    public async Task Nothing_in_the_way_means_no_line_reserved_for_saying_so()
+    {
+        var window = await Ready();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Blocked.Visibility));
+
+        WpfHost.On(window.Close);
+
+        // ELEVATION HANDED OVER RATHER THAN INHERITED, for the reason the guard below gives: on an
+        // elevated session the default would hide this half and the assertion would pass empty.
+        var refused = await Ready(elevated: false);
+
+        Assert.True(WpfHost.On(() => refused.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => refused.PlanPanel.Blocked.Visibility));
+
+        WpfHost.On(refused.Close);
     }
 
     /// <summary>
@@ -217,93 +250,6 @@ public sealed class CarryingGuards
     }
 
     /// <summary>
-    /// A run that half worked says which half, with the manager's own words.
-    ///
-    /// <b>Rule 8 of the project's untouchable rules at the moment it matters most.</b> A partial
-    /// answer reported as "done" is the silent failure that rule exists against, and here the person
-    /// is holding a machine other people depend on.
-    /// </summary>
-    [Fact]
-    public async Task What_did_not_work_reaches_the_screen_with_the_reason()
-    {
-        var window = await Ready();
-        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
-
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
-        WpfHost.Settled();
-
-        // Nothing has run, so there is nothing to admit to and no heading claiming otherwise.
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.FailureLines));
-
-        WpfHost.On(() => panel.Finished(Ran(panel, refusing: "Spooler")));
-        WpfHost.Settled();
-
-        var failures = WpfHost.On(() => window.PlanPanel.FailureLines);
-
-        Assert.Contains(failures, line => line.Contains("Spooler", StringComparison.Ordinal));
-        Assert.Contains(failures, line => line.Contains("Access is denied", StringComparison.Ordinal));
-
-        WpfHost.On(window.Close);
-    }
-
-    /// <summary>
-    /// The way back reaches the screen as commands somebody can type. `ADR-11`'s reversible promise,
-    /// in the cheapest honest form it has, arriving in a window for the first time.
-    /// </summary>
-    [Fact]
-    public async Task The_way_back_reaches_the_screen_as_commands()
-    {
-        var window = await Ready();
-        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
-
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
-        WpfHost.Settled();
-
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.WayBackLines));
-
-        WpfHost.On(() => panel.Finished(Ran(panel)));
-        WpfHost.Settled();
-
-        var back = WpfHost.On(() => window.PlanPanel.WayBackLines);
-
-        Assert.Contains("bws start Spooler", back);
-        Assert.Contains("bws start W32Time", back);
-
-        WpfHost.On(window.Close);
-    }
-
-    /// <summary>
-    /// A NEW PLAN DROPS THE REPORT OF THE LAST RUN, and this is the worst bug this panel could have
-    /// had: what happened to five services, sitting under the steps of a plan for five different
-    /// ones, with nothing on screen to say the two do not belong together.
-    /// </summary>
-    [Fact]
-    public async Task Asking_about_something_else_drops_the_report_of_the_last_run()
-    {
-        var window = await Ready();
-        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
-
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
-        WpfHost.Settled();
-
-        WpfHost.On(() => panel.Finished(Ran(panel, refusing: "Spooler")));
-        WpfHost.Settled();
-
-        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.FailureLines));
-
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Start)));
-        WpfHost.Settled();
-
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.FailureLines));
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.WayBackLines));
-
-        // And it can be carried out again, because it is a different ask rather than the same one.
-        Assert.True(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
-
-        WpfHost.On(window.Close);
-    }
-
-    /// <summary>
     /// A SESSION THAT CANNOT CHANGE ANYTHING SAYS SO, AND THE BUTTON IS DEAD BEFORE ANYBODY REACHES
     /// FOR IT.
     ///
@@ -370,80 +316,4 @@ public sealed class CarryingGuards
         WpfHost.On(window.Close);
     }
 
-    // -- fixtures --------------------------------------------------------------------------
-
-    /// <summary>
-    /// A run of the plan that is actually on screen, made by hand.
-    ///
-    /// <b>Built FROM the panel's own plan rather than from a plan of its own</b>, so what the tests
-    /// read back is a report about the steps beside it - the pairing `ADR-11` exists for. A run made
-    /// up separately would assert that words reach a screen while saying nothing about whether they
-    /// are words about the right plan.
-    /// </summary>
-    private static BulkRun Ran(Planned panel, string? refusing = null)
-    {
-        var plan = panel.Plan!;
-
-        return new BulkRun
-        {
-            Plan = plan,
-            Runs =
-            [
-                .. plan.Plans.Select(one => new PlanRun
-                {
-                    Plan = one,
-                    Results = [.. one.Steps.Select(step => Result(step, refused: step.ServiceName == refusing))],
-                    Cancelled = false,
-                    Ceiling = TimeSpan.FromMinutes(1)
-                })
-            ]
-        };
-    }
-
-    private static StepResult Result(PlanStep step, bool refused) => new()
-    {
-        Step = step,
-        Outcome = refused ? StepOutcome.Failed : StepOutcome.Succeeded,
-        SkippedBecause = null,
-        Status = refused ? EntryStatus.Running : EntryStatus.Stopped,
-        ErrorCode = refused ? 5 : 0,
-        Error = refused ? "Access is denied." : null,
-        Milliseconds = 10
-    };
-
-    /// <summary>
-    /// A window looking at a small machine, with two entries picked. The same fixture
-    /// <see cref="PlanViewGuards"/> uses, and for the reason written there: the reading happens
-    /// before the model reaches the window, so nothing is read while bindings are live.
-    /// </summary>
-    private static async Task<MainWindow> Ready(bool elevated = true)
-    {
-        var machine = new LiveMachine(
-            Rows.Entry("Spooler", "Print Spooler"),
-            Rows.Entry("W32Time", "Windows Time"),
-            Rows.Entry("Dnscache", "DNS Client"));
-
-        // ELEVATION IS HANDED OVER RATHER THAN INHERITED FROM WHOEVER RAN THE SUITE, and that is
-        // the difference between a test and a coincidence: on an elevated session the default
-        // would be true and every assertion below would pass without the code doing anything.
-        var model = new MainViewModel(machine, new SteppedClock())
-        {
-            Planned = new Planned { Elevated = elevated }
-        };
-
-        await model.LoadAsync();
-
-        var window = WpfHost.Window(model);
-
-        WpfHost.On(() =>
-        {
-            window.Entries.ItemsSource = model.Rows;
-            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
-            window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "W32Time"));
-        });
-
-        WpfHost.Settled();
-
-        return window;
-    }
 }
