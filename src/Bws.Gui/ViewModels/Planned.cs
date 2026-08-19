@@ -242,9 +242,28 @@ public sealed class Planned : Observable
     public string Notice => !Showing ? string.Empty
         : Busy ? Texts.Of("gui.plan.notice.running")
         : _run is not { } run ? Texts.Of("gui.plan.notice.notYet")
-        : Arrived(run) == run.Runs.Count
-            ? Texts.Of("gui.plan.notice.done", run.Runs.Count)
-            : Texts.Of("gui.plan.notice.partly", Arrived(run), run.Runs.Count);
+        : Reported(run);
+
+    /// <summary>
+    /// How a finished run reads, in the singular and in the plural.
+    ///
+    /// <b>THE SINGULAR ARRIVED 2026-08-19, AND THE PLURAL-ONLY VERSION SHIPPED FOR A DAY SAYING
+    /// "All 1 entries are where you asked" TO ANYBODY WHO PICKED ONE ROW.</b> That is the commonest
+    /// selection there is, so the sentence was wrong far more often than it was right - and it is
+    /// the last sentence somebody reads after changing a machine, which is the worst place in this
+    /// product to look careless.
+    ///
+    /// <b>The count that decides is the number of entries, never the number that arrived.</b> A run
+    /// of one that did not arrive reports zero arrived out of one, so keying on the first number
+    /// would put "0 of 1 entries" back on the screen by a different route.
+    /// </summary>
+    private static string Reported(BulkRun run) => Arrived(run) == run.Runs.Count
+        ? run.Runs.Count == 1
+            ? Texts.Of("gui.plan.notice.done.one")
+            : Texts.Of("gui.plan.notice.done.many", run.Runs.Count)
+        : run.Runs.Count == 1
+            ? Texts.Of("gui.plan.notice.partly.one")
+            : Texts.Of("gui.plan.notice.partly.many", Arrived(run), run.Runs.Count);
 
     /// <summary>
     /// The entries that did not get where they were asked to go, one line each, with the manager's

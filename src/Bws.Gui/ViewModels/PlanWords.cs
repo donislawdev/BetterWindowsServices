@@ -53,17 +53,34 @@ internal static class PlanWords
     /// <b>Written out rather than composed from the name of the value</b>, for the reason the command
     /// line gives about the same six: flattening a name to lower case works for as long as every one
     /// is a single word and then quietly asks for a key nobody wrote.
+    ///
+    /// <b>TWO KEYS APIECE WHEREVER A SENTENCE COUNTS SOMETHING OR POINTS AT A GROUP, ADDED
+    /// 2026-08-19.</b> The command line has had exactly this pair since it learned to warn, and its
+    /// own comment says why - a warning reading "1 other entries" spends the trust the warning
+    /// needs. These sentences were written later, from the same facts, and arrived with the plural
+    /// half only. Nothing went red, because no guard in this project reads prose.
+    ///
+    /// <b>The pair is spelled out per branch rather than through a helper that appends ".one" or
+    /// ".many", which is what the command line does.</b> That helper cannot live here: a key built
+    /// as an expression is invisible to TextKeyGuards, so both halves would be reported as text no
+    /// screen ever shows, and the missing one would render on screen as its own key. The head of
+    /// this file carries the same lesson from Doing, one switch earlier.
     /// </summary>
     internal static string Describe(PlanWarning warning) => warning.Kind switch
     {
-        PlanWarningKind.Cascade => Texts.Of(
-            "gui.plan.warning.cascade", warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
+        PlanWarningKind.Cascade => warning.Related.Count == 1
+            ? Texts.Of(
+                "gui.plan.warning.cascade.one", warning.ServiceName, warning.Related.Count, Listed(warning.Related))
+            : Texts.Of(
+                "gui.plan.warning.cascade.many", warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
 
-        PlanWarningKind.DependentsInTheWay => Texts.Of(
-            "gui.plan.warning.inTheWay", warning.ServiceName, Listed(warning.Related)),
+        PlanWarningKind.DependentsInTheWay => warning.Related.Count == 1
+            ? Texts.Of("gui.plan.warning.inTheWay.one", warning.ServiceName, Listed(warning.Related))
+            : Texts.Of("gui.plan.warning.inTheWay.many", warning.ServiceName, Listed(warning.Related)),
 
-        PlanWarningKind.SharedProcess => Texts.Of(
-            "gui.plan.warning.sharedProcess", warning.ServiceName, Listed(warning.Related)),
+        PlanWarningKind.SharedProcess => warning.Related.Count == 1
+            ? Texts.Of("gui.plan.warning.sharedProcess.one", warning.ServiceName, Listed(warning.Related))
+            : Texts.Of("gui.plan.warning.sharedProcess.many", warning.ServiceName, Listed(warning.Related)),
 
         PlanWarningKind.ReturnsAfterReboot => Texts.Of("gui.plan.warning.returnsAfterReboot", warning.ServiceName),
 
@@ -72,17 +89,26 @@ internal static class PlanWords
         _ => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName)
     };
 
-    /// <summary>A refusal in words, with the entry it belongs to named first.</summary>
+    /// <summary>
+    /// A refusal in words, with the entry it belongs to named first.
+    ///
+    /// <b>The same singular and plural pair as the warnings above, and for the same reason.</b> A
+    /// refusal is read by somebody deciding whether to press, so a sentence pointing at "these
+    /// drivers" when there is one of them is a sentence they have to check against the list.
+    /// </summary>
     internal static string Describe(PlanProblem problem) => problem.Kind switch
     {
         PlanProblemKind.UnknownService => Texts.Of("gui.plan.problem.unknownService", problem.ServiceName),
 
         PlanProblemKind.NotOperable => Texts.Of("gui.plan.problem.notOperable", problem.ServiceName),
 
-        PlanProblemKind.CascadeNotOperable => Texts.Of(
-            "gui.plan.problem.cascadeNotOperable", problem.ServiceName, Listed(problem.Related)),
+        PlanProblemKind.CascadeNotOperable => problem.Related.Count == 1
+            ? Texts.Of("gui.plan.problem.cascadeNotOperable.one", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.cascadeNotOperable.many", problem.ServiceName, Listed(problem.Related)),
 
-        _ => Texts.Of("gui.plan.problem.cannotComeBack", problem.ServiceName, Listed(problem.Related))
+        _ => problem.Related.Count == 1
+            ? Texts.Of("gui.plan.problem.cannotComeBack.one", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.cannotComeBack.many", problem.ServiceName, Listed(problem.Related))
     };
 
     internal static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);

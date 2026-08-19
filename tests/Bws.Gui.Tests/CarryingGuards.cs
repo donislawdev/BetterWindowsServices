@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
@@ -96,6 +97,85 @@ public sealed class CarryingGuards
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Interrupt.Visibility));
 
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// The reach for the corner of the window, half way through changing a machine.
+    ///
+    /// <b>THE STATE (T) OF RULE 10, AND UNTIL 2026-08-19 NOTHING EXECUTED IT AT ALL.</b> Searching
+    /// the whole test tree for <c>OnClosing</c> found exactly one hit and it was
+    /// <c>BackgroundWorkGuards</c>, which knows the method by name and guards its SHAPE - that a
+    /// file holding an <c>async void</c> is on a list with a written reason. A green guard beside a
+    /// method nobody had ever run.
+    ///
+    /// <b>Three assertions rather than one, because the failure this guards has three ways to
+    /// arrive.</b> Closing anyway ends the process and leaves a cascade switched off in silence -
+    /// which is exactly what two presses of Ctrl+C used to do in the command line. Refusing and NOT
+    /// asking the run to stop hangs the window on a corner nobody can use. Refusing forever leaves
+    /// somebody with a window that will not go away.
+    /// </summary>
+    [Fact]
+    public async Task A_close_during_a_run_is_refused_once_and_taken_again_when_the_run_ends()
+    {
+        var window = await Ready();
+        var gate = new TaskCompletionSource();
+        using var stopping = new CancellationTokenSource();
+        var closed = false;
+
+        // HANDED A RUN RATHER THAN STARTING ONE, which is the seam MainWindow.TakeThisAsARun exists
+        // for and the reason it takes a task rather than a plan. A real run here would stop services
+        // on whatever machine runs this suite.
+        WpfHost.On(() =>
+        {
+            window.Closed += (_, _) => closed = true;
+            window.TakeThisAsARun(gate.Task, stopping);
+        });
+
+        WpfHost.On(window.Close);
+        WpfHost.Settled();
+
+        Assert.False(closed);
+        Assert.True(stopping.IsCancellationRequested);
+
+        // And the run ends. The steps that give back what earlier ones took have run by now, which
+        // is what asking a run to stop means here rather than abandoning it.
+        gate.SetResult();
+        WpfHost.Settled();
+
+        Assert.True(closed);
+    }
+
+    /// <summary>
+    /// Pressing the interrupt reaches the run, rather than only appearing on a screen.
+    ///
+    /// <b>The other half of a guard that already existed, and the gap is worth naming.</b>
+    /// <see cref="The_way_to_stop_a_run_is_on_screen_only_while_one_is_happening"/> asserts that the
+    /// button is visible exactly while a run is - which is a statement about VISIBILITY. Whether
+    /// pressing it does anything was guarded by nothing until 2026-08-19.
+    ///
+    /// <b>Driven through the button's own click event rather than by calling the handler</b>, so the
+    /// whole road is exercised: the routed event, the panel raising <c>InterruptRequest</c>, and the
+    /// window turning that into a cancellation. Calling the handler would assert that a method this
+    /// test found does what this test expects.
+    /// </summary>
+    [Fact]
+    public async Task Pressing_the_interrupt_reaches_the_run_rather_than_only_the_screen()
+    {
+        var window = await Ready();
+        var gate = new TaskCompletionSource();
+        using var stopping = new CancellationTokenSource();
+
+        WpfHost.On(() => window.TakeThisAsARun(gate.Task, stopping));
+
+        Assert.False(stopping.IsCancellationRequested);
+
+        WpfHost.On(() => window.PlanPanel.Interrupt.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)));
+        WpfHost.Settled();
+
+        Assert.True(stopping.IsCancellationRequested);
+
+        gate.SetResult();
         WpfHost.On(window.Close);
     }
 

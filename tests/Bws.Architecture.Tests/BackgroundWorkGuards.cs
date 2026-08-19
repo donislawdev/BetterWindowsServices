@@ -37,13 +37,21 @@ public sealed class BackgroundWorkGuards
     private static readonly Dictionary<string, string> AllowedVoid = new(StringComparer.Ordinal)
     {
         ["MainWindow.xaml.cs"] =
-            "Two overridden handlers, and the language has no alternative for either: the " +
-            "framework declares both as returning nothing, so there is no task to hand back. " +
-            "One is the key handler. The other is OnClosing, added 2026-08-19, which has to " +
-            "await a run in progress before letting the window go - without it, closing the " +
-            "window mid-run ends the process and leaves a cascade switched off with nothing " +
-            "printed, which is the failure the command line pays three levels of Ctrl+C for. " +
-            "Everything either of them awaits reports its own failures into the window."
+            "The overridden key handler, and the language has no alternative: the framework " +
+            "declares it as returning nothing, so there is no task to hand back. Everything it " +
+            "awaits reports its own failures into the window. It shared this entry with " +
+            "OnClosing until 2026-08-19, when the size ratchet moved that one to its own file - " +
+            "and the reason it is now TWO entries rather than one is that this list is keyed by " +
+            "file name, so a split silently leaves the moved code covered by a permission " +
+            "written about a file it no longer lives in.",
+
+        ["MainWindow.Carrying.cs"] =
+            "OnClosing, which the framework also declares as returning nothing. It has to await " +
+            "a run in progress before letting the window go - without it, closing the window " +
+            "mid-run ends the process and leaves a cascade switched off with nothing printed, " +
+            "which is the failure the command line pays three levels of Ctrl+C for. Guarded " +
+            "since 2026-08-19 by CarryingGuards, which until then had no way to put a run into " +
+            "this window without starting a real one."
     };
 
     /// <summary>
