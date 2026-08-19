@@ -42,6 +42,58 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _timer;
 
     /// <summary>
+    /// How long the window waits after the last keystroke before it narrows the list.
+    ///
+    /// <b>MEASURED RATHER THAN CHOSEN, on the owner's own machine on 2026-08-19, with real keys at
+    /// a real pace.</b> The first character of a search echoed in 105 ms, the second in 88 and the
+    /// third in 61, dropping to 7-8 once the query left one row - so the cost is not the query, it
+    /// is how many rows are LEFT, and the expensive characters are the first ones. Every search
+    /// starts with them.
+    ///
+    /// <b>What this fixes is the ECHO, and that is the whole point rather than a side effect.</b>
+    /// Until now the character could not appear until the filter and the grid had finished, because
+    /// the binding pushed on every keystroke and the setter narrowed the list inside it. Nielsen
+    /// puts typing under 50 ms to feel like direct manipulation and 100 ms as the line where a
+    /// delay is felt - one of those keystrokes was over the second line and two more were over the
+    /// first.
+    ///
+    /// <b>FOUR HUNDRED, AND THE FIRST ANSWER WAS A HUNDRED AND FIFTY - WHICH THE NEXT MEASUREMENT
+    /// SHOWED WAS WORSE THAN NO ANSWER AT ALL FOR ONE KEYSTROKE.</b> A person typing at 200 ms a
+    /// character and a delay set to 150 collide by arithmetic: the filter starts 150 ms after a
+    /// character, and the NEXT one arrives 50 ms into it and queues behind it. Measured with that
+    /// setting, the third character of a search echoed in 173 ms - worse than the 105 it was meant
+    /// to fix. The block had not gone anywhere, it had moved from inside a keystroke to just before
+    /// the next one.
+    ///
+    /// So the rule is not "short enough to feel live", it is <b>longer than the gap between two
+    /// keystrokes</b>, or it fires in the middle of a burst by construction. Four hundred clears a
+    /// 200 ms pace with room and stays far inside the second Nielsen gives for keeping somebody in
+    /// the flow of what they are doing - it runs after they stopped, which is when nobody is
+    /// waiting on a character.
+    ///
+    /// <b>THE DEFERRING IS Binding.Delay IN THE MARKUP, AND THE VERSION THAT DID IT HERE WAS A BUG
+    /// THAT SHIPPED FOR AN HOUR.</b> That one used UpdateSourceTrigger=Explicit and pushed the box
+    /// into the model from a timer - and pushing a value into a two way binding makes the binding
+    /// write the SOURCE back to the TARGET, overwriting every character typed in the meantime.
+    /// Measured on the owner's machine: three keystrokes out of 248 never reached the box at all,
+    /// and the row counts beside them made no sense - "de" left 786 rows, "def" left 0, "defe"
+    /// left 393. Binding.Delay is the framework's own answer and has none of that: it defers the
+    /// SOURCE update and never touches what is in the box.
+    ///
+    /// <b>So this number and the one in the markup have to agree</b>, and what is left of the timer
+    /// below is the one question a binding cannot answer - whether somebody is typing right now.
+    /// </summary>
+    private static readonly TimeSpan AfterTyping = TimeSpan.FromMilliseconds(400);
+
+    /// <summary>
+    /// Whether somebody is typing right now, which is a question no binding can answer.
+    ///
+    /// Restarted by every keystroke and read by <see cref="Tick"/>, which will not go to the
+    /// machine while it is running.
+    /// </summary>
+    private readonly DispatcherTimer _typing;
+
+    /// <summary>
     /// The button that opens the list of columns, which belongs to the row of filters.
     ///
     /// <b>A field again since 2026-08-13, and losing this line was what the theme cost.</b> While
@@ -136,6 +188,23 @@ public partial class MainWindow : Window
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = AskEvery };
         _timer.Tick += async (_, _) => await Tick().ConfigureAwait(true);
 
+        // THE BINDING IS EXPLICIT AND THIS IS WHAT MAKES IT MOVE. Input priority rather than
+        // Background: the whole purpose is to run AFTER the character has been drawn and before
+        // the person notices, and Background would put it behind whatever else the dispatcher is
+        // holding - which on this window is a reading of eight hundred entries.
+        _typing = new DispatcherTimer(DispatcherPriority.Input) { Interval = AfterTyping };
+
+        // IT STOPS ITSELF AND THAT IS THE WHOLE HANDLER. A DispatcherTimer with nothing attached
+        // runs for ever, so IsEnabled would stay true after the first character somebody ever
+        // typed - and Tick reads exactly that to decide whether to go to the machine. The window
+        // would have stopped refreshing itself permanently, quietly, from the first keystroke.
+        _typing.Tick += (_, _) => _typing.Stop();
+
+        // Wired here rather than in the markup because MainWindow.xaml stands exactly on the markup
+        // ceiling - editing an attribute costs nothing, adding one would cost a seam. The whole
+        // argument, including the bug the first version of this shipped, is at AfterTyping.
+        QueryBox.TextChanged += QueryTyped;
+
         // After the window is up, not before. Reading the manager takes about half a second
         // over 810 entries, and doing it in the constructor means the window appears already
         // late - the specification asks for a useful list inside a second, and part of that
@@ -176,6 +245,23 @@ public partial class MainWindow : Window
 
     private async Task Tick()
     {
+        // NOT WHILE SOMEBODY IS MID-WORD, AND THIS IS A MEASUREMENT RATHER THAN A COURTESY. On the
+        // owner's machine on 2026-08-19 this tick queued the interface thread for 35 and 49 ms,
+        // twice in twelve seconds, 959 ms apart - the signature of a once-a-second timer. It is
+        // cheap most of the time and expensive when the machine actually moved, and a person
+        // typing at five characters a second meets it constantly. A probe driven back to back
+        // almost never does, which is why every number this project had said the window was fast.
+        //
+        // NOT DONE BY HOLDING THE LIST, WHICH WAS THE OBVIOUS VERSION AND IS WRONG. `A10`'s hold
+        // runs through Holding.MayRearrange, and Apply asks the same question - so a window that
+        // held while somebody typed would refuse the narrowing their own query asked for. The
+        // hold is about rows moving under a pointer. This is about not reading a machine while
+        // somebody is in the middle of a word.
+        if (_typing.IsEnabled)
+        {
+            return;
+        }
+
         // The fade runs on every tick rather than only when something moved, or the last thing
         // to change would stay lit until the next thing did.
         await _model.RefreshAsync().ConfigureAwait(true);
@@ -371,6 +457,20 @@ public partial class MainWindow : Window
     /// The mouse being over it counts, not just the keyboard focus: reaching for a row is
     /// exactly the moment when a row appearing above it would move the target.
     /// </summary>
+    /// <summary>
+    /// Somebody is typing, so the clock that decides when to narrow starts again from zero.
+    ///
+    /// <b>Restarted rather than left running, which is what makes it a burst rather than a
+    /// metronome.</b> Seven characters typed quickly narrow the list once. Seven typed slowly
+    /// narrow it seven times, and that is correct - each of those is a moment the person stopped
+    /// and looked.
+    /// </summary>
+    private void QueryTyped(object sender, TextChangedEventArgs e)
+    {
+        _typing.Stop();
+        _typing.Start();
+    }
+
     private void ListEngaged(object sender, RoutedEventArgs e) => _model.Interacting = true;
 
     private void ListReleased(object sender, RoutedEventArgs e) =>

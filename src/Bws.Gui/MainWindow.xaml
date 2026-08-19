@@ -105,7 +105,7 @@
                 -->
                 <TextBox x:Name="QueryBox"
                          ToolTip="{Binding SearchTip}"
-                         Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}" />
+                         Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
 
                 <!--
                     The hint, behind the field and out of the way of the mouse. An empty box
