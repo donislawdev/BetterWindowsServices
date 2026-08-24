@@ -344,11 +344,19 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
-- **The window opens with kernel drivers hidden**, which is what `services.msc` does and what
-  people compare this against. It is not a hidden setting: the member `!type:driver` is in the
-  search box where you can read it, the **Hide drivers** chip is lit, and the count says how
-  many were held back. One `Escape`, or one click on the chip, gives you the whole machine
-  back. The command line is unchanged and still lists everything.
+- **Services and drivers are two separate lists**, chosen with **Services**, **Drivers** and
+  **Everything** above the search box. The window opens on Services, which is what `services.msc`
+  shows and what people compare this against. The search box opens **empty**: the choice of list
+  is not a search term, so `type:` now narrows *within* the list you are on rather than choosing
+  between lists. Each list remembers its own columns, because a driver has no process id and no
+  delayed start and a column of blanks is worse than no column. The command line is unchanged and
+  still lists everything.
+- **A tooltip over a cell now appears only when the text did not fit.** It is there so that text
+  which had to be cut short is still readable in full, and one over a fully visible word repeated
+  what was already on screen and covered the row underneath it.
+- **The list stops asking the machine for a moment while you are scrolling it**, the way it
+  already did while you are typing. Values catch up a quarter of a second after you stop. Nothing
+  is hidden and nothing is stale for longer than that.
 - **`Escape` now backs out of the innermost thing first.** With the details panel open it
   closes the panel and leaves your query alone. With no panel it empties the box, as before.
   One press never does both, because a query costs more to type again than a panel does to
