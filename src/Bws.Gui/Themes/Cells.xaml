@@ -87,15 +87,16 @@
         the longest of them fits. Something has to give and the person has to be able to see
         that it did.
 
-        The tooltip is the other half of the same rule. Text that gives way has to be gettable,
-        and a person who wants the whole of it should not have to widen the window and guess.
+        The tooltip is the other half of the same rule. Text that gives way has to be gettable -
+        and ONLY such text, since 2026-08-25. Worked out when asked rather than bound on every
+        cell of every row, which is what the switch below turns on. `CellTips` has the argument.
     -->
     <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
+        <Setter Property="ToolTip" Value=" " />
     </Style>
 
     <!--

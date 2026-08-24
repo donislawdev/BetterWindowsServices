@@ -54,6 +54,79 @@ public sealed class ToolTipGuards
         Assert.Equal(TextWrapping.Wrap, wraps);
     }
 
+    /// <summary>
+    /// A placeholder arms the tooltip and no binding fills it - both halves asserted.
+    ///
+    /// <b>The second half is the one worth having.</b> Putting the binding back would work, look
+    /// identical and cost a live binding on every TextBlock of every realised row again - about
+    /// twenty of the forty-six a row carried with twenty columns on, measured with
+    /// tools/gui-probe/row-cost.ps1. Nothing on screen would say so.
+    ///
+    /// The placeholder has to be there AND has to be non-empty: ToolTipService ignores an element
+    /// whose tooltip is null or empty, so an over-tidy cleanup of that space would silently stop
+    /// every cell in the list from ever offering its text again.
+    /// </summary>
+    [Fact]
+    public void A_cell_arms_its_tooltip_with_a_placeholder_rather_than_a_binding_on_every_cell()
+    {
+        var style = WpfHost.On(() => (Style)WpfHost.Resources["CellText"]);
+
+        var tip = Setter(style, FrameworkElement.ToolTipProperty);
+
+        Assert.NotNull(tip);
+
+        Assert.False(
+            tip is System.Windows.Data.BindingBase,
+            "The tooltip is bound on every cell again, which is what CellTips replaced.");
+
+        Assert.False(
+            string.IsNullOrEmpty(tip as string),
+            "The placeholder is empty, so ToolTipService will never open and never ask CellTips.");
+    }
+
+    /// <summary>
+    /// A tooltip is offered for text that gave way, and refused for text that did not.
+    ///
+    /// <b>This is the behaviour half of `Cells.xaml`'s own rule</b> - the tooltip exists because
+    /// text that gives way has to be gettable, so one over a fully visible word repeats what is
+    /// already on screen and covers the row under it.
+    ///
+    /// The decision is asked directly rather than through the event, because ToolTipEventArgs has
+    /// no public constructor and cannot be raised from a test.
+    /// </summary>
+    [Fact]
+    public void Text_that_fits_is_offered_nothing_and_text_that_gives_way_is_offered_all_of_it()
+    {
+        const string Long = "A service display name far too long for the room it was given here";
+
+        var (fits, gives) = WpfHost.On(() =>
+            (CellTips.TipFor(ToolTipGuards.Laid("Stopped", 400)),
+             CellTips.TipFor(ToolTipGuards.Laid(Long, 40))));
+
+        Assert.Null(fits);
+        Assert.Equal(Long, gives);
+    }
+
+    /// <summary>A cell with nothing in it offers nothing, rather than an empty tooltip.</summary>
+    [Fact]
+    public void An_empty_cell_is_offered_nothing()
+    {
+        var tip = WpfHost.On(() => CellTips.TipFor(ToolTipGuards.Laid(string.Empty, 40)));
+
+        Assert.Null(tip);
+    }
+
+    /// <summary>A TextBlock measured and arranged into a box of a known width, as a cell is.</summary>
+    private static TextBlock Laid(string text, double width)
+    {
+        var cell = new TextBlock { Text = text, TextTrimming = TextTrimming.CharacterEllipsis };
+
+        cell.Measure(new Size(width, double.PositiveInfinity));
+        cell.Arrange(new Rect(0, 0, width, cell.DesiredSize.Height));
+
+        return cell;
+    }
+
     private static object? Setter(Style style, DependencyProperty property) =>
         style.Setters.OfType<Setter>().LastOrDefault(setter => setter.Property == property)?.Value;
 }

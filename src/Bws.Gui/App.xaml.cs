@@ -12,5 +12,9 @@ public partial class App : Application
         base.OnStartup(e);
 
         Texts.PutInto(Resources);
+
+        // One class handler for every cell tooltip in the list, registered once. CellTips carries
+        // the argument, including why no markup names it and why it therefore has to be told to.
+        CellTips.Arm();
     }
 }

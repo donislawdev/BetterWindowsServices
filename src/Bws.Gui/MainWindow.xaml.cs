@@ -185,6 +185,8 @@ public partial class MainWindow : Window
         // would have stopped refreshing itself permanently, quietly, from the first keystroke.
         _typing.Tick += (_, _) => _typing.Stop();
 
+        _scrolling = HoldWhileScrolling();
+
         // Wired here rather than in the markup, and the reason CHANGED when the field moved out.
         // It used to be the markup ceiling - MainWindow.xaml stood exactly on it, so editing an
         // attribute cost nothing and adding one cost a seam. The seam has since been taken and the
@@ -246,7 +248,12 @@ public partial class MainWindow : Window
         // held while somebody typed would refuse the narrowing their own query asked for. The
         // hold is about rows moving under a pointer. This is about not reading a machine while
         // somebody is in the middle of a word.
-        if (_typing.IsEnabled)
+        //
+        // AND NOT MID-GESTURE EITHER, since 2026-08-25. The same sentence with a different noun:
+        // a person dragging through eight hundred rows meets this tick constantly, and every one of
+        // them recuts the scope and re-runs the query to build a rearrangement that `A10` then
+        // refuses. The whole argument is in the constructor, beside _scrolling.
+        if (_typing.IsEnabled || _scrolling.IsEnabled)
         {
             return;
         }

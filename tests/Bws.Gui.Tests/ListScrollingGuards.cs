@@ -65,6 +65,76 @@ public sealed class ListScrollingGuards
     }
 
     /// <summary>
+    /// A refresh must never be able to suppress the next refresh.
+    ///
+    /// <b>THE FAILURE THIS GUARDS IS SILENT AND PERMANENT.</b> ScrollChanged fires when the EXTENT
+    /// changes under a list that has not moved, which is what a refresh does the moment the machine
+    /// gains or loses a service. If a change of zero counted as a scroll, the refresh would start
+    /// the timer that suppresses refreshes and the list would stop updating for as long as it was on
+    /// screen - with every row still showing something that was true a minute ago, and no message
+    /// anywhere. Rule 8 of the project notes, arriving from the side it looks like a courtesy from.
+    /// </summary>
+    [Fact]
+    public void An_extent_that_changed_under_a_still_list_is_not_a_scroll()
+    {
+        var (still, moved) = InTheWindow(window =>
+        {
+            window.Moved(0, 0);
+            var afterNothing = window.HoldingForScroll;
+
+            window.Moved(12, 0);
+
+            return (afterNothing, window.HoldingForScroll);
+        });
+
+        Assert.False(still, "A refresh changing the extent counted as a scroll and would mute the next one.");
+        Assert.True(moved, "A real scroll did not hold the machine off at all.");
+    }
+
+    /// <summary>Sideways counts too - the columns are wider than the window and that is by design.</summary>
+    [Fact]
+    public void Moving_the_list_sideways_holds_the_machine_off_as_well()
+    {
+        Assert.True(InTheWindow(window =>
+        {
+            window.Moved(0, 12);
+
+            return window.HoldingForScroll;
+        }));
+    }
+
+    /// <summary>One question asked of a real window, built the way OnTheGrid builds one.</summary>
+    private static T InTheWindow<T>(Func<MainWindow, T> ask)
+    {
+        ArgumentNullException.ThrowIfNull(ask);
+
+        _ = WpfHost.Resources;
+
+        var directory = Path.Combine(Path.GetTempPath(), "bws-scrollhold-" + Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var window = WpfHost.On(() => new MainWindow(new PreferencesFile(Path.Combine(directory, "kept.json"))));
+
+            try
+            {
+                return WpfHost.On(() => ask(window));
+            }
+            finally
+            {
+                WpfHost.On(window.Close);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
     /// One question asked of the real grid inside a real window.
     ///
     /// The preferences file goes to a directory of its own, because a MainWindow reads its column
