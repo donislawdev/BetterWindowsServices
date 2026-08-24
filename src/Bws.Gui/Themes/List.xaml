@@ -141,42 +141,35 @@
                             Background="{TemplateBinding Background}"
                             SnapsToDevicePixels="True">
                         <Grid>
-                            <SelectiveScrollingGrid>
-                                <SelectiveScrollingGrid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </SelectiveScrollingGrid.ColumnDefinitions>
-                                <SelectiveScrollingGrid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </SelectiveScrollingGrid.RowDefinitions>
+                            <!--
+                                THREE THINGS THIS TEMPLATE USED TO BUILD LEFT ON 2026-08-24, AND ALL
+                                THREE WERE PROVABLY DEAD RATHER THAN PROBABLY UNUSED. Counted before
+                                and after with tools/gui-probe/row-cost.ps1, backlog 221.
 
-                                <DataGridCellsPresenter
-                                    Grid.Column="1"
-                                    ItemsPanel="{TemplateBinding ItemsPanel}"
-                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                A `DataGridRowHeader`, WHICH THIS GRID CAN NEVER SHOW: MainWindow.xaml
+                                sets HeadersVisibility="Column", so the header was built for every
+                                realised row and then collapsed by its own binding - and that binding
+                                was a FindAncestor walk up to the grid, paid once per row on every
+                                recycle, to arrive at the same answer every time.
 
-                                <DataGridDetailsPresenter
-                                    Grid.Column="1"
-                                    Grid.Row="1"
-                                    Visibility="{TemplateBinding DetailsVisibility}"
-                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Both" />
+                                A `DataGridDetailsPresenter`, for a panel under the row. No
+                                RowDetailsTemplate exists anywhere in this product, so it presented
+                                nothing to nobody.
 
-                                <!--
-                                    The grid decides whether row headers show, through its own
-                                    converter. Theirs hardcodes Visible, which is a decision
-                                    taken away from HeadersVisibility on the grid.
-                                -->
-                                <DataGridRowHeader
-                                    Grid.Column="0"
-                                    Grid.Row="0"
-                                    Grid.RowSpan="2"
-                                    SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
-                                    Visibility="{Binding HeadersVisibility,
-                                        ConverterParameter={x:Static DataGridHeadersVisibility.Row},
-                                        Converter={x:Static DataGrid.HeadersVisibilityConverter},
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
-                            </SelectiveScrollingGrid>
+                                A `SelectiveScrollingGrid` with two columns and two rows, whose entire
+                                job is holding those two in place while the list scrolls sideways.
+                                With neither of them left it was a two-by-two layout around a single
+                                child.
+
+                                WHAT BRINGS EACH BACK, so that this reads as a decision rather than a
+                                loss: row headers need the header and the selective scrolling grid
+                                again, and a detail panel needs the presenter and the second row
+                                definition. Either is a deliberate change with a look of its own, not
+                                a line to restore quietly.
+                            -->
+                            <DataGridCellsPresenter
+                                ItemsPanel="{TemplateBinding ItemsPanel}"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
 
                             <!--
                                 A sibling rather than a border on the row, so it costs no
@@ -195,23 +188,42 @@
 
                     <ControlTemplate.Triggers>
                         <!--
-                            The grid's own two, kept and kept FIRST. They are inert while the
-                            grid sets neither brush, and they are what a zebra stripe would
-                            come back through - underneath the states rather than over them,
+                            The grid's own two, kept and kept FIRST. They are what a zebra stripe
+                            would come back through - underneath the states rather than over them,
                             which is the arrangement backlog 123 needs.
+
+                            THEY WERE DESCRIBED HERE AS "INERT WHILE THE GRID SETS NEITHER BRUSH"
+                            AND THAT WAS WRONG IN A WAY THAT MATTERED. The grid sets neither, so
+                            this first trigger was reaching in and setting the row's Background to
+                            NULL on every row, every frame - and a null background takes no mouse
+                            hits. The row surface was not inert, it was a hole, and the only reason
+                            hover and selection worked at all is that WPF UI's cell template paints
+                            a fully transparent border which DOES take hits. Twenty of those per
+                            row were doing the work of one.
+
+                            TargetNullValue is what makes the row itself the hit surface. Measured
+                            with tools/gui-probe/row-cost.ps1 before the change: of 603 points
+                            sampled across a row, 106 landed on a cell border rather than on text -
+                            so dropping that border without this line would have punched holes
+                            through a sixth of every row. Backlog 221.
+
+                            It costs backlog 123 nothing: a real RowBackground still wins, because
+                            TargetNullValue only speaks when the source is null.
                         -->
                         <Trigger Property="ItemsControl.AlternationIndex" Value="0">
                             <Setter TargetName="RowSurface"
                                     Property="Background"
                                     Value="{Binding RowBackground,
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
+                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}},
+                                        TargetNullValue={x:Static media:Brushes.Transparent}}" />
                         </Trigger>
 
                         <Trigger Property="ItemsControl.AlternationIndex" Value="1">
                             <Setter TargetName="RowSurface"
                                     Property="Background"
                                     Value="{Binding AlternatingRowBackground,
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
+                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}},
+                                        TargetNullValue={x:Static media:Brushes.Transparent}}" />
                         </Trigger>
 
                         <!--

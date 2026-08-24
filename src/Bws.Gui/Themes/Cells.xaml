@@ -41,8 +41,8 @@
     -->
 
     <!--
-        The cell carries spacing and nothing else. Any Background set here is discarded by
-        their template - see the block about the row, in List.xaml.
+        The cell carries spacing and, since 2026-08-24, its own template. It paints nothing at
+        all: what fills a row is the row - see the block about it in List.xaml.
     -->
     <Style x:Key="ListCell" TargetType="DataGridCell" BasedOn="{StaticResource DefaultDataGridCellStyle}">
         <Setter Property="Padding" Value="{StaticResource PadListCell}" />
@@ -51,6 +51,30 @@
             the same decision as the margins on the row: keep the density this list had.
         -->
         <Setter Property="MinHeight" Value="{StaticResource SizeNone}" />
+
+        <!--
+            THE CELL OWNS ITS TEMPLATE SINCE 2026-08-24, THE LAST PLACE THIS LIST BORROWED ONE.
+            Theirs wraps the ContentPresenter in a Border that paints a fully transparent brush and
+            binds nothing else - one element per cell of every realised row, to be invisible.
+
+            BasedOn IS KEPT, unlike what the row did in 2026-08-05: the row left because their
+            TRIGGERS fought ours, and this one has none - read with tools/wpfui-probe, not assumed.
+            It still carries KeyboardNavigation.IsTabStop=False, which the row's focus ring needs.
+            Stretch is load-bearing too, because a TextBlock sized to its own text never reaches the
+            width where CharacterEllipsis would trim it. AND IT TAKES NO MOUSE HITS - their border
+            was what the pointer landed on in the padding, 106 of 603 sampled points, so List.xaml
+            now supplies one transparent surface per row instead of one per cell. Backlog 221.
+        -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <ContentPresenter Margin="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!--
