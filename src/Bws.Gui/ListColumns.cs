@@ -363,8 +363,15 @@ internal static class ListColumns
         }
     }
 
+    /// <summary>
+    /// A column drawn by a named template, without the presenter the framework would wrap it in.
+    ///
+    /// <see cref="UnwrappedColumn"/> carries the whole argument and the numbers. The short of it:
+    /// DataGridTemplateColumn builds a ContentPresenter of its own, and our cell template already
+    /// has one, so every cell of every mark column carried two.
+    /// </summary>
     private static DataGridColumn Templated(FrameworkElement grid, string template) =>
-        new DataGridTemplateColumn { CellTemplate = (DataTemplate)grid.FindResource(template) };
+        new UnwrappedColumn { CellTemplate = (DataTemplate)grid.FindResource(template) };
 
     private static DataGridColumn Written(
         FrameworkElement grid, Column column, string cellStyle, string? headerStyle)
