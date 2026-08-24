@@ -348,42 +348,6 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Moves the selection to the next entry beginning with a character, and says whether it moved.
-    ///
-    /// Apart from the handler for the same reason <see cref="Act"/> is: the half that can be
-    /// checked should not live inside the half that cannot. What it returns is the part that is
-    /// easy to get wrong - a press marked handled by something that did nothing is a press that
-    /// silently stops working for whatever needed it next.
-    /// </summary>
-    internal bool JumpTo(char? letter)
-    {
-        if (letter is null)
-        {
-            return false;
-        }
-
-        // The grid's own order, not the model's. Once a column can be sorted they are two
-        // different sequences, and the one somebody is looking at is this one.
-        var row = ViewModels.RowList.NextStartingWith(
-            [.. Entries.Items.Cast<ViewModels.EntryRow>()],
-            Entries.SelectedItem as ViewModels.EntryRow,
-            letter.Value);
-
-        if (row is null)
-        {
-            return false;
-        }
-
-        // The grid first, then the model, then the view. Setting the grid's selection is what
-        // raises the change that hands the row to the model everywhere else in this window, so
-        // doing it here keeps one path rather than two that can disagree.
-        Entries.SelectedItem = row;
-        Entries.ScrollIntoView(row);
-
-        return true;
-    }
-
-    /// <summary>
     /// Carries out one shortcut, and says whether it did anything.
     ///
     /// <b>Apart from the handler so that it can be checked at all</b> - a handler the framework
