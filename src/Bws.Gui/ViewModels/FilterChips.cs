@@ -188,19 +188,11 @@ public sealed class FilterGroup
 public sealed class FilterBar : Observable
 {
     private readonly IReadOnlyList<FilterChip> _chips;
-    private readonly FilterChip _drivers;
 
     internal FilterBar(Func<string> read, Action<string> write)
     {
         Groups = FilterChips.Grouped(read, write);
         _chips = [.. Groups.SelectMany(group => group.Chips)];
-
-        // Found by what it stands for rather than by its position, so reordering the row cannot
-        // silently point the named switch at a different filter.
-        _drivers = _chips.Single(chip =>
-            chip.Field == FilterChips.DriverField
-            && chip.Value == FilterChips.DriverValue
-            && chip.Negated);
     }
 
     /// <summary>The chips, in the order they are shown.</summary>
@@ -208,21 +200,6 @@ public sealed class FilterBar : Observable
 
     /// <summary>The same chips, in the facets they belong to. What the window draws.</summary>
     public IReadOnlyList<FilterGroup> Groups { get; }
-
-    /// <summary>
-    /// Whether kernel drivers are in the list. <c>A7</c>, which had a name before <c>A5</c> had
-    /// chips - so it keeps the name and stops being a second implementation.
-    ///
-    /// <b>A view over one chip, and that is a deletion rather than an indirection.</b> The switch
-    /// read the query for a member and wrote the member into the query, which is the whole of
-    /// what a chip does. The sense is inverted because the control says "show" and the member
-    /// says "hide", and that is a label rather than a rule.
-    /// </summary>
-    public bool ShowDrivers
-    {
-        get => !_drivers.IsOn;
-        set => _drivers.IsOn = !value;
-    }
 
     /// <summary>
     /// Asks every chip to look at the query again.
@@ -238,43 +215,11 @@ public sealed class FilterBar : Observable
         {
             chip.Rethink();
         }
-
-        Raise(nameof(ShowDrivers));
     }
 }
 
 internal static class FilterChips
 {
-    /// <summary>The field and value the named drivers switch stands for, spelled once.</summary>
-    internal const string DriverField = "type";
-
-    internal const string DriverValue = "driver";
-
-    /// <summary>
-    /// What the box says before anybody types: kernel drivers hidden - owner's decision, 2026-08-13.
-    ///
-    /// <b>Because <c>services.msc</c> does, and that is the tool people will compare this
-    /// against.</b> On this machine drivers are 470 of 810 entries, so a window that shows them all
-    /// opens with more than half its list being things almost nobody came to look at.
-    ///
-    /// <b>AS A MEMBER OF THE QUERY RATHER THAN AS A HIDDEN DEFAULT, and that is the decision rather
-    /// than the implementation.</b> `docs/07` settled it once already, by the owner: the drivers
-    /// switch IS this member and is not a state beside the query. So the window opens with the
-    /// member visible in the box - the chip is lit, the count says how many were held back, and
-    /// Escape clears it exactly like anything else somebody typed. A default living anywhere else
-    /// would be a filter nothing on screen admits to, which is rule 8 broken by the first thing a
-    /// person sees.
-    ///
-    /// <b>What this costs, said rather than discovered:</b> the window no longer opens on the whole
-    /// machine, so every count a person compares against <c>sc query</c> is a count of services.
-    /// One click on the chip, or one Escape, gives back the full listing - and the box says which
-    /// of the two they are looking at.
-    ///
-    /// Composed rather than spelled, so the one place that decides how a member is written stays
-    /// the one place.
-    /// </summary>
-    internal static string OpeningQuery => QueryMembers.Member(DriverField, DriverValue, negated: true);
-
     /// <summary>
     /// The chips, in the facets they belong to and in the order they are shown.
     ///
@@ -386,19 +331,17 @@ internal static class FilterChips
             // "any" is the language's reserved word for "this was read and there is something in
             // it", so this asks for entries that have a trigger at all rather than one of the
             // eleven kinds.
-            new FilterChip("gui.filter.triggered", "trigger", QueryFields.Any, negated: false, read, write),
+            new FilterChip("gui.filter.triggered", "trigger", QueryFields.Any, negated: false, read, write)
 
-
-            // THE ONE THAT REPLACES A CONTROL RATHER THAN ADDING ONE. The drivers switch was a
-            // checkbox beside the search box with its own text-editing helpers, and `docs/11`
-            // complaint 7 left the grouping of that row deliberately unfinished, because `A5` was
-            // going to arrive and rewrite it. It has.
+            // THE DRIVERS CHIP STOOD HERE UNTIL 2026-08-19 AND IS NOW THE SCOPE SWITCH - owner's
+            // decision. The comment it left behind said the right thing and then waited a week for
+            // somebody to act on it: "a segmented services / drivers / all control is an IA change
+            // rather than a grouping. Named, not smuggled." It has been named and it has arrived.
             //
-            // It sits here rather than in a scope control of its own, and that is a smaller answer
-            // than the UI document asked for. Its argument - that scope is not a facet - is real,
-            // but this chip IS a query member like every other one, and a segmented services /
-            // drivers / all control is an IA change rather than a grouping. Named, not smuggled.
-            new FilterChip("gui.filter.hideDrivers", DriverField, DriverValue, negated: true, read, write)
+            // WHAT IS GONE WITH IT is the one property of the old arrangement worth mourning: while
+            // the switch was a chip it could not disagree with the box, because it WAS the box.
+            // Scope has state now, so it can - see ScopeChoice, which carries that cost and what is
+            // done about it. `docs/07` part 429 has been rewritten rather than left contradicted.
         ])
     ];
 }

@@ -141,22 +141,7 @@ public partial class MainWindow : Window
 
         DataContext = _model;
 
-        // THE KEPT LAYOUT, BEFORE THE GRID HAS A SINGLE COLUMN - which columns are on, in what
-        // order, how wide. A file that is unreadable, stale or from another build is reconciled
-        // into something usable first, and whatever could not be honoured is said out loud.
-        var kept = new KeptColumns(preferences);
-
-        _columns.Follow(kept.Plan);
-
-        // BEFORE ANY ROW EXISTS, and the grid has no columns at all until this line runs. There
-        // are eighteen of them and twelve are off, which is a list somebody chooses from rather
-        // than a list written out - see ListColumns.
-        if (kept.Trouble(ListColumns.Fill(Entries, _columns, kept.Plan)) is { } trouble)
-        {
-            _model.Says.AboutTheLayout(trouble);
-        }
-
-        kept.Watch(this, Entries, _columns, _model.Says);
+        Arrange(preferences);
 
         // SET RATHER THAN BOUND, and that is the same trap the column headers fell into: a menu
         // hangs off a Popup, which is not in the visual tree, so what it inherits is a question
@@ -200,10 +185,14 @@ public partial class MainWindow : Window
         // would have stopped refreshing itself permanently, quietly, from the first keystroke.
         _typing.Tick += (_, _) => _typing.Stop();
 
-        // Wired here rather than in the markup because MainWindow.xaml stands exactly on the markup
-        // ceiling - editing an attribute costs nothing, adding one would cost a seam. The whole
-        // argument, including the bug the first version of this shipped, is at AfterTyping.
-        QueryBox.TextChanged += QueryTyped;
+        // Wired here rather than in the markup, and the reason CHANGED when the field moved out.
+        // It used to be the markup ceiling - MainWindow.xaml stood exactly on it, so editing an
+        // attribute cost nothing and adding one cost a seam. The seam has since been taken and the
+        // ceiling is no longer the argument. What remains is the better one: this handler exists to
+        // keep a once-a-second reading of the machine off somebody's keystrokes, which is a fact
+        // about the WINDOW, and SearchRow knows nothing about readings. The whole argument,
+        // including the bug the first version of this shipped, is at AfterTyping.
+        Search.Box.TextChanged += QueryTyped;
 
         // After the window is up, not before. Reading the manager takes about half a second
         // over 810 entries, and doing it in the constructor means the window appears already
@@ -411,8 +400,8 @@ public partial class MainWindow : Window
                 // Selected, not just focused. Ctrl+F in every other program starts a new search
                 // rather than appending to the last one, and a person who wanted to keep the old
                 // text still has it - one key press away, unselected by typing nothing.
-                QueryBox.Focus();
-                QueryBox.SelectAll();
+                Search.Box.Focus();
+                Search.Box.SelectAll();
 
                 return true;
 

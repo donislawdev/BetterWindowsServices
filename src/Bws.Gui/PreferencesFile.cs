@@ -94,7 +94,7 @@ internal sealed class PreferencesFile
             return new LayoutReading { Unreadable = problem.Message };
         }
 
-        var reading = ColumnLayout.Read(content);
+        var reading = ColumnLayouts.Read(content);
 
         return reading.Unreadable is null ? reading : reading with { MovedAside = Aside() };
     }
@@ -107,7 +107,7 @@ internal sealed class PreferencesFile
     /// administrator locked down, a disk that is full - and none of them is the window falling
     /// over while somebody is using it.
     /// </summary>
-    internal string? Write(ColumnLayout layout)
+    internal string? Write(ColumnLayouts layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
 

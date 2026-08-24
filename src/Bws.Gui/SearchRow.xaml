@@ -1,0 +1,117 @@
+<UserControl x:Class="Bws.Gui.SearchRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHAT THE WINDOW IS ASKED - the one field, and the count that answers it. It stood in
+        MainWindow.xaml until the scope switch arrived, and it moved for the same reason FilterRow
+        moved before it: that file was standing exactly on the markup ceiling, so the next thing to
+        go in needed something else to come out first.
+
+        THE SEAM IS A SUBJECT RATHER THAN A LINE COUNT, which is the rule FilterRow set. This is the
+        QUESTION and the ANSWER TO IT - a field somebody types into and the line saying how many
+        entries came back. The scope switch above it is a different subject: it decides WHICH LIST
+        is being asked, not what is being asked of it.
+
+        THE COUNT COMES WITH THE FIELD RATHER THAN STAYING BEHIND, and that is deliberate. Complaint
+        8 of the eleven moved this line up here to sit beside the box that changes it, because
+        beside the box is where somebody is already looking. Splitting them now would undo that with
+        a file boundary.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
+        ContentControl is BOTH BY DEFAULT - measured, not assumed. Without them this row is a tab
+        stop that does nothing, standing in front of the field it holds. `docs/10` trap 8.
+
+        One field for all three of A1, A2 and A3, which is the point rather than a saving: a person
+        types a word, learns one operator, and never moves to a different box. The same text handed
+        to the query switch of bws list picks the same entries.
+    -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="{StaticResource WidthCountLine}" />
+        </Grid.ColumnDefinitions>
+
+        <!--
+            THE SYNTAX LEFT THE PLACEHOLDER ON 2026-08-12 AND THE BUTTON THAT TOOK IT LEFT ON
+            2026-08-13 - owner's decision. It was called "Examples" and it was one click away
+            from the box those examples go into, which is one click too many for the thing this
+            window is best at. `docs/11` section 6: the language has to be discoverable from the
+            field it is typed into.
+
+            It is all in the tooltip below now, composed in QueryExamples.cs - which also argues
+            why a composed string rather than a panel of controls.
+        -->
+        <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
+            <!--
+                Updated on every keystroke rather than when the field loses focus. The
+                filtering is the feature, and a list that waits for Tab is a list that
+                does not filter as you type.
+
+                THE TOOLTIP IS THE ONLY PLACE THE QUERY LANGUAGE IS EXPLAINED, so it carries
+                what can be typed, the one piece of syntax nobody guesses - a regular expression
+                between slashes - and six questions to start from. Bound on the BOX rather than
+                inside the tooltip: a tooltip hangs off a Popup, which is not in the visual tree,
+                and what a Popup inherits is a question this window has already paid to learn.
+            -->
+            <TextBox x:Name="QueryBox"
+                     ToolTip="{Binding SearchTip}"
+                     Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+
+            <!--
+                The hint, behind the field and out of the way of the mouse. An empty box
+                teaches nobody that the language exists, and this is the one place it can
+                be shown without spending a line of the window on it.
+            -->
+            <TextBlock Text="{DynamicResource gui.search.hint}"
+                       Margin="{StaticResource PadCell}"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Text, ElementName=QueryBox}" Value="">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+
+        <!--
+            THE DRIVERS CHECKBOX STOOD HERE UNTIL 2026-08-11 AND IS NOW A CHIP IN THE ROW
+            BELOW. It was A5's promise arriving early - one control that read the query and
+            wrote into it - and A5 arrived, so it joined the others rather than sitting
+            beside them meaning the same thing in a different shape. docs/11 complaint 7
+            left the grouping of this row deliberately unfinished for exactly this moment.
+        -->
+
+        <!--
+            THE COUNT, AND IT MOVED UP HERE FROM UNDER THE LIST. Complaint 8 of the eleven:
+            it was the least visible thing on the screen - small, grey, bottom left - and it
+            is the main answer to every keystroke in the box beside it. Beside the box is
+            where somebody is already looking.
+
+            It doubles as complaint 7, "you cannot see THAT it is filtering". A narrowed list
+            reads "108 of 810 entries" rather than "810 entries", which says both that a
+            filter is on and how much it took - and the style below makes it semibold when
+            narrowed, so the difference is visible without reading the number.
+
+            Trimmed with a tooltip, because this line also carries the failure message, which
+            is the system's and can be any length. The same failure is said again in the
+            middle of the empty list, where there is room for it.
+        -->
+        <TextBlock Grid.Column="2"
+                   AutomationProperties.AutomationId="countLine"
+                   VerticalAlignment="Center"
+                   Text="{Binding Says.Status}"
+                   TextTrimming="CharacterEllipsis"
+                   ToolTip="{Binding Says.Status}"
+                   Style="{StaticResource CountLine}" />
+    </Grid>
+</UserControl>

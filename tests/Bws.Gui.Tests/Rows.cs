@@ -57,4 +57,16 @@ internal static class Rows
     {
         EntryType = EntryType.KernelDriver
     };
+
+    /// <summary>
+    /// The other kind of driver, which exists here because <c>type:driver</c> means BOTH.
+    ///
+    /// `docs/07` records that deliberately: "Windows has two kinds of driver and no word for both",
+    /// so the scope holding drivers has to hold this one too. A fixture with only kernel drivers in
+    /// it would let a scope that quietly meant <c>type:kernelDriver</c> pass every test.
+    /// </summary>
+    internal static ScmEntry FileSystemDriver(string name) => Entry(name) with
+    {
+        EntryType = EntryType.FileSystemDriver
+    };
 }

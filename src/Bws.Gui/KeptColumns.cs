@@ -27,16 +27,79 @@ internal sealed class KeptColumns
     private readonly PreferencesFile _file;
     private readonly LayoutReading _reading;
 
+    /// <summary>All three scopes' layouts, so that moving between them keeps what was not on screen.</summary>
+    private ColumnLayouts _layouts;
+
+    /// <summary>Which scope the grid is currently showing, so a write lands in the right section.</summary>
+    private EntryScope _scope = Scopes.Opening;
+
+    /// <summary>
+    /// Whether the grid is half way through being handed another scope's layout.
+    ///
+    /// <b>Without this the switch writes a corrupted file, and it is not an obvious hazard.</b>
+    /// Turning a column on or off raises <c>ColumnBar.Changed</c>, which is wired to write the file
+    /// - so applying the new scope's visibility one column at a time would harvest the grid several
+    /// times while it is neither the old layout nor the new one, and store each half-state. The
+    /// write that matters happens once, after everything has been applied.
+    /// </summary>
+    private bool _switching;
+
     internal KeptColumns(PreferencesFile file)
     {
         _file = file;
         _reading = file.Read();
+        _layouts = _reading.Layouts ?? ColumnLayouts.Default;
 
-        Plan = ColumnPlan.Of(_reading.Layout);
+        Plan = ColumnPlan.Of(_reading.Layouts?.For(_scope), _scope);
     }
 
     /// <summary>What the window should show, whatever the file turned out to be.</summary>
-    internal ColumnPlan Plan { get; }
+    internal ColumnPlan Plan { get; private set; }
+
+    /// <summary>
+    /// Moves the kept layout to another scope, and hands back what the grid should look like there.
+    ///
+    /// <b>The old scope is harvested FIRST, and that is the half that is easy to leave out.</b> The
+    /// widths somebody dragged and the order they arranged exist only on the live columns until
+    /// something reads them off - so moving away without harvesting would lose the arrangement of
+    /// the list they were just looking at, and lose it silently.
+    /// </summary>
+    internal ColumnPlan MoveTo(EntryScope scope, DataGrid grid)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+
+        _layouts = _layouts.With(_scope, ListColumns.Harvest(grid));
+        _scope = scope;
+
+        Plan = ColumnPlan.Of(_layouts.For(scope), scope);
+
+        return Plan;
+    }
+
+    /// <summary>
+    /// Holds off the writing while a scope is being applied, and writes once when it is done.
+    ///
+    /// A pair rather than a flag the window sets, because the two halves belong together and the
+    /// second one is the whole point: the file is written at the end, from a grid that has finished
+    /// becoming the thing it is supposed to be.
+    /// </summary>
+    internal void While(Action applying, DataGrid grid, Says says)
+    {
+        ArgumentNullException.ThrowIfNull(applying);
+
+        _switching = true;
+
+        try
+        {
+            applying();
+        }
+        finally
+        {
+            _switching = false;
+        }
+
+        Keep(grid, says);
+    }
 
     /// <summary>
     /// Everything the file could not give the window, in one sentence, or nothing at all.
@@ -59,6 +122,16 @@ internal sealed class KeptColumns
         {
             said.Add(Texts.Of(
                 "gui.layout.otherSchema", version, ColumnLayout.CurrentSchemaVersion));
+        }
+
+        // SAID RATHER THAN DONE QUIETLY. The file was understood and used, and the next change to a
+        // column writes it back in the current shape - so the copy on their disk stops being
+        // readable by the build they had yesterday. That is a change to somebody's file and rule 8
+        // says a change nobody was told about is the one that costs.
+        if (_reading.CarriedForwardFrom is { } older)
+        {
+            said.Add(Texts.Of(
+                "gui.layout.carriedForward", older, ColumnLayout.CurrentSchemaVersion));
         }
 
         if (_reading.Unreadable is { } why)
@@ -116,7 +189,18 @@ internal sealed class KeptColumns
     /// </summary>
     private void Keep(DataGrid grid, Says says)
     {
-        if (_file.Write(ListColumns.Harvest(grid)) is { } trouble)
+        if (_switching)
+        {
+            return;
+        }
+
+        // THE SCOPE ON SCREEN, AND THE OTHER TWO EXACTLY AS THEY WERE. Writing only what the grid
+        // shows would empty the other two sections on the first change anybody made, so somebody
+        // who arranged their drivers list would lose it by touching a column while looking at
+        // services.
+        _layouts = _layouts.With(_scope, ListColumns.Harvest(grid));
+
+        if (_file.Write(_layouts) is { } trouble)
         {
             says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
         }

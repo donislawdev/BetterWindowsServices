@@ -1,0 +1,170 @@
+<UserControl x:Class="Bws.Gui.ScopeBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHICH LIST THIS IS - services, drivers, or both. Owner's decision, 2026-08-19, and it is the
+        control `docs/11` recorded as "waiting on the owner" and FilterChips.cs named as "an IA
+        change rather than a grouping. Named, not smuggled."
+
+        ABOVE THE SEARCH BOX AND NOT BESIDE THE FILTERS, because it is not one of them. The filters
+        row narrows the list somebody is looking at. This decides WHICH LIST that is, and the
+        question underneath is then asked inside it. Standing it among the chips would say the
+        opposite of what it does, which is the mistake the drivers chip was making for a week.
+
+        ACROSS THE TOP RATHER THAN DOWN THE LEFT, and that was measured against first party guidance
+        rather than chosen. Microsoft recommends left navigation for five to ten equally important
+        categories, and where switching is NOT expected to be frequent - its stated cost is "less
+        space for other app content". Top navigation is recommended for five or fewer, and when you
+        want more room for content. There are three positions here, an administrator comparing a
+        service with the driver under it switches constantly, and this window's oldest complaint -
+        number 5 of the eleven - is about wasting horizontal space. Owner's decision, 2026-08-19,
+        after asking for the left and reading the guidance.
+
+        RadioButton RATHER THAN ToggleButton, AND IT IS ACCESSIBILITY RATHER THAN TASTE. Three
+        toggles would need the window to keep them exclusive by hand, and a screen reader would meet
+        three unrelated on-off buttons instead of one choice of three. A RadioButton carries
+        SelectionItem in the automation tree and moves under the arrow keys inside its group for
+        free. `docs/10` trap 7 is the same lesson from the other end: a window can look perfect and
+        be invisible to a reader.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
+        ContentControl is BOTH BY DEFAULT. Without them this row is a tab stop that does nothing in
+        front of the positions it holds. `docs/10` trap 8.
+    -->
+    <UserControl.Resources>
+        <!--
+            A TAB WITH A LINE UNDER IT, AND THE FIRST VERSION WAS A CHIP. That version borrowed the
+            filter chip's style whole - one BasedOn, no new brush, an argued contrast pair already
+            enforced by ContrastGuards - and it was the cheapest correct-looking thing to build. The
+            owner looked at it on 2026-08-19 and said it must not look like a chip, because that is
+            confusing. They were right and no guard in this project could have said so: 976 tests
+            pass over either version, and `docs/11` complaint 12 is exactly this shape.
+            <b>Scope is not a filter, so it must not wear a filter's clothes.</b>
+
+            WRITTEN OUT RATHER THAN BasedOn, WHICH IS TRAP 4 OF `docs/10` MET HEAD ON. Basing on the
+            library's ToggleButton style and overriding brushes is what the chip does, and it is
+            right there because it wants the library's chrome. This wants none of it - no fill, no
+            border, no corner radius - so inheriting a template and then hiding every part of it
+            would be a worse lie than replacing it. The cost is named: every state this control has
+            is now this file's job, so hover, keyboard focus and the checked mark are all below.
+
+            THE FOCUS RING IS ALWAYS THE SAME THICKNESS and only its colour changes. Turning a
+            border on at the moment somebody tabs to it would move the text by a pixel, and a row
+            that shifts under the keyboard is worse than one with no ring at all.
+
+            Transparent through x:Static, which is the idiom Cells.xaml already uses twice - a value
+            pointing at a name rather than invented in place, so ADR-23 holds. A Grid with no
+            background at all would take clicks only where the letters are.
+        -->
+        <Style x:Key="ScopePosition" TargetType="RadioButton">
+            <!--
+                Set here rather than in the template below, so that a second row of positions can
+                never be added without meeting this line and deciding whether it shares the group.
+            -->
+            <Setter Property="GroupName" Value="scope" />
+
+            <Setter Property="Margin" Value="{StaticResource MarginGroup}" />
+            <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+            <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+            <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+            <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+            <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Ring"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{x:Static media:Brushes.Transparent}"
+                                BorderThickness="{StaticResource FocusRingThickness}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <ContentPresenter Grid.Row="0"
+                                                  Margin="{StaticResource PadCell}"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"
+                                                  TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}" />
+
+                                <!--
+                                    Always here and only sometimes coloured, for the same reason the
+                                    ring keeps its thickness: a line that appears and disappears
+                                    would make the row taller and shorter as somebody clicks along
+                                    it.
+                                -->
+                                <Rectangle x:Name="Underline"
+                                           Grid.Row="1"
+                                           Height="{StaticResource HeightScopeUnderline}"
+                                           Fill="{x:Static media:Brushes.Transparent}" />
+                            </Grid>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Underline" Property="Fill" Value="{StaticResource SurfaceSelected}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                                <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+                            </Trigger>
+
+                            <!--
+                                Hover brightens the WORDS rather than filling anything, so the one
+                                filled shape in this row stays the line under the position somebody
+                                is actually on.
+                            -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                            </Trigger>
+
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource FocusRing}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!--
+        AN ItemsControl RATHER THAN THREE CONTROLS WRITTEN OUT, exactly as the filters row does it.
+        Which positions there are, in which order, and why each one is kept is decided in Scopes.cs
+        beside the reason for it - markup listing them again would be a second copy that drifts.
+
+        THE AutomationId IS ON THE ItemsControl AND NOT ON A PANEL, which this window has now paid
+        for five times: WPF builds an automation peer for controls, not for layout panels, so an
+        identifier on a StackPanel sits on an element that is not in the tree at all.
+    -->
+    <ItemsControl AutomationProperties.AutomationId="scopeSwitch"
+                  AutomationProperties.Name="{DynamicResource gui.scope.hint}"
+                  ToolTip="{DynamicResource gui.scope.hint}"
+                  ItemsSource="{Binding ScopePositions}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <!--
+                    TwoWay, and the false half is thrown away on purpose - the argument is at
+                    ScopeChoice.IsOn. A radio group tells the OUTGOING position it is unchecked
+                    before it tells the incoming one it is checked, and acting on that would mean
+                    writing a scope on the way out of one.
+                -->
+                <RadioButton Style="{StaticResource ScopePosition}"
+                             Content="{Binding Label}"
+                             IsChecked="{Binding IsOn, Mode=TwoWay}" />
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

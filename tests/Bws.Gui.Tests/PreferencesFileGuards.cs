@@ -33,9 +33,11 @@ public sealed class PreferencesFileGuards : IDisposable
     {
         var reading = Fresh().Read();
 
-        Assert.Null(reading.Layout);
+        Assert.Null(reading.Layouts);
         Assert.False(reading.WorthSaying);
-        Assert.Equal(ColumnLayout.Default.Columns, ColumnPlan.Of(reading.Layout).Layout.Columns);
+        Assert.Equal(
+            ColumnLayout.DefaultFor(EntryScope.Services).Columns,
+            ColumnPlan.Of(reading.Layouts?.Services, EntryScope.Services).Layout.Columns);
     }
 
     /// <summary>
@@ -54,11 +56,11 @@ public sealed class PreferencesFileGuards : IDisposable
                 Width: column.Id == "status" ? "444" : null))
         ]);
 
-        Assert.Null(file.Write(written));
+        Assert.Null(file.Write(ColumnLayouts.Default with { Services = written }));
 
         var read = file.Read();
 
-        Assert.Equal(written.Columns, read.Layout?.Columns);
+        Assert.Equal(written.Columns, read.Layouts?.Services.Columns);
     }
 
     /// <summary>
@@ -96,13 +98,13 @@ public sealed class PreferencesFileGuards : IDisposable
     {
         var file = Fresh();
 
-        File.WriteAllText(file.Where, ColumnLayout.Default.Render());
+        File.WriteAllText(file.Where, ColumnLayouts.Default.Render());
 
         using var held = new FileStream(file.Where, FileMode.Open, FileAccess.Read, FileShare.None);
 
         var reading = file.Read();
 
-        Assert.Null(reading.Layout);
+        Assert.Null(reading.Layouts);
         Assert.NotNull(reading.Unreadable);
     }
 
@@ -162,7 +164,7 @@ public sealed class PreferencesFileGuards : IDisposable
     {
         var file = Fresh(create: false);
 
-        Assert.Null(file.Write(ColumnLayout.Default));
+        Assert.Null(file.Write(ColumnLayouts.Default));
         Assert.True(File.Exists(file.Where));
     }
 
@@ -181,7 +183,7 @@ public sealed class PreferencesFileGuards : IDisposable
 
         File.WriteAllText(directory, "a file where the folder should be");
 
-        var trouble = new PreferencesFile(directory).Write(ColumnLayout.Default);
+        var trouble = new PreferencesFile(directory).Write(ColumnLayouts.Default);
 
         Assert.False(string.IsNullOrWhiteSpace(trouble));
     }
@@ -190,7 +192,7 @@ public sealed class PreferencesFileGuards : IDisposable
     [Fact]
     public void With_nowhere_in_the_profile_to_write_the_refusal_is_a_sentence()
     {
-        var trouble = new PreferencesFile(string.Empty).Write(ColumnLayout.Default);
+        var trouble = new PreferencesFile(string.Empty).Write(ColumnLayouts.Default);
 
         Assert.False(string.IsNullOrWhiteSpace(trouble));
         Assert.False(File.Exists(PreferencesFile.Name));
@@ -258,7 +260,7 @@ public sealed class PreferencesFileGuards : IDisposable
     {
         var file = Fresh();
 
-        Assert.Null(file.Write(ColumnLayout.Default));
+        Assert.Null(file.Write(ColumnLayouts.Default));
         Assert.Null(new KeptColumns(file).Trouble([]));
     }
 

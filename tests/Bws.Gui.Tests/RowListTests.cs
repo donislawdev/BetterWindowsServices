@@ -55,11 +55,18 @@ public sealed class RowListTests
         // After the first fill, every change has to arrive as an insert or a remove - anything
         // else and the DataGrid is being told it cannot work out what moved, which is what
         // takes the selection and the scroll position with it.
-        var machine = new LiveMachine(Entry("Spooler"), Entry("BITS"), Entry("Dhcp"));
+        // A DRIVER IS IN HERE SINCE 2026-08-19 AND IT IS NOT DECORATION. Without one, moving to the
+        // Drivers scope empties the list, and refilling an EMPTY list is allowed to reset - see
+        // RowList.Reconcile, where that shortcut is argued: an empty list has no selection and no
+        // scroll position, so there is nothing for a reset to take. This test is about the list
+        // that is already filled, so the fixture has to keep every scope non-empty or it measures
+        // the one case the rule deliberately excludes.
+        var machine = new LiveMachine(Entry("Spooler"), Entry("BITS"), Entry("Dhcp"), Rows.Driver("disk"));
         var model = new MainViewModel(machine, new SteppedClock());
 
         await model.LoadAsync();
 
+        // Three rather than four, because the window opens on services.
         Assert.Equal(3, model.Rows.Count);
 
         var resets = 0;
@@ -75,8 +82,9 @@ public sealed class RowListTests
         model.QueryText = "spool";
         model.QueryText = "status:running";
         model.QueryText = string.Empty;
-        model.ShowDrivers = false;
-        model.ShowDrivers = true;
+        model.Scope = EntryScope.Services;
+        model.Scope = EntryScope.Drivers;
+        model.Scope = EntryScope.Everything;
         await model.RefreshAsync();
         await model.LoadAsync();
 

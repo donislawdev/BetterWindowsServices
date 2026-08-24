@@ -64,6 +64,12 @@ internal static class Columns
             WidthKey = "ColumnAccount",
             Face = ColumnFace.Text,
             ShownAtFirst = true,
+
+            // Three drivers out of 472 carry one on this machine, against 312 services out of 340.
+            // Off rather than gone, because those three are a real answer somebody may be looking
+            // for - the argument in full is at Column.OffAtFirstIn.
+            OffAtFirstIn = EntryScope.Drivers,
+
             Reads = entry => CellFaces.Say(entry.Account, value => value)
         },
         new Column
@@ -73,6 +79,12 @@ internal static class Columns
             WidthKey = "ColumnProcessId",
             Face = ColumnFace.Number,
             ShownAtFirst = true,
+
+            // NOT ONE DRIVER OF 472 HAS ONE - measured, and it is a fact about what a driver IS
+            // rather than about this machine. A column that is empty in every row of a list is a
+            // column spending width on nothing.
+            OffAtFirstIn = EntryScope.Drivers,
+
             Reads = entry => CellFaces.Say(entry.ProcessId, Number),
 
             // The one column whose cell and whose order are different questions. Everything else

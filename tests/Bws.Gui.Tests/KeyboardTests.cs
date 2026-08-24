@@ -66,6 +66,10 @@ public sealed class KeyboardTests
 
         await model.LoadAsync();
 
+        // Both kinds are on screen, so what comes back after Escape is the whole of what the scope
+        // holds rather than half of it - the window opens on services, and this test is about the
+        // question rather than about which list is showing.
+        model.Scope = EntryScope.Everything;
         model.QueryText = "name:spooler";
 
         Assert.Single(model.Rows);
@@ -88,35 +92,47 @@ public sealed class KeyboardTests
 
         await model.LoadAsync();
 
-        // The window opens with kernel drivers hidden, which is a query like any other - so the
-        // first clear has something to do and the second is the one this test is about.
-        Assert.True(model.ClearQuery());
+        // THE BOX OPENS EMPTY SINCE 2026-08-19, so this is true from the very first press. It used
+        // to open carrying !type:driver, and the first clear had that to do - a step this test had
+        // to take before it could ask its own question.
+        Assert.False(model.ClearQuery());
 
+        // And again after something really was typed and taken back, which is the state a person
+        // arrives in rather than the one the window starts in.
+        model.QueryText = "spool";
+
+        Assert.True(model.ClearQuery());
         Assert.False(model.ClearQuery());
     }
 
     /// <summary>
-    /// Clearing the box shows drivers again, because the exclusion has never lived anywhere else.
+    /// Clearing the box leaves the window on the list it was on.
     ///
-    /// The switch reads the query rather than holding a state of its own - `docs/07`, owner's
-    /// decision - so this is that promise being kept rather than a side effect to be tidied up.
+    /// <b>THIS ASSERTS THE REVERSE OF WHAT IT DID UNTIL 2026-08-19, and both are owner's decisions.
+    /// It was called Clearing_the_query_brings_the_drivers_switch_back_with_it</b>, and it was
+    /// keeping a real promise: while hiding drivers was a member of the query, emptying the query
+    /// had to give them back, or the box and the list would have said two different things.
+    ///
+    /// Scope is a state beside the query now, so Escape empties the QUESTION and nothing else -
+    /// which is what a person pressing it means. Throwing away which list they were looking at as
+    /// well would be one key press doing two things, and the second one silently.
     /// </summary>
     [Fact]
-    public async Task Clearing_the_query_brings_the_drivers_switch_back_with_it()
+    public async Task Clearing_the_query_leaves_the_scope_where_it_was()
     {
         var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("beep")), new SteppedClock());
 
         await model.LoadAsync();
 
-        model.ShowDrivers = false;
+        model.Scope = EntryScope.Drivers;
+        model.QueryText = "beep";
 
-        Assert.False(model.ShowDrivers);
         Assert.Single(model.Rows);
 
-        model.ClearQuery();
+        Assert.True(model.ClearQuery());
 
-        Assert.True(model.ShowDrivers);
-        Assert.Equal(2, model.Rows.Count);
+        Assert.Equal(EntryScope.Drivers, model.Scope);
+        Assert.Equal(["beep"], model.Rows.Select(row => row.ServiceName));
     }
 
     /// <summary>

@@ -217,6 +217,19 @@
     <Thickness x:Key="MarginGroup">0,0,20,0</Thickness>
 
     <!--
+        THE LINE UNDER THE SCOPE POSITION SOMEBODY IS ON, 2026-08-19. Three rather than one, because
+        one pixel at 150% scaling is a hairline that reads as an artefact rather than as a mark -
+        and this is the only thing on screen saying which of the two lists is showing.
+
+        A LINE RATHER THAN A FILL, and that was the owner's correction on the day it was built. The
+        first version borrowed the filter chip's appearance, which has an argued contrast pair and
+        was the least invention - and it was wrong for a reason no guard could see: a position that
+        looks exactly like a chip reads as another filter, and scope is not a filter. Fluent marks
+        the selected item of a top navigation with an indicator line for the same reason.
+    -->
+    <system:Double x:Key="HeightScopeUnderline">3</system:Double>
+
+    <!--
         THE GAP ABOVE A SECTION HEADING, 2026-08-19, and it exists because MarginGroup has NO
         VERTICAL COMPONENT AT ALL - it is 0,0,20,0, a right margin. Every heading in the plan
         panel used it and every one of them therefore sat flush against the sentence above,

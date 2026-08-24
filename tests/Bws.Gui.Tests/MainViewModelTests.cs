@@ -144,83 +144,6 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public async Task The_drivers_switch_writes_its_member_into_the_box()
-    {
-        var model = await Loaded(Entry("Spooler"), Driver("disk"));
-
-        Assert.True(model.ShowDrivers);
-        Assert.Equal(2, model.Rows.Count);
-
-        model.ShowDrivers = false;
-
-        // Visible, in the box, in the language. This is A5's promise arriving early: what was
-        // clicked is what can be read, and what can be read can be pasted into a terminal.
-        Assert.Equal("!type:driver", model.QueryText);
-        Assert.Equal(["Spooler"], model.Rows.Select(row => row.ServiceName));
-
-        model.ShowDrivers = true;
-
-        Assert.Equal(string.Empty, model.QueryText);
-        Assert.Equal(2, model.Rows.Count);
-    }
-
-    [Fact]
-    public async Task The_switch_keeps_the_rest_of_the_query_when_it_writes_and_when_it_takes_back()
-    {
-        var model = await Loaded(Entry("Spooler"), Driver("disk"));
-
-        model.QueryText = "status:running";
-        model.ShowDrivers = false;
-
-        Assert.Equal("status:running !type:driver", model.QueryText);
-
-        model.ShowDrivers = true;
-
-        Assert.Equal("status:running", model.QueryText);
-    }
-
-    [Fact]
-    public async Task Writing_the_exclusion_by_hand_moves_the_switch()
-    {
-        // The trip in the other direction, which is what stops the switch and the box from
-        // telling a person two different things.
-        var model = await Loaded(Entry("Spooler"), Driver("disk"));
-
-        model.QueryText = "!TYPE:Driver";
-
-        Assert.False(model.ShowDrivers);
-    }
-
-    [Fact]
-    public async Task The_switch_undoes_the_exclusion_wherever_somebody_put_it()
-    {
-        // THIS TEST PINNED THE OPPOSITE UNTIL 2026-08-11 AND THE LIMIT IT PINNED IS GONE.
-        //
-        // It was called The_switch_will_not_undo_what_it_could_not_have_written, and it was
-        // honest: the switch appended at the end and took back from the end, because cutting a
-        // member out of the middle of text that may hold quotes is the scanner's job, and a
-        // second scanner living in the window would drift from the real one in silence. So
-        // somebody who put the exclusion first kept it, and the switch said so by going back to
-        // where it was rather than pretending.
-        //
-        // The reasoning was right and the conclusion only held while nothing did the finding.
-        // `A5` needs eight chips that can each remove their own member from anywhere in the
-        // line, so QueryMembers now does it in the language - and this switch gets it for free.
-        // Kept as a test rather than deleted, because "the limit is gone" is worth as much as
-        // the limit was.
-        var model = await Loaded(Entry("Spooler"), Driver("disk"));
-
-        model.QueryText = "!type:driver status:running";
-
-        Assert.False(model.ShowDrivers);
-
-        model.ShowDrivers = true;
-
-        Assert.Equal("status:running", model.QueryText);
-        Assert.True(model.ShowDrivers);
-    }
-
-    [Fact]
     public async Task With_the_regex_switch_on_a_bare_word_is_an_expression()
     {
         var model = await Loaded(Entry("Spooler"), Entry("SpoolerAgent"), Entry("Winmgmt"));
@@ -614,8 +537,9 @@ public sealed class MainViewModelTests
             ("type a query", () => { model.QueryText = "status:running"; return Task.CompletedTask; }),
             ("type a broken query", () => { model.QueryText = "status:runing"; return Task.CompletedTask; }),
             ("type nothing", () => { model.QueryText = string.Empty; return Task.CompletedTask; }),
-            ("hide drivers", () => { model.ShowDrivers = false; return Task.CompletedTask; }),
-            ("show drivers", () => { model.ShowDrivers = true; return Task.CompletedTask; }),
+            ("go to services", () => { model.Scope = EntryScope.Services; return Task.CompletedTask; }),
+            ("go to drivers", () => { model.Scope = EntryScope.Drivers; return Task.CompletedTask; }),
+            ("go to everything", () => { model.Scope = EntryScope.Everything; return Task.CompletedTask; }),
             ("type an expression", () => { model.QueryText = "/^s/"; return Task.CompletedTask; }),
             ("type plain text again", () => { model.QueryText = "spool"; return Task.CompletedTask; }),
             ("start using the list", () => { model.Interacting = true; return Task.CompletedTask; }),
@@ -717,14 +641,19 @@ public sealed class MainViewModelTests
         await Loaded(new LiveMachine(entries));
 
     /// <summary>
-    /// A window that has read a machine, with the box emptied.
+    /// A window that has read a machine, with the box emptied and the scope opened out.
     ///
     /// <b>Emptied since 2026-08-13, when the window started opening with kernel drivers hidden</b> -
-    /// <see cref="FilterChips.OpeningQuery"/>, owner's decision. Every test reached through here is
-    /// about the list, the reading or a query it sets itself, and none of them is about what the
-    /// window opens with. That one claim is asserted on its own in
-    /// <c>FilterChipTests.The_window_opens_with_kernel_drivers_hidden</c>, so a change to the
-    /// decision goes red in one place rather than in thirty about something else.
+    /// owner's decision. Every test reached through here is about the list, the reading or a query
+    /// it sets itself, and none of them is about what the window opens with. That one claim is
+    /// asserted on its own, so a change to the decision goes red in one place rather than in thirty
+    /// about something else.
+    ///
+    /// <b>AND THE SCOPE IS OPENED OUT SINCE 2026-08-19, WHICH IS THE SAME SENTENCE ABOUT A DIFFERENT
+    /// MECHANISM.</b> Hiding drivers used to be text, so emptying the box was enough to neutralise
+    /// it. It is a scope now, and a helper that emptied only the box would leave every test through
+    /// here quietly looking at services alone - a driver handed to <c>Loaded</c> would vanish, and
+    /// the test would fail somewhere far from the reason.
     /// </summary>
     private static async Task<MainViewModel> Loaded(LiveMachine machine)
     {
@@ -733,6 +662,7 @@ public sealed class MainViewModelTests
         await model.LoadAsync();
 
         model.ClearQuery();
+        model.Scope = EntryScope.Everything;
 
         return model;
     }
@@ -744,6 +674,8 @@ public sealed class MainViewModelTests
     private static ScmEntry Stopped(string name) => Rows.Stopped(name);
 
     private static ScmEntry Driver(string name) => Rows.Driver(name);
+
+    private static ScmEntry FileSystemDriver(string name) => Rows.FileSystemDriver(name);
 
     private static ScmEntry Entry(string name) => Rows.Entry(name);
 }

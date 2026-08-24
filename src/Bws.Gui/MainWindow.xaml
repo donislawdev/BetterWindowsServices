@@ -41,6 +41,13 @@
 
     <Grid Margin="{StaticResource PadPanel}">
         <Grid.RowDefinitions>
+            <!--
+                WHICH LIST THIS IS, and it stands above the question rather than beside it because
+                the question is asked INSIDE it - owner's decision, 2026-08-19. Auto, like every
+                other band over the list: what the window is for is the rows.
+            -->
+            <RowDefinition Height="Auto" />
+
             <RowDefinition Height="Auto" />
 
             <!--
@@ -67,99 +74,28 @@
         </Grid.ColumnDefinitions>
 
         <!--
-            One field for all three of A1, A2 and A3, which is the point rather than a saving:
-            a person types a word, learns one operator, and never moves to a different box.
-            The same text handed to the query switch of bws list picks the same entries.
-
-            Both switches sit beside it because both are about how the text is read, and one
-            of them writes into it.
+            WHICH LIST THE WINDOW IS SHOWING - services, drivers, or both. What it holds, why it is
+            across the top rather than down the left, and why the positions are radio buttons is
+            argued at the head of ScopeBar.xaml.
         -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="{StaticResource MarginBelowSearch}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="{StaticResource WidthCountLine}" />
-            </Grid.ColumnDefinitions>
+        <local:ScopeBar Grid.Row="0"
+                        Grid.ColumnSpan="2"
+                        x:Name="Scope"
+                        Margin="{StaticResource MarginBelowSearch}" />
 
-            <!--
-                THE SYNTAX LEFT THE PLACEHOLDER ON 2026-08-12 AND THE BUTTON THAT TOOK IT LEFT ON
-                2026-08-13 - owner's decision. It was called "Examples" and it was one click away
-                from the box those examples go into, which is one click too many for the thing this
-                window is best at. `docs/11` section 6: the language has to be discoverable from the
-                field it is typed into.
+        <!--
+            WHAT THE WINDOW IS ASKED, in its own file since the scope switch arrived - the field and
+            the count that answers it. What it holds and why is argued at the head of SearchRow.xaml.
 
-                It is all in the tooltip below now, composed in QueryExamples.cs - which also argues
-                why a composed string rather than a panel of controls.
-            -->
-            <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
-                <!--
-                    Updated on every keystroke rather than when the field loses focus. The
-                    filtering is the feature, and a list that waits for Tab is a list that
-                    does not filter as you type.
-
-                    THE TOOLTIP IS THE ONLY PLACE THE QUERY LANGUAGE IS EXPLAINED, so it carries
-                    what can be typed, the one piece of syntax nobody guesses - a regular expression
-                    between slashes - and six questions to start from. Bound on the BOX rather than
-                    inside the tooltip: a tooltip hangs off a Popup, which is not in the visual tree,
-                    and what a Popup inherits is a question this window has already paid to learn.
-                -->
-                <TextBox x:Name="QueryBox"
-                         ToolTip="{Binding SearchTip}"
-                         Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
-
-                <!--
-                    The hint, behind the field and out of the way of the mouse. An empty box
-                    teaches nobody that the language exists, and this is the one place it can
-                    be shown without spending a line of the window on it.
-                -->
-                <TextBlock Text="{DynamicResource gui.search.hint}"
-                           Margin="{StaticResource PadCell}"
-                           VerticalAlignment="Center"
-                           IsHitTestVisible="False">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Text, ElementName=QueryBox}" Value="">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Grid>
-
-            <!--
-                THE DRIVERS CHECKBOX STOOD HERE UNTIL 2026-08-11 AND IS NOW A CHIP IN THE ROW
-                BELOW. It was A5's promise arriving early - one control that read the query and
-                wrote into it - and A5 arrived, so it joined the others rather than sitting
-                beside them meaning the same thing in a different shape. docs/11 complaint 7
-                left the grouping of this row deliberately unfinished for exactly this moment.
-            -->
-
-            <!--
-                THE COUNT, AND IT MOVED UP HERE FROM UNDER THE LIST. Complaint 8 of the eleven:
-                it was the least visible thing on the screen - small, grey, bottom left - and it
-                is the main answer to every keystroke in the box beside it. Beside the box is
-                where somebody is already looking.
-
-                It doubles as complaint 7, "you cannot see THAT it is filtering". A narrowed list
-                reads "108 of 810 entries" rather than "810 entries", which says both that a
-                filter is on and how much it took - and the style below makes it semibold when
-                narrowed, so the difference is visible without reading the number.
-
-                Trimmed with a tooltip, because this line also carries the failure message, which
-                is the system's and can be any length. The same failure is said again in the
-                middle of the empty list, where there is room for it.
-            -->
-            <TextBlock Grid.Column="2"
-                       AutomationProperties.AutomationId="countLine"
-                       VerticalAlignment="Center"
-                       Text="{Binding Says.Status}"
-                       TextTrimming="CharacterEllipsis"
-                       ToolTip="{Binding Says.Status}"
-                       Style="{StaticResource CountLine}" />
-        </Grid>
+            IT MOVED BECAUSE THIS FILE WAS STANDING ON THE MARKUP CEILING, and that is worth saying
+            plainly rather than dressing up: at 397 lines against a ceiling of 397, the next thing to
+            go in needed something else to come out. The same thing happened to FilterRow on
+            2026-08-13, and the seam was chosen the same way - by subject, not by line count.
+        -->
+        <local:SearchRow Grid.Row="1"
+                         Grid.ColumnSpan="2"
+                         x:Name="Search"
+                         Margin="{StaticResource MarginBelowSearch}" />
 
         <!--
             HOW THE WINDOW ASKS, in its own file since 2026-08-13 - backlog 182 for the seam and 185
@@ -174,7 +110,7 @@
             theme, which cost a lookup by name, a refusal and a handler in the window for one
             button.
         -->
-        <local:FilterRow Grid.Row="1"
+        <local:FilterRow Grid.Row="2"
                          Grid.ColumnSpan="2"
                          x:Name="Filters"
                          Margin="{StaticResource MarginBelowSearch}" />
@@ -233,7 +169,7 @@
             together. It is a separate experiment with its own look, not a third attribute smuggled
             in beside two that are about scrolling.
         -->
-        <DataGrid Grid.Row="2"
+        <DataGrid Grid.Row="3"
                   x:Name="Entries"
                   MouseEnter="ListEngaged"
                   MouseLeave="ListReleased"
@@ -332,7 +268,7 @@
             Bound to what the window SAYS rather than to the whole model, so nothing in it can
             reach the list, the query or the reading.
         -->
-        <local:EmptyState Grid.Row="2" x:Name="ListEmptyState" DataContext="{Binding Says}" />
+        <local:EmptyState Grid.Row="3" x:Name="ListEmptyState" DataContext="{Binding Says}" />
 
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
@@ -347,7 +283,7 @@
             Bound to the chosen entry rather than to the whole model, so nothing in the panel can
             reach the list, the query or the reading. What it may say is exactly what Chosen holds.
         -->
-        <local:DetailsView Grid.Row="2"
+        <local:DetailsView Grid.Row="3"
                            Grid.Column="1"
                            x:Name="DetailsPanel"
                            DataContext="{Binding Chosen}" />
@@ -357,7 +293,7 @@
             mutually exclusive with it - the window closes one when it opens the other. Why that is
             right, and why this file is a UserControl, are at the head of PlanView.xaml.
         -->
-        <local:PlanView Grid.Row="2"
+        <local:PlanView Grid.Row="3"
                         Grid.Column="1"
                         x:Name="PlanPanel"
                         DataContext="{Binding Planned}" />
@@ -367,7 +303,7 @@
             - complaint 8 - and what is left here is what a result has to ADMIT about itself and
             what is wrong with the question, which are two different things and stay apart.
         -->
-        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
 
             <TextBlock Text="{Binding Says.Notice}" TextWrapping="Wrap">
                 <TextBlock.Style>

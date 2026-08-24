@@ -98,29 +98,44 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
         Assert.NotEmpty(fromWindow);
     }
 
-    [Fact]
-    public async Task The_drivers_switch_selects_what_the_written_member_selects()
+    [Theory]
+    [InlineData(EntryScope.Services, "!type:driver")]
+    [InlineData(EntryScope.Drivers, "type:driver")]
+    public async Task Each_scope_selects_what_the_written_member_selects(EntryScope scope, string member)
     {
-        // The switch is the member, so the two have to be the same thing rather than merely
-        // agree - owner's decision, 2026-08-02.
+        // THE SWITCH USED TO BE THE MEMBER, AND SINCE 2026-08-19 IT MERELY HAS TO AGREE WITH IT -
+        // which makes this test matter more rather than less. While the drivers switch wrote
+        // !type:driver into the box there was nothing to compare: the window and the terminal were
+        // handed the same string, so they could not differ. Scope is a state now, and the window
+        // composes a query from it that the person never sees. If that composition and the language
+        // ever part company, THIS is where it shows - and nothing else would notice.
+        //
+        // Both scopes, because type:driver covers kernel and file system drivers deliberately
+        // (`docs/07`), so a scope that quietly meant one of them would still pass on the services
+        // half alone.
         var model = await Load();
-        var everything = Names(model);
+        var everything = Names(model, everything: true);
 
-        model.ShowDrivers = false;
+        model.Scope = EntryScope.Everything;
 
-        Assert.Equal("!type:driver", model.QueryText);
+        var whole = Names(model);
+
+        model.Scope = scope;
+
+        // The box is untouched by the switch, which is the other half of the decision.
+        Assert.Equal(string.Empty, model.QueryText);
 
         var afterSwitch = Names(model);
-        var terminal = Terminal("!type:driver");
+        var terminal = Terminal(member);
         var both = everything.Intersect(terminal.Everything, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
 
         Assert.Equal(
             terminal.Selected.Where(both.Contains).OrderBy(name => name, StringComparer.Ordinal),
             afterSwitch.Where(both.Contains).OrderBy(name => name, StringComparer.Ordinal));
 
-        // And it really removed something, so the check is not passing on a machine with no
-        // drivers on it.
-        Assert.True(afterSwitch.Count < everything.Count);
+        // And it really left something out, so the check is not passing on a machine that has none
+        // of one kind.
+        Assert.True(afterSwitch.Count < whole.Count);
     }
 
     [Fact]
@@ -268,6 +283,17 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
     /// member the terminal was never given is a window answering a different question, and the
     /// comparison would be between two different queries while looking like a parity failure.
     /// </summary>
+    /// <summary>
+    /// A window that has read the real machine, holding nothing back.
+    ///
+    /// <b>THE SCOPE IS OPENED OUT AND THAT IS LOAD BEARING FOR EVERY TEST IN THIS FILE.</b> The
+    /// terminal has no scope - <c>bws list</c> shows the whole manager - so a window left on
+    /// Services would be compared against a terminal seeing 812 entries while it saw 340. The
+    /// comparison intersects the two listings first, so it would not have gone RED: it would have
+    /// quietly stopped checking drivers, which is more than half of this machine, and reported
+    /// nothing. Silent narrowing of what a test covers is the failure this file exists to catch,
+    /// arriving in the file itself.
+    /// </summary>
     private static async Task<MainViewModel> Load()
     {
         var model = new MainViewModel(new WindowsScmCatalog(), new SystemClock());
@@ -275,6 +301,7 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
         await model.LoadAsync();
 
         model.ClearQuery();
+        model.Scope = EntryScope.Everything;
 
         Assert.NotEmpty(model.Rows);
 

@@ -42,7 +42,7 @@ public sealed class FilterRowGuards
 
         WpfHost.Settled();
 
-        var tip = WpfHost.On(() => window.QueryBox.ToolTip) as string;
+        var tip = WpfHost.On(() => window.Search.Box.ToolTip) as string;
 
         Assert.False(string.IsNullOrWhiteSpace(tip), "The search box says nothing about what goes in it.");
 

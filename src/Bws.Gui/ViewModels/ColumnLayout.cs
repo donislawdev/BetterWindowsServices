@@ -43,12 +43,28 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
     /// Spelled the same as the snapshot's own, because they answer the same question and a reader
     /// who has met one should not have to learn a second word for it.
     /// </summary>
-    internal const int CurrentSchemaVersion = 1;
+    /// <summary>
+    /// TWO SINCE 2026-08-19, because the file now keeps one layout per scope.
+    ///
+    /// <b>The shape grew rather than changed, which is what makes the older file readable.</b> The
+    /// <c>columns</c> array is still there, still means exactly what it meant, and is still the
+    /// first thing in the file - what joined it are two siblings. A version 1 file IS a version 2
+    /// file that says nothing about drivers or about both at once.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 2;
 
-    /// <summary>What the window shows before anybody has ever chosen anything.</summary>
-    internal static ColumnLayout Default { get; } =
+    /// <summary>The oldest schema this build reads and carries forward. See <see cref="Read"/>.</summary>
+    internal const int OldestSchemaVersionRead = 1;
+
+    /// <summary>
+    /// What a scope shows before anybody has ever chosen anything.
+    ///
+    /// <b>Per scope since 2026-08-19</b>, because a column that is empty in one list is not empty
+    /// in the other - <see cref="Column.OffAtFirstIn"/> carries the measurement.
+    /// </summary>
+    internal static ColumnLayout DefaultFor(EntryScope scope) =>
         new([.. ViewModels.Columns.All.Select(column =>
-            new KeptColumn(column.Id, column.ShownAtFirst, Width: null))]);
+            new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null))]);
 
     private static readonly JsonSerializerOptions Shape = new()
     {
@@ -71,7 +87,7 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
     /// A newline at the end, because a file without one shows its last line as changed the first
     /// time anybody appends to it.
     /// </summary>
-    internal string Render()
+    internal JsonArray Render()
     {
         var columns = new JsonArray();
 
@@ -91,13 +107,7 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
             columns.Add(entry);
         }
 
-        var tree = new JsonObject
-        {
-            ["columns"] = columns,
-            ["schemaVersion"] = CurrentSchemaVersion
-        };
-
-        return tree.ToJsonString(Shape) + "\n";
+        return columns;
     }
 
     /// <summary>
@@ -113,46 +123,7 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
     /// of deserialising into the record. <c>GetValue&lt;int&gt;</c> on a string throws, and a
     /// layout file is exactly the document where a string where a number belongs is ordinary.
     /// </summary>
-    internal static LayoutReading Read(string content)
-    {
-        JsonNode? tree;
-
-        try
-        {
-            tree = JsonNode.Parse(content);
-        }
-        catch (JsonException problem)
-        {
-            return new LayoutReading { Unreadable = problem.Message };
-        }
-
-        if (tree is not JsonObject root)
-        {
-            return new LayoutReading { Unreadable = "The file does not hold a layout." };
-        }
-
-        if (root["schemaVersion"] is not JsonValue stated || !stated.TryGetValue<int>(out var version))
-        {
-            return new LayoutReading { Unreadable = "The file does not say which schema it uses." };
-        }
-
-        if (version != CurrentSchemaVersion)
-        {
-            // NOT AN ERROR AND NOT QUARANTINED, and the difference matters: a file this build does
-            // not understand is somebody's settings written by another build, so the answer is to
-            // leave it exactly where it is. Reading it anyway would guess at what a field means
-            // there, and overwriting it would throw away the layout they get back the moment they
-            // open the other build again.
-            return new LayoutReading { OtherSchemaVersion = version };
-        }
-
-        if (root["columns"] is not JsonArray listed)
-        {
-            return new LayoutReading { Unreadable = "The file names no columns." };
-        }
-
-        return new LayoutReading { Layout = new ColumnLayout([.. Listed(listed)]) };
-    }
+    internal static ColumnLayout From(JsonArray listed) => new([.. Listed(listed)]);
 
     /// <summary>
     /// Every entry the file holds that says anything at all.
@@ -192,6 +163,153 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
 }
 
 /// <summary>
+/// The whole of what the preferences file keeps about columns - one layout per scope.
+///
+/// <b>Built 2026-08-19, when services and drivers became separate lists.</b> A driver has no
+/// process identifier and almost never an account, so a single layout serving both spends three
+/// columns of a 472 row list on emptiness - the numbers are at <see cref="Column.OffAtFirstIn"/>.
+///
+/// <b>THE FILE GREW A SIBLING RATHER THAN CHANGING A FIELD, and that is what makes an older file
+/// survive.</b> <c>columns</c> is untouched, still first, still the same shape - so a build that
+/// only knows version 1 still finds a layout it understands, and this build reads a version 1 file
+/// as "the services layout, and nothing said about the other two". Nobody loses the widths they
+/// dragged.
+/// </summary>
+internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers, ColumnLayout Everything)
+{
+    /// <summary>What every scope shows before anybody has chosen anything.</summary>
+    internal static ColumnLayouts Default { get; } = new(
+        ColumnLayout.DefaultFor(EntryScope.Services),
+        ColumnLayout.DefaultFor(EntryScope.Drivers),
+        ColumnLayout.DefaultFor(EntryScope.Everything));
+
+    /// <summary>The layout for one scope.</summary>
+    internal ColumnLayout For(EntryScope scope) => scope switch
+    {
+        EntryScope.Services => Services,
+        EntryScope.Drivers => Drivers,
+        EntryScope.Everything => Everything,
+
+        // Not a default arm that picks one, for the reason Scopes.QueryFor gives: a fourth scope
+        // must fail here loudly rather than silently share a layout with one of the three.
+        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "No layout is kept for this scope.")
+    };
+
+    /// <summary>The same three with one of them replaced.</summary>
+    internal ColumnLayouts With(EntryScope scope, ColumnLayout layout) => scope switch
+    {
+        EntryScope.Services => this with { Services = layout },
+        EntryScope.Drivers => this with { Drivers = layout },
+        EntryScope.Everything => this with { Everything = layout },
+        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "No layout is kept for this scope.")
+    };
+
+    /// <summary>
+    /// The text that goes in the file.
+    ///
+    /// Keys are written in a fixed order and it happens to be the ordinal one, which is what
+    /// `ADR-6` asks of a snapshot for the same reason: a file that reorders its own keys diffs
+    /// against yesterday's copy on nothing. <c>columns</c>, <c>driverColumns</c>,
+    /// <c>everythingColumns</c>, <c>schemaVersion</c> - c, d, e, s.
+    ///
+    /// A newline at the end, because a file without one shows its last line as changed the first
+    /// time anybody appends to it.
+    /// </summary>
+    internal string Render()
+    {
+        var tree = new JsonObject
+        {
+            ["columns"] = Services.Render(),
+            ["driverColumns"] = Drivers.Render(),
+            ["everythingColumns"] = Everything.Render(),
+            ["schemaVersion"] = ColumnLayout.CurrentSchemaVersion
+        };
+
+        return tree.ToJsonString(Shape) + "\n";
+    }
+
+    /// <summary>
+    /// Reads the file back, or says what is wrong with it.
+    ///
+    /// <b>Returns rather than throws, for the same reason <c>SnapshotJson.TryRead</c> does.</b> A
+    /// file on disk answers to nobody: it can be hand edited, truncated by a full disk, merged by
+    /// somebody's tooling, or written by a build that does not exist yet. None of those is the
+    /// window falling over, and all of them have to end with the person being told rather than with
+    /// a layout quietly not being the one they left.
+    ///
+    /// <b>OLDER AND NEWER STOPPED MEANING THE SAME THING ON 2026-08-19, and until that day they
+    /// did.</b> The rule was "a different schema version leaves the file untouched", with a reason
+    /// that is right for exactly one direction: a file from a build that does not exist yet holds
+    /// fields this one would have to guess at, and overwriting it throws away settings somebody
+    /// gets back the moment they open the other build. <b>None of that is true of our own past.</b>
+    /// A version 1 file was written by this product, its every field is known here, and treating it
+    /// as foreign would have made the scope switch a slice that silently forgot the column widths
+    /// of everybody who had ever dragged one.
+    ///
+    /// So newer is still left alone, and older is carried forward. `docs/02` says so too - that
+    /// table row was split rather than left disagreeing with this method.
+    /// </summary>
+    internal static LayoutReading Read(string content)
+    {
+        JsonNode? tree;
+
+        try
+        {
+            tree = JsonNode.Parse(content);
+        }
+        catch (JsonException problem)
+        {
+            return new LayoutReading { Unreadable = problem.Message };
+        }
+
+        if (tree is not JsonObject root)
+        {
+            return new LayoutReading { Unreadable = "The file does not hold a layout." };
+        }
+
+        if (root["schemaVersion"] is not JsonValue stated || !stated.TryGetValue<int>(out var version))
+        {
+            return new LayoutReading { Unreadable = "The file does not say which schema it uses." };
+        }
+
+        if (version > ColumnLayout.CurrentSchemaVersion || version < ColumnLayout.OldestSchemaVersionRead)
+        {
+            return new LayoutReading { OtherSchemaVersion = version };
+        }
+
+        if (root["columns"] is not JsonArray listed)
+        {
+            return new LayoutReading { Unreadable = "The file names no columns." };
+        }
+
+        var services = ColumnLayout.From(listed);
+
+        // A SECTION THAT IS NOT THERE IS THE DEFAULT FOR THAT SCOPE, not an empty layout - which is
+        // both what a version 1 file means and what a version 2 file written by hand means. It is
+        // the same rule the columns array already follows for a column it never mentions.
+        var drivers = root["driverColumns"] is JsonArray forDrivers
+            ? ColumnLayout.From(forDrivers)
+            : ColumnLayout.DefaultFor(EntryScope.Drivers);
+
+        var everything = root["everythingColumns"] is JsonArray forEverything
+            ? ColumnLayout.From(forEverything)
+            : ColumnLayout.DefaultFor(EntryScope.Everything);
+
+        return new LayoutReading
+        {
+            Layouts = new ColumnLayouts(services, drivers, everything),
+            CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
+        };
+    }
+
+    private static readonly JsonSerializerOptions Shape = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+}
+
+/// <summary>
 /// What came back from a layout file, in the three states a read can end in.
 ///
 /// Nothing here is a null pretending to be an answer - `docs/06` part 3, one layer up from a
@@ -201,7 +319,7 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
 internal sealed record LayoutReading
 {
     /// <summary>What the file said, or nothing when it said nothing usable.</summary>
-    internal ColumnLayout? Layout { get; init; }
+    internal ColumnLayouts? Layouts { get; init; }
 
     /// <summary>Why the file is not a layout at all. The file is moved aside when this is set.</summary>
     internal string? Unreadable { get; init; }
@@ -209,11 +327,24 @@ internal sealed record LayoutReading
     /// <summary>Where the unreadable file went, when it could be moved at all.</summary>
     internal string? MovedAside { get; init; }
 
-    /// <summary>The schema the file claims, when it is not the one this build writes.</summary>
+    /// <summary>The schema the file claims, when this build will not read it.</summary>
     internal int? OtherSchemaVersion { get; init; }
 
+    /// <summary>
+    /// The older schema this file was written in, when it was read and carried forward anyway.
+    ///
+    /// <b>Set rather than silent, and it is not the same thing as
+    /// <see cref="OtherSchemaVersion"/>.</b> That one means the file was left alone. This one means
+    /// it was understood, used, and will be written back in the current shape the next time
+    /// anything changes - so the person's own file is about to stop being readable by the build
+    /// they had yesterday. Rule 8: a window that quietly upgrades somebody's settings has changed
+    /// something on their disk without saying so.
+    /// </summary>
+    internal int? CarriedForwardFrom { get; init; }
+
     /// <summary>Whether the window has to say something about this before anybody asks.</summary>
-    internal bool WorthSaying => Unreadable is not null || OtherSchemaVersion is not null;
+    internal bool WorthSaying =>
+        Unreadable is not null || OtherSchemaVersion is not null || CarriedForwardFrom is not null;
 }
 
 /// <summary>
@@ -245,11 +376,11 @@ internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ign
     /// reach it through the window - so a file that asks for it was hand edited, and the honest
     /// answer is the usual six and a sentence saying so.
     /// </summary>
-    internal static ColumnPlan Of(ColumnLayout? layout)
+    internal static ColumnPlan Of(ColumnLayout? layout, EntryScope scope)
     {
         if (layout is null)
         {
-            return new ColumnPlan(ColumnLayout.Default, [], NoneWasShown: false);
+            return new ColumnPlan(ColumnLayout.DefaultFor(scope), [], NoneWasShown: false);
         }
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -271,9 +402,11 @@ internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ign
             kept.Add(column);
         }
 
+        // The scope decides what "the state it would have had" means, because a column empty in one
+        // list is not empty in the other - Column.OffAtFirstIn.
         foreach (var column in Columns.All.Where(column => seen.Add(column.Id)))
         {
-            kept.Add(new KeptColumn(column.Id, column.ShownAtFirst, Width: null));
+            kept.Add(new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null));
         }
 
         var noneWasShown = !kept.Exists(column => column.Shown);
@@ -281,7 +414,7 @@ internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ign
         if (noneWasShown)
         {
             kept = [.. kept.Select(column =>
-                column with { Shown = Columns.Of(column.Id)!.ShownAtFirst })];
+                column with { Shown = Columns.Of(column.Id)!.ShownAtFirstIn(scope) })];
         }
 
         return new ColumnPlan(new ColumnLayout(kept), ignored, noneWasShown);

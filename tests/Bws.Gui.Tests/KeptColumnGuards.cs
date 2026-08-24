@@ -69,7 +69,9 @@ public sealed class KeptColumnGuards : IDisposable
             refused.AddRange(ListColumns.Fill(
                 built,
                 bar,
-                ColumnPlan.Of(new ColumnLayout([new KeptColumn("status", Shown: true, Width: "as wide as it likes")]))));
+                ColumnPlan.Of(
+                    new ColumnLayout([new KeptColumn("status", Shown: true, Width: "as wide as it likes")]),
+                    EntryScope.Services)));
 
             return built;
         });
@@ -116,7 +118,7 @@ public sealed class KeptColumnGuards : IDisposable
     [Fact]
     public void Only_a_width_that_moved_is_written_down_and_the_order_is_what_is_on_screen()
     {
-        var grid = Built(ColumnLayout.Default);
+        var grid = Built(ColumnLayout.DefaultFor(EntryScope.Services));
 
         WpfHost.On(() =>
         {
@@ -151,7 +153,7 @@ public sealed class KeptColumnGuards : IDisposable
     [Fact]
     public void A_width_is_written_in_the_same_form_on_a_machine_that_writes_decimals_with_a_comma()
     {
-        var grid = Built(ColumnLayout.Default);
+        var grid = Built(ColumnLayout.DefaultFor(EntryScope.Services));
 
         var harvested = WpfHost.On(() =>
         {
@@ -260,7 +262,7 @@ public sealed class KeptColumnGuards : IDisposable
         _ = WpfHost.Resources;
 
         var bar = new ColumnBar();
-        var plan = ColumnPlan.Of(layout);
+        var plan = ColumnPlan.Of(layout, EntryScope.Services);
 
         bar.Follow(plan);
 

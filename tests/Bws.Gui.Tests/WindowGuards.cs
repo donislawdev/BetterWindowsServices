@@ -58,11 +58,10 @@ public sealed class WindowGuards
     {
         var window = WpfHost.Window();
 
-        // THE BOX IS NOT EMPTY WHEN THE WINDOW OPENS, SINCE 2026-08-13 - it carries the member that
-        // hides kernel drivers. So "nothing to clear" has to be arranged rather than assumed, and
-        // the first Escape here is the one that empties it.
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
-
+        // THE BOX IS EMPTY AGAIN WHEN THE WINDOW OPENS, SINCE 2026-08-19, so "nothing to clear" is
+        // the state it starts in. Between 2026-08-13 and then it carried the member that hid kernel
+        // drivers, and this test had to spend a press emptying it before it could ask its question.
+        // Hiding drivers is the scope switch now and the box is only what somebody asked for.
         Assert.False(await WpfHost.On(() => window.Act(Shortcut.Back)));
     }
 
@@ -327,7 +326,7 @@ public sealed class WindowGuards
             var built = new DataGrid();
 
             // No layout, which is what a first run hands it and what these two are about.
-            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null));
+            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null, EntryScope.Services));
 
             return built;
         });
@@ -385,7 +384,7 @@ public sealed class WindowGuards
             var built = new DataGrid();
 
             // No layout, which is what a first run hands it and what these two are about.
-            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null));
+            ListColumns.Fill(built, bar, ColumnPlan.Of(layout: null, EntryScope.Services));
 
             return built;
         });

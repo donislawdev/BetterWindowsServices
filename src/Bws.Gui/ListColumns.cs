@@ -95,6 +95,61 @@ internal static class ListColumns
     }
 
     /// <summary>
+    /// Puts another layout onto columns that already exist.
+    ///
+    /// <b>Built 2026-08-19 for the scope switch, and it is NOT Fill run a second time.</b> Fill
+    /// creates every column and subscribes three handlers - one per choice, one for sorting, one
+    /// for reordering. Calling it again would give the grid a second set of columns and every
+    /// handler twice, so a single click would be answered two or three times. What changes when a
+    /// scope changes is only which columns are on, how wide and in what order, and all three are
+    /// properties of columns that are already there.
+    ///
+    /// <b>Visibility is deliberately NOT here.</b> It arrives through <c>ColumnBar.Follow</c>,
+    /// which sets the choices, which the handler Fill subscribed already turns into a Visibility -
+    /// so there is exactly one road from "this column is on" to a column being on, whether the
+    /// change came from a menu or from moving to another list.
+    /// </summary>
+    internal static IReadOnlyList<string> Reapply(DataGrid grid, ColumnPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var refused = new List<string>();
+        var built = new Dictionary<string, DataGridColumn>(StringComparer.Ordinal);
+
+        foreach (var column in grid.Columns)
+        {
+            if (Columns.Of(column.SortMemberPath ?? string.Empty) is { } known)
+            {
+                built[known.Id] = column;
+            }
+        }
+
+        foreach (var kept in plan.Layout.Columns)
+        {
+            if (built.TryGetValue(kept.Id, out var column) && Columns.Of(kept.Id) is { } known)
+            {
+                column.Width = Wide(grid, known, kept.Width, refused);
+            }
+        }
+
+        // In increasing order of the position being claimed, for the reason Fill gives at length:
+        // setting a display index MOVES whichever column is already there, so a permutation only
+        // comes out right when it is walked forwards over a complete collection.
+        for (var position = 0; position < plan.Layout.Columns.Count; position++)
+        {
+            if (built.TryGetValue(plan.Layout.Columns[position].Id, out var column))
+            {
+                column.DisplayIndex = position;
+            }
+        }
+
+        Freeze(grid);
+
+        return refused;
+    }
+
+    /// <summary>
     /// What the grid looks like right now, in the form a file can hold.
     ///
     /// <b>Read off the grid rather than out of the view models, because the grid is where two of

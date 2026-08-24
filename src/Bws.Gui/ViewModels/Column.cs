@@ -76,6 +76,32 @@ internal sealed record Column
     /// <summary>Whether it is on before anybody chooses anything.</summary>
     public required bool ShownAtFirst { get; init; }
 
+    /// <summary>
+    /// A scope this column starts OFF in, whatever <see cref="ShownAtFirst"/> says.
+    ///
+    /// <b>It carries a fact rather than a preference, which is why it is named after the scope and
+    /// not after a default.</b> The process identifier is off for drivers because drivers do not
+    /// have one - measured on this machine on 2026-08-19 through the command line, over 472
+    /// drivers and 340 services:
+    ///
+    ///   processId    0 of 472 drivers carry one, against 113 of 340 services
+    ///   account      3 of 472, against 312 of 340
+    ///   delayedAuto  0 of 472, against 77 of 340
+    ///
+    /// <b>OFF rather than ABSENT, and the three accounts are the whole reason.</b> Taking the column
+    /// out of the picker for drivers would make those three unreadable and say nothing about it,
+    /// which is rule 8 arriving through a default. A column that starts off can be turned on by
+    /// somebody who wants exactly that answer.
+    ///
+    /// <b>One scope rather than a set</b>, because one is what the measurement supports. A column
+    /// that turns out to be empty in two scopes wants this widened by whoever measures it, not a
+    /// collection standing empty for every other column in the catalogue.
+    /// </summary>
+    public EntryScope? OffAtFirstIn { get; init; }
+
+    /// <summary>Whether this column is on before anybody chooses anything, in a given scope.</summary>
+    public bool ShownAtFirstIn(EntryScope scope) => ShownAtFirst && OffAtFirstIn != scope;
+
     /// <summary>What its cell says about one entry.</summary>
     public required Func<ScmEntry, string> Reads { get; init; }
 

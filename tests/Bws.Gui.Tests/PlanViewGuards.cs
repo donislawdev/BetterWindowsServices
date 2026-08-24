@@ -192,14 +192,16 @@ public sealed class PlanViewGuards
         var window = await Ready();
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
-        // THE QUERY IS CLEARED FIRST, AND THAT IS THE PRODUCT RATHER THAN THE TEST. The window opens
-        // with kernel drivers hidden - a member of the query, visible in the box - so a driver is not
-        // among the rows until somebody asks for it. The first version of this test reached for one
-        // anyway and threw, which is the double doing its job: the row genuinely was not there.
+        // THE SCOPE IS OPENED FIRST, AND THAT IS THE PRODUCT RATHER THAN THE TEST. The window opens
+        // on services, so a driver is not among the rows until somebody asks for one. The first
+        // version of this test reached for one anyway and threw, which is the double doing its job:
+        // the row genuinely was not there.
         //
-        // This is also the real road to this state: somebody turns the driver filter off and then
-        // rubber-bands a range that happens to include one.
-        WpfHost.On(() => model.QueryText = string.Empty);
+        // IT USED TO BE THE QUERY THAT HID IT and it is the scope switch since 2026-08-19 - the
+        // clearing that stood here does nothing to a driver any more. This is also still the real
+        // road to this state: somebody moves to the list that has drivers in it and then rubber
+        // bands a range that happens to include one.
+        WpfHost.On(() => model.Scope = ViewModels.EntryScope.Everything);
         WpfHost.Settled();
 
         WpfHost.On(() =>

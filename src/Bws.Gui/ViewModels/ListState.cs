@@ -14,6 +14,18 @@ namespace Bws.Gui.ViewModels;
 /// somebody to clear their query when their query is empty would be the window being confidently
 /// wrong. It is rare and it is cheap to say properly.
 ///
+/// <b>SEVEN SINCE 2026-08-19, AND BOTH NEW ONES ARRIVED WITH THE SCOPE SWITCH.</b> Splitting the
+/// list into services and drivers created two ways for it to be empty that could not exist before,
+/// and the old fifth answer is a lie in each of them:
+///
+///   the list itself is empty  - a machine with no drivers, on the Drivers list, with an EMPTY box.
+///                               "Nothing matches what you asked for" blames somebody for a query
+///                               they never wrote, and offers to clear a box that is already clear.
+///   the query is elsewhere    - Services on screen and type:driver in the box. Both halves are
+///                               working exactly as asked and they exclude each other, which is the
+///                               price of giving the switch a state of its own - ScopeChoice says
+///                               so - and the price is owed a sentence rather than an empty grid.
+///
 /// Pure, so the words a person will read can be checked without opening a window - which is the
 /// same reason <see cref="Sentences"/> exists.
 /// </summary>
@@ -32,7 +44,13 @@ internal enum ListFace
     NothingToShow,
 
     /// <summary>The reading failed outright. What went wrong is in the line under the list.</summary>
-    Failed
+    Failed,
+
+    /// <summary>This list holds nothing on this machine, whatever anybody asked for.</summary>
+    ScopeEmpty,
+
+    /// <summary>What was asked for lives in a list that is not the one on screen.</summary>
+    AskedElsewhere
 }
 
 /// <summary>What the middle of the window says when it has no rows to show, and the way out of it.</summary>
@@ -61,7 +79,8 @@ internal readonly record struct ListState
     /// window that answered "nothing matched" after the manager refused to open would be blaming
     /// the person for the machine.
     /// </summary>
-    public static ListState Of(bool firstLook, bool failed, int shown, int everything)
+    public static ListState Of(
+        bool firstLook, bool failed, int shown, int everything, int inScope, EntryScope scope, bool askedElsewhere)
     {
         if (shown > 0)
         {
@@ -103,10 +122,56 @@ internal readonly record struct ListState
             return Say(ListFace.NothingToShow, Texts.Of("gui.empty.nothingToShow"), string.Empty);
         }
 
-        return Say(
-            ListFace.NothingMatched,
-            Texts.Of("gui.empty.nothingMatched"),
-            Texts.Of("gui.empty.nothingMatchedWayOut"));
+        // THE LIST ITSELF IS EMPTY, WHICH IS THE MACHINE AND NOT THE QUERY - the same distinction
+        // the branch above draws, one level in. A machine with no drivers on the Drivers list is
+        // not somebody's query failing, and the way out is a different list rather than a different
+        // question. Asked before the query, because it is true whatever is in the box.
+        //
+        // Everything cannot reach here: a scope holding all of it is empty only when the machine is,
+        // and that was answered one branch up.
+        if (inScope == 0)
+        {
+            return scope == EntryScope.Drivers
+                ? Say(ListFace.ScopeEmpty, Texts.Of("gui.empty.noDrivers"), Texts.Of("gui.empty.otherListWayOut"))
+                : Say(ListFace.ScopeEmpty, Texts.Of("gui.empty.noServices"), Texts.Of("gui.empty.otherListWayOut"));
+        }
+
+        // BOTH HALVES WORKING AND EXCLUDING EACH OTHER, which is the one state the drivers switch
+        // could not produce while it WAS the query. Named rather than left as "nothing matched",
+        // because that sentence sends somebody to edit a query that is doing exactly what they
+        // asked - the fault is that they are standing on the other list.
+        //
+        // The window does NOT quietly move the scope or rewrite the box. Either would be it
+        // deciding what somebody meant, and `docs/07` records that choice at length.
+        if (askedElsewhere)
+        {
+            return scope == EntryScope.Drivers
+                ? Say(
+                    ListFace.AskedElsewhere,
+                    Texts.Of("gui.empty.askedForServices"),
+                    Texts.Of("gui.empty.askedElsewhereWayOut"))
+                : Say(
+                    ListFace.AskedElsewhere,
+                    Texts.Of("gui.empty.askedForDrivers"),
+                    Texts.Of("gui.empty.askedElsewhereWayOut"));
+        }
+
+        // NOTHING MATCHED - and since 2026-08-19 it matters WHERE, because "everything" is now one
+        // of three lists. The way out said "press Esc and see everything again" until that day and
+        // it stopped being true the moment hiding drivers stopped living in the box: Escape empties
+        // the question and leaves the list alone.
+        //
+        // Two calls rather than one with a choice inside, which is TextKeyGuards' own precedent -
+        // a key travelling as anything but a literal at the call is invisible to it.
+        return scope == EntryScope.Everything
+            ? Say(
+                ListFace.NothingMatched,
+                Texts.Of("gui.empty.nothingMatched"),
+                Texts.Of("gui.empty.nothingMatchedWayOut"))
+            : Say(
+                ListFace.NothingMatched,
+                Texts.Of("gui.empty.nothingMatchedHere"),
+                Texts.Of("gui.empty.nothingMatchedHereWayOut"));
     }
 
     /// <summary>

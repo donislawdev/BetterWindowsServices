@@ -46,6 +46,106 @@ public sealed class EmptyStateTests
         Assert.Equal(string.Empty, model.Says.ListWayOut);
     }
 
+    /// <summary>
+    /// A LIST THAT IS EMPTY ON THIS MACHINE IS NOT A QUERY THAT MATCHED NOTHING.
+    ///
+    /// <b>A state the scope switch created on 2026-08-19, and the old answer is a lie in it
+    /// twice.</b> On a machine with no drivers, standing on the Drivers list with an EMPTY box, the
+    /// window used to say "nothing matches what you asked for" - blaming somebody for a query they
+    /// never wrote - and then offer to press Escape to clear a box that is already clear.
+    ///
+    /// The way out is a different LIST, because no question typed into this one will help.
+    /// </summary>
+    [Fact]
+    public async Task A_list_with_nothing_in_it_says_that_rather_than_blaming_the_query()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.Scope = EntryScope.Drivers;
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(string.Empty, model.QueryText);
+        Assert.Equal(ListFace.ScopeEmpty, model.Says.Face);
+
+        // Not the sentence about a query, and not the one about the manager handing over nothing -
+        // the manager handed over a service, it is just not on this list.
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.noDrivers"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.otherListWayOut"), model.Says.ListWayOut);
+    }
+
+    /// <summary>
+    /// BOTH HALVES WORKING AND EXCLUDING EACH OTHER, which is backlog 214 answered.
+    ///
+    /// <b>The one state that could not exist while the drivers switch WAS the query.</b> Scope has a
+    /// state of its own since 2026-08-19, so Services on screen with <c>type:driver</c> in the box
+    /// is reachable, and both controls are doing exactly what they were told.
+    ///
+    /// <b>The window names both sides and moves neither.</b> Quietly switching the scope, or
+    /// rewriting the box, would be it deciding what somebody meant - and "nothing matched" would
+    /// send them to edit a query that is not the problem.
+    /// </summary>
+    [Fact]
+    public async Task A_query_asking_for_the_other_list_says_which_list_it_is_asking_for()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("disk")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "type:driver";
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(ListFace.AskedElsewhere, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.askedForDrivers"), model.Says.ListMessage);
+
+        // And the mirror, so the sentence is not one direction with the other left to chance.
+        model.Scope = EntryScope.Drivers;
+        model.QueryText = "!type:driver";
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(ListFace.AskedElsewhere, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.askedForServices"), model.Says.ListMessage);
+    }
+
+    /// <summary>
+    /// THE WAY OUT STOPPED PROMISING SOMETHING IT CANNOT DO, and this is a regression I shipped.
+    ///
+    /// It read "Press Esc to empty the box and see everything again" and that was true for six days:
+    /// hiding drivers lived in the box, so emptying the box gave the machine back. The scope switch
+    /// moved it out on 2026-08-19 and left the sentence behind - Escape empties the question and
+    /// leaves the list exactly where it was.
+    ///
+    /// <b>Nothing caught it.</b> TextKeyGuards asks whether a declared string reaches a screen, not
+    /// whether it is true, and there is no guard in this project that could have. Backlog 215 is
+    /// the same shape from the other end.
+    /// </summary>
+    [Fact]
+    public async Task The_way_out_of_an_empty_list_does_not_promise_the_whole_machine_back()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("disk")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "name:NoSuchServiceAnywhere";
+
+        // On a named list the way out offers both real doors: empty the box, or widen the list.
+        Assert.Equal(ListFace.NothingMatched, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedHere"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedHereWayOut"), model.Says.ListWayOut);
+
+        model.Scope = EntryScope.Everything;
+
+        // And on the whole machine there is no wider list to offer, so it offers only the box.
+        Assert.Equal(ListFace.NothingMatched, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatched"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedWayOut"), model.Says.ListWayOut);
+
+        Assert.DoesNotContain("everything again", model.Says.ListWayOut, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_query_that_matches_nothing_says_so_and_offers_the_way_back()
     {

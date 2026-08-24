@@ -18,24 +18,22 @@ namespace Bws.Gui.ViewModels;
 /// hardest to look at by hand, like what a list does to the row under somebody's cursor while
 /// it refreshes itself.
 /// </summary>
-public sealed class MainViewModel : Observable
+public sealed partial class MainViewModel : Observable
 {
-    /// <summary>
-    /// The member the drivers switch stands for, as a person would write it.
-    ///
-    /// The switch <b>is</b> this member rather than a state beside the query - owner's
-    /// decision, 2026-08-02, closing the open question at the end of `docs/07`. Turning it off
-    /// writes these words into the box where they can be seen, which is the same promise `A5`
-    /// makes about clickable filters: the query is what you are looking at.
-    /// </summary>
     // THREE CONSTANTS STOOD HERE AND ALL THREE ARE GONE, 2026-08-11. HideDrivers was declared,
     // documented and referenced by nothing - the same shape as QueryValueReader.ReadExpressionValue
     // found the same day, and for the same reason: nothing points at an unused private constant,
     // so it survives every build and every test. DriverField and DriverValue followed the switch
-    // into FilterChips, where the chip that stands for them lives.
+    // into FilterChips, where the chip that stood for them lived.
     //
-    // The member is still written into the box when the filter goes on. It is composed from the
-    // field and the value rather than spelled anywhere, which is why there is nothing left here.
+    // AND THE PARAGRAPH THAT STOOD ABOVE THIS ONE IS GONE TOO, 2026-08-19, BECAUSE IT HAD BECOME
+    // FALSE. It said the drivers switch IS a member of the query rather than a state beside it -
+    // owner's decision of 2026-08-02 - and that was true for seventeen days. The owner reversed it:
+    // scope has a state of its own now, the box says only what somebody asked, and the field and
+    // the value live in Scopes.cs. `docs/07` carries both decisions and which one is current.
+    //
+    // Kept as a note rather than deleted silently, because a comment describing a mechanism that
+    // no longer exists is read as a description of one that does.
 
     /// <summary>How long a row stays marked as having just moved. Lives with the rows it marks.</summary>
     internal static TimeSpan HighlightFor => RowIndex.HighlightFor;
@@ -70,8 +68,15 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private Query _query = QueryParser.Parse(null).Query!;
 
-    /// <summary>What the box says before anybody types - <see cref="FilterChips.OpeningQuery"/>.</summary>
-    private string _queryText = FilterChips.OpeningQuery;
+    /// <summary>
+    /// What the box says before anybody types, which since 2026-08-19 is NOTHING.
+    ///
+    /// It opened with <c>!type:driver</c> in it for six days, because hiding drivers by default had
+    /// to be a filter the window admitted to. The scope switch admits to it better - the position
+    /// the window stands on says which list this is - so the box goes back to being only what
+    /// somebody asked. <see cref="Scopes.Opening"/> carries the whole argument.
+    /// </summary>
+    private string _queryText = string.Empty;
 
     /// <summary>
     /// The controls standing for members of the query. Declared after the text they read,
@@ -79,7 +84,8 @@ public sealed class MainViewModel : Observable
     /// </summary>
     private readonly FilterBar _filters;
 
-
+    /// <summary>Which list is showing, and that listing already cut down. Not a filter.</summary>
+    private readonly Scoping _scoping;
 
 
     public MainViewModel()
@@ -110,7 +116,7 @@ public sealed class MainViewModel : Observable
         // Says is fetched rather than handed over, because a caller may replace it after this
         // constructor has run - see the argument on Readings._look.
         _readings = new Readings(
-            catalog, _index, () => Says, Apply, TellTheList, inspector, reader, () => _query.Needs);
+            catalog, _index, () => Says, Reread, TellTheList, inspector, reader, () => _query.Needs);
 
         // Reading the field and writing the property, which is deliberate and is the difference
         // between a chip that filters and a chip that only edits text: the setter is what parses
@@ -118,6 +124,14 @@ public sealed class MainViewModel : Observable
         // keystroke does. Writing the field instead would change the box and leave the list
         // showing the answer to the previous question.
         _filters = new FilterBar(() => _queryText, text => QueryText = text);
+
+        _scoping = new Scoping(() => _index.Ordered);
+
+        // Reading the state and writing the PROPERTY, for the same reason the chips do it one line
+        // above: the setter is what reapplies the query, lets go of the selection and tells the
+        // list. Writing the scope directly would move the switch and leave the window showing the
+        // other list.
+        ScopePositions = Scopes.Positions(() => _scoping.Current, scope => Scope = scope);
     }
 
     /// <summary>
@@ -202,8 +216,11 @@ public sealed class MainViewModel : Observable
     /// stops working further up, and Escape is the one key every dialog and every window in
     /// Windows already has an opinion about. So an empty box leaves the press alone.
     ///
-    /// Clearing shows drivers again, because the exclusion lives in this text and nowhere else -
-    /// which is <see cref="ShowDrivers"/> keeping its promise rather than a side effect.
+    /// <b>Clearing no longer shows drivers, and that changed on 2026-08-19.</b> The exclusion used
+    /// to live in this text, so emptying the box gave back the whole machine. It lives in
+    /// <see cref="Scope"/> now, so Escape empties the question and leaves the window on the list it
+    /// was on - which is what a person pressing it means, and the switch is the thing to press when
+    /// they mean the other one.
     /// </summary>
     public bool ClearQuery()
     {
@@ -241,12 +258,6 @@ public sealed class MainViewModel : Observable
     /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
     public string SearchTip => QueryExamples.Tip(Examples);
 
-    /// <inheritdoc cref="FilterBar.ShowDrivers"/>
-    public bool ShowDrivers
-    {
-        get => _filters.ShowDrivers;
-        set => _filters.ShowDrivers = value;
-    }
 
     /// <summary>
     /// Whether somebody is using the list right now - pointing at it, or with the keyboard in it.
@@ -299,9 +310,23 @@ public sealed class MainViewModel : Observable
     ///
     /// It lives here rather than in <see cref="Readings"/> because it needs both halves: what the
     /// machine said, and how many rows came through the query onto the screen.
+    ///
+    /// <b>Three more facts since 2026-08-19, all of them about the scope, and all of them decided
+    /// HERE rather than in the sentence.</b> How many entries the list holds tells an empty list
+    /// apart from a query that matched nothing, which scope it is decides which of the two lists to
+    /// name, and whether the query asks for what the scope leaves out is the one state the drivers
+    /// switch could not reach while it was the query. <see cref="ListState"/> takes them already
+    /// answered, which is the arrangement its own comment argues for at length.
     /// </summary>
     private void TellTheList() =>
-        Says.AboutTheList(_readings.FirstLook, _readings.Failed, Rows.Count, _index.Ordered.Count);
+        Says.AboutTheList(
+            _readings.FirstLook,
+            _readings.Failed,
+            Rows.Count,
+            _index.Ordered.Count,
+            _scoping.InScope.Count,
+            _scoping.Current,
+            Scopes.AsksElsewhere(_scoping.Current, _queryText));
 
     /// <summary>
     /// Reads the query and narrows the list to what it selects.
@@ -333,13 +358,22 @@ public sealed class MainViewModel : Observable
         Says.AboutTheQuery(string.Empty);
         _query = parsed.Query!;
 
-        var everything = _index.Ordered;
-
         // AGAINST THE WHOLE LISTING RATHER THAN AGAINST WHAT THE QUERY LEFT, which is why it is
         // asked here and not after the narrowing. A row leaves the visible list on almost every
         // keystroke, and an open panel calling that "this entry is gone" would be the window being
         // confidently wrong about a service that is running.
-        Chosen.StillIn(everything);
+        //
+        // THE WHOLE LISTING RATHER THAN THE SCOPE, and that stayed true when the scope arrived. A
+        // panel open on a service is open on something that exists, whichever list is on screen -
+        // asking this of the scope would have moving the switch declare the entry gone.
+        Chosen.StillIn(_index.Ordered);
+
+        // THE SCOPE FIRST AND THE QUESTION INSIDE IT, which is the whole shape of the change made
+        // on 2026-08-19. Everything below counts against what the scope left rather than against
+        // the machine, so a narrowed list of drivers reads "12 of 472 entries" - the second number
+        // is the list somebody is looking at, and against the machine's 812 it would answer a
+        // question nobody asked.
+        var everything = _scoping.InScope;
 
         var narrowed = Narrowing.Of(_query, everything);
 
@@ -356,10 +390,36 @@ public sealed class MainViewModel : Observable
         TellTheList();
 
         // The controls read the query again, all of them - see FilterBar.Rethink for why every
-        // one rather than the one that was clicked. Raised here as well because the window binds
-        // the switch through this class rather than through the bar.
+        // one rather than the one that was clicked.
         _filters.Rethink();
-        Raise(nameof(ShowDrivers));
+    }
+
+    /// <summary>
+    /// Cuts the listing down to the scope, and keeps the result.
+    ///
+    /// <b>By asking the query language rather than by testing a type here.</b> What counts as a
+    /// driver is decided once, in the language, and `docs/07` records that <c>type:driver</c>
+    /// covers both kinds deliberately because Windows has two and no word for both. A check on
+    /// <see cref="Bws.Core.EntryType"/> written here would be a second answer to that, in the
+    /// window, drifting from the first in silence - see <see cref="Scopes"/>.
+    ///
+    /// <b>Everything skips the narrowing entirely rather than running an empty query over 812
+    /// rows</b>, which is the one case where the answer is known without asking.
+    /// </summary>
+    /// <summary>
+    /// What the readings call when the machine has been asked again.
+    ///
+    /// <b>The scope is recut here and NOT in <see cref="Apply"/>, and the split is the whole reason
+    /// this method exists.</b> Apply runs on every keystroke against a 50 ms budget, and the scope
+    /// cannot change while somebody types - so recutting it there would pay for a second pass over
+    /// 812 entries per character, on exactly the path that was measured and fixed on 2026-08-19.
+    /// It CAN change here, because an entry that arrived or left changes what the scope holds, and
+    /// a list that skipped this would go on showing a service the machine no longer has.
+    /// </summary>
+    private void Reread()
+    {
+        _scoping.Recut();
+        Apply();
     }
 
     /// <summary>

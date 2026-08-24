@@ -54,14 +54,60 @@ public sealed class FilterChipTests
     [Fact]
     public void A_group_that_adds_up_says_something_different_from_one_that_narrows()
     {
-        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+        // BUILT HERE RATHER THAN FOUND IN THE CATALOGUE SINCE 2026-08-19, AND THE REASON IS A
+        // FINDING RATHER THAN A CONVENIENCE. This test used to reach into the real groups for one
+        // of each. When the drivers chip left for the scope switch, the last mixed group lost its
+        // second field - so EVERY group in the catalogue now adds up, the narrowing sentence became
+        // unreachable, and this test went red for the honest reason that there was no longer one of
+        // each to find.
+        //
+        // TextKeyGuards did NOT catch that, and the limit is worth writing down: it looks for the
+        // key at a call site, and Texts.Of("gui.filter.hint.narrows") is still written in
+        // FilterGroup.Hint. A sentence that can be reached by no data on the machine is invisible
+        // to it. Backlog 215.
+        //
+        // The property under test was never about the catalogue - it is that the hint follows the
+        // field count - so it is asked of two groups made for the question. The capability is kept
+        // rather than deleted because `A5` still names families that will arrive on other fields.
+        var group = new List<FilterChip>
+        {
+            new("gui.filter.stopped", "status", "stopped", negated: false, () => string.Empty, _ => { }),
+            new("gui.filter.running", "status", "running", negated: false, () => string.Empty, _ => { })
+        };
 
-        var adding = model.FilterGroups.First(group => group.AddsUp);
-        var narrowing = model.FilterGroups.First(group => !group.AddsUp);
+        var mixed = new List<FilterChip>
+        {
+            group[0],
+            new("gui.filter.triggered", "trigger", "any", negated: false, () => string.Empty, _ => { })
+        };
+
+        var adding = new FilterGroup("gui.filter.group.state", group);
+        var narrowing = new FilterGroup("gui.filter.group.about", mixed);
+
+        Assert.True(adding.AddsUp);
+        Assert.False(narrowing.AddsUp);
 
         Assert.NotEqual(adding.Hint, narrowing.Hint);
         Assert.NotEmpty(adding.Hint);
         Assert.NotEmpty(narrowing.Hint);
+    }
+
+    /// <summary>
+    /// Every group in the catalogue adds up today, and that is stated rather than left to be
+    /// noticed.
+    ///
+    /// <b>This is not a property anybody wants - it is a record of where the row stands.</b> It
+    /// became true on 2026-08-19 when the drivers chip left, and it means the window cannot
+    /// currently show the sentence about groups narrowing each other. If a chip on a new field
+    /// joins an existing group, this goes red and whoever wrote it gets to decide on purpose
+    /// whether the boundary the hint describes is back.
+    /// </summary>
+    [Fact]
+    public void No_group_in_the_catalogue_mixes_fields_today()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        Assert.All(model.FilterGroups, group => Assert.True(group.AddsUp));
     }
 
     [Fact]
@@ -302,27 +348,24 @@ public sealed class FilterChipTests
     }
 
     /// <summary>
-    /// The named switch of `A7` and the chip of `A5` are one control, so they cannot disagree.
-    /// Without this they are two views over one member that nothing holds together.
+    /// No chip speaks for the type field any more, and this is the assertion that keeps it that way.
+    ///
+    /// <b>It replaces The_drivers_switch_and_the_drivers_chip_are_the_same_control, which held
+    /// exactly the opposite and was right until 2026-08-19.</b> Scope is a state beside the query
+    /// now - owner's decision - and a chip for <c>type:driver</c> standing beside it would be a
+    /// second control writing what the switch decides, so the two would disagree the first time
+    /// anybody touched either. That is the failure this file's own doctrine names about chips, met
+    /// from the other direction.
+    ///
+    /// <b>The field rather than the chip's label</b>, because a chip added later for
+    /// <c>type:ownProcess</c> would be the same fault wearing a different word.
     /// </summary>
     [Fact]
-    public async Task The_drivers_switch_and_the_drivers_chip_are_the_same_control()
+    public async Task No_chip_speaks_for_the_field_the_scope_switch_owns()
     {
         var model = await Loaded();
-        var drivers = model.Filters.Single(chip => chip.Negated && chip.Value == "driver");
 
-        Assert.True(model.ShowDrivers);
-        Assert.False(drivers.IsOn);
-
-        drivers.IsOn = true;
-
-        Assert.False(model.ShowDrivers);
-        Assert.Equal("!type:driver", model.QueryText);
-
-        model.ShowDrivers = true;
-
-        Assert.False(drivers.IsOn);
-        Assert.Equal(string.Empty, model.QueryText);
+        Assert.DoesNotContain(model.Filters, chip => chip.Field == "type");
     }
 
     /// <summary>
@@ -335,33 +378,49 @@ public sealed class FilterChipTests
         var model = await Loaded();
 
         Assert.Equal("status:stopped", Chip(model, "status", "stopped").Member);
-        Assert.Equal("!type:driver", model.Filters.Single(chip => chip.Negated).Member);
+
+        // THE NEGATED EXAMPLE LEFT WITH THE DRIVERS CHIP ON 2026-08-19, and it was the only one -
+        // no chip is negated today. FilterChip still knows how to write one, and that capability is
+        // kept rather than removed because `A5` names a signature family whose useful question is
+        // "not signed". Said here so that "nothing negated exists" is a fact somebody read rather
+        // than a gap they have to rediscover.
+        Assert.DoesNotContain(model.Filters, chip => chip.Negated);
     }
 
     /// <summary>
-    /// THE WINDOW OPENS WITH KERNEL DRIVERS HIDDEN - owner's decision, 2026-08-13, because
-    /// <c>services.msc</c> does and that is the tool people will compare this against.
+    /// THE WINDOW OPENS ON SERVICES - owner's decision, 2026-08-13, because <c>services.msc</c> does
+    /// and that is the tool people will compare this against. Measured on this machine 2026-08-19:
+    /// drivers are 472 of 812 entries.
     ///
-    /// <b>The whole of the decision is that it is a MEMBER OF THE QUERY rather than a hidden
-    /// default</b>, so all three halves are asserted here: the box says it, the chip is lit, and one
-    /// Escape gives the machine back. A default that did not appear in the box would be a filter
-    /// nothing on screen admits to, which is rule 8 broken by the first thing a person sees.
+    /// <b>THE CLAIM SURVIVED 2026-08-19 AND ITS MECHANISM DID NOT, which is the whole of what the
+    /// scope switch changed.</b> Until then this was a MEMBER OF THE QUERY: the box opened saying
+    /// <c>!type:driver</c>, the chip was lit, and one Escape gave the machine back - because a
+    /// default that appeared nowhere would be a filter nothing on screen admits to, rule 8 broken by
+    /// the first thing a person sees. The switch admits to it in a better place, so the box opens
+    /// EMPTY and the position says which list this is.
+    ///
+    /// <b>And Escape stops being the way back, which is the part worth asserting rather than
+    /// assuming.</b> Emptying the question now leaves the window on the list it was on.
     /// </summary>
     [Fact]
-    public async Task The_window_opens_with_kernel_drivers_hidden()
+    public async Task The_window_opens_on_services_with_an_empty_box()
     {
         var model = new MainViewModel(
             new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("beep")), new SteppedClock());
 
         await model.LoadAsync();
 
-        Assert.Equal("!type:driver", model.QueryText);
-        Assert.False(model.ShowDrivers);
+        Assert.Equal(EntryScope.Services, model.Scope);
+        Assert.Equal(string.Empty, model.QueryText);
         Assert.Single(model.Rows);
 
-        Assert.True(model.ClearQuery());
+        // Nothing to clear, so Escape is left alone for whatever else wants it - and the list does
+        // not change, because the question was never what was hiding the drivers.
+        Assert.False(model.ClearQuery());
+        Assert.Single(model.Rows);
 
-        Assert.True(model.ShowDrivers);
+        model.Scope = EntryScope.Everything;
+
         Assert.Equal(2, model.Rows.Count);
     }
 
@@ -384,14 +443,18 @@ public sealed class FilterChipTests
     /// <summary>
     /// A window that has read a small machine, with the box emptied.
     ///
-    /// <b>Emptied on purpose, since 2026-08-13.</b> The window now opens with kernel drivers hidden -
-    /// <see cref="FilterChips.OpeningQuery"/>, owner's decision - and every test in this file is
-    /// about what a CLICK does, not about what the window opens with. Leaving the opening member in
-    /// the box would make each of them assert two things at once and report the wrong one first.
+    /// <b>Emptied on purpose, since 2026-08-13.</b> The window opens on services - owner's decision -
+    /// and every test in this file is about what a CLICK does, not about what the window opens with.
+    /// Leaving the opening state in place would make each of them assert two things at once and
+    /// report the wrong one first.
     ///
-    /// <b>That the window opens with it is asserted once, on its own</b>, in
-    /// <see cref="The_window_opens_with_kernel_drivers_hidden"/> - which is where a change to that
-    /// decision should go red, rather than in fourteen tests about something else.
+    /// <b>That the window opens that way is asserted once, on its own</b>, in
+    /// <see cref="The_window_opens_on_services_with_an_empty_box"/> - which is where a change to
+    /// that decision should go red, rather than in fourteen tests about something else.
+    ///
+    /// <b>The machine here holds no drivers at all</b>, so the opening scope selects everything in
+    /// it and this helper needs no scope of its own. Adding one would silently make these tests
+    /// depend on a decision they are not about.
     /// </summary>
     private static async Task<MainViewModel> Loaded()
     {

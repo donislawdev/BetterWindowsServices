@@ -27,7 +27,17 @@ public sealed class Says : Observable
     private string _layout = string.Empty;
     private bool _incomplete;
     private bool _narrowed;
-    private ListState _list = ListState.Of(firstLook: true, failed: false, shown: 0, everything: 0);
+    // The state a window is in before it has read anything: the first reading is still out, so the
+    // scope facts cannot say anything yet and do not have to - Loading is decided before any of
+    // them is looked at.
+    private ListState _list = ListState.Of(
+        firstLook: true,
+        failed: false,
+        shown: 0,
+        everything: 0,
+        inScope: 0,
+        scope: Scopes.Opening,
+        askedElsewhere: false);
 
     /// <summary>
     /// The count, beside the box that changes it.
@@ -206,9 +216,10 @@ public sealed class Says : Observable
     /// the four facts it reads move at different times: a reading starting, a reading failing,
     /// a query narrowing the list, the machine handing over nothing.
     /// </summary>
-    internal void AboutTheList(bool firstLook, bool failed, int shown, int everything)
+    internal void AboutTheList(
+        bool firstLook, bool failed, int shown, int everything, int inScope, EntryScope scope, bool askedElsewhere)
     {
-        var list = ListState.Of(firstLook, failed, shown, everything);
+        var list = ListState.Of(firstLook, failed, shown, everything, inScope, scope, askedElsewhere);
         var narrowed = shown != everything;
 
         // SAID ONLY WHEN IT MOVED, SINCE 2026-08-13. This runs on every keystroke and on every

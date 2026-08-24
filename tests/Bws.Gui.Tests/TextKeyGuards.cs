@@ -96,7 +96,18 @@ public sealed class TextKeyGuards
         // A SEVENTH, 2026-08-12: an example query carries the key for its own question, exactly as
         // a chip carries the key for its label and for exactly the same reason. Named rather than
         // widened, which is now the seventh time this file has answered the question that way.
-        new(@"new QueryExample\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"new QueryExample\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+
+        // AN EIGHTH, 2026-08-19, AND IT IS THE THIRD SHAPE THAT IS REALLY THE SAME SHAPE. A scope
+        // switch position carries the key for its own label and reaches the loader through a field,
+        // for the reason a chip and a facet both do: which positions exist is fixed, and the words
+        // are read again in whatever language the machine is set to.
+        //
+        // The eighth time this file has been asked to widen the pattern and the eighth time it has
+        // not. A pattern loose enough to see any string starting with "gui." would also see one
+        // inside a comment, and this file's whole worth is that a sentence MENTIONING a key is not
+        // a screen showing it.
+        new(@"new ScopeChoice\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]
