@@ -9,13 +9,15 @@ as it is now, and see exactly what changed - with configuration reported apart f
 state, because a service that started since yesterday is not drift and a start type that changed
 by itself is.
 
-**Status: early.** Version `0.1.0`. The command line does the work listed below. The window shows
-and filters the same data and cannot yet change anything.
+**Status: early.** Version `0.1.0`. Both halves do the work listed below: the command line, and a
+window that shows and filters the same data and can stop, start, restart and set a start type -
+each of those through the same plan, with the same preview in front of it.
 
 ```
 bws list --query "start:auto !status:running"     what should be up and is not
 bws list --query "file:missing"                   services whose binary is gone
 bws stop Spooler --dry-run --dependents           what stopping it would take down
+bws start-type Spooler manual --dry-run           what taking it off automatic would do
 bws snapshot create before.json                   freeze the machine before a change
 bws snapshot diff before.json --live --exit-code  what has changed since
 ```
