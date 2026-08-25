@@ -59,6 +59,7 @@ internal static class Arguments
         kind = argument.ToLowerInvariant() switch
         {
             "list" => CommandKind.List,
+            "show" => CommandKind.Show,
             "stop" => CommandKind.Stop,
             "start" => CommandKind.Start,
             "restart" => CommandKind.Restart,

@@ -16,6 +16,8 @@ each of those through the same plan, with the same preview in front of it.
 ```
 bws list --query "start:auto !status:running"     what should be up and is not
 bws list --query "file:missing"                   services whose binary is gone
+bws show Spooler                                  everything known about one entry
+bws list --query "peruser:no start:auto !status:running"   without the per-session noise
 bws stop Spooler --dry-run --dependents           what stopping it would take down
 bws start-type Spooler manual --dry-run           what taking it off automatic would do
 bws snapshot create before.json                   freeze the machine before a change

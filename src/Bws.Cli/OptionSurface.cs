@@ -20,6 +20,22 @@ internal enum CommandKind
     /// <summary>Nothing recognisable. Print how to use it.</summary>
     None,
     List,
+
+    /// <summary>
+    /// Everything this tool knows about one named entry.
+    ///
+    /// <b>The command line twin of the window's details panel, and it reads MORE than that panel
+    /// does.</b> The panel takes no expensive reading, because it renders one row out of a listing
+    /// of 798 and paying for signatures there costs 947-999 ms. This verb is about a single entry,
+    /// where the same reading costs milliseconds, so it takes all of it and asks for none of it.
+    ///
+    /// <b>It sits beside List rather than under it, and the reason is the parser.</b> A verb that
+    /// takes a NAME and a verb that takes a QUERY are two different shapes, and that line - not
+    /// read against write - is what decides whether a name nobody can find is an empty result or
+    /// a mistake. This one answers code 2, the same as stop does.
+    /// </summary>
+    Show,
+
     Stop,
     Start,
     Restart,
@@ -100,13 +116,22 @@ internal static class OptionSurface
         // decision rather than a cost one. Measured 2026-08-02: one unreachable share costs
         // 21 053 ms against a one second budget, and the connection carries the token of
         // whoever ran the tool. See NetworkPaths in the core for the whole argument.
-        ("--follow-network", [CommandKind.List, CommandKind.SnapshotCreate]),
+        ("--follow-network", [CommandKind.List, CommandKind.Show, CommandKind.SnapshotCreate]),
 
         // The one verb that writes a file somebody keeps. Nothing else here overwrites
         // anything, so nothing else has an existing file to be asked about.
         ("--force", [CommandKind.SnapshotCreate]),
 
-        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        // Only where there is a field that can be empty rather than merely unread. It says
+        // "print the ones that are genuinely absent as well", which every other verb here either
+        // has no fields for or prints in full anyway.
+        //
+        // What it does NOT govern is the fields nobody could read. Those are printed in both
+        // modes, because rule 8 of CLAUDE.md forbids swallowing a failed read - and a switch that
+        // could hide one would be exactly that, spelled as an option.
+        ("--full", [CommandKind.Show]),
+
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -123,7 +148,7 @@ internal static class OptionSurface
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType]),
 
@@ -215,6 +240,22 @@ internal static class OptionSurface
     /// come to this tool for.
     /// </summary>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "stop", "start", "restart", "start-type", "snapshot"];
+        ["list", "show", "stop", "start", "restart", "start-type", "snapshot"];
+
+    /// <summary>
+    /// Whether the command is about ONE entry somebody named, rather than about whatever a query
+    /// selects.
+    ///
+    /// <b>This line, not read against write, is the one the parser and the exit code both need.</b>
+    /// A bare word after a verb belongs to the verb only when the verb takes a name - after "list"
+    /// there is no such word at all, and taking one there would mean `bws list Spooler` quietly
+    /// printed the whole machine. And a name that matches nothing is a mistake worth code 2, while
+    /// a query that matches nothing is an answer worth code 0.
+    ///
+    /// <b>Checked against a second case, as rule 12 asks:</b> `snapshot diff` on a file that is not
+    /// there is not an empty comparison either, and it does not report one.
+    /// </summary>
+    internal static bool TakesAName(CommandKind kind) =>
+        kind == CommandKind.Show || WriteCommands.Writes(kind);
 
 }

@@ -15,6 +15,21 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **`bws show NAME`**, on the command line: everything the tool knows about one entry, in four
+  sections. The command line half of what the window shows in its details panel - and it reads
+  more, because over one entry the expensive parts are cheap.
+  - It reads the signature, the required privileges, the security descriptor and the memory every
+    time, without being asked. Over one entry that costs about sixty milliseconds. Over the whole
+    machine the same reading costs a second, which is why the listing still asks first.
+  - Fields that are genuinely empty are left out, so a report is what there is rather than a wall
+    of "none". **`--full` prints those as well.** A field nobody could read is printed either way,
+    in both modes - leaving one out would look like an answer.
+  - `--json` gives the same document `bws list --json` gives for that entry, on its own rather
+    than inside an array of one.
+  - A name that is not there ends with code 2 and a sentence naming it, the same as `bws stop`
+    does. A query that matches nothing still ends with code 0, because an empty answer is an
+    answer and a name that does not exist is a mistake.
+
 - **`peruser:` in the query language**, in the window and on the command line alike. Windows makes
   a copy of certain services for every signed-in session, and what the manager holds is two
   different things wearing nearly the same name: a **template**, which never runs, and one

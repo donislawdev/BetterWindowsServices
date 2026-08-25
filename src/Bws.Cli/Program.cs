@@ -276,6 +276,77 @@ try
 
         Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected, measured: 0);
     }
+    else if (options.Kind == CommandKind.Show)
+    {
+        // The name is required, and its absence is a usage mistake rather than an empty answer -
+        // OptionSurface.TakesAName carries the whole of that argument.
+        if (options.ServiceName.Length == 0)
+        {
+            stopwatch.Stop();
+            Console.Error.WriteLine(Texts.Of("cli.show.nameMissing"));
+
+            return ExitCode.Usage;
+        }
+
+        var found = entries.FirstOrDefault(entry =>
+            string.Equals(entry.ServiceName, options.ServiceName, StringComparison.OrdinalIgnoreCase));
+
+        // Case-insensitively, because that is how the manager compares names, and by the internal
+        // name only. A display name is translated into the language of the machine - rule 3 of
+        // CLAUDE.md - so accepting one here would make a runbook work on one Windows and not on
+        // another, quietly.
+        if (found is null)
+        {
+            stopwatch.Stop();
+            Console.Error.WriteLine(Texts.Of("cli.show.noSuchEntry", options.ServiceName));
+
+            return ExitCode.Usage;
+        }
+
+        // MEMORY FIRST AND OVER THE WHOLE LISTING, WHICH LOOKS LIKE THE WRONG WAY ROUND AND IS
+        // NOT. The pass counts how many entries share each process, so run over one entry it would
+        // report a service sitting in a shared svchost as having it to itself. It costs 4-6 ms
+        // over 798 entries, so there is nothing to save by narrowing it.
+        //
+        // Doing it before the entry is picked also keeps the two passes from having to be sewn
+        // back together: pick once, from the list that already has the memory in it.
+        var before = stopwatch.ElapsedMilliseconds;
+        entries = MemoryPass.Fill(entries, new WindowsProcessMemoryReader());
+        measured = stopwatch.ElapsedMilliseconds - before;
+
+        found = entries.First(entry =>
+            string.Equals(entry.ServiceName, found.ServiceName, StringComparison.Ordinal));
+
+        // THE EXPENSIVE READING, OVER ONE ENTRY RATHER THAN OVER THE MACHINE, AND THAT IS THE
+        // WHOLE REASON THIS VERB HAS ITS OWN BRANCH. The listing runs the second pass over
+        // everything before it filters, because a query about signatures has to have them read
+        // first - measured at 947-999 ms over 798 entries, and 911-1031 ms even when the query
+        // matched one. Here there is no query and one entry, so the same reading is one file.
+        before = stopwatch.ElapsedMilliseconds;
+        found = SecondPass.Fill([found], new WindowsBinaryInspector(networkPaths))[0];
+        inspected = stopwatch.ElapsedMilliseconds - before;
+
+        stopwatch.Stop();
+
+        // The same document the listing emits, on its own rather than inside an array of one.
+        // Anything already reading `bws list --json` needs nothing new to read this, and a second
+        // shape for the same facts is the second answer this project keeps paying for.
+        //
+        // --full has no meaning here and the switch table does not pretend otherwise: the document
+        // carries every field in every state, because that is what makes it comparable.
+        data = options.Json
+            ? ListingJson.One(found)
+            : EntryReport.Render(found, options.Full);
+
+        // The same reporting every other command gets. Accepting --timing on this verb and then
+        // printing nothing would be the exact silence the belonging table for that switch was
+        // built to end, from the other side - and it was doing precisely that until a run on a
+        // real machine printed six empty lines.
+        //
+        // result: null, like the write commands: there is no query here, so there is nothing to
+        // say about how many of how many matched.
+        Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected, measured);
+    }
     else if (options.IsWrite)
     {
         // Never null here: the only command that leaves it unbuilt is the file comparison,

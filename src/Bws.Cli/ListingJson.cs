@@ -34,4 +34,17 @@ internal static class ListingJson
 
     internal static string Render(IReadOnlyList<ScmEntry> entries) =>
         JsonSerializer.Serialize(entries.Select(EntryDocument.From).ToList(), Options);
+
+    /// <summary>
+    /// One entry on its own, for the verb that is about one entry.
+    ///
+    /// <b>A document rather than an array holding one, and this is a contract being decided
+    /// rather than inherited.</b> `bws show NAME` takes a name and answers about that name, so
+    /// an array would sentence every script that reads it to an index that can never be
+    /// anything but zero. The DOCUMENT is identical either way - same fields, same names, same
+    /// EntryDocument as the listing and the snapshot - so nothing here is a second shape for
+    /// the same facts, which is the thing this file exists to avoid.
+    /// </summary>
+    internal static string One(ScmEntry entry) =>
+        JsonSerializer.Serialize(EntryDocument.From(entry), Options);
 }
