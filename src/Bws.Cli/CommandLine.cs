@@ -248,14 +248,11 @@ internal sealed record CommandLine
     /// </summary>
     internal IReadOnlyList<string> Misplaced { get; private init; } = [];
 
-    internal ActionKind Action => Kind switch
-    {
-        CommandKind.Stop => ActionKind.Stop,
-        CommandKind.Start => ActionKind.Start,
-        _ => ActionKind.Restart
-    };
+    /// <summary>Which ask this is, when it is one. See <see cref="WriteCommands"/>.</summary>
+    internal ActionKind Action => WriteCommands.AskedFor(Kind);
 
-    internal bool IsWrite => Kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart;
+    /// <summary>Whether this command changes anything at all.</summary>
+    internal bool IsWrite => WriteCommands.Writes(Kind);
 
     /// <summary>The options where giving one twice means one of the two was thrown away.</summary>
     private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout"];

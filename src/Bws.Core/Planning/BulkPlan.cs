@@ -20,7 +20,8 @@ namespace Bws.Core.Planning;
 public sealed record BulkAction(
     ActionKind Kind,
     IReadOnlyList<string> ServiceNames,
-    bool IncludeDependents = false);
+    bool IncludeDependents = false,
+    StartType? To = null);
 
 /// <summary>
 /// Everything that would happen to a selection, worked out and frozen. `C2` in one type.

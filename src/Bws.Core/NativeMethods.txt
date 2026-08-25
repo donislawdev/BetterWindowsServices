@@ -21,6 +21,13 @@ QueryServiceConfig
 // it the strongest thing in the details panel.
 QueryServiceConfig2
 
+// Writing one field of that configuration - the start type, and nothing else. Arriving
+// 2026-08-25 with the first ask in this product that changes a setting rather than moving a
+// service. Every other field of the call is handed SERVICE_NO_CHANGE, which is the manager's
+// own way of saying "leave that one alone" - a tool that rewrote a binary path because it was
+// passing the whole structure would be the quietest possible way to break a machine.
+ChangeServiceConfig
+
 // What the entry is allowed to do, and who is allowed to do things to it.
 //
 // The privileges and the service SID type ride on the configuration handle the listing

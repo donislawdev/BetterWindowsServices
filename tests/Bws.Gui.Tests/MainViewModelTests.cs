@@ -205,7 +205,7 @@ public sealed class MainViewModelTests
         Assert.Equal(string.Empty, model.Says.Problem);
         Assert.Contains(Bws.Gui.Texts.Of("gui.query.unreadSignatures"), model.Says.Notice, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            Bws.Gui.Texts.Of("gui.status.partial", 2), model.Says.Notice, StringComparison.Ordinal);
+            Bws.Gui.Texts.Of("gui.status.partial.many", 2), model.Says.Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -622,9 +622,9 @@ public sealed class MainViewModelTests
                  {
                      "gui.window.title", "gui.column.name", "gui.column.displayName",
                      "gui.column.status", "gui.column.startType", "gui.column.account",
-                     "gui.column.processId", "gui.status.reading", "gui.status.read",
-                     "gui.status.matched", "gui.status.failed", "gui.status.partial",
-                     "gui.status.tooCostly", "gui.status.holding", "gui.cell.unknown",
+                     "gui.column.processId", "gui.status.reading", "gui.status.read.many",
+                     "gui.status.matched.many", "gui.status.failed", "gui.status.partial.many",
+                     "gui.status.tooCostly.many", "gui.status.holding", "gui.cell.unknown",
                      "gui.cell.noAccess", "gui.search.hint",
                      "gui.filter.group.state", "gui.filter.group.start", "gui.filter.group.about",
                      "gui.filter.hint.adds", "gui.filter.hint.narrows", "gui.query.unreadSignatures",

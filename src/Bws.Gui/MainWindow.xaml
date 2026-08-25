@@ -58,6 +58,13 @@
             -->
             <RowDefinition Height="Auto" />
 
+            <!--
+                WHAT CAN BE DONE TO THE ROWS SOMEBODY PICKED, since 2026-08-25 - backlog 224. Auto,
+                like every other band over the list, and directly above the rows rather than at the
+                top of the window: it acts on what is under it.
+            -->
+            <RowDefinition Height="Auto" />
+
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -169,7 +176,17 @@
             together. It is a separate experiment with its own look, not a third attribute smuggled
             in beside two that are about scrolling.
         -->
-        <DataGrid Grid.Row="3"
+        <!--
+            THE ONLY VISIBLE WAY TO AN OPERATION, and until this line the only way at all was the
+            right mouse button. What it holds, and why each button ends in three dots, is argued at
+            the head of ActionBar.xaml.
+        -->
+        <local:ActionBar Grid.Row="3"
+                         Grid.ColumnSpan="2"
+                         x:Name="Actions"
+                         Margin="{StaticResource MarginBelowSearch}" />
+
+        <DataGrid Grid.Row="4"
                   x:Name="Entries"
                   MouseEnter="ListEngaged"
                   MouseLeave="ListReleased"
@@ -268,7 +285,7 @@
             Bound to what the window SAYS rather than to the whole model, so nothing in it can
             reach the list, the query or the reading.
         -->
-        <local:EmptyState Grid.Row="3" x:Name="ListEmptyState" DataContext="{Binding Says}" />
+        <local:EmptyState Grid.Row="4" x:Name="ListEmptyState" DataContext="{Binding Says}" />
 
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
@@ -283,7 +300,7 @@
             Bound to the chosen entry rather than to the whole model, so nothing in the panel can
             reach the list, the query or the reading. What it may say is exactly what Chosen holds.
         -->
-        <local:DetailsView Grid.Row="3"
+        <local:DetailsView Grid.Row="4"
                            Grid.Column="1"
                            x:Name="DetailsPanel"
                            DataContext="{Binding Chosen}" />
@@ -293,7 +310,7 @@
             mutually exclusive with it - the window closes one when it opens the other. Why that is
             right, and why this file is a UserControl, are at the head of PlanView.xaml.
         -->
-        <local:PlanView Grid.Row="3"
+        <local:PlanView Grid.Row="4"
                         Grid.Column="1"
                         x:Name="PlanPanel"
                         DataContext="{Binding Planned}" />
@@ -303,19 +320,56 @@
             - complaint 8 - and what is left here is what a result has to ADMIT about itself and
             what is wrong with the question, which are two different things and stay apart.
         -->
-        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
+        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
 
-            <TextBlock Text="{Binding Says.Notice}" TextWrapping="Wrap">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Says.Notice}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+            <!--
+                THE ONE SENTENCE IN THIS WINDOW THAT HAS A WAY OUT, since 2026-08-25. Everything
+                else this line says is a fact about an answer - a session without administrator
+                rights is a state somebody can leave, and until now the window said so and offered
+                nothing. `docs/11` section 6 names that as this window's weakest heuristic.
+
+                The button asks WHICH FACT rather than whether the line is empty: most of what is
+                said here is about the query, and a way out offered beside a sentence about
+                signatures would be a control that means nothing.
+            -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="{Binding Says.Notice}" TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Says.Notice}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <Button Grid.Column="1"
+                        x:Name="ElevateButton"
+                        AutomationProperties.AutomationId="elevate"
+                        Content="{DynamicResource gui.action.elevate}"
+                        ToolTip="{DynamicResource gui.action.elevate.hint}"
+                        Margin="{StaticResource MarginBetweenControls}"
+                        VerticalAlignment="Center"
+                        Click="RestartAsAdministrator">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
 
             <TextBlock Text="{Binding Says.Problem}" TextWrapping="Wrap">
                 <TextBlock.Style>

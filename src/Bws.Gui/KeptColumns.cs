@@ -77,6 +77,43 @@ internal sealed class KeptColumns
     }
 
     /// <summary>
+    /// Puts the layout of the list on screen back to what this build opens with, and writes it.
+    ///
+    /// <b>The same three moves as a scope change, in the same order, and that is deliberate.</b>
+    /// Which columns are on goes through <see cref="ColumnBar.Follow"/>, because that is the one
+    /// road from "this column is on" to a column being on. Width and order go through
+    /// <c>ListColumns.Reapply</c>. Wrapped in <see cref="While"/> so the file is written once at
+    /// the end rather than once per column turned off.
+    ///
+    /// <b>Only the scope on screen.</b> The other two layouts are left exactly as they are, for the
+    /// reason <see cref="Keep"/> gives: somebody who arranged their drivers list should not lose it
+    /// by putting the services list back.
+    ///
+    /// <b>A default layout carries no width at all</b>, which is what makes this a restore rather
+    /// than a set of numbers written down twice - every column takes the width the theme names, so
+    /// changing the theme still changes the list.
+    /// </summary>
+    internal void Defaults(DataGrid grid, ColumnBar bar, Says says)
+    {
+        ArgumentNullException.ThrowIfNull(bar);
+
+        While(
+            () =>
+            {
+                Plan = ColumnPlan.Of(null, _scope);
+
+                bar.Follow(Plan);
+
+                if (Trouble(ListColumns.Reapply(grid, Plan)) is { } trouble)
+                {
+                    says.AboutTheLayout(trouble);
+                }
+            },
+            grid,
+            says);
+    }
+
+    /// <summary>
     /// Holds off the writing while a scope is being applied, and writes once when it is done.
     ///
     /// A pair rather than a flag the window sets, because the two halves belong together and the

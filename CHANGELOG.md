@@ -15,6 +15,56 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **Start type...**, in the bar over the list: Automatic, Manual or Disabled for the entries you
+  picked. Like everything else in that bar it shows you a plan first - the title says what it
+  would set and to what - and nothing changes until you press Carry this out.
+  - Boot and System are not offered: they belong to drivers, which this tool does not operate
+    on. Automatic (delayed) is not offered either, because it is a separate setting rather than
+    a start type.
+  - **There is no way back for this one yet.** After a start type has been set, the panel
+    offers nothing to undo it - putting one back needs the type the entry had before, which
+    nothing records. It says nothing rather than offering something wrong.
+  - **The command line has no verb for it yet**, so the panel shows no line to paste beside a
+    start type change. `bws stop`, `start` and `restart` are unchanged.
+
+- **Export...**, beside Refresh, writes what the list shows to a CSV file. What is on screen is
+  what lands in the file: the entries the scope and your search left, the columns you have on,
+  in the order you dragged them into and the order you sorted by. Values carrying a comma, a
+  quote or a line break are quoted the way the format says, and the file starts with the mark
+  that stops a spreadsheet guessing the encoding wrongly. If you want stable field names
+  rather than the headings you see, `bws list --json` is the one to use.
+
+- **Restart as administrator**, beside the line that says the session has none. Windows asks you
+  to confirm, and answering no leaves the window you already had - it says so rather than
+  closing anyway. The button is only there when the session actually lacks the rights. Your
+  columns and the order you sorted them in come back on their own; anything typed in the
+  search box does not.
+
+- **The list opens in the order you left it in.** Click a heading, close the window, open it
+  again - the same column, the same direction. Each of the three lists remembers its own, so
+  sorting drivers by start type does not reorder your services. A column you have since turned
+  off is not sorted by: the file keeps it, and turning the column back on brings the order back
+  with it.
+
+- **A bar over the list: Stop..., Start..., Restart... and Refresh.** Until now the only way to an
+  operation was the right mouse button, which you had to know about. The three dots are the promise:
+  every one of them shows you a plan first and changes nothing until you press Carry this out. They
+  are off while nothing is picked, and say so if you rest on them.
+- **The filters fold away.** The **Filters** switch at the left of that row hides the chips and gives
+  the room back to the list - measured on a 1050-pixel-high window, the first row moves up by about
+  five rows' worth. Nothing is hidden by folding them: a filter you clicked is written into the
+  search box, so it is still on screen as text. They start open, and the fold is not remembered
+  between runs.
+
+- **Restore the usual columns**, the last item in the **Columns** list. What you choose there is
+  kept and comes back the next time you open the window, so turning on a handful of columns to
+  look at something once used to leave them there - with no way back except turning each one off
+  again. There is deliberately no "turn them all on": the signature columns send the window to
+  open every binary on the machine, which takes seconds rather than milliseconds.
+- **A greyed-out Carry this out says why it is greyed out.** Rest on it and it names the first
+  thing in the way: no administrator rights, a run already under way, a plan that has already
+  been carried out, or a plan with nothing in it that could be done.
+
 - **`bws --help` and `bws -h`** print how to use the tool, on standard output, and end
   successfully. Running `bws` with nothing after it does the same. The help now starts with
   three examples rather than a list of switches.
@@ -344,6 +394,16 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The plan panel calls a service what you call it.** The title of a preview read "What
+  stopping pla would do", naming the entry the way the service manager does. It now carries the
+  display name - "Performance Logs and Alerts" - with the manager's own name on the line under
+  it. Both are there on purpose: the display name is the one you recognise, and the internal name
+  is the one you would type into a command.
+- **Counts read as English when there is one of something.** The line under the search box said
+  "1 entries" on a list holding one, and the same fault stood in two of the sentences the window
+  says about an answer. It also lost its full stop: it is a label rather than a sentence, and it
+  reads "810 entries" now.
+
 - **Services and drivers are two separate lists**, chosen with **Services**, **Drivers** and
   **Everything** above the search box. The window opens on Services, which is what `services.msc`
   shows and what people compare this against. The search box opens **empty**: the choice of list
@@ -431,6 +491,11 @@ Nothing has been released yet. Everything below is what the tool does today.
     many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
+
+- **The white outline on Services / Drivers / Everything no longer appears when you click.** It is a
+  keyboard focus ring and it was lighting up for the mouse as well, because clicking a button gives
+  it the keyboard focus too. It is drawn by the framework now, which shows it only while you are
+  actually using the keyboard - so tabbing still shows you where you are.
 
 - **On a machine the manager hands over nothing for, the message saying so no longer flickers.**
   The sentence in the middle of the empty list was replaced by "reading the manager" and put

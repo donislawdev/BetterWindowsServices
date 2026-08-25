@@ -2,10 +2,11 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        THE CONTROLS THIS WINDOW IS MADE OF, EVERYWHERE EXCEPT THE LIST - the text styles,
-        the sentences the window says, the field somebody types into and the box somebody
-        ticks. Not one value of its own: every number, colour and thickness below is a name
-        declared in Values.xaml.
+        THE CONTROLS THIS WINDOW IS MADE OF, EVERYWHERE EXCEPT THE LIST - the field somebody
+        types into, the box somebody ticks, the chip and the items of the column picker. Not
+        one value of its own: every number, colour and thickness below is a name declared in
+        Values.xaml. The text itself - headings, sentences, steps, the count - left for
+        Themes/Text.xaml on 2026-08-25.
 
         ADR-23, the same rule as the other two files.
 
@@ -23,166 +24,20 @@
 
         NEITHER THIS FILE NOR List.xaml LOADS ON ITS OWN. Both reach WPF UI's keys and both
         reach ours in Values.xaml, and StaticResource resolves them WHILE THE FILE IS BEING
-        READ. So the merge order in App.xaml is the library's dictionaries, then Values.xaml,
-        then this, then List.xaml.
+        READ. So the merge order in App.xaml is the library's dictionaries, then the value
+        files, then Text.xaml, then this, then List.xaml.
     -->
     <!--
-        BasedOn by NAME on WPF UI's own styles, not on {x:Type TextBlock}.
+        EVERY TextBlock STYLE LEFT THIS FILE ON 2026-08-25, for Themes/Text.xaml, and the argument
+        for the seam is at the head of that file. Backlog 213 named it six days earlier: this file
+        stood at 395 lines against a markup ceiling of 397, so the next thing to go in needed
+        something else to come out first.
 
-        The type form worked while the base was the built-in Fluent theme, and would now be
-        ambiguous: this dictionary is merged after theirs and is itself keyed by the same type,
-        so which style it resolves to depends on lookup order rather than on intent. Their keys
-        are stable, documented by their own markup - DataGrid.xaml bases four styles on exactly
-        these names - and they say what is meant.
-
-        CONSEQUENCE TO KNOW: this file no longer loads on its own. It resolves keys that only
-        exist once ControlsDictionary is merged, which is why tools/wpfui-probe loads it after
-        theirs. That is a real dependency and it is the shape of the decision the owner made.
-
-        Every one of the three below keeps OUR size setter on top of their template. That is
-        the density decision of 2026-08-02 in the two places it is spelled out.
+        IT IS MERGED BEFORE THIS FILE RATHER THAN AFTER, and that is not a preference. The column
+        picker's item template below reaches SubduedText through StaticResource, which resolves
+        WHILE THIS FILE IS BEING READ - a dictionary merged after this one would be a name that
+        does not exist yet.
     -->
-    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-    </Style>
-
-    <!--
-        A PANEL'S OWN TITLE. SemiBold since 2026-08-19, and measured rather than preferred: it set a
-        size and no weight, so it arrived Normal while the sentence under it was SemiBold - the
-        largest text on the panel was the THINNEST thing on it. Both panels using this key had the
-        same fault, so one setter fixes both.
-    -->
-    <Style x:Key="HeadingText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
-    </Style>
-
-    <Style x:Key="FixedText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-    </Style>
-
-    <Style x:Key="SubduedText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-    </Style>
-
-    <!--
-        A HEADING INSIDE A PANEL, WHICH IS NOT THE SAME THING AS THE PANEL'S OWN TITLE. Added
-        2026-08-19, after the owner looked at the plan panel and could not find where to start
-        reading: five headings and the title were all TextSizeHeading, so nothing was the top of
-        anything.
-
-        TextSizeHeader rather than TextSizeNormal because 14 is the floor for semibold text in
-        the guidance TypeScaleGuards holds, and a section heading in a wall of sentences has to
-        be seen without being read.
-    -->
-    <Style x:Key="SectionHeadingText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-    </Style>
-
-    <!--
-        WHERE THE PLAN PANEL IS IN ITS SEQUENCE - nothing done, doing it, done.
-        <b>NOT NoticeText, and that was the fault the owner saw.</b> This line wore the warning
-        orange, which is the same colour as the line at the bottom of the window saying the
-        session has no administrator rights - so the sentence telling somebody that NOTHING HAS
-        HAPPENED read as something having gone wrong.
-
-        <b>SEMIBOLD CAME OFF ON 2026-08-19, THE DAY AFTER IT WENT ON, AND THE MEASUREMENT IS WHY.</b>
-        This style and SectionHeadingText above had IDENTICAL setters - same face, same 14, same
-        SemiBold, same colour - so "Nothing has been done" was rendered exactly like "In this
-        order:". The panel had four headings and no body. Fixing the colour fault above created a
-        weight fault here, which is the shape rule 11 of the project notes is about: a correction is
-        a claim and needs checking as one.
-        Size still separates it from the body at 13 and position separates it from everything -
-        it is the only line between the title and the sections. Weight is what it gives up, because
-        weight is now the only thing that says "this is a section label".
-    -->
-    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-    </Style>
-
-    <!--
-        ONE STEP OF A PLAN, AND UNTIL 2026-08-19 IT HAD NO STYLE OF ITS OWN. It was built on
-        SubduedText, which is TextSizeSmall - so what will happen to the machine was rendered at 12
-        under a section heading at 14 SemiBold. The label was larger and heavier than the thing it
-        labelled, and the eye slid off three bold labels without stopping on any content.
-        The subdued FOREGROUND is kept and the subdued SIZE is not: a step nobody asked for should be
-        dimmer rather than smaller, because `C2` wants those findable at a glance and a size
-        difference makes them hard to read rather than easy to skip.
-    -->
-    <Style x:Key="PlanStepText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-    </Style>
-
-    <!--
-        THE COUNT, WHICH MOVED OUT FROM UNDER THE LIST AND STOPPED BEING SUBDUED. Complaint 8 of
-        the eleven says it was the least visible thing on the screen and is the main answer to
-        every keystroke - small, grey and at the bottom is three ways of saying "ignore me".
-
-        SEMIBOLD WHEN THE LIST IS NARROWED, AND THAT IS COMPLAINT 7 RATHER THAN DECORATION. That
-        one says you cannot see THAT a filter is on. The words already say it - "108 of 810"
-        against "810" - but a weight change is seen without reading, which is the difference
-        between a signal and a fact you have to go and check.
-
-        TextSizeHeader rather than TextSizeHeading: 14 is the floor for semibold text in the
-        guidance TypeScaleGuards holds, and this line is semibold half the time.
-    -->
-    <Style x:Key="CountLine" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
-
-        <!--
-            Missing until 2026-08-10, and the count was black on a dark window. A regression from
-            slice 5, where it "stopped being grey" - the brush was removed rather than replaced,
-            so this style declared type and no colour and inherited one nobody chose. Backlog 145.
-        -->
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding Says.Narrowed}" Value="True">
-                <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        The sentence in the middle of an empty list. Larger than the rows, because it is the only
-        thing on that half of the screen and somebody is looking at it wondering what happened.
-    -->
-    <Style x:Key="EmptyStateText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-    </Style>
-
-    <!--
-        What the result has to admit about itself, and what is wrong with the question. Two
-        styles rather than one, because they answer different questions and a person glancing
-        at the window has to be able to tell "your query is broken" from "your query worked and
-        the answer has holes in it" without reading either sentence.
-    -->
-    <Style x:Key="NoticeText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
-        <Setter Property="Foreground" Value="{StaticResource MeaningWarning}" />
-    </Style>
-
-    <Style x:Key="ProblemText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
-        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
-    </Style>
 
     <!--
         The one field. Its padding is named rather than left to the framework because the hint
@@ -354,6 +209,24 @@
         <Setter Property="IsChecked" Value="{Binding IsShown, Mode=TwoWay}" />
         <Setter Property="IsEnabled" Value="{Binding MayHide}" />
         <Setter Property="StaysOpenOnClick" Value="True" />
+    </Style>
+
+    <!--
+        THE WAY BACK FROM A LAYOUT SOMEBODY NO LONGER WANTS, 2026-08-25. What is chosen above is
+        written to disk and comes back on the next start, so without this item the only road back
+        to the six columns this window opens with is turning the others off one at a time.
+
+        NO "TURN THEM ALL ON" BESIDE IT, AND THE REASON IS MEASURED RATHER THAN TIDY. Turning on a
+        signature column is what sends the window to open eight hundred files - 8.86-9.42 s of
+        processor against 1.39-1.42 s without it, over about 810 entries. One item that switches
+        every column on is one item that stops the window for ten seconds.
+
+        StaysOpenOnClick is deliberately NOT here, unlike the choices above. Ticking four columns is
+        one errand spread over four clicks, and this is one errand finished in one - so the menu
+        closing is what says it happened.
+    -->
+    <Style x:Key="ColumnResetItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
     </Style>
 
     <!--

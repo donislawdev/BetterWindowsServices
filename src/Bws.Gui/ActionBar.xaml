@@ -1,0 +1,127 @@
+<UserControl x:Class="Bws.Gui.ActionBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHAT SOMEBODY CAN DO TO THE ROWS THEY PICKED, where they can see it. Arriving 2026-08-25,
+        backlog 224, and the thing worth saying first is how it was found: a report written from
+        four screenshots by somebody who had never seen this project put it first on a list of ten,
+        and a search of `docs/01`, `docs/04` and `docs/11` for a bar of this kind came back empty.
+        It had never been proposed here, so it had never been refused - the window has been able to
+        change a machine since 2026-08-19 and the only way in was the right mouse button.
+
+        EVERY BUTTON HERE OPENS A PLAN AND NOTHING ELSE, which is rule 1 of the project notes and
+        not a temporary arrangement. The words carry it: each one ends in the three dots Windows
+        has used since the eighties to mean "this asks before it acts", and the tooltip says it in
+        a sentence. What actually changes a machine is one button, it says "Carry this out", and it
+        lives at the foot of the plan.
+
+        WHY NOT THE MENU WORDING. Under the right button these are questions - "What stopping would
+        do" - which is right there and wrong here: a bar of four questions reads as a quiz, and a
+        toolbar has room for a verb rather than a clause. The three dots carry the same promise in
+        the space a button has.
+
+        WHAT IS DELIBERATELY NOT HERE, said rather than left to be noticed. The column picker stays
+        at the end of the filters row: it changes what the list SHOWS, and everything here changes
+        what the machine DOES. Putting them together would be the tidier bar and the worse one.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
+        ContentControl is BOTH BY DEFAULT - measured, not assumed. Without them this row is a tab
+        stop that does nothing, in front of the buttons it holds. `docs/10` trap 8.
+    -->
+
+    <StackPanel Orientation="Horizontal">
+        <Button x:Name="StopButton"
+                AutomationProperties.AutomationId="actionStop"
+                Content="{DynamicResource gui.action.stop}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="StopAsked" />
+
+        <Button x:Name="StartButton"
+                AutomationProperties.AutomationId="actionStart"
+                Content="{DynamicResource gui.action.start}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="StartAsked" />
+
+        <Button x:Name="RestartButton"
+                AutomationProperties.AutomationId="actionRestart"
+                Content="{DynamicResource gui.action.restart}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="RestartAsked" />
+
+        <!--
+            WHAT THE MANAGER DOES WITH THE ENTRY AT BOOT, arriving 2026-08-25. A menu rather than
+            four buttons, for the reason the column picker won the same argument: three more buttons
+            in a bar of four is a bar nobody scans, and the theme already dresses a menu.
+
+            THREE TYPES AND NOT FIVE, and the two missing ones are a decision. Boot and System belong
+            to drivers, which this tool refuses to operate on at all - offering them would be a menu
+            item that always ends in a refusal. Automatic-delayed is a separate flag rather than a
+            start type, so setting it is a different call and a later slice.
+
+            Three dots like the three above it: this opens a plan, and what changes the machine is
+            still the one button at the foot of it.
+        -->
+        <Button x:Name="StartTypeButton"
+                AutomationProperties.AutomationId="actionStartType"
+                Content="{DynamicResource gui.action.startType}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="StartTypeAsked">
+            <Button.ContextMenu>
+                <ContextMenu>
+                    <MenuItem x:Name="AutomaticItem"
+                              Header="{DynamicResource gui.cell.start.automatic}"
+                              Click="SetAutomatic" />
+                    <MenuItem x:Name="ManualItem"
+                              Header="{DynamicResource gui.cell.start.manual}"
+                              Click="SetManual" />
+                    <MenuItem x:Name="DisabledItem"
+                              Header="{DynamicResource gui.cell.start.disabled}"
+                              Click="SetDisabled" />
+                </ContextMenu>
+            </Button.ContextMenu>
+        </Button>
+
+        <!--
+            The line between what is done to a service and what is done to the listing. A shape
+            rather than a gap, because a gap at this width reads as an accident.
+        -->
+        <Rectangle Width="1"
+                   Fill="{StaticResource SurfaceRowLine}"
+                   Margin="{StaticResource MarginBetweenControls}" />
+
+        <!--
+            READING THE MACHINE AGAIN, and it is not one of the three above it: nothing it does
+            reaches a service. It is here because F5 is a key nobody was told about, which is the
+            same argument the column picker won on `docs/11` section 6 - a feature reachable only
+            by a key you already know is a feature you do not have.
+        -->
+        <Button x:Name="RefreshButton"
+                AutomationProperties.AutomationId="actionRefresh"
+                Content="{DynamicResource gui.action.refresh}"
+                ToolTip="{DynamicResource gui.action.refresh.hint}"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="RefreshAsked" />
+
+        <!--
+            WHAT IS ON SCREEN, AS A FILE, and it belongs on this side of the line for the same
+            reason Refresh does: nothing it does reaches a service. Three dots again, because it
+            asks where to put the file before it writes one.
+
+            Never off. It exports what the list SHOWS rather than what somebody picked, so a
+            selection of nothing is the ordinary case rather than a reason to refuse.
+        -->
+        <Button x:Name="ExportButton"
+                AutomationProperties.AutomationId="actionExport"
+                Content="{DynamicResource gui.action.export}"
+                ToolTip="{DynamicResource gui.action.export.hint}"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="ExportAsked" />
+    </StackPanel>
+</UserControl>

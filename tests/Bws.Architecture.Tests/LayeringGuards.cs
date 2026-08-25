@@ -1,3 +1,4 @@
+using System.IO;
 namespace Bws.Architecture.Tests;
 
 /// <summary>
@@ -138,13 +139,29 @@ public sealed class LayeringGuards
         // the members called on them, so Assembly.Load would walk past it. What it does hold
         // is the two shapes that cannot be mistaken for anything innocent - starting a process
         // and building a type from a name.
-        string[] forbidden =
-        [
-            "System.Diagnostics.Process",
-            "System.Diagnostics.ProcessStartInfo",
-            "System.Activator",
-            "System.AppDomain"
-        ];
+        // THE WINDOW MAY NAME A PROCESS SINCE 2026-08-25, AND ONLY THE WINDOW - the owner's
+        // decision, taken with the alternatives beside it. The button that restarts this tool with
+        // administrator rights has no other mechanism: elevation IS a new process, and the sentence
+        // this window has said since 2026-08-05 about a short list had no way out at all.
+        //
+        // <b>The exception is narrow in three ways rather than one.</b> It is one assembly, not
+        // three. Activator and AppDomain stay forbidden here, so the shape that catches a stale
+        // generated file in obj still catches it. And
+        // <see cref="Only_one_file_in_the_window_may_start_a_process"/> reads the sources, so the
+        // name may appear in exactly one file and any second one reddens the build.
+        string[] forbidden = string.Equals(projectName, "Bws.Gui", StringComparison.Ordinal)
+            ?
+            [
+                "System.Activator",
+                "System.AppDomain"
+            ]
+            :
+            [
+                "System.Diagnostics.Process",
+                "System.Diagnostics.ProcessStartInfo",
+                "System.Activator",
+                "System.AppDomain"
+            ];
 
         var found = assembly.TypeReferences
             .Where(type => forbidden.Contains(type, StringComparer.Ordinal))
@@ -159,4 +176,49 @@ public sealed class LayeringGuards
             "needs one of these, that is a conversation and an entry here with its reason - " +
             "not a reference that arrives while somebody is doing something else.");
     }
+    /// <summary>
+    /// A process may be started from one file in the window, and that file is named here.
+    ///
+    /// <b>This is the other half of the exception the theory above describes</b>, and without it
+    /// that exception would be an assembly-wide door: anything in the window could reach for
+    /// Process.Start and nothing would say a word.
+    ///
+    /// <b>It reads the SOURCES rather than the assembly</b>, because that is the only place the
+    /// question "which file" can be asked at all - a compiled assembly knows which types it names
+    /// and not which of its files named them. The cost is the usual one for a text scan and is
+    /// stated rather than hidden: a file could reach the same place through a name this does not
+    /// look for, exactly as the theory above says about a dependency.
+    ///
+    /// <b>The allowed file is spelled out rather than pattern matched</b>, the same shape
+    /// <c>PlanOnlyGuards</c> uses for the two files allowed to build a writer. A list somebody has
+    /// to add a line to is a list somebody has to think about.
+    /// </summary>
+    [Fact]
+    public void Only_one_file_in_the_window_may_start_a_process()
+    {
+        const string Allowed = "Elevation.cs";
+
+        var window = Path.Combine(SourceTree.Root(), "src", "Bws.Gui");
+
+        var named = Directory
+            .EnumerateFiles(window, "*.cs", SearchOption.AllDirectories)
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(file => Names(File.ReadAllText(file)))
+            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            named.Count == 1 && string.Equals(named[0], Allowed, StringComparison.Ordinal),
+            "Starting a process is allowed in " + Allowed + " and nowhere else in this window - "
+            + "the owner decided that on 2026-08-25 for one button, with the reason written at the "
+            + "head of that file. These files name one: "
+            + string.Join(", ", named));
+    }
+
+    /// <summary>Whether a source file names the two types that start a program.</summary>
+    private static bool Names(string source) =>
+        source.Contains("Process.Start", StringComparison.Ordinal)
+        || source.Contains("ProcessStartInfo", StringComparison.Ordinal);
 }

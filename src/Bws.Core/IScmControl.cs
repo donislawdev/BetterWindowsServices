@@ -62,6 +62,17 @@ public interface IScmControl
     /// </summary>
     ControlAnswer Request(string serviceName, StepOperation operation);
 
+    /// <summary>
+    /// Write an entry's start type - what the manager does with it at boot.
+    ///
+    /// <b>The first thing on this interface that changes CONFIGURATION rather than asking the
+    /// manager to move something</b>, and the difference is the whole reason it is a second method
+    /// rather than a third value passed to the first. A request is taken now and arrives later, so
+    /// the caller waits and watches. This is done when it returns: there is no half-configured
+    /// state to watch for, no wait hint, and nothing to poll.
+    /// </summary>
+    ControlAnswer Configure(string serviceName, StartType wanted);
+
     /// <summary>Where the entry is now. The answer says whether it could be read at all.</summary>
     ControlAnswer Read(string serviceName);
 }

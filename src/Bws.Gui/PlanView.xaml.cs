@@ -71,6 +71,15 @@ public partial class PlanView : UserControl
     internal TextBlock Notice => PlanNotice;
 
     /// <summary>
+    /// The manager's own name for the entry, under a title carrying the one a person recognises.
+    ///
+    /// Exposed for the same reason as the heading above it, and with one thing more to check: this
+    /// line has to GO when there is nothing to say, or a heading is left with a reserved gap under
+    /// it - backlog 203, the fault this panel has already had once.
+    /// </summary>
+    internal TextBlock Subtitle => PlanSubtitle;
+
+    /// <summary>
     /// The line saying why this cannot be carried out here.
     ///
     /// <b>Read off the control rather than off the model</b>, because the fault it exists against is

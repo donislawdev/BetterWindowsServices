@@ -30,7 +30,7 @@ public sealed class ColumnLayoutGuards
     {
         var text = ColumnLayouts.Default.Render();
 
-        Assert.Contains("\"schemaVersion\": 2", text, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": 3", text, StringComparison.Ordinal);
         Assert.EndsWith("\n", text, StringComparison.Ordinal);
 
         foreach (var column in Columns.All)
@@ -243,11 +243,12 @@ public sealed class ColumnLayoutGuards
     [Fact]
     public void A_file_naming_no_columns_gets_the_usual_ones_without_a_word_about_it()
     {
-        // VERSION 2 SINCE 2026-08-19, and the change is about keeping this test about one thing. It
-        // said 1 until then, which was the only version there was. Now a version 1 file is carried
-        // forward and the window says so - true, useful, and nothing to do with an empty list of
-        // columns. A fixture asserting silence has to be silent for the reason it names.
-        var read = ColumnLayouts.Read("""{ "columns": [], "schemaVersion": 2 }""");
+        // THE CURRENT VERSION, WHATEVER IT IS TODAY, and the number moves with the schema for a
+        // reason: this test is about an empty list of columns and nothing else. It said 1 until
+        // 2026-08-19 and 2 until 2026-08-25, and each time an older number turned it into a test
+        // about carrying a file forward - which is true, useful, and somebody else's subject. A
+        // fixture asserting silence has to be silent for the reason it names.
+        var read = ColumnLayouts.Read("""{ "columns": [], "schemaVersion": 3 }""");
 
         Assert.NotNull(read.Layouts);
         Assert.False(read.WorthSaying);

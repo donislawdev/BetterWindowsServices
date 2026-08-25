@@ -37,6 +37,27 @@
     -->
     <UserControl.Resources>
         <!--
+            THE RING ITSELF, AS A FOCUS VISUAL RATHER THAN AS A STATE OF THE CONTROL. A focus
+            visual has no TargetType and is put on an adorner by the framework, which is why the
+            template below is bare and why it can be drawn over the row without taking part in its
+            layout.
+
+            The two values are the ones the trigger used, by name, so the ring looks the same to
+            somebody arriving with the Tab key as it did before - `ADR-23`, and nothing new is
+            declared for a change that is about WHEN the ring appears rather than what it is.
+        -->
+        <Style x:Key="ScopeFocusRing">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border BorderBrush="{StaticResource FocusRing}"
+                                BorderThickness="{StaticResource FocusRingThickness}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
             A TAB WITH A LINE UNDER IT, AND THE FIRST VERSION WAS A CHIP. That version borrowed the
             filter chip's style whole - one BasedOn, no new brush, an argued contrast pair already
             enforced by ContrastGuards - and it was the cheapest correct-looking thing to build. The
@@ -52,9 +73,24 @@
             would be a worse lie than replacing it. The cost is named: every state this control has
             is now this file's job, so hover, keyboard focus and the checked mark are all below.
 
-            THE FOCUS RING IS ALWAYS THE SAME THICKNESS and only its colour changes. Turning a
-            border on at the moment somebody tabs to it would move the text by a pixel, and a row
-            that shifts under the keyboard is worse than one with no ring at all.
+            THE FOCUS RING IS DRAWN BY WPF AS A FOCUS VISUAL SINCE 2026-08-25, AND THAT IS THE
+            OWNER'S SECOND COMPLAINT ANSWERED AT ITS CAUSE. It was a template trigger on
+            IsKeyboardFocused, and IsKeyboardFocused says nothing about how the focus arrived:
+            clicking a RadioButton focuses it, so the white border lit up on an ordinary mouse
+            click. That is what "the white border and the switching look very ugly" was about -
+            the owner picked it out of four candidates on 2026-08-25, and the other three were
+            offered beside it.
+
+            A FocusVisualStyle is drawn by the framework only while the keyboard is the input
+            device somebody is actually using, which is the distinction the trigger could not
+            make. It also draws in the adorner layer, above everything, so it cannot move a
+            single pixel of this row - the reason the trigger version had to reserve a border
+            it was not painting.
+
+            The Border below keeps its transparent brush and its thickness anyway, and neither is
+            about the ring any more: the brush is what makes the whole position take a click
+            rather than only the letters, and the thickness is the spacing this row was measured
+            with. `docs/10`: a transparent brush takes hit testing, no brush does not.
 
             Transparent through x:Static, which is the idiom Cells.xaml already uses twice - a value
             pointing at a name rather than invented in place, so ADR-23 holds. A Grid with no
@@ -66,6 +102,8 @@
                 never be added without meeting this line and deciding whether it shares the group.
             -->
             <Setter Property="GroupName" Value="scope" />
+
+            <Setter Property="FocusVisualStyle" Value="{StaticResource ScopeFocusRing}" />
 
             <Setter Property="Margin" Value="{StaticResource MarginGroup}" />
             <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
@@ -124,9 +162,6 @@
                                 <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
                             </Trigger>
 
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource FocusRing}" />
-                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>

@@ -54,10 +54,45 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
+        <!--
+            THE ROW FOLDS AWAY SINCE 2026-08-25, AND THE NUMBER IS WHY. Measured with
+            layout-snapshot.ps1 on a window 1650 by 1050: the first column heading stood at 409
+            pixels and the first row at 457, so 43 per cent of the window was everything except
+            the list. Four wrapped lines of chips are most of it.
+
+            OPEN WHEN THE WINDOW OPENS, and that half is deliberate: complaint 7 of the eleven was
+            closed by making the filters visible, and a row that starts folded would reopen it for
+            everybody who has never seen this window. What folding costs is nothing at all, because
+            the chips are not the only place their state shows - each one writes its member into the
+            box above, so a folded row still has "status:stopped" on screen in the query.
+
+            NOT REMEMBERED BETWEEN RUNS, said rather than left to be discovered. The one file this
+            program keeps is a frozen contract at schema 2, and a new field in it is a schema bump
+            and a conversation rather than an edit.
+        -->
+        <ToggleButton Grid.Column="0"
+                      x:Name="FiltersToggle"
+                      AutomationProperties.AutomationId="filtersToggle"
+                      Content="{DynamicResource gui.filter.toggle}"
+                      ToolTip="{DynamicResource gui.filter.toggle.hint}"
+                      Margin="{StaticResource MarginBetweenControls}"
+                      VerticalAlignment="Top"
+                      IsChecked="True" />
+
         <ItemsControl Grid.Column="1"
+                      x:Name="ChipRow"
                       AutomationProperties.AutomationId="filterChips"
                       ItemsSource="{Binding FilterGroups}"
                       ItemTemplate="{StaticResource FilterGroupTemplate}">
+            <ItemsControl.Style>
+                <Style TargetType="ItemsControl">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsChecked, ElementName=FiltersToggle}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ItemsControl.Style>
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel />

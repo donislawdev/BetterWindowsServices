@@ -24,6 +24,18 @@ namespace Bws.Gui.ViewModels;
 internal sealed record KeptColumn(string Id, bool Shown, string? Width);
 
 /// <summary>
+/// Which column the list was sorted by, and which way round.
+///
+/// <b>The identifier again rather than a heading, and for the reason above it</b> - a heading is
+/// translated, so a layout saved on a Polish machine would name no column at all on an English one.
+///
+/// <b>A direction rather than a WPF ListSortDirection.</b> Nothing in this file knows what a
+/// DataGrid is, which is what lets the whole of it be checked without a window - and a bool written
+/// as <c>descending</c> is what somebody opening the file would have written themselves.
+/// </summary>
+internal sealed record KeptSort(string Id, bool Descending);
+
+/// <summary>
 /// Which columns the list shows, in what order and how wide - the first thing this product keeps
 /// on disk between sessions.
 ///
@@ -35,7 +47,7 @@ internal sealed record KeptColumn(string Id, bool Shown, string? Width);
 /// <b>Nothing here knows what a DataGrid is</b>, which is what lets the whole of it be checked
 /// without a window - the same split <see cref="Column"/> and <c>ListColumns</c> already make.
 /// </summary>
-internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
+internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort? Sort = null)
 {
     /// <summary>
     /// The version of the file format, which is a frozen contract - `docs/02`.
@@ -51,7 +63,13 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns)
     /// first thing in the file - what joined it are two siblings. A version 1 file IS a version 2
     /// file that says nothing about drivers or about both at once.
     /// </summary>
-    internal const int CurrentSchemaVersion = 2;
+    /// <summary>
+    /// THREE SINCE 2026-08-25, AND THE SHAPE GREW AGAIN RATHER THAN CHANGING. Three more siblings
+    /// joined - which column each list was sorted by, and which way round. Every array that was
+    /// there is still there, still means what it meant, and a version 2 file IS a version 3 file
+    /// that says nothing about sorting.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 3;
 
     /// <summary>The oldest schema this build reads and carries forward. See <see cref="Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
@@ -220,10 +238,22 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         var tree = new JsonObject
         {
             ["columns"] = Services.Render(),
-            ["driverColumns"] = Drivers.Render(),
-            ["everythingColumns"] = Everything.Render(),
-            ["schemaVersion"] = ColumnLayout.CurrentSchemaVersion
+            ["driverColumns"] = Drivers.Render()
         };
+
+        // A SCOPE NOBODY HAS SORTED WRITES NOTHING RATHER THAN A NULL, which is the rule the width
+        // already follows: what is not in the file is what the program does on its own. The keys
+        // stay in ordinal order as the paragraph above promises - driverSort after driverColumns,
+        // everythingSort after everythingColumns, and sort last of all because s-o beats s-c.
+        Sorted(tree, "driverSort", Drivers.Sort);
+
+        tree["everythingColumns"] = Everything.Render();
+
+        Sorted(tree, "everythingSort", Everything.Sort);
+
+        tree["schemaVersion"] = ColumnLayout.CurrentSchemaVersion;
+
+        Sorted(tree, "sort", Services.Sort);
 
         return tree.ToJsonString(Shape) + "\n";
     }
@@ -282,24 +312,64 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
             return new LayoutReading { Unreadable = "The file names no columns." };
         }
 
-        var services = ColumnLayout.From(listed);
+        var services = ColumnLayout.From(listed) with { Sort = SortFrom(root["sort"]) };
 
         // A SECTION THAT IS NOT THERE IS THE DEFAULT FOR THAT SCOPE, not an empty layout - which is
         // both what a version 1 file means and what a version 2 file written by hand means. It is
         // the same rule the columns array already follows for a column it never mentions.
-        var drivers = root["driverColumns"] is JsonArray forDrivers
+        var drivers = (root["driverColumns"] is JsonArray forDrivers
             ? ColumnLayout.From(forDrivers)
-            : ColumnLayout.DefaultFor(EntryScope.Drivers);
+            : ColumnLayout.DefaultFor(EntryScope.Drivers)) with { Sort = SortFrom(root["driverSort"]) };
 
-        var everything = root["everythingColumns"] is JsonArray forEverything
+        var everything = (root["everythingColumns"] is JsonArray forEverything
             ? ColumnLayout.From(forEverything)
-            : ColumnLayout.DefaultFor(EntryScope.Everything);
+            : ColumnLayout.DefaultFor(EntryScope.Everything)) with { Sort = SortFrom(root["everythingSort"]) };
 
         return new LayoutReading
         {
             Layouts = new ColumnLayouts(services, drivers, everything),
             CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
         };
+    }
+
+    /// <summary>One scope's sort, written only when there is one.</summary>
+    private static void Sorted(JsonObject tree, string key, KeptSort? sort)
+    {
+        if (sort is not { } kept)
+        {
+            return;
+        }
+
+        tree[key] = new JsonObject
+        {
+            ["id"] = kept.Id,
+            ["descending"] = kept.Descending
+        };
+    }
+
+    /// <summary>
+    /// One scope's sort, read back, or nothing at all.
+    ///
+    /// <b>Every value is asked for rather than assumed</b>, the rule the columns array already
+    /// follows: a file on disk can be hand edited, so a string where a bool belongs is ordinary.
+    /// An entry naming no column is nothing rather than a fault, because the list then comes up
+    /// unsorted and there is no half state to explain.
+    /// </summary>
+    private static KeptSort? SortFrom(JsonNode? node)
+    {
+        if (node is not JsonObject entry
+            || entry["id"] is not JsonValue named
+            || !named.TryGetValue<string>(out var id)
+            || string.IsNullOrEmpty(id))
+        {
+            return null;
+        }
+
+        var descending = entry["descending"] is JsonValue way
+            && way.TryGetValue<bool>(out var down)
+            && down;
+
+        return new KeptSort(id, descending);
     }
 
     private static readonly JsonSerializerOptions Shape = new()
@@ -417,6 +487,10 @@ internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ign
                 column with { Shown = Columns.Of(column.Id)!.ShownAtFirstIn(scope) })];
         }
 
-        return new ColumnPlan(new ColumnLayout(kept), ignored, noneWasShown);
+        // THE ORDER TRAVELS WITH THE COLUMNS, and leaving it behind here is a fault that looks
+        // exactly like a feature nobody built: the file holds the sort, the window reads the file,
+        // and the list comes up unsorted with nothing anywhere saying why. Found 2026-08-25 by the
+        // guard that opens a window twice.
+        return new ColumnPlan(new ColumnLayout(kept, layout.Sort), ignored, noneWasShown);
     }
 }

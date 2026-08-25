@@ -90,6 +90,19 @@ public static class NetEffect
                 continue;
             }
 
+            // A WRITTEN START TYPE HAS NO WAY BACK HERE, AND THAT IS A GAP RATHER THAN A DECISION
+            // ABOUT ITS VALUE - said out loud because the section this feeds is called "to put this
+            // back". Undoing one needs the type the entry had BEFORE, and nothing in a result
+            // carries it: a step knows what it set, not what it replaced. Everything below is about
+            // an entry that moved, and this kind moves nothing.
+            //
+            // What it costs, exactly: after setting a start type the panel offers no way back and
+            // says nothing about one, rather than offering a wrong one. Backlog 229.
+            if (result.Step.Operation == StepOperation.SetStartType)
+            {
+                continue;
+            }
+
             var name = result.Step.ServiceName;
             var operation = result.Step.Operation;
 
@@ -103,9 +116,7 @@ public static class NetEffect
             .. moves
                 .Where(move => Before(move.Value.First) != After(move.Value.Last))
                 .OrderByDescending(move => move.Value.When)
-                .Select(move => new ReversalStep(
-                    move.Key,
-                    move.Value.Last == StepOperation.Stop ? StepOperation.Start : StepOperation.Stop))
+                .Select(move => new ReversalStep(move.Key, Undoing(move.Value.Last)))
         ];
     }
 
@@ -119,8 +130,29 @@ public static class NetEffect
     /// line it takes to record: the comment was not what was wrong, and rereading it would not have
     /// found this.
     /// </summary>
-    private static bool Before(StepOperation first) => first == StepOperation.Stop;
+    private static bool Before(StepOperation first) => first switch
+    {
+        StepOperation.Stop => true,
+        StepOperation.Start => false,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(first), first, EquivalentCommand.Unhandled)
+    };
+
+    /// <summary>The step that puts back what one of these did.</summary>
+    private static StepOperation Undoing(StepOperation last) => last switch
+    {
+        StepOperation.Stop => StepOperation.Start,
+        StepOperation.Start => StepOperation.Stop,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(last), last, EquivalentCommand.Unhandled)
+    };
 
     /// <summary>Whether a step that moved an entry left it running.</summary>
-    private static bool After(StepOperation last) => last == StepOperation.Start;
+    private static bool After(StepOperation last) => last switch
+    {
+        StepOperation.Start => true,
+        StepOperation.Stop => false,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(last), last, EquivalentCommand.Unhandled)
+    };
 }

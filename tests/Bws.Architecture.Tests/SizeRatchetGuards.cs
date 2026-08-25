@@ -139,7 +139,13 @@ public sealed class SizeRatchetGuards
     /// The dial comes down at the close of a bundle rather than mid-slice, which is the project's
     /// own convention: mid-slice it would be a number chased on every edit.
     /// </summary>
-    private const int LongestShippedFile = 536;
+    /// <summary>
+    /// 533 SINCE 2026-08-25, DOWN FROM 536, AND THE MUTATION RUN IS WHAT ASKED. The entry that
+    /// proves this guard can fail appends a line to whichever file is longest and expects red - it
+    /// came back MISSED, which is the outcome that means a ceiling has slack in it. CommandLine.cs
+    /// lost twenty lines that day to a seam, so the longest shipped file is what it is now.
+    /// </summary>
+    private const int LongestShippedFile = 533;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second
@@ -272,7 +278,13 @@ public sealed class SizeRatchetGuards
     /// to that file needs a seam before it needs anything else, and that is the ratchet working
     /// rather than the ratchet being in the way.
     /// </summary>
-    private const int LongestShippedMarkupFile = 397;
+    /// <summary>
+    /// 395 SINCE 2026-08-25, DOWN FROM 397. MainWindow.xaml was the longest at 397 and is 387 after
+    /// the bar of actions moved a block out of it, so Cells.xaml is now the tallest thing here and
+    /// the number follows it down. It may only ever go down - backlog 219 is the entry that stopped
+    /// proving anything the last time this had slack.
+    /// </summary>
+    private const int LongestShippedMarkupFile = 395;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

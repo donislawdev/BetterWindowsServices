@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.ComponentModel;
 using System.Windows.Controls;
 using Bws.Gui.ViewModels;
 
@@ -228,6 +229,62 @@ public sealed class KeptColumnGuards : IDisposable
     }
 
     /// <summary>
+    /// The way back puts the usual columns on, and writes that down like any other change.
+    ///
+    /// <b>A layout is kept, so a layout needs a way out.</b> Turning on the description and the five
+    /// signature columns to look at something once leaves them there on every start after it, and
+    /// the only road back was turning twenty-six columns off one at a time.
+    ///
+    /// <b>The second half is the one that would be missed:</b> a restore that lasts until the window
+    /// closes is not a way back at all, it is a view somebody has to repeat every morning. So the
+    /// window is opened again on the same file.
+    ///
+    /// <b>What this does NOT hold, said rather than left to be found:</b> that clicking the item in
+    /// the menu reaches this. The item is asserted to be in the list the menu is handed, and the
+    /// click was driven through UI Automation on a live window on 2026-08-25 - six columns, on with
+    /// Description, six again - but nothing in this suite presses it.
+    /// </summary>
+    [Fact]
+    public void The_way_back_puts_the_usual_columns_on_and_keeps_them_that_way()
+    {
+        _ = WpfHost.Resources;
+
+        var file = new PreferencesFile(Somewhere());
+
+        var first = WpfHost.On(() => new MainWindow(file));
+
+        // The item a person clicks is in the same list the picker is handed, rather than somewhere
+        // this test knows about and the window does not.
+        Assert.Contains(
+            WpfHost.On(() => first.ColumnsButton.ContextMenu!.ItemsSource.OfType<object>().ToList()),
+            entry => entry is ColumnReset);
+
+        // Both directions have something to undo: one column on that is normally off, and one off
+        // that is normally on.
+        WpfHost.On(() => Choice(first, "description").IsShown = true);
+        WpfHost.On(() => Choice(first, "displayName").IsShown = false);
+
+        WpfHost.On(first.RestoreColumns);
+
+        Assert.False(WpfHost.On(() => Choice(first, "description").IsShown));
+        Assert.True(WpfHost.On(() => Choice(first, "displayName").IsShown));
+
+        Assert.Equal(
+            Visibility.Visible,
+            WpfHost.On(() => first.Entries.Columns
+                .First(column => column.SortMemberPath == "displayName").Visibility));
+
+        WpfHost.On(first.Close);
+
+        var second = WpfHost.On(() => new MainWindow(file));
+
+        Assert.False(WpfHost.On(() => Choice(second, "description").IsShown));
+        Assert.True(WpfHost.On(() => Choice(second, "displayName").IsShown));
+
+        WpfHost.On(second.Close);
+    }
+
+    /// <summary>
     /// A layout the window could not honour is said out loud, in the line a person can see.
     ///
     /// Rule 8 where it is easiest to break without anything looking wrong: a window that came up
@@ -274,6 +331,143 @@ public sealed class KeptColumnGuards : IDisposable
 
             return built;
         });
+    }
+
+    /// <summary>
+    /// The order somebody put the list in is still there the next time they open the window.
+    ///
+    /// <b>The third thing a layout remembers, arriving 2026-08-25 - and the one that could not be
+    /// applied where the other two are.</b> Width and order are properties of columns, which exist
+    /// the moment the grid is built. An order is a comparer on the VIEW over the rows, and at the
+    /// moment the columns are built there are no rows and no view - so the sort is applied once the
+    /// first reading has arrived, which is what SortAsKept is.
+    ///
+    /// <b>The click goes through the handler the grid really subscribes</b>, rather than through
+    /// the properties it sets. A test that set SortDirection itself would pass over a window where
+    /// nothing is wired to the headings at all.
+    /// </summary>
+    [Fact]
+    public async Task The_order_somebody_put_the_list_in_comes_back_the_next_time_it_opens()
+    {
+        _ = WpfHost.Resources;
+
+        var file = new PreferencesFile(Somewhere());
+
+        var first = await Sorted(file, descending: false);
+
+        Assert.Equal(
+            ListSortDirection.Ascending,
+            WpfHost.On(() => Heading(first).SortDirection));
+
+        // Closing is the write, so the file only exists after this line.
+        WpfHost.On(first.Close);
+
+        Assert.Contains(
+            "\"sort\"",
+            await File.ReadAllTextAsync(file.Where),
+            StringComparison.Ordinal);
+
+        var second = await Opened(file);
+
+        WpfHost.On(second.SortAsKept);
+        WpfHost.Settled();
+
+        Assert.Equal(
+            ListSortDirection.Ascending,
+            WpfHost.On(() => Heading(second).SortDirection));
+
+        WpfHost.On(second.Close);
+    }
+
+    /// <summary>
+    /// A window over two entries, with the name column clicked once.
+    ///
+    /// The rows are handed over before the click, because an order is a comparer on the view over
+    /// them and a grid with no items has no view to hand one to.
+    /// </summary>
+    private static async Task<MainWindow> Sorted(PreferencesFile file, bool descending)
+    {
+        var window = await Opened(file);
+
+        var heading = WpfHost.On(() => Heading(window));
+
+
+        WpfHost.On(() => ListSorting.WhenAHeadingIsClicked(
+            window.Entries, new DataGridSortingEventArgs(heading)));
+
+        if (descending)
+        {
+            WpfHost.On(() => ListSorting.WhenAHeadingIsClicked(
+                window.Entries, new DataGridSortingEventArgs(heading)));
+        }
+
+        WpfHost.Settled();
+
+        return window;
+    }
+
+    /// <summary>A window over a small machine, with its rows already on the grid.</summary>
+    private static async Task<MainWindow> Opened(PreferencesFile file)
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Bravo"), Rows.Entry("Alpha")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        var window = WpfHost.On(() => new MainWindow(file, model));
+
+        WpfHost.On(() => window.Entries.ItemsSource = model.Rows);
+        WpfHost.Settled();
+
+        return window;
+    }
+
+    private static DataGridColumn Heading(MainWindow window) =>
+        window.Entries.Columns.First(column =>
+            string.Equals(column.SortMemberPath, "serviceName", StringComparison.Ordinal));
+
+
+    /// <summary>
+    /// A kept order naming a column that is turned OFF is not applied, and one naming a column this
+    /// build does not have is ignored.
+    ///
+    /// <b>Both were claims in a comment until this test.</b> The first is a decision: a list ordered
+    /// by something nobody can see is a list whose order cannot be read, so the order stays in the
+    /// file and comes back with the column. The second is the same rule the columns array already
+    /// follows for a name that has gone away.
+    /// </summary>
+    [Fact]
+    public void An_order_by_a_column_that_is_off_or_gone_is_not_applied()
+    {
+        _ = WpfHost.Resources;
+
+        var grid = Built(ColumnLayout.DefaultFor(EntryScope.Services));
+
+        WpfHost.On(() => grid.ItemsSource = new List<EntryRow> { EntryRow.Of(Rows.Entry("Spooler")) });
+        WpfHost.Settled();
+
+        // A column this build has never heard of.
+        WpfHost.On(() => ListSorting.By(grid, new KeptSort("noSuchColumn", Descending: false)));
+
+        Assert.All(
+            WpfHost.On(() => grid.Columns.ToList()),
+            column => Assert.Null(WpfHost.On(() => column.SortDirection)));
+
+        // And one that exists and is turned off - description is not among the usual six.
+        WpfHost.On(() => ListSorting.By(grid, new KeptSort("description", Descending: true)));
+
+        Assert.All(
+            WpfHost.On(() => grid.Columns.ToList()),
+            column => Assert.Null(WpfHost.On(() => column.SortDirection)));
+
+        // The even claim: one that is on IS applied, so the two above are refusals rather than a
+        // method that does nothing at all.
+        WpfHost.On(() => ListSorting.By(grid, new KeptSort("serviceName", Descending: true)));
+
+        Assert.Equal(
+            ListSortDirection.Descending,
+            WpfHost.On(() => grid.Columns
+                .First(column => column.SortMemberPath == "serviceName").SortDirection));
     }
 
     private string Somewhere()

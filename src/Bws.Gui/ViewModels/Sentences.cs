@@ -90,14 +90,22 @@ internal static class Sentences
         // below says the machine refused - which for an unread family would turn "nobody
         // looked" into "you were not allowed", the one distinction this project spends most of
         // its rules keeping apart. The sentence above already says what happened.
+        // A SINGULAR BESIDE EACH PLURAL, backlog 207, and these two are the pair a person really
+        // meets: one entry judged on a field nobody could read is an ordinary answer on a machine
+        // where one service refuses its configuration. Written out rather than picking a key into a
+        // variable, for the reason given three paragraphs above about TextKeyGuards.
         if (unreadable > 0 && needs == ExtraRead.None)
         {
-            notes.Add(Texts.Of("gui.status.partial", unreadable));
+            notes.Add(unreadable == 1
+                ? Texts.Of("gui.status.partial.one", unreadable)
+                : Texts.Of("gui.status.partial.many", unreadable));
         }
 
         if (tooCostly > 0)
         {
-            notes.Add(Texts.Of("gui.status.tooCostly", tooCostly));
+            notes.Add(tooCostly == 1
+                ? Texts.Of("gui.status.tooCostly.one", tooCostly)
+                : Texts.Of("gui.status.tooCostly.many", tooCostly));
         }
 
         // Never silent about holding still. A list that quietly stopped matching its own query

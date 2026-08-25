@@ -113,11 +113,11 @@ public sealed class ScopeTests
 
         model.Scope = EntryScope.Services;
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.status.read", 2), model.Says.Status);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.status.read.many", 2), model.Says.Status);
 
         model.QueryText = "status:running";
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.status.matched", 1, 2), model.Says.Status);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.status.matched.many", 1, 2), model.Says.Status);
     }
 
     [Fact]

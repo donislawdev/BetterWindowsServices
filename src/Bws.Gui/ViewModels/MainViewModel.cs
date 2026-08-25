@@ -379,9 +379,21 @@ public sealed partial class MainViewModel : Observable
 
         Show(narrowed.Selected);
 
+        // A SINGULAR BESIDE EVERY PLURAL, backlog 207. The noun follows the SECOND number rather
+        // than the first - "1 of 810 entries" is right and "1 of 810 entry" is not - so both lines
+        // below ask the same question about the size of the list being counted.
+        //
+        // WRITTEN OUT RATHER THAN PICKING A KEY INTO A VARIABLE, which is the arrangement
+        // Sentences.Admissions carries the same note about: TextKeyGuards checks that every
+        // declared sentence reaches a screen, and a key travelling as a variable is invisible to
+        // it, so both halves of a pair would read as orphans.
         Says.Status = narrowed.Selected.Count == everything.Count
-            ? Texts.Of("gui.status.read", everything.Count)
-            : Texts.Of("gui.status.matched", narrowed.Selected.Count, everything.Count);
+            ? everything.Count == 1
+                ? Texts.Of("gui.status.read.one", everything.Count)
+                : Texts.Of("gui.status.read.many", everything.Count)
+            : everything.Count == 1
+                ? Texts.Of("gui.status.matched.one", narrowed.Selected.Count, everything.Count)
+                : Texts.Of("gui.status.matched.many", narrowed.Selected.Count, everything.Count);
 
         Says.AboutTheAnswer(
             _query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,

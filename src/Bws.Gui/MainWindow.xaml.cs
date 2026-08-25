@@ -143,24 +143,21 @@ public partial class MainWindow : Window
 
         Arrange(preferences);
 
-        // SET RATHER THAN BOUND, and that is the same trap the column headers fell into: a menu
-        // hangs off a Popup, which is not in the visual tree, so what it inherits is a question
-        // with an answer nobody should have to know. Handing it the choices costs one line and
-        // has no such question.
-        if (ColumnsButton.ContextMenu is { } menu)
-        {
-            // HEADINGS AS ITEMS, NOT AS GROUPS, AND THAT IS A REPAIR RATHER THAN A PREFERENCE. The
-            // first version of this used GroupStyle with a grouped collection view. It looked right
-            // and it took the whole menu out of the automation tree: with it open, the window
-            // offered twelve togglable elements - all of them filter chips - and none of the
-            // seventeen columns. WPF puts a GroupItem between a menu and its items and the menu's
-            // peer does not reach through it, so a screen reader sees what the probe saw.
-            //
-            // A flat list of headings and choices keeps every entry a real MenuItem with a peer of
-            // its own. Which style each one wears is decided by the selector below.
-            menu.ItemsSource = _columns.Entries;
-            menu.ItemContainerStyleSelector = new ColumnEntryStyles();
-        }
+        HandTheColumnsOver();
+
+        // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
+        // arrangement the plan panel uses for its own two buttons - a part of the window that
+        // reaches into the model would be a second road to everything the model owns.
+        Actions.PreviewRequest += (_, asked) => Preview(asked.Kind);
+        Actions.RefreshRequest += async (_, _) => await Act(Shortcut.Refresh).ConfigureAwait(true);
+        Actions.ExportRequest += (_, _) => ExportWhatIsShown();
+        Actions.StartTypeRequest += (_, asked) => Preview(ActionKind.SetStartType, asked.Type);
+
+        // TOLD WHEN A PERSON CHANGES THE SELECTION, rather than binding to it. A binding into a
+        // list that reconciles itself once a second is another party in the middle of `A10`, and
+        // SelectedItem bound two way is what broke the window journey on 2026-08-18. This fires on
+        // the change and says one number.
+        Entries.SelectionChanged += (_, _) => Actions.Picked(Entries.SelectedItems.Count);
 
         // THE EXAMPLES MENU AND ITS BUTTON WENT ON 2026-08-13, owner's decision, and there is
         // nothing to wire in their place: the six questions are in the search box's tooltip now,
@@ -203,6 +200,13 @@ public partial class MainWindow : Window
         Loaded += async (_, _) =>
         {
             await _model.LoadAsync().ConfigureAwait(true);
+
+            // AFTER THE FIRST READING AND NOT BEFORE IT. The order somebody left the list in is
+            // handed to the view that holds the rows, and until this line has run there are no
+            // rows and no view - so an order applied while the columns were being built would be
+            // dropped without a word.
+            SortAsKept();
+
             _timer.Start();
         };
 
@@ -429,6 +433,27 @@ public partial class MainWindow : Window
     {
         _typing.Stop();
         _typing.Start();
+    }
+
+    /// <summary>
+    /// Starts this program again with the rights this session does not have, and closes this one.
+    ///
+    /// <b>The order is the decision.</b> The new session is on its way before this one goes, so a
+    /// person who answers no to the prompt still has the window they had - which is why the answer
+    /// is read rather than assumed.
+    ///
+    /// <b>Nothing about starting a process is here</b>, and that is not tidiness: Elevation.cs is
+    /// the only file in this product allowed to name one, held by a guard that reads the sources.
+    /// </summary>
+    private void RestartAsAdministrator(object sender, RoutedEventArgs e)
+    {
+        if (Elevation.Restart() is { } trouble)
+        {
+            _model.Says.CouldNotDo(trouble);
+            return;
+        }
+
+        Close();
     }
 
     private void ListEngaged(object sender, RoutedEventArgs e) => _model.Interacting = true;

@@ -56,6 +56,12 @@ public sealed partial class Planned : Observable
     private bool _busy;
     private string _progress = string.Empty;
 
+    /// <summary>
+    /// What a person calls the one entry this plan is about, handed over by whoever is looking at
+    /// rows. Empty whenever nobody knew one, which the title and <see cref="Subtitle"/> both read.
+    /// </summary>
+    private string _shownAs = string.Empty;
+
     /// <summary>Whether the panel is on screen. Closed until somebody asks.</summary>
     public bool Showing
     {
@@ -119,6 +125,32 @@ public sealed partial class Planned : Observable
     public string Blocked => Showing && !Elevated ? Texts.Of("gui.plan.blocked.notElevated") : string.Empty;
 
     /// <summary>
+    /// What the button says about itself when somebody rests on it: what it would do, or the first
+    /// thing standing in the way of it doing anything.
+    ///
+    /// <b>Four reasons rather than one, and the panel used to name only the first.</b>
+    /// <see cref="CanCarryOut"/> goes false without elevation, while a run is under way, once a run
+    /// has finished, and when the plan has no step that could be taken - and the line in the panel
+    /// speaks about elevation alone. So three of the four ways this button greys out said nothing
+    /// at all, which is a control refusing without a reason.
+    ///
+    /// <b>The order below is the order in <see cref="CanCarryOut"/>, on purpose.</b> More than one
+    /// can be true at once, and naming a later one while an earlier one also holds would send
+    /// somebody to fix the wrong thing. First in the chain, first on screen.
+    ///
+    /// <b>It reaches the disabled button only because the markup asks it to.</b> WPF stops serving
+    /// tooltips for a disabled control unless <c>ToolTipService.ShowOnDisabled</c> says otherwise,
+    /// so a reason written here without that attribute is a sentence nobody can ever read.
+    /// </summary>
+    public string CarryOutTip =>
+        !Showing ? Texts.Of("gui.plan.carryOut.hint")
+        : !Elevated ? Texts.Of("gui.plan.blocked.notElevated")
+        : Busy ? Texts.Of("gui.plan.blocked.running")
+        : _run is not null ? Texts.Of("gui.plan.blocked.alreadyDone")
+        : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
+        : Texts.Of("gui.plan.carryOut.hint");
+
+    /// <summary>
     /// Which step is happening, while it happens.
     ///
     /// <b>Empty except during a run.</b> A person watching a stop that takes half a minute has
@@ -131,49 +163,36 @@ public sealed partial class Planned : Observable
         private set => Set(ref _progress, value);
     }
 
-    /// <summary>
-    /// What the panel is called, naming the action and how much it touches.
-    ///
-    /// <b>IT CHANGES TENSE WHEN THERE IS A RESULT, SINCE 2026-08-19, AND UNTIL THEN IT WAS A
-    /// SENTENCE THAT STOPPED BEING TRUE.</b> The owner's screenshot after a run shows "What
-    /// stopping Spooler would do" over "Done. The entry is where you asked." and over a row already
-    /// reading Stopped - a conditional question about the future, standing on top of a report of the
-    /// past.
-    ///
-    /// <b>The switch is on the RESULT, not on the run being under way, and that is deliberate.</b>
-    /// While a run is happening there is nothing to report yet, and the notice says in as many words
-    /// that it is happening now - so the plan on screen is still a plan. The moment a result exists,
-    /// the panel is a report and says so.
-    ///
-    /// <b>Dropped rather than kept was considered and rejected.</b> The title is what says WHICH
-    /// plan the report belongs to, and a report sitting under the steps of a different plan is the
-    /// worst bug this panel could have - which is why <c>Show</c> drops the old run and why a guard
-    /// holds it. Taking the title away after a run would remove the label that makes the pair
-    /// readable.
-    /// </summary>
-    public string Heading => _plan is not { } plan
-        ? string.Empty
-        : _run is null
-            ? Asked(plan) == 1
-                ? Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
-                : Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan))
-            : Asked(plan) == 1
-                ? Texts.Of("gui.plan.heading.done.one", PlanWords.Doing(plan.Action.Kind), Only(plan))
-                : Texts.Of("gui.plan.heading.done.many", PlanWords.Doing(plan.Action.Kind), Asked(plan));
 
     /// <summary>Every step, in the order it would happen, numbered as a person would count them.</summary>
     public IReadOnlyList<PlanLine> Steps => _plan is not { } plan
         ? []
         : [.. plan.Steps.Select((step, index) => new PlanLine(
-            Texts.Of(
-                "gui.plan.step",
-                index + 1,
-                step.Operation == StepOperation.Stop
-                    ? Texts.Of("gui.plan.operation.stop")
-                    : Texts.Of("gui.plan.operation.start"),
-                step.ServiceName,
-                PlanWords.Reason(step.Reason)),
+            Line(step, index + 1),
             step.Reason == StepReason.Requested))];
+
+    /// <summary>
+    /// One step as a person reads it.
+    ///
+    /// <b>Two templates rather than one, and the second is not a nicety.</b> The shared line is
+    /// "number, verb, name, reason" - which for a setting reads "1. set to Disabled Spooler". What a
+    /// step of that kind has to say is which entry and which type, in that order, so it gets a line
+    /// of its own.
+    /// </summary>
+    private static string Line(PlanStep step, int number) =>
+        step.Operation == StepOperation.SetStartType
+            ? Texts.Of(
+                "gui.plan.step.startType",
+                number,
+                step.ServiceName,
+                CellFaces.TypeLabel(step.To!.Value),
+                PlanWords.Reason(step.Reason))
+            : Texts.Of(
+                "gui.plan.step",
+                number,
+                PlanWords.Word(step.Operation),
+                step.ServiceName,
+                PlanWords.Reason(step.Reason));
 
     /// <summary>
     /// How many entries come along that nobody picked, as `C2`'s own sentence asks for it.
@@ -303,6 +322,10 @@ public sealed partial class Planned : Observable
         Busy = true;
         Progress = string.Empty;
 
+        // The button goes quiet here, so what it says about itself has to move with it - otherwise
+        // a person resting on a greyed button mid-run reads the sentence describing what it would
+        // do, which is the state it has just left.
+        Raise(nameof(CarryOutTip));
         Raise(nameof(CanCarryOut));
         Raise(nameof(Notice));
     }
@@ -320,9 +343,7 @@ public sealed partial class Planned : Observable
             "gui.plan.progress",
             number,
             _plan?.Steps.Count() ?? 0,
-            step.Operation == StepOperation.Stop
-                ? Texts.Of("gui.plan.operation.stop")
-                : Texts.Of("gui.plan.operation.start"),
+            PlanWords.Word(step.Operation),
             step.ServiceName);
 
     /// <summary>
@@ -361,7 +382,12 @@ public sealed partial class Planned : Observable
     /// every entry was refused, has no plan - and a panel that opened empty would look exactly like a
     /// feature that is broken.
     /// </summary>
-    internal bool Show(BulkPlan plan)
+    /// <param name="plan">What would happen, worked out in the core from internal names.</param>
+    /// <param name="shownAs">
+    /// What a person calls the one entry, when there is one and the caller knows it. Null or empty
+    /// means the title names the entry the way the manager does - see <see cref="Subtitle"/>.
+    /// </param>
+    internal bool Show(BulkPlan plan, string? shownAs = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
 
@@ -369,6 +395,8 @@ public sealed partial class Planned : Observable
         {
             return false;
         }
+
+        _shownAs = shownAs ?? string.Empty;
 
         // A NEW PLAN DROPS THE OLD RUN, and getting this wrong would be the worst bug this panel
         // could have: a report of what happened to five services, sitting under the steps of a plan
@@ -413,6 +441,7 @@ public sealed partial class Planned : Observable
 
         _plan = null;
         _run = null;
+        _shownAs = string.Empty;
         Busy = false;
         Progress = string.Empty;
         Showing = false;
@@ -453,13 +482,4 @@ public sealed partial class Planned : Observable
     /// </summary>
     private static bool Failed(StepResult result) =>
         result.Outcome is StepOutcome.Failed or StepOutcome.TimedOut;
-
-
-    private static int Asked(BulkPlan plan) =>
-        plan.Action.ServiceNames.Distinct(StringComparer.OrdinalIgnoreCase).Count();
-
-    private static string Only(BulkPlan plan) => plan.Action.ServiceNames.Count == 0
-        ? string.Empty
-        : plan.Action.ServiceNames[0];
-
 }

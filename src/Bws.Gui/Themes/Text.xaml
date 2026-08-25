@@ -1,0 +1,190 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        EVERY STYLE IN THIS WINDOW WHOSE TARGET IS A TextBlock, AND NOTHING ELSE. Split out of
+        Themes/Controls.xaml on 2026-08-25, unchanged and in the order they were in.
+
+        ADR-23, the same rule as the other theme files: not one value of its own, every number
+        and colour below is a name declared in Values.xaml.
+
+        IT WENT BECAUSE Controls.xaml STOOD TWO LINES UNDER THE MARKUP CEILING - 395 against 397,
+        measured 2026-08-19 - and backlog 213 named this seam six days before it was needed. The
+        thing that asked for it is a third style in the column picker, and the packet after that
+        one puts a bar of buttons over the list, which is more control styles again. A file with
+        two lines of room is a file where the next change starts with looking for a seam, so the
+        seam was worth taking before the change rather than during it.
+
+        THE SEAM IS A SUBJECT AND NOT A LINE COUNT, which is the rule every other split in this
+        window followed. What is here is TEXT - how a sentence, a heading, a step and a count are
+        drawn. What stayed is the CONTROLS - the field somebody types into, the box somebody
+        ticks, the chip, the menu item.
+
+        WHERE IT IS MERGED IS LOAD BEARING AND IT IS NOT THE END OF THE LIST. Controls.xaml
+        itself reaches SubduedText through StaticResource, which resolves WHILE THAT FILE IS
+        BEING READ, so this dictionary goes BEFORE it - after the values it reads and before the
+        styles that read it. App.xaml carries that order, and so do the three other places that
+        build this stack: WpfHost in the tests, tools/wpfui-probe and tools/gui-probe/check.ps1.
+
+        NEITHER THIS FILE NOR Controls.xaml LOADS ON ITS OWN. Both reach WPF UI's keys and both
+        reach ours in Values.xaml. The implicit TextBlock style below is based BY NAME on the
+        control library's own, for the reason its comment gives.
+    -->
+    <!--
+        BasedOn by NAME on WPF UI's own styles, not on {x:Type TextBlock}.
+
+        The type form worked while the base was the built-in Fluent theme, and would now be
+        ambiguous: this dictionary is merged after theirs and is itself keyed by the same type,
+        so which style it resolves to depends on lookup order rather than on intent. Their keys
+        are stable, documented by their own markup - DataGrid.xaml bases four styles on exactly
+        these names - and they say what is meant.
+
+        CONSEQUENCE TO KNOW: this file no longer loads on its own. It resolves keys that only
+        exist once ControlsDictionary is merged, which is why tools/wpfui-probe loads it after
+        theirs. That is a real dependency and it is the shape of the decision the owner made.
+
+        Every one of the three below keeps OUR size setter on top of their template. That is
+        the density decision of 2026-08-02 in the two places it is spelled out.
+    -->
+    <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <!--
+        A PANEL'S OWN TITLE. SemiBold since 2026-08-19, and measured rather than preferred: it set a
+        size and no weight, so it arrived Normal while the sentence under it was SemiBold - the
+        largest text on the panel was the THINNEST thing on it. Both panels using this key had the
+        same fault, so one setter fixes both.
+    -->
+    <Style x:Key="HeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+    </Style>
+
+    <Style x:Key="FixedText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    </Style>
+
+    <Style x:Key="SubduedText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
+        A HEADING INSIDE A PANEL, WHICH IS NOT THE SAME THING AS THE PANEL'S OWN TITLE. Added
+        2026-08-19, after the owner looked at the plan panel and could not find where to start
+        reading: five headings and the title were all TextSizeHeading, so nothing was the top of
+        anything.
+
+        TextSizeHeader rather than TextSizeNormal because 14 is the floor for semibold text in
+        the guidance TypeScaleGuards holds, and a section heading in a wall of sentences has to
+        be seen without being read.
+    -->
+    <Style x:Key="SectionHeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        WHERE THE PLAN PANEL IS IN ITS SEQUENCE - nothing done, doing it, done.
+        <b>NOT NoticeText, and that was the fault the owner saw.</b> This line wore the warning
+        orange, which is the same colour as the line at the bottom of the window saying the
+        session has no administrator rights - so the sentence telling somebody that NOTHING HAS
+        HAPPENED read as something having gone wrong.
+
+        <b>SEMIBOLD CAME OFF ON 2026-08-19, THE DAY AFTER IT WENT ON, AND THE MEASUREMENT IS WHY.</b>
+        This style and SectionHeadingText above had IDENTICAL setters - same face, same 14, same
+        SemiBold, same colour - so "Nothing has been done" was rendered exactly like "In this
+        order:". The panel had four headings and no body. Fixing the colour fault above created a
+        weight fault here, which is the shape rule 11 of the project notes is about: a correction is
+        a claim and needs checking as one.
+        Size still separates it from the body at 13 and position separates it from everything -
+        it is the only line between the title and the sections. Weight is what it gives up, because
+        weight is now the only thing that says "this is a section label".
+    -->
+    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        ONE STEP OF A PLAN, AND UNTIL 2026-08-19 IT HAD NO STYLE OF ITS OWN. It was built on
+        SubduedText, which is TextSizeSmall - so what will happen to the machine was rendered at 12
+        under a section heading at 14 SemiBold. The label was larger and heavier than the thing it
+        labelled, and the eye slid off three bold labels without stopping on any content.
+        The subdued FOREGROUND is kept and the subdued SIZE is not: a step nobody asked for should be
+        dimmer rather than smaller, because `C2` wants those findable at a glance and a size
+        difference makes them hard to read rather than easy to skip.
+    -->
+    <Style x:Key="PlanStepText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
+        THE COUNT, WHICH MOVED OUT FROM UNDER THE LIST AND STOPPED BEING SUBDUED. Complaint 8 of
+        the eleven says it was the least visible thing on the screen and is the main answer to
+        every keystroke - small, grey and at the bottom is three ways of saying "ignore me".
+
+        SEMIBOLD WHEN THE LIST IS NARROWED, AND THAT IS COMPLAINT 7 RATHER THAN DECORATION. That
+        one says you cannot see THAT a filter is on. The words already say it - "108 of 810"
+        against "810" - but a weight change is seen without reading, which is the difference
+        between a signal and a fact you have to go and check.
+
+        TextSizeHeader rather than TextSizeHeading: 14 is the floor for semibold text in the
+        guidance TypeScaleGuards holds, and this line is semibold half the time.
+    -->
+    <Style x:Key="CountLine" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+
+        <!--
+            Missing until 2026-08-10, and the count was black on a dark window. A regression from
+            slice 5, where it "stopped being grey" - the brush was removed rather than replaced,
+            so this style declared type and no colour and inherited one nobody chose. Backlog 145.
+        -->
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Says.Narrowed}" Value="True">
+                <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The sentence in the middle of an empty list. Larger than the rows, because it is the only
+        thing on that half of the screen and somebody is looking at it wondering what happened.
+    -->
+    <Style x:Key="EmptyStateText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
+        What the result has to admit about itself, and what is wrong with the question. Two
+        styles rather than one, because they answer different questions and a person glancing
+        at the window has to be able to tell "your query is broken" from "your query worked and
+        the answer has holes in it" without reading either sentence.
+    -->
+    <Style x:Key="NoticeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource MeaningWarning}" />
+    </Style>
+
+    <Style x:Key="ProblemText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+    </Style>
+</ResourceDictionary>

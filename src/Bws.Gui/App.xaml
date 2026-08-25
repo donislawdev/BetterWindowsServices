@@ -22,14 +22,19 @@
         values that are ours. Neither of them loads on its own, because both resolve keys that
         arrive with ControlsDictionary.
 
-        THE THEME WAS ONE FILE UNTIL 2026-08-11 AND THE ORDER OF ITS FOUR PARTS IS NOT A
-        STYLE CHOICE. Every style file reaches the names in Values.xaml through StaticResource,
+        THE THEME WAS ONE FILE UNTIL 2026-08-11 AND THE ORDER OF ITS PARTS IS NOT A STYLE
+        CHOICE. Every style file reaches the names in Values.xaml through StaticResource,
         which resolves WHILE THE FILE IS BEING READ, so values go before styles and all of
         them go after the library. Backlog 156 for the first split, 163 for the second,
         backlog 166 for the third on 2026-08-12 - the start mark could not be repaired without
         adding lines to a file already standing on the markup ceiling. Anywhere else that
-        builds this stack - WpfHost in the tests, tools/wpfui-probe - repeats these six lines
+        builds this stack - WpfHost in the tests, tools/wpfui-probe - repeats these lines
         in this order for the same reason.
+
+        Text.xaml IS BEFORE Controls.xaml AND THAT IS THE SAME RULE ONE STEP FURTHER IN, since
+        2026-08-25. It holds every TextBlock style, Controls.xaml reaches one of them through
+        StaticResource, and a dictionary merged after this one would be a name that does not
+        exist yet. Backlog 213 for why the split happened at all.
 
         Cells.xaml IS LAST OF OURS AND THAT IS A DIRECTION RATHER THAN AN ACCIDENT. An
         implicit style merged later wins, so the most specialised half - what a person
@@ -45,6 +50,7 @@
                 <ResourceDictionary Source="Themes/Values.xaml" />
                 <ResourceDictionary Source="Themes/Colours.xaml" />
                 <ResourceDictionary Source="Themes/Columns.xaml" />
+                <ResourceDictionary Source="Themes/Text.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />

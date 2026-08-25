@@ -129,13 +129,31 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0"
-                           x:Name="PlanHeading"
-                           AutomationProperties.AutomationId="planHeading"
-                           Text="{Binding Heading}"
-                           TextWrapping="Wrap"
-                           Margin="{StaticResource MarginGroup}"
-                           Style="{StaticResource HeadingText}" />
+                <!--
+                    TWO NAMES, THE SAME PAIR THE DETAILS PANEL ALREADY SHOWS - the display name as
+                    the title because it is the one somebody recognises, and the manager's own name
+                    under it because it is the one they would type into a command. `ADR-14` is why
+                    the second one may never be dropped: display names are translated, so a panel
+                    carrying only that names nothing anybody could act on.
+
+                    The line under it disappears rather than emptying, because a heading with a
+                    reserved gap under it is the fault backlog 203 was written for.
+                -->
+                <StackPanel Grid.Column="0" Margin="{StaticResource MarginGroup}">
+                    <TextBlock x:Name="PlanHeading"
+                               AutomationProperties.AutomationId="planHeading"
+                               Text="{Binding Heading}"
+                               TextWrapping="Wrap"
+                               Style="{StaticResource HeadingText}" />
+
+                    <TextBlock x:Name="PlanSubtitle"
+                               AutomationProperties.AutomationId="planSubtitle"
+                               Text="{Binding Subtitle}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Subtitle}"
+                               Visibility="{Binding HasSubtitle, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SubduedText}" />
+                </StackPanel>
 
                 <!--
                     The visible way out, beside Escape which is the fast one. Nielsen's third
@@ -333,11 +351,22 @@
                             Visibility="{Binding Busy, Converter={StaticResource WhenTrue}}"
                             Click="InterruptRequested" />
 
+                    <!--
+                        THE TOOLTIP SAYS WHY IT IS GREY, AND ShowOnDisabled IS WHAT MAKES THAT
+                        REACHABLE AT ALL. WPF stops serving tooltips for a disabled control, so the
+                        reason bound below would be a sentence nobody could ever read without this
+                        line - a control refusing without a reason, which is what it was.
+
+                        Bound rather than a fixed key, because the button has four ways of going
+                        quiet and only one of them was ever said out loud. What it says when nothing
+                        is in the way is the same sentence as before, chosen in CarryOutTip.
+                    -->
                     <Button Grid.Column="2"
                             x:Name="CarryOutButton"
                             AutomationProperties.AutomationId="planCarryOut"
                             Content="{DynamicResource gui.plan.carryOut}"
-                            ToolTip="{DynamicResource gui.plan.carryOut.hint}"
+                            ToolTip="{Binding CarryOutTip}"
+                            ToolTipService.ShowOnDisabled="True"
                             IsEnabled="{Binding CanCarryOut}"
                             Click="CarryOutRequested" />
                 </Grid>

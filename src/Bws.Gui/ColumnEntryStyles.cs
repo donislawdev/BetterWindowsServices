@@ -26,8 +26,16 @@ internal sealed class ColumnEntryStyles : StyleSelector
     {
         var element = container as FrameworkElement;
 
-        return item is ColumnHeading
-            ? element?.TryFindResource("ColumnHeadingItem") as Style
-            : element?.TryFindResource("ColumnChoiceItem") as Style;
+        // THREE KINDS SINCE 2026-08-25, and the new one is neither of the other two: a heading
+        // cannot be clicked and a choice is a tick box that stays open, while putting the columns
+        // back is one errand that finishes when it happens.
+        var key = item switch
+        {
+            ColumnHeading => "ColumnHeadingItem",
+            ColumnReset => "ColumnResetItem",
+            _ => "ColumnChoiceItem"
+        };
+
+        return element?.TryFindResource(key) as Style;
     }
 }

@@ -32,11 +32,19 @@ internal static class PlanWords
     /// already, from ListState.Say, and the recorded answer is this one rather than a wider pattern: a
     /// key visible where it is chosen is better for a reader too.
     /// </summary>
+    /// <b>THE DISCARD USED TO MEAN RESTARTING, AND A PROBE CAUGHT IT ON A LIVE WINDOW ON
+    /// 2026-08-25.</b> The first run of the start type menu put "What restarting Adobe Acrobat
+    /// Update Service would do" over a step reading "set AdobeARMservice to Disabled" - the title of
+    /// the panel, which is the line somebody reads before changing a machine, describing an
+    /// operation nobody asked for. Every named kind has its own arm now and an unnamed one refuses.
     internal static string Doing(ActionKind kind) => kind switch
     {
         ActionKind.Stop => Texts.Of("gui.plan.doing.stop"),
         ActionKind.Start => Texts.Of("gui.plan.doing.start"),
-        _ => Texts.Of("gui.plan.doing.restart")
+        ActionKind.Restart => Texts.Of("gui.plan.doing.restart"),
+        ActionKind.SetStartType => Texts.Of("gui.plan.doing.setStartType"),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(kind), kind, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };
 
     /// <summary>Why a step is there, with the key inside each call for the reason above.</summary>
@@ -122,18 +130,49 @@ internal static class PlanWords
     /// failed would be a claim about something nobody saw - the same distinction StepOutcome makes,
     /// arriving on a screen.
     /// </summary>
-    internal static string Describe(StepResult result) => result.Outcome == StepOutcome.TimedOut
+    internal static string Describe(StepResult result) =>
+        result.Step.Operation == StepOperation.SetStartType
+
+            // A SENTENCE OF ITS OWN, because the shared one does not survive this verb: "Spooler
+            // would not set the start type of" is what the template above would produce. A timeout
+            // cannot arrive here at all - writing a setting is done when it returns, so there is
+            // nothing to watch and nothing to give up on.
+            ? Texts.Of(
+                "gui.plan.failure.refusedStartType",
+                result.Step.ServiceName,
+                result.Error ?? string.Empty)
+            : Ordinary(result);
+
+    private static string Ordinary(StepResult result) => result.Outcome == StepOutcome.TimedOut
         ? Texts.Of(
             "gui.plan.failure.timedOut",
             result.Step.ServiceName,
-            result.Step.Operation == StepOperation.Stop
-                ? Texts.Of("gui.plan.operation.stop")
-                : Texts.Of("gui.plan.operation.start"))
+            Word(result.Step.Operation))
         : Texts.Of(
             "gui.plan.failure.refused",
             result.Step.ServiceName,
-            result.Step.Operation == StepOperation.Stop
-                ? Texts.Of("gui.plan.operation.stop")
-                : Texts.Of("gui.plan.operation.start"),
+            Word(result.Step.Operation),
             result.Error ?? string.Empty);
+
+    /// <summary>
+    /// What one step DOES, in one word, said in one place.
+    ///
+    /// <b>Four copies of this stood in this window until 2026-08-25, and every one of them was a
+    /// ternary</b> - "a stop, otherwise a start". A third kind of step would have been called a
+    /// start on four screens at once, in a panel whose whole purpose is telling somebody what is
+    /// about to happen to their machine. The core has the same change at the same time, including
+    /// in the one place that asks the manager to move something.
+    ///
+    /// <b>It refuses rather than guessing, and a compile error was not available:</b> a switch
+    /// covering every named member of an enum still needs a discard - CS8524 - because the variable
+    /// can hold a number nobody named.
+    /// </summary>
+    internal static string Word(StepOperation operation) => operation switch
+    {
+        StepOperation.Stop => Texts.Of("gui.plan.operation.stop"),
+        StepOperation.Start => Texts.Of("gui.plan.operation.start"),
+        StepOperation.SetStartType => Texts.Of("gui.plan.operation.setStartType"),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
+    };
 }

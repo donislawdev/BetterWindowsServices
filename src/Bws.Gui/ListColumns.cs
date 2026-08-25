@@ -82,7 +82,7 @@ internal static class ListColumns
             }
         }
 
-        grid.Sorting += SortByWhatTheCellSays;
+        grid.Sorting += ListSorting.WhenAHeadingIsClicked;
 
         // BOTH THINGS THAT CAN MOVE THE LEFT EDGE, and dragging is the one that is easy to
         // forget: turning a column off is handled above, and reordering by dragging a heading
@@ -146,6 +146,12 @@ internal static class ListColumns
 
         Freeze(grid);
 
+        // THE ORDER TRAVELS WITH THE LAYOUT, since 2026-08-25. Both callers of this - moving to
+        // another scope and putting the usual columns back - are moments where the list somebody
+        // is looking at is replaced, and an order left over from the one they left would be a
+        // heading marked as sorting a list it no longer sorts.
+        ListSorting.By(grid, plan.Layout.Sort);
+
         return refused;
     }
 
@@ -189,7 +195,7 @@ internal static class ListColumns
                 Moved(grid, known, column.Width)));
         }
 
-        return new ColumnLayout(kept);
+        return new ColumnLayout(kept, ListSorting.Of(grid));
     }
 
     private static string? Moved(FrameworkElement grid, Column known, DataGridLength width)
@@ -393,44 +399,4 @@ internal static class ListColumns
         return built;
     }
 
-    /// <summary>
-    /// Sorts by what the column says, rather than by the property a binding happens to name.
-    ///
-    /// <b>This is a repair as much as it is new machinery.</b> Left to the grid, a column sorts by
-    /// its binding path, and eleven of the seventeen columns bind through an indexer - which
-    /// resolves to no property at all, so the grid would sort by nothing and say nothing about it.
-    /// A column that quietly does not sort is worse than one that cannot.
-    ///
-    /// <b>It also fixes the process identifier, which has been sorting wrongly since sorting was
-    /// turned on.</b> That column binds to text, so 103292 came before 9. `Column.Sorts` is where
-    /// a column says its order is not its text, and it is the only one that does.
-    ///
-    /// Nothing is sorted here that the catalogue does not know, and the grid keeps its own
-    /// behaviour in that case rather than being overruled by a handler that could not help.
-    /// </summary>
-    private static void SortByWhatTheCellSays(object? sender, DataGridSortingEventArgs e)
-    {
-        if (sender is not DataGrid grid
-            || Columns.Of(e.Column.SortMemberPath ?? string.Empty) is not { } column
-            || CollectionViewSource.GetDefaultView(grid.ItemsSource) is not ListCollectionView view)
-        {
-            return;
-        }
-
-        var ascending = e.Column.SortDirection != ListSortDirection.Ascending;
-
-        foreach (var other in grid.Columns)
-        {
-            other.SortDirection = null;
-        }
-
-        e.Column.SortDirection = ascending ? ListSortDirection.Ascending : ListSortDirection.Descending;
-
-        // The comparison itself lives in Columns.OrderedBy, where it can be asked without a
-        // desktop. What is left here is the half only a grid can do: noticing the click, agreeing
-        // which way round it is, and taking the sort off every other heading.
-        view.CustomSort = Columns.OrderedBy(column, ascending);
-
-        e.Handled = true;
-    }
 }

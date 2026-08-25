@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace Bws.Gui;
 
@@ -27,6 +28,18 @@ public partial class FilterRow : UserControl
     /// it owns the picker's view model, and the list is the thing the choices change.
     /// </summary>
     internal Button Picker => ColumnsButton;
+
+    /// <summary>
+    /// The switch that folds the chips away, and the chips it folds.
+    ///
+    /// Exposed for the reason every other part of this window exposes its parts: what folding MEANS
+    /// is one line of markup, and a line of markup that stopped reaching the control looks exactly
+    /// like a feature nobody built. Backlog 224 is about the room this buys.
+    /// </summary>
+    internal ToggleButton Switch => FiltersToggle;
+
+    /// <inheritdoc cref="Switch"/>
+    internal ItemsControl Chips => ChipRow;
 
     private void ChooseColumns(object sender, RoutedEventArgs e) => OpenColumns();
 

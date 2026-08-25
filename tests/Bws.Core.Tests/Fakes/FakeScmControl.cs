@@ -24,6 +24,33 @@ internal sealed class FakeScmControl : IScmControl
     /// <summary>Names the manager was asked to change, in order.</summary>
     internal List<string> Requested { get; } = [];
 
+    /// <summary>
+    /// What was written, in order, as pairs of name and start type.
+    ///
+    /// <b>Kept apart from <see cref="Requested"/> on purpose.</b> Half of what these tests check is
+    /// what the runner did NOT do, and "asked the manager to move it" and "wrote a setting on it"
+    /// are two different wrong answers to check for.
+    /// </summary>
+    internal List<(string Name, StartType To)> Configured { get; } = [];
+
+    /// <summary>An entry whose configuration the manager will not write.</summary>
+    internal FakeScmControl RefusingConfiguration(string serviceName, int errorCode)
+    {
+        Entry(serviceName).ConfigureRefusedWith = errorCode;
+        return this;
+    }
+
+    public ControlAnswer Configure(string serviceName, StartType wanted)
+    {
+        Configured.Add((serviceName, wanted));
+
+        var entry = Entry(serviceName);
+
+        return entry.ConfigureRefusedWith is { } refused
+            ? ControlAnswer.Refused(refused, "Access is denied.")
+            : ControlAnswer.Done();
+    }
+
     /// <summary>An entry that is where it is, and that arrives the moment it is asked to move.</summary>
     internal FakeScmControl At(string serviceName, EntryStatus status)
     {
@@ -124,6 +151,8 @@ internal sealed class FakeScmControl : IScmControl
     /// <summary>How one entry behaves while a plan runs.</summary>
     private sealed class Behaviour
     {
+        internal int? ConfigureRefusedWith { get; set; }
+
         internal EntryStatus Status { get; set; } = EntryStatus.Running;
 
         internal Queue<ServiceProgress>? AfterRequest { get; set; }

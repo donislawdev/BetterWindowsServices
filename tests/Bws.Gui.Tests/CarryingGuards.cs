@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
@@ -131,6 +132,115 @@ public sealed class CarryingGuards
         Assert.Equal(Visibility.Visible, WpfHost.On(() => refused.PlanPanel.Blocked.Visibility));
 
         WpfHost.On(refused.Close);
+    }
+
+    /// <summary>
+    /// The button says WHY it is grey, and it says the first thing standing in the way.
+    ///
+    /// <b>Four things switch that button off and the panel named one of them.</b> No elevation, a
+    /// run under way, a run that has finished, and a plan with no step that could be taken - and the
+    /// line in the panel speaks about elevation alone, so three of the four ways this control
+    /// refuses said nothing at all.
+    ///
+    /// <b>ShowOnDisabled is asserted rather than assumed, and without it none of this is readable.</b>
+    /// WPF stops serving tooltips for a disabled control, so a reason written into a binding and left
+    /// at that is a sentence that exists everywhere except on the screen.
+    /// </summary>
+    [Fact]
+    public async Task The_button_says_why_it_is_grey_rather_than_only_refusing()
+    {
+        var refused = await Ready(elevated: false);
+
+        Assert.True(WpfHost.On(() => refused.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => refused.PlanPanel.CarryOut.IsEnabled));
+
+        Assert.True(
+            WpfHost.On(() => ToolTipService.GetShowOnDisabled(refused.PlanPanel.CarryOut)),
+            "The reason is bound to a control that will not show a tooltip while it is disabled.");
+
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.blocked.notElevated"),
+            WpfHost.On(() => refused.PlanPanel.CarryOut.ToolTip as string));
+
+        WpfHost.On(refused.Close);
+
+        // AND ON A SESSION THAT COULD CARRY IT OUT, the button says what it would do - the sentence
+        // it carried before any of this, which is the branch a chain of reasons is easiest to lose.
+        var window = await Ready();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.carryOut.hint"),
+            WpfHost.On(() => window.PlanPanel.CarryOut.ToolTip as string));
+
+        // ONCE IT HAS HAPPENED THE ANSWER CHANGES, because the button is grey for a new reason and
+        // the old sentence would send somebody looking for administrator rights they already have.
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() => model.Planned.Finished(Ran(model.Planned)));
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
+
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.blocked.alreadyDone"),
+            WpfHost.On(() => window.PlanPanel.CarryOut.ToolTip as string));
+
+        WpfHost.On(window.Close);
+    }
+
+
+    /// <summary>
+    /// The other two reasons the button goes quiet, which were arms of a chain and nothing else.
+    ///
+    /// <b>Four reasons were written and two were tested</b>, which is the shape this project calls
+    /// prose with nothing watching it. A plan with no step that could be taken and a run already
+    /// under way are both ordinary - the first arrives whenever somebody picks an entry the plan
+    /// refuses, and the second is every second of every run.
+    /// </summary>
+    [Fact]
+    public async Task The_button_names_the_other_two_things_that_keep_it_quiet()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        // A run under way: the button is quiet and says which one, rather than what it would do.
+        WpfHost.On(model.Planned.Starting);
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
+
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.blocked.running"),
+            WpfHost.On(() => window.PlanPanel.CarryOut.ToolTip as string));
+
+        WpfHost.On(window.Close);
+
+        // A plan with nothing in it that could be done. An entry that is not in the catalogue any
+        // more is the ordinary road to this: a service can go away between being listed and being
+        // asked about, which is why the plan has a problem for it at all.
+        var refusing = await Ready();
+        var over = WpfHost.On(() => (MainViewModel)refusing.DataContext);
+
+        Assert.True(WpfHost.On(() => over.Planned.Show(
+            over.Plan(new BulkAction(ActionKind.Stop, ["nothing-is-called-this"])))));
+
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => refusing.PlanPanel.CarryOut.IsEnabled));
+
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.blocked.nothingToRun"),
+            WpfHost.On(() => refusing.PlanPanel.CarryOut.ToolTip as string));
+
+        WpfHost.On(refusing.Close);
     }
 
     /// <summary>

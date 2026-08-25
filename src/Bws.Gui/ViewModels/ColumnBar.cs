@@ -107,6 +107,29 @@ public sealed class ColumnHeading
     public string Label => Texts.Of(_labelKey);
 }
 
+/// <summary>
+/// The last item in the column picker: put the list back the way this window opens.
+///
+/// <b>It exists because what somebody chooses here is kept on disk.</b> A layout is written the
+/// moment a column goes on or off and comes back on the next start, so a person who turned on the
+/// description and the five signature columns to look at something once has no way back except
+/// turning them off one at a time - and the catalogue holds twenty-six.
+///
+/// <b>A third kind of entry rather than a flag on a choice</b>, because it is not a column: it has
+/// no width, no order and nothing to be shown or hidden. The style selector beside the window tells
+/// the three apart, which is the same mechanism the headings already use and the reason they are
+/// items rather than a group.
+///
+/// Nothing here does the restoring. What a default layout IS belongs to
+/// <see cref="ColumnLayout.DefaultFor"/>, and WHEN one is worth writing down belongs to
+/// <c>KeptColumns</c> - this is a label and a place to click.
+/// </summary>
+public sealed class ColumnReset
+{
+    /// <summary>What the item says, in the language of whoever is reading it.</summary>
+    public string Label => Texts.Of("gui.columns.restore");
+}
+
 public sealed class ColumnBar
 {
     public ColumnBar()
@@ -123,6 +146,10 @@ public sealed class ColumnBar
             entries.Add(new ColumnHeading(Columns.GroupOf(group.First().Column.Id)!));
             entries.AddRange(group);
         }
+
+        // LAST, AFTER EVERY GROUP, because it is about the whole list rather than about one column
+        // and because a person reaches for it after reading what is there rather than before.
+        entries.Add(new ColumnReset());
 
         Entries = entries;
 

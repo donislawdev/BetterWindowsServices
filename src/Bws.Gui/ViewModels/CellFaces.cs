@@ -227,7 +227,14 @@ internal static class CellFaces
         return qualifies.FileMissing ? Texts.Of("gui.cell.start.fileMissing", cell) : cell;
     }
 
-    private static string TypeLabel(StartType type) => type switch
+    /// <summary>
+    /// What a start type is called on screen.
+    ///
+    /// <b>Internal since 2026-08-25, because three places now say it</b> - the cell, the menu that
+    /// offers to change it, and the step of a plan that would. Three copies of five words is three
+    /// chances for the menu to offer one thing and the plan to promise another.
+    /// </summary>
+    internal static string TypeLabel(StartType type) => type switch
     {
         StartType.Boot => Texts.Of("gui.cell.start.boot"),
         StartType.System => Texts.Of("gui.cell.start.system"),

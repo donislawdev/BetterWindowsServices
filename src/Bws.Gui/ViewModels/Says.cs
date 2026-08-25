@@ -135,6 +135,17 @@ public sealed class Says : Observable
     internal bool Elevated { get; init; } = Session.IsElevated();
 
     /// <summary>
+    /// The same fact the other way round, because markup can only ask for what is public and can
+    /// only test for a value it is given.
+    ///
+    /// <b>It exists for the one control in this window that offers a way out of the state</b> - the
+    /// button beside the sentence about it. Binding that button to <see cref="Notice"/> would show
+    /// it whenever the window admitted anything at all, and most of what that line says has nothing
+    /// to do with rights.
+    /// </summary>
+    public bool NotElevated => !Elevated;
+
+    /// <summary>
     /// Everything this answer has to admit about itself, composed and stored in one step.
     ///
     /// The composing lives in <see cref="Sentences"/>, the deciding in the view model, and the

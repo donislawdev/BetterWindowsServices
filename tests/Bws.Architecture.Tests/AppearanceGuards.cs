@@ -90,7 +90,7 @@ public sealed class AppearanceGuards
     private static readonly string[] ValueFiles = ["Values.xaml", "Colours.xaml", "Columns.xaml"];
 
     /// <summary>The halves that hold styles and no value of their own.</summary>
-    private static readonly string[] StyleFiles = ["Controls.xaml", "List.xaml", "Cells.xaml"];
+    private static readonly string[] StyleFiles = ["Text.xaml", "Controls.xaml", "List.xaml", "Cells.xaml"];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>
     private static IEnumerable<string> ThemeFiles => ValueFiles.Concat(StyleFiles);

@@ -5,14 +5,34 @@ public enum ActionKind
 {
     Stop,
     Start,
-    Restart
+    Restart,
+
+    /// <summary>
+    /// Set what the manager does with this entry at boot - `docs/03` part 4 names it, and the name
+    /// is singular on purpose: ONE ask carrying the type it sets, rather than one ask per type.
+    /// The owner chose that shape on 2026-08-25 with the alternative beside it.
+    ///
+    /// <b>It is the first ask in this product that changes CONFIGURATION rather than asking the
+    /// manager to move something</b>, and the difference reaches everywhere: no cascade, nothing to
+    /// wait for, and nothing that puts it back yet.
+    /// </summary>
+    SetStartType
 }
 
 /// <summary>What one step actually does to one entry.</summary>
 public enum StepOperation
 {
     Stop,
-    Start
+    Start,
+
+    /// <summary>
+    /// Write a start type. The type itself travels on the step - <see cref="PlanStep.To"/>.
+    ///
+    /// <b>Nine places branched on this enum two ways until 2026-08-25</b>, every one of them
+    /// reading "a stop, otherwise a start", including the one that asks the manager to move a
+    /// service. All nine refuse an unknown kind now rather than answering for it.
+    /// </summary>
+    SetStartType
 }
 
 /// <summary>Why a step is in the plan, which is the part a person reads first.</summary>
@@ -50,14 +70,22 @@ public enum StepReason
 /// the stop anyway when something running depends on it - so the honest answer to a plain
 /// stop is a plan of one step and a warning naming who is in the way.
 /// </param>
-public sealed record ServiceAction(ActionKind Kind, string ServiceName, bool IncludeDependents = false);
+/// <param name="To">
+/// The start type an ask of kind <see cref="ActionKind.SetStartType"/> sets, and nothing at all for
+/// the other three. Nullable rather than a default value, because "no start type is being set" is a
+/// real state and <see cref="StartType.Unknown"/> already means something else - the manager did not
+/// say.
+/// </param>
+public sealed record ServiceAction(
+    ActionKind Kind, string ServiceName, bool IncludeDependents = false, StartType? To = null);
 
 /// <summary>One thing that will happen, to one entry.</summary>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
     StepOperation Operation,
-    StepReason Reason);
+    StepReason Reason,
+    StartType? To = null);
 
 /// <summary>Kinds of thing worth saying before somebody presses the button.</summary>
 public enum PlanWarningKind

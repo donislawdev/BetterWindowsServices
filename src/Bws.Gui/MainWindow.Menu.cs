@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -150,12 +151,17 @@ public partial class MainWindow
     /// saying what would be dragged in is kept without quietly widening what was asked. There is no
     /// control for turning it on yet and that is open rather than decided.
     /// </summary>
-    internal bool Preview(ActionKind kind)
+    /// <param name="kind">What was asked for, in the words a person used.</param>
+    /// <param name="to">
+    /// The start type to write, and nothing at all for the other three asks. It travels from the
+    /// menu that offered it rather than being worked out here, for the reason every other value in
+    /// this file travels the same way: the control knows what it offered, and the model knows what
+    /// that means.
+    /// </param>
+    internal bool Preview(ActionKind kind, StartType? to = null)
     {
-        var names = Entries.SelectedItems
-            .OfType<EntryRow>()
-            .Select(row => row.ServiceName)
-            .ToList();
+        var picked = Entries.SelectedItems.OfType<EntryRow>().ToList();
+        var names = picked.Select(row => row.ServiceName).ToList();
 
         if (names.Count == 0)
         {
@@ -165,7 +171,14 @@ public partial class MainWindow
         // Mutually exclusive with the details panel, for the reason at OpenDetails above.
         _model.Chosen.Hide();
 
-        return _model.Planned.Show(_model.Plan(new BulkAction(kind, names)));
+        // THE LABEL TRAVELS BESIDE THE NAMES RATHER THAN INSTEAD OF THEM, and only when there is
+        // one row: the plan is built from internal names because that is what identity is, and the
+        // display name is what the title calls it so that somebody reads "Performance Logs and
+        // Alerts" rather than "pla" before changing a machine. Both end up on screen - the panel
+        // puts the internal name under the title, exactly as the details panel does.
+        return _model.Planned.Show(
+            _model.Plan(new BulkAction(kind, names, To: to)),
+            picked.Count == 1 ? picked[0].DisplayName : null);
     }
 
     /// <summary>

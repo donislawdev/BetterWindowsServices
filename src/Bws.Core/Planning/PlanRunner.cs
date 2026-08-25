@@ -134,6 +134,15 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     private StepResult RunStep(PlanStep step, TimeSpan timeout)
     {
         var started = clock.Now;
+
+        // A CONFIGURATION CHANGE IS DONE WHEN IT RETURNS, so everything below - the target status,
+        // the read before, the waiting after - is about a question this step does not ask. Writing
+        // a start type moves nothing, so there is no state to arrive at and nothing to poll.
+        if (step.Operation == StepOperation.SetStartType)
+        {
+            return Configure(step, started);
+        }
+
         var target = Target(step.Operation);
         var before = control.Read(step.ServiceName);
 
@@ -180,6 +189,27 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     /// The cap is ours and only stops a plan hanging a terminal on an entry that reports
     /// progress it never finishes.
     /// </summary>
+
+    /// <summary>
+    /// Writes a start type, and says where the entry is while it is at it.
+    ///
+    /// <b>The status is read AFTER rather than before, and it is not there to decide anything.</b>
+    /// Nothing about this step depends on where the entry is - a running service can be set to
+    /// disabled and keeps running - but every result in a run carries a status, and the honest one
+    /// here is where the entry actually is once the setting has been written.
+    ///
+    /// <b>An unreadable status is not a failed step.</b> The setting was written or it was not, and
+    /// that answer comes from the write rather than from a reading beside it.
+    /// </summary>
+    private StepResult Configure(PlanStep step, DateTimeOffset started)
+    {
+        var answer = control.Configure(step.ServiceName, step.To!.Value);
+        var where = Where(control.Read(step.ServiceName));
+
+        return answer.Worked
+            ? Result(step, StepOutcome.Succeeded, where, Elapsed(started))
+            : Refused(step, answer, where, started);
+    }
     private StepResult WaitFor(PlanStep step, EntryStatus target, TimeSpan timeout, DateTimeOffset started)
     {
         var giveUpAt = started + timeout;
@@ -226,8 +256,13 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
         }
     }
 
-    private static EntryStatus Target(StepOperation operation) =>
-        operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running;
+    private static EntryStatus Target(StepOperation operation) => operation switch
+    {
+        StepOperation.Stop => EntryStatus.Stopped,
+        StepOperation.Start => EntryStatus.Running,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(operation), operation, EquivalentCommand.Unhandled)
+    };
 
     private static EntryStatus Where(ControlAnswer answer) =>
         answer.Worked ? answer.Progress!.Value.Status : EntryStatus.Unknown;

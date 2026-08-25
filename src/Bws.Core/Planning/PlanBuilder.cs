@@ -36,7 +36,11 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         var warnings = new List<PlanWarning>();
         var steps = new List<PlanStep>();
 
-        var blocking = action.Kind == ActionKind.Start
+        // NOTHING IS IN THE WAY OF A CONFIGURATION CHANGE, and that is not the same sentence as
+        // "a start has nothing in the way". A start is unblocked because dependents cannot hold it
+        // down; setting a start type does not move the service at all, so the question does not
+        // arise. Both end up with an empty list and they get there for different reasons.
+        var blocking = action.Kind is ActionKind.Start or ActionKind.SetStartType
             ? []
             : StoppingOrder(target, warnings);
 
@@ -88,7 +92,36 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 [.. blocking.Select(entry => entry.ServiceName)]));
         }
 
-        switch (action.Kind)
+        AddSteps(steps, action.Kind, target, cascade, action.To);
+
+        AddWarnings(warnings, target, action, cascade);
+
+        return new OperationPlan
+        {
+            Action = action,
+            Steps = steps,
+            Warnings = warnings,
+            Problems = []
+        };
+    }
+
+
+    /// <summary>
+    /// The steps one ask turns into, which is the whole of what this class decides.
+    ///
+    /// <b>Out of Build on 2026-08-25 because an analyser asked</b> - naming the fourth arm of that
+    /// switch took the method three lines past the length it allows. The seam is a subject rather
+    /// than a line count: everything else in Build is about what is IN THE WAY, and this is what to
+    /// do once that is known.
+    /// </summary>
+    private static void AddSteps(
+        List<PlanStep> steps,
+        ActionKind kind,
+        ScmEntry target,
+        IReadOnlyList<ScmEntry> cascade,
+        StartType? to)
+    {
+        switch (kind)
         {
             case ActionKind.Stop:
                 AddStops(steps, cascade, target);
@@ -98,7 +131,14 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 steps.Add(Step(target, StepOperation.Start, StepReason.Requested));
                 break;
 
-            default:
+            case ActionKind.SetStartType:
+                // ONE STEP AND NO CASCADE. Nothing is taken down, nothing comes back, and nothing
+                // depends on the order - which is why this arm is one line under a switch whose
+                // other arms are four.
+                steps.Add(Step(target, StepOperation.SetStartType, StepReason.Requested, to));
+                break;
+
+            case ActionKind.Restart:
                 // C11 in four moves: take the dependents down, take the service down, bring
                 // it back, put the dependents back. The second half runs in the mirror of
                 // the first, because what stopped last has to start first.
@@ -119,19 +159,15 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 }
 
                 break;
+
+            default:
+                // A KIND NOBODY TAUGHT THIS BUILDER USED TO GET A RESTART, which is four steps on a
+                // real machine that nobody asked for. It refuses here instead - the ask has to be
+                // given a plan in the place that builds plans.
+                throw new ArgumentOutOfRangeException(
+                    nameof(kind), kind, EquivalentCommand.Unhandled);
         }
-
-        AddWarnings(warnings, target, action, cascade);
-
-        return new OperationPlan
-        {
-            Action = action,
-            Steps = steps,
-            Warnings = warnings,
-            Problems = []
-        };
     }
-
     private static void AddStops(List<PlanStep> steps, IReadOnlyList<ScmEntry> cascade, ScmEntry target)
     {
         foreach (var dependent in cascade)
@@ -223,6 +259,13 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         {
             ActionKind.Stop => target.Status == EntryStatus.Stopped,
             ActionKind.Start => target.Status == EntryStatus.Running,
+
+            // Only where the start type could be READ. An unreadable one is not "already that",
+            // and saying so would turn missing information into a claim - the thing the four read
+            // outcomes exist to prevent.
+            ActionKind.SetStartType =>
+                target.StartType is { IsPresent: true } kept && kept.Value == action.To,
+
             _ => false
         };
 
@@ -231,7 +274,12 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
             warnings.Add(new PlanWarning(PlanWarningKind.AlreadyThere, target.ServiceName));
         }
 
-        if (action.Kind != ActionKind.Start && target.EntryType == EntryType.SharedProcess)
+        // A SHARED PROCESS MATTERS WHEN SOMETHING IS BEING STOPPED, and a start type is not that.
+        // Without this the warning would tell somebody that changing a setting leaves the
+        // neighbours running, which is true, irrelevant, and exactly the kind of sentence that
+        // teaches people to stop reading warnings.
+        if (action.Kind is ActionKind.Stop or ActionKind.Restart
+            && target.EntryType == EntryType.SharedProcess)
         {
             var neighbours = entries
                 .Where(entry => entry.ProcessId.IsPresent
@@ -262,8 +310,9 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         entries.FirstOrDefault(entry =>
             string.Equals(entry.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase));
 
-    private static PlanStep Step(ScmEntry entry, StepOperation operation, StepReason reason) =>
-        new(entry.ServiceName, entry.DisplayName, operation, reason);
+    private static PlanStep Step(
+        ScmEntry entry, StepOperation operation, StepReason reason, StartType? to = null) =>
+        new(entry.ServiceName, entry.DisplayName, operation, reason, to);
 
     private static OperationPlan Refuse(
         ServiceAction action, PlanProblemKind kind, IReadOnlyList<string>? related = null) => new()

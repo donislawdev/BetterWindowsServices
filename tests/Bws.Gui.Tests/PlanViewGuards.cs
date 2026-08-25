@@ -71,6 +71,55 @@ public sealed class PlanViewGuards
     }
 
     /// <summary>
+    /// The title calls the entry what a person calls it, and the manager's own name stands under it.
+    ///
+    /// <b>Both, never one.</b> A title reading "What stopping pla would do" names something nobody
+    /// recognises - that entry is called Performance Logs and Alerts on screen and in
+    /// <c>services.msc</c>. A title carrying only the display name would be worse: display names
+    /// are translated, so it would name nothing anybody could type into a command, which is `ADR-14`
+    /// in the one place where the next thing a person does is change a machine.
+    ///
+    /// <b>The second line GOES rather than empties when there is nothing to say</b>, which is the
+    /// half a binding gets right by accident and a visibility gets wrong - backlog 203.
+    /// </summary>
+    [Fact]
+    public async Task The_title_names_the_entry_the_way_a_person_does_with_the_manager_name_under_it()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() =>
+        {
+            window.Entries.UnselectAll();
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
+        });
+
+        WpfHost.Settled();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Contains(
+            "Print Spooler",
+            WpfHost.On(() => window.PlanPanel.Heading.Text),
+            StringComparison.Ordinal);
+
+        Assert.Equal("Spooler", WpfHost.On(() => window.PlanPanel.Subtitle.Text));
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Subtitle.Visibility));
+
+        // MORE THAN ONE ROW HAS NO SINGLE ENTRY TO NAME, so the line under the title goes with it.
+        WpfHost.On(() =>
+            window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "W32Time")));
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Subtitle.Visibility));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
     /// The commands are the ones the core renders, rather than a second spelling of them.
     ///
     /// <b>`E5`, and the reason this is asserted through the window:</b> a command that looks right and

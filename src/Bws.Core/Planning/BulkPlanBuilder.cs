@@ -33,7 +33,7 @@ public sealed class BulkPlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog
 
         foreach (var name in InTheOrderTheyMustHappen(action.Kind, asked))
         {
-            var plan = builder.Build(new ServiceAction(action.Kind, name, action.IncludeDependents));
+            var plan = builder.Build(new ServiceAction(action.Kind, name, action.IncludeDependents, action.To));
 
             if (plan.Problems.Count > 0)
             {

@@ -43,6 +43,14 @@ public sealed partial class Planned
     public bool HasBlocked => Blocked.Length > 0;
 
     /// <summary>
+    /// Whether the manager's own name for the entry belongs under the title.
+    ///
+    /// False whenever the title is already using it, so no empty line is ever reserved under a
+    /// heading - the fault the property above this one was written for.
+    /// </summary>
+    public bool HasSubtitle => Subtitle.Length > 0;
+
+    /// <summary>
     /// Whether the command that would ask for the same thing still belongs on screen.
     ///
     /// <b>False once there is a result, and that is `E5` read as it was written rather than as a
@@ -80,6 +88,15 @@ public sealed partial class Planned
     {
         Raise(nameof(HasExtra));
         Raise(nameof(HasBlocked));
+
+        // The line itself as well as whether it is there, because this one carries text rather
+        // than only deciding a visibility - and it changes with the plan, not with a count.
+        Raise(nameof(Subtitle));
+        Raise(nameof(HasSubtitle));
+
+        // What the button says about itself moves with every one of these: elevation is fixed for
+        // the session, but running, finished and nothing-to-run all change here.
+        Raise(nameof(CarryOutTip));
         Raise(nameof(HasCommands));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));

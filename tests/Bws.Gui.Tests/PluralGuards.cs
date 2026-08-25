@@ -29,6 +29,85 @@ namespace Bws.Gui.Tests;
 public sealed class PluralGuards
 {
     /// <summary>
+    /// The line under the search box, which is the sentence a person reads after every keystroke.
+    ///
+    /// <b>Backlog 207, the same fault outside the panel this file was written for.</b> Four keys in
+    /// the window carried a counted plural with no singular beside them, and two of them are this
+    /// line - so a machine holding one entry read "1 entries" under a box somebody had just typed
+    /// in.
+    ///
+    /// <b>The full stop went with the repair and that is a separate decision, taken because the
+    /// line is a label rather than a sentence.</b> It reads "810 entries" now, and the narrowed
+    /// form beside it has never carried one.
+    /// </summary>
+    [Fact]
+    public async Task The_count_line_has_a_singular_for_a_machine_holding_one_entry()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        Assert.Equal("1 entry", model.Says.Status);
+        Assert.DoesNotContain(".", model.Says.Status, StringComparison.Ordinal);
+
+        // AND THE NARROWED FORM, where the noun follows the SECOND number rather than the first -
+        // "1 of 810 entries" is right and the trap is answering it from the count that changed.
+        model.QueryText = "name:nothing-is-called-this";
+
+        Assert.Equal("0 of 1 entry", model.Says.Status);
+        Assert.False(CountedPlural.IsMatch(model.Says.Status), model.Says.Status);
+    }
+
+    /// <summary>
+    /// What the window admits about an answer, when there is exactly one of whatever it admits to.
+    ///
+    /// <b>The reachable half of backlog 207's window list.</b> An entry that refused the field a
+    /// query was judged on is an ordinary state on a real machine - one service the session may not
+    /// read the configuration of - and the sentence about it counted in plurals only.
+    ///
+    /// <b>What this does NOT reach:</b> the same pair for an expression that ran out of time. Its
+    /// singular is written and consumed the same way, and nothing here drives a query to a timeout.
+    /// </summary>
+    [Fact]
+    public async Task What_the_window_admits_has_a_singular_for_one_entry()
+    {
+        var refused = Rows.Entry("Spooler") with
+        {
+            Account = Reading<string>.Denied(5, "Access is denied.")
+        };
+
+        var model = new MainViewModel(new LiveMachine(refused), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "account:LocalSystem";
+
+        Assert.Equal(Bws.Gui.Texts.Of("gui.status.partial.one", 1), model.Says.Notice);
+
+        // NOT ASKED OF CountedPlural, AND THE REASON IS THAT GUARD'S OWN LIMIT MEASURED ON A REAL
+        // SENTENCE. Its pattern allows two words between the number and a word ending in s, so
+        // "1 entry was judged" matches on "was" - a correct singular flagged as a plural. The
+        // pattern is right for the panel it was written for and this family is outside it, so the
+        // assertion above is an exact string instead. Backlog 225.
+    }
+
+
+    /// <summary>
+    /// The window refuses a kind of step or ask it does not know, rather than calling it a start.
+    ///
+    /// <b>The same repair the core got on 2026-08-25, in the four places the window had it</b> - and
+    /// one of those four was the title of the plan panel, which said "What restarting X would do"
+    /// over a step that set a start type. A probe on a live window caught that one; nothing here
+    /// did, so these two lines exist to make the refusals themselves executed rather than written.
+    /// </summary>
+    [Fact]
+    public void The_window_refuses_a_kind_it_does_not_know_rather_than_naming_it_a_start()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PlanWords.Word((StepOperation)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PlanWords.Doing((ActionKind)99));
+    }
+
+    /// <summary>
     /// A counted plural with one in front of it - "All 1 entries", "1 other entries", "1 drivers".
     ///
     /// <b>THE WORDS BETWEEN THE NUMBER AND THE NOUN ARE WHY THIS IS NOT `\b1 \w+s\b`, AND THE

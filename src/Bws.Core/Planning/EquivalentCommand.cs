@@ -77,7 +77,23 @@ public static class EquivalentCommand
     /// either, so writing one would hand somebody a line that fails.
     /// </summary>
     public static IReadOnlyList<string> For(BulkPlan plan) =>
-        [.. plan.Plans.Select(one => For(one.Action))];
+        [.. plan.Plans.Where(one => HasAVerb(one.Action.Kind)).Select(one => For(one.Action))];
+
+    /// <summary>
+    /// Whether the command line has a verb for this ask yet.
+    ///
+    /// <b>THREE OF THE FOUR, SINCE 2026-08-25, AND THE FOURTH IS A DECISION RATHER THAN AN
+    /// OVERSIGHT.</b> The window can set a start type and the command line cannot - the owner chose
+    /// that order on 2026-08-25, the same way the plan preview arrived in the window first. So there
+    /// is no line to hand anybody for that ask, and this class already refuses to invent one: the
+    /// comment above about --dependents on a start is the same rule, met a second time.
+    ///
+    /// <b>What it costs, said plainly:</b> the panel shows no equivalent command beside a start type
+    /// change, and its section disappears rather than showing a line that fails on paste. It comes
+    /// back the day the command line learns the verb.
+    /// </summary>
+    public static bool HasAVerb(ActionKind kind) =>
+        kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart;
 
     /// <summary>
     /// What somebody would type to put one entry back where a run found it.
@@ -96,8 +112,12 @@ public static class EquivalentCommand
     /// <b>Deliberate, and the trap it avoids has already been paid for once in this product.</b>
     /// Lower-casing the name of an enum value works for exactly as long as every value is one word,
     /// and then stops quietly - a two word value renders a verb nobody wrote. These three are a
-    /// frozen contract in `docs/02`, so they are worth three lines of their own, and a fourth kind
-    /// arriving here will not compile until somebody decides what to call it.
+    /// frozen contract in `docs/02`, so they are worth three lines of their own.
+    ///
+    /// <b>The sentence that used to end this paragraph was false and is now measured.</b> It said a
+    /// fourth kind "will not compile until somebody decides what to call it" - a discard arm
+    /// compiles perfectly, and CS8524 means it cannot be left out. What it does instead is refuse
+    /// at the point of use, and <see cref="HasAVerb"/> is what keeps callers away from it.
     /// </summary>
     private static string Verb(ActionKind kind) => kind switch
     {
@@ -111,6 +131,34 @@ public static class EquivalentCommand
     /// The same three words seen from one step rather than from an ask. There is no verb for a
     /// restart here, because a step never restarts anything - it stops or it starts.
     /// </summary>
-    private static string Verb(StepOperation operation) =>
-        operation == StepOperation.Stop ? "stop" : "start";
+    private static string Verb(StepOperation operation) => operation switch
+    {
+        StepOperation.Stop => "stop",
+        StepOperation.Start => "start",
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(operation), operation, Unhandled)
+    };
+
+    /// <summary>
+    /// What every switch over a step operation says when it meets one it does not know.
+    ///
+    /// <b>A refusal rather than a guess, and the guess is what was here until 2026-08-25.</b> Every
+    /// one of these was a ternary reading "is it a stop, otherwise it is a start" - so a third kind
+    /// of step would have travelled through nine places as a START, including the one that asks the
+    /// service manager to move a service. A plan whose preview showed one thing and whose run did
+    /// another is the single fault the whole of `ADR-11` stands against.
+    ///
+    /// <b>Why not a compile error, which would be better and is not available.</b> A switch
+    /// expression covering every named member of an enum still does not compile without a discard -
+    /// CS8524, measured 2026-08-25 - because an enum variable can hold a number nobody named. So the
+    /// discard has to be there, and what it does is the decision: it throws where the value is used
+    /// rather than answering for it.
+    ///
+    /// <b>Public because the window throws the same sentence</b>, and a second wording of the same
+    /// advice would be two places to keep true. It is a diagnostic rather than anything a person
+    /// reads on purpose - reaching it means somebody added a kind of step and left a place out.
+    /// </summary>
+    public const string Unhandled =
+        "This step operation has no answer here. A new kind of step has to be given one in every "
+        + "place that asks, rather than falling through to the one that happened to be last.";
 }

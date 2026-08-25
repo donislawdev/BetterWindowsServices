@@ -28,25 +28,37 @@ public sealed class ColumnPickerGuards
     /// puts a <c>GroupItem</c> between a menu and its items and the menu's peer does not reach
     /// through it, so a screen reader sees exactly what the probe saw.
     ///
-    /// What this asserts is the shape that repair depends on: every entry is one of two kinds, a
-    /// heading opens each run, and the selector tells them apart - because a selector that answered
-    /// the same style for both would put a tick box on a heading.
+    /// What this asserts is the shape that repair depends on: every entry is one of the three kinds,
+    /// a heading opens each run, and the selector tells them apart - because a selector that
+    /// answered the same style for two of them would put a tick box on a heading.
+    ///
+    /// <b>THREE KINDS SINCE 2026-08-25, and the third is the way back:</b> what a person chooses
+    /// here is written to disk, so without an item that restores the usual columns the only road
+    /// back from a layout somebody no longer wants is turning columns off one at a time.
     /// </summary>
     [Fact]
     public void The_picker_is_headings_and_choices_in_one_list_each_with_its_own_style()
     {
         var bar = new ColumnBar();
 
-        Assert.Equal(bar.Choices.Count + 4, bar.Entries.Count);
+        Assert.Equal(bar.Choices.Count + 5, bar.Entries.Count);
         Assert.IsType<ColumnHeading>(bar.Entries[0]);
 
-        // Every heading says something, and every entry is one of the two kinds - a third kind
+        // LAST, because it is about the whole list rather than about one column. A restore in the
+        // middle of the groups would read as a column somebody could turn on.
+        Assert.IsType<ColumnReset>(bar.Entries[^1]);
+
+        // Every heading says something, and every entry is one of the three kinds - a fourth kind
         // would fall through the selector and wear whatever the menu's default is.
         foreach (var entry in bar.Entries)
         {
             if (entry is ColumnHeading heading)
             {
                 Assert.NotEmpty(heading.Label);
+            }
+            else if (entry is ColumnReset back)
+            {
+                Assert.NotEmpty(back.Label);
             }
             else
             {
@@ -73,10 +85,18 @@ public sealed class ColumnPickerGuards
 
             var forHeading = styles.SelectStyle(bar.Entries[0], container);
             var forChoice = styles.SelectStyle(bar.Choices[0], container);
+            var forReset = styles.SelectStyle(bar.Entries[^1], container);
 
             Assert.NotNull(forHeading);
             Assert.NotNull(forChoice);
+            Assert.NotNull(forReset);
             Assert.NotSame(forHeading, forChoice);
+
+            // THE THIRD IS ITS OWN STYLE RATHER THAN A CHOICE'S, and the difference is not
+            // cosmetic: a choice is a tick box bound to IsShown, so the way back wearing that style
+            // would come up as a check mark that answers nothing.
+            Assert.NotSame(forReset, forChoice);
+            Assert.NotSame(forReset, forHeading);
         });
     }
 

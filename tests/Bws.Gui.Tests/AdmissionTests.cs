@@ -107,6 +107,6 @@ public sealed class AdmissionTests
         // machine would not let us" and "nobody asked" are the two states this project spends
         // most of its rules keeping apart, and both arrive here as an empty list.
         Assert.DoesNotContain(
-            Bws.Gui.Texts.Of("gui.status.partial", 1), notice, StringComparison.Ordinal);
+            Bws.Gui.Texts.Of("gui.status.partial.many", 1), notice, StringComparison.Ordinal);
     }
 }
