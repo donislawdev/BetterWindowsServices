@@ -103,6 +103,42 @@ internal static class ManagerTerms
     }
 
     /// <summary>
+    /// The bit that marks a per-user template, and the one that marks a session's instance.
+    ///
+    /// <b>Cast rather than named, and the metadata is the reason.</b> ENUM_SERVICE_TYPE names
+    /// only the composites - SERVICE_USER_OWN_PROCESS is 0x50, which is this bit plus the
+    /// own-process one, and SERVICE_USER_SHARE_PROCESS is 0x60. Neither bare bit has a name to
+    /// use, so asking HasFlag with a composite would answer a different question: 0x60 does not
+    /// have flag 0x50, and a template sharing a process would come back as not per-user at all.
+    /// WindowsScmCatalog casts 0x80 for the same reason when it builds the enumeration mask.
+    /// </summary>
+    private const ENUM_SERVICE_TYPE PerUserTemplate = (ENUM_SERVICE_TYPE)0x40;
+    private const ENUM_SERVICE_TYPE PerUserInstance = (ENUM_SERVICE_TYPE)0x80;
+
+    /// <summary>
+    /// Which side of the per-user family this entry is on, from the bits the enumeration
+    /// already carries. Costs nothing beyond the test - no extra call, no handle.
+    ///
+    /// <b>The order is not a preference and swapping it is silently wrong.</b> An instance
+    /// carries the template bit as well: measured on a real machine 2026-08-25, every one of
+    /// the 23 instances reads 0xe0, which is 0x80 plus 0x40 plus the share-process 0x20. Asking
+    /// about the template bit first would therefore call every instance a template, and the
+    /// count of each would still look plausible - 46 entries, none missing, all mislabelled on
+    /// one side. This is the same trap EntryType above avoids by asking about drivers first.
+    /// </summary>
+    internal static PerUserRole PerUserRole(ENUM_SERVICE_TYPE type)
+    {
+        if ((type & PerUserInstance) == PerUserInstance)
+        {
+            return Core.PerUserRole.Instance;
+        }
+
+        return (type & PerUserTemplate) == PerUserTemplate
+            ? Core.PerUserRole.Template
+            : Core.PerUserRole.None;
+    }
+
+    /// <summary>
     /// How hard the system takes a failure to start during boot.
     ///
     /// Anything the metadata does not name comes back Unknown rather than being folded into

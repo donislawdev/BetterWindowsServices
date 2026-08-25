@@ -24,8 +24,11 @@ public sealed class QueryOverSpecimensTests
         // Scenario one from the specification, run against every awkward case at once.
         //
         // CDPUserSvc belongs here and is easy to forget: a per-user template is automatic
-        // and never running, because it is a template. Whether that should be reported as
-        // a failure at all is a question for the slice that collapses per-user services.
+        // and never running, because it is a template. Whether it should be REPORTED as a
+        // failure was left open here until 2026-08-25, and the answer is no - see the test
+        // below that takes it back out. This one keeps asking the unfiltered question,
+        // because that is what the specification's scenario says and the narrowing is a
+        // separate choice made on top of it.
         //
         // HalfRead belongs too, and for the opposite reason: its start type was read and
         // says automatic, so nothing about the delay flag being refused changes the answer.
@@ -129,6 +132,55 @@ public sealed class QueryOverSpecimensTests
         // The suffix is random per session, so the prefix is the only stable handle a
         // person has until the interface learns to collapse them.
         Assert.Equal(["CDPUserSvc", "CDPUserSvc_21aaa4"], Names("name:CDPUserSvc"));
+    }
+
+    [Fact]
+    public void The_two_sides_of_the_per_user_family_are_not_swapped()
+    {
+        // THE ONE MISTAKE IN THIS FIELD THAT WOULD LOOK RIGHT FROM EVERY COUNT.
+        //
+        // An instance carries the template bit as well as its own - measured 0xe0 on a real
+        // machine, which is instance plus template plus share-process. So a reader that asks
+        // about the template bit first labels every instance a template, and the totals stay
+        // exactly as plausible as before: same number of entries in the family, none missing,
+        // every one of them on the wrong side.
+        //
+        // Nothing about a count can catch that, so this asserts the two sides against the
+        // thing that tells them apart from outside: the instance is the one Windows gave a
+        // session suffix and a process, and the template is the one that never runs.
+        Assert.Equal(["CDPUserSvc"], Names("peruser:template"));
+        Assert.Equal(["CDPUserSvc_21aaa4"], Names("peruser:instance"));
+
+        Assert.Equal(EntryStatus.Stopped, Specimens.PerUserTemplate.Status);
+        Assert.Equal(EntryStatus.Running, Specimens.PerUserInstance.Status);
+    }
+
+    [Fact]
+    public void Yes_is_the_two_sides_together_and_no_is_the_rest_of_the_machine()
+    {
+        // The same shape as type:driver: the grouping word exists because "is this session
+        // noise" is the question people have, and neither side alone answers it.
+        Assert.Equal(["CDPUserSvc", "CDPUserSvc_21aaa4"], Names("peruser:yes"));
+
+        Assert.DoesNotContain("CDPUserSvc", Names("peruser:no"), StringComparer.Ordinal);
+        Assert.DoesNotContain("CDPUserSvc_21aaa4", Names("peruser:no"), StringComparer.Ordinal);
+        Assert.Contains("AsusUpdateCheck", Names("peruser:no"), StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public void The_acceptance_scenario_stops_blaming_a_template_once_it_can_ask_about_one()
+    {
+        // The whole point of the field, in one line: the specification's scenario one counts
+        // CDPUserSvc as an automatic entry that did not come up, and it is not one. It never
+        // comes up, by design, while the session instance beside it runs.
+        //
+        // Measured on a real machine the same day, where this is not one entry but four:
+        // the unfiltered question answers 8, adding peruser:no answers 4, and adding
+        // trigger:none as well answers 1 - which is the only entry on that machine that
+        // genuinely failed to start.
+        Assert.Equal(
+            ["HalfRead", "AsusUpdateCheck", "sppsvc"],
+            Names("start:auto !status:running !type:driver peruser:no"));
     }
 
     [Fact]

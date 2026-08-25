@@ -23,6 +23,7 @@ internal readonly record struct EnumeratedEntry(
     string ServiceName,
     string DisplayName,
     EntryType EntryType,
+    PerUserRole PerUserRole,
     EntryStatus Status,
     uint ProcessId)
 {

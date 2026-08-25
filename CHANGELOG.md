@@ -15,6 +15,20 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **`peruser:` in the query language**, in the window and on the command line alike. Windows makes
+  a copy of certain services for every signed-in session, and what the manager holds is two
+  different things wearing nearly the same name: a **template**, which never runs, and one
+  **instance** per session, which does the work.
+  - `peruser:no` leaves them out, `peruser:yes` shows only that family, and `peruser:template` or
+    `peruser:instance` picks one side of it.
+  - **This changes an answer you were already getting.** Asking for automatic entries that are not
+    running counted every template, because a template is automatic and never runs. On the machine
+    this was measured on that question answered 8, four of which were templates whose instances
+    were running beside them. Adding `peruser:no` answers 4.
+  - The tool tells the two apart by what Windows marks them as, not by the suffix in the name. On
+    the same machine the name would have been wrong about two entries out of 798 - and one of the
+    two it would have filed away as session noise is the machine's power service.
+
 - **Start type...**, in the bar over the list: Automatic, Manual or Disabled for the entries you
   picked. Like everything else in that bar it shows you a plan first - the title says what it
   would set and to what - and nothing changes until you press Carry this out.
@@ -409,6 +423,18 @@ Nothing has been released yet. Everything below is what the tool does today.
     be told apart from a local disk without contacting it, so those are still followed.
 
 ### Changed
+
+- **Snapshots are now written in format version 2, and a snapshot written by an earlier build is
+  refused rather than read.** The entries carry one more field - which side of the per-user family
+  each one is on - and every field in that format is required, so a file without it is not a
+  version of the same document.
+  - The refusal names the reason: the file uses version 1 and this build reads version 2. That is
+    the whole of the change you will see, and it happens before anything is compared.
+  - **The alternative was worse and was rejected on purpose.** Letting the older file through
+    would have put an empty value on one side of every comparison, and reported a change on 46
+    entries of 798 that nothing on the machine had touched. A comparison that invents changes is
+    the one thing this tool must not do.
+  - Nothing has been released yet, so no snapshot written by a published build exists.
 
 - **The plan panel calls a service what you call it.** The title of a preview read "What
   stopping pla would do", naming the entry the way the service manager does. It now carries the

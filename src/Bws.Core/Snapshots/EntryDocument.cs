@@ -79,6 +79,22 @@ public sealed record EntryDocument
     public required string? Description { get; init; }
 
     public required string EntryType { get; init; }
+
+    /// <summary>
+    /// Which side of the per-user family the entry is on: None, Template or Instance.
+    ///
+    /// <b>Not folded into <see cref="EntryType"/>, on the same grounds as DelayedAuto below.</b>
+    /// A per-user template that shares a process still reports SharedProcess there, because it
+    /// is one, and anything already reading that field keeps working. This answers a different
+    /// question and gets its own name.
+    ///
+    /// <b>Never null, and that is a claim about where it comes from.</b> The value is read from
+    /// the type bits that arrive with every enumerated entry, on the call that produced the
+    /// entry at all - so there is no machine state where it is refused and none where nobody
+    /// asked. It is the only field here outside identity with no story about being missing.
+    /// </summary>
+    public required string PerUserRole { get; init; }
+
     public required string Status { get; init; }
     public required int? ProcessId { get; init; }
     public required string? StartType { get; init; }
@@ -248,6 +264,7 @@ public sealed record EntryDocument
             DisplayName = entry.DisplayName,
             Description = entry.Description.IsPresent ? entry.Description.Value : null,
             EntryType = entry.EntryType.ToString(),
+            PerUserRole = entry.PerUserRole.ToString(),
             Status = entry.Status.ToString(),
             ProcessId = entry.ProcessId.IsPresent ? entry.ProcessId.Value : null,
             StartType = entry.StartType.IsPresent ? entry.StartType.Value.ToString() : null,

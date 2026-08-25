@@ -125,6 +125,22 @@ public static class QueryFields
 
         new QueryField
         {
+            // Spec item A11. Read from the same type bits as "type" on the same call, so it is
+            // always present and never refused - hence the constant outcome above and below.
+            //
+            // It is a separate field rather than more values on "type" because it answers a
+            // different question about the same entry. A per-user template that shares a
+            // process is a shared process, truthfully, and folding these in would have made
+            // type:sharedProcess quietly stop covering 22 entries it covers today.
+            Name = "peruser",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = _ => ReadOutcome.Present,
+            SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.PerUserRole.ToString())),
+            Values = QueryValueNames.PerUser
+        },
+
+        new QueryField
+        {
             Name = "status",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,

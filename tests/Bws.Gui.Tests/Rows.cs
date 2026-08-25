@@ -24,6 +24,7 @@ internal static class Rows
         DisplayName = displayName,
         Description = Reading<string>.Present(name + " description"),
         EntryType = EntryType.OwnProcess,
+        PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),

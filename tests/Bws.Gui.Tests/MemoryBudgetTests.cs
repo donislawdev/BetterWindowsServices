@@ -192,6 +192,7 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
             + "will fail to start."),
 
         EntryType = EntryType.OwnProcess,
+        PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),

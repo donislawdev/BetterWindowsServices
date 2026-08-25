@@ -99,7 +99,11 @@ public sealed class SnapshotContractTests : IDisposable
     {
         var metadata = Take("meta.json", "--note", "before the deployment").GetProperty("metadata");
 
-        Assert.Equal(1, metadata.GetProperty("schemaVersion").GetInt32());
+        // Two since 2026-08-25, when perUserRole joined the entry document. This number is
+        // pinned here on purpose: it is the only thing that turns "your file is from an older
+        // build" into a sentence its owner can act on, and a change to it that nobody argued
+        // for is a change that silently stops older snapshots from being readable.
+        Assert.Equal(2, metadata.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("before the deployment", metadata.GetProperty("note").GetString());
         Assert.Equal(Environment.MachineName, metadata.GetProperty("machine").GetString());
         Assert.NotEmpty(metadata.GetProperty("takenBy").GetString()!);

@@ -170,6 +170,7 @@ public sealed class RowListTests
         DisplayName = name,
         Description = Reading<string>.Absent(),
         EntryType = EntryType.OwnProcess,
+        PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),

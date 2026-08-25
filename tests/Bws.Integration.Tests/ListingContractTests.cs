@@ -50,6 +50,38 @@ public sealed class ListingContractTests
     }
 
     [Fact]
+    public void The_two_sides_of_the_per_user_family_are_not_swapped()
+    {
+        // THE MISTAKE THIS FIELD INVITES, AND THE ONE NO COUNT CAN SEE.
+        //
+        // An instance carries the template bit as well as its own - 0xe0 on this machine,
+        // which is instance plus template plus share-process - so a reader that asks about
+        // the template bit first calls every instance a template. Both counts stay exactly
+        // as plausible as they were, and every entry is on the wrong side.
+        //
+        // The oracle is the shape Windows gives the names: an instance is its template's
+        // name plus an underscore and the session. That relationship does not survive the
+        // sides being exchanged, because a bare name never begins with a suffixed one.
+        var listing = CommandLineTool.Listing();
+
+        var templates = Named(listing, "Template");
+        var instances = Named(listing, "Instance");
+
+        Assert.NotEmpty(templates);
+        Assert.NotEmpty(instances);
+
+        Assert.All(instances, instance => Assert.Contains(
+            templates,
+            template => instance.StartsWith(template + "_", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string[] Named(JsonElement[] listing, string role) =>
+        [.. listing
+            .Where(entry => string.Equals(
+                CommandLineTool.Text(entry, "perUserRole"), role, StringComparison.Ordinal))
+            .Select(entry => CommandLineTool.Text(entry, "serviceName"))];
+
+    [Fact]
     public void Data_goes_to_the_output_channel_and_nothing_else_does()
     {
         var run = CommandLineTool.Run("list", "--json");

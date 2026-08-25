@@ -125,11 +125,28 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// <summary>
     /// The schema this build writes.
     ///
-    /// One, and it stays one until a field changes meaning or disappears. Adding a field is
-    /// not a break - a reader that does not know it ignores it, and a reader that expects it
-    /// finds it missing in an older file, which is exactly what an older file means.
+    /// <b>Two since 2026-08-25, when `perUserRole` joined the entry document.</b>
+    ///
+    /// <b>The sentence that stood here until that day was false, and it was the kind of false
+    /// that decides things.</b> It said adding a field is not a break, because "a reader that
+    /// does not know it ignores it, and a reader that expects it finds it missing in an older
+    /// file". Neither half holds in this build. Every member of <see cref="EntryDocument"/> is
+    /// `required`, so a file missing one does not deserialise at all - and SnapshotJson.TryRead
+    /// refuses any version that is not exactly this number before it looks at a single field,
+    /// which is the behaviour that comment described as impossible.
+    ///
+    /// <b>So an added field IS a break here, and the number is what makes the refusal legible.</b>
+    /// Without the bump an older snapshot fails as a JSON error about a missing member, which
+    /// tells its owner nothing. With it, the file is refused by name: it uses version 1 and this
+    /// build reads version 2.
+    ///
+    /// <b>Why not the softer route.</b> Making the field nullable would let old files load and
+    /// would put `null` on one side of every comparison against a fresh snapshot - a difference
+    /// reported on 46 entries of 798 that nothing on the machine actually changed. A diff that
+    /// invents changes is worse than a file that says it is too old, because the first is the
+    /// promise this product is for.
     /// </summary>
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     /// <summary>
     /// Freezes a listing.

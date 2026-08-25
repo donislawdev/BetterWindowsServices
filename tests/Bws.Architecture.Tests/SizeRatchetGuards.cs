@@ -305,14 +305,14 @@ public sealed class SizeRatchetGuards
     /// 1251 characters with a line break in the middle. The second of those found a real fault in
     /// the query language the same afternoon, which is exactly what a specimen is for.
     ///
-    /// <b>The seam here is real and is deliberately not taken yet.</b> This file is a catalogue of
-    /// awkward shapes, and it is already sectioned by comment - names and accounts, start types,
-    /// dependencies, descriptions. Splitting it by section is available whenever it is worth doing;
-    /// what makes it wait is that every one of these specimens is reached through
-    /// <c>Specimens.All</c>, so the split is a partial class or a second list, and a second list is
-    /// how a specimen quietly stops being in the catalogue everything queries. Backlog 177.
+    /// <b>793 TO 714 ON 2026-08-25, on the seam this paragraph used to say was available and not
+    /// yet worth taking - backlog 177.</b> The per-user pair needed a line each to say which side
+    /// of its family it is on, the file stood on the ceiling, and its own section marker was the
+    /// cut. The warning that stood here was the part that mattered and was obeyed: the split is a
+    /// <b>partial class, not a second list</b>, because a second list is how a specimen quietly
+    /// stops being in the catalogue everything queries. <c>Specimens.All</c> is untouched.
     /// </summary>
-    private const int LongestTestFile = 793;
+    private const int LongestTestFile = 714;
 
     /// <summary>
     /// How many files may be long at all, where long is <see cref="Long"/>.

@@ -39,6 +39,7 @@ internal static class Entries
             + "If you turn off this service, you won't be able to print or see your printers."),
 
         EntryType = EntryType.OwnProcess,
+        PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),

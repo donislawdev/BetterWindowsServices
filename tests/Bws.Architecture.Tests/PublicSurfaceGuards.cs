@@ -122,6 +122,11 @@ public sealed class PublicSurfaceGuards
             "service display names captured from a localised Windows - the evidence that a "
             + "service name and a display name are two different things",
 
+        ["tests/Bws.Core.Tests/Fakes/Specimens.Processes.cs"] =
+            "the same captured display names, in the half of that catalogue the size ratchet "
+            + "moved out on 2026-08-25 - a per-user pair whose two display names differ only "
+            + "by the session suffix",
+
         ["tests/Bws.Core.Tests/QueryOverSpecimensTests.cs"] =
             "queries asked against those captured display names, including one that proves "
             + "matching ignores case outside ASCII too",

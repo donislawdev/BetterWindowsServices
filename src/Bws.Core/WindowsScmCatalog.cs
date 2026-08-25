@@ -335,6 +335,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
                     ServiceName: record.lpServiceName.ToString(),
                     DisplayName: record.lpDisplayName.ToString(),
                     EntryType: ManagerTerms.EntryType(status.dwServiceType),
+                    PerUserRole: ManagerTerms.PerUserRole(status.dwServiceType),
                     Status: ManagerTerms.Status(status.dwCurrentState),
                     ProcessId: status.dwProcessId));
             }
@@ -352,6 +353,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             ServiceName = enumerated.ServiceName,
             DisplayName = enumerated.DisplayName,
             EntryType = enumerated.EntryType,
+            PerUserRole = enumerated.PerUserRole,
             Status = enumerated.Status,
 
             // A stopped entry has no process. Zero is a value, "not running" is not,

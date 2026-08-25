@@ -35,6 +35,27 @@ internal static class QueryValueNames
         new QueryValueName("unknown", "unknown")
     ];
 
+    /// <summary>The spellings <c>peruser:</c> accepts.</summary>
+    internal static IReadOnlyList<QueryValueName> PerUser { get; } =
+    [
+        // "yes" is a group of the two real sides, the same shape as type:driver: somebody
+        // asking "is this session noise" does not care which side, and both are askable
+        // underneath for drilling in.
+        new QueryValueName("yes", "template", "instance"),
+
+        // NO RATHER THAN NONE, and the difference from sidtype:none is the reason.
+        //
+        // There, "none" is a value the manager reports about a service - it has no service
+        // SID. Here, not belonging to the per-user family is not a property an entry carries,
+        // it is the answer to a yes-or-no question about which family it is in. Offering both
+        // spellings would be two words for one answer, which is what a query language pays for
+        // twice: once in the parser and once in every person who has to guess which one works.
+        new QueryValueName("no", "none"),
+
+        new QueryValueName("template", "template"),
+        new QueryValueName("instance", "instance")
+    ];
+
     /// <summary>The spellings <c>status:</c> accepts.</summary>
     internal static IReadOnlyList<QueryValueName> Status { get; } =
     [
