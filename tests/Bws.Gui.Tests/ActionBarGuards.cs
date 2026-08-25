@@ -262,9 +262,17 @@ public sealed class ActionBarGuards
         Assert.Contains("Spooler", steps, StringComparison.Ordinal);
         Assert.Contains(Bws.Gui.Texts.Of("gui.cell.start.disabled"), steps, StringComparison.Ordinal);
 
-        // AND NO COMMAND TO PASTE, because the command line has no verb for this yet. A line here
-        // would be one that fails the moment somebody used it.
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.CommandLines));
+        // AND THE COMMAND TO PASTE, WHICH FOR ONE DAY WAS NOT THERE. What stood here asserted the
+        // absence - the window learned this verb before the command line had a word for it, so a
+        // line would have been one that failed the moment somebody used it - and the section
+        // disappeared rather than showing one. The command line learned the verb the same week and
+        // the section came back.
+        //
+        // Asserted as the whole string, because what somebody pastes is the whole string. The value
+        // on the end is the half that makes it a command rather than a fragment.
+        Assert.Equal(
+            "bws start-type Spooler disabled",
+            Assert.Single(WpfHost.On(() => window.PlanPanel.CommandLines.ToList())));
 
         WpfHost.On(window.Close);
     }

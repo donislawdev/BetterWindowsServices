@@ -144,8 +144,13 @@ public sealed class SizeRatchetGuards
     /// proves this guard can fail appends a line to whichever file is longest and expects red - it
     /// came back MISSED, which is the outcome that means a ceiling has slack in it. CommandLine.cs
     /// lost twenty lines that day to a seam, so the longest shipped file is what it is now.
+    ///
+    /// <b>528 THE SAME WEEK, SAME ENTRY, SAME WORD: MISSED.</b> The fourth write verb needed lines
+    /// in that file, so it began with a seam - CommandKind moved to OptionSurface.cs - leaving five
+    /// lines of slack. <b>THIS FILE THEN BECAME A LONG ONE ITSELF and the count below caught it in
+    /// the gate:</b> this note was twice the length. Prose about a ceiling is not exempt from it.
     /// </summary>
-    private const int LongestShippedFile = 533;
+    private const int LongestShippedFile = 528;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second

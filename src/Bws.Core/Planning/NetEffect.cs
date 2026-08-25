@@ -66,6 +66,19 @@ public static class NetEffect
     /// dependants down before the entry they depend on, so putting them back starts that entry
     /// first. Handing back the commands in the order they happened would hand back a sequence
     /// whose first line fails.
+    ///
+    /// <b>A WRITTEN START TYPE IS ASKED THE SAME TWO QUESTIONS AND ANSWERS THEM WITH A VALUE RATHER
+    /// THAN A DIRECTION.</b> Where it was before the first step that wrote it, where it is after the
+    /// last - equal means nothing to say, exactly as for an entry that ended where it began. What
+    /// makes it a different case is that direction is not enough: undoing a stop is a start and
+    /// undoing "set to disabled" is a value nobody can work out from the step itself, so it travels
+    /// on <see cref="PlanStep.From"/> from the moment the plan was built.
+    ///
+    /// <b>An entry whose previous type is not known, or is one this tool has no word for, gets NO
+    /// LINE.</b> That is the same decision <see cref="EquivalentCommand.For(BulkPlan)"/> makes about
+    /// a refused entry, for the same reason: there is no command that would put it back, so writing
+    /// one would hand somebody a line that fails. It is silence over a wrong way out, and a way out
+    /// whose first line fails is worse than admitting there is none.
     /// </summary>
     /// <param name="results">
     /// Every step that was carried out, in the order it happened. One run's worth, or every run of
@@ -79,6 +92,17 @@ public static class NetEffect
         var moves = new Dictionary<string, (StepOperation First, StepOperation Last, int When)>(
             StringComparer.OrdinalIgnoreCase);
 
+        // ITS OWN TALLY RATHER THAN A THIRD DIRECTION IN THE ONE ABOVE. A move is answered by
+        // asking whether the entry ended up running, which is a question with two answers. A
+        // setting is answered with a value, and folding the two into one dictionary would mean an
+        // entry that was both moved and reconfigured had to pick which of the two it was.
+        //
+        // Nothing builds such a run today - one ask travels over a whole selection, so every step
+        // in a run is the same kind - and the arithmetic is written so that if one ever does, the
+        // entry gets both lines instead of quietly losing one.
+        var settings = new Dictionary<string, (StartType? From, StartType? To, int When)>(
+            StringComparer.OrdinalIgnoreCase);
+
         var index = 0;
 
         foreach (var result in results)
@@ -90,20 +114,21 @@ public static class NetEffect
                 continue;
             }
 
-            // A WRITTEN START TYPE HAS NO WAY BACK HERE, AND THAT IS A GAP RATHER THAN A DECISION
-            // ABOUT ITS VALUE - said out loud because the section this feeds is called "to put this
-            // back". Undoing one needs the type the entry had BEFORE, and nothing in a result
-            // carries it: a step knows what it set, not what it replaced. Everything below is about
-            // an entry that moved, and this kind moves nothing.
-            //
-            // What it costs, exactly: after setting a start type the panel offers no way back and
-            // says nothing about one, rather than offering a wrong one. Backlog 229.
+            var name = result.Step.ServiceName;
+
             if (result.Step.Operation == StepOperation.SetStartType)
             {
+                // The FIRST from and the LAST to, which is the move arithmetic said in values -
+                // and it matters for the same reason. An entry set to manual and then to disabled
+                // inside one run has one way back, and it goes to where the run found it rather
+                // than to the halfway house it passed through.
+                settings[name] = settings.TryGetValue(name, out var written)
+                    ? (written.From, result.Step.To, at)
+                    : (result.Step.From, result.Step.To, at);
+
                 continue;
             }
 
-            var name = result.Step.ServiceName;
             var operation = result.Step.Operation;
 
             moves[name] = moves.TryGetValue(name, out var seen)
@@ -111,14 +136,32 @@ public static class NetEffect
                 : (operation, operation, at);
         }
 
-        return
-        [
-            .. moves
-                .Where(move => Before(move.Value.First) != After(move.Value.Last))
-                .OrderByDescending(move => move.Value.When)
-                .Select(move => new ReversalStep(move.Key, Undoing(move.Value.Last)))
-        ];
+        var back = moves
+            .Where(move => Before(move.Value.First) != After(move.Value.Last))
+            .Select(move => (
+                Step: new ReversalStep(move.Key, Undoing(move.Value.Last)),
+                move.Value.When))
+            .Concat(settings
+                .Where(written => Nameable(written.Value.From) && written.Value.From != written.Value.To)
+                .Select(written => (
+                    Step: new ReversalStep(written.Key, StepOperation.SetStartType, written.Value.From),
+                    written.Value.When)));
+
+        // Sorted once over both, rather than each list sorted and then joined. The order is the
+        // reverse of the RUN, and two lists appended would put every setting after every move
+        // whatever the machine actually did.
+        return [.. back.OrderByDescending(one => one.When).Select(one => one.Step)];
     }
+
+    /// <summary>
+    /// Whether a start type is one this tool could hand somebody a line for.
+    ///
+    /// <b>Asked through the word table rather than by listing the three types here</b>, because the
+    /// question this is really asking is "could somebody type it". A list of types would be a
+    /// second answer to that, and the day the command line learns a fourth word this would still be
+    /// refusing it.
+    /// </summary>
+    private static bool Nameable(StartType? type) => StartTypeWords.Of(type) is not null;
 
     /// <summary>
     /// Whether an entry was running before the first step that moved it. A stop found it running,

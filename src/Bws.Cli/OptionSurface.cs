@@ -1,6 +1,67 @@
 namespace Bws.Cli;
 
 /// <summary>
+/// What the person asked the tool to do.
+///
+/// <b>HERE SINCE 2026-08-25, AND THE SIZE RATCHET IS WHAT ASKED.</b> It lived in CommandLine.cs,
+/// which was the longest shipped file in the product at exactly its ceiling - so the fourth write
+/// verb could not be added anywhere in that file until something came out of it. The seam was found
+/// rather than invented: everything left there reads what somebody typed, and the list of commands
+/// belongs beside <see cref="OptionSurface.Spelling"/> and <see cref="OptionSurface.Verbs"/>, which
+/// are the two other places that answer "what is this command called".
+///
+/// <b>tools/audit/audit.ps1 reads this enumeration out of the source</b> to check that every command
+/// the code knows has a column in the switch table of docs/02, and it was pointed at the old file.
+/// A seam that moves a shape a script matches on is the fault that script has already paid for once,
+/// so it moved in the same change.
+/// </summary>
+internal enum CommandKind
+{
+    /// <summary>Nothing recognisable. Print how to use it.</summary>
+    None,
+    List,
+    Stop,
+    Start,
+    Restart,
+
+    /// <summary>
+    /// Write what the manager does with an entry at the next boot.
+    ///
+    /// <b>Spelled with a hyphen - <c>bws start-type NAME manual</c> - which no other verb here is.</b>
+    /// Owner's decision, 2026-08-25, with <c>bws config NAME --start-type manual</c> as the
+    /// alternative on the table. It follows the field name the glossary binds, the way
+    /// <c>--follow-network</c> follows its own, and it is the first verb in this tool that takes a
+    /// VALUE as well as a name.
+    ///
+    /// <b>The price is that it sits one character from the verb "start".</b> Somebody typing
+    /// <c>bws start type Spooler manual</c> is asking to start a service called type, and gets code
+    /// 2 with a sentence about it rather than anything happening - which is the whole of what
+    /// protects that mistake.
+    /// </summary>
+    SetStartType,
+
+    /// <summary>
+    /// Freeze the state of every entry into a file.
+    ///
+    /// Spelled as two words on the command line - <c>bws snapshot create</c> - because `E1`
+    /// writes it that way and because more will live under that noun: diff and restore are
+    /// both promised there. One word now would have to become two later, and a verb that
+    /// changes spelling after release costs somebody a runbook.
+    /// </summary>
+    SnapshotCreate,
+
+    /// <summary>
+    /// Say what changed between two snapshots.
+    ///
+    /// Spelled the way `E1` writes it. It was nearly spelled <c>bws diff</c> instead, on the
+    /// strength of a question that offered the choice without mentioning that the
+    /// specification had already made it - and the OptionSurface.Surface of the command line is a frozen
+    /// contract, so that would have been a breaking change bought by accident.
+    /// </summary>
+    SnapshotDiff
+}
+
+/// <summary>
 /// Which option belongs to which verb, and how each is spelled on the command line.
 ///
 /// Moved out of CommandLine on 2026-08-02, when adding help and version pushed that file to 639
@@ -45,7 +106,7 @@ internal static class OptionSurface
         // anything, so nothing else has an existing file to be asked about.
         ("--force", [CommandKind.SnapshotCreate]),
 
-        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        ("--json", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -62,9 +123,9 @@ internal static class OptionSurface
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        ("--timing", [CommandKind.List, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
 
-        ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart]),
+        ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType]),
 
         // Not on start, and this one was missed the first time round. Starting is not the
         // mirror of stopping: the manager brings up whatever the entry needs by itself, and
@@ -74,6 +135,12 @@ internal static class OptionSurface
         // hint that the rest of their sentence was dropped.
         ("--dependents", [CommandKind.Stop, CommandKind.Restart]),
 
+        // NOT ON start-type, AND THAT IS THE SAME SENTENCE AS --dependents ARRIVING AT IT FROM THE
+        // OTHER SIDE. Both of these are about a service MOVING: one asks what may be taken down
+        // with it, the other asks how long to watch it arrive. Writing a start type moves nothing -
+        // the manager answers when the configuration is written and there is no state to wait for -
+        // so either switch here would be a word that does nothing, which is the silence this table
+        // was built to end.
         ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart])
     ];
 
@@ -120,6 +187,12 @@ internal static class OptionSurface
     {
         CommandKind.SnapshotCreate => "snapshot create",
         CommandKind.SnapshotDiff => "snapshot diff",
+
+        // Spelled rather than lower-cased for the same reason as the two above: the name of the
+        // value reads "setstarttype", which is not a thing anybody can type - and it would go out
+        // in the sentence telling somebody where a switch DOES work, so the answer to "then where"
+        // would be a word that does not exist.
+        CommandKind.SetStartType => "start-type",
         _ => kind.ToString().ToLowerInvariant()
     };
 
@@ -135,7 +208,13 @@ internal static class OptionSurface
     ///
     /// The order carries meaning: a suggestion for a word that is equally close to two commands
     /// offers the first, which is the one somebody is likelier to have read.
+    ///
+    /// <b>start-type sits AFTER start, and the order is doing work here rather than reading well.</b>
+    /// A mistyped word equally close to both is offered the earlier one, and "start" is the verb
+    /// somebody is far likelier to have meant - it is three words shorter and it is what people
+    /// come to this tool for.
     /// </summary>
-    internal static IReadOnlyList<string> Verbs => ["list", "stop", "start", "restart", "snapshot"];
+    internal static IReadOnlyList<string> Verbs =>
+        ["list", "stop", "start", "restart", "start-type", "snapshot"];
 
 }

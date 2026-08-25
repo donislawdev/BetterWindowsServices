@@ -50,7 +50,27 @@ public static class EquivalentCommand
     /// <summary>What somebody would type to ask for this, on one line.</summary>
     public static string For(ServiceAction action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         var command = $"{Tool} {Verb(action.Kind)} {action.ServiceName}";
+
+        if (action.Kind == ActionKind.SetStartType)
+        {
+            // THE VALUE IS PART OF THE ASK RATHER THAN A SWITCH, and this is the first verb here
+            // that has one. A start type change is only a whole sentence with the type in it -
+            // "bws start-type Spooler" is not a shorter way of saying this, it is a line the tool
+            // refuses. The word comes from the same table the command line reads it back with, so
+            // the two cannot drift apart.
+            var word = StartTypeWords.Of(action.To);
+
+            return word is null
+                // Unreachable through For(BulkPlan), which filters on Renders. A caller arriving
+                // here directly is one that skipped asking, and a start type with no word is
+                // exactly the ask this tool declines to carry out - so a line naming it would be
+                // worse than no line.
+                ? throw new ArgumentOutOfRangeException(nameof(action), action.To, NoWordForThatType)
+                : $"{command} {word}";
+        }
 
         // ONLY WHERE THE TOOL TAKES IT, AND LEAVING THAT OUT WAS A REAL FAULT CAUGHT BY WRITING THE
         // BRIDGE BEFORE TRUSTING THE CODE. The command line accepts this switch on a stop and a
@@ -62,9 +82,38 @@ public static class EquivalentCommand
         // Its own comment in OptionSurface says the same omission was made one layer down and missed
         // the first time round. Rule 7: the second appearance of a problem is a signal, and here the
         // signal is that this switch is the only one whose verbs are not all three.
-        return action.IncludeDependents && action.Kind != ActionKind.Start
+        //
+        // NAMED VERBS RATHER THAN "ANYTHING BUT A START" SINCE 2026-08-25, AND THE FOURTH KIND IS
+        // WHY. The condition here read "not a start" and would have rendered --dependents onto a
+        // start type change - a switch that verb does not take, on an ask where the cascade means
+        // nothing, carried in from a selection whose tick box belongs to a different question. That
+        // is the same shape as the nine two-way branches this file's Unhandled constant describes:
+        // a condition phrased as everything-except answers for kinds nobody has written yet.
+        return action.IncludeDependents && action.Kind is ActionKind.Stop or ActionKind.Restart
             ? $"{command} {Dependents}"
             : command;
+    }
+
+    /// <summary>
+    /// Whether there is a line to hand somebody for this ask at all.
+    ///
+    /// <b>A question about the whole ask, where <see cref="HasAVerb"/> is a question about its
+    /// kind</b> - and the two came apart the day a verb arrived carrying a value. The command line
+    /// has a start type verb, so <see cref="HasAVerb"/> says yes for every one of them, and yet
+    /// three of the six start types have no word: Boot and System belong to entries this tool will
+    /// not operate on, and Unknown is what a reading says when the manager did not answer.
+    ///
+    /// Nothing in this product can build such an ask today - the window offers three types and
+    /// WindowsScmControl refuses the other three at the moment of writing. It is asked anyway,
+    /// because the alternative is a line that reads as a command and is declined on paste, and the
+    /// cost of asking is one call.
+    /// </summary>
+    public static bool Renders(ServiceAction action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        return HasAVerb(action.Kind)
+            && (action.Kind != ActionKind.SetStartType || StartTypeWords.Of(action.To) is not null);
     }
 
     /// <summary>
@@ -77,23 +126,25 @@ public static class EquivalentCommand
     /// either, so writing one would hand somebody a line that fails.
     /// </summary>
     public static IReadOnlyList<string> For(BulkPlan plan) =>
-        [.. plan.Plans.Where(one => HasAVerb(one.Action.Kind)).Select(one => For(one.Action))];
+        [.. plan.Plans.Where(one => Renders(one.Action)).Select(one => For(one.Action))];
 
     /// <summary>
     /// Whether the command line has a verb for this ask yet.
     ///
-    /// <b>THREE OF THE FOUR, SINCE 2026-08-25, AND THE FOURTH IS A DECISION RATHER THAN AN
-    /// OVERSIGHT.</b> The window can set a start type and the command line cannot - the owner chose
-    /// that order on 2026-08-25, the same way the plan preview arrived in the window first. So there
-    /// is no line to hand anybody for that ask, and this class already refuses to invent one: the
-    /// comment above about --dependents on a start is the same rule, met a second time.
+    /// <b>ALL FOUR SINCE 2026-08-25, AND FOR ONE DAY IT WAS THREE.</b> The window learned to set a
+    /// start type before the command line had a word for it - the owner chose that order, the same
+    /// way the plan preview arrived in the window first - and what stood here recorded the cost: the
+    /// panel showed no equivalent command beside a start type change, and its section disappeared
+    /// rather than showing a line that fails on paste. The command line learned the verb the same
+    /// week, so the section is back.
     ///
-    /// <b>What it costs, said plainly:</b> the panel shows no equivalent command beside a start type
-    /// change, and its section disappears rather than showing a line that fails on paste. It comes
-    /// back the day the command line learns the verb.
+    /// <b>Kept as a question of its own rather than folded away</b>, because the day a fifth ask
+    /// arrives it will be three of five again, and the answer has to be somewhere a caller can ask
+    /// for it. <see cref="Renders"/> is the wider question - a verb can exist and an ask still have
+    /// no line, which is what a start type nobody can name does.
     /// </summary>
     public static bool HasAVerb(ActionKind kind) =>
-        kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart;
+        kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart or ActionKind.SetStartType;
 
     /// <summary>
     /// What somebody would type to put one entry back where a run found it.
@@ -103,8 +154,26 @@ public static class EquivalentCommand
     /// be typed, worked out as a net effect per entry rather than as a reversal of steps, and giving
     /// it the shape of a plan would invite somebody to run it. Rendering it here, through the same
     /// door as the ask, is what makes it text rather than machinery.
+    ///
+    /// <b>A start type carries its value here too, and it is the type the entry had BEFORE.</b>
+    /// <see cref="NetEffect"/> is what works that out, and it is the only thing in this product
+    /// that can: a step knows what it set, a result knows what came of it, and neither knows what
+    /// was replaced. A line without the word would be the verb refusing on paste, which is the one
+    /// failure this whole class is arranged against.
     /// </summary>
-    public static string For(ReversalStep step) => $"{Tool} {Verb(step.Operation)} {step.ServiceName}";
+    public static string For(ReversalStep step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+
+        var command = $"{Tool} {Verb(step.Operation)} {step.ServiceName}";
+        var word = StartTypeWords.Of(step.To);
+
+        // Asked as "is there a word" rather than "is this that operation", so that the two answers
+        // cannot disagree. NetEffect refuses to build a start type step without a type, so the two
+        // conditions mean the same thing today - and if they ever stop meaning the same thing, this
+        // one is the one that keeps an unnameable type out of a line that names it.
+        return word is null ? command : $"{command} {word}";
+    }
 
     /// <summary>
     /// The verb, spelled out rather than derived from the name of the value.
@@ -118,26 +187,50 @@ public static class EquivalentCommand
     /// fourth kind "will not compile until somebody decides what to call it" - a discard arm
     /// compiles perfectly, and CS8524 means it cannot be left out. What it does instead is refuse
     /// at the point of use, and <see cref="HasAVerb"/> is what keeps callers away from it.
+    ///
+    /// <b>THE FOURTH WORD IS HYPHENATED AND IT IS THE FIRST ONE HERE THAT IS.</b> Owner's decision,
+    /// 2026-08-25, with "bws config NAME --start-type manual" as the alternative on the table. It
+    /// follows the field name the glossary binds - startType - the way --follow-network follows
+    /// its own, and the price is that it sits one character away from the verb "start": somebody
+    /// who types "bws start type Spooler manual" asks to start a service called type. That ends
+    /// with code 2 and a sentence rather than anything happening, and the sentence is the whole of
+    /// what protects it.
     /// </summary>
     private static string Verb(ActionKind kind) => kind switch
     {
         ActionKind.Stop => "stop",
         ActionKind.Start => "start",
         ActionKind.Restart => "restart",
+        ActionKind.SetStartType => "start-type",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No command verb for this action.")
     };
 
     /// <summary>
-    /// The same three words seen from one step rather than from an ask. There is no verb for a
-    /// restart here, because a step never restarts anything - it stops or it starts.
+    /// The same words seen from one step rather than from an ask. There is no verb for a restart
+    /// here, because a step never restarts anything - it stops, it starts, or it writes a setting.
+    ///
+    /// <b>Three of the four asks, and the missing one is restart rather than an oversight.</b> The
+    /// asks and the steps are different lists on purpose, and this is the place where that shows.
     /// </summary>
     private static string Verb(StepOperation operation) => operation switch
     {
         StepOperation.Stop => "stop",
         StepOperation.Start => "start",
+        StepOperation.SetStartType => "start-type",
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Unhandled)
     };
+
+    /// <summary>
+    /// What a start type with no command line word says when somebody tries to render it.
+    ///
+    /// A diagnostic rather than anything a person reads on purpose, like <see cref="Unhandled"/>
+    /// beside it. Reaching it means an ask was built for a type this tool will not write.
+    /// </summary>
+    private const string NoWordForThatType =
+        "There is no command line word for this start type, so there is no line to hand anybody. "
+        + "Boot and System belong to entries this tool does not operate on, and Unknown is what a "
+        + "reading says when the manager did not answer.";
 
     /// <summary>
     /// What every switch over a step operation says when it meets one it does not know.

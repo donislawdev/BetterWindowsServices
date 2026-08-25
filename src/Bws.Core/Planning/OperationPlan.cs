@@ -80,12 +80,30 @@ public sealed record ServiceAction(
     ActionKind Kind, string ServiceName, bool IncludeDependents = false, StartType? To = null);
 
 /// <summary>One thing that will happen, to one entry.</summary>
+/// <param name="To">
+/// The start type this step writes, and nothing at all for a stop or a start.
+/// </param>
+/// <param name="From">
+/// The start type the entry had when the plan was built, for a step that writes one.
+///
+/// <b>READ AT PLAN TIME BECAUSE THERE IS NOWHERE ELSE TO READ IT, and its absence is what kept a
+/// start type change from having a way back until 2026-08-25.</b> A step knows what it set. A
+/// result knows what came of it. Neither knows what was replaced, so the arithmetic in
+/// <see cref="NetEffect"/> had no before to compare against and skipped these steps outright.
+///
+/// <b>Null is a real answer and not a missing one.</b> The manager can refuse a configuration
+/// read - measured on a real machine under a restricted token, 3 refusals over 810 entries - and
+/// an entry whose start type could not be read has no before that anybody knows. So does an entry
+/// whose previous type this tool has no word for. Both come through as null, and what they buy is
+/// silence rather than a wrong way back.
+/// </param>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
     StepOperation Operation,
     StepReason Reason,
-    StartType? To = null);
+    StartType? To = null,
+    StartType? From = null);
 
 /// <summary>Kinds of thing worth saying before somebody presses the button.</summary>
 public enum PlanWarningKind

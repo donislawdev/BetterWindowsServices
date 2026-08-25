@@ -178,8 +178,10 @@
   "gui.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
 
   "gui.plan.problems": "Not included, and why:",
-  "gui.plan.problem.unknownService": "There is no service called {0} any more.",
-  "gui.plan.problem.notOperable": "{0} is a driver. This tool shows drivers but does not start or stop them.",
+  "gui.plan.problem.unknownService.one": "There is no service called {0} any more.",
+  "gui.plan.problem.unknownService.many": "{0} of these are not services any more: {1}",
+  "gui.plan.problem.notOperable.one": "{0} is a driver. This tool shows drivers but does not start or stop them.",
+  "gui.plan.problem.notOperable.many": "{0} of these are drivers. This tool shows drivers but does not start or stop them: {1}",
   "gui.plan.problem.cascadeNotOperable.one": "Getting to {0} would mean stopping this driver first: {1}. This tool does not stop drivers.",
   "gui.plan.problem.cascadeNotOperable.many": "Getting to {0} would mean stopping these drivers first: {1}. This tool does not stop drivers.",
   "gui.plan.problem.cannotComeBack.one": "Restarting {0} would take this down and could not start it again, because it is disabled: {1}",

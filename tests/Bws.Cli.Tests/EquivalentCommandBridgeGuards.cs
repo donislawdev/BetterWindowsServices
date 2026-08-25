@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Cli.Tests;
@@ -26,7 +27,20 @@ namespace Bws.Cli.Tests;
 public sealed class EquivalentCommandBridgeGuards
 {
     private static readonly CommandKind[] WriteVerbs =
-        [CommandKind.Stop, CommandKind.Start, CommandKind.Restart];
+        [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType];
+
+    /// <summary>
+    /// Every ask the core has a verb for, with the value the fourth one needs.
+    ///
+    /// <b>Built from the enumeration rather than listed</b>, so a fifth ask arrives here without
+    /// anybody remembering to add it - and arrives loudly, because a kind with no arm below fails
+    /// to render at all.
+    /// </summary>
+    private static ServiceAction Asking(ActionKind kind, bool withDependents = false) =>
+        new(kind, "Spooler", withDependents, kind == ActionKind.SetStartType ? StartType.Manual : null);
+
+    private static ActionKind[] Rendered =>
+        [.. Enum.GetValues<ActionKind>().Where(EquivalentCommand.HasAVerb)];
 
     /// <summary>
     /// Every switch the core writes, on every verb it writes it with, is one this tool takes there.
@@ -40,10 +54,16 @@ public sealed class EquivalentCommandBridgeGuards
     {
         var seen = 0;
 
-        foreach (var kind in new[] { ActionKind.Stop, ActionKind.Start, ActionKind.Restart })
+        foreach (var kind in Rendered)
         {
             // Asked for with the cascade, because that is the only way a switch appears at all today.
-            var rendered = EquivalentCommand.For(new ServiceAction(kind, "Spooler", IncludeDependents: true));
+            //
+            // AND IT IS THE ASK THAT CAUGHT THE SECOND FAULT THIS GUARD HAS FOUND. A selection
+            // carries one cascade flag for every entry in it, so a start type change built from a
+            // ticked box arrives here carrying one - and the core rendered --dependents onto it
+            // until 2026-08-25, on a verb that refuses the switch and for an ask where nothing
+            // cascades at all.
+            var rendered = EquivalentCommand.For(Asking(kind, withDependents: true));
             var verb = Verb(kind);
 
             foreach (var option in rendered.Split(' ').Where(word => word.StartsWith("--", StringComparison.Ordinal)))
@@ -76,24 +96,55 @@ public sealed class EquivalentCommandBridgeGuards
     ///
     /// Cheap, and it covers the half the switch check cannot: a renamed verb would render a whole
     /// command that does not exist, switches and all.
+    ///
+    /// <b>THROUGH THE READER RATHER THAN THROUGH THE NAME OF THE ENUMERATION VALUE, SINCE
+    /// 2026-08-25.</b> It used to ask Enum.TryParse whether the rendered word matched a member of
+    /// CommandKind, which worked for exactly as long as every verb was its member name lower-cased.
+    /// The fourth is written "start-type" and its member is SetStartType, so the old check would
+    /// have gone red on a verb that is perfectly good - and, worse, it would have stayed green for
+    /// a member whose spelling nobody had taught the parser. Arguments.TryVerb is the thing that
+    /// really reads what somebody types, so asking it is the stronger question as well as the one
+    /// that survives a hyphen.
     /// </summary>
     [Fact]
     public void Every_verb_the_core_renders_is_one_this_tool_has()
     {
-        foreach (var kind in new[] { ActionKind.Stop, ActionKind.Start, ActionKind.Restart })
+        foreach (var kind in Rendered)
         {
-            var word = EquivalentCommand.For(new ServiceAction(kind, "Spooler")).Split(' ')[1];
+            var word = EquivalentCommand.For(Asking(kind)).Split(' ')[1];
 
             Assert.True(
-                Enum.TryParse<CommandKind>(word, ignoreCase: true, out var parsed) && WriteVerbs.Contains(parsed),
+                Arguments.TryVerb(word, out var parsed) && WriteVerbs.Contains(parsed),
                 $"The core renders the verb '{word}' and this tool has no write command by that name.");
         }
+    }
+
+    /// <summary>
+    /// The value the fourth verb needs is one this tool reads back as the same start type.
+    ///
+    /// <b>The half neither check above can see.</b> A verb can exist and a switch can belong to it
+    /// and the line can still fail on paste, because this verb takes a word that is not a switch and
+    /// not a name. The core writes it and the command line reads it, and a round trip through both
+    /// is the only thing that says they agree.
+    /// </summary>
+    [Theory]
+    [InlineData(StartType.Automatic)]
+    [InlineData(StartType.Manual)]
+    [InlineData(StartType.Disabled)]
+    public void The_start_type_the_core_writes_is_one_this_tool_reads_back(StartType type)
+    {
+        var word = EquivalentCommand
+            .For(new ServiceAction(ActionKind.SetStartType, "Spooler", To: type))
+            .Split(' ')[3];
+
+        Assert.Equal(type, WriteCommands.Named(word));
     }
 
     private static CommandKind Verb(ActionKind kind) => kind switch
     {
         ActionKind.Stop => CommandKind.Stop,
         ActionKind.Start => CommandKind.Start,
+        ActionKind.SetStartType => CommandKind.SetStartType,
         _ => CommandKind.Restart
     };
 }

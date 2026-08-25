@@ -12,7 +12,22 @@ namespace Bws.Cli;
 /// may be reworded, the kind is for a script deciding whether to go ahead, and a script
 /// that had to match on English prose would break the first time the wording improved.
 /// </summary>
-internal sealed record PlanStepJson(string ServiceName, string DisplayName, string Operation, string Reason);
+/// <param name="StartType">
+/// The type a step of that kind writes, and null for every other step.
+///
+/// <b>ADDED 2026-08-25, THE DAY THE COMMAND LINE LEARNED THE VERB, AND docs/02 SAID IT WOULD BE.</b>
+/// The kinds of step grew a fourth on that day and it could not reach this document, because the
+/// only interface that could ask for one was the window. A verb here means a plan can carry one, and
+/// a step reading only "setStartType" would leave out the whole of what it does.
+///
+/// <b>Written as null rather than left out, like <see cref="StepResultJson.SkippedBecause"/> beside
+/// it.</b> A reader that has to tell "no start type is involved" from "the field is missing" is a
+/// reader who will one day guess, and this document is what a change process attaches to a ticket.
+/// Every step gains the field and three quarters of them carry null - which is the shape this file
+/// already uses everywhere else.
+/// </param>
+internal sealed record PlanStepJson(
+    string ServiceName, string DisplayName, string Operation, string Reason, string? StartType);
 
 internal sealed record PlanWarningJson(string Kind, string ServiceName, IReadOnlyList<string> Related, string Message);
 
@@ -29,6 +44,13 @@ internal sealed record PlanWarningJson(string Kind, string ServiceName, IReadOnl
 /// </param>
 /// <param name="Status">Where the entry was left, in the same words the listing uses.</param>
 /// <param name="Milliseconds">How long the step took, waiting included.</param>
+/// <param name="StartType">
+/// The type this step wrote, and null for every other step.
+///
+/// Repeated from the step for the reason everything else here is repeated from it: a result sits
+/// beside its step and has to be readable on its own. A run of four results where one of them set
+/// something would otherwise say what happened without saying what was asked.
+/// </param>
 internal sealed record StepResultJson(
     string ServiceName,
     string Operation,
@@ -38,7 +60,8 @@ internal sealed record StepResultJson(
     string Status,
     int ErrorCode,
     string? Error,
-    long Milliseconds);
+    long Milliseconds,
+    string? StartType);
 
 internal sealed record PlanJsonShape
 {
@@ -94,7 +117,8 @@ internal static class PlanJson
                     step.ServiceName,
                     step.DisplayName,
                     Camel(step.Operation.ToString()),
-                    Camel(step.Reason.ToString())))
+                    Camel(step.Reason.ToString()),
+                    Written(step)))
             ],
 
             Warnings =
@@ -117,7 +141,8 @@ internal static class PlanJson
                     result.Status.ToString(),
                     result.ErrorCode,
                     result.Error,
-                    result.Milliseconds))],
+                    result.Milliseconds,
+                    Written(result.Step)))],
 
             Completed = run?.Completed,
             Cancelled = run?.Cancelled
@@ -127,4 +152,19 @@ internal static class PlanJson
     }
 
     private static string Camel(string name) => char.ToLowerInvariant(name[0]) + name[1..];
+
+    /// <summary>
+    /// The start type a step writes, in the words the machine readable listing already uses.
+    ///
+    /// <b>The listing's spelling rather than the command line's, and that is deliberate.</b> A
+    /// script reading this document is the same script that reads <c>bws list --json</c>, where the
+    /// field bound by the glossary as <c>startType</c> carries Automatic, Manual and Disabled. The
+    /// command line accepts lower case words, which is a different surface for a different reader,
+    /// and a document that answered "manual" where the listing says "Manual" would make somebody
+    /// write a comparison that works on one of the two.
+    ///
+    /// Asked of <see cref="PlanStep.To"/> rather than of the operation, so a step of that kind
+    /// arriving without a type says null instead of failing here.
+    /// </summary>
+    private static string? Written(PlanStep step) => step.To?.ToString();
 }

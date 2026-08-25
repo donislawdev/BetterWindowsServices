@@ -3,37 +3,6 @@ using Bws.Core.Planning;
 
 namespace Bws.Cli;
 
-/// <summary>What the person asked the tool to do.</summary>
-internal enum CommandKind
-{
-    /// <summary>Nothing recognisable. Print how to use it.</summary>
-    None,
-    List,
-    Stop,
-    Start,
-    Restart,
-
-    /// <summary>
-    /// Freeze the state of every entry into a file.
-    ///
-    /// Spelled as two words on the command line - <c>bws snapshot create</c> - because `E1`
-    /// writes it that way and because more will live under that noun: diff and restore are
-    /// both promised there. One word now would have to become two later, and a verb that
-    /// changes spelling after release costs somebody a runbook.
-    /// </summary>
-    SnapshotCreate,
-
-    /// <summary>
-    /// Say what changed between two snapshots.
-    ///
-    /// Spelled the way `E1` writes it. It was nearly spelled <c>bws diff</c> instead, on the
-    /// strength of a question that offered the choice without mentioning that the
-    /// specification had already made it - and the OptionSurface.Surface of the command line is a frozen
-    /// contract, so that would have been a breaking change bought by accident.
-    /// </summary>
-    SnapshotDiff
-}
-
 /// <summary>
 /// What the person asked for on the command line.
 ///
@@ -50,6 +19,17 @@ internal sealed record CommandLine
 
     /// <summary>The entry a write command is about. Empty for <see cref="CommandKind.List"/>.</summary>
     internal string ServiceName { get; private init; } = string.Empty;
+
+    /// <summary>
+    /// The start type somebody named, as they wrote it. Empty when they named none.
+    ///
+    /// <b>The word rather than the value, and it is kept that way all the way to the refusal.</b>
+    /// A word that names no start type has to appear in the sentence that says so - "manuel is not
+    /// a start type" is an answer, and "that is not a start type" sends somebody back to look at a
+    /// line they have already read twice. Reading it into a value here would throw away the only
+    /// half of it worth saying.
+    /// </summary>
+    internal string StartTypeWord { get; private init; } = string.Empty;
 
     internal bool Json { get; private init; }
 
@@ -266,6 +246,7 @@ internal sealed record CommandLine
     {
         var kind = CommandKind.None;
         var serviceName = string.Empty;
+        var startTypeWord = string.Empty;
         var json = false;
         var timing = false;
         var dryRun = false;
@@ -388,9 +369,22 @@ internal sealed record CommandLine
                 // After "list" there is no such word at all. Taking one and ignoring it
                 // would mean "bws list Spooler" quietly printed the whole machine, which is
                 // the silent kind of wrong this project spends most of its rules on.
-                if (kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart && serviceName.Length == 0)
+                if (WriteCommands.Writes(kind) && serviceName.Length == 0)
                 {
                     serviceName = argument;
+                    continue;
+                }
+
+                // AND THE SECOND ONE IS THE START TYPE, ON THE ONE VERB THAT TAKES A VALUE. Kept as
+                // a bare word rather than made a switch, because it is not optional - "bws
+                // start-type Spooler" is not a shorter way of asking the same thing, and a switch
+                // is a shape people read as one that can be left off.
+                //
+                // Still a mistake on every other write verb, where it falls through to the rejected
+                // words below exactly as it did before this verb existed.
+                if (WriteCommands.NeedsAStartType(kind) && startTypeWord.Length == 0)
+                {
+                    startTypeWord = argument;
                     continue;
                 }
 
@@ -485,6 +479,7 @@ internal sealed record CommandLine
         {
             Kind = kind,
             ServiceName = serviceName,
+            StartTypeWord = startTypeWord,
             Json = json,
             Timing = timing,
             DryRun = dryRun,

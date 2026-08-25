@@ -230,9 +230,13 @@ public sealed partial class Planned : Observable
     /// so the panel has to show what will happen AND what will not. Quietly dropping them would make
     /// a selection of twenty with three refused look exactly like a selection of twenty.
     /// </summary>
+    /// <b>Refusals that say the same thing are gathered into one sentence and a count</b>, which is
+    /// the whole of what changed here on 2026-08-25 - the list itself is unchanged, and so is the
+    /// decision that put it on screen. How the gathering works and what it deliberately does not
+    /// fold together is beside the code that does it.
     public IReadOnlyList<string> Problems => _plan is not { } plan
         ? []
-        : [.. plan.Problems.Select(PlanWords.Describe)];
+        : PlanWords.Describe(plan.Problems);
 
     /// <summary>
     /// The same thing from a terminal, one line per entry. `E5`.

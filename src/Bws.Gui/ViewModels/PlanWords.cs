@@ -106,9 +106,14 @@ internal static class PlanWords
     /// </summary>
     internal static string Describe(PlanProblem problem) => problem.Kind switch
     {
-        PlanProblemKind.UnknownService => Texts.Of("gui.plan.problem.unknownService", problem.ServiceName),
+        // SPELLED .one SINCE 2026-08-25, WHEN THESE TWO GAINED A PLURAL. Both used to be the only
+        // sentence their kind had, so neither carried a suffix - and a lone .many beside a bare key
+        // is the shape the plural guard is written to refuse, because a missing half renders on
+        // screen as its own key and nothing else in this project reports that.
+        PlanProblemKind.UnknownService =>
+            Texts.Of("gui.plan.problem.unknownService.one", problem.ServiceName),
 
-        PlanProblemKind.NotOperable => Texts.Of("gui.plan.problem.notOperable", problem.ServiceName),
+        PlanProblemKind.NotOperable => Texts.Of("gui.plan.problem.notOperable.one", problem.ServiceName),
 
         PlanProblemKind.CascadeNotOperable => problem.Related.Count == 1
             ? Texts.Of("gui.plan.problem.cascadeNotOperable.one", problem.ServiceName, Listed(problem.Related))
@@ -120,6 +125,89 @@ internal static class PlanWords
     };
 
     internal static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);
+
+    /// <summary>
+    /// Every refusal in a plan as a person reads them, with the ones that say the same thing
+    /// gathered into one sentence and a count.
+    ///
+    /// <b>SELECTING FOUR HUNDRED DRIVERS USED TO PRODUCE FOUR HUNDRED SENTENCES DIFFERING ONLY BY A
+    /// NAME, and it is a fault the scope bar created.</b> A refusal belongs to its own entry and the
+    /// rest of the selection carries on - the owner's decision of 2026-08-18, and the right one -
+    /// but while drivers were hidden behind a query, picking them by the hundred was not something
+    /// anybody could do by accident. Backlog 217.
+    ///
+    /// <b>Only the kinds whose sentence is a name and one fixed reason.</b> A cascade refusal and an
+    /// entry that could not come back both carry a list of OTHER entries, so two of them are two
+    /// different facts however alike they read. Folding those together would take away the part that
+    /// says what exactly was refused, which is rule 8 of the untouchable list.
+    ///
+    /// <b>THE NAMES ARE ALL STILL THERE, in one sentence rather than in four hundred.</b> The
+    /// complaint is the reason repeated four hundred times, not the names - and a count with the
+    /// names after it is the shape this panel already uses for the entries nobody picked. A ceiling
+    /// with "and 400 more" behind it was the other candidate and is not built: it hides part of an
+    /// answer to make a screen tidier, and the screen belongs to somebody about to change a machine.
+    ///
+    /// The order is where each group first appeared, so the panel still reads in the order somebody
+    /// picked things rather than in an order this method invented.
+    /// </summary>
+    internal static IReadOnlyList<string> Describe(IReadOnlyList<PlanProblem> problems)
+    {
+        ArgumentNullException.ThrowIfNull(problems);
+
+        return
+        [
+            .. problems
+                .Select((problem, at) => (problem, at))
+                // The kinds that gather share a key, and every other refusal gets one of its own so
+                // it comes out untouched. The prefix is what keeps a position from ever colliding
+                // with the name of a kind.
+                .GroupBy(one => SaysOnlyAName(one.problem.Kind)
+                    ? one.problem.Kind.ToString()
+                    : $"on its own {one.at}")
+                .OrderBy(group => group.Min(one => one.at))
+                .Select(group => group.Count() == 1
+                    ? Describe(group.First().problem)
+                    : Gathered(group.First().problem.Kind, [.. group.Select(one => one.problem.ServiceName)]))
+        ];
+    }
+
+    /// <summary>
+    /// Whether every refusal of this kind says a name and then the same thing.
+    ///
+    /// <b>Named as a question rather than read off the presence of a Related list</b>, because those
+    /// two are not the same question and would drift the day a kind carries a list it does not put
+    /// in its sentence.
+    /// </summary>
+    private static bool SaysOnlyAName(PlanProblemKind kind) =>
+        kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable;
+
+    /// <summary>
+    /// One sentence for a group of refusals that all say the same thing.
+    ///
+    /// <b>Keys written out rather than built from the name of the kind</b>, and two guards asked for
+    /// it in the same run: a key assembled at run time reaches no screen that a source scan can see,
+    /// so the text guard reports it as a string with no audience - which is the same blindness that
+    /// would hide a key nobody ever wrote.
+    ///
+    /// <b>The discard throws rather than picking the likelier of two.</b> Only two kinds arrive
+    /// here today and <see cref="SaysOnlyAName"/> is what keeps the rest away, so an arm answering
+    /// for a third would be a sentence about drivers shown for something that is not one. That is
+    /// the shape this product spent 2026-08-25 taking out of nine other places.
+    /// </summary>
+    private static string Gathered(PlanProblemKind kind, IReadOnlyList<string> names) => kind switch
+    {
+        PlanProblemKind.UnknownService =>
+            Texts.Of("gui.plan.problem.unknownService.many", names.Count, Listed(names)),
+
+        PlanProblemKind.NotOperable =>
+            Texts.Of("gui.plan.problem.notOperable.many", names.Count, Listed(names)),
+
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(kind),
+            kind,
+            "Refusals of this kind are not gathered, so there is no sentence here for a group of "
+            + "them. SaysOnlyAName decides which kinds arrive.")
+    };
 
     /// <summary>
     /// One failed step in words, with the manager's own message carried through rather than

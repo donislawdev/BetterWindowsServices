@@ -119,7 +119,7 @@ public sealed class PluralGuards
     ///
     /// <b>ONE PATTERN RATHER THAN A LIST OF PLURAL WORDS.</b> The first version also flagged the
     /// pronouns "these", "those", "they" and "them", and "them" hits
-    /// <c>gui.plan.problem.notOperable</c> - "This tool shows drivers but does not start or stop
+    /// <c>gui.plan.problem.notOperable.one</c> - "This tool shows drivers but does not start or stop
     /// them" - where the plural is about drivers in general and is correct. A guard that reddens on
     /// a correct sentence teaches people to stop reading it, so the pronouns came out.
     ///

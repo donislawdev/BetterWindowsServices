@@ -21,11 +21,27 @@ Nothing has been released yet. Everything below is what the tool does today.
   - Boot and System are not offered: they belong to drivers, which this tool does not operate
     on. Automatic (delayed) is not offered either, because it is a separate setting rather than
     a start type.
-  - **There is no way back for this one yet.** After a start type has been set, the panel
-    offers nothing to undo it - putting one back needs the type the entry had before, which
-    nothing records. It says nothing rather than offering something wrong.
-  - **The command line has no verb for it yet**, so the panel shows no line to paste beside a
-    start type change. `bws stop`, `start` and `restart` are unchanged.
+  - **There is a way back.** Once a start type has been set, the panel tells you what to type
+    to put the entry back where the run found it, the same way it does after a stop or a start.
+  - **One case says nothing instead, on purpose.** An automatic entry can also be marked to
+    start late, after the boot rush, and neither this window nor the command line has a word
+    for that state - so after changing the start type of one of those, the panel offers no way
+    back rather than a line that would leave it starting at boot instead of after it.
+
+- **`bws start-type NAME automatic|manual|disabled`**, on the command line. The same change the
+  window makes, with the same plan in front of it and the same `--dry-run` as every other write.
+  - `--json` and `--timing` work here as everywhere. `--dependents` and `--timeout` do not, and
+    the tool says so rather than ignoring them: nothing comes down with a setting and there is
+    no state to wait for.
+  - The plan in `--json` now carries a `startType` field on every step and every result. It is
+    the type that step writes, and `null` on a stop, a start or a restart.
+  - The panel in the window shows the line to paste beside a start type change, which it could
+    not do while there was no verb for it.
+
+- **A selection full of drivers no longer fills the panel with the same sentence.** Refusals that
+  say the same thing arrive as one line with a count and every name on it, instead of one line
+  each. Refusals that name other entries - a cascade standing in the way, an entry that could not
+  be started again - are still listed one by one, because each of those is a different fact.
 
 - **Export...**, beside Refresh, writes what the list shows to a CSV file. What is on screen is
   what lands in the file: the entries the scope and your search left, the columns you have on,

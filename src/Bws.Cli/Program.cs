@@ -37,99 +37,22 @@ try
         return answered;
     }
 
-    if (options.BadVerb is not null)
+    // EVERYTHING WRONG WITH WHAT SOMEBODY TYPED, IN ONE PLACE AND BEFORE THE MANAGER IS OPENED.
+    // Ten checks in an order that carries meaning, none of which needs a machine - the reasoning
+    // for each is beside it in Refusals, where they moved on 2026-08-25 when the size ratchet
+    // asked this file for a seam a second time. Immediate above was the first.
+    if (Refusals.Answer(options) is { } mistyped)
     {
-        // Named as a command rather than an option, and offered the nearest one. "Unknown option:
-        // lst" was wrong twice over: lst is not an option, and the answer helped with nothing.
-        var nearest = Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
-
-        Console.Error.WriteLine(nearest is null
-            ? Texts.Of("cli.unknownCommand", options.BadVerb, string.Join(", ", OptionSurface.Verbs))
-            : Texts.Of("cli.unknownCommandDidYouMean", options.BadVerb, nearest));
-
-        Console.Error.WriteLine(Texts.Of("cli.usage"));
-        return ExitCode.Usage;
+        return mistyped;
     }
 
-    if (options.BadSubcommand is not null)
-    {
-        // Ahead of the unknown-option check, because "snapshot" on its own would otherwise be
-        // reported as an option nobody knows - and it is neither an option nor unknown.
-        //
-        // Two sentences rather than one, because the two cases are different and one wording
-        // has to lie about one of them. Snapshot on its own is a command that is half typed.
-        // Snapshot followed by a word we do not know is a command that does not exist.
-        var available = string.Join(", ", OptionSurface.Subcommands);
-
-        Console.Error.WriteLine(options.BadSubcommand.Length == 0
-            ? Texts.Of("cli.subcommandMissing", available)
-            : Texts.Of("cli.unknownSubcommand", options.BadSubcommand, available));
-
-        Console.Error.WriteLine(Texts.Of("cli.usage"));
-        return ExitCode.Usage;
-    }
-
-    if (options.Rejected.Count > 0)
-    {
-        // Diagnostics go to the error channel even when the run fails. The data channel stays
-        // clean so a failed run never drops a stray line into somebody's pipe.
-        Console.Error.WriteLine(Texts.Of("cli.unknownOption", string.Join(", ", options.Rejected)));
-        Console.Error.WriteLine(Texts.Of("cli.usage"));
-        return ExitCode.Usage;
-    }
-
-    if (options.Repeated.Count > 0)
-    {
-        // Accepted twice and honoured once is the same silence as accepted and ignored, which
-        // this tool refuses everywhere else. The last one used to win without a word.
-        Console.Error.WriteLine(Texts.Of("cli.optionGivenTwice", string.Join(", ", options.Repeated)));
-
-        return ExitCode.Usage;
-    }
-
-    if (options.Incomplete.Count > 0)
-    {
-        // A different mistake from an unknown option, and it used to be reported as one -
-        // sending somebody to hunt for a typo in a word they had spelled correctly.
-        Console.Error.WriteLine(Texts.Of("cli.optionNeedsValue", string.Join(", ", options.Incomplete)));
-        Console.Error.WriteLine(Texts.Of("cli.usage"));
-        return ExitCode.Usage;
-    }
-
-    if (options.Kind == CommandKind.None)
-    {
-        Console.Error.WriteLine(Texts.Of("cli.usage"));
-        return ExitCode.Usage;
-    }
-
-    if (options.Misplaced.Count > 0)
-    {
-        // An option that exists but not here. Refused rather than ignored: a switch that
-        // quietly does nothing turns a runbook line into something that looks right and behaves
-        // differently, and nobody finds out until it matters.
-        foreach (var option in options.Misplaced)
-        {
-            Console.Error.WriteLine(Texts.Of(
-                "cli.optionNotForCommand",
-                option,
-                OptionSurface.Spelling(options.Kind),
-                string.Join(", ", OptionSurface.Accepts(option))));
-        }
-
-        return ExitCode.Usage;
-    }
-
-    if (options.IsWrite && options.ServiceName.Length == 0)
-    {
-        Console.Error.WriteLine(Texts.Of("cli.missingServiceName", options.Action.ToString().ToLowerInvariant()));
-        return ExitCode.Usage;
-    }
-
-    if (options.BadTimeout is not null)
-    {
-        Console.Error.WriteLine(Texts.Of("cli.badTimeout", options.BadTimeout));
-        return ExitCode.Usage;
-    }
+    // Never null where the verb needs one: Refusals has already turned back both a missing word
+    // and one that names no start type, so what is left here is a value. Read again rather than
+    // carried out of that block, because a refusal handing back a value as well as a code would
+    // be two answers from one call, and the reading itself is a table lookup.
+    var wanted = WriteCommands.NeedsAStartType(options.Kind)
+        ? WriteCommands.Named(options.StartTypeWord)
+        : null;
 
     // Read the query before touching the system. A typo costs nothing this way, and the
     // alternative is enumerating hundreds of entries in order to throw them away.
@@ -358,7 +281,7 @@ try
         // Never null here: the only command that leaves it unbuilt is the file comparison,
         // which is not a write and never reaches this branch.
         var plan = new PlanBuilder(entries, catalog!)
-            .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents));
+            .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents, wanted));
 
         if (!plan.IsRunnable)
         {

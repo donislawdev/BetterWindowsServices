@@ -51,7 +51,7 @@ internal static class PlanText
         // IsRunnable has said it has steps. Reachable the moment a window shows a plan it is
         // refusing, which is what S7 brings, and that is exactly when nobody would be looking.
         var width = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => step.ServiceName.Length);
-        var operations = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => Operation(step.Operation).Length);
+        var operations = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => Operation(step).Length);
         var reasons = plan.Steps.Count == 0 ? 0 : plan.Steps.Max(step => Reason(step.Reason).Length);
 
         for (var index = 0; index < plan.Steps.Count; index++)
@@ -64,13 +64,13 @@ internal static class PlanText
                 ? Texts.Of(
                     "cli.plan.step",
                     index + 1,
-                    Operation(step.Operation).PadRight(operations),
+                    Operation(step).PadRight(operations),
                     step.ServiceName.PadRight(width),
                     Reason(step.Reason))
                 : Texts.Of(
                     "cli.plan.stepDone",
                     index + 1,
-                    Operation(step.Operation).PadRight(operations),
+                    Operation(step).PadRight(operations),
                     step.ServiceName.PadRight(width),
                     Reason(step.Reason).PadRight(reasons),
                     Describe(results[index])));
@@ -158,7 +158,7 @@ internal static class PlanText
 
     /// <summary>The step being attempted, for the error channel while somebody waits.</summary>
     internal static string Progress(PlanStep step, int number, int count) =>
-        Texts.Of("cli.run.progress", number, count, Operation(step.Operation), step.ServiceName);
+        Texts.Of("cli.run.progress", number, count, Operation(step), step.ServiceName);
 
     /// <summary>
     /// How long something took. Milliseconds up to a second, seconds above it - a stop that
@@ -227,7 +227,21 @@ internal static class PlanText
 
     private static string Verb(ActionKind kind) => Texts.Of($"cli.plan.action.{Camel(kind)}");
 
-    private static string Operation(StepOperation operation) => Texts.Of($"cli.plan.operation.{Camel(operation)}");
+    /// <summary>
+    /// What one step does, in the column a person scans down.
+    ///
+    /// <b>Takes the whole step rather than its operation, and the fourth kind of step is why.</b>
+    /// A stop is a stop wherever it appears - the word carries the whole of what will happen. A
+    /// start type write does not: "set" alone leaves out the only part somebody is reading the line
+    /// to check, and two lines setting two different types would be identical on screen.
+    ///
+    /// The type is spelled the way the listing spells it, not the way the command line accepts it.
+    /// This column is prose for a person, and the line somebody would paste has its own place at
+    /// the foot of the document.
+    /// </summary>
+    private static string Operation(PlanStep step) => step.Operation == StepOperation.SetStartType
+        ? Texts.Of("cli.plan.operation.setStartType", step.To!.Value.ToString())
+        : Texts.Of($"cli.plan.operation.{Camel(step.Operation)}");
 
     private static string Reason(StepReason reason) => Texts.Of($"cli.plan.reason.{Camel(reason)}");
 

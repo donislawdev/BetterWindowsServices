@@ -9,9 +9,19 @@ namespace Bws.Core.Tests;
 /// 2026-08-25 with the alternative beside it.
 ///
 /// <b>Why it gets a file of its own rather than a section in each of four.</b> Everything about it
-/// is different from the three asks that came before: no cascade, nothing to wait for, no way back,
-/// and no command line verb yet. Those are five decisions, and every one of them is a thing
-/// somebody will later take for an oversight.
+/// is different from the three asks that came before: no cascade, nothing to wait for, and a way
+/// back that is a VALUE rather than a direction. Every one of those is a thing somebody will later
+/// take for an oversight.
+///
+/// <b>TWO OF THOSE DIFFERENCES WERE ABSENCES FOR ONE DAY AND ARE NOT ANY MORE.</b> What stood here
+/// said "no way back, and no command line verb yet", and both were true on 2026-08-25 and false by
+/// the end of that week. They were the same absence seen twice: a way back is a line somebody could
+/// type, so it could not exist until there was a verb to type. The tests that held them as decisions
+/// rather than oversights are the tests that had to change when the decision did, which is the
+/// shape working correctly.
+///
+/// <b>What is still an absence, and it is a narrower one:</b> an automatic entry marked to start
+/// late gets no way back, because nothing this tool writes can say "automatic, and late".
 /// </summary>
 public sealed class StartTypeTests
 {
@@ -121,47 +131,137 @@ public sealed class StartTypeTests
     }
 
     /// <summary>
-    /// THE WAY BACK SAYS NOTHING ABOUT A START TYPE, and this test exists to make that a decision
-    /// rather than a surprise.
+    /// THE WAY BACK NAMES THE TYPE THE ENTRY HAD, and until 2026-08-25 it said nothing at all.
     ///
-    /// Undoing one needs the type the entry had BEFORE, and nothing in a result carries it - a step
-    /// knows what it set, not what it replaced. So the panel offers no way back for this kind rather
-    /// than offering a wrong one. Backlog 229.
+    /// <b>What changed is not the arithmetic but what a step carries.</b> Undoing one of these needs
+    /// the type the entry had BEFORE, and a step knows what it set rather than what it replaced - so
+    /// the plan builder now reads it off the entry while the plan is being made, which is the only
+    /// moment anything is looking at the machine as it was. Backlog 229.
     /// </summary>
     [Fact]
-    public void The_way_back_says_nothing_about_a_setting_it_cannot_put_back()
+    public void The_way_back_names_the_type_the_entry_had_before()
     {
         var control = new FakeScmControl().At("Spooler", EntryStatus.Running);
 
+        // Automatic on the catalogue, and its delay flag was READ and is false - which is what
+        // makes automatic a thing this tool can put back.
         var run = Run(control, StartType.Disabled, "Spooler");
+
+        var back = Assert.Single(NetEffect.Of(run.Results));
+
+        Assert.Equal("Spooler", back.ServiceName);
+        Assert.Equal(StepOperation.SetStartType, back.Operation);
+        Assert.Equal(StartType.Automatic, back.To);
+
+        // And it comes out as a line somebody can paste, with the value on it. A verb with no value
+        // is a line this tool refuses.
+        Assert.Equal("bws start-type Spooler automatic", EquivalentCommand.For(back));
+    }
+
+    /// <summary>
+    /// Setting an entry to the type it already had leaves nothing to say.
+    ///
+    /// The same net effect arithmetic a restart gets, arriving at a setting: where it was before the
+    /// first step that wrote it, where it is after the last, equal means silence. A way back reading
+    /// "set it to what it already is" is a line somebody would run for nothing.
+    /// </summary>
+    [Fact]
+    public void A_setting_that_ended_where_it_began_says_nothing()
+    {
+        var control = new FakeScmControl().At("Spooler", EntryStatus.Running);
+
+        var run = Run(control, StartType.Automatic, "Spooler");
 
         Assert.Empty(NetEffect.Of(run.Results));
     }
 
     /// <summary>
-    /// No command line is offered for an ask the command line cannot make.
+    /// NO WAY BACK IS OFFERED WHERE THE TYPE BEFORE IS NOT KNOWN, and there are two ways not to
+    /// know it.
     ///
-    /// <b>The window learned this verb on 2026-08-25 and the command line did not</b> - the owner
-    /// chose that order, the same way the plan preview arrived in the window first. A line rendered
-    /// for it would be one that fails on paste, which is the fault that class already refuses to
-    /// commit over the dependents switch on a start.
+    /// <b>The delayed one is the case that would have gone unnoticed.</b> An automatic entry can
+    /// also be marked to start late - 13 of 78 automatic services carry that flag on a real machine,
+    /// measured 2026-08-01 - and it is a field of its own rather than a sixth start type, so nothing
+    /// this tool can write says "automatic, and late". A line offering to put such an entry back on
+    /// automatic would leave it starting at boot instead of after it, which is a change to how a
+    /// machine comes up wearing the word undo.
+    ///
+    /// The refused one is the plainer half: the manager can turn down a configuration read, and an
+    /// entry whose start type nobody could read has no before for anybody to name.
+    /// </summary>
+    [Theory]
+    [InlineData("BITS")]
+    [InlineData("Locked")]
+    public void No_way_back_is_offered_where_the_type_before_is_not_known(string serviceName)
+    {
+        var control = new FakeScmControl().At(serviceName, EntryStatus.Running);
+
+        var run = Run(control, StartType.Disabled, serviceName);
+
+        // The step still ran - this is about what can be said afterwards, not about refusing to do
+        // what somebody asked for.
+        Assert.Equal(StepOutcome.Succeeded, Assert.Single(run.Results).Outcome);
+        Assert.Empty(NetEffect.Of(run.Results));
+    }
+
+    /// <summary>
+    /// The command line is offered for this ask, and it carries the value.
+    ///
+    /// <b>The window learned this verb one step ahead of the command line, and for a day the panel
+    /// showed no line beside a start type change.</b> The section did not say "no command" - it
+    /// disappeared, which is the honest shape while there really is none. It is back, and the test
+    /// asserts the whole string rather than its parts, because what a person pastes is the string.
     /// </summary>
     [Fact]
-    public void No_command_is_offered_for_an_ask_the_command_line_cannot_make()
+    public void The_command_line_offered_for_this_ask_carries_the_type()
     {
         var catalog = Specimens.Catalog();
 
         var plan = new BulkPlanBuilder(catalog.ReadAll(), catalog)
             .Build(new BulkAction(ActionKind.SetStartType, ["Spooler"], To: StartType.Disabled));
 
-        Assert.Empty(EquivalentCommand.For(plan));
+        Assert.Equal("bws start-type Spooler disabled", Assert.Single(EquivalentCommand.For(plan)));
+    }
 
-        // And the three that DO have one still have it, so this is a hole with edges rather than a
-        // section that quietly went away.
-        var stopping = new BulkPlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new BulkAction(ActionKind.Stop, ["Spooler"]));
+    /// <summary>
+    /// THE CASCADE TICK BOX DOES NOT PUT --dependents ON A SETTING, and it very nearly did.
+    ///
+    /// <b>The condition read "not a start", so every kind but one got the switch</b> - and a
+    /// selection carries one such flag for the whole of it, so somebody who ticked the box and then
+    /// changed a start type would have been handed a line the command line refuses. That is the
+    /// exact fault the bridge guard caught once already over a start, arriving a second time by way
+    /// of a kind that did not exist when the condition was written.
+    ///
+    /// A condition phrased as everything-except answers for kinds nobody has written yet, which is
+    /// the same lesson as the nine two-way branches this file's other tests are about.
+    /// </summary>
+    [Fact]
+    public void The_cascade_tick_box_does_not_reach_a_setting()
+    {
+        var rendered = EquivalentCommand.For(new ServiceAction(
+            ActionKind.SetStartType, "Spooler", IncludeDependents: true, To: StartType.Manual));
 
-        Assert.Equal("bws stop Spooler", Assert.Single(EquivalentCommand.For(stopping)));
+        Assert.Equal("bws start-type Spooler manual", rendered);
+    }
+
+    /// <summary>
+    /// A start type nobody can name gets no line at all, rather than a line naming it.
+    ///
+    /// <b>Nothing in this product can build such an ask today</b> - the window offers three types
+    /// and the writer refuses the other three before it opens a handle. It is asked anyway, because
+    /// the cost of asking is one call and the cost of not asking is a line that reads as a command
+    /// and is declined on paste.
+    /// </summary>
+    [Fact]
+    public void An_ask_carrying_a_type_with_no_word_renders_no_line()
+    {
+        foreach (var nameless in new[] { StartType.Boot, StartType.System, StartType.Unknown })
+        {
+            var action = new ServiceAction(ActionKind.SetStartType, "Spooler", To: nameless);
+
+            Assert.False(EquivalentCommand.Renders(action));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EquivalentCommand.For(action));
+        }
     }
 
     /// <summary>

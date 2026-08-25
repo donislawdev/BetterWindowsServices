@@ -168,8 +168,14 @@ public sealed record ScmEntry
     /// read. Measured on a real machine on 2026-08-01: 13 of 78 automatic services carry
     /// the flag, and sc.exe reports both kinds as start type 2.
     ///
-    /// Absent on anything that is not automatic, where the idea does not apply. Absent is
-    /// not false: false would claim the question was asked and answered.
+    /// <b>READ FOR EVERY ENTRY THAT CAN CARRY ONE, AND THIS PARAGRAPH SAID THE OPPOSITE UNTIL
+    /// 2026-08-25.</b> It read "absent on anything that is not automatic" - true of an earlier
+    /// reader, false since ReadDelayedAuto stopped asking the start type first, and load bearing:
+    /// the way back for a start type change asks this field whether it may name a previous type,
+    /// which under that sentence was a question about something always absent.
+    ///
+    /// Absent on a driver, which has no such setting. Absent is not false: false would claim
+    /// the question was asked and answered.
     /// </summary>
     public required Reading<bool> DelayedAuto { get; init; }
 

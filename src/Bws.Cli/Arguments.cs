@@ -62,6 +62,12 @@ internal static class Arguments
             "stop" => CommandKind.Stop,
             "start" => CommandKind.Start,
             "restart" => CommandKind.Restart,
+
+            // Matched here rather than anywhere earlier, and the order of the arms above does not
+            // decide it - these are whole words. "start-type" is not a prefix question: a switch
+            // expression over strings compares the whole of one, so there is no path where this
+            // word is read as "start" with something left over.
+            "start-type" => CommandKind.SetStartType,
             _ => CommandKind.None
         };
 
