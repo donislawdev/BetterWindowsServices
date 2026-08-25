@@ -278,6 +278,7 @@ internal static class ListColumns
             ColumnFace.Status => Templated(grid, "StatusCell"),
             ColumnFace.StartType => Templated(grid, "StartTypeCell"),
             ColumnFace.Mismatch => Templated(grid, "AgainstStartTypeCell"),
+            ColumnFace.Rollup => Templated(grid, "NameCell"),
             ColumnFace.Number => Written(grid, column, "CellNumber", "ColumnHeadingNumber"),
             ColumnFace.Fixed => Written(grid, column, "CellFixed", headerStyle: null),
             _ => Written(grid, column, "CellText", headerStyle: null)

@@ -316,72 +316,15 @@
                         DataContext="{Binding Planned}" />
 
         <!--
-            Two lines now, and never more than two. The count moved up beside the box it answers
-            - complaint 8 - and what is left here is what a result has to ADMIT about itself and
-            what is wrong with the question, which are two different things and stay apart.
+            WHAT THE ANSWER ADMITS ABOUT ITSELF, and the one way out this window offers. Its own
+            file since 2026-08-25, for the reason at the head of StatusRow.xaml - the fourth part
+            of this window to leave the same way, after the scope switch, the search row and the
+            filters row.
+
+            The elevate button's click is wired in the constructor rather than in the markup over
+            there, because pressing it starts a process and Elevation.cs is the only file in this
+            product allowed to name one.
         -->
-        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="{StaticResource MarginAboveStatus}">
-
-            <!--
-                THE ONE SENTENCE IN THIS WINDOW THAT HAS A WAY OUT, since 2026-08-25. Everything
-                else this line says is a fact about an answer - a session without administrator
-                rights is a state somebody can leave, and until now the window said so and offered
-                nothing. `docs/11` section 6 names that as this window's weakest heuristic.
-
-                The button asks WHICH FACT rather than whether the line is empty: most of what is
-                said here is about the query, and a way out offered beside a sentence about
-                signatures would be a control that means nothing.
-            -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0" Text="{Binding Says.Notice}" TextWrapping="Wrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Says.Notice}" Value="">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-
-                <Button Grid.Column="1"
-                        x:Name="ElevateButton"
-                        AutomationProperties.AutomationId="elevate"
-                        Content="{DynamicResource gui.action.elevate}"
-                        ToolTip="{DynamicResource gui.action.elevate.hint}"
-                        Margin="{StaticResource MarginBetweenControls}"
-                        VerticalAlignment="Center"
-                        Click="RestartAsAdministrator">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </Grid>
-
-            <TextBlock Text="{Binding Says.Problem}" TextWrapping="Wrap">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProblemText}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Says.Problem}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-        </StackPanel>
+        <local:StatusRow Grid.Row="5" Grid.ColumnSpan="2" x:Name="Status" />
     </Grid>
 </Window>

@@ -1,0 +1,108 @@
+<UserControl x:Class="Bws.Gui.StatusRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHAT THE WINDOW ADMITS ABOUT AN ANSWER, AND THE ONE WAY OUT IT OFFERS.
+
+        Two lines and never more than two. The count moved up beside the box it answers - complaint
+        8 - and what is left is what a result has to ADMIT about itself and what is wrong with the
+        QUESTION, which are two different things and stay apart.
+
+        A UserControl SINCE 2026-08-25 BECAUSE THE MARKUP RATCHET ASKED, and it is the fourth part
+        of this window to leave the same way, after ScopeBar, SearchRow and FilterRow. The seam is
+        the one those three established: MainWindow.xaml is what the window IS, and a row with a
+        subject of its own lives in a file named for that subject. This row's subject is the truth
+        about an answer.
+
+        WHAT ASKED FOR IT WAS ONE ATTRIBUTE. The notice line had no automation id, so nothing
+        outside the process could read the one place this window says an answer is incomplete -
+        `A11` put a new admission there and there was no instrument that could see it. The comment
+        explaining that could not be added to a file already standing on the ceiling, which is the
+        ratchet doing exactly what it is for.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
+        ContentControl is BOTH BY DEFAULT. Without them this row is a tab stop that does nothing,
+        in front of the button it holds. `docs/10` trap 8.
+
+        IT INHERITS THE WINDOW'S DataContext rather than being handed one, unlike the details and
+        plan panels. Those are bound to one object so that nothing in them can reach the list - this
+        one reads Says, which hangs off the model, and narrowing it to Says would leave the row
+        unable to grow the second sentence it may one day owe.
+    -->
+    <StackPanel Margin="{StaticResource MarginAboveStatus}">
+
+        <!--
+            THE ONE SENTENCE IN THIS WINDOW THAT HAS A WAY OUT, since 2026-08-25. Everything
+            else this line says is a fact about an answer - a session without administrator
+            rights is a state somebody can leave, and until now the window said so and offered
+            nothing. `docs/11` section 6 names that as this window's weakest heuristic.
+
+            The button asks WHICH FACT rather than whether the line is empty: most of what is
+            said here is about the query, and a way out offered beside a sentence about
+            signatures would be a control that means nothing.
+        -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--
+                ITS OWN AutomationId SINCE 2026-08-25, AND THE GAP WAS FOUND BY NEEDING IT. The
+                count line beside the search box has had one for weeks and this line never did,
+                so nothing outside the process could read the one place the window admits what
+                an answer is not - and `A11` put a new admission here on the day it was wanted.
+                A sentence no instrument can see is a sentence only a person staring at the
+                window can check, which is the fifth time this window has paid for that lesson.
+            -->
+            <TextBlock Grid.Column="0"
+                       AutomationProperties.AutomationId="noticeLine"
+                       Text="{Binding Says.Notice}"
+                       TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Says.Notice}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Button Grid.Column="1"
+                    x:Name="ElevateButton"
+                    AutomationProperties.AutomationId="elevate"
+                    Content="{DynamicResource gui.action.elevate}"
+                    ToolTip="{DynamicResource gui.action.elevate.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    VerticalAlignment="Center">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+
+        <TextBlock Text="{Binding Says.Problem}" TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource ProblemText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Says.Problem}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </StackPanel>
+</UserControl>

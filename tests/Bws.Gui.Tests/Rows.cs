@@ -70,4 +70,54 @@ internal static class Rows
     {
         EntryType = EntryType.FileSystemDriver
     };
+
+    /// <summary>
+    /// The pattern a session's copy is made from - `A11`.
+    ///
+    /// <b>Stopped, and that is measured rather than tidy.</b> On this machine on 2026-08-25, 0 of
+    /// 23 templates were running against 8 of their 23 instances. A template that ran would be a
+    /// fixture nothing on a real machine can produce, and every test about what a folded row says
+    /// about its family would be asserting about a shape that does not exist.
+    ///
+    /// <b>Still a shared process, because the roles answer different questions about one entry.</b>
+    /// `docs/03` says so in as many words - the type bits carry both, and flattening a template to
+    /// something other than what it shares would quietly change what <c>type:sharedProcess</c>
+    /// covers.
+    /// </summary>
+    internal static ScmEntry Template(string name) => Stopped(name) with
+    {
+        EntryType = EntryType.SharedProcess,
+        PerUserRole = PerUserRole.Template
+    };
+
+    /// <summary>
+    /// One session's copy, named the way Windows names them.
+    ///
+    /// <b>Its display name is its own service name, which is measured and is not a shortcut
+    /// here.</b> All 23 instances on this machine answer with their bare name where the template
+    /// answers with a translated sentence - so a session copy carries no readable name at all, and
+    /// a fixture that gave it one would hide half of what folding buys.
+    /// </summary>
+    internal static ScmEntry Instance(string name) => Entry(name, name) with
+    {
+        EntryType = EntryType.SharedProcess,
+        PerUserRole = PerUserRole.Instance
+    };
+
+    /// <summary>
+    /// The pair that punishes grouping by name, copied off a real machine.
+    ///
+    /// <b>`CLAUDE.md` and `docs/03` both record it because it is the whole reason the fold asks the
+    /// bits first.</b> <c>Power</c> is a plain share process - running, automatic, the power service
+    /// - and <c>Power_a17007</c> is a plain own process that simply has a hex-looking tail. Counting
+    /// the family by suffix gives 24 and 24 on this machine where the bits give 23 and 23, and the
+    /// two it adds are these. A window that folded by name would file the power service away as
+    /// session noise.
+    ///
+    /// Returned as a pair rather than as two calls, because a test that used one without the other
+    /// would be asserting about a name with nothing to be confused with.
+    /// </summary>
+    internal static (ScmEntry Looks, ScmEntry LikeATail) TheirNamesLookLikeAFamily() =>
+        (Entry("Power") with { EntryType = EntryType.SharedProcess },
+            Entry("Power_a17007") with { EntryType = EntryType.OwnProcess });
 }

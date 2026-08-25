@@ -12,7 +12,12 @@ internal static class Columns
             Id = "serviceName",
             LabelKey = "gui.column.name",
             WidthKey = "ColumnName",
-            Face = ColumnFace.Text,
+
+            // The one column that can carry a rollup badge, because it is the one `A11` names in
+            // its own example - "CDPUserSvc - 4 instancje". The cell itself is still the internal
+            // name and nothing else, which is what keeps copying, sorting and plan building
+            // reading the identity rather than a sentence about it.
+            Face = ColumnFace.Rollup,
             ShownAtFirst = true,
             Reads = entry => entry.ServiceName
         },

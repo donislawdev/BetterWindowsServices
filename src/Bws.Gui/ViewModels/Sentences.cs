@@ -40,9 +40,12 @@ internal static class Sentences
     /// that explains an empty list, and somebody staring at one should not have to read past
     /// anything to find out why.
     /// </summary>
+    /// <param name="folded">
+    /// How many session copies were drawn under a template rather than as rows of their own.
+    /// </param>
     internal static string Admissions(
         Query query, bool held, int unreadable, int tooCostly, bool elevated,
-        ExtraRead have, bool filling)
+        ExtraRead have, bool filling, int folded)
     {
         var needs = query.Needs;
         var notes = new List<string>();
@@ -106,6 +109,28 @@ internal static class Sentences
             notes.Add(tooCostly == 1
                 ? Texts.Of("gui.status.tooCostly.one", tooCostly)
                 : Texts.Of("gui.status.tooCostly.many", tooCostly));
+        }
+
+        // THE COUNT ABOVE THE LIST AND THE NUMBER OF ROWS IN IT NO LONGER AGREE, AND THIS IS THE
+        // ONLY THING THAT SAYS SO. `A11` folds a session's copy under the template it came from,
+        // so an answer of 326 entries can be drawn as 303 rows - and a list shorter than the number
+        // over it, with nothing explaining the difference, is rule 8 broken in the first place a
+        // person looks. Measured on this machine 2026-08-25: 23 of 798 entries fold, and a machine
+        // with several people logged on folds that many times over.
+        //
+        // AFTER THE READING NOTES, BECAUSE A FOLD NEVER EMPTIES A LIST. The head of this method
+        // says the unread sentences come first because they are what explains an empty list, and
+        // folding cannot produce one - an instance only ever folds under a template that is in the
+        // same answer, so the row it went under is still there.
+        //
+        // The way out is named by its own label rather than by a direction, because the row that
+        // holds the switch can be folded away itself and "the switch above" would then point at
+        // nothing. Written out twice rather than picked into a variable - TextKeyGuards.
+        if (folded > 0)
+        {
+            notes.Add(folded == 1
+                ? Texts.Of("gui.status.folded.one", folded)
+                : Texts.Of("gui.status.folded.many", folded));
         }
 
         // Never silent about holding still. A list that quietly stopped matching its own query

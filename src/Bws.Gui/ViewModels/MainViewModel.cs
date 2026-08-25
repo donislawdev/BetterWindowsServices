@@ -87,6 +87,12 @@ public sealed partial class MainViewModel : Observable
     /// <summary>Which list is showing, and that listing already cut down. Not a filter.</summary>
     private readonly Scoping _scoping;
 
+    /// <summary>
+    /// Whether the session copies stand on their own rather than under the template they came from.
+    /// State beside the query rather than a member of it - <see cref="ShowingEveryInstance"/>.
+    /// </summary>
+    private bool _showingEveryInstance;
+
 
     public MainViewModel()
         : this(
@@ -377,7 +383,14 @@ public sealed partial class MainViewModel : Observable
 
         var narrowed = Narrowing.Of(_query, everything);
 
-        Show(narrowed.Selected);
+        // AFTER THE QUERY AND NEVER BEFORE IT, WHICH IS THE ONE ORDER THAT KEEPS BOTH HONEST. The
+        // query decides which ENTRIES the answer holds and the fold decides how many ROWS that same
+        // answer is drawn as. Folding first would hide a session's copy from `peruser:instance`,
+        // which is the query that exists to find them - and the window's answer would stop being
+        // the command line's answer to the same text, silently, in one interface out of two.
+        var rolled = Folding.Of(narrowed.Selected, _showingEveryInstance);
+
+        Show(rolled.Rows);
 
         // A SINGULAR BESIDE EVERY PLURAL, backlog 207. The noun follows the SECOND number rather
         // than the first - "1 of 810 entries" is right and "1 of 810 entry" is not - so both lines
@@ -397,7 +410,7 @@ public sealed partial class MainViewModel : Observable
 
         Says.AboutTheAnswer(
             _query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
-            _readings.Have, _readings.Filling);
+            _readings.Have, _readings.Filling, rolled.Instances);
 
         TellTheList();
 

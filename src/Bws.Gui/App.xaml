@@ -41,6 +41,13 @@
         actually reads in a row - sits on top of the general ones. Nothing in it is implicit
         today, so the order costs nothing now and is the one that will still be right the day
         something is.
+
+        Marks.xaml IS BEFORE Cells.xaml AND THAT IS THE SAME RULE AGAIN, since 2026-08-25.
+        It holds the coloured shapes that sit beside three of the words in a row, and the
+        cell templates in Cells.xaml name all three through StaticResource - so a dictionary
+        merged after this one would be three names that do not exist yet. The split happened
+        because the markup ratchet fired: Cells.xaml stood exactly on the ceiling and `A11`
+        needs a badge beside the name and a template to hold it.
     -->
     <Application.Resources>
         <ResourceDictionary>
@@ -53,6 +60,7 @@
                 <ResourceDictionary Source="Themes/Text.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
+                <ResourceDictionary Source="Themes/Marks.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

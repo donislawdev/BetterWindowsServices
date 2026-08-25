@@ -161,7 +161,7 @@ public partial class MainWindow
     internal bool Preview(ActionKind kind, StartType? to = null)
     {
         var picked = Entries.SelectedItems.OfType<EntryRow>().ToList();
-        var names = picked.Select(row => row.ServiceName).ToList();
+        var names = Everything(picked);
 
         if (names.Count == 0)
         {
@@ -179,6 +179,54 @@ public partial class MainWindow
         return _model.Planned.Show(
             _model.Plan(new BulkAction(kind, names, To: to)),
             picked.Count == 1 ? picked[0].DisplayName : null);
+    }
+
+    /// <summary>
+    /// Every entry the picked rows stand for, which for a folded row is a whole per-user family.
+    ///
+    /// <b>THE HALF OF `A11` THE SPECIFICATION WARNS ABOUT IN ITS OWN WORDS</b> - "inaczej admin
+    /// kliknie stop na jednym wierszu i zatrzyma cztery uslugi, nie wiedzac o tym". A row standing
+    /// for four session copies has to put all four into the plan, or the preview is shorter than
+    /// the run and `ADR-11` has produced the one thing it exists to prevent.
+    ///
+    /// <b>THE TEMPLATE GOES IN BESIDE ITS INSTANCES, AND THAT IS A MEASUREMENT RATHER THAN A
+    /// READING OF THE SENTENCE ABOVE.</b> The glossary says an action on a template concerns all
+    /// its instances, which could be read as concerning only them. Measured on this machine on
+    /// 2026-08-25 over the whole family: the template and its instance agree on the start type 23
+    /// times out of 23, and the template is what a new session's copy is made from. So setting a
+    /// folded row to Disabled without the template would disable the copies that exist and leave
+    /// the next login making an automatic one - the change would evaporate at the next logon, with
+    /// nothing on screen having been wrong. A silently reversible write is worse than a refused
+    /// one.
+    ///
+    /// <b>What that costs, said rather than hidden: a stop over a folded row carries a step for an
+    /// entry that is already stopped.</b> A template never runs - 0 of 23 on this machine, against
+    /// 8 of its 23 instances - so the runner reads it, finds it where it was asked to be and
+    /// reports "already there", which is the truth. <see cref="Bws.Core.Planning.BulkPlan"/> argues
+    /// at length that a step like that is named rather than tidied away, and a refusal lands beside
+    /// its own entry without holding up the rest of the selection.
+    ///
+    /// <b>It reads what the rows stand for NOW rather than recomputing the fold</b>, which is what
+    /// keeps the plan and the screen the same answer. The fold is recomputed on every pass and
+    /// moving the switch is a pass, so a row can never be standing for something different from
+    /// what the person pressing the button is looking at.
+    /// </summary>
+    private static List<string> Everything(List<EntryRow> picked)
+    {
+        var names = new List<string>(picked.Count);
+
+        foreach (var row in picked)
+        {
+            // Internal names rather than display names, because that is what identity is -
+            // `ADR-14`. A session's copy carries no display name of its own at all: measured on
+            // this machine, all 23 of them answer with their own service name where the template
+            // answers with a translated sentence.
+            names.Add(row.ServiceName);
+
+            names.AddRange(row.Instances.Select(instance => instance.ServiceName));
+        }
+
+        return names;
     }
 
     /// <summary>

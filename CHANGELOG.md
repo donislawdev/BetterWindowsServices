@@ -15,6 +15,20 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **Per-user services are folded under the template they came from**, in the window. Windows makes
+  a copy of some services for every session that logs on, with a random-looking tail on the name -
+  on the machine this was built on that is 23 entries out of 798, and on a machine with several
+  people logged on it is that many times over.
+  - The copies are drawn under the template, which carries a count beside its name - "1 instance",
+    or "4 instances, 2 running". The template itself never runs, so the count is what tells you
+    whether the family is working.
+  - **Show every instance** puts them all back on rows of their own.
+  - The line under the list says how many were folded, so the number over the list and the number
+    of rows you can see never disagree in silence.
+  - **Acting on a folded row acts on the whole family, and the plan says so before anything runs.**
+    Picking one and pressing Stop opens a plan naming the template and every copy under it - a
+    preview shorter than the run is the one thing a plan must never be.
+
 - **`bws show NAME`**, on the command line: everything the tool knows about one entry, in four
   sections. The command line half of what the window shows in its details panel - and it reads
   more, because over one entry the expensive parts are cheap.

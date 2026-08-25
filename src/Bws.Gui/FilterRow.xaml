@@ -52,6 +52,7 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <!--
@@ -101,6 +102,45 @@
         </ItemsControl>
 
         <!--
+            WHETHER EVERY SESSION'S COPY IS ON SCREEN, `A11`. Windows makes one per-user copy per
+            logged-on session with a hex tail on the name, and the specification's whole complaint
+            about them is that they are noise - measured on this machine 2026-08-25, 23 of 798
+            entries, and that many times over on a machine with several people logged on.
+
+            AT THIS END OF THE ROW RATHER THAN AMONG THE CHIPS, and the argument is the one written
+            over the Columns button below and over the whole of ScopeBar.xaml: what it changes is
+            the LIST rather than the question. A filter chip writes what it stands for into the
+            search box, so somebody can read it, edit it and learn the language from it - this
+            writes nothing there and could not, because there is no member of the query language
+            that means "draw these two rows as one". Standing it among the chips would say the
+            opposite of what it does, which is the mistake the drivers chip was making for a week.
+
+            IT IS NOT A FILTER AND THE COUNT LINE IS WHERE THAT SHOWS. The number above the list
+            goes on counting entries the query selected, and folding makes the list shorter than
+            that number - so the window owes a sentence naming the difference and the way out of
+            it. Sentences.Admissions carries it, beside the other things an answer admits.
+
+            A ToggleButton with no style of its own, exactly like the Filters button at the other
+            end: this row already dresses two-state controls that way, and `ADR-23` is about not
+            inventing a third look for the same kind of thing.
+
+            NOT REMEMBERED BETWEEN RUNS, the same sentence the Filters button carries. The one file
+            this program keeps is a frozen contract, and a new field in it is a schema bump and a
+            conversation rather than an edit.
+
+            Its own AutomationId, because tools/window-journey tells controls apart by identity
+            rather than by where they sit - the fifth time this row has paid for that lesson.
+        -->
+        <ToggleButton Grid.Column="2"
+                      x:Name="InstancesToggle"
+                      AutomationProperties.AutomationId="instancesToggle"
+                      Content="{DynamicResource gui.instances.toggle}"
+                      ToolTip="{DynamicResource gui.instances.toggle.hint}"
+                      Margin="{StaticResource MarginBetweenControls}"
+                      VerticalAlignment="Top"
+                      IsChecked="{Binding ShowingEveryInstance, Mode=TwoWay}" />
+
+        <!--
             WHICH COLUMNS THE LIST SHOWS, `A8`. A VISIBLE CONTROL RATHER THAN A MENU HIDDEN UNDER
             THE COLUMN HEADINGS, and that is `docs/11` rather than taste: section 6 grades
             "recognition rather than recall" as one of this window's two weakest heuristics, and a
@@ -121,7 +161,7 @@
             from the sentences the window says about the answer, and it does that by identity. This
             is the fourth time that lesson has been paid for in this row.
         -->
-        <Button Grid.Column="2"
+        <Button Grid.Column="3"
                 x:Name="ColumnsButton"
                 AutomationProperties.AutomationId="columnsButton"
                 Content="{DynamicResource gui.columns.button}"

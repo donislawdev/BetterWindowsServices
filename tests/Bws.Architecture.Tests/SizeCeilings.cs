@@ -282,8 +282,28 @@ internal static class SizeCeilings
     /// the bar of actions moved a block out of it, so Cells.xaml is now the tallest thing here and
     /// the number follows it down. It may only ever go down - backlog 219 is the entry that stopped
     /// proving anything the last time this had slack.
+    ///
+    /// <b>376 LATER THE SAME DAY, AFTER THE RATCHET FIRED TWICE IN ONE PACKET AND THE SECOND TIME
+    /// WAS THIS COMMENT'S OWN AUTHOR.</b> Both firings were the ceiling working and the second one
+    /// is the more useful record:
+    ///
+    ///   395 -> Cells.xaml stood exactly ON it, so `A11` could not put a badge beside the name
+    ///          without finding a seam first. The seam was the marks - 207 of that file's 458
+    ///          lines, now Themes/Marks.xaml, leaving 263 and 246.
+    ///   387 -> written here at that point, WHICH WAS TOO EARLY. MainWindow.xaml was the longest
+    ///          at 387 and the number was set to it while the markup was still moving. Eleven
+    ///          lines later - an automation id on the notice line and the comment saying why -
+    ///          that file was 398 and the ratchet went red at its own author.
+    ///   376 -> the status row went to StatusRow.xaml, the fourth part of that window to leave the
+    ///          same way after the scope switch, the search row and the filters row. MainWindow.xaml
+    ///          is 330 and PlanView.xaml is now the tallest at 376.
+    ///
+    /// <b>"Set it once, at the end" is written three times above this line and was broken anyway,
+    /// which is worth more than a fourth restatement.</b> The rule is not hard to remember - it is
+    /// hard to know when the end has arrived, and the honest test is whether anything in the packet
+    /// still touches markup. Twice here the answer was yes and it did not feel like it.
     /// </summary>
-    internal const int LongestShippedMarkupFile = 395;
+    internal const int LongestShippedMarkupFile = 376;
 
     /// <summary>
     /// The longest test file, measured 2026-08-02: MainViewModelTests.cs at 756 lines.

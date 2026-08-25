@@ -43,7 +43,19 @@ internal enum ColumnFace
     /// disagreement between two settings and neither of the other two columns means that.
     /// Backlog 165.
     /// </summary>
-    Mismatch
+    Mismatch,
+
+    /// <summary>
+    /// Words, and a badge saying how many other entries this row stands for - `A11`.
+    ///
+    /// <b>A badge rather than words appended to the cell, and that distinction is load bearing.</b>
+    /// This is the identity column: <c>ADR-14</c> makes the internal name what a plan is built
+    /// from, the copy menu puts exactly this text on the clipboard, and sorting is asked for by the
+    /// value behind it. A count glued onto the end would travel into all three and would do it
+    /// silently. The badge sits beside the cell the same way the run state's dot does, and
+    /// <see cref="EntryRow.StandsFor"/> carries the argument from the row's side.
+    /// </summary>
+    Rollup
 }
 
 /// <summary>

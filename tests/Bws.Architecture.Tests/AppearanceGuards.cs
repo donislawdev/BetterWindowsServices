@@ -89,8 +89,25 @@ public sealed class AppearanceGuards
     /// </summary>
     private static readonly string[] ValueFiles = ["Values.xaml", "Colours.xaml", "Columns.xaml"];
 
-    /// <summary>The halves that hold styles and no value of their own.</summary>
-    private static readonly string[] StyleFiles = ["Text.xaml", "Controls.xaml", "List.xaml", "Cells.xaml"];
+    /// <summary>
+    /// The halves that hold styles and no value of their own.
+    ///
+    /// <b>AND HERE IS THE ARGUMENT FOR THE SEVENTH, ON 2026-08-25, WHICH BREAKS A SENTENCE THE
+    /// FOURTH ONE WROTE.</b> Cells.xaml stood exactly on the markup ceiling of 395, and `A11` needs
+    /// a badge beside the name in the list and a template to hold it - so the same thing happened
+    /// as on 2026-08-12: a line could not be added until a seam was found. The seam is that a style
+    /// saying how a WORD looks and a style saying how a coloured SHAPE looks are two subjects, and
+    /// the marks were 207 of the file's 458 lines, measured before the cut rather than guessed.
+    ///
+    /// <b>What it costs is that the fourth entry's own claim stops being true</b> - "everything
+    /// about a cell is on one side of that seam" - and it is rewritten at the head of both files
+    /// rather than left to rot, which is the precedent SizeCeilings set for the first split.
+    /// Cells.xaml holds the words in a cell and what a cell is made of, Marks.xaml holds the marks.
+    /// Both names still answer "what is in there" without opening the file, which is the test every
+    /// entry in these two pools has had to pass.
+    /// </summary>
+    private static readonly string[] StyleFiles =
+        ["Text.xaml", "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>
     private static IEnumerable<string> ThemeFiles => ValueFiles.Concat(StyleFiles);

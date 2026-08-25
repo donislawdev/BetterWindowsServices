@@ -104,6 +104,16 @@ public partial class MainWindow : Window
     /// </summary>
     internal Button ColumnsButton => Filters.Picker;
 
+    /// <summary>
+    /// The button offering the rights this session does not have, which belongs to the status row.
+    ///
+    /// <b>One line of forwarding since 2026-08-25, when that row moved into its own file</b> - the
+    /// same shape as the line above it, and for the same reason: the tests that check whether this
+    /// button is on screen and what it says are about the WINDOW rather than about a row, and a name
+    /// that moved would make them look like tests of a control they were never about.
+    /// </summary>
+    internal Button ElevateButton => Status.Elevate;
+
     public MainWindow()
         : this(new PreferencesFile())
     {
@@ -144,6 +154,13 @@ public partial class MainWindow : Window
         Arrange(preferences);
 
         HandTheColumnsOver();
+
+        // THE WAY OUT OF A SESSION WITHOUT RIGHTS, wired here rather than in the row that holds it -
+        // 2026-08-25, when the status row moved into its own file. Pressing it starts a second copy
+        // of this program, and Elevation.cs is the only file allowed to name a process at all, held
+        // by a guard that reads the sources. A handler over there would be a second file reaching
+        // for that, reporting its failure through a model that row deliberately does not hold.
+        Status.Elevate.Click += RestartAsAdministrator;
 
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
@@ -445,6 +462,12 @@ public partial class MainWindow : Window
     /// <b>Nothing about starting a process is here</b>, and that is not tidiness: Elevation.cs is
     /// the only file in this product allowed to name one, held by a guard that reads the sources.
     /// </summary>
+    /// <remarks>
+    /// <b>Wired in the constructor since 2026-08-25, when the status row moved into its own
+    /// file.</b> The markup over there cannot carry the click: pressing this starts a process, and
+    /// <see cref="Elevation"/> is the only file in the product allowed to name one - so the handler
+    /// stays here, where the model that reports its failure is.
+    /// </remarks>
     private void RestartAsAdministrator(object sender, RoutedEventArgs e)
     {
         if (Elevation.Restart() is { } trouble)

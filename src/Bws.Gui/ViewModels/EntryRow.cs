@@ -25,6 +25,7 @@ public sealed class EntryRow : Observable
     private string _startShape;
     private string _againstShape;
     private bool _recentlyChanged;
+    private string _standsFor = string.Empty;
 
     /// <summary>
     /// The two cells whose text decides whether the row MOVED, kept because the decision is made
@@ -120,6 +121,60 @@ public sealed class EntryRow : Observable
     {
         get => _recentlyChanged;
         internal set => Set(ref _recentlyChanged, value);
+    }
+
+    /// <summary>
+    /// What this row says beside its name when it stands for a whole per-user family, and nothing
+    /// at all when it stands only for itself - <see cref="Folding.Badge"/> carries the wording.
+    ///
+    /// <b>A property rather than a column, exactly like <see cref="StatusShape"/> and for the same
+    /// reason.</b> It is not a cell - it sits beside one, inside a template - so no column would
+    /// ever be asked for it, and it notifies where the cells notify rather than through the
+    /// indexer.
+    ///
+    /// <b>It moves when an instance moves, which is once a second on a busy machine.</b> The text
+    /// carries how many of the folded instances are running, so a family coming up has to change
+    /// this without anything about the template itself changing. That is what makes it a string
+    /// recomputed on every pass rather than a count worked out when the fold is built.
+    /// </summary>
+    public string StandsFor
+    {
+        get => _standsFor;
+        private set => Set(ref _standsFor, value);
+    }
+
+    /// <summary>
+    /// The rows folded under this one, which is empty for almost every row on the machine.
+    ///
+    /// <b>Read by whatever turns a selection into a plan, and that is the whole reason it is kept
+    /// rather than being a number.</b> The specification's own warning about `A11` is that
+    /// selecting a folded row means acting on everything under it, so the plan has to be able to
+    /// name them - "inaczej admin kliknie stop na jednym wierszu i zatrzyma cztery uslugi".
+    /// A count would show the badge and leave the plan short, which is the one failure `ADR-11`
+    /// exists to prevent.
+    /// </summary>
+    internal IReadOnlyList<EntryRow> Instances { get; private set; } = [];
+
+    /// <summary>
+    /// Tells this row which instances are folded under it, which is usually none.
+    ///
+    /// <b>Called about every row on every pass, including the rows that gained nothing.</b> A
+    /// template standing for four of them a keystroke ago has to lose the badge saying so, and the
+    /// only cheap way to be right about that is to say it about all of them -
+    /// <see cref="Folding.Of"/> carries the argument.
+    ///
+    /// The list is taken as given rather than copied. It is built once per pass by the fold and
+    /// handed to exactly one row, and copying 23 short lists per keystroke would buy an
+    /// immutability nothing in this window is trying to break.
+    /// </summary>
+    internal void StandsAlsoFor(IReadOnlyList<EntryRow> instances)
+    {
+        Instances = instances;
+
+        // Set rather than assigned, so a family whose run state has not moved says nothing at all.
+        // This runs on every keystroke, and a row announcing an unchanged string 810 times a
+        // second is the shape of waste `A10` was measured to remove.
+        StandsFor = Folding.Badge(instances);
     }
 
     /// <summary>The entry behind this row, which is what a query is asked about.</summary>

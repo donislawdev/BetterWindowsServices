@@ -3,10 +3,15 @@
                     xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
-        WHAT A CELL IS AND WHAT IT SHOWS. The cell itself, the four ways a word can be
-        written in one, the two marks that sit beside a word, and the templates the
-        meaningful columns are drawn with. Not one value of its own - every number, colour
-        and thickness below is a name declared in Values.xaml.
+        WHAT A CELL IS AND WHAT IT SHOWS. The cell itself, the five ways a word can be
+        written in one, and the templates the meaningful columns are drawn with. Not one
+        value of its own - every number, colour and thickness below is a name declared in
+        Values.xaml.
+
+        THE MARKS LEFT ON 2026-08-25 AND THE SENTENCE THEY BREAK IS FURTHER DOWN THIS
+        COMMENT, REWRITTEN RATHER THAN LEFT TO ROT. They are in Marks.xaml, which is merged
+        immediately before this file - the templates below name StatusMark, StartMark and
+        AgainstMark through StaticResource, which resolves while this file is being read.
 
         ADR-23, the same rule as the other three files: a value invented here would be as
         invisible as one invented in a view, and the guard treats all four alike.
@@ -23,16 +28,24 @@
         A ceiling that forces a seam is the ceiling working.
 
         WHY THE SEAM IS HERE. List.xaml keeps what the list is BUILT FROM - the grid, the
-        row and the template it owns, the headings. This keeps what a person actually READS -
-        a cell, its words and its marks. Everything about a cell is on this side, which is
-        what makes the name answerable without opening the file.
+        row and the template it owns, the headings. This keeps what a person actually READS
+        in a cell: its words, and what a cell is made of.
 
-        NONE OF THE FOUR LOADS ON ITS OWN. This one reaches WPF UI's keys -
-        DefaultDataGridCellStyle, BodyTextBlockStyle - and ours in Values.xaml, and
-        StaticResource resolves both WHILE THE FILE IS BEING READ. So the merge order in
-        App.xaml is the library's dictionaries, then Values.xaml, then Controls.xaml, then
-        List.xaml, then this. Anything that loads these files elsewhere has to do the same,
-        which is why WpfHost and tools/wpfui-probe both build the stack in that order.
+        THE SENTENCE THAT USED TO CLOSE THAT PARAGRAPH IS NO LONGER TRUE AND IS REPLACED
+        RATHER THAN DELETED. It said "everything about a cell is on this side, which is what
+        makes the name answerable without opening the file", and on 2026-08-25 the marks
+        moved out. The name is still answerable and the test is the same one every half of
+        this theme has had to pass: this file holds the WORDS in a cell, Marks.xaml holds the
+        coloured shapes beside three of them. What was bought with that is written at the head
+        of Marks.xaml, and what it cost is this paragraph.
+
+        NONE OF THEM LOADS ON ITS OWN. This one reaches WPF UI's keys -
+        DefaultDataGridCellStyle, BodyTextBlockStyle - and ours in Values.xaml, and the three
+        mark styles in Marks.xaml, and StaticResource resolves all of them WHILE THE FILE IS
+        BEING READ. So the merge order in App.xaml is the library's dictionaries, then
+        Values.xaml, then Controls.xaml, then List.xaml, then Marks.xaml, then this. Anything
+        that loads these files elsewhere has to do the same, which is why WpfHost and
+        tools/wpfui-probe both build the stack in that order.
 
         LAST OF OURS, AND THAT IS A DIRECTION RATHER THAN AN ACCIDENT. An implicit style
         merged later wins, so the most specialised half sits on top. Nothing here is implicit
@@ -122,209 +135,31 @@
     </Style>
 
     <!--
-        THE GEOMETRY EVERY MARK SHARES, AND IT CARRIES NO TRIGGER ON PURPOSE - 2026-08-12,
-        backlog 166.
+        WHAT A ROW STANDS FOR BESIDES ITSELF - the count `A11` asks for beside a folded template,
+        "CDPUserSvc - 4 instancje".
 
-        Until today `StartMark` was BasedOn `StatusMark`, which meant it inherited every one of
-        that style's triggers - and those read `StatusShape`, the RUN STATE. A running entry hit
-        the "running" trigger, which sets Fill and Stroke; the start column's own "disabled"
-        trigger then set Stroke and left the Fill alone. So an entry that was running and
-        disabled wore a GREEN FILLED DOT in the column about its next start. Measured on the
-        pixel before the repair: #6CCB5F, the same green as the status dot two columns left.
+        SUBDUED, BECAUSE IT IS NOT THE NAME. The cell beside it is the identity a plan is built
+        from, and a count in the same weight would compete with it down a column of 800 rows.
+        TextSubdued rather than a new brush: ContrastGuards already holds it to the text threshold,
+        so this cannot be the eleventh brush nobody checked.
 
-        A mark must answer about its own column and nothing else. The way to guarantee that is
-        for the shared half to be geometry with no opinion about any field, which is this style,
-        and for each mark to carry its own triggers and only its own. `MarkDistinctionGuards`
-        holds the rule now - it walks the BasedOn chain, which is exactly what it could not see
-        before, because it read a style's own triggers and never its inherited ones.
+        COLLAPSED WHEN THERE IS NOTHING TO SAY, rather than drawn empty. Almost every row on the
+        machine stands only for itself - 775 of 798 measured here - so a badge that merely had no
+        text would still take part in layout and push every name in the list sideways for the
+        benefit of twenty-three of them.
+
+        The trimming comes down from CellText and is left alone deliberately: this column is Auto,
+        so the badge never gives way, and `CellTips` refuses to show a tooltip over text that did
+        not - so the placeholder it inherits costs a decision at hover time and nothing at all per
+        row.
     -->
-    <Style x:Key="MarkShape" TargetType="Ellipse">
-        <Setter Property="Width" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Height" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Margin" Value="{StaticResource MarginAfterShape}" />
-        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Fill" Value="{x:Static media:Brushes.Transparent}" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-    </Style>
-
-    <!--
-        THE MARK BESIDE A MEANING, AND FILLED VERSUS HOLLOW IS NOT DECORATION.
-
-        Filled means the entry is doing something - running, or on its way somewhere. Hollow
-        means it is not. Colour separates within each pair, so the shape carries the coarse
-        answer and the colour the fine one. WCAG 2.2 SC 1.4.1 says colour may not be the only
-        visual means of conveying information, and the word beside the mark is the third
-        channel and always present.
-
-        The trigger compares against a CODE from the view model, never against the word. The
-        word is translated; the code is not, and a trigger matching on "Running" would quietly
-        stop matching the day a second language file appears - the row would just lose its
-        colour, with nothing anywhere saying why. This project has had four of those.
-    -->
-    <Style x:Key="StatusMark" TargetType="Ellipse" BasedOn="{StaticResource MarkShape}">
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.running">
-                <Setter Property="Fill" Value="{StaticResource MeaningRunning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningRunning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.transit">
-                <Setter Property="Fill" Value="{StaticResource MeaningWarning}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.stopped">
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.paused">
-                <Setter Property="Stroke" Value="{StaticResource MeaningWarning}" />
-            </DataTrigger>
-
-            <!--
-                Explicit rather than left to the style's default, which drew it identically to a
-                stopped entry. Backlog 149 - the mark now differs in shape, not in a shade of grey
-                nobody can separate.
-            -->
-            <DataTrigger Binding="{Binding StatusShape}" Value="shape.unknown">
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        The start type's mark, and it is Hidden rather than Collapsed for the ordinary case.
-        Collapsed would give the space back and every word in the column would sit at a
-        different place depending on whether its entry had something to report, which is a
-        ragged column pretending to be information.
-
-        Waiting on a trigger deliberately gets NO mark. It is not a fault - it is why four of
-        the ten entries that read as "automatic and not running" on a real machine were fine.
-        It is said in words, next to the type, where it explains rather than accuses.
-    -->
-    <Style x:Key="StartMark" TargetType="Ellipse" BasedOn="{StaticResource MarkShape}">
-        <Setter Property="Visibility" Value="Hidden" />
+    <Style x:Key="CellBadge" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
 
         <Style.Triggers>
-            <!--
-                Each mark says what it means, backlog 149. Colour was the only carrier until
-                2026-08-10 and docs/11 forbids exactly that - the owner reported seeing dots that
-                were sometimes empty and sometimes red with no way to find out why.
-            -->
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.missing">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.missing}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.disabled">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.disabled}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.unknown">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.unknown}" />
-            </DataTrigger>
-
-            <!--
-                THE FOUR START TYPES, 2026-08-17, owner's decision - until then all four were drawn
-                as nothing at all, so the mark in this column answered "is something wrong" and
-                never "what is this set to".
-
-                RINGS, NOT FILLS, AND THE THREE TRIGGERS ABOVE ARE WHY. A filled mark here means
-                the manager cannot carry out the setting - only the missing file earns that, and it
-                is declared first so it wins. These four set Stroke and leave Fill alone, which the
-                base style has already put at Transparent.
-
-                Their colours are argued in Themes/Colours.xaml, where they are measured: quiet on
-                purpose, separated from each other by calculation, and none of them anywhere near
-                the green a running service wears two columns to the left. That last one is backlog
-                166, which was exactly this picture arriving by accident.
-            -->
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.boot">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource StartBoot}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.boot}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.system">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource StartSystem}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.system}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.automatic">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource StartAutomatic}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.automatic}" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding StartShape}" Value="shape.start.manual">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource StartManual}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.start.mark.manual}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--
-        THE THIRD MARK, AND IT IS A TRIANGLE RATHER THAN A DOT ON PURPOSE - backlog 165.
-
-        The column answering "is this entry doing the opposite of its start type" carried the word
-        Yes or No alone, between two columns that both wear marks, and `docs/11` 3.1 calls a word
-        without a shape insufficient wherever something means something.
-
-        WHY NOT A THIRD DOT. A dot in that position reads as one more answer about the running
-        state - which is the confusion the start column was repaired for on the same day. This is a
-        PERSISTENT disagreement between two settings rather than a state something is passing
-        through, so it gets its own shape family and it does not borrow the amber that means "on
-        its way somewhere" either.
-
-        WHY THE COLOUR IS BORROWED AND NOT INVENTED. MeaningUntrusted already carries "something
-        here is wrong" for a missing file, and every brush in this product has a declared contrast
-        threshold that `ContrastGuards` enforces - a new colour would be a new threshold to argue
-        rather than a shape to draw. The two marks that share it are never in the same column and
-        differ in shape, which is the rule `MarkDistinctionGuards` holds.
-
-        Only a definite YES is marked. An entry doing what its start type says is the ordinary case,
-        and marking seven hundred ordinary rows is how a mark stops meaning anything.
-    -->
-    <Style x:Key="AgainstMark" TargetType="Path">
-        <Setter Property="Data" Value="{StaticResource ShapeAgainst}" />
-        <Setter Property="Stretch" Value="Uniform" />
-        <Setter Property="Width" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Height" Value="{StaticResource ShapeMark}" />
-        <Setter Property="Margin" Value="{StaticResource MarginAfterShape}" />
-        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Visibility" Value="Hidden" />
-        <Setter Property="Fill" Value="{x:Static media:Brushes.Transparent}" />
-        <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding AgainstShape}" Value="shape.against">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Fill" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUntrusted}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.against.mark.yes}" />
-            </DataTrigger>
-
-            <!--
-                A broken outline for broken knowledge, the same rule the two dots keep - and the
-                only shape in any of the three columns that is not a whole one.
-            -->
-            <DataTrigger Binding="{Binding AgainstShape}" Value="shape.unknown">
-                <Setter Property="Visibility" Value="Visible" />
-                <Setter Property="Stroke" Value="{StaticResource MeaningUnknown}" />
-                <Setter Property="StrokeDashArray" Value="{StaticResource ShapeUnreadableOutline}" />
-                <Setter Property="ToolTip" Value="{DynamicResource gui.against.mark.unknown}" />
+            <DataTrigger Binding="{Binding StandsFor}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -350,6 +185,39 @@
         every other cell in the list. The mark is not a cell - it sits beside one - and it is a
         code rather than a word precisely so that a trigger never compares against translated text.
     -->
+    <!--
+        THE NAME, AND WHAT THE ROW STANDS FOR BESIDES ITSELF - `A11`.
+
+        THE WORD COMES THROUGH THE INDEXER AND THE BADGE THROUGH A PROPERTY, which is the same split
+        the two cells below use and it is not an inconsistency. The name is a cell, so it is asked
+        for by the column's identifier like every other cell in the list. The badge is not - it sits
+        beside one - and keeping it out of the cell is what stops it reaching the clipboard, the
+        sort and the plan, all three of which read the identity.
+
+        THE NAME TAKES THE STAR AND THE BADGE IS Auto, so the badge lines up down the right edge of
+        the column and the name is the half that gives way. A count that moved with the length of
+        each name would have to be read row by row, which is complaint 3 of the eleven in `docs/11`
+        arriving at a different column.
+
+        A Grid rather than a StackPanel, for the reason spelled out over the cells below: a
+        horizontal StackPanel measures its children against infinite width, so the name would never
+        learn it has to give way and its ellipsis would be present, correct and dead.
+    -->
+    <DataTemplate x:Key="NameCell">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="{Binding [serviceName]}"
+                       Style="{StaticResource CellText}" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding StandsFor}"
+                       Style="{StaticResource CellBadge}" />
+        </Grid>
+    </DataTemplate>
+
     <DataTemplate x:Key="StatusCell">
         <Grid>
             <Grid.ColumnDefinitions>
