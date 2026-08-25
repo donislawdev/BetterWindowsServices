@@ -69,7 +69,26 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     /// there is still there, still means what it meant, and a version 2 file IS a version 3 file
     /// that says nothing about sorting.
     /// </summary>
-    internal const int CurrentSchemaVersion = 3;
+    /// <summary>
+    /// FOUR SINCE 2026-08-25, LATER THE SAME DAY, AND ONE SIBLING JOINED - whether the machine
+    /// overview has been dismissed. A version 3 file IS a version 4 file that says nothing about it,
+    /// and saying nothing means "not yet", which is what an older file honestly means.
+    ///
+    /// <b>IT IS HERE RATHER THAN IN A SIGNAL THE PROBES ALREADY OWN, and that is the whole reason
+    /// this version exists</b> - owner's decision, 2026-08-25. `G` asks for the overview "at start
+    /// without saved configuration", and the obvious reading of that is the absence of this file.
+    /// But eleven probes in tools/ move this file aside ON PURPOSE, to measure the theme rather than
+    /// somebody's arrangement - <c>tools/gui-probe/window-helpers.ps1</c> says so in as many words -
+    /// so its absence already means "this person has not arranged their columns". Overloading it
+    /// with "and has never seen this tool" would make every probe open on the overview instead of
+    /// the list it exists to measure, and would conflate two facts that are genuinely different.
+    ///
+    /// <b>The alternative and its price, said rather than left out:</b> the probes could lay down a
+    /// default layout after moving the person's aside, which needs no schema bump - and needs a copy
+    /// of which six columns are default, knowledge that lives only in <see cref="Columns"/> today
+    /// and would drift the first time that list changes, silently.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 4;
 
     /// <summary>The oldest schema this build reads and carries forward. See <see cref="Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
@@ -201,6 +220,22 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         ColumnLayout.DefaultFor(EntryScope.Drivers),
         ColumnLayout.DefaultFor(EntryScope.Everything));
 
+    /// <summary>
+    /// Whether the machine overview has been dismissed on this profile - `G`, schema 4.
+    ///
+    /// <b>An init-only property rather than a fourth positional parameter, and that is not a style
+    /// choice.</b> This record is named for the three column layouts and every call site constructs
+    /// it with those three. A fourth position would make every one of them state an answer to a
+    /// question they are not about, and the honest default - false, meaning "nobody has seen it" -
+    /// is exactly what an absent key in an older file means.
+    ///
+    /// <b>False is the answer for every file this build has never written</b>, including a version 3
+    /// one carried forward. That is deliberate: somebody upgrading has not seen this screen either,
+    /// and showing it once to a person who has already arranged their columns is a smaller mistake
+    /// than never showing it at all.
+    /// </summary>
+    internal bool OverviewSeen { get; init; }
+
     /// <summary>The layout for one scope.</summary>
     internal ColumnLayout For(EntryScope scope) => scope switch
     {
@@ -250,6 +285,14 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         tree["everythingColumns"] = Everything.Render();
 
         Sorted(tree, "everythingSort", Everything.Sort);
+
+        // WRITTEN ONLY WHEN IT IS TRUE, which is the rule every optional key in this file follows:
+        // what is not there is what the program does on its own. Ordinal order holds - o beats s,
+        // and everythingSort is already past.
+        if (OverviewSeen)
+        {
+            tree["overviewSeen"] = true;
+        }
 
         tree["schemaVersion"] = ColumnLayout.CurrentSchemaVersion;
 
@@ -325,9 +368,15 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
             ? ColumnLayout.From(forEverything)
             : ColumnLayout.DefaultFor(EntryScope.Everything)) with { Sort = SortFrom(root["everythingSort"]) };
 
+        // ASKED FOR AS A BOOLEAN AND NOT COERCED FROM ANYTHING ELSE. A key holding a string or a
+        // number is a file somebody edited by hand into a shape this does not know, and answering
+        // "not seen" is the safe half of that: the worst it costs is one screen somebody has
+        // already read, where the other way round costs the screen entirely.
+        var overviewSeen = root["overviewSeen"] is JsonValue seen && seen.TryGetValue<bool>(out var yes) && yes;
+
         return new LayoutReading
         {
-            Layouts = new ColumnLayouts(services, drivers, everything),
+            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen },
             CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
         };
     }
@@ -415,82 +464,4 @@ internal sealed record LayoutReading
     /// <summary>Whether the window has to say something about this before anybody asks.</summary>
     internal bool WorthSaying =>
         Unreadable is not null || OtherSchemaVersion is not null || CarriedForwardFrom is not null;
-}
-
-/// <summary>
-/// A layout file reconciled with the columns this build actually has.
-///
-/// <b>Four degenerate files, all of them ordinary, and each answered here rather than at the
-/// grid.</b> `docs/04` names them at `S6d`: a layout holding a column that has since been taken
-/// away, a layout written before a column was added, a layout with every column hidden, and a
-/// layout from a schema this build does not read. The last one never reaches this class - it is
-/// refused while reading, because guessing at its fields is the fault it exists to prevent.
-///
-/// <b>What comes out is always complete and always usable</b>: every column this build has,
-/// exactly once, in a display order, with at least one of them shown. The grid is then handed
-/// something it cannot be broken by, and everything that had to be left out is named.
-/// </summary>
-internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ignored, bool NoneWasShown)
-{
-    /// <summary>
-    /// Works out what to show, from a layout that may be missing, stale or contradictory.
-    ///
-    /// <b>A column the file never mentioned joins at the end with the state it would have had if
-    /// there were no file.</b> That is the case of a build that added a column since the layout
-    /// was written, and the alternative - dropping it - is a feature that silently does not exist
-    /// for everybody who used the previous version.
-    ///
-    /// <b>A file with every column hidden is refused rather than obeyed.</b> Eight hundred rows of
-    /// nothing above a count line still saying eight hundred is the empty rectangle complaint 9 of
-    /// `docs/11` is about, and <see cref="ColumnChoice.MayHide"/> already refuses to let anybody
-    /// reach it through the window - so a file that asks for it was hand edited, and the honest
-    /// answer is the usual six and a sentence saying so.
-    /// </summary>
-    internal static ColumnPlan Of(ColumnLayout? layout, EntryScope scope)
-    {
-        if (layout is null)
-        {
-            return new ColumnPlan(ColumnLayout.DefaultFor(scope), [], NoneWasShown: false);
-        }
-
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var kept = new List<KeptColumn>();
-        var ignored = new List<string>();
-
-        foreach (var column in layout.Columns)
-        {
-            // A name this build does not have, or the same column twice. Both are files somebody
-            // edited or files older than a rename, and both leave a column out of the order -
-            // which is a thing the person is told about rather than a thing they notice later.
-            if (Columns.Of(column.Id) is null || !seen.Add(column.Id))
-            {
-                ignored.Add(column.Id);
-
-                continue;
-            }
-
-            kept.Add(column);
-        }
-
-        // The scope decides what "the state it would have had" means, because a column empty in one
-        // list is not empty in the other - Column.OffAtFirstIn.
-        foreach (var column in Columns.All.Where(column => seen.Add(column.Id)))
-        {
-            kept.Add(new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null));
-        }
-
-        var noneWasShown = !kept.Exists(column => column.Shown);
-
-        if (noneWasShown)
-        {
-            kept = [.. kept.Select(column =>
-                column with { Shown = Columns.Of(column.Id)!.ShownAtFirstIn(scope) })];
-        }
-
-        // THE ORDER TRAVELS WITH THE COLUMNS, and leaving it behind here is a fault that looks
-        // exactly like a feature nobody built: the file holds the sort, the window reads the file,
-        // and the list comes up unsorted with nothing anywhere saying why. Found 2026-08-25 by the
-        // guard that opens a window twice.
-        return new ColumnPlan(new ColumnLayout(kept, layout.Sort), ignored, noneWasShown);
-    }
 }

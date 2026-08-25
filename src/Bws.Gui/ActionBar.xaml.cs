@@ -45,6 +45,9 @@ public partial class ActionBar : UserControl
     /// <summary>Somebody asked to see what setting a start type would do.</summary>
     internal event EventHandler<StartTypeAsked>? StartTypeRequest;
 
+    /// <summary>Somebody asked for the machine overview back - `G`.</summary>
+    internal event EventHandler? OverviewRequest;
+
     /// <summary>
     /// How many rows are picked, which decides whether the three buttons mean anything.
     ///
@@ -100,6 +103,9 @@ public partial class ActionBar : UserControl
     /// <inheritdoc cref="Stop"/>
     internal Button StartType => StartTypeButton;
 
+    /// <inheritdoc cref="Stop"/>
+    internal Button OverviewBack => OverviewButton;
+
     private static void Set(Button button, bool anything, string saying)
     {
         button.IsEnabled = anything;
@@ -121,6 +127,9 @@ public partial class ActionBar : UserControl
 
     private void ExportAsked(object sender, RoutedEventArgs e) =>
         ExportRequest?.Invoke(this, EventArgs.Empty);
+
+    private void OverviewAsked(object sender, RoutedEventArgs e) =>
+        OverviewRequest?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Opens the three types under the button, the same way the column picker opens its list.

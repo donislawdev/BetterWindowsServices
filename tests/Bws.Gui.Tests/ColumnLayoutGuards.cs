@@ -30,7 +30,7 @@ public sealed class ColumnLayoutGuards
     {
         var text = ColumnLayouts.Default.Render();
 
-        Assert.Contains("\"schemaVersion\": 3", text, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": 4", text, StringComparison.Ordinal);
         Assert.EndsWith("\n", text, StringComparison.Ordinal);
 
         foreach (var column in Columns.All)
@@ -245,10 +245,11 @@ public sealed class ColumnLayoutGuards
     {
         // THE CURRENT VERSION, WHATEVER IT IS TODAY, and the number moves with the schema for a
         // reason: this test is about an empty list of columns and nothing else. It said 1 until
-        // 2026-08-19 and 2 until 2026-08-25, and each time an older number turned it into a test
+        // 2026-08-19, 2 until the morning of 2026-08-25 and 3 until that afternoon, and each time
+        // an older number turned it into a test
         // about carrying a file forward - which is true, useful, and somebody else's subject. A
         // fixture asserting silence has to be silent for the reason it names.
-        var read = ColumnLayouts.Read("""{ "columns": [], "schemaVersion": 3 }""");
+        var read = ColumnLayouts.Read("""{ "columns": [], "schemaVersion": 4 }""");
 
         Assert.NotNull(read.Layouts);
         Assert.False(read.WorthSaying);
@@ -274,12 +275,12 @@ public sealed class ColumnLayoutGuards
     {
         var read = ColumnLayouts.Read(
             """
-            { "columns": [ { "id": "serviceName", "shown": true } ], "schemaVersion": 4 }
+            { "columns": [ { "id": "serviceName", "shown": true } ], "schemaVersion": 5 }
             """);
 
         Assert.Null(read.Layouts);
         Assert.Null(read.Unreadable);
-        Assert.Equal(4, read.OtherSchemaVersion);
+        Assert.Equal(5, read.OtherSchemaVersion);
     }
 
     /// <summary>

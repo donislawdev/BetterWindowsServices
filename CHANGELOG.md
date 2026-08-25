@@ -15,6 +15,23 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **The window opens on what the machine looks like, not on several hundred rows.** On a profile
+  that has never put it away, the first thing you see is a handful of numbers rather than an
+  alphabetical list - and clicking any of them puts its question in the search box and shows you
+  the matching entries.
+  - **"Did not come up" means what it says.** The obvious query answers 7 or 8 on the machine this
+    was built on and only one of those is actually down. The headline is that one, and the rest are
+    named under it: per-user templates, which never run because a session copy runs instead, and
+    entries waiting for a trigger, which are stopped because nothing has asked for them. Both are
+    clickable, so nothing is hidden.
+  - Orphans - set to start automatically with the file gone - are counted, and beside them the
+    entries that merely point at a file that is not there, whatever their start type. On this
+    machine that is 0 and 3, which is why both are shown.
+  - **How many entries are not from a stock Windows is not counted, and the screen says so.** It
+    needs the stock baseline, which arrives later. A number it cannot stand behind would be worse
+    than no number.
+  - **Overview** in the bar over the list brings it back at any time.
+
 - **Per-user services are folded under the template they came from**, in the window. Windows makes
   a copy of some services for every session that logs on, with a random-looking tail on the name -
   on the machine this was built on that is 23 entries out of 798, and on a machine with several

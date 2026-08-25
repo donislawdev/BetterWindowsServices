@@ -123,5 +123,26 @@
                 ToolTip="{DynamicResource gui.action.export.hint}"
                 Margin="{StaticResource MarginBetweenControls}"
                 Click="ExportAsked" />
+
+        <!--
+            WHAT THIS MACHINE LOOKS LIKE, `G`, and it belongs on this side of the line with the
+            other two: nothing it does reaches a service.
+
+            THE SPECIFICATION DOES NOT ASK FOR THIS BUTTON AND THE SCREEN NEEDS IT - owner's
+            decision, 2026-08-25. `G` describes the overview as something shown at a first run and
+            says nothing about getting back to it, and the preferences file is written the first
+            time somebody puts it away - so without this the screen would appear once in the life of
+            a profile. The person it is written for is an administrator opening this on their
+            twentieth unknown server, who wants it every time.
+
+            No three dots, because it opens nothing and asks nothing - it changes what the middle of
+            the window is showing, which is the same promise Refresh makes about the same area.
+        -->
+        <Button x:Name="OverviewButton"
+                AutomationProperties.AutomationId="actionOverview"
+                Content="{DynamicResource gui.overview.button}"
+                ToolTip="{DynamicResource gui.overview.button.hint}"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="OverviewAsked" />
     </StackPanel>
 </UserControl>

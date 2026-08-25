@@ -57,6 +57,48 @@ internal sealed class KeptColumns
     internal ColumnPlan Plan { get; private set; }
 
     /// <summary>
+    /// Whether this profile has already put the machine overview away - `G`, schema 4.
+    ///
+    /// <b>Asked of what was READ rather than of the reconciled layouts</b>, and the difference is
+    /// the whole answer on a first run: a file that is not there gives no layouts at all, so
+    /// <see cref="_layouts"/> falls back to the defaults - and a default that said "seen" would
+    /// hide this screen from exactly the person it was written for.
+    /// </summary>
+    internal bool OverviewSeen => _reading.Layouts?.OverviewSeen ?? false;
+
+    /// <summary>
+    /// Writes down that the overview has been put away, and says in the window what stopped it.
+    ///
+    /// <b>Written the moment it is dismissed rather than when the window closes, and that is the
+    /// case this exists for.</b> The layout is saved on close, so a first run ended by a machine
+    /// going down - or by the process being killed, which is how half this project's probes end -
+    /// would show this screen again to somebody who had already read it.
+    ///
+    /// <b>It does not harvest the grid, unlike every other write here.</b> Nothing about the columns
+    /// has changed, the grid may not even be visible, and harvesting a collapsed one would write a
+    /// layout describing a control nobody is looking at.
+    ///
+    /// Does nothing when it is already written, so clicking through the numbers costs one write
+    /// rather than one per click.
+    /// </summary>
+    internal void TheOverviewWasSeen(Says says)
+    {
+        ArgumentNullException.ThrowIfNull(says);
+
+        if (_layouts.OverviewSeen)
+        {
+            return;
+        }
+
+        _layouts = _layouts with { OverviewSeen = true };
+
+        if (_file.Write(_layouts) is { } trouble)
+        {
+            says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
+        }
+    }
+
+    /// <summary>
     /// Moves the kept layout to another scope, and hands back what the grid should look like there.
     ///
     /// <b>The old scope is harvested FIRST, and that is the half that is easy to leave out.</b> The

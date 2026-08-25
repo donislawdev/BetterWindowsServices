@@ -155,6 +155,11 @@ public partial class MainWindow : Window
 
         HandTheColumnsOver();
 
+        // WHAT THIS MACHINE LOOKS LIKE BEFORE ANYBODY ASKS IT ANYTHING - `G`. Its own method for the
+        // reason Arrange has one: an analyser asked, and the seam is a subject rather than a line
+        // count. MainWindow.Overview.cs.
+        IntroduceTheOverview();
+
         // THE WAY OUT OF A SESSION WITHOUT RIGHTS, wired here rather than in the row that holds it -
         // 2026-08-25, when the status row moved into its own file. Pressing it starts a second copy
         // of this program, and Elevation.cs is the only file allowed to name a process at all, held

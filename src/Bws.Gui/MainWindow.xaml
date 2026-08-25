@@ -288,6 +288,22 @@
         <local:EmptyState Grid.Row="4" x:Name="ListEmptyState" DataContext="{Binding Says}" />
 
         <!--
+            WHAT THIS MACHINE LOOKS LIKE BEFORE ANYBODY ASKS IT ANYTHING - `G`, the first-run
+            screen. It REPLACES the list rather than sitting over it, which is the difference
+            between it and the empty state above and is the owner's decision of 2026-08-25 - the
+            specification asks for "nie surowa liste alfabetyczna", and a band above the list is
+            still a list as the first thing on screen.
+
+            Bound to the whole model, unlike the two panels below it, and that is not carelessness:
+            the numbers are counted over every row the window holds and clicking one writes into
+            the query. Narrowing it to Says would leave it able to say nothing and do nothing.
+        -->
+        <local:OverviewView Grid.Row="4"
+                            Grid.ColumnSpan="2"
+                            x:Name="Overview"
+                            Visibility="Collapsed" />
+
+        <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
             Escape - which is the last of the three keys `docs/11` 9.1 asked for on 2026-08-05 and
             the one that waited for a screen to open, backlog 59.

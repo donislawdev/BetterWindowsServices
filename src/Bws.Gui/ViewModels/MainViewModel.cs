@@ -45,15 +45,6 @@ public sealed partial class MainViewModel : Observable
     /// <summary>Every row that exists, kept in step with the machine.</summary>
     private readonly RowIndex _index;
 
-    /// <summary>
-    /// The manager, kept because a plan asks it who breaks.
-    ///
-    /// <b>Held here as well as inside <see cref="Readings"/>, and that is one object with two
-    /// readers rather than two copies of anything.</b> Reading the listing belongs to Readings.
-    /// Working out what an operation would do is a different question asked at a different moment -
-    /// when somebody opens a preview - and it is this class the window talks to.
-    /// </summary>
-    private readonly IScmCatalog _catalog;
 
     /// <summary>What the machine said, and whether anybody is still asking. Backlog 198.</summary>
     private readonly Readings _readings;
@@ -299,7 +290,26 @@ public sealed partial class MainViewModel : Observable
     /// Handed straight on, because the window binds to this class and the state machine behind it
     /// is not something a window should have to know the name of.
     /// </summary>
-    public Task LoadAsync() => _readings.LoadAsync();
+    public async Task LoadAsync()
+    {
+        await _readings.LoadAsync().ConfigureAwait(true);
+
+        // THE MACHINE OVERVIEW IS COUNTED FROM THE LISTING, AND THE LISTING ARRIVES AFTER THE WINDOW
+        // DOES. Without this line every number on that screen is zero and stays zero: it is worked
+        // out when the screen is asked for, the window asks for it in its constructor, and the first
+        // reading is still out at that point. Found by opening the window rather than by reasoning -
+        // six zeroes on a machine with 798 entries.
+        //
+        // ON A FULL READING RATHER THAN ON EVERY TICK, which is the same restraint `A10` puts on the
+        // list itself. The cheap reading moves a status once a second, and rebuilding six buttons
+        // under somebody's pointer to change one of them is the shape that rule exists to prevent.
+        // This screen is what the machine looked like when it was asked - startup, F5, and after a
+        // plan has been carried out, which are the three moments this method runs.
+        if (_showingOverview)
+        {
+            Raise(nameof(Overview));
+        }
+    }
 
     /// <summary>One tick of the live list: asks what is running and moves whatever moved.</summary>
     public Task RefreshAsync() => _readings.RefreshAsync();
@@ -462,26 +472,4 @@ public sealed partial class MainViewModel : Observable
             Rows.Reconcile(selected);
         }
     }
-
-    /// <summary>
-    /// What an operation over a selection would do. Works it out and changes nothing.
-    ///
-    /// <b>On the calling thread, and that is a measurement rather than an oversight.</b> Building a
-    /// plan asks the manager who depends on each entry, so the obvious worry is that a selection
-    /// costs a question per entry per cascade member. Measured on this machine on 2026-08-18 through
-    /// the command line, five runs each with the first discarded: a plan with a thirteen member
-    /// cascade took 316-360 ms end to end and the same plan with no cascade at all took 325-366 ms.
-    /// The spread is wider than the difference, so by this project's own rule there is no
-    /// difference - the whole figure is process start and the reading of 810 entries.
-    ///
-    /// So no background work, no cancellation and no generation counter. That is the lesson of
-    /// backlog 21 applied a second time: the machinery there turned out to answer a race that did
-    /// not exist, and the limit was in a mechanism nobody had needed.
-    ///
-    /// <b>Every entry the window holds is handed in, never the rows on screen</b>, and the reason is
-    /// at <see cref="RowIndex.Everything"/>: a plan looks entries up by name, so building one
-    /// against a filtered set would silently shorten a cascade.
-    /// </summary>
-    internal BulkPlan Plan(BulkAction action) =>
-        new BulkPlanBuilder(_index.Everything, _catalog).Build(action);
 }

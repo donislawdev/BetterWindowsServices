@@ -13,6 +13,12 @@ by itself is.
 window that shows and filters the same data and can stop, start, restart and set a start type -
 each of those through the same plan, with the same preview in front of it.
 
+On a machine it has not been opened on before, the window starts with a short summary rather than
+the list: how much is running, what was set to start automatically and did not, and what points at
+a file that is no longer there. Every number there is a query you can click, read and edit. It also
+folds the per-session copies of per-user services under the template they came from, because a list
+where a quarter of the rows are session noise is a list nobody reads.
+
 ```
 bws list --query "start:auto !status:running"     what should be up and is not
 bws list --query "file:missing"                   services whose binary is gone

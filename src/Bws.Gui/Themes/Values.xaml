@@ -194,6 +194,20 @@
     -->
     <system:Double x:Key="WidthEmptyState">520</system:Double>
 
+    <!--
+        HOW WIDE THE MACHINE OVERVIEW IS ALLOWED TO GET - `G`. Wider than the empty state, because
+        every line here is a sentence rather than a phrase, and narrower than the window, because a
+        line of prose running the full width of a maximised screen is one the eye loses its place in.
+    -->
+    <system:Double x:Key="WidthOverview">720</system:Double>
+
+    <!--
+        The column the overview's numbers are right aligned in. Fixed rather than Auto, so that a
+        machine answering 1 and a machine answering 1204 put their labels in the same place - which
+        is complaint 3 of the eleven in `docs/11` arriving somewhere that is not a table.
+    -->
+    <GridLength x:Key="ColumnOverviewNumber">64</GridLength>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
