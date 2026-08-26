@@ -126,10 +126,15 @@ internal static class Refusals
     /// <summary>
     /// What is wrong with the words a write verb needs beside it.
     ///
-    /// <b>Its own method because these three are the only checks here that know which verb they are
+    /// <b>Its own method because these are the only checks here that know which verb they are
     /// looking at.</b> Everything above is about the shape of the line - an option nobody knows, a
-    /// value nobody gave - and could be asked of any command. These three are about a NAME and a
-    /// TYPE, which only a write verb has, and only one write verb has the second.
+    /// value nobody gave - and could be asked of any command. These are about arguments a
+    /// particular verb needs: a NAME and a TYPE for the write verbs, a name for <c>show</c>, and
+    /// two sides for <c>snapshot diff</c>.
+    ///
+    /// <b>It stopped being only about write verbs on 2026-08-26</b>, when the two read verbs that
+    /// were asking the same kind of question inside <c>Program</c> moved here - after the manager
+    /// had been read, which is exactly what this class is in front of it to avoid.
     /// </summary>
     private static int? AboutTheAsk(CommandLine options)
     {
@@ -151,6 +156,45 @@ internal static class Refusals
                 OptionSurface.Spelling(options.Kind)));
 
             return ExitCode.Usage;
+        }
+
+        // THESE TWO STOOD INSIDE THEIR OWN BRANCHES IN Program UNTIL 2026-08-26, WHICH MEANT THEY
+        // WERE ASKED AFTER THE MACHINE HAD BEEN READ. That is the one property this whole class
+        // exists for: nothing here opens a handle, so a typo is answered before eight hundred
+        // entries are enumerated. Both of these commands read the manager first and then said
+        // "you left out an argument" - about half a second spent to report a missing word.
+        //
+        // Nothing about the answers changed. Same two sentences, same code, and the order they are
+        // asked in is the order they stood in.
+        if (options.Kind == CommandKind.Show && options.ServiceName.Length == 0)
+        {
+            // The name is required, and its absence is a usage mistake rather than an empty answer -
+            // OptionSurface.TakesAName carries the whole of that argument.
+            Console.Error.WriteLine(Texts.Of("cli.show.nameMissing"));
+
+            return ExitCode.Usage;
+        }
+
+        if (options.Kind == CommandKind.SnapshotDiff)
+        {
+            // Two files, or one file and the machine. Never one file on its own: that would have
+            // to be guessed into meaning something, and the only thing it could mean is the
+            // expensive one. --live says it in a word, which is how E1 writes it.
+            if (options.Path.Length == 0 || (options.Against.Length == 0 && !options.Live))
+            {
+                Console.Error.WriteLine(Texts.Of("cli.diff.needsTwoSides"));
+
+                return ExitCode.Usage;
+            }
+
+            if (options.Live && options.Against.Length > 0)
+            {
+                // Three sides to a comparison with two. Refused rather than resolved by picking
+                // one, because either choice would silently ignore something the person typed.
+                Console.Error.WriteLine(Texts.Of("cli.diff.liveTakesOneFile"));
+
+                return ExitCode.Usage;
+            }
         }
 
         if (WriteCommands.NeedsAStartType(options.Kind))

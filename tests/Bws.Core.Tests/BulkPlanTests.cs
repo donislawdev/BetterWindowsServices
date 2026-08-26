@@ -195,6 +195,46 @@ public sealed class BulkPlanTests
 
     // -- fixtures --------------------------------------------------------------------------
 
+    /// <summary>
+    /// Setting a start type asks the manager nothing about who depends on what.
+    ///
+    /// <b>It asked once per selected entry until 2026-08-26, and every one of those was wasted.</b>
+    /// Nothing is taken down by a configuration change, so there is no order for the answers to
+    /// decide - PlanBuilder says so in the arm that builds the step. What the questions cost is the
+    /// point: each one opens the service control manager and then the service, and this is worked
+    /// out on the thread drawing the window while somebody waits for a preview. Three hundred rows
+    /// selected and disabled meant three hundred round trips to sort a list whose order did not
+    /// matter.
+    /// </summary>
+    [Fact]
+    public void Setting_a_start_type_asks_the_manager_nothing_about_dependents()
+    {
+        var catalog = Chain();
+
+        var plan = new BulkPlanBuilder(catalog.ReadAll(), catalog).Build(
+            new BulkAction(ActionKind.SetStartType, ["MRxSmb20", "LanmanWorkstation"], To: StartType.Disabled));
+
+        Assert.True(plan.IsRunnable);
+        Assert.Empty(catalog.DependentsAsked);
+
+        // And the selection is dealt with in the order somebody handed it over, because there is
+        // nothing that could reorder it.
+        Assert.Equal(["MRxSmb20", "LanmanWorkstation"], plan.Plans.Select(one => one.Action.ServiceName));
+    }
+
+    [Fact]
+    public void Stopping_still_asks_who_depends_on_what()
+    {
+        // The half the change above must not have bought. A stop has exactly one order that works,
+        // and the manager is the only authority on what it is.
+        var catalog = Chain();
+
+        new BulkPlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new BulkAction(ActionKind.Stop, ["MRxSmb20", "LanmanWorkstation"]));
+
+        Assert.NotEmpty(catalog.DependentsAsked);
+    }
+
     private static BulkPlan Bulk(ActionKind kind, IReadOnlyList<string> names, bool includeDependents)
     {
         var catalog = Chain();

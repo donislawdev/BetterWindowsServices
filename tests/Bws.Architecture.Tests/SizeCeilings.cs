@@ -143,8 +143,16 @@ internal static class SizeCeilings
     ///
     /// <b>528 to 525 on 2026-08-25:</b> `show` needed room in CommandLine.cs, the reading went to
     /// CommandLine.Reading.cs, and the longest is WindowsScmCatalog.cs.
+    ///
+    /// <b>525 to 495 on 2026-08-26, AND THE SAME ENTRY SAID SO AGAIN: MISSED.</b> Bounding the
+    /// trigger walk pushed ScmDetailReader.cs past 500, so the three walks over blocks the manager
+    /// filled went into ManagerBlocks.cs - and the same guard then asked WindowsScmCatalog.cs for
+    /// room too, which sent two more of them to the same file. It is still the longest, thirty
+    /// lines shorter than the dial that was holding it. **Thirty lines of slack is inside what the
+    /// drift test forgives and outside what the mutation entry forgives**, which is the second one
+    /// earning its place: a guard nobody can make fail is not holding anything.
     /// </summary>
-    internal const int LongestShippedFile = 525;
+    internal const int LongestShippedFile = 495;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second
@@ -372,8 +380,23 @@ internal static class SizeCeilings
     /// dial went on allowing three. The full mutation run said so and nothing else did: every test
     /// was green, because a loose dial is green by construction.
     /// </summary>
-    /// <summary><b>Two to one on 2026-08-25</b>, after that split left one long file.</summary>
-    internal const int ShippedFilesAllowedToBeLong = 1;
+    /// <summary>
+    /// <b>Two to one on 2026-08-25</b>, after that split left one long file.
+    ///
+    /// <b>One to ZERO on 2026-08-26, and the mutation entry asked for it for the third time.</b>
+    /// The two seams of that day - ManagerBlocks.cs taking the bounded walks out of
+    /// ScmDetailReader.cs and then out of WindowsScmCatalog.cs - left NO shipped file over five
+    /// hundred lines at all. With a spare slot and nothing in it, making one file long changed
+    /// nothing and the entry came back MISSED, exactly as the paragraph above describes.
+    ///
+    /// <b>Zero is a real number here rather than an accident, and it is the first time this dial
+    /// has said it.</b> What it now means is plain: the next shipped file to cross five hundred
+    /// lines has to argue for itself in this file, which is the whole point of the dial. The
+    /// paragraph above about markup - that lowering to zero would make honest lines argue with two
+    /// guards - does not transfer, because there the ceiling and the count watch four files
+    /// between them and here they watch forty.
+    /// </summary>
+    internal const int ShippedFilesAllowedToBeLong = 0;
     internal const int TestFilesAllowedToBeLong = 2;
 
     /// <summary>

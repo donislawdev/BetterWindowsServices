@@ -354,6 +354,30 @@ public sealed class StartTypeTests
         }
     }
 
+    /// <summary>
+    /// Asking to set a start type without one is refused where the plan is built, not where it runs.
+    ///
+    /// <b>Neither interface can produce this, and the shape of the types allowed it anyway.</b> A
+    /// step carries its start type optionally, because a stop and a start have none - and nothing
+    /// tied the one operation that needs a type to actually having one. Three places then read it
+    /// with a bang, and the one that matters is inside PlanRunner: it would have thrown MIDWAY
+    /// THROUGH A RUN, after earlier steps had already changed the machine.
+    ///
+    /// Loud rather than a problem in the plan, and that is deliberate. A problem is a sentence
+    /// somebody reads, and there is no way for anybody to reach this - so the sentence would be
+    /// user-facing text about a state no user can be in. Same argument PlanRunner.Run makes about
+    /// being handed a plan with problems.
+    /// </summary>
+    [Fact]
+    public void A_start_type_change_with_no_type_is_refused_before_anything_is_planned()
+    {
+        var catalog = Specimens.Catalog();
+        var builder = new PlanBuilder(catalog.ReadAll(), catalog);
+
+        Assert.Throws<ArgumentException>(() =>
+            builder.Build(new ServiceAction(ActionKind.SetStartType, "Spooler")));
+    }
+
     private static OperationPlan Plan(StartType to, string serviceName)
     {
         var catalog = Specimens.Catalog();

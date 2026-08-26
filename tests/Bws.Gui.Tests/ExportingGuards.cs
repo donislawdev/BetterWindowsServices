@@ -86,6 +86,43 @@ public sealed class ExportingGuards
     }
 
     /// <summary>
+    /// A value a spreadsheet would run is made into something it reads.
+    ///
+    /// <b>THE VALUES IN THIS FILE ARE WRITTEN BY WHOEVER INSTALLED THE SERVICE, which is the thing
+    /// being audited.</b> A display name, a launch path, an account and a description all come from
+    /// there. A spreadsheet treats a cell starting with one of five characters as a formula, so a
+    /// service named <c>=cmd|'/c calc'!A1</c> arrived in an administrator's sheet as something to
+    /// run. Quoting to RFC 4180 does not stop it - the quotes come off on the way in and the
+    /// formula is what is left.
+    ///
+    /// Owner's decision, 2026-08-26, with the cost said out loud: this CHANGES the value, so the
+    /// file stops being a character for character copy of the screen.
+    /// </summary>
+    [Theory]
+    [InlineData("=cmd|'/c calc'!A1")]
+    [InlineData("+1+1")]
+    [InlineData("-1+1")]
+    [InlineData("@SUM(A1)")]
+    public void A_value_a_spreadsheet_would_evaluate_is_made_inert(string dangerous)
+    {
+        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", dangerous))]);
+
+        Assert.Contains("'" + dangerous, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_ordinary_value_is_left_exactly_as_it_was()
+    {
+        // The half that must not be bought with the one above. Nearly every value in this file is
+        // ordinary, and a file where they all carried a stray apostrophe would be a file nobody
+        // could paste anywhere.
+        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", "Print Spooler"))]);
+
+        Assert.Contains("Print Spooler", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("'Print Spooler", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The columns are the ones that are ON, in the order they are on SCREEN.
     ///
     /// <b>Read through the window rather than through the catalogue</b>, because the two disagree the

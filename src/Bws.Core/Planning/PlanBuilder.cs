@@ -14,6 +14,29 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
 {
     public OperationPlan Build(ServiceAction action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
+        if (action.Kind == ActionKind.SetStartType && action.To is null)
+        {
+            // NOT A REFUSAL A PERSON CAN MEET, and that is why it is loud here rather than a
+            // problem in the plan. Neither interface can produce it - the command line turns it
+            // back in Refusals.AboutTheAsk and the window only ever offers three start types - so
+            // a sentence for it would be user-facing text nobody could ever read, which this
+            // project treats as a lie of its own.
+            //
+            // What it is instead is a shape the types allow: PlanStep.To is optional because a
+            // stop and a start have no start type to carry, and nothing tied the one operation
+            // that needs it to having one. Three places dereference it with a bang, and the worst
+            // of them is PlanRunner.Configure - which would throw HALFWAY THROUGH A RUN, after
+            // earlier steps had already changed the machine. Same argument as PlanRunner.Run
+            // makes about a plan with problems: caught before anything happens rather than
+            // discovered while it is happening.
+            throw new ArgumentException(
+                "Setting a start type needs a start type. A SetStartType action without one cannot "
+                + "be planned - the step would have nothing to write.",
+                nameof(action));
+        }
+
         // Identity is the service name, compared without case, because that is how Windows
         // compares it. Never the display name, which is translated (ADR-14).
         var target = entries.FirstOrDefault(entry =>

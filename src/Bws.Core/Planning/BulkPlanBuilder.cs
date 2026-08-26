@@ -72,7 +72,19 @@ public sealed class BulkPlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog
     /// another - the machine still ends where the plan said it would, the preview shows both, and
     /// <see cref="BulkPlan.Overlapping"/> names it. A cleverer order would trade a visible repeat
     /// for an invisible rule.
+    ///
+    /// <b>Setting a start type joined the unordered side on 2026-08-26, and it had been on the
+    /// wrong one since this was written.</b> Nothing is taken down - <see cref="PlanBuilder"/> says
+    /// so in the arm that builds the step, which is one line under a switch whose other arms are
+    /// four - so there is no constraint for an order to satisfy. The cost of getting it wrong was
+    /// not the order, which was harmless, but the question asked to work it out:
+    /// <see cref="DependentsFirst.Order"/> spends one <c>ReadDependents</c> per name, and each of
+    /// those opens the manager and then the service. Selecting three hundred entries and asking to
+    /// disable them paid three hundred round trips to the manager, on the thread drawing the
+    /// window, to sort a list whose order did not matter.
     /// </summary>
     private List<string> InTheOrderTheyMustHappen(ActionKind kind, List<string> asked) =>
-        kind == ActionKind.Start ? asked : DependentsFirst.Order(catalog, asked);
+        kind is ActionKind.Start or ActionKind.SetStartType
+            ? asked
+            : DependentsFirst.Order(catalog, asked);
 }

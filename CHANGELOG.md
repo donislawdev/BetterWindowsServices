@@ -113,7 +113,7 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **Restart as administrator**, beside the line that says the session has none. Windows asks you
   to confirm, and answering no leaves the window you already had - it says so rather than
   closing anyway. The button is only there when the session actually lacks the rights. Your
-  columns and the order you sorted them in come back on their own; anything typed in the
+  columns and the order you sorted them in come back on their own - anything typed in the
   search box does not.
 
 - **The list opens in the order you left it in.** Click a heading, close the window, open it
@@ -580,6 +580,61 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The window no longer disappears when something goes wrong in it.** Anything unexpected -
+  during a refresh, while a plan is open, in the middle of typing - used to end the program and
+  leave you with the system's own crash box. It now says what happened in the line under the list,
+  the same place the window says everything else it could not do, and stays open with your query,
+  your selection and your plan where you left them.
+  - **A translation file that is not readable no longer stops the program starting.** A file
+    dropped beside the program with broken JSON in it, or one the account may not read, means the
+    window opens in English rather than not opening at all. A translation with a broken hole in a
+    sentence shows the sentence unformatted instead of taking the window down mid-session.
+
+- **`bws list --query ""` and `bws list --query=` are now mistakes rather than everything.** Both
+  used to print the whole machine and exit successfully, which is what a script gets when a shell
+  variable expands to nothing - a filter that quietly did not filter, reported as a clean run. They
+  now say the option needs a value and exit 2.
+  - **Leaving `--query` off is unchanged and still means everything.** The difference is between
+    not asking to narrow and asking to narrow with nothing, and only the second is a mistake.
+
+- **`bws show` without a name, and `bws snapshot diff` with one file, no longer read the whole
+  machine before telling you what you left out.** Both answered correctly and both spent about half
+  a second enumerating eight hundred entries first. The answer is the same and now arrives at once.
+
+- **Comparing two snapshots no longer reports a change when nothing changed.** Dependencies,
+  declared privileges and triggers were compared as text, so the same set in a different order -
+  or a privilege one machine spells `SeSystemTimePrivilege` and another spells
+  `SeSystemtimePrivilege` - came out as drift. With `--exit-code` that failed a pipeline over
+  nothing. They are compared as sets now, and what a real difference shows you is still exactly
+  what each snapshot holds.
+
+- **Exporting the list to CSV no longer hands a spreadsheet something to run.** A service whose
+  name or description starts with `=`, `+`, `-` or `@` was written into the file as-is, and a
+  spreadsheet reads such a cell as a formula. The values in that file come from whatever installed
+  the service, which in an audit tool is the thing being examined. They are now written so they
+  open as text.
+
+- **Asking a second question about signatures or memory no longer re-reads the whole machine.**
+  Typing `signed:no` and then `memory:>500MB` sent the window off to read every service again and
+  verify every signature a second time - several seconds of work for an answer it already had,
+  with the list frozen for the whole of it.
+
+- **Selecting hundreds of entries and changing their start type no longer asks the manager about
+  every one of them first.** The preview worked out an order that a configuration change does not
+  need, and paid one round trip to the service manager per selected entry to do it.
+
+- **The details panel notices its service has gone even after you click another row or switch
+  between Services and Drivers.** It follows the entry it was opened on, but the check for "this
+  entry has left the list" was looking at whichever row was selected - so after a scope switch it
+  stopped checking anything at all.
+
+- **Pressing Ctrl+C at the exact moment a run finishes no longer ends the program without printing
+  the report.** A window of a few microseconds remained from an earlier fix of the same race.
+
+- **A preferences file with damaged bytes in it is moved aside rather than quietly half-read.** It
+  was read with a decoder that silently substitutes a placeholder for anything it does not
+  understand - the same choice the snapshot reader deliberately refuses to make.
+
 - **The white outline on Services / Drivers / Everything no longer appears when you click.** It is a
   keyboard focus ring and it was lighting up for the mouse as well, because clicking a button gives
   it the keyboard focus too. It is drawn by the framework now, which shows it only while you are
@@ -588,7 +643,7 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **On a machine the manager hands over nothing for, the message saying so no longer flickers.**
   The sentence in the middle of the empty list was replaced by "reading the manager" and put
   back once a second, for as long as you stood there reading it. The same fault was fixed for a
-  search that matched nothing a few days earlier; this was the one case that fix did not cover.
+  search that matched nothing a few days earlier - this was the one case that fix did not cover.
 - **Filters in one group now all light up at once.** Clicking Manual, then Disabled, then Boot
   left only one of them lit, while the list correctly showed all three. The list, the count and
   the command line were right the whole time - a query keeps both what it matches and how it

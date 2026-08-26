@@ -163,6 +163,42 @@ public sealed class ChosenGuards
         Assert.NotEmpty(chosen.Notice);
     }
 
+    /// <summary>
+    /// The panel keeps answering for the entry it is OPEN ON, whatever the selection does after.
+    ///
+    /// <b>It asked about the selected row until 2026-08-26, and the two are deliberately not the
+    /// same row.</b> Opening the panel is Enter, and clicking elsewhere afterwards leaves the panel
+    /// where it was - this class says so twice. So from the moment somebody clicked another row,
+    /// the one thing the panel can say about its own entry was being decided about a different one.
+    ///
+    /// The plainest way it broke is the scope switch, which sets the chosen row to nothing: the
+    /// question then returned at the door and the panel silently lost the ability to notice its
+    /// service had gone, for the rest of the session.
+    /// </summary>
+    [Fact]
+    public void The_panel_answers_for_its_own_entry_rather_than_for_whatever_is_selected()
+    {
+        var shown = EntryRow.Of(Rows.Entry("Spooler"));
+        var other = EntryRow.Of(Rows.Entry("Dnscache"));
+        var chosen = new Chosen { Row = shown };
+
+        chosen.Show();
+
+        // Somebody clicks another row, and then the scope switch clears the selection outright.
+        chosen.Row = other;
+        chosen.StillIn([shown, other]);
+
+        Assert.False(chosen.Gone);
+
+        chosen.Row = null;
+        chosen.StillIn([other]);
+
+        // The entry the panel is showing is not in the listing any more, and it says so - with no
+        // row selected at all.
+        Assert.True(chosen.Gone);
+        Assert.NotEmpty(chosen.Notice);
+    }
+
     /// <summary>Closing puts the admission away with the panel, or the next one opens wearing it.</summary>
     [Fact]
     public void Closing_takes_the_admission_with_it()

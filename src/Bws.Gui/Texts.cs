@@ -41,16 +41,48 @@ internal static class Texts
     internal static string Of(string key) =>
         Strings.TryGetValue(key, out var text) ? text : key;
 
-    internal static string Of(string key, params object[] values) =>
-        // THE MACHINE'S CULTURE, AND THE COMMAND LINE USES THE INVARIANT ONE. That difference is
-        // deliberate and was nowhere written down until 2026-08-03, which is how an audit came to
-        // ask about it.
-        //
-        // A window shows text to the person sitting at it, on their machine, so a count reads
-        // better as they would write it. A terminal writes into pipes, where a thousands
-        // separator that appears on one install and not on another is something a script has to
-        // cope with. Same product, two audiences, two right answers.
-        string.Format(CultureInfo.CurrentCulture, Of(key), values);
+    internal static string Of(string key, params object[] values) => Formatted(Of(key), values);
+
+    /// <summary>
+    /// One sentence with its values in it, or the sentence untouched when it cannot hold them.
+    ///
+    /// <b>Separated from <see cref="Of(string, object[])"/> on 2026-08-26 for the reason
+    /// <see cref="Assemble"/> was separated from <c>Load</c>: it could not otherwise be reached by
+    /// a test at all.</b> The strings come from a dictionary built in a static initialiser, and
+    /// every sentence this build ships is held to its arguments by a guard - so there is no key
+    /// that can be asked for to produce the case below. Handing the template in is the only way to
+    /// exercise the file a translator wrote rather than the file we ship.
+    /// </summary>
+    internal static string Formatted(string template, params object[] values)
+    {
+        try
+        {
+            // THE MACHINE'S CULTURE, AND THE COMMAND LINE USES THE INVARIANT ONE. That difference
+            // is deliberate and was nowhere written down until 2026-08-03, which is how an audit
+            // came to ask about it.
+            //
+            // A window shows text to the person sitting at it, on their machine, so a count reads
+            // better as they would write it. A terminal writes into pipes, where a thousands
+            // separator that appears on one install and not on another is something a script has
+            // to cope with. Same product, two audiences, two right answers.
+            return string.Format(CultureInfo.CurrentCulture, template, values);
+        }
+        catch (FormatException)
+        {
+            // A TRANSLATION WITH A BROKEN HOLE SHOULD LOOK WRONG, NOT TAKE THE WINDOW DOWN - and
+            // this is the rule two lines above, applied to the other way the same file can be
+            // wrong. A missing key already comes back as itself for exactly this reason.
+            //
+            // The file this reads can be dropped beside the program by hand - that is `ADR-21`
+            // rather than an accident - so "{0" or a {3} where two values are handed over is a
+            // thing a translator can write. It throws where it is used, which is inside a handler
+            // or a binding, in the middle of somebody's session.
+            //
+            // The unformatted sentence is what comes back: it still says what it is about, and
+            // the braces standing in it are the report that something is wrong with the file.
+            return template;
+        }
+    }
 
     /// <summary>Every key that was loaded, for a guard that wants to check the markup against them.</summary>
     internal static IReadOnlyCollection<string> Keys => Strings.Keys;
@@ -131,7 +163,31 @@ internal static class Texts
         var file = Path.Combine(
             AppContext.BaseDirectory, "languages", "gui." + code + Suffix);
 
-        return File.Exists(file) ? File.OpenRead(file) : null;
+        try
+        {
+            return File.Exists(file) ? File.OpenRead(file) : null;
+        }
+        catch (IOException)
+        {
+            // A FILE THAT CANNOT BE OPENED IS ONE THIS BUILD DOES NOT HAVE A TRANSLATION IN, and
+            // until 2026-08-26 it was the window not starting. This is read from a static
+            // initialiser, so anything thrown here arrives as a TypeInitializationException at the
+            // first mention of Texts - which is in OnStartup, before there is a window to say
+            // anything in. What a person got was the runtime's own crash box.
+            //
+            // Narrow rather than broad, and the two named are the whole list: the file is locked
+            // or on a share that went away, or the account may not read it. Both are ordinary
+            // facts about somebody's machine, and neither is a reason to have no program.
+            //
+            // NOTHING IS SAID ABOUT IT, which is a silence this project would normally refuse. The
+            // window opens in English and that is the only report there is. Named in the backlog
+            // rather than left to be discovered.
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -151,15 +207,36 @@ internal static class Texts
             return;
         }
 
-        using var document = JsonDocument.Parse(source);
+        JsonDocument document;
 
-        foreach (var property in document.RootElement.EnumerateObject())
+        try
         {
-            // Anything that is not a plain string describes the file rather than being
-            // one of its strings.
-            if (property.Value.ValueKind == JsonValueKind.String)
+            document = JsonDocument.Parse(source);
+        }
+        catch (JsonException)
+        {
+            // A LANGUAGE FILE THAT IS NOT ONE LEAVES THE PROGRAM IN ENGLISH RATHER THAN LEAVING
+            // NOBODY A PROGRAM - 2026-08-26. `ADR-21` lets anybody drop a file beside the
+            // executable, which means a half written or truncated one is a thing that happens, and
+            // this ran inside a static initialiser: the throw arrived as a TypeInitializationException
+            // at the first mention of Texts, in OnStartup, and the window never appeared.
+            //
+            // Merging what it read so far is not the answer either. The dictionary starts with
+            // English already in it, so returning here leaves every key answered - by the sentence
+            // this build ships rather than by half a translation.
+            return;
+        }
+
+        using (document)
+        {
+            foreach (var property in document.RootElement.EnumerateObject())
             {
-                into[property.Name] = property.Value.GetString()!;
+                // Anything that is not a plain string describes the file rather than being
+                // one of its strings.
+                if (property.Value.ValueKind == JsonValueKind.String)
+                {
+                    into[property.Name] = property.Value.GetString()!;
+                }
             }
         }
     }

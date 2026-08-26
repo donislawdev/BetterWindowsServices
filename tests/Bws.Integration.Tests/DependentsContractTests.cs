@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Bws.Core;
 
 namespace Bws.Integration.Tests;
@@ -55,14 +56,39 @@ public sealed class DependentsContractTests
             "buffer that was never resized.");
     }
 
+    /// <summary>
+    /// Nothing depending on an entry is a fact about the entry, not about our permissions.
+    ///
+    /// Confusing the two makes a plan claim it could not check the cascade when it checked and
+    /// found none - and that claim reaches a person on the screen where they decide whether to
+    /// change a machine.
+    ///
+    /// <b>The second half was written on 2026-08-26 and what it measured is worth more than what
+    /// it asserts.</b> Until that day this call discarded its return value and decided from the
+    /// error number alone, which the file's own neighbour says eighty lines away is wrong: Windows
+    /// does not clear the last error on success, so a call with nothing to hand over can leave
+    /// whatever the previous one put there. The call now asks through the return value.
+    ///
+    /// <b>THE CHANGE COULD NOT BE SHOWN TO CHANGE ANY OUTCOME ON THIS MACHINE.</b> A mutation entry
+    /// putting the old shape back came out MISSED - poisoning the thread with an error before the
+    /// call does not survive it, so this build of Windows clears the error on this path and the
+    /// failure has no way of happening here. The entry was withdrawn rather than kept as a guard
+    /// proving nothing. The change stays: it costs one comparison, it makes this call read like the
+    /// enumeration eighty lines away, and "the platform happens to clear it today" is not something
+    /// to build on.
+    /// </summary>
     [Fact]
     public void Nothing_depending_on_it_is_absent_rather_than_a_refusal()
     {
-        // A fact about the service, not about our permissions. Confusing the two here would
-        // make a plan claim it could not check the cascade when it checked and found none.
         var dependents = new WindowsScmCatalog().ReadDependents("Spooler");
 
         Assert.Equal(ReadOutcome.Absent, dependents.Outcome);
+
+        // And still absent with something left on the thread. This pinned no bug on the machine it
+        // was written on - see above - and it pins the answer for whichever build stops clearing it.
+        Marshal.SetLastSystemError(5);
+
+        Assert.Equal(ReadOutcome.Absent, new WindowsScmCatalog().ReadDependents("Spooler").Outcome);
     }
 
     [Fact]

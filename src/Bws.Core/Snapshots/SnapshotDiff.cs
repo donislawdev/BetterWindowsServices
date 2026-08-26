@@ -324,7 +324,7 @@ public sealed record SnapshotDiff(
             var left = Text(was[field]);
             var right = Text(now[field]);
 
-            if (!string.Equals(left, right, StringComparison.Ordinal))
+            if (!string.Equals(Compared(field, was[field]), Compared(field, now[field]), StringComparison.Ordinal))
             {
                 differences.Add(new FieldDifference(
                     field,
@@ -359,11 +359,62 @@ public sealed record SnapshotDiff(
         field != Identity && field != Unstable && !Bookkeeping.Contains(field, StringComparer.Ordinal);
 
     /// <summary>
-    /// A value as text, for comparing and for showing.
+    /// Fields whose value is a list where neither the order nor the spelling carries meaning.
     ///
-    /// One representation for both, so what the comparison decided and what a person is shown
-    /// can never disagree. Strings come out as themselves rather than quoted, because a
-    /// quoted path in a table reads like a mistake.
+    /// <b>Three fields, and each one is on this list for a written reason rather than because it
+    /// happens to be an array.</b>
+    ///
+    /// <c>requiredPrivileges</c> - the manager hands these back exactly as each service declared
+    /// them, and the spelling varies between services on ONE machine: Schedule declares
+    /// SeSystemTimePrivilege and Sense declares SeSystemtimePrivilege, and they are the same
+    /// privilege. <see cref="ScmEntry.RequiredPrivileges"/> has said since it was written that
+    /// comparison is case-insensitive everywhere and that a diff comparing them as plain text
+    /// would report a change between two machines that had none. It did exactly that until
+    /// 2026-08-26.
+    ///
+    /// <c>dependsOn</c> - service names, which Windows itself compares without case (`ADR-14`),
+    /// in whatever order the manager answered. That order is promised nowhere. This file's own
+    /// neighbour sorts ENTRIES for precisely that reason, having seen the order move.
+    ///
+    /// <c>triggers</c> - same argument about order. The two words inside each one are written by
+    /// this build rather than by the manager, so their spelling is ours and stable.
+    /// </summary>
+    private static readonly string[] Unordered = ["dependsOn", "requiredPrivileges", "triggers"];
+
+    /// <summary>
+    /// A value in the form the comparison uses, which is NOT always the form a person is shown.
+    ///
+    /// <b>The two were one representation until 2026-08-26, and splitting them was deliberate
+    /// rather than a convenience.</b> The old sentence here said that keeping one form meant what
+    /// the comparison decided and what somebody is shown could never disagree - a real property,
+    /// and it was paid for with a false difference on every list whose order or spelling moved
+    /// without anything changing. A tool whose whole subject is telling real drift from noise may
+    /// not report drift that is not there.
+    ///
+    /// <b>So the split goes one way only.</b> This form exists to decide whether two values differ
+    /// and is never shown to anybody. What a person reads is still <see cref="Text"/> of the value
+    /// as it was written - original spelling, original order - so a difference that IS reported
+    /// still shows both sides exactly as the two snapshots hold them.
+    ///
+    /// Everything not named in <see cref="Unordered"/> is compared exactly as before. That is the
+    /// half of this that is easy to get wrong: comparing every field without case would quietly
+    /// stop <c>binaryHash</c> and <c>sddl</c> from reporting changes that are real.
+    /// </summary>
+    private static string? Compared(string field, JsonNode? node) =>
+        node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal)
+            ? string.Join(
+                '\u001f',
+                items
+                    .Select(item => (Text(item) ?? string.Empty).ToLowerInvariant())
+                    .OrderBy(text => text, StringComparer.Ordinal))
+            : Text(node);
+
+    /// <summary>
+    /// A value as text, for showing, and for comparing everything <see cref="Compared"/> does not
+    /// take a view on.
+    ///
+    /// Strings come out as themselves rather than quoted, because a quoted path in a table reads
+    /// like a mistake.
     /// </summary>
     private static string? Text(JsonNode? node) => node switch
     {

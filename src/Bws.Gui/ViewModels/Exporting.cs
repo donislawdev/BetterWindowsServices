@@ -54,9 +54,42 @@ internal static class Exporting
 
     private static void Line(StringBuilder text, IEnumerable<string> values)
     {
-        text.AppendJoin(',', values.Select(Quoted));
+        text.AppendJoin(',', values.Select(value => Quoted(Inert(value))));
         text.Append("\r\n");
     }
+
+    /// <summary>
+    /// One value, made unable to be a formula in the spreadsheet that opens this.
+    ///
+    /// <b>THE VALUES IN THIS FILE COME FROM THE THING BEING AUDITED, and that is the whole
+    /// argument.</b> A display name, a launch path, an account and a description are written by
+    /// whoever installed the service - not by us and not by the person exporting. A spreadsheet
+    /// reads a cell beginning with one of these characters as a formula, so a service named
+    /// <c>=cmd|'/c calc'!A1</c> arrives in an administrator's sheet as something to run rather than
+    /// something to read. Quoting to RFC 4180 does not stop it: the quotes are removed on the way
+    /// in, and what is left is the formula.
+    ///
+    /// <b>The apostrophe is what a spreadsheet reads as "this cell is text".</b> Owner's decision,
+    /// 2026-08-26, with the cost said out loud rather than discovered: THIS CHANGES THE VALUE. A
+    /// cell that held <c>-1</c> now holds <c>'-1</c>, and this file stops being a character for
+    /// character copy of what was on screen. That was the trade taken, against the alternative of
+    /// an audit tool that hands its findings over as executable content.
+    ///
+    /// <b>The five characters are the ones a spreadsheet acts on</b>, and the last two are there
+    /// because a leading tab or carriage return is stripped before the first character is looked
+    /// at - so they are a way of writing the first three with a step in between.
+    ///
+    /// <b>Only in the file, and only here.</b> The window shows what the machine said, and
+    /// <c>--json</c> from the command line writes it too - neither is read by a spreadsheet, so
+    /// neither needs this and neither gets it.
+    /// </summary>
+    private static string Inert(string value) =>
+        value.Length > 0 && Dangerous.Contains(value[0])
+            ? "'" + value
+            : value;
+
+    /// <summary>What a spreadsheet treats as the start of something to evaluate.</summary>
+    private static readonly char[] Dangerous = ['=', '+', '-', '@', '\t', '\r'];
 
     /// <summary>
     /// One value, quoted when the format says it has to be.

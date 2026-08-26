@@ -11,6 +11,10 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // FIRST, BECAUSE THE TWO LINES UNDER IT ARE THEMSELVES THINGS THAT CAN THROW. Mishaps
+        // carries the whole argument, including what it deliberately does not cover.
+        Mishaps.Arm(this);
+
         Texts.PutInto(Resources);
 
         // One class handler for every cell tooltip in the list, registered once. CellTips carries

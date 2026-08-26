@@ -198,6 +198,48 @@ public sealed class SecondPhaseTests
         Assert.Single(model.Rows);
     }
 
+    /// <summary>
+    /// A question about the OTHER expensive family costs nothing, because the pass read both.
+    ///
+    /// <b>It cost the whole thing twice until 2026-08-26.</b> The pass fills signatures and memory
+    /// together - they come off the same list and go into the same records - and the window
+    /// remembered only the family that had been ASKED about. So somebody who typed signed:no and
+    /// then memory:>1MB was asking for something the rows already held, and the window answered by
+    /// reading the manager again and verifying every signature on the machine a second time. The
+    /// measurement in Readings puts that at 7.5 s of processor and 18 MB, with the tick suspended
+    /// for all of it, so the list stops moving as well.
+    ///
+    /// <b>Counted rather than timed</b>, for the reason the guard above gives: a duration in a test
+    /// is a promise about somebody else's machine.
+    /// </summary>
+    [Fact]
+    public async Task The_second_question_does_not_pay_for_the_pass_again()
+    {
+        var machine = new LiveMachine(Entry());
+        var inspector = new Inspector(SignatureStatus.NotSigned);
+        var model = new MainViewModel(machine, new SteppedClock(), inspector, new Memory());
+
+        await model.LoadAsync();
+
+        model.QueryText = "signed:no";
+
+        await model.RefreshAsync();
+
+        var filesOpened = inspector.Asked;
+        var readings = machine.FullReads;
+
+        Assert.True(filesOpened > 0, "The pass never ran, so the second half of this proves nothing.");
+
+        // The other family, which that same pass has already read into these very rows.
+        model.QueryText = "memory:>1MB";
+
+        await model.RefreshAsync();
+        await model.RefreshAsync();
+
+        Assert.Equal(filesOpened, inspector.Asked);
+        Assert.Equal(readings, machine.FullReads);
+    }
+
     private static MainViewModel Window(SignatureStatus status) =>
         new(new LiveMachine(Entry()), new SteppedClock(), new Inspector(status), new Memory());
 

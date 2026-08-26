@@ -179,7 +179,19 @@ public sealed class Chosen : Observable
     {
         ArgumentNullException.ThrowIfNull(everything);
 
-        if (!Showing || Row is not { } row)
+        // ABOUT THE ROW THE PANEL IS FOLLOWING, NOT THE ROW THAT HAPPENS TO BE SELECTED - fixed
+        // 2026-08-26, and it had been the wrong one since this was written.
+        //
+        // The panel deliberately does not follow the selection: opening it is Enter, and clicking
+        // elsewhere afterwards leaves it where it was. Two lines of this class say so. This method
+        // then asked its question about Row, which is the selection - so the moment somebody
+        // clicked another row, the only thing the panel can say about the entry it is showing was
+        // being answered about a different entry.
+        //
+        // The clearest way it broke was the scope switch, which sets Row to nothing: this returned
+        // at the door and the panel simply stopped being able to notice its service had gone -
+        // silently, and for the rest of the session.
+        if (!Showing || _followed is not { } row)
         {
             return;
         }

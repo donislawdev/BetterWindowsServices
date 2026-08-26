@@ -57,16 +57,6 @@ internal sealed class Readings
     /// </summary>
     private ExtraRead _tried;
 
-    /// <summary>
-    /// The entries exactly as the last full reading handed them over.
-    ///
-    /// <b>Kept so a later pass has something to fill in, and never absorbed on its own.</b> A tick
-    /// has been writing statuses into the rows since these were read, so putting these back would
-    /// roll every one of those changes off the screen - which is why the pass below always reads
-    /// the machine again rather than filling in what is here.
-    /// </summary>
-    private IReadOnlyList<ScmEntry> _entries = [];
-
     /// <summary>Whether the second phase is out right now.</summary>
     private bool _filling;
 
@@ -214,8 +204,13 @@ internal sealed class Readings
         // been replaced, which for an audit tool is worse than showing nothing.
         _have = ExtraRead.None;
         _tried = ExtraRead.None;
-        _entries = entries;
 
+        // (A field holding these entries stood here until 2026-08-26, written in two places and
+        // read in none. Its comment described a mechanism that does not exist - a later pass
+        // filling in what was kept - while the pass three methods down is handed its entries as a
+        // parameter and reads the machine again on purpose. A field nothing reads raises no
+        // warning of any kind, which is why this project goes looking for them.)
+        //
         // Raised here rather than where the reading ends: a reading that threw never reaches it.
         _everRead = true;
 
@@ -394,8 +389,20 @@ internal sealed class Readings
         _filling = false;
         _have = ExtraRead.Signatures | ExtraRead.Memory;
 
+        // WHAT WAS READ COUNTS AS TRIED, AND UNTIL 2026-08-26 ONLY WHAT WAS ASKED DID. The pass
+        // above fills BOTH families whatever the question wanted - they come off the same list and
+        // go into the same records - so a window that has run it once holds signatures and memory
+        // for these entries either way.
+        //
+        // Marking only the asked one meant the second question paid for both again. Somebody types
+        // signed:no, the pass runs, both families are read. They then type memory:>500MB, which is
+        // a family not in _tried, so WantsMore says yes and the next tick reads the whole manager
+        // again and verifies all 544 signatures a second time - measured at 7.5 s of processor and
+        // 18 MB, for an answer already sitting in the rows. The tick is suppressed for the whole of
+        // it, so the list stops moving as well.
+        _tried |= _have;
+
         _index.Absorb(filled);
-        _entries = filled;
         _settled();
     }
 

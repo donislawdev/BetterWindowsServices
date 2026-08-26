@@ -36,6 +36,92 @@ public sealed class SnapshotDiffTests
     }
 
     [Fact]
+    public void A_privilege_spelled_differently_is_the_same_privilege()
+    {
+        // SeSystemTimePrivilege and SeSystemtimePrivilege are one privilege written two ways, and
+        // both spellings are on THIS machine - Schedule declares the first, Sense the second. The
+        // manager hands them back exactly as each service wrote them, so the same set read on two
+        // machines can differ in nothing but capitals.
+        //
+        // ScmEntry has said since it was written that comparison is case-insensitive everywhere
+        // and that a diff comparing these as plain text would report a change between two machines
+        // that had none. It did exactly that until 2026-08-26.
+        var diff = Between(
+            Taken([Entry("Spooler") with
+            {
+                RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeSystemTimePrivilege"])
+            }]),
+            Taken([Entry("Spooler") with
+            {
+                RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeSystemtimePrivilege"])
+            }]));
+
+        Assert.False(diff.Any);
+        Assert.Empty(diff.Changed);
+    }
+
+    [Fact]
+    public void The_order_the_manager_answered_in_is_not_a_difference()
+    {
+        // Nothing promises the order dependencies come back in. Snapshot.Of sorts ENTRIES for
+        // exactly that reason, having watched the order move - and the lists inside an entry were
+        // left being compared as the text of a JSON array, which is order for order.
+        var diff = Between(
+            Taken([Entry("Spooler") with
+            {
+                DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"])
+            }]),
+            Taken([Entry("Spooler") with
+            {
+                DependsOn = Reading<IReadOnlyList<string>>.Present(["http", "RPCSS"])
+            }]));
+
+        Assert.False(diff.Any);
+    }
+
+    [Fact]
+    public void A_dependency_that_really_changed_is_still_a_difference()
+    {
+        // The half a careless fix breaks. Nothing above may be bought by comparing these loosely
+        // enough to miss a dependency arriving, which is drift somebody has to see.
+        var diff = Between(
+            Taken([Entry("Spooler") with
+            {
+                DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"])
+            }]),
+            Taken([Entry("Spooler") with
+            {
+                DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"])
+            }]));
+
+        Assert.True(diff.Any);
+        Assert.Equal("dependsOn", Assert.Single(Assert.Single(diff.Changed).Differences).Field);
+    }
+
+    [Fact]
+    public void What_a_person_reads_is_the_spelling_the_snapshot_holds()
+    {
+        // The price of the two tests above, checked rather than assumed. The comparison works on a
+        // form nobody sees - sorted and folded - and the difference it reports has to carry the
+        // text as each side actually wrote it, or the report would be about a form this tool
+        // invented.
+        var diff = Between(
+            Taken([Entry("Spooler") with
+            {
+                RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeTcbPrivilege"])
+            }]),
+            Taken([Entry("Spooler") with
+            {
+                RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeBackupPrivilege"])
+            }]));
+
+        var difference = Assert.Single(Assert.Single(diff.Changed).Differences);
+
+        Assert.Contains("SeTcbPrivilege", difference.Before, StringComparison.Ordinal);
+        Assert.Contains("SeBackupPrivilege", difference.After, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_entry_that_appeared_and_one_that_went_away_are_named()
     {
         var diff = Between(Taken([Entry("Spooler"), Entry("Gone")]), Taken([Entry("Spooler"), Entry("New")]));

@@ -143,7 +143,22 @@ public sealed class ColumnBar
 
         foreach (var group in Choices.GroupBy(choice => choice.Group, StringComparer.Ordinal))
         {
-            entries.Add(new ColumnHeading(Columns.GroupOf(group.First().Column.Id)!));
+            var first = group.First().Column.Id;
+
+            // A COLUMN UNDER NO HEADING IS A FAILED TEST RATHER THAN A DEFAULT - Columns.Groups
+            // says so where the map lives, and putting one quietly under whichever heading was
+            // least wrong is exactly what it refuses. Nothing here changes that.
+            //
+            // What changed on 2026-08-26 is what it looks like when it happens. The bang stood
+            // here, so a column missing from the map handed null to Texts.Of, which threw
+            // ArgumentNullException about a key - inside the constructor of this class, which is
+            // inside the constructor of the window. Six tests already go red when the map is
+            // incomplete, and none of them named the column. This one does.
+            entries.Add(new ColumnHeading(Columns.GroupOf(first)
+                ?? throw new InvalidOperationException(
+                    $"The column '{first}' is under no heading. Columns.Groups has to name every "
+                    + "column in the catalogue - see the argument written at that map.")));
+
             entries.AddRange(group);
         }
 

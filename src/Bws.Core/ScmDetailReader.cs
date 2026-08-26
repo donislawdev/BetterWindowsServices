@@ -24,6 +24,12 @@ namespace Bws.Core;
 /// on a handle of its own, for the reason written at it - the security descriptor. What stays
 /// behind is opening the manager, enumerating it, and turning one configuration buffer into
 /// fields.
+///
+/// <b>The ratchet asked a third time on 2026-08-26, and the seam it found was the other half of
+/// the same sentence.</b> Asking a handle a question is not the same job as walking the block that
+/// comes back, and the two go wrong in different ways - one is refused by the manager, the other
+/// walks off the end of an array. The walks moved to <see cref="ManagerBlocks"/>, which is also
+/// where they can be handed bytes by a test rather than needing a machine.
 /// </summary>
 internal static class ScmDetailReader
 {
@@ -92,9 +98,13 @@ internal static class ScmDetailReader
     /// The conditions under which the manager starts or stops this entry by itself.
     ///
     /// Variable length, so it takes the same buffer dance as everything else here: ask with
-    /// nothing and be told how much room the answer wants. Everything is read inside the
-    /// fixed block, because the structure hands back a pointer into that very buffer and
-    /// following it afterwards would be reading memory nobody owns any more.
+    /// nothing and be told how much room the answer wants.
+    ///
+    /// <b>The walk over what came back lives in <see cref="ManagerBlocks.ReadTriggerBuffer"/>.</b>
+    /// The structure hands back a pointer into that very buffer, so it has to be followed while
+    /// the block is still pinned and it has to be bounded by the block - two rules that belong
+    /// with the other bounded walk rather than with the questions asked of a handle. It is also
+    /// the half that can be handed a malformed answer by a test.
     /// </summary>
     internal static unsafe Reading<IReadOnlyList<ServiceTrigger>> ReadTriggers(SafeHandle service)
     {
@@ -114,34 +124,7 @@ internal static class ScmDetailReader
             return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
         }
 
-        if (buffer.Length < sizeof(SERVICE_TRIGGER_INFO))
-        {
-            return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
-        }
-
-        fixed (byte* start = buffer)
-        {
-            var info = *(SERVICE_TRIGGER_INFO*)start;
-
-            if (info.cTriggers == 0)
-            {
-                // A fact about the service: most entries have none.
-                return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
-            }
-
-            var triggers = new List<ServiceTrigger>((int)info.cTriggers);
-
-            for (uint index = 0; index < info.cTriggers; index++)
-            {
-                var trigger = info.pTriggers[index];
-
-                triggers.Add(new ServiceTrigger(
-                    ManagerTerms.Trigger(trigger.dwTriggerType),
-                    ManagerTerms.TriggerAction(trigger.dwAction)));
-            }
-
-            return Reading<IReadOnlyList<ServiceTrigger>>.Present(triggers);
-        }
+        return ManagerBlocks.ReadTriggerBuffer(buffer);
     }
 
     /// <summary>
@@ -184,7 +167,7 @@ internal static class ScmDetailReader
         {
             // The structure is one pointer into this very buffer, so the multi-string is read
             // inside the fixed block for the same reason the triggers are.
-            var privileges = ReadMultiString(
+            var privileges = ManagerBlocks.ReadMultiString(
                 ((SERVICE_REQUIRED_PRIVILEGES_INFOW*)start)->pmszRequiredPrivileges, start, buffer.Length);
 
             return privileges.Count == 0
@@ -363,75 +346,6 @@ internal static class ScmDetailReader
             // failure here is news and should not be swallowed.
             return Reading<string>.Denied(malformed.HResult, malformed.Message);
         }
-    }
-
-    /// <summary>
-    /// Reads one of the manager's multi-strings: values back to back, each ending in a
-    /// null, the whole run ending in a second one.
-    ///
-    /// Written out by hand because the marshalling helper for a string stops at the first
-    /// null and would hand back only the first dependency. That failure is quiet - a
-    /// service declaring five dependencies would report one, and the cascade built on it
-    /// would look reasonable and be wrong.
-    /// </summary>
-    /// <param name="buffer">The block this string was read out of.</param>
-    /// <param name="length">How long that block is, in bytes.</param>
-    /// <remarks>
-    /// <b>Bounded by the buffer since 2026-08-03, and before that by nothing at all.</b> The walk
-    /// ran until it met two nulls in a row, so a multi-string the manager did not terminate -
-    /// truncated, or simply not what this code believes it is - would have carried the loop
-    /// straight out of a managed array and into whatever follows it. Every other buffer here is
-    /// at least described by a count. This one had neither a count nor a limit.
-    ///
-    /// The trust that made that acceptable is real: the manager and this process are the same
-    /// machine and the same kernel. It was also unwritten, which is the part that was wrong -
-    /// and this tool runs elevated on production servers, which is a poor place to keep an
-    /// unwritten assumption about memory. Owner's decision, 2026-08-03.
-    ///
-    /// Reading is bounded too, not just the walk. Asking for a string at a pointer reads until
-    /// a null wherever that null happens to be, so the terminator is found inside the remaining
-    /// span first and the string is built from that.
-    /// </remarks>
-    internal static unsafe List<string> ReadMultiString(PWSTR start, byte* buffer, int length)
-    {
-        var values = new List<string>();
-        var cursor = start.Value;
-
-        if (cursor is null)
-        {
-            return values;
-        }
-
-        // The structure hands back a pointer into the very block it came from. One that does not
-        // land there is not something to make the best of - it is a reading nobody can trust.
-        var offset = (byte*)cursor - buffer;
-
-        if (offset < 0 || offset >= length)
-        {
-            return values;
-        }
-
-        var end = (char*)(buffer + length);
-
-        while (cursor < end && *cursor != '\0')
-        {
-            var remaining = new ReadOnlySpan<char>(cursor, (int)(end - cursor));
-            var terminator = remaining.IndexOf('\0');
-
-            if (terminator < 0)
-            {
-                // The run reaches the end of the block without closing. What is there is what
-                // there is, and it stops here rather than reading on.
-                values.Add(new string(remaining));
-
-                break;
-            }
-
-            values.Add(new string(remaining[..terminator]));
-            cursor += terminator + 1;
-        }
-
-        return values;
     }
 
     /// <summary>

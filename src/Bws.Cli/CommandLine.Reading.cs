@@ -194,8 +194,13 @@ internal sealed partial record CommandLine
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
             {
-                query = argument["--query=".Length..];
                 given.Add("--query");
+
+                if (!Empty(incomplete, "--query", argument["--query=".Length..]))
+                {
+                    query = argument["--query=".Length..];
+                }
+
                 continue;
             }
 
@@ -211,7 +216,11 @@ internal sealed partial record CommandLine
                     continue;
                 }
 
-                query = arguments[++index];
+                if (!Empty(incomplete, "--query", arguments[++index]))
+                {
+                    query = arguments[index];
+                }
+
                 continue;
             }
 
@@ -314,4 +323,34 @@ internal sealed partial record CommandLine
 
 #pragma warning restore MA0051
 
+    /// <summary>
+    /// Whether an option was given a value that says nothing, and notes it as missing if so.
+    ///
+    /// <b>THE FOURTH SPELLING OF ONE MISTAKE, CLOSED 2026-08-26 - owner's decision.</b> The query
+    /// language already turns back <c>!!!</c>, <c>name:""</c> and a field with nothing after it,
+    /// every time with the same sentence: a script with a typo in its query must not receive the
+    /// whole machine and a green exit code. <c>--query=</c> and <c>--query ""</c> were the same
+    /// mistake one layer out, where the empty text never reaches the parser as a term at all - it
+    /// arrives as an empty query, and an empty query legitimately means everything.
+    ///
+    /// <b>The distinction this draws is the whole of it: NO --query means everything, an EMPTY
+    /// --query means somebody typed something that came to nothing.</b> A shell that expands a
+    /// variable to nothing produces the second, which is exactly the case worth catching, and
+    /// nothing about the first changes.
+    ///
+    /// Whitespace counts as empty for the same reason the parser treats it that way - a query of
+    /// three spaces selects everything, so accepting it would leave the same hole with a wider
+    /// door.
+    /// </summary>
+    private static bool Empty(List<string> incomplete, string option, string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        incomplete.Add(option);
+
+        return true;
+    }
 }

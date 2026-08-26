@@ -112,27 +112,8 @@ try
 
     if (options.Kind == CommandKind.SnapshotDiff)
     {
-        // Two files, or one file and the machine. Never one file on its own: that would have
-        // to be guessed into meaning something, and the only thing it could mean is the
-        // expensive one. --live says it in a word, which is how E1 writes it.
-        if (options.Path.Length == 0 || (options.Against.Length == 0 && !options.Live))
-        {
-            stopwatch.Stop();
-            Console.Error.WriteLine(Texts.Of("cli.diff.needsTwoSides"));
-
-            return ExitCode.Usage;
-        }
-
-        if (options.Live && options.Against.Length > 0)
-        {
-            // Three sides to a comparison with two. Refused rather than resolved by picking
-            // one, because either choice would silently ignore something the person typed.
-            stopwatch.Stop();
-            Console.Error.WriteLine(Texts.Of("cli.diff.liveTakesOneFile"));
-
-            return ExitCode.Usage;
-        }
-
+        // What this branch needs from the words - two sides, and not three - was asked in
+        // Refusals before the manager was opened. See AboutTheAsk there.
         if (!SnapshotFiles.Load(options.Path, out var before, out var earlierFailed))
         {
             stopwatch.Stop();
@@ -278,16 +259,7 @@ try
     }
     else if (options.Kind == CommandKind.Show)
     {
-        // The name is required, and its absence is a usage mistake rather than an empty answer -
-        // OptionSurface.TakesAName carries the whole of that argument.
-        if (options.ServiceName.Length == 0)
-        {
-            stopwatch.Stop();
-            Console.Error.WriteLine(Texts.Of("cli.show.nameMissing"));
-
-            return ExitCode.Usage;
-        }
-
+        // A missing name was asked about in Refusals, before the manager was opened.
         var found = entries.FirstOrDefault(entry =>
             string.Equals(entry.ServiceName, options.ServiceName, StringComparison.OrdinalIgnoreCase));
 

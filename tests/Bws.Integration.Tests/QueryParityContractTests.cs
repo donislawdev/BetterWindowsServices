@@ -343,7 +343,16 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
             .Select(entry => CommandLineTool.Text(entry, "serviceName"))
             .ToHashSet(StringComparer.Ordinal);
 
-        var selected = CommandLineTool.Listing("--query", query)
+        // NO --query AT ALL FOR THE EMPTY CASE, SINCE 2026-08-26, and the substitution is what the
+        // parity actually is rather than a way round a refusal.
+        //
+        // An empty search box in the window means "narrow by nothing". Leaving --query off is how
+        // a terminal says the same thing. Writing --query "" is a third thing - somebody meant to
+        // narrow and wrote nothing - and it is a usage mistake since the owner's decision of that
+        // day, so passing it here would be comparing an empty box against a refusal.
+        var selected = (query.Length == 0
+                ? CommandLineTool.Listing()
+                : CommandLineTool.Listing("--query", query))
             .Select(entry => CommandLineTool.Text(entry, "serviceName"))
             .ToHashSet(StringComparer.Ordinal);
 

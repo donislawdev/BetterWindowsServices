@@ -67,7 +67,7 @@ internal static class ListingTable
                 entry.Status.ToString(),
                 StartCell(entry),
                 Cell(entry.Account, value => value),
-                Cell(entry.ProcessId, value => value.ToString(CultureInfo.CurrentCulture))
+                Cell(entry.ProcessId, value => value.ToString(CultureInfo.InvariantCulture))
             ], signed ? SignatureCell(entry) : null, measured ? MemoryCell(entry) : null));
         }
 

@@ -116,6 +116,55 @@ public sealed class LanguageGuards
         Assert.Equal("English", strings["a"]);
     }
 
+    /// <summary>
+    /// A language file that is not a language file leaves the window standing.
+    ///
+    /// <b>Until 2026-08-26 it meant no window at all.</b> These strings are built in a static
+    /// initialiser, so a throw from the parse arrives as a TypeInitializationException at the first
+    /// mention of Texts - which is in OnStartup, before there is anything on screen. What a person
+    /// got was the runtime's own crash box, about a type initialiser, for a file somebody had
+    /// dropped beside the program.
+    ///
+    /// `ADR-21` is what makes this reachable rather than theoretical: anybody may put a translation
+    /// next to the executable, so a truncated or half written one is a thing that happens.
+    /// </summary>
+    [Fact]
+    public void A_translation_that_is_not_readable_json_leaves_english_standing()
+    {
+        var strings = Texts.Assemble(
+            "pl",
+            Only("en", @"{""a"": ""English""}"),
+            Only("pl", @"{""a"": ""Polskie"","));
+
+        Assert.Equal("English", strings["a"]);
+    }
+
+    /// <summary>
+    /// A translation with a broken hole looks wrong rather than taking the window down.
+    ///
+    /// The rule one line above it in the source, applied to the other way a hand written file can
+    /// be wrong: a missing key already comes back as itself for exactly this reason. This one threw
+    /// where it was USED - in a handler or a binding, in the middle of somebody's session, which is
+    /// worse than at startup.
+    /// </summary>
+    [Fact]
+    public void A_translation_asking_for_a_value_nobody_handed_over_does_not_throw()
+    {
+        var strings = Texts.Assemble("en", Only("en", @"{""a"": ""one {0} and {9}""}"), None);
+
+        Assert.Equal("one {0} and {9}", strings["a"]);
+
+        // And through the formatter itself, which is where it threw. The sentence comes back
+        // unformatted, braces and all, which is the report that the file is wrong.
+        Assert.Equal("one {0} and {9}", Texts.Formatted(strings["a"], 1));
+
+        // The unclosed hole, which is the other spelling a hand written file gets wrong.
+        Assert.Equal("one {0 and", Texts.Formatted("one {0 and", 1));
+
+        // A sentence that IS right still gets its value, which is the half this must not break.
+        Assert.Equal("one 1 and 2", Texts.Formatted("one {0} and {1}", 1, 2));
+    }
+
     private static Func<string, Stream?> None => _ => null;
 
     private static Func<string, Stream?> Only(string code, string json) =>

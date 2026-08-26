@@ -193,18 +193,32 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         // Ask with an empty buffer first and let the call report how much room it wants.
         // Skipping this is exactly what sc.exe does, and it is why sc.exe reports three
         // dependents for a service that has a hundred and sixty two.
-        PInvoke.EnumDependentServices(
+        var probed = PInvoke.EnumDependentServices(
             service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default, out var needed, out _);
+
+        var probeError = Marshal.GetLastWin32Error();
+
+        // ASKED THROUGH THE RETURN VALUE SINCE 2026-08-26, AND THROUGH THE ERROR CODE ALONE BEFORE
+        // THAT. The enumeration below carries the argument in full; the short version is that
+        // Windows does not clear the last error on success, so a call with nothing to hand over can
+        // leave whatever the previous call in this thread put there - and a check reading only the
+        // number turned an ordinary service with no dependents into a refusal.
+        //
+        // A false refusal here is not quiet. PlanBuilder answers it with the CascadeUnreadable
+        // warning, which a person reads on the screen where they decide whether to change the
+        // machine, and DependentsFirst treats the entry as unordered. False alarms on that screen
+        // are the thing this project argues against everywhere else - they teach people to click
+        // past warnings, which is worse than not having warned at all.
+        if (!probed && probeError != (int)WIN32_ERROR.ERROR_MORE_DATA)
+        {
+            return Refused<IReadOnlyList<string>>(probeError);
+        }
 
         if (needed == 0)
         {
-            var error = Marshal.GetLastWin32Error();
-
             // Nothing depends on it. The call reports no room needed and succeeds, which
             // is a fact about the service rather than a failure to read one.
-            return error is 0 or (int)WIN32_ERROR.ERROR_SUCCESS
-                ? Reading<IReadOnlyList<string>>.Absent()
-                : Refused<IReadOnlyList<string>>(error);
+            return Reading<IReadOnlyList<string>>.Absent();
         }
 
         var buffer = new byte[needed];
@@ -215,30 +229,11 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
         }
 
-        var names = ReadDependentNames(buffer, returned);
+        var names = ManagerBlocks.ReadDependentNames(buffer, returned);
 
         return names.Count == 0
             ? Reading<IReadOnlyList<string>>.Absent()
             : Reading<IReadOnlyList<string>>.Present(names);
-    }
-
-    private static unsafe List<string> ReadDependentNames(byte[] buffer, uint count)
-    {
-        count = Math.Min(count, (uint)(buffer.Length / sizeof(ENUM_SERVICE_STATUSW)));
-
-        var names = new List<string>((int)count);
-
-        fixed (byte* start = buffer)
-        {
-            var records = (ENUM_SERVICE_STATUSW*)start;
-
-            for (uint index = 0; index < count; index++)
-            {
-                names.Add(records[index].lpServiceName.ToString());
-            }
-        }
-
-        return names;
     }
 
     // A list rather than a sequence, because the caller needs a count before it starts and an
@@ -268,9 +263,15 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             // listing that looks exactly like a complete one.
             //
             // That is rule 8 of CLAUDE.md, in the one place in this file that had no guard
-            // against it. ReadDependents below has had the same buffer shape and the right
-            // check since it was written, and so has ReadConfiguration - this was the odd one
-            // out rather than the pattern.
+            // against it.
+            //
+            // THE SENTENCE THAT STOOD HERE UNTIL 2026-08-26 WAS FALSE, and saying so is worth more
+            // than quietly replacing it. It said that ReadDependents had
+            // "the same buffer shape and the right check since it was written" and named this one
+            // as the odd one out. The buffer shape was the same. The check was not: that call's
+            // return value was discarded and the decision was made on the error code alone, which
+            // is the exact mistake the paragraph below describes. A comment claiming a guard exists
+            // is worse than no comment, because the next reader stops looking.
             //
             // ASKED THROUGH THE RETURN VALUE, NOT THROUGH THE ERROR CODE ALONE, and the
             // difference is not style. Windows does not clear the last error on success, so a
@@ -301,7 +302,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
                 throw new Win32Exception(error, "Enumerating the service control manager failed.");
             }
 
-            results.AddRange(ReadEnumerationBuffer(buffer, returned));
+            results.AddRange(ManagerBlocks.ReadEnumerationBuffer(buffer, returned));
 
             // A resume handle of zero means the manager has nothing left to hand over.
             if (resume == 0)
@@ -311,37 +312,6 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         }
 
         return results;
-    }
-
-    private static unsafe List<EnumeratedEntry> ReadEnumerationBuffer(byte[] buffer, uint count)
-    {
-        // However many records the manager says it wrote, never more than the room it was given.
-        // Trusting the count alone is the shape this project used everywhere and wrote down
-        // nowhere - see ReadConfigurationBuffer for the argument.
-        count = Math.Min(count, (uint)(buffer.Length / sizeof(ENUM_SERVICE_STATUS_PROCESSW)));
-
-        var entries = new List<EnumeratedEntry>((int)count);
-
-        fixed (byte* start = buffer)
-        {
-            var records = (ENUM_SERVICE_STATUS_PROCESSW*)start;
-
-            for (uint index = 0; index < count; index++)
-            {
-                var record = records[index];
-                var status = record.ServiceStatusProcess;
-
-                entries.Add(new EnumeratedEntry(
-                    ServiceName: record.lpServiceName.ToString(),
-                    DisplayName: record.lpDisplayName.ToString(),
-                    EntryType: ManagerTerms.EntryType(status.dwServiceType),
-                    PerUserRole: ManagerTerms.PerUserRole(status.dwServiceType),
-                    Status: ManagerTerms.Status(status.dwCurrentState),
-                    ProcessId: status.dwProcessId));
-            }
-        }
-
-        return entries;
     }
 
     private static ScmEntry Describe(SafeHandle manager, EnumeratedEntry enumerated, NetworkPaths networkPaths)
@@ -463,7 +433,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             var configuration = *(QUERY_SERVICE_CONFIGW*)start;
 
             var account = configuration.lpServiceStartName.ToString();
-            var dependencies = ScmDetailReader.ReadMultiString(
+            var dependencies = ManagerBlocks.ReadMultiString(
                 configuration.lpDependencies, start, buffer.Length);
             var binaryPath = configuration.lpBinaryPathName.ToString();
             var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();

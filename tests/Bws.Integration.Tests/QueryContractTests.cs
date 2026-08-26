@@ -15,15 +15,36 @@ namespace Bws.Integration.Tests;
 public sealed class QueryContractTests
 {
     [Fact]
-    public void No_query_and_an_empty_query_both_select_everything()
+    public void No_query_selects_everything_and_an_empty_one_is_a_mistake()
     {
         // Has to be checked rather than assumed. The other reading, an empty search box
         // showing an empty list, would be absurd and is exactly what a naive filter does.
-        var everything = CommandLineTool.Listing().Length;
-        var empty = CommandLineTool.Listing("--query", "").Length;
+        Assert.NotEmpty(CommandLineTool.Listing());
 
-        // The machine is live, so entries come and go between two runs seconds apart.
-        Assert.InRange(empty, everything - 5, everything + 5);
+        // AND AN EMPTY --query IS NOT THE SAME ASK - owner's decision, 2026-08-26, and this test
+        // asserted the opposite until that day.
+        //
+        // The two are different sentences. Leaving the switch off says nothing about narrowing.
+        // Writing --query "" says somebody meant to narrow and what they wrote came to nothing -
+        // which is what a shell does with a variable that expanded to nothing, and is exactly the
+        // case worth catching. Answered with the whole machine and a code of success, it is a
+        // script with a broken filter reporting a clean audit.
+        //
+        // The same family as !!! and name:"" and a field with nothing after it, all three of which
+        // the language already turns back. This spelling never reached the parser as a term.
+        var refused = CommandLineTool.Run("list", "--query", "", "--json");
+
+        Assert.Equal(2, refused.ExitCode);
+        Assert.Empty(refused.StandardOutput);
+
+        // The other spelling of the same mistake, which arrives by a different road in the reader.
+        Assert.Equal(2, CommandLineTool.Run("list", "--query=", "--json").ExitCode);
+
+        // WHAT DID NOT CHANGE, and it is the half a careless fix would break: empty query TEXT
+        // still selects everything, because the window's box is empty most of the time. Only the
+        // command line ARGUMENT is refused, and only because leaving it off already says the same
+        // thing without the ambiguity. Checked where it lives - QueryParityContractTests compares
+        // an empty box against a terminal that was given no --query at all.
     }
 
     [Fact]

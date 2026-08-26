@@ -1,5 +1,6 @@
 // Explicit, because UseWPF swaps the implicit using set and takes System.IO out of it.
 using System.IO;
+using System.Text;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -83,6 +84,50 @@ public sealed class PreferencesFileGuards : IDisposable
         Assert.NotNull(reading.MovedAside);
         Assert.False(File.Exists(file.Where));
         Assert.Equal("this is not a layout", File.ReadAllText(reading.MovedAside!));
+    }
+
+    /// <summary>
+    /// Bytes that are not text this build reads are refused rather than guessed at.
+    ///
+    /// <b>Until 2026-08-26 this read the file with a decoder that substitutes a replacement
+    /// character for anything it cannot make sense of, and says nothing about having done it.</b>
+    /// The two files in this product were answering one question in two ways: SnapshotFiles chose
+    /// the refusing decoder and wrote down what the other choice cost - a snapshot saved once in
+    /// the machine's own code page came back as 297 entries changed, none of which had.
+    ///
+    /// The stakes here are smaller and the argument is the same one. It is quarantined like any
+    /// other file that turns out not to be a layout, because it is the only trace of what somebody
+    /// had.
+    /// </summary>
+    [Fact]
+    public void Bytes_that_are_not_text_this_build_reads_are_refused_rather_than_guessed_at()
+    {
+        var file = Fresh();
+
+        // A LAYOUT THAT IS OTHERWISE PERFECTLY GOOD, and the whole discrimination is in that word.
+        // The first version of this test wrote five bytes of nonsense - which the substituting
+        // decoder also turns into something that will not parse, so both answers came out the same
+        // and the mutation entry came back MISSED. Measured 2026-08-26 rather than reasoned, and it
+        // is the ordinary way a guard about refusing ends up proving nothing.
+        //
+        // So the file has to be one that READS FINE once a byte is quietly replaced: a real layout
+        // this program wrote, with one extra key nothing looks at, holding one byte that is not
+        // UTF-8. Substituting decoder - it parses, the key is ignored, the layout comes back.
+        // Refusing decoder - this is not text this build reads, and nothing is guessed at.
+        Assert.Null(file.Write(ColumnLayouts.Default));
+
+        var good = File.ReadAllText(file.Where).TrimEnd();
+        var opening = good[..good.LastIndexOf('}')] + ",\"note\":\"";
+
+        File.WriteAllBytes(
+            file.Where,
+            [.. Encoding.UTF8.GetBytes(opening), 0x9F, .. Encoding.UTF8.GetBytes("\"}")]);
+
+        var reading = file.Read();
+
+        Assert.NotNull(reading.Unreadable);
+        Assert.NotNull(reading.MovedAside);
+        Assert.False(File.Exists(file.Where));
     }
 
     /// <summary>

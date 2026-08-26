@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using Bws.Core;
 using Bws.Core.Snapshots;
 using Bws.Gui.ViewModels;
@@ -83,7 +84,7 @@ internal sealed class PreferencesFile
                 return new LayoutReading();
             }
 
-            content = File.ReadAllText(Where);
+            content = ReadText(Where);
         }
         catch (IOException problem)
         {
@@ -92,6 +93,23 @@ internal sealed class PreferencesFile
         catch (UnauthorizedAccessException problem)
         {
             return new LayoutReading { Unreadable = problem.Message };
+        }
+        catch (DecoderFallbackException problem)
+        {
+            // BYTES THAT ARE NOT TEXT THIS BUILD READS ARE REFUSED RATHER THAN GUESSED AT, and
+            // until 2026-08-26 this used File.ReadAllText, which substitutes a replacement
+            // character for every byte it cannot make sense of and says nothing.
+            //
+            // SnapshotFiles.ReadText decided the same question the other way round and wrote the
+            // measurement down: a snapshot saved once in the machine's code page came back as 297
+            // entries changed, none of which had. The stakes here are far smaller - a layout that
+            // will not parse goes to quarantine either way - but the two files were answering one
+            // question differently, and the one with a measurement behind it is the one to keep.
+            //
+            // Quarantined like any other file that turns out not to be a layout: it is the only
+            // trace of what somebody had, and moving it aside is also what lets the next write
+            // succeed. `ADR-18`.
+            return new LayoutReading { Unreadable = problem.Message, MovedAside = Aside() };
         }
 
         var reading = ColumnLayouts.Read(content);
@@ -134,6 +152,25 @@ internal sealed class PreferencesFile
         {
             return problem.Message;
         }
+    }
+
+    /// <summary>
+    /// The file as text, refusing bytes that are not text this build can read.
+    ///
+    /// Word for word the decoder <c>SnapshotFiles.ReadText</c> uses, and for the reason written
+    /// there. A byte order mark is still honoured, so a file something else saved as UTF-16 still
+    /// reads - only bytes that are none of those come back as a refusal.
+    /// </summary>
+    /// <exception cref="DecoderFallbackException">The bytes are not text this build can read.</exception>
+    private static string ReadText(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var reader = new StreamReader(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+            detectEncodingFromByteOrderMarks: true);
+
+        return reader.ReadToEnd();
     }
 
     /// <summary>Moves the unreadable file out of the way, and says where it went, or nothing.</summary>

@@ -49,13 +49,13 @@ internal static class Execution
             {
                 case 1:
                     key.Cancel = true;
-                    interruption.Cancel();
+                    Stop(interruption);
                     Console.Error.WriteLine(Texts.Of("cli.run.interrupted"));
                     break;
 
                 case 2:
                     key.Cancel = true;
-                    abandonment.Cancel();
+                    Stop(abandonment);
                     Console.Error.WriteLine(Texts.Of("cli.run.abandoned"));
                     break;
 
@@ -88,6 +88,32 @@ internal static class Execution
             //
             // The state (T) of rule 10, in the place this project has already paid for it once.
             Console.CancelKeyPress -= pressed;
+        }
+    }
+
+    /// <summary>
+    /// Cancels a source that may already have been let go.
+    ///
+    /// <b>What was left of the race above, closed 2026-08-26.</b> Taking the handler off before the
+    /// two sources are released shut the wide window - the one where the report was being written
+    /// with the handler still subscribed. It cannot shut the narrow one: a press can already be
+    /// inside this handler, on a thread of the runtime's choosing, while the main thread is
+    /// unsubscribing and leaving the method that owns both sources.
+    ///
+    /// Microseconds wide, and the cost of losing is the whole cost: an ObjectDisposedException on a
+    /// thread with nothing to catch it ends the process, at the exact moment somebody is waiting to
+    /// be told what the run did. The catch is narrow rather than broad - this is the one thing that
+    /// can be wrong here, and anything else arriving is news.
+    /// </summary>
+    private static void Stop(CancellationTokenSource source)
+    {
+        try
+        {
+            source.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The run is over and whatever this would have stopped has already stopped.
         }
     }
 
