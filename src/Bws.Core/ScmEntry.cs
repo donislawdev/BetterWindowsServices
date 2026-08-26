@@ -388,6 +388,27 @@ public sealed record ScmEntry
     /// </summary>
     private Reading<bool> Judge()
     {
+        // A PER-USER TEMPLATE HAS NO ANSWER TO THIS, AND SAYING "yes" WAS THE SAME FALSE ALARM
+        // `peruser:` HAD JUST REMOVED FROM THE QUERY. Owner's decision 2026-08-26, backlog 235.
+        //
+        // A template is automatic and never runs, because running is not what it is for - a
+        // session's copy runs beside it. Judged by the rule below it looks exactly like a service
+        // that failed to start, and on this machine that was 23 entries of 798 wearing an
+        // accusation. Measured 2026-08-25 on `bws show CDPUserSvc --full`: "Runs against its start
+        // type: yes", with CDPUserSvc_7b537 running next to it.
+        //
+        // ABSENT RATHER THAN A PRESENT FALSE, and the difference is the one this type exists for.
+        // False would claim somebody asked and the answer was no. Absent says the question does not
+        // apply, which is what lets `bws show` drop the line entirely, the cell go blank, and
+        // `mismatch:none` count it as agreeing with itself rather than as unreadable.
+        //
+        // ITS SIBLING RunsWhileDisabled IS DELIBERATELY UNTOUCHED. Disabled-and-running is a real
+        // false for a template rather than a question without meaning - it genuinely is not running.
+        if (PerUserRole == PerUserRole.Template)
+        {
+            return Reading<bool>.Absent();
+        }
+
         if (StartType.Value != Core.StartType.Automatic || Status == EntryStatus.Running)
         {
             return Reading<bool>.Present(false);

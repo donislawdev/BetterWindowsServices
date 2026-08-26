@@ -48,12 +48,27 @@ internal static class QuerySymbols
             return ReadOutcome.Denied;
         }
 
-        if (against.Outcome != ReadOutcome.Present || running.Outcome != ReadOutcome.Present)
+        // ABSENT IS AN ANSWER AND NOT-READ IS NOT, AND UNTIL 2026-08-26 THIS TREATED THEM ALIKE.
+        // It did no harm while neither half could ever be absent. Backlog 235 made one of them
+        // absent - a per-user template has no answer to whether it runs against its start type -
+        // and folding that into not-read would have moved 23 entries of 798 from one wrong
+        // sentence to another: from "this disagrees with itself" to "nobody could tell", which is
+        // what QueryValues.Unanswerable counts and what the window reports as judged on a field
+        // it could not read.
+        if (against.Outcome == ReadOutcome.NotRead || running.Outcome == ReadOutcome.NotRead)
         {
             return ReadOutcome.NotRead;
         }
 
-        return against.Value || running.Value ? ReadOutcome.Present : ReadOutcome.Absent;
+        // Absent reads as "asked, and there is none" - so it contributes no mismatch and does not
+        // stop the other half from contributing one. Read through the outcome rather than off the
+        // value, because an absent reading carries default(bool) and a bare .Value here would be
+        // a false that nobody measured.
+        var disagrees =
+            (against.Outcome == ReadOutcome.Present && against.Value)
+            || (running.Outcome == ReadOutcome.Present && running.Value);
+
+        return disagrees ? ReadOutcome.Present : ReadOutcome.Absent;
     }
 
     /// <summary>
@@ -84,12 +99,16 @@ internal static class QuerySymbols
 
         var found = new List<string>(2);
 
-        if (entry.RunsAgainstItsStartType.Value)
+        // ASKED THROUGH THE OUTCOME RATHER THAN OFF THE VALUE, for the reason spelled out in
+        // MismatchOutcome: an absent reading carries default(bool), so a bare .Value here is a
+        // false nobody measured. It happens to give the right answer today and it would stop
+        // doing so the moment a second field learns to be absent.
+        if (entry.RunsAgainstItsStartType is { Outcome: ReadOutcome.Present, Value: true })
         {
             found.Add("stopped");
         }
 
-        if (entry.RunsWhileDisabled.Value)
+        if (entry.RunsWhileDisabled is { Outcome: ReadOutcome.Present, Value: true })
         {
             found.Add("running");
         }

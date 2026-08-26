@@ -1,4 +1,5 @@
 using Bws.Core.Querying;
+using Bws.Core.Tests.Fakes;
 
 namespace Bws.Core.Tests;
 
@@ -89,6 +90,58 @@ public sealed class MismatchQueryTests
 
         // And an entry that WAS judged is not swept up by it.
         Assert.Empty(Selected("mismatch:?", [Machine()[2]]));
+    }
+
+    /// <summary>
+    /// A PER-USER TEMPLATE AGREES WITH ITSELF RATHER THAN BEING UNJUDGEABLE, and the difference
+    /// between those two is the whole of backlog 235.
+    ///
+    /// <b>The template is automatic and never runs, because running is not what it is for.</b>
+    /// Judged by the ordinary rule it looks exactly like a service that failed to start, and it
+    /// answered <c>mismatch:stopped</c> until 2026-08-26 - measured on a real machine as four
+    /// entries of 798 wearing an accusation, with their session copies running beside them.
+    ///
+    /// <b>The trap this pins is the SECOND wrong answer, not the first.</b> The reading is absent
+    /// now, and <see cref="QuerySymbols.MismatchOutcome"/> used to fold absent in with not-read -
+    /// so the repair would have moved every template from "this disagrees with itself" to "nobody
+    /// could tell", which is what <c>?</c> selects and what the window counts as judged on a field
+    /// it could not read. One false alarm traded for another is not a repair.
+    /// </summary>
+    [Fact]
+    public void A_per_user_template_agrees_with_itself_rather_than_being_unjudgeable()
+    {
+        var template = Specimens.PerUserTemplate;
+
+        // The shape that used to be accused: automatic, stopped, nothing waiting to start it.
+        Assert.Equal(StartType.Automatic, template.StartType.Value);
+        Assert.Equal(EntryStatus.Stopped, template.Status);
+
+        Assert.Empty(Selected("mismatch:stopped", [template]));
+        Assert.Empty(Selected("mismatch:any", [template]));
+
+        // Both halves of the repair, and the second is the one that could have gone wrong quietly.
+        Assert.Equal(["CDPUserSvc"], Selected("mismatch:none", [template]));
+        Assert.Empty(Selected("mismatch:?", [template]));
+    }
+
+    /// <summary>
+    /// And the session copy is still judged, because it is the one that does the work.
+    ///
+    /// Without this the test above passes on a change that silenced the whole per-user family,
+    /// which would hide a real instance that failed to come up.
+    /// </summary>
+    [Fact]
+    public void The_session_copy_is_still_judged_like_anything_else()
+    {
+        var stopped = Specimens.PerUserInstance with
+        {
+            ServiceName = "CDPUserSvc_21aaa4",
+            Status = EntryStatus.Stopped,
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent()
+        };
+
+        Assert.Equal(["CDPUserSvc_21aaa4"], Selected("mismatch:stopped", [stopped]));
+        Assert.Empty(Selected("mismatch:none", [stopped]));
     }
 
     private static string[] Selected(string query, IReadOnlyList<ScmEntry> entries) =>

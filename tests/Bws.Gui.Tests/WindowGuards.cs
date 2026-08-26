@@ -212,8 +212,11 @@ public sealed class WindowGuards
 
         Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
 
-        // THIRTY ONE SINCE 2026-08-25: twenty six columns, four headings and the way back to the
-        // usual ones, which are all items in the same flat list. Before that it was thirty.
+        // THIRTY TWO SINCE 2026-08-26: twenty seven columns, four headings and the way back to the
+        // usual ones, which are all items in the same flat list. The column that moved it is
+        // `perUserRole` - a field the window could already fold by and could not show.
+        //
+        // THIRTY ONE SINCE 2026-08-25: twenty six columns and the same five. Before that, thirty.
         //
         // TWENTY FOUR SINCE 2026-08-17: twenty columns and four headings, which are items in
         // the same flat list rather than groups around it. It was twenty two from 2026-08-12, and
@@ -223,7 +226,7 @@ public sealed class WindowGuards
         // where an open picker offered twelve togglable elements, all of them filter chips, and
         // none of the columns. The count is asserted whole rather than filtered so that a heading
         // quietly becoming tickable, or a column quietly becoming a heading, still moves it.
-        Assert.Equal(31, WpfHost.On(() => menu!.Items.Count));
+        Assert.Equal(32, WpfHost.On(() => menu!.Items.Count));
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

@@ -16,6 +16,7 @@
   "gui.column.account": "Account",
   "gui.column.processId": "PID",
   "gui.column.entryType": "Entry type",
+  "gui.column.perUserRole": "Per-user role",
   "gui.column.runsAgainstItsStartType": "Against its start type",
   "gui.column.binaryPath": "Binary path",
   "gui.column.binaryFile": "Binary file",
@@ -296,6 +297,9 @@
   "gui.cell.entryType.fileSystemDriver": "File system driver",
   "gui.cell.entryType.ownProcess": "Own process",
   "gui.cell.entryType.sharedProcess": "Shared process",
+  "gui.cell.perUserRole.none": "Not per-user",
+  "gui.cell.perUserRole.template": "Template",
+  "gui.cell.perUserRole.instance": "Session copy",
 
   "gui.cell.sidType.unrestricted": "Unrestricted",
   "gui.cell.sidType.restricted": "Restricted",

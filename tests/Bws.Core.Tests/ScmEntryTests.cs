@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Tests.Fakes;
 
 namespace Bws.Core.Tests;
 
@@ -22,6 +23,62 @@ public sealed class ScmEntryTests
 
         Assert.Equal(ReadOutcome.Present, entry.RunsAgainstItsStartType.Outcome);
         Assert.Equal(expected, entry.RunsAgainstItsStartType.Value);
+    }
+
+    /// <summary>
+    /// A per-user template has NO ANSWER to this, rather than a no.
+    ///
+    /// <b>Absent rather than a present false, and the difference is what this type exists for.</b>
+    /// False would mean somebody asked and the answer was no. Absent means the question does not
+    /// apply - which is what lets `bws show` drop the line, the cell go blank, and the query
+    /// language count it as agreeing with itself. Owner's decision 2026-08-26, backlog 235.
+    /// </summary>
+    [Fact]
+    public void A_per_user_template_has_no_answer_to_whether_it_runs_against_its_start_type()
+    {
+        var template = Specimens.PerUserTemplate;
+
+        // Named so that a reader can see this is the accused shape rather than a quiet one.
+        Assert.Equal(PerUserRole.Template, template.PerUserRole);
+        Assert.Equal(StartType.Automatic, template.StartType.Value);
+        Assert.Equal(EntryStatus.Stopped, template.Status);
+
+        Assert.Equal(ReadOutcome.Absent, template.RunsAgainstItsStartType.Outcome);
+    }
+
+    /// <summary>
+    /// Its sibling is DELIBERATELY untouched, and saying so is the point of this test.
+    ///
+    /// Disabled-and-running is a real false for a template rather than a question with no meaning -
+    /// it genuinely is not running. Making this absent too would have been the tidy-looking change
+    /// that removes a true answer.
+    /// </summary>
+    [Fact]
+    public void A_per_user_template_still_answers_whether_it_runs_while_disabled()
+    {
+        var template = Specimens.PerUserTemplate;
+
+        Assert.Equal(ReadOutcome.Present, template.RunsWhileDisabled.Outcome);
+        Assert.False(template.RunsWhileDisabled.Value);
+    }
+
+    /// <summary>
+    /// The session copy is judged like anything else, because it is the one that does the work.
+    ///
+    /// Without this, the two above pass on a change that silenced the whole per-user family - and
+    /// an instance that failed to come up is a real fault this tool exists to surface.
+    /// </summary>
+    [Fact]
+    public void A_per_user_instance_is_judged_like_any_other_entry()
+    {
+        var stopped = Specimens.PerUserInstance with
+        {
+            Status = EntryStatus.Stopped,
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent()
+        };
+
+        Assert.Equal(ReadOutcome.Present, stopped.RunsAgainstItsStartType.Outcome);
+        Assert.True(stopped.RunsAgainstItsStartType.Value);
     }
 
     [Fact]

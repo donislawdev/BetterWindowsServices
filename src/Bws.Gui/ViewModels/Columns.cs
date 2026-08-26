@@ -148,6 +148,23 @@ internal static class Columns
         },
         new Column
         {
+            // THE DEBT THE TWO `A11` SLICES LEFT BEHIND, PAID 2026-08-26. The field was in the
+            // core, in `--json`, in the snapshot and in the query language, and the window could
+            // FOLD by it while having nowhere to show it - which reads as the list hiding
+            // something rather than as a column nobody got round to.
+            //
+            // Beside the entry type on purpose: a template that shares a process is a
+            // SharedProcess and that is true, so these two answer different questions about the
+            // same entry and are read together or not at all.
+            Id = "perUserRole",
+            LabelKey = "gui.column.perUserRole",
+            WidthKey = "ColumnPerUserRole",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Reads = entry => CellFaces.PerUserRoleLabel(entry.PerUserRole)
+        },
+        new Column
+        {
             // The sharpest question this list can be asked of a machine nobody knows: what is set
             // to run and is not. `ScmEntry` calls it the single most useful derived fact in the
             // tool, and until now it was reachable only through the query language.
@@ -422,6 +439,12 @@ internal static class Columns
         ["memory"] = Basics,
 
         ["entryType"] = About,
+
+        // Beside the entry type because it answers a different question about the same bits, and
+        // the two are misleading apart: a per-user template that shares a process reads as an
+        // ordinary SharedProcess without this.
+        ["perUserRole"] = About,
+
         ["runsAgainstItsStartType"] = About,
         ["runsWhileDisabled"] = About,
         ["sidType"] = About,

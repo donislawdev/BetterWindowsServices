@@ -97,6 +97,11 @@
     <DataGridLength x:Key="ColumnBinaryOnDisk">130</DataGridLength>
 
     <DataGridLength x:Key="ColumnEntryType">150</DataGridLength>
+
+    <!-- Sized to the heading rather than to the data, like the two above it: the widest value is
+         "Not per-user" and the heading "Per-user role" is longer than any of the three. -->
+    <DataGridLength x:Key="ColumnPerUserRole">130</DataGridLength>
+
     <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
 
     <!-- The other direction of the same disagreement - backlog 170. -->
