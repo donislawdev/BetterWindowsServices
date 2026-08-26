@@ -109,6 +109,37 @@ public sealed class ReadAllContractTests(ITestOutputHelper output)
             "to be saying anything about threads.");
     }
 
+    /// <summary>
+    /// The default is the whole machine, said as a fact rather than as a stopwatch.
+    ///
+    /// <b>THIS EXISTS BECAUSE THE MUTATION REGISTRY NEEDED SOMETHING THAT CANNOT COME BACK
+    /// MISSED.</b> The entry holding "somebody quietly set the degree back to one" pointed at
+    /// the timing test below, and a timing test answers with the machine in it. Measured on
+    /// 2026-08-26 with the degree forced to one on an idle machine: the timing test passed
+    /// silently in ONE run of five, because the pair was always measured in the same order and
+    /// the second half of it was always the wide one. An entry that is a coin flip reports
+    /// MISSED, and MISSED reads exactly like a guard that had nothing to say. Backlog 238.
+    ///
+    /// <b>What this does NOT hold, said rather than left to be found:</b> nothing about
+    /// parallelism actually happening. Turn Parallel.For into an ordinary loop and this stays
+    /// green - that failure belongs to the timing test, which is why both are here. Neither is
+    /// enough on its own, and pretending one of them is would be the comfortable answer.
+    /// </summary>
+    [Fact]
+    public void Describing_entries_uses_the_whole_machine_by_default()
+    {
+        // ADR-22 and the constant's own comment: the processor count, arrived at by sweeping
+        // rather than by choosing, and the same answer SecondPass reached separately.
+        Assert.Equal(Environment.ProcessorCount, WindowsScmCatalog.DefaultDegreeOfParallelism);
+    }
+
+    // A CLOCK DECIDES THIS ONE, so the harness gives it the machine to itself - the trait is
+    // read by tools/state.ps1 and tools/check.ps1. Backlog 200.
+    //
+    // It matters here even though the healthy gap is enormous - 628-739 ms against 102-116 -
+    // because what this compares is two readings of the SAME machine, and a machine busy with
+    // four other test assemblies slows both of them by amounts that do not have to match.
+    [Trait("Measures", "clock")]
     [Fact]
     public void Reading_several_at_a_time_is_faster_than_reading_one_at_a_time()
     {
@@ -118,21 +149,49 @@ public sealed class ReadAllContractTests(ITestOutputHelper output)
         //
         // Interleaved rather than blocked, because the two variants must meet the same minute
         // of the machine's life - `docs/04` has that rule and it was paid for at S5a1.
+        //
+        // THE ORDER ALTERNATES SINCE 2026-08-26, AND THE FIXED ORDER WAS A BIAS RATHER THAN A
+        // DETAIL. Every pair used to measure one-at-a-time first and several-at-once second, so
+        // any warming that carries across a pair was credited to the wide run every time.
+        //
+        // Measured, not reasoned: with the degree forced to one - both calls the same code path,
+        // on an idle machine - the wide run came out lower in FIVE runs of five, and in one of
+        // those five the ranges came apart far enough for this guard to PASS on code with no
+        // parallelism in it at all. That is backlog 238, and the load in its title turned out to
+        // be incidental: the bias is there on a quiet machine too.
+        //
+        // Five passes rather than four so that, with the first discarded, each order is measured
+        // the same number of times. An odd count would put the thumb back on the scale.
         var catalog = new WindowsScmCatalog();
         var single = new List<double>();
         var many = new List<double>();
 
-        for (var run = 0; run < 4; run++)
+        for (var run = 0; run < 5; run++)
         {
-            var before = Stopwatch.GetTimestamp();
-            var one = catalog.ReadAll(degreeOfParallelism: 1);
-            var oneTook = Stopwatch.GetElapsedTime(before).TotalMilliseconds;
+            var wideFirst = run % 2 == 1;
 
-            before = Stopwatch.GetTimestamp();
-            var wide = catalog.ReadAll(WindowsScmCatalog.DefaultDegreeOfParallelism);
-            var wideTook = Stopwatch.GetElapsedTime(before).TotalMilliseconds;
+            var oneTook = 0.0;
+            var wideTook = 0.0;
+            IReadOnlyList<ScmEntry>? one = null;
+            IReadOnlyList<ScmEntry>? wide = null;
 
-            Assert.Equal(one.Count, wide.Count);
+            for (var half = 0; half < 2; half++)
+            {
+                if (half == 0 == wideFirst)
+                {
+                    var before = Stopwatch.GetTimestamp();
+                    wide = catalog.ReadAll(WindowsScmCatalog.DefaultDegreeOfParallelism);
+                    wideTook = Stopwatch.GetElapsedTime(before).TotalMilliseconds;
+                }
+                else
+                {
+                    var before = Stopwatch.GetTimestamp();
+                    one = catalog.ReadAll(degreeOfParallelism: 1);
+                    oneTook = Stopwatch.GetElapsedTime(before).TotalMilliseconds;
+                }
+            }
+
+            Assert.Equal(one!.Count, wide!.Count);
 
             // The first pass of each pays for the manager's own caches. Kept out of the
             // figures rather than folded in, as the measuring rule asks.

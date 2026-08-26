@@ -108,28 +108,13 @@ public sealed class PluralGuards
     }
 
     /// <summary>
-    /// A counted plural with one in front of it - "All 1 entries", "1 other entries", "1 drivers".
-    ///
-    /// <b>THE WORDS BETWEEN THE NUMBER AND THE NOUN ARE WHY THIS IS NOT `\b1 \w+s\b`, AND THE
-    /// MUTATION REGISTER IS WHAT SAID SO.</b> The first version demanded the plural immediately
-    /// after the one, was written with "1 other entries" quoted in this very comment as an example
-    /// it caught, and did not catch it - the entry for the cascade warning came back MISSED, which
-    /// is the outcome that means a guard does not check what its name claims. Prose about a regex is
-    /// prose like any other, and nothing but a deliberate break was ever going to test it.
-    ///
-    /// <b>ONE PATTERN RATHER THAN A LIST OF PLURAL WORDS.</b> The first version also flagged the
-    /// pronouns "these", "those", "they" and "them", and "them" hits
-    /// <c>gui.plan.problem.notOperable.one</c> - "This tool shows drivers but does not start or stop
-    /// them" - where the plural is about drivers in general and is correct. A guard that reddens on
-    /// a correct sentence teaches people to stop reading it, so the pronouns came out.
-    ///
-    /// <b>What this therefore does NOT catch, said rather than left to be found:</b> a group pronoun
-    /// standing for a list of one, which is four of the seven sentences this file was written for.
-    /// Those are held by name in the assertions below instead, where an exact string can be checked
-    /// without guessing at English.
+    /// MOVED TO <see cref="CountedWords"/> ON 2026-08-26, when the size ratchet fired on this file.
+    /// The history this pattern carries - why it is not <c>\b1 \w+s\b</c>, and what it deliberately
+    /// does not catch - moved with it rather than staying here describing something that left.
+    /// The vocabulary and the guard that keeps it honest are about the LANGUAGE FILES, while
+    /// everything else here drives the panel - so the seam was already there to be found.
     /// </summary>
-    private static readonly Regex CountedPlural =
-        new(@"\b1\s+(?:\w+\s+){0,2}\w+s\b", RegexOptions.None, TimeSpan.FromSeconds(5));
+    private static readonly Regex CountedPlural = CountedWords.Plural;
 
     /// <summary>
     /// Every sentence the panel can say about a selection of one, read for a plural.

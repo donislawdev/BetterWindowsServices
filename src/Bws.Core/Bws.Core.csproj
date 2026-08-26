@@ -23,6 +23,25 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Opened to one named test assembly on 2026-08-26, for one claim: which regular expression
+      engine a pattern was given to. QueryPatterns is internal and stays internal - the choice
+      between the linear engine and the backtracking fallback is this language's own business
+      and nothing outside has any reason to ask.
+
+      IT IS OPENED HERE BECAUSE THE ALTERNATIVE WAS A STOPWATCH. The claim used to be made by
+      a fifty millisecond time limit that made a wrong engine choice show up as a timeout, so
+      the guard went red when the machine was busy rather than when the choice was wrong. A
+      test that asks the question directly has no machine in it, and asking directly needs to
+      see the type that answers.
+
+      Same shape and same narrowness as the one in Bws.Cli: one assembly by name, and no type
+      made public to buy a test.
+    -->
+    <InternalsVisibleTo Include="Bws.Core.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <!-- Windows shows this as the file description, in properties and in Task Manager. -->
     <AssemblyTitle>Better Windows Services (core)</AssemblyTitle>

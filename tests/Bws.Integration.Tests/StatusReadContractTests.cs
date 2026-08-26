@@ -117,6 +117,9 @@ public sealed class StatusReadContractTests(Xunit.Abstractions.ITestOutputHelper
         Assert.True(runningWithProcess > 0, "Nothing running carried a process, so this proved nothing.");
     }
 
+    // A clock decides this one, so the harness gives it the machine to itself - the trait is
+    // read by tools/state.ps1 and tools/check.ps1. Backlog 200.
+    [Trait("Measures", "clock")]
     [Fact]
     public void The_cheap_reading_is_the_reason_a_window_can_ask_often()
     {

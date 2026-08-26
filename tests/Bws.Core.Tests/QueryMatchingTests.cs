@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Bws.Core.Querying;
 
 namespace Bws.Core.Tests;
@@ -73,21 +72,27 @@ public sealed class QueryMatchingTests
     {
         // The classic explosion. Expressions come from whoever is at the keyboard and run
         // over the whole listing on every keystroke, so this must not be survivable only
-        // by luck. The linear engine takes this one, and the assertion is on the clock
-        // rather than the answer: the wrong engine does not return a wrong result here,
-        // it stops returning at all.
+        // by luck.
+        //
+        // THE STOPWATCH CAME OUT ON 2026-08-26 AND IT HAD BEEN DEAD FOR A WHILE. It asserted
+        // under 500 ms while every pattern carried a 50 ms ceiling, so the ceiling always
+        // fired first and the clock could not reach its own threshold. What it was written to
+        // catch - a hang - is not something a stopwatch can catch either: a run that never
+        // ends never reaches the assertion.
+        //
+        // What remains is the pair below, and both halves are now facts rather than timings.
+        // Which engine took this pattern is claimed directly in QueryEngineChoiceTests.
         var runOfAs = new string('a', 40);
         var query = QueryParserTests.Valid("name:/(a+)+b/");
 
-        var stopwatch = Stopwatch.StartNew();
         var match = query.Match(Entries.Named(runOfAs, runOfAs));
-        stopwatch.Stop();
 
         Assert.False(match.Matched);
+
+        // TooCostly was the assertion that actually went red under load, until the ceiling
+        // came off the linear engine - backlog 137. It stays because it still says something
+        // true and now deterministic: this pattern is answered, not abandoned.
         Assert.False(match.TooCostly);
-        Assert.True(
-            stopwatch.ElapsedMilliseconds < 500,
-            $"Took {stopwatch.ElapsedMilliseconds} ms, which means it backtracked.");
     }
 
     [Fact]

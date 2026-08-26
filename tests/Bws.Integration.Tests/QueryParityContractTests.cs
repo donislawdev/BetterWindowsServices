@@ -207,6 +207,10 @@ public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelpe
         Assert.NotEmpty(terminal.Selected);
     }
 
+    // THE MOST FRAGILE CLOCK IN THE PROJECT AND THE ONE WITH THE LEAST ROOM: fifty milliseconds,
+    // against ten seconds for the second pass. The harness gives it the machine to itself - the
+    // trait is read by tools/state.ps1 and tools/check.ps1. Backlog 200.
+    [Trait("Measures", "clock")]
     [Fact]
     public async Task Filtering_the_whole_listing_stays_inside_the_budget()
     {

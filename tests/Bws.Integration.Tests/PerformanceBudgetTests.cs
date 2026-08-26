@@ -49,6 +49,26 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
     /// finer claims have their own guards - one file per distinct file is checked by mutation
     /// in the second pass tests, and the parallel verdicts by an oracle.
     /// </summary>
+    // MEASURES A CLOCK, SO THE HARNESS RUNS IT WITH THE MACHINE TO ITSELF. Added 2026-08-26,
+    // and the trait is read by tools/state.ps1 and tools/check.ps1, which run everything else
+    // first and these last, one at a time. Backlog 200.
+    //
+    // The three regimes, all measured that day over 798 entries on sixteen processors, and the
+    // spread between them is the entire argument:
+    //
+    //     serial, nothing else running        817-926 ms
+    //     this assembly alone, xUnit parallel  3406-6474 ms
+    //     the whole solution, five assemblies  10.7-22.4 s   (six readings, backlog 200)
+    //
+    // The budget is ten seconds. So this test passed or failed on how much machine was left
+    // over, not on what the second pass costs - and it went red six times over two days with
+    // nothing touching the code it measures.
+    //
+    // WHAT WAS NOT DONE, because it is the tempting one: the budget was not raised and what is
+    // measured was not narrowed. Section 8.1 promises ten seconds on somebody's machine, where
+    // four other test assemblies are not running, and moving the number to suit the harness
+    // would move the promise instead of keeping it.
+    [Trait("Measures", "clock")]
     [Fact]
     public void Expensive_data_for_the_whole_machine_stays_inside_the_budget()
     {
@@ -124,6 +144,9 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
     /// listing when somebody opens a preview. Timing that here would measure the same half second the
     /// test above already owns.
     /// </summary>
+    // Same reason as the test above, and a tighter budget - one second rather than ten - so it
+    // has less room to survive a busy machine, not more. Backlog 200.
+    [Trait("Measures", "clock")]
     [Fact]
     public void A_plan_over_a_large_selection_is_worked_out_inside_the_window_s_budget()
     {
