@@ -74,7 +74,13 @@ public sealed class PermissionContractTests
 
                 var ours = entry.GetProperty("sidType").GetString() ?? "none";
 
-                Assert.Equal(SidTypeAccordingToServiceControl(name), ours);
+                // WITHOUT CASE, because the two sides spell it differently ON PURPOSE and neither
+                // spelling is the other's business. sc.exe answers in capitals - SERVICE_SID_TYPE:
+                // UNRESTRICTED - and ours has said Unrestricted since schema 3 on 2026-08-26,
+                // where it used to say unrestricted. What is being compared is which identity kind
+                // the manager reports, and a test that also demanded a shared spelling would go red
+                // for a reason that is about neither tool being wrong.
+                Assert.Equal(SidTypeAccordingToServiceControl(name), ours, StringComparer.OrdinalIgnoreCase);
                 sampled++;
             }
 

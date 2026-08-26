@@ -379,7 +379,39 @@ public sealed record SnapshotDiff(
     /// <c>triggers</c> - same argument about order. The two words inside each one are written by
     /// this build rather than by the manager, so their spelling is ours and stable.
     /// </summary>
-    private static readonly string[] Unordered = ["dependsOn", "requiredPrivileges", "triggers"];
+    /// <remarks>
+    /// <b>Internal rather than private so that a guard can check it covers every list in the
+    /// document.</b> The way this list goes wrong is not that a name in it is wrong - it is that a
+    /// field is ADDED to the document and nobody comes here, which brings order-sensitivity back
+    /// for that one field, silently, on a surface whose whole job is telling real drift from noise.
+    /// </remarks>
+    internal static readonly string[] Unordered = ["dependsOn", "requiredPrivileges", "triggers"];
+
+    /// <summary>
+    /// Fields whose value names something Windows itself compares without case.
+    ///
+    /// <b>Four fields, added 2026-08-26, and each one is here because the SYSTEM says so rather
+    /// than because looser felt safer.</b>
+    ///
+    /// <c>account</c> - an account is a SID, and the name is the translated label on it. `ADR-14`
+    /// is the whole of that argument: identity travels by identifier and the name is for showing a
+    /// person. <c>LocalSystem</c> and <c>localsystem</c> are one account.
+    ///
+    /// <c>binaryPath</c>, <c>binaryFile</c> - Windows paths are case-insensitive, so two spellings
+    /// of one path run one file. A snapshot reporting drift because somebody retyped a path in
+    /// different capitals would be reporting a change that changed nothing about what runs.
+    ///
+    /// <c>loadOrderGroup</c> - a group name is matched by the manager without case, the same way a
+    /// service name is.
+    ///
+    /// <b>What is deliberately NOT here, and it is the half that matters:</b> <c>binaryHash</c>,
+    /// <c>securityDescriptor</c>, <c>displayName</c> and <c>description</c>. A hash differing in
+    /// case is a different hash. An SDDL string is read character for character by the system that
+    /// parses it. And the two human-facing names are TEXT rather than identifiers - somebody
+    /// recapitalising a display name really did change what an administrator will read.
+    /// </summary>
+    private static readonly string[] TheSystemIgnoresCase =
+        ["account", "binaryPath", "binaryFile", "loadOrderGroup"];
 
     /// <summary>
     /// A value in the form the comparison uses, which is NOT always the form a person is shown.
@@ -400,14 +432,23 @@ public sealed record SnapshotDiff(
     /// half of this that is easy to get wrong: comparing every field without case would quietly
     /// stop <c>binaryHash</c> and <c>sddl</c> from reporting changes that are real.
     /// </summary>
-    private static string? Compared(string field, JsonNode? node) =>
-        node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal)
-            ? string.Join(
+    private static string? Compared(string field, JsonNode? node)
+    {
+        if (node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal))
+        {
+            // The unit separator, because it is the one character none of these values can hold -
+            // joining on a comma would let two lists made of different pieces compare equal.
+            return string.Join(
                 '\u001f',
                 items
                     .Select(item => (Text(item) ?? string.Empty).ToLowerInvariant())
-                    .OrderBy(text => text, StringComparer.Ordinal))
+                    .OrderBy(text => text, StringComparer.Ordinal));
+        }
+
+        return TheSystemIgnoresCase.Contains(field, StringComparer.Ordinal)
+            ? Text(node)?.ToLowerInvariant()
             : Text(node);
+    }
 
     /// <summary>
     /// A value as text, for showing, and for comparing everything <see cref="Compared"/> does not

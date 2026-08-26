@@ -36,6 +36,15 @@ namespace Bws.Gui;
 /// count.</b> That guard finds the places that catch everything by looking for the analyser
 /// suppression a catch-all needs. A dispatcher handler is not a catch block, needs no suppression,
 /// and catches strictly more than any of them.
+///
+/// <b>THE SUBSCRIPTION ITSELF HAS NO MUTATION ENTRY, AND THE REASON IS THE MECHANISM RATHER THAN
+/// AN OVERSIGHT.</b> Every way of breaking it - not subscribing, or looking for the model in the
+/// wrong place - ends with the exception unhandled, and an unhandled dispatcher exception does not
+/// redden a test: it ends the process running it. A registry entry whose red is a dead test host
+/// would take the rest of a three hundred entry run down with it. What IS held by an entry is the
+/// sentence this says, and <c>MishapGuards</c> exercises the whole path - a real application, a
+/// real dispatcher, a queued operation that throws - so the wiring is checked even though nothing
+/// can safely prove that check can fail.
 /// </summary>
 internal static class Mishaps
 {

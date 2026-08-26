@@ -145,8 +145,25 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// reported on 46 entries of 798 that nothing on the machine actually changed. A diff that
     /// invents changes is worse than a file that says it is too old, because the first is the
     /// promise this product is for.
+    ///
+    /// <b>TWO TO THREE ON 2026-08-26, AND THIS ONE CHANGES NO FIELD - it changes what four of them
+    /// SAY.</b> Half the enumerated values were written through a lower-casing helper and half
+    /// through ToString, so one document held <c>OwnProcess</c> beside <c>unrestricted</c>. They
+    /// all go through ToString now, and <see cref="EntryDocument"/> carries the measurement that
+    /// chose the direction.
+    ///
+    /// <b>A value changing is as breaking as a field changing, and it is the quieter of the two.</b>
+    /// A missing field fails a deserialiser. A value that reads <c>Unrestricted</c> where a script
+    /// expected <c>unrestricted</c> fails nothing at all - the comparison is simply false, the
+    /// branch is not taken, and a report comes out saying nothing is wrong. So it takes the number,
+    /// for the same reason the added field did: with it the file is refused by name, and its owner
+    /// is told which version they have.
+    ///
+    /// <b>Comparing two files of the SAME version is unaffected either way</b>, because both sides
+    /// were written by one build. What this protects is the reader comparing an old file with a new
+    /// one, and the script keyed on a value rather than on a field.
     /// </summary>
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     /// <summary>
     /// Freezes a listing.

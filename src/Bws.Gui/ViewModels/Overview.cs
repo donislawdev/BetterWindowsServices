@@ -154,6 +154,22 @@ internal static class Overview
     /// <b>A query this file cannot parse throws rather than counting zero.</b> A screen quietly
     /// showing zero for a question it failed to ask is the exact shape rule 8 forbids, and it would
     /// look like a clean machine.
+    ///
+    /// <b>AND THAT THROW IS QUIETER AT RUNTIME THAN THIS PARAGRAPH USED TO CLAIM - said out loud
+    /// on 2026-08-26 rather than left to be discovered.</b> The only caller is a property the
+    /// window binds to, and WPF CATCHES exceptions out of a binding source and turns them into a
+    /// binding error in a trace nobody is reading. So on a running machine the loud failure is a
+    /// blank screen, which is a milder version of the very thing this throw exists to prevent.
+    ///
+    /// <b>What makes the guarantee real is therefore a test, not this line.</b> These six queries
+    /// are constants in this file - nobody types them - so the moment they can be wrong is a build,
+    /// not a session, and <c>OverviewGuards.Every_question_this_screen_asks_parses</c> asks all six
+    /// directly. The throw stays as the tripwire underneath it: cheap, and correct for any caller
+    /// that is not a binding.
+    ///
+    /// <b>Not moved to startup, and that is a decision rather than an omission.</b> Checking them
+    /// when the screen is switched on would put a second road to the same constants in the product,
+    /// and would fail on a person's machine for a mistake that can only be made here.
     /// </summary>
     private static OverviewLine Line(string label, string query, IReadOnlyList<EntryRow> rows, bool leading)
     {

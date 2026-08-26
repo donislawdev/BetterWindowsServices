@@ -98,6 +98,55 @@ public sealed class SnapshotDiffTests
         Assert.Equal("dependsOn", Assert.Single(Assert.Single(diff.Changed).Differences).Field);
     }
 
+    /// <summary>
+    /// An account written in different capitals is the same account.
+    ///
+    /// <b>Rule 3 of the project notes, met where it costs a false difference.</b> An account IS a
+    /// SID and the name is the translated label on it - so <c>LocalSystem</c> and
+    /// <c>localsystem</c> name one account, and a comparison saying otherwise reports drift on a
+    /// machine where nothing moved. The same holds for the two paths and the load order group, all
+    /// of which Windows itself matches without case.
+    ///
+    /// Added 2026-08-26 on the owner's instruction to close the whole of the outside review. The
+    /// first half of that finding - the lists - went in earlier the same day, and this half was
+    /// deliberately left out then, for a reason now overruled.
+    /// </summary>
+    [Theory]
+    [InlineData("account", "LocalSystem", "localsystem")]
+    [InlineData("binaryPath", @"C:\Windows\System32\svchost.exe", @"c:\windows\system32\svchost.exe")]
+    public void A_name_the_system_matches_without_case_is_not_a_difference(string field, string was, string now)
+    {
+        var diff = Between(Taken([Written(field, was)]), Taken([Written(field, now)]));
+
+        Assert.False(diff.Any, $"{field} was reported as changed from {was} to {now}.");
+    }
+
+    [Fact]
+    public void A_name_that_really_changed_is_still_a_difference()
+    {
+        // The half a careless fix breaks: an account moving from LocalSystem to a named account is
+        // the single most interesting line an audit can produce.
+        var diff = Between(
+            Taken([Written("account", "LocalSystem")]),
+            Taken([Written("account", @"NT SERVICE\Spooler")]));
+
+        Assert.True(diff.Any);
+        Assert.Equal("account", Assert.Single(Assert.Single(diff.Changed).Differences).Field);
+    }
+
+    [Fact]
+    public void A_hash_differing_only_in_case_is_still_a_difference()
+    {
+        // The boundary, and the reason the loose set is four names rather than "text fields". A
+        // hash is not a name the system matches - it is the answer to a calculation, and two
+        // spellings of it are two answers.
+        var diff = Between(
+            Taken([Entry("Spooler") with { BinaryHash = Reading<string>.Present(new string('a', 64)) }]),
+            Taken([Entry("Spooler") with { BinaryHash = Reading<string>.Present(new string('A', 64)) }]));
+
+        Assert.True(diff.Any);
+    }
+
     [Fact]
     public void What_a_person_reads_is_the_spelling_the_snapshot_holds()
     {
@@ -330,4 +379,12 @@ public sealed class SnapshotDiffTests
 
     private static ScmEntry Entry(string name) =>
         Entries.Any with { ServiceName = name, DisplayName = $"{name} display name" };
+
+    /// <summary>One entry with one named field set to one value, for the theory above.</summary>
+    private static ScmEntry Written(string field, string value) => field switch
+    {
+        "account" => Entry("Spooler") with { Account = Reading<string>.Present(value) },
+        "binaryPath" => Entry("Spooler") with { BinaryPath = Reading<string>.Present(value) },
+        _ => throw new ArgumentOutOfRangeException(nameof(field), field, "No such field in this test.")
+    };
 }

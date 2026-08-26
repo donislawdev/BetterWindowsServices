@@ -99,11 +99,16 @@ public sealed class SnapshotContractTests : IDisposable
     {
         var metadata = Take("meta.json", "--note", "before the deployment").GetProperty("metadata");
 
-        // Two since 2026-08-25, when perUserRole joined the entry document. This number is
-        // pinned here on purpose: it is the only thing that turns "your file is from an older
-        // build" into a sentence its owner can act on, and a change to it that nobody argued
+        // Two since 2026-08-25, when perUserRole joined the entry document, and THREE since
+        // 2026-08-26, when the enumerated values stopped being written in two conventions. This
+        // number is pinned here on purpose: it is the only thing that turns "your file is from an
+        // older build" into a sentence its owner can act on, and a change to it that nobody argued
         // for is a change that silently stops older snapshots from being readable.
-        Assert.Equal(2, metadata.GetProperty("schemaVersion").GetInt32());
+        //
+        // Written as the literal rather than as the constant, which is the point of pinning it: a
+        // test reading Snapshot.CurrentSchemaVersion agrees with any value that constant takes,
+        // including one somebody moved without meaning to.
+        Assert.Equal(3, metadata.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("before the deployment", metadata.GetProperty("note").GetString());
         Assert.Equal(Environment.MachineName, metadata.GetProperty("machine").GetString());
         Assert.NotEmpty(metadata.GetProperty("takenBy").GetString()!);

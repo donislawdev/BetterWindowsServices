@@ -470,6 +470,24 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **Snapshots are now written in format version 3, and a snapshot written by an earlier build is
+  refused rather than read.** No field was added or renamed. What changed is what four of them
+  say: half the values in the document were written in one spelling and half in another, so one
+  file carried `OwnProcess`, `Running` and `Automatic` beside `unrestricted`, `normal`, `trusted`
+  and `deviceArrival`. They are all written the way the tool's own text output writes them now.
+  - **The same command used to give you two spellings of one value.** `bws show Spooler` printed
+    `Service SID type: Unrestricted` while `bws show Spooler --json` printed
+    `"sidType": "unrestricted"`. That is gone, in the listing, in `show` and in a snapshot alike.
+  - **This affects `bws list --json` and `bws show --json` as well as snapshot files**, because all
+    three are the same document. A script comparing `sidType`, `errorControl`, `signature.status`
+    or a trigger's `kind` or `action` against a lower-case word has to be updated - and the four
+    other values it may compare are unchanged.
+  - **Searching is unaffected.** `sidtype:unrestricted` and `status:running` read the same as they
+    always did, in the window and on the command line. The query language has never matched the
+    listing's spelling and does not start now.
+  - The refusal names the reason: the file uses version 2 and this build reads version 3. Nothing
+    has been released yet, so no snapshot written by a published build exists.
+
 - **Snapshots are now written in format version 2, and a snapshot written by an earlier build is
   refused rather than read.** The entries carry one more field - which side of the per-user family
   each one is on - and every field in that format is required, so a file without it is not a

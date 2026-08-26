@@ -86,7 +86,23 @@ public sealed class ReadAllContractTests(ITestOutputHelper output)
             // stop by themselves within minutes - so a difference in what an entry is DOING
             // between two readings taken seconds apart is the machine, not the threads. A
             // difference in how it is SET UP is not.
-            if (sequential with { Status = parallel.Status, ProcessId = parallel.ProcessId } == parallel)
+            //
+            // COMPARED AS THE RENDERED DOCUMENT RATHER THAN AS THE RECORD, SINCE 2026-08-26, AND
+            // THE RECORD VERSION COULD NEVER HAVE WORKED FOR MOST OF THIS MACHINE. ScmEntry is a
+            // record, so its generated equality compares each Reading - and a Reading holding a
+            // LIST compares that list by reference. Two readings of one service hand back two list
+            // objects with the same names in them, which are never equal. So for every entry that
+            // declares a dependency, a trigger or a privilege - ClipSVC declares all three - this
+            // escape hatch was unreachable, and the test passed only for as long as no such entry
+            // happened to start or stop between the two readings.
+            //
+            // Found by it going red on ClipSVC, whose two readings differed in Status and
+            // ProcessId and in nothing else. A guard that is green by luck reads exactly like a
+            // guard that is green by construction, which is why this one is worth the four lines.
+            var settled = System.Text.Json.JsonSerializer.Serialize(
+                EntryDocument.From(sequential with { Status = parallel.Status, ProcessId = parallel.ProcessId }));
+
+            if (settled == right)
             {
                 moved++;
                 continue;

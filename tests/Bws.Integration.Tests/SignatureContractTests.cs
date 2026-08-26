@@ -80,8 +80,14 @@ public sealed class SignatureContractTests
         //
         // Every file we call unsigned is put back to the system for a second opinion. One
         // that the system trusts means the catalogue was never consulted.
+        // THE SPELLING HERE WAS notSigned UNTIL 2026-08-26 AND MISSING IT MADE THIS TEST EMPTY.
+        // Schema 3 writes enumerated values the way the enumeration writes them, two other literals
+        // in this file were updated, and this one was not - so the filter selected nothing, the
+        // loop below ran zero times, and the count check passed on zero out of zero. Nothing was
+        // red. The mutation registry found it: the entry that proves this guard can fail came back
+        // MISSED, which is the only mechanism here that can tell an empty test from a passing one.
         var unsigned = Inspected.Value
-            .Where(entry => Signature(entry)?.GetProperty("status").GetString() == "notSigned")
+            .Where(entry => Signature(entry)?.GetProperty("status").GetString() == "NotSigned")
             .ToArray();
 
         foreach (var entry in unsigned)
@@ -109,7 +115,7 @@ public sealed class SignatureContractTests
         // the step that would fail silently: a trusted file with nobody's name on it looks
         // like data rather than like a bug.
         var trusted = Inspected.Value
-            .Where(entry => Signature(entry)?.GetProperty("status").GetString() == "trusted")
+            .Where(entry => Signature(entry)?.GetProperty("status").GetString() == "Trusted")
             .Take(12)
             .ToArray();
 
@@ -142,10 +148,17 @@ public sealed class SignatureContractTests
     /// file's, and the file's is the one that travels with the binary rather than with the
     /// machine reading it. Written here so the difference is not rediscovered as a bug.
     /// </summary>
+    /// <summary>
+    /// PowerShell's word for a verdict, in ours.
+    ///
+    /// <b>Ours moved to the spelling the enum uses on 2026-08-26</b>, when the values in this
+    /// document stopped being written in two conventions - schema 3. Only the right hand side of
+    /// this map changed, which is the map doing its job: PowerShell's vocabulary is PowerShell's.
+    /// </summary>
     private static string Expected(string status) => status switch
     {
-        "Valid" => "trusted",
-        "NotSigned" => "notSigned",
+        "Valid" => "Trusted",
+        "NotSigned" => "NotSigned",
         _ => status
     };
 

@@ -242,6 +242,42 @@ public sealed class OverviewGuards
     /// for in the constructor, when the first reading is still out, so nothing but a second look
     /// after it lands can make the numbers true.
     /// </summary>
+    /// <summary>
+    /// Every question this screen asks is one the query language can answer.
+    ///
+    /// <b>Written 2026-08-26, and what it replaces is a claim rather than a mechanism.</b>
+    /// <c>Overview.Line</c> throws when a query will not parse, with the argument that a screen
+    /// quietly showing zero for a question it failed to ask is the shape rule 8 forbids. The
+    /// argument is right and the loudness was not: the only caller is a property the window binds
+    /// to, and WPF catches exceptions out of a binding source and turns them into a line in a trace
+    /// nobody reads. On a running machine that throw is a blank screen.
+    ///
+    /// <b>So the guarantee moves to where the mistake can actually be made.</b> These queries are
+    /// constants - nobody types them - so the moment one can be wrong is a build. Asked here
+    /// directly, against an empty listing, because what is being checked is whether the language
+    /// understands them and not what they select.
+    ///
+    /// <b>Other tests in this file reach the same code through the view model</b>, so a broken
+    /// query would redden several of them. That is not the same thing: those would go red about
+    /// counts, and this one says which query and why. Found by an outside review, which named the
+    /// mechanism this file's own comment had wrong.
+    /// </summary>
+    [Fact]
+    public void Every_question_this_screen_asks_parses()
+    {
+        var asked = ViewModels.Overview.Of([]);
+
+        Assert.NotEmpty(asked);
+
+        // Six today, and the number is here so that a line quietly disappearing is a red test
+        // rather than one fewer thing being checked.
+        Assert.Equal(6, asked.Count);
+
+        Assert.All(asked, line => Assert.False(
+            string.IsNullOrWhiteSpace(line.Query),
+            "A line on this screen carries no question, so clicking its number would ask nothing."));
+    }
+
     [Fact]
     public async Task The_numbers_are_counted_again_once_the_machine_has_been_read()
     {

@@ -52,6 +52,26 @@ public sealed record MemoryDocument(long WorkingSet, long Commit, int SharedBy);
 /// breaking change needing a schema version, not a tidy-up. Names come from the binding
 /// column of the glossary.
 ///
+/// <b>KEYS ARE camelCase AND VALUES ARE WRITTEN THE WAY THE ENUM WRITES THEM, and until
+/// 2026-08-26 half of them were not.</b> Four fields went through ToString and four went through
+/// a lower-casing helper, so one document said <c>OwnProcess</c>, <c>Running</c> and
+/// <c>Automatic</c> beside <c>unrestricted</c>, <c>normal</c>, <c>trusted</c> and
+/// <c>deviceArrival</c>. A script comparing values had to know which field was in which
+/// convention, and there is no way to guess it - the only source was this file.
+///
+/// <b>The direction was decided by a measurement rather than a preference.</b> The text half of
+/// this product prints every one of these through ToString: <c>bws show Spooler</c> says
+/// "Service SID type: Unrestricted" while <c>bws show Spooler --json</c> said
+/// "sidType": "unrestricted" - one command, one value, two spellings. Unifying downwards would
+/// have spread that disagreement to <c>status</c>, <c>startType</c> and <c>entryType</c>, which
+/// the listing table also prints through ToString. Unifying upwards removes it everywhere.
+///
+/// <b>The query language keeps its own vocabulary and that is not the same question.</b> It reads
+/// <c>sidtype:unrestricted</c> and <c>status:running</c>, normalises spelling on the way in, and
+/// has never matched the listing either - <c>start:auto</c> against <c>Automatic</c>. A language
+/// somebody types is allowed to be gentler than a document a program reads.
+///
+
 /// The interesting part is how an unreadable field is expressed. A value that could not be
 /// read must not look like a value that is simply not there: the first is a fact about our
 /// permissions, the second is a fact about the service, and a snapshot that confuses them
@@ -274,7 +294,7 @@ public sealed record EntryDocument
 
             Triggers = entry.Triggers.IsPresent
                 ? [.. entry.Triggers.Value!.Select(trigger =>
-                    new TriggerDocument(Camel(trigger.Kind.ToString()), Camel(trigger.Action.ToString())))]
+                    new TriggerDocument(trigger.Kind.ToString(), trigger.Action.ToString()))]
                 : null,
 
             BinaryPath = entry.BinaryPath.IsPresent ? entry.BinaryPath.Value : null,
@@ -283,7 +303,7 @@ public sealed record EntryDocument
 
             Signature = entry.Signature.IsPresent
                 ? new SignatureDocument(
-                    Camel(entry.Signature.Value!.Status.ToString()),
+                    entry.Signature.Value!.Status.ToString(),
                     entry.Signature.Value.ResultCode,
                     entry.Signature.Value.Publisher)
                 : null,
@@ -292,10 +312,10 @@ public sealed record EntryDocument
             BinaryHash = entry.BinaryHash.IsPresent ? entry.BinaryHash.Value : null,
 
             RequiredPrivileges = entry.RequiredPrivileges.IsPresent ? entry.RequiredPrivileges.Value : null,
-            SidType = entry.SidType.IsPresent ? Camel(entry.SidType.Value.ToString()) : null,
+            SidType = entry.SidType.IsPresent ? entry.SidType.Value.ToString() : null,
             SecurityDescriptor = entry.SecurityDescriptor.IsPresent ? entry.SecurityDescriptor.Value : null,
 
-            ErrorControl = entry.ErrorControl.IsPresent ? Camel(entry.ErrorControl.Value.ToString()) : null,
+            ErrorControl = entry.ErrorControl.IsPresent ? entry.ErrorControl.Value.ToString() : null,
             LoadOrderGroup = entry.LoadOrderGroup.IsPresent ? entry.LoadOrderGroup.Value : null,
 
             Memory = entry.Memory.IsPresent
