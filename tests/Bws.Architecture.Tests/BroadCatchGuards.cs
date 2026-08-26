@@ -16,6 +16,17 @@ namespace Bws.Architecture.Tests;
 /// one turns the failure into something the person sees. The point is that a **new** one
 /// should be a decision somebody makes on purpose, not something that arrives and joins a
 /// count nobody maintains.
+///
+/// <b>ONE BLIND SPOT, NAMED HERE RATHER THAN LEFT FOR SOMEBODY TO TRUST THIS COUNT WITHOUT IT -
+/// 2026-08-26.</b> This finds a catch-all by looking for the analyser suppression one needs. The
+/// window's dispatcher handler in <c>Mishaps</c> is not a catch block, needs no suppression, and
+/// catches strictly MORE than any file listed below - everything thrown on the interface thread
+/// that nothing else caught. It is deliberate and argued in its own file, exactly like these are,
+/// and it is invisible here.
+///
+/// <b>Not fixed by widening the pattern, and that is a decision.</b> A guard looking for
+/// <c>DispatcherUnhandledException</c> as well would be two shapes in one test, and the second has
+/// exactly one legitimate site in a product with one application. Naming it is what a reader needs.
 /// </summary>
 public sealed class BroadCatchGuards
 {
