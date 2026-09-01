@@ -164,8 +164,26 @@ internal static class DiffText
         // at - that is the difference between an answer and a comfortable one.
         if (diff.NotFullyCompared.Count > 0 || diff.Uncertain.Count > 0)
         {
-            text.AppendLine(Texts.Of(
-                "cli.diff.summaryIncomplete", diff.NotFullyCompared.Count, diff.Uncertain.Count));
+            // A HEADING AND A LINE PER COUNT SINCE 2026-09-01, WHERE IT USED TO BE ONE SENTENCE
+            // HOLDING BOTH - backlog 207. One sentence could not carry a singular, because each
+            // half counts something different and either half can be nought: "0 entries carry a
+            // field one snapshot never read, and 1 entries only one of the two could see" is one
+            // line saying nothing about the first count and saying it wrongly about the second.
+            text.AppendLine(Texts.Of("cli.diff.summaryIncomplete"));
+
+            if (diff.NotFullyCompared.Count > 0)
+            {
+                text.AppendLine(diff.NotFullyCompared.Count == 1
+                    ? Texts.Of("cli.diff.incomplete.neverRead.one", diff.NotFullyCompared.Count)
+                    : Texts.Of("cli.diff.incomplete.neverRead.many", diff.NotFullyCompared.Count));
+            }
+
+            if (diff.Uncertain.Count > 0)
+            {
+                text.AppendLine(diff.Uncertain.Count == 1
+                    ? Texts.Of("cli.diff.incomplete.seenByOne.one", diff.Uncertain.Count)
+                    : Texts.Of("cli.diff.incomplete.seenByOne.many", diff.Uncertain.Count));
+            }
         }
     }
 

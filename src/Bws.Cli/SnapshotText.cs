@@ -43,7 +43,9 @@ internal static class SnapshotText
                 Options);
         }
 
-        var written = Texts.Of("cli.snapshot.written", full, snapshot.Entries.Count);
+        var written = snapshot.Entries.Count == 1
+            ? Texts.Of("cli.snapshot.written.one", full, snapshot.Entries.Count)
+            : Texts.Of("cli.snapshot.written.many", full, snapshot.Entries.Count);
 
         // Said on the receipt and not only in the file, because it is the one thing about a
         // snapshot that changes what a later comparison means. Measured: without elevation

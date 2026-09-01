@@ -165,8 +165,30 @@ internal sealed partial record CommandLine
     /// </summary>
     internal string? BadSubcommand { get; private init; }
 
-    /// <summary>Options nobody knows, and bare words where none belongs.</summary>
+    /// <summary>
+    /// Options nobody knows.
+    ///
+    /// <b>Bare words left here until 2026-09-01 and the sentence they got was wrong about them</b> -
+    /// backlog 233. <c>bws start type Spooler manual</c> answered "Unknown option: Spooler, manual",
+    /// which calls two words somebody spelled correctly options, and sends them hunting for a typo
+    /// in a word that has none. See <see cref="Extra"/>.
+    /// </summary>
     internal IReadOnlyList<string> Rejected { get; private init; } = [];
+
+    /// <summary>
+    /// Bare words a verb has nowhere to put.
+    ///
+    /// <b>Their own list since 2026-09-01, for the reason <see cref="BadSubcommand"/> and
+    /// <see cref="Incomplete"/> already have theirs: the honest sentence differs.</b> An option
+    /// nobody knows is a spelling to check. This is a word spelled perfectly that the verb has no
+    /// room for, and the useful answer is how many names the verb takes - which is what
+    /// <c>OptionSurface.TakesWhat</c> exists to say.
+    ///
+    /// <b>The fault is OLDER than the verb that made it easy to meet.</b> <c>bws stop A B</c> has
+    /// answered "unknown option" since the day stop was built. <c>start-type</c> only raised how
+    /// often somebody lands on it, because it stands one character from <c>start</c>.
+    /// </summary>
+    internal IReadOnlyList<string> Extra { get; private init; } = [];
 
     /// <summary>
     /// Somebody asked how to use this.

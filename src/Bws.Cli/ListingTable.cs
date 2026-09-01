@@ -64,7 +64,7 @@ internal static class ListingTable
                 entry.ServiceName,
                 entry.DisplayName,
                 entry.EntryType.ToString(),
-                entry.Status.ToString(),
+                StatusWords.Of(entry.Status),
                 StartCell(entry),
                 Cell(entry.Account, value => value),
                 Cell(entry.ProcessId, value => value.ToString(CultureInfo.InvariantCulture))

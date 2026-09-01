@@ -102,6 +102,22 @@ internal static class Refusals
             return ExitCode.Usage;
         }
 
+        if (options.Extra.Count > 0)
+        {
+            // AFTER THE VERB IS KNOWN, AND THAT IS WHY IT SITS HERE RATHER THAN BESIDE THE UNKNOWN
+            // OPTION ABOVE. The sentence is about how many names THIS command has room for, so it
+            // cannot be said until there is a command - and an unknown option stays the first
+            // answer because it is the sharper mistake of the two.
+            Console.Error.WriteLine(Texts.Of(
+                "cli.wordsNotTaken",
+                OptionSurface.Spelling(options.Kind),
+                Texts.Of(OptionSurface.TakesWhat(options.Kind)),
+                string.Join(", ", options.Extra)));
+
+            Console.Error.WriteLine(Texts.Of("cli.usage"));
+            return ExitCode.Usage;
+        }
+
         if (options.Misplaced.Count > 0)
         {
             // An option that exists but not here. Refused rather than ignored: a switch that

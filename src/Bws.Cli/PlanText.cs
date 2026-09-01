@@ -151,7 +151,7 @@ internal static class PlanText
         StepOutcome.Failed => Texts.Of("cli.run.outcome.failed", result.Error!, result.ErrorCode),
 
         StepOutcome.TimedOut => Texts.Of(
-            "cli.run.outcome.timedOut", Took(result.Milliseconds), result.Status.ToString()),
+            "cli.run.outcome.timedOut", Took(result.Milliseconds), StatusWords.Of(result.Status)),
 
         _ => Texts.Of($"cli.run.outcome.{Camel(result.SkippedBecause ?? SkipReason.AlreadyThere)}")
     };
@@ -185,8 +185,12 @@ internal static class PlanText
             Count("cli.plan.warning.inTheWay", warning),
             warning.ServiceName, warning.Related.Count, Join(warning.Related)),
 
+        // A PAIR SINCE 2026-09-01, AND NO NUMBER APPEARS IN EITHER SENTENCE - backlog 207. The
+        // window got both halves on 2026-08-19 and this one did not, so the two interfaces said
+        // different things about the same fact. "Those keep running" about a single entry is a
+        // plural with nothing to count it, which is the shape a scan for placeholders cannot see.
         PlanWarningKind.SharedProcess => Texts.Of(
-            "cli.plan.warning.sharedProcess", warning.ServiceName, Join(warning.Related)),
+            Count("cli.plan.warning.sharedProcess", warning), warning.ServiceName, Join(warning.Related)),
 
         PlanWarningKind.ReturnsAfterReboot => Texts.Of(
             "cli.plan.warning.returnsAfterReboot", warning.ServiceName),
@@ -201,8 +205,13 @@ internal static class PlanText
     {
         PlanProblemKind.UnknownService => Texts.Of("cli.plan.problem.unknownService", problem.ServiceName),
 
+        // The other sentence with a plural and no number in it, paired the same day and for the
+        // same reason - "these drivers" about one driver.
         PlanProblemKind.CascadeNotOperable => Texts.Of(
-            "cli.plan.problem.cascadeNotOperable", problem.ServiceName, Join(problem.Related)),
+            problem.Related.Count == 1
+                ? "cli.plan.problem.cascadeNotOperable.one"
+                : "cli.plan.problem.cascadeNotOperable.many",
+            problem.ServiceName, Join(problem.Related)),
 
         // Three keys, because the entry that cannot come back is usually the one somebody
         // named, and a sentence that says its name twice in eight words reads as though

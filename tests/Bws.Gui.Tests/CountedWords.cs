@@ -78,6 +78,11 @@ internal static class CountedWords
         // Verbs in the third person singular, which is exactly what a correct sentence about ONE
         // thing uses - so every one of these appears in a sentence the old pattern reddened on.
         "is", "was", "has", "does", "needs", "says", "stops", "starts", "expects", "shares",
+        // Two more on 2026-09-01, both from the command line repairs of that day and both caught
+        // by the guard below on their first run. "{0} entry carries a field one snapshot never
+        // read" is the singular half doing its job, and "{0} takes one name" counts nothing at all
+        // - the placeholder there is a verb, not a number.
+        "carries", "takes",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"
@@ -151,5 +156,105 @@ public sealed class CountedWordGuards
             + "and if it "
             + "is a plural noun, check first that no sentence pairs it with a one:"
             + Environment.NewLine + string.Join(", ", unclassified));
+    }
+
+    /// <summary>
+    /// Every sentence that counts something has a singular beside it.
+    ///
+    /// <b>BACKLOG 207, AND THIS IS THE GUARD THAT WOULD HAVE CAUGHT ALL NINE.</b> The command line
+    /// carried nine keys counting entries with no singular anywhere - "Read 1 entries in 12 ms",
+    /// "1 entries were judged on a field that could not be read" - and the window carried four.
+    /// They were found by reading the language file with a pattern, by hand, twice. Nothing in this
+    /// project would have gone red, which is the sentence <see cref="PluralGuards"/> opens with.
+    ///
+    /// <b>It asks about KEYS rather than about sentences, and that is the whole difference from the
+    /// guard above.</b> That one holds the vocabulary honest - every word following a count is one
+    /// somebody has classified. This one holds the SHAPE honest: a sentence that counts a noun this
+    /// project pluralises has to live in a pair, so the code has a singular to reach for. A key
+    /// ending in neither half is a sentence with only one way to be said.
+    ///
+    /// <b>Both files, because the fault crossed between them in both directions.</b> The pair for
+    /// the shared process warning existed on the command line first and the window arrived without
+    /// it. The pair for the counted entries existed nowhere.
+    ///
+    /// <b>What it deliberately does not catch, said rather than left to be found:</b> a plural with
+    /// no number in it at all - "these drivers", "Those keep running". A pattern looking for a
+    /// count cannot see one, which is written up in the header above and is why those sentences are
+    /// held by name in <see cref="PluralGuards"/> instead.
+    /// </summary>
+    [Fact]
+    public void Every_sentence_that_counts_something_is_one_half_of_a_pair()
+    {
+        var alone = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var file in new[]
+                 {
+                     Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Resources", "gui.en.json"),
+                     Path.Combine(SourceTree.Root(), "src", "Bws.Cli", "Resources", "cli.en.json")
+                 })
+        {
+            using var language = System.Text.Json.JsonDocument.Parse(File.ReadAllText(file));
+
+            var keys = language.RootElement.EnumerateObject()
+                .Where(entry => entry.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                .ToDictionary(entry => entry.Name, entry => entry.Value.GetString() ?? string.Empty, StringComparer.Ordinal);
+
+            foreach (var (key, sentence) in keys)
+            {
+                // The same window the two guards above use - a placeholder, up to two words, then
+                // a noun this project counts.
+                if (!Regex.IsMatch(
+                        sentence,
+                        @"\{[0-9]\}\s+(?:\w+\s+){0,2}(?:" + string.Join('|', CountedWords.Nouns) + @")\b",
+                        RegexOptions.None,
+                        TimeSpan.FromSeconds(5)))
+                {
+                    continue;
+                }
+
+                if (Partner(key) is not { } half || !keys.ContainsKey(half))
+                {
+                    alone.Add(key);
+                }
+            }
+        }
+
+        Assert.True(
+            alone.Count == 0,
+            "These sentences count something and have no singular to fall back on, so a machine "
+            + "holding one of it reads \"1 entries\". Give each a .one and a .many, and pick "
+            + "between them at the call - a helper that appends the half is invisible to the guard "
+            + "that checks a key is reachable:"
+            + Environment.NewLine + string.Join(Environment.NewLine, alone));
+    }
+
+    /// <summary>
+    /// The other half of a paired key, or nothing when the key is not one half of a pair.
+    ///
+    /// <b>THE HALF IS NOT ALWAYS THE LAST WORD, AND THAT WAS THIS GUARD'S ONE FALSE ALARM ON ITS
+    /// FIRST RUN.</b> <c>gui.rollup.many.running</c> has had <c>gui.rollup.one.running</c> beside
+    /// it since the day it was written, and a check that only looked at the end of the key called
+    /// a correct pair a fault. `docs/06` asks for that number to be measured rather than found
+    /// later: one false alarm, in the first run, fixed here.
+    ///
+    /// So the segment is swapped wherever it sits. A key holding neither segment is nothing rather
+    /// than a guess, which is what makes it a fault above.
+    /// </summary>
+    private static string? Partner(string key)
+    {
+        var parts = key.Split('.');
+
+        var half = Array.FindIndex(parts, part =>
+            string.Equals(part, "one", StringComparison.Ordinal)
+            || string.Equals(part, "many", StringComparison.Ordinal));
+
+        if (half < 0)
+        {
+            return null;
+        }
+
+        parts[half] = parts[half] == "one" ? "many" : "one";
+
+        return string.Join('.', parts);
     }
 }

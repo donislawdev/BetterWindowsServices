@@ -309,6 +309,104 @@ public sealed class PreferencesFileGuards : IDisposable
         Assert.Null(new KeptColumns(file).Trouble([]));
     }
 
+    /// <summary>
+    /// A window opened on somebody's layout and closed again leaves that layout alone.
+    ///
+    /// <b>Backlog 255, and it is the one shape none of the guards around it held.</b> Everything
+    /// else here proves that a CHANGE survives - a column turned off is still off the next time,
+    /// a width somebody dragged comes back. Nothing proved that NO change survives, and on
+    /// 2026-08-31 a probe that only looked at the window came away having turned four columns on
+    /// in the layout of the person logged in. <c>tools/perf-probe/instrument-cost.ps1</c> says in
+    /// its own header that it "changes nothing on the machine" - opening the window writes this
+    /// file when it closes, so that sentence is true only while this test is green.
+    ///
+    /// <b>The layout differs from the defaults in BOTH directions on purpose</b> - two columns that
+    /// are normally on turned off, two that are normally off turned on. A round trip that quietly
+    /// fell back to what this build opens with would still pass against only one of those.
+    ///
+    /// <b>It compares the TEXT rather than the record</b>, because the file is what the next window
+    /// reads and what a person opens. A layout that is equal as an object and different as a file
+    /// is still a file that changed under somebody.
+    /// </summary>
+    [Fact]
+    public void A_window_opened_on_a_layout_and_closed_leaves_that_layout_alone()
+    {
+        // FORCED, because every StaticResource in MainWindow.xaml is resolved as the file is read -
+        // the same arrangement KeptColumnGuards records.
+        _ = WpfHost.Resources;
+
+        var file = Fresh();
+
+        var arranged = ColumnLayouts.Default with
+        {
+            Services = new ColumnLayout([.. Arranged()], new KeptSort("status", Descending: true)),
+
+            // Otherwise the window opens on the machine overview and the grid holds nothing, which
+            // would make this pass without ever having a list to harvest - `G`, schema 4.
+            OverviewSeen = true
+        };
+
+        Assert.Null(file.Write(arranged));
+
+        var before = File.ReadAllText(file.Where);
+
+        var window = WpfHost.On(() => new MainWindow(file));
+
+        WpfHost.On(window.Close);
+
+        Assert.Equal(before, File.ReadAllText(file.Where));
+    }
+
+    /// <summary>
+    /// The way back takes the kept order off the FILE, and not only off the list on screen.
+    ///
+    /// <b>The exception that <see cref="KeptColumns.Harvested"/> is built around, and without this
+    /// nothing would notice it going.</b> Every other write puts back the order the file holds
+    /// whenever the grid carries none, because a grid carrying none nearly always means the window
+    /// has not applied it yet. Here it means the opposite: somebody asked for the list this build
+    /// opens with, and that list is unsorted - so the one line that clears the kept order is the
+    /// difference between a way back and an order that comes straight back on the next start.
+    /// </summary>
+    [Fact]
+    public void The_way_back_takes_the_kept_order_off_the_file_as_well()
+    {
+        _ = WpfHost.Resources;
+
+        var file = Fresh();
+
+        Assert.Null(file.Write(ColumnLayouts.Default with
+        {
+            Services = new ColumnLayout([.. Arranged()], new KeptSort("status", Descending: true)),
+            OverviewSeen = true
+        }));
+
+        var window = WpfHost.On(() => new MainWindow(file));
+
+        WpfHost.On(window.RestoreColumns);
+        WpfHost.On(window.Close);
+
+        Assert.Null(file.Read().Layouts?.Services.Sort);
+    }
+
+    /// <summary>
+    /// A layout somebody arranged: not the defaults, in a different order, and one width dragged.
+    ///
+    /// Built from the catalogue rather than from a list written out here, so that a column joining
+    /// the build cannot leave this specimen naming one that is gone.
+    /// </summary>
+    private static IEnumerable<KeptColumn> Arranged()
+    {
+        var chosen = new[] { "description", "serviceName", "displayName", "status", "memory" };
+
+        var order = chosen.Concat(
+            Columns.All.Select(column => column.Id).Where(id => !chosen.Contains(id)));
+
+        return order.Select(id => new KeptColumn(
+            id,
+            Shown: chosen.Contains(id),
+            Width: id == "serviceName" ? "333" : null));
+    }
+
     private PreferencesFile Fresh(bool create = true) =>
         new(create ? Somewhere() : Path.Combine(Somewhere(), "not-yet"));
 

@@ -47,6 +47,7 @@ internal sealed partial record CommandLine
         string? badTimeout = null;
         var timeout = TimeSpan.FromSeconds(60);
         var rejected = new List<string>();
+        var extra = new List<string>();
         var incomplete = new List<string>();
         var given = new List<string>();
 
@@ -146,7 +147,10 @@ internal sealed partial record CommandLine
                 }
 
                 // The first bare word after a verb that takes a name is the entry it is about.
-                // A second one is a mistake, not a second target: bulk operations take --query.
+                // A second one is a mistake rather than a second target - this tool acts on one
+                // named entry at a time, and --query belongs to `list` alone. That is what the
+                // switch table says, and until 2026-09-01 this comment said "bulk operations take
+                // --query", which is an offer no write verb here can honour.
                 //
                 // After "list" there is no such word at all. Taking one and ignoring it
                 // would mean "bws list Spooler" quietly printed the whole machine, which is
@@ -167,15 +171,19 @@ internal sealed partial record CommandLine
                 // start-type Spooler" is not a shorter way of asking the same thing, and a switch
                 // is a shape people read as one that can be left off.
                 //
-                // Still a mistake on every other write verb, where it falls through to the rejected
-                // words below exactly as it did before this verb existed.
+                // Still a mistake on every other write verb, where it falls through to the words
+                // with nowhere to go exactly as it did before this verb existed.
                 if (WriteCommands.NeedsAStartType(kind) && startTypeWord.Length == 0)
                 {
                     startTypeWord = argument;
                     continue;
                 }
 
-                rejected.Add(argument);
+                // NOT `rejected`, SINCE 2026-09-01. A word that reaches here is spelled perfectly
+                // and is not an option at all - it is one more name than the verb has room for -
+                // and calling it an unknown option sent somebody looking for a typo they had not
+                // made. Backlog 233.
+                extra.Add(argument);
                 continue;
             }
 
@@ -299,6 +307,7 @@ internal sealed partial record CommandLine
             Timeout = timeout,
             BadTimeout = badTimeout,
             Rejected = rejected,
+            Extra = extra,
             Incomplete = incomplete,
 
             // In the order they were typed, each named once however many times it appeared.

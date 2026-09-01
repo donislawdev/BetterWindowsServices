@@ -77,5 +77,45 @@ public sealed class ArgumentRefusalTests
         Assert.Empty(CommandLine.Read(["list", "--query", "status:running"]).Incomplete);
     }
 
+
+    /// <summary>
+    /// A word a verb has no room for is kept apart from the options nobody knows.
+    ///
+    /// <b>Backlog 233, and the parser is where the two have to part company.</b> Until 2026-09-01
+    /// both went into one list, so <c>bws start type Spooler manual</c> answered "Unknown option:
+    /// Spooler, manual" - naming as options two words that are spelled perfectly and are not
+    /// options at all, and sending somebody to hunt for a typo they had not made.
+    ///
+    /// <b>The verb still takes its name, and that is what makes the rest extra.</b> Asserting only
+    /// that the list is not empty would pass just as well against a parser that gave up on the
+    /// whole line.
+    /// </summary>
+    [Fact]
+    public void A_word_a_verb_has_no_room_for_is_not_an_unknown_option()
+    {
+        var typed = CommandLine.Read(["start", "type", "Spooler", "manual"]);
+
+        Assert.Empty(typed.Rejected);
+        Assert.Equal(["Spooler", "manual"], typed.Extra);
+        Assert.Equal("type", typed.ServiceName);
+    }
+
+    /// <summary>
+    /// The fault is older than the verb that made it easy to meet, so the guard covers both.
+    ///
+    /// <c>bws stop A B</c> has answered "unknown option" since the day stop was built, and
+    /// <c>list</c> takes no bare word at all - a second shape for the same rule, which is what
+    /// rule 12 asks of a criterion before it is written down.
+    /// </summary>
+    [Fact]
+    public void A_second_name_and_a_name_where_none_belongs_are_both_extra_words()
+    {
+        Assert.Equal(["B"], CommandLine.Read(["stop", "A", "B"]).Extra);
+        Assert.Equal(["Spooler"], CommandLine.Read(["list", "Spooler"]).Extra);
+
+        // An option nobody knows is still an option nobody knows, which is the half that keeps
+        // this from being a parser that stopped rejecting anything.
+        Assert.Equal(["--nope"], CommandLine.Read(["list", "--nope"]).Rejected);
+    }
     private static int? Answer(params string[] arguments) => Refusals.Answer(CommandLine.Read(arguments));
 }

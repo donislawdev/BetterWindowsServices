@@ -245,6 +245,46 @@ public sealed class UsageContractTests
         Assert.Contains("restore", wrong.StandardError, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A word a command has no room for is not called an option, and the answer says what the
+    /// command does take.
+    ///
+    /// <b>Backlog 233, and the sentence it replaced was wrong twice over.</b>
+    /// <c>bws start type Spooler manual</c> answered "Unknown option: Spooler, manual" - neither
+    /// word is an option and both are spelled perfectly, so the answer sent somebody hunting for a
+    /// typo they had not made. The person is one hyphen from what they meant, and what helps is
+    /// being told how many names the verb has room for.
+    ///
+    /// <b>The sentence is read from the product's own language file rather than written out
+    /// here</b>, which is what <see cref="Sentences"/> exists for: a copy of a sentence drifts from
+    /// the sentence, and then the guard is about the copy.
+    /// </summary>
+    [Fact]
+    public void A_word_a_command_has_no_room_for_is_not_called_an_option()
+    {
+        var typed = CommandLineTool.Run("start", "type", "Spooler", "manual");
+
+        Assert.Equal(2, typed.ExitCode);
+        Assert.DoesNotContain("Unknown option", typed.StandardError, StringComparison.Ordinal);
+
+        Assert.Contains(
+            Sentences.Of("cli.wordsNotTaken", "start", Sentences.Of("cli.takes.oneName"), "Spooler, manual"),
+            typed.StandardError,
+            StringComparison.Ordinal);
+
+        // AND THE COMMAND THAT TAKES NO NAME AT ALL. Without this the guard would pass against one
+        // sentence repeated for every verb, which is the answer that helps nobody the moment the
+        // shapes differ - and they do: list narrows with a query rather than naming an entry.
+        var listed = CommandLineTool.Run("list", "Spooler");
+
+        Assert.Equal(2, listed.ExitCode);
+        Assert.DoesNotContain("Unknown option", listed.StandardError, StringComparison.Ordinal);
+
+        Assert.Contains(
+            Sentences.Of("cli.wordsNotTaken", "list", Sentences.Of("cli.takes.query"), "Spooler"),
+            listed.StandardError,
+            StringComparison.Ordinal);
+    }
     [Fact]
     public void A_switch_is_never_swallowed_as_the_value_of_another_one()
     {

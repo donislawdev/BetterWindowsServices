@@ -138,7 +138,13 @@ internal static class Execution
         {
             // Never silent. A listing where part of the configuration could not be read looks
             // exactly like a complete one, and that is the worst failure this tool has.
-            Console.Error.WriteLine(Texts.Of("cli.warning.configurationRefused", refused, entries.Count));
+            //
+            // A PAIR SINCE 2026-09-01 - backlog 207. Only the pronoun changes here: "entries"
+            // belongs to the SECOND number, which is the whole machine, so it stays plural and is
+            // right. It was "read them" about one refusal.
+            Console.Error.WriteLine(refused == 1
+                ? Texts.Of("cli.warning.configurationRefused.one", refused, entries.Count)
+                : Texts.Of("cli.warning.configurationRefused.many", refused, entries.Count));
         }
 
         var delayUnknown = entries.Count(entry => entry.DelayedAuto.Outcome == ReadOutcome.Denied);
@@ -147,7 +153,9 @@ internal static class Execution
         {
             // Its own line rather than folded into the one above. The configuration was read
             // for these entries and only the delay flag was not, which is a different fact.
-            Console.Error.WriteLine(Texts.Of("cli.warning.delayRefused", delayUnknown));
+            Console.Error.WriteLine(delayUnknown == 1
+                ? Texts.Of("cli.warning.delayRefused.one", delayUnknown)
+                : Texts.Of("cli.warning.delayRefused.many", delayUnknown));
         }
 
         if (result is not null && result.Unreadable > 0)
@@ -155,14 +163,18 @@ internal static class Execution
             // The query asked about something that could not be read on some entries. They
             // were judged anyway, because a filter has to decide, so the result is an answer
             // built partly on what we failed to find out and has to say so.
-            Console.Error.WriteLine(Texts.Of("cli.warning.queryIncomplete", result.Unreadable));
+            Console.Error.WriteLine(result.Unreadable == 1
+                ? Texts.Of("cli.warning.queryIncomplete.one", result.Unreadable)
+                : Texts.Of("cli.warning.queryIncomplete.many", result.Unreadable));
         }
 
         if (result is not null && result.TooCostly > 0)
         {
             // An expression that ran out of time never answered. Showing the shorter list
             // without a word would be the silent absence of results the language forbids.
-            Console.Error.WriteLine(Texts.Of("cli.warning.queryTooCostly", result.TooCostly));
+            Console.Error.WriteLine(result.TooCostly == 1
+                ? Texts.Of("cli.warning.queryTooCostly.one", result.TooCostly)
+                : Texts.Of("cli.warning.queryTooCostly.many", result.TooCostly));
         }
 
         if (!options.Timing)
@@ -174,13 +186,17 @@ internal static class Execution
         // us. On a write command the rest of the clock is mostly the services taking their own
         // time, and reporting that as though it were ours would be a measurement of the wrong
         // thing wearing our label.
-        Console.Error.WriteLine(result is null
-            ? Texts.Of("cli.info.timingRead", entries.Count, readMilliseconds)
-            : Texts.Of(
-                "cli.info.timing",
-                entries.Count,
-                readMilliseconds,
-                totalMilliseconds - readMilliseconds - inspected - measured));
+        // FOUR KEYS RATHER THAN TWO SINCE 2026-09-01 - backlog 207. The noun follows the count of
+        // entries in both sentences, so a machine holding one read "Read 1 entries in 12 ms".
+        var filtering = totalMilliseconds - readMilliseconds - inspected - measured;
+
+        Console.Error.WriteLine((result is null, entries.Count == 1) switch
+        {
+            (true, true) => Texts.Of("cli.info.timingRead.one", entries.Count, readMilliseconds),
+            (true, false) => Texts.Of("cli.info.timingRead.many", entries.Count, readMilliseconds),
+            (false, true) => Texts.Of("cli.info.timing.one", entries.Count, readMilliseconds, filtering),
+            (false, false) => Texts.Of("cli.info.timing.many", entries.Count, readMilliseconds, filtering)
+        });
 
         if (inspected > 0)
         {
@@ -197,7 +213,12 @@ internal static class Execution
 
         if (result is not null)
         {
-            Console.Error.WriteLine(Texts.Of("cli.info.matched", result.Entries.Count, entries.Count));
+            // The noun follows the SECOND number here, which is the machine rather than the
+            // match - "0 of 1 entry matched" is right and answering it from the count that
+            // changed is the trap. The window says it the same way, and that is on purpose.
+            Console.Error.WriteLine(entries.Count == 1
+                ? Texts.Of("cli.info.matched.one", result.Entries.Count, entries.Count)
+                : Texts.Of("cli.info.matched.many", result.Entries.Count, entries.Count));
         }
     }
 }

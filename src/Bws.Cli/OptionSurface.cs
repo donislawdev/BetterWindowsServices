@@ -53,6 +53,12 @@ internal enum CommandKind
     /// <c>bws start type Spooler manual</c> is asking to start a service called type, and gets code
     /// 2 with a sentence about it rather than anything happening - which is the whole of what
     /// protects that mistake.
+    ///
+    /// <b>AND UNTIL 2026-09-01 THAT SENTENCE WAS "Unknown option: Spooler, manual", which is the
+    /// protection being there and saying the wrong thing.</b> Neither word is an option and both
+    /// are spelled correctly, so the answer sent somebody to look for a typo in a line that had
+    /// none. Backlog 233 - the words now have their own list and the answer names how many the
+    /// verb has room for. The code was always 2, and the code was never the part that helped.
     /// </summary>
     SetStartType,
 
@@ -258,4 +264,38 @@ internal static class OptionSurface
     internal static bool TakesAName(CommandKind kind) =>
         kind == CommandKind.Show || WriteCommands.Writes(kind);
 
+    /// <summary>
+    /// How many bare words a command has room for, as the key of a sentence saying so.
+    ///
+    /// <b>Built for backlog 233, and the sentence it feeds is the whole repair.</b> A word a verb
+    /// has no room for used to be reported as an unknown option. Saying "there is no such option"
+    /// about <c>Spooler</c> is wrong twice: it is not an option, and it is spelled correctly. What
+    /// somebody needs instead is the shape of the command they are one word away from.
+    ///
+    /// <b>A key rather than a sentence, and a phrase rather than a number.</b> A number would want
+    /// a plural beside it - backlog 207 is that same trap elsewhere in this file's neighbours - and
+    /// the phrase carries what the number could not anyway: that <c>list</c> takes no name because
+    /// it narrows with a query, and that <c>start-type</c> takes two words rather than one.
+    ///
+    /// <b>Written out per value rather than derived.</b> The reason <see cref="Spelling"/> gives
+    /// one screen up holds here too: anything worked out from the name of the value asks for a key
+    /// nobody wrote, and asks for it at the moment somebody is already being told they got
+    /// something wrong.
+    /// </summary>
+    internal static string TakesWhat(CommandKind kind) => kind switch
+    {
+        CommandKind.List => "cli.takes.query",
+        CommandKind.SetStartType => "cli.takes.nameAndStartType",
+        CommandKind.SnapshotCreate => "cli.takes.oneFile",
+        CommandKind.SnapshotDiff => "cli.takes.twoFiles",
+
+        // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
+        // in the window: a fifth shape must fail here loudly rather than quietly claim to take one
+        // name when it does not.
+        CommandKind.Show or CommandKind.Stop or CommandKind.Start or CommandKind.Restart =>
+            "cli.takes.oneName",
+
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(kind), kind, "This is not a command, so there is nothing it takes.")
+    };
 }

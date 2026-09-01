@@ -110,7 +110,7 @@ internal sealed class KeptColumns
     {
         ArgumentNullException.ThrowIfNull(grid);
 
-        _layouts = _layouts.With(_scope, ListColumns.Harvest(grid));
+        _layouts = _layouts.With(_scope, Harvested(grid));
         _scope = scope;
 
         Plan = ColumnPlan.Of(_layouts.For(scope), scope);
@@ -134,6 +134,13 @@ internal sealed class KeptColumns
     /// <b>A default layout carries no width at all</b>, which is what makes this a restore rather
     /// than a set of numbers written down twice - every column takes the width the theme names, so
     /// changing the theme still changes the list.
+    ///
+    /// <b>THE KEPT ORDER IS TAKEN OFF HERE RATHER THAN LEFT TO THE HARVEST, and this is the one
+    /// place that has to say so out loud.</b> <see cref="Harvested"/> puts back the order the file
+    /// holds whenever the grid carries none, because a grid carrying none nearly always means the
+    /// window has not applied it yet. This is the exception: the way back is somebody asking for
+    /// the list this build opens with, and that list is unsorted - so without this line the order
+    /// they were trying to get rid of would be written straight back.
     /// </summary>
     internal void Defaults(DataGrid grid, ColumnBar bar, Says says)
     {
@@ -142,6 +149,8 @@ internal sealed class KeptColumns
         While(
             () =>
             {
+                _layouts = _layouts.With(_scope, _layouts.For(_scope) with { Sort = null });
+
                 Plan = ColumnPlan.Of(null, _scope);
 
                 bar.Follow(Plan);
@@ -277,12 +286,42 @@ internal sealed class KeptColumns
         // shows would empty the other two sections on the first change anybody made, so somebody
         // who arranged their drivers list would lose it by touching a column while looking at
         // services.
-        _layouts = _layouts.With(_scope, ListColumns.Harvest(grid));
+        _layouts = _layouts.With(_scope, Harvested(grid));
 
         if (_file.Write(_layouts) is { } trouble)
         {
             says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
         }
+    }
+
+    /// <summary>
+    /// What the grid looks like now, keeping the order the file holds when the grid carries none.
+    ///
+    /// <b>MEASURED 2026-09-01, AND IT COST SOMEBODY THEIR SORTED LIST WITHOUT A WORD.</b> A window
+    /// opened on a layout and closed again before the first reading arrived came back with the
+    /// order gone from the file. <c>ListSorting.By</c> runs inside the Loaded handler, AFTER
+    /// <c>LoadAsync</c> - a grid with no rows has no view to hand a comparer to - while the write
+    /// on Closing runs whenever the window shuts. So the harvest read the order off headings that
+    /// had not been given it yet, found none, and wrote none.
+    ///
+    /// <b>The second way in is not a race at all and was a promise nothing kept.</b> Turning OFF
+    /// the column a list is sorted by leaves the grid with no direction anywhere - by design, an
+    /// order nobody can see cannot be read - and <c>ListSorting.By</c> says in as many words that
+    /// "the kept sort stays in the file, so turning the column back on brings the order back with
+    /// it". Until this method existed the very next write erased it.
+    ///
+    /// <b>Safe because the grid has no third state.</b> A click always leaves a direction on some
+    /// heading - <c>WhenAHeadingIsClicked</c> sets ascending or descending and never nothing - so
+    /// an empty answer from the grid never means "this person took the order off". The one place
+    /// it can mean that is the way back, and <see cref="Defaults"/> clears the kept order itself.
+    /// </summary>
+    private ColumnLayout Harvested(DataGrid grid)
+    {
+        var harvested = ListColumns.Harvest(grid);
+
+        return harvested.Sort is null
+            ? harvested with { Sort = _layouts.For(_scope).Sort }
+            : harvested;
     }
 
     /// <summary>

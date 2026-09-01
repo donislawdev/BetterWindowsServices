@@ -160,7 +160,9 @@ try
                 // Its own line, like everywhere else the second pass runs. Folded into the
                 // comparison figure it would put seconds of file reading under a word about
                 // comparing two documents in memory.
-                Console.Error.WriteLine(Texts.Of("cli.info.timingRead", entries.Count, read));
+                Console.Error.WriteLine(entries.Count == 1
+                    ? Texts.Of("cli.info.timingRead.one", entries.Count, read)
+                    : Texts.Of("cli.info.timingRead.many", entries.Count, read));
                 Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
             }
 

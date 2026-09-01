@@ -289,6 +289,39 @@ public sealed class ListingTableTests
         Assert.DoesNotContain("shared by", lines[1], StringComparison.Ordinal);
     }
 
+
+    /// <summary>
+    /// A state that takes two words is printed as two words, the way the window prints it.
+    ///
+    /// <b>Backlog 124, and it is a disagreement between the interfaces rather than a wrong
+    /// word.</b> The window has said <c>Start pending</c> since `docs/11` 3.7 asked for sentence
+    /// case, and this table printed <c>StartPending</c> - the name of an enumeration value, which
+    /// is a shape from the code. Owner's decision, 2026-09-01: align them.
+    ///
+    /// <b>The machine readable half is asserted here too, and that is the half that must NOT
+    /// change.</b> <c>bws list --json</c> and the snapshot both carry <c>StartPending</c> as a
+    /// field value and they are a frozen contract - every tool that compares this product against
+    /// <c>sc.exe</c> reads the JSON. A repair that reached the JSON would break all of them
+    /// silently, so the guard holds both sides of the line rather than one.
+    /// </summary>
+    [Fact]
+    public void A_state_of_two_words_is_printed_as_two_words_and_the_json_is_left_alone()
+    {
+        var waiting = Entry("Aaa", "waiting to start") with { Status = EntryStatus.StartPending };
+
+        var lines = Rendered([waiting]);
+
+        Assert.Contains("Start pending", lines[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("StartPending", lines[1], StringComparison.Ordinal);
+
+        // The frozen half. The document a script reads still names the value the way the glossary
+        // binds it, and this assertion is what stops the repair above from reaching it.
+        Assert.Contains(
+            "\"status\": \"StartPending\"",
+            ListingJson.Render([waiting]),
+            StringComparison.Ordinal);
+    }
+
     private static string[] Rendered(IReadOnlyList<ScmEntry> entries) =>
         ListingTable.Render(entries).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 

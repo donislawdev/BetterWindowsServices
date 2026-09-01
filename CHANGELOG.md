@@ -470,6 +470,22 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **On the command line, a state that takes two words is now written as two words.** The listing
+  and `bws show` say `Start pending` where they used to say `StartPending`, which is how the window
+  has always written it. The same goes for `Stop pending`, `Continue pending` and `Pause pending`.
+  - **`bws list --json` and snapshots are not affected and will not be.** They still carry
+    `StartPending`, because that is the name a script matches on and a saved snapshot compares
+    against. If you parse the tool's output, parse the JSON.
+
+- **Sentences that count something now say it in the singular when there is one of it.** The
+  command line used to answer `Read 1 entries in 12 ms` and `1 entries were judged on a field that
+  could not be read`. Eleven sentences were affected, including two that said "Those keep running"
+  and "these drivers" about a single one.
+  - **The line about an incomplete comparison is now up to three lines instead of one.**
+    `snapshot diff` used to print one sentence holding both of its counts, which meant it also
+    printed the half that was zero. Each half now gets its own line, and only when there is
+    something to say.
+
 - **The list now scrolls a row at a time instead of sliding between rows, and it does that to stop
   eating a processor core while you drag.** Scrolling used to spend two to three times more
   processor per step than it does now, measured over a list whose rows are already on screen, and
@@ -608,6 +624,19 @@ Nothing has been released yet. Everything below is what the tool does today.
     many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
+
+- **A word the command did not have room for is no longer called an unknown option.** Typing
+  `bws start type Spooler manual` - the hyphen missed out of `start-type` - answered
+  `Unknown option: Spooler, manual`, which sent you looking for a typo in two words you had spelled
+  correctly. It now says `start takes one name. Nothing here can use: Spooler, manual.` The same
+  goes for a second name after `stop`, a name after `list`, and a third file after
+  `snapshot diff`, each answered with what that command does take.
+
+- **Closing the window before the list had finished loading no longer forgets which column you had
+  sorted by.** The order was saved when the window closed, but it was applied only after the list
+  had arrived - so shutting the window inside that first second wrote down "no order at all" and
+  your sorted list came back unsorted. Turning off the column you were sorted by had the same
+  effect the next time anything was saved.
 
 - **The window no longer disappears when something goes wrong in it.** Anything unexpected -
   during a refresh, while a plan is open, in the middle of typing - used to end the program and
