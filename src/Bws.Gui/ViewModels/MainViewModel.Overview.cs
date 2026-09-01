@@ -42,11 +42,33 @@ public sealed partial class MainViewModel : Observable
 
             _showingOverview = value;
 
+            // A PASS RATHER THAN A REPAINT, because a sentence under the window depends on which
+            // screen has the middle of it - backlog 263. The folded count is explained by a
+            // sentence that means nothing while there are no rows, and the notice holding it is
+            // composed inside the pass. Raising alone would leave that sentence standing over the
+            // overview until the next tick, and missing from under the list for the same second on
+            // the way back - AskEvery is one second.
+            //
+            // The same thing ShowingEveryInstance does one file over, and for the same reason: a
+            // switch that changes what is DRAWN is a pass, not a repaint.
+            //
+            // NOT BEFORE THE WINDOW HAS READ ANYTHING, and that is a startup case rather than an
+            // optimisation. This property is set from the kept file IN THE CONSTRUCTOR, before the
+            // first reading - so an unguarded pass over an empty index would write "0 entries"
+            // over the "reading" sentence for the whole of that read, measured at 749-822 ms, on
+            // the very screen this exists for. FirstLook is the same fact the loading sentence is
+            // decided by, asked here rather than invented a second time.
+            if (!_readings.FirstLook)
+            {
+                Apply();
+            }
+
             // The numbers are worked out when the screen appears rather than kept in step with the
             // machine. Measured: narrowing costs 0.42-2.25 ms over 810 entries and there are six of
             // them, so the whole screen is under 15 ms - and a screen recomputed once a second
             // would be six passes per tick for a panel nobody is looking at most of the time.
             Raise(nameof(Overview));
+            Raise(nameof(OverviewFindings));
             Raise(nameof(ShowingOverview));
         }
     }
@@ -59,8 +81,30 @@ public sealed partial class MainViewModel : Observable
     /// scope is a state somebody can have moved before opening this, and a summary of the machine
     /// that changed depending on which tab was last clicked would be a summary of a tab.
     /// </summary>
+    /// <remarks>
+    /// <c>counted</c> is what keeps this screen from claiming zero before it has read anything -
+    /// backlog 263. The window opens on it in its constructor, so the first reading is still out
+    /// while these lines are first asked for, and <see cref="LoadAsync"/> raises this again when it
+    /// arrives - which is the same line that already existed to replace six zeroes with the real
+    /// numbers, now also flipping the placeholder off.
+    /// </remarks>
     public IReadOnlyList<OverviewLine> Overview =>
-        _showingOverview ? ViewModels.Overview.Of(_index.Ordered) : [];
+        _showingOverview ? ViewModels.Overview.Of(_index.Ordered, counted: !_readings.FirstLook) : [];
+
+    /// <summary>
+    /// The same lines as <see cref="Overview"/>, grouped the way the screen draws them - each
+    /// headline number holding the qualifications written under it.
+    ///
+    /// <b>The panel binds to this and the guards read <see cref="Overview"/>, and that is on
+    /// purpose.</b> This is a projection of that list rather than a second answer, so a test asking
+    /// what the screen counts and a card drawing it cannot come apart - see
+    /// <see cref="ViewModels.Overview.Findings"/>.
+    ///
+    /// <b>Raised beside Overview rather than instead of it.</b> Both are computed on demand, so the
+    /// cost of the extra notification is one grouping pass over six lines on a screen somebody just
+    /// switched to.
+    /// </summary>
+    public IReadOnlyList<OverviewFinding> OverviewFindings => ViewModels.Overview.Findings(Overview);
 
     /// <summary>The number `G` promises and this build cannot count - <see cref="ViewModels.Overview.Missing"/>.</summary>
     public string OverviewMissing => ViewModels.Overview.Missing;

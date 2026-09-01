@@ -57,15 +57,38 @@
         largest text on the panel was the THINNEST thing on it. Both panels using this key had the
         same fault, so one setter fixes both.
     -->
+    <!--
+        THE COLOUR IS NAMED HERE, AND UNTIL 2026-09-01 IT WAS NOT. A text style that sets no
+        Foreground does not have a default colour - it has whatever contains it, and that is a
+        different answer in every place the style is used.
+        <b>What it cost, measured rather than argued.</b> The machine overview draws each number
+        inside a Button whose style carries no BasedOn, so the button never picked up the theme's
+        Foreground and fell back to the system default, which is BLACK. Against the window at
+        #202020 that is a contrast ratio of 1.29 - `tools/contrast/contrast.ps1`, and WCAG asks 3.0
+        of large text. The headline numbers of the first screen anybody sees were invisible, and
+        the qualification lines under them were readable, because those have a trigger that names
+        a colour. The owner found it by looking.
+        <b>Why the repair is here and not on the button:</b> the button was one place this style is
+        used and the fault is that the style had no answer of its own. Naming the colour fixes
+        every present and future container at once, and `AppearanceGuards` now refuses a TextBlock
+        style in this theme that does not name one.
+    -->
     <Style x:Key="HeadingText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeading}" />
         <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
     </Style>
 
+    <!--
+        The same repair, and this one had not gone wrong yet. It is used for the command a person
+        can copy out of the plan panel, which sits on a surface that happened to hand down a
+        readable colour - a fault waiting for the first container that does not.
+    -->
     <Style x:Key="FixedText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
     </Style>
 
     <Style x:Key="SubduedText" TargetType="TextBlock">
@@ -186,5 +209,58 @@
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
         <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+    </Style>
+
+    <!--
+        THE FOUR VOICES OF THE MACHINE OVERVIEW - `G`, rebuilt as cards on 2026-09-01 after the
+        owner rejected the line-by-line version three times. The argument for the shape is beside
+        PadTile in Values.xaml. What belongs here is why there are FOUR of them and not two.
+
+        THE SCREEN HAS TWO KINDS OF THING ON IT AND EACH OF THEM IS A PAIR. A finding is a number
+        and what it counts. A qualification is a smaller number and what IT counts. Drawing either
+        pair in one style is what the earlier versions did, and it is why the screen read as six
+        equal lines when it is three findings, two of which have something to add.
+
+        AND THE LABELS ARE FULL STRENGTH, WHICH IS THE HALF OF THE OWNER'S COMPLAINT THAT WENT
+        UNANSWERED TWICE. "Dark texts, you cannot see anything" was two faults wearing one sentence.
+        The first was measured and repaired - HeadingText named no colour, so the numbers fell to
+        system black at a contrast of 1.29. The second was never touched: the labels beside them
+        were TextSubdued, so REPAIRING the first fault left a screen that was still mostly grey, and
+        the version after it added more dimming as a design and made the complaint worse. Subdued
+        survives here in exactly one place - a qualification, which genuinely is subordinate to the
+        number over it - and it is now three lines of the screen rather than most of it.
+    -->
+    <Style x:Key="OverviewNumberText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeDisplay}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <Style x:Key="OverviewLabelText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        SemiBold at 14 rather than at 13, and the floor is why. Microsoft's guidance puts plain text
+        at 12 and semibold at 14, because a heavier stroke at a small size fills its own counters in
+        - TypeScaleGuards holds both numbers, so a qualification's number set semibold at
+        TextSizeNormal would fail the build rather than merely look worse.
+    -->
+    <Style x:Key="OverviewQualificationNumberText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <Style x:Key="OverviewQualificationText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
     </Style>
 </ResourceDictionary>

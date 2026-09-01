@@ -31,6 +31,12 @@
         builds this stack - WpfHost in the tests, tools/wpfui-probe - repeats these lines
         in this order for the same reason.
 
+        Type.xaml IS A VALUE FILE AND GOES BEFORE EVERY STYLE FILE, since 2026-09-01. It holds the
+        type scale - how big a letter is, how heavy, in what face - lifted out of Values.xaml when
+        that file hit the ceiling. It depends on nothing, and Text.xaml reaches five of its names
+        through StaticResource, so it only has to be in before the styles. Backlog 271 named this
+        seam the evening before it was needed.
+
         Text.xaml IS BEFORE Controls.xaml AND THAT IS THE SAME RULE ONE STEP FURTHER IN, since
         2026-08-25. It holds every TextBlock style, Controls.xaml reaches one of them through
         StaticResource, and a dictionary merged after this one would be a name that does not
@@ -41,6 +47,14 @@
         actually reads in a row - sits on top of the general ones. Nothing in it is implicit
         today, so the order costs nothing now and is the one that will still be right the day
         something is.
+
+        Overview.xaml IS AFTER Text.xaml AND THAT IS ITS ONLY CONSTRAINT, since 2026-09-01. It holds
+        the two styles the first-run screen's buttons wear and resolves FocusRing, PadCell
+        and SurfaceHover through StaticResource, so the value files have to be in already. Nothing in
+        it is an implicit style and nothing outside names a key of it, so its place among the other
+        style files carries no further meaning - which is why the sentence below about Cells.xaml
+        being last is still true. It exists because the markup ratchet fired on OverviewView.xaml
+        three edits running while that screen was being rebuilt as cards.
 
         Marks.xaml IS BEFORE Cells.xaml AND THAT IS THE SAME RULE AGAIN, since 2026-08-25.
         It holds the coloured shapes that sit beside three of the words in a row, and the
@@ -55,9 +69,12 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="Themes/Values.xaml" />
+                <ResourceDictionary Source="Themes/Type.xaml" />
                 <ResourceDictionary Source="Themes/Colours.xaml" />
                 <ResourceDictionary Source="Themes/Columns.xaml" />
                 <ResourceDictionary Source="Themes/Text.xaml" />
+                <ResourceDictionary Source="Themes/Overview.xaml" />
+                <ResourceDictionary Source="Themes/Chips.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />

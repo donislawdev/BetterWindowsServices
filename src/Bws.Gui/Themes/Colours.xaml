@@ -143,6 +143,50 @@
     <SolidColorBrush x:Key="TextOnSurface">#FFFFFF</SolidColorBrush>
 
     <!--
+        THE ONE THING ON A SCREEN THAT MOST WANTS PRESSING - 2026-09-01 evening, owner's decision
+        after a palette study, and the study is the reason this is one brush rather than two.
+
+        WHAT WAS WRONG. Every control in the chrome - seventeen chips, seven action buttons, the
+        column picker, the filter switch - was drawn from the same two greys, so a BUTTON meant
+        nothing. Meanwhile SurfaceSelected did three jobs at once: the picked row, the chip that is
+        on, and the button off the first screen. The one saturated colour in the window meant three
+        things and the shape of a control meant none.
+
+        THE OBVIOUS REPAIR WAS MEASURED AND REJECTED. A second, brighter blue for the primary button
+        beside the selection blue: tools/contrast/contrast.ps1 gives #0F6CBD against #3F7099 a ratio
+        of 1.02, and #0078D4 gives 1.16. Those are the same LIGHTNESS. They would differ in hue and
+        in nothing else, and in nothing at all to somebody with reduced colour vision. So the
+        families are told apart by SHAPE - pill, rectangle, rectangle - and colour is spent once.
+
+        WHY THIS EXACT BLUE, AND THE SEARCH IS WHY IT IS NOT BRIGHTER. Two ratios pull against each
+        other, the same pair SurfaceSelected was chosen by: lift the fill and it separates better
+        from the window while white on it separates worse. Measured across the search - #1B72B8
+        gives 3.22 against the window and 5.07 for white on top, and it is the only candidate that
+        clears both thresholds with room. #1E7AC4 reads better against the window at 3.60 and drops
+        white text to 4.53, which is the line rather than a margin. #2A7FC4 fails text outright at
+        4.26.
+
+        TWO CONTROLS WEAR IT AND THAT IS THE WHOLE LIST: the button that restarts this tool with
+        administrator rights, which is the only way forward when the session has none, and the
+        button that carries out a plan. Neither is ever on screen beside the other.
+    -->
+    <SolidColorBrush x:Key="SurfacePrimaryAction">#1B72B8</SolidColorBrush>
+
+    <!--
+        THE ONLY THING IDENTIFYING A FILTER CHIP THAT IS OFF, from the same evening, and it answers
+        to a higher ratio than any other edge in this file for exactly that reason.
+
+        A chip at rest has no fill any more - that is what stops seventeen of them reading as the
+        same control as the seven action buttons under them. What is left is the outline, so SC
+        1.4.11 applies to it in full: 3:1 for what identifies a component. #6E6E6E measures 3.20.
+
+        SurfacePanelEdge WAS TRIED FIRST AND IS NOT ENOUGH. It measures 1.84, which is right for a
+        seam between two regions that are both already visible, and wrong for the one mark saying a
+        control is there at all.
+    -->
+    <SolidColorBrush x:Key="SurfaceChipEdge">#6E6E6E</SolidColorBrush>
+
+    <!--
         The line between one row and the next, so a row can be carried across six columns and
         1650 pixels without the eye losing it. Complaint 2 of the eleven.
 

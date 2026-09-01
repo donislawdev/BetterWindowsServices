@@ -86,8 +86,22 @@ public sealed class AppearanceGuards
     /// styles". That encoding cannot express a second values file at all - it would have quietly
     /// asserted that Colours.xaml holds no value of its own, which is the opposite of true. Two
     /// named pools say what the one array was always trying to.
+    ///
+    /// <b>AND HERE IS THE ARGUMENT FOR THE NINTH FILE, ON 2026-09-01, WHICH WAS PREDICTED BEFORE IT
+    /// WAS NEEDED.</b> Backlog 271 was written that evening saying Values.xaml stood six lines under
+    /// the markup ceiling and naming this exact seam. The next change to that file hit the ceiling
+    /// within the hour - the chip needed a corner and a padding of its own - so the entry went from
+    /// observation to work without anybody having to find the seam under pressure.
+    ///
+    /// <b>Type.xaml passes the same test as the other three value files.</b> Colours answers "what
+    /// colour", Columns answers "how wide is that column", Values answers "how big is that gap and
+    /// what shape is that mark", and type was the one subject left inside the last of those that
+    /// nobody would look for under the word "values". It is also the block every appearance argument
+    /// in this product ends up citing, because both of Microsoft's readability floors live in it -
+    /// 12 plain and 14 semibold, held by TypeScaleGuards.
     /// </summary>
-    private static readonly string[] ValueFiles = ["Values.xaml", "Colours.xaml", "Columns.xaml"];
+    private static readonly string[] ValueFiles =
+        ["Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml"];
 
     /// <summary>
     /// The halves that hold styles and no value of their own.
@@ -105,9 +119,25 @@ public sealed class AppearanceGuards
     /// Cells.xaml holds the words in a cell and what a cell is made of, Marks.xaml holds the marks.
     /// Both names still answer "what is in there" without opening the file, which is the test every
     /// entry in these two pools has had to pass.
+    ///
+    /// <b>AND HERE IS THE EIGHTH, ON 2026-09-01, WHICH IS THE FIRST NAMED AFTER A SCREEN.</b> The
+    /// owner rejected the machine overview for the third time and the answer was to rebuild it as
+    /// cards rather than tune the same column of lines again - and the markup ratchet fired on
+    /// OverviewView.xaml three edits running while that work was in flight. Trimming a comment to
+    /// fit under a ceiling is the wrong answer here twice over, because the comments are the only
+    /// record this project keeps of why anything looks the way it does.
+    ///
+    /// <b>Overview.xaml passes the same test as the other seven</b>: there is exactly one screen in
+    /// this product whose controls look like nothing else in it - no fill, no border, a whole line
+    /// taking a click - and the name says where that lives. What could NOT move is the pair of data
+    /// templates, because both wire an event handler and a resource dictionary has no code-behind,
+    /// which is the seam rather than a compromise.
     /// </summary>
     private static readonly string[] StyleFiles =
-        ["Text.xaml", "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"];
+    [
+            "Text.xaml", "Overview.xaml", "Chips.xaml",
+            "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+        ];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>
     private static IEnumerable<string> ThemeFiles => ValueFiles.Concat(StyleFiles);

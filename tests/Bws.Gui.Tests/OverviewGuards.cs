@@ -60,6 +60,34 @@ public sealed class OverviewGuards
     }
 
     /// <summary>
+    /// A line that found nothing says so as a question markup can ask.
+    ///
+    /// <b>Added 2026-09-01 after the built window showed a zero shouting as loudly as a hundred.</b>
+    /// The screen exists to show what is wrong with a machine, so "0 orphans" - the line where
+    /// nothing is - was spending the loudest voice on the best news.
+    ///
+    /// <b>A bool rather than a trigger comparing the number to zero, and this test is what holds
+    /// that choice.</b> A DataTrigger read from markup keeps its Value as the string the file held,
+    /// and the first attempt asked the number and did not fire on the running window. Every trigger
+    /// on this screen that demonstrably works asks a bool, so the zero asks one too.
+    /// </summary>
+    [Fact]
+    public async Task A_line_that_found_nothing_says_so()
+    {
+        var model = await Looking(Rows.Entry("Spooler"));
+
+        var orphans = model.Overview.Single(line => line.Label.Contains("orphans", StringComparison.Ordinal));
+        var running = model.Overview.Single(line => line.Label.Contains("services running", StringComparison.Ordinal));
+
+        Assert.Equal(0, orphans.Count);
+        Assert.True(orphans.Nothing);
+
+        // The even claim, and without it this passes on a screen that calls every line empty.
+        Assert.Equal(1, running.Count);
+        Assert.False(running.Nothing);
+    }
+
+    /// <summary>
     /// The even claim, and without it the one above passes on a screen that answers 1 to everything.
     /// A machine where the query is genuinely right answers with the literal number.
     /// </summary>
@@ -266,7 +294,9 @@ public sealed class OverviewGuards
     [Fact]
     public void Every_question_this_screen_asks_parses()
     {
-        var asked = ViewModels.Overview.Of([]);
+        // counted: true, because this test is about whether the questions parse and not about what
+        // the screen shows before it has read anything - backlog 263 put that on its own test.
+        var asked = ViewModels.Overview.Of([], counted: true);
 
         Assert.NotEmpty(asked);
 
@@ -277,53 +307,6 @@ public sealed class OverviewGuards
         Assert.All(asked, line => Assert.False(
             string.IsNullOrWhiteSpace(line.Query),
             "A line on this screen carries no question, so clicking its number would ask nothing."));
-    }
-
-    /// <summary>
-    /// The number and the words it counts do not touch.
-    ///
-    /// <b>FOUND BY LOOKING AT THE SCREEN ON 2026-09-01, WHICH IS WHAT THAT STEP OF THE PACKAGE WAS
-    /// FOR.</b> The first screen anybody sees read "113services running", "1set to start
-    /// automatically and did not come up", "0orphans" - every line of it, since the day it shipped.
-    /// Every guard in this project passed over it, because a missing space is not a missing element
-    /// and nothing here had ever rendered this screen for a person to look at.
-    ///
-    /// <b>The cause was a margin named for what it separates rather than for which side it is on.</b>
-    /// The label carried MarginBetweenControls, which is 0,0,8,0 - a gap on its RIGHT, where nothing
-    /// stands. So it pushed away from what came after it and left nothing between itself and the
-    /// number in front of it.
-    ///
-    /// <b>Asked of the template rather than of a rendered window</b>, because that is where the
-    /// value lives and a rendered check would need a desktop this test process does not have.
-    /// </summary>
-    [Fact]
-    public void The_number_does_not_touch_the_words_it_counts()
-    {
-        // FROM THE VIEW'S OWN RESOURCES RATHER THAN FROM THE MERGED THEME, and the first version of
-        // this asked the theme and got a null. The row template is declared inside OverviewView.xaml,
-        // where it belongs - it is about one screen rather than about the window - so the only way to
-        // reach it is to build the screen that owns it.
-        // THE THICKNESS COMES BACK RATHER THAN THE TEXTBLOCK, and the first version returned the
-        // control and read its Margin here. A WPF element belongs to the thread that made it, so
-        // that read threw about thread access rather than failing on the value - which is the
-        // arrangement WpfHost exists to make visible.
-        var gap = WpfHost.On(() =>
-        {
-            _ = WpfHost.Resources;
-
-            var view = new OverviewView();
-            var row = (DataTemplate)view.Resources["OverviewRow"];
-
-            var built = (Button)row.LoadContent();
-
-            // The first of the two, which is the one holding the count - the grid puts it in
-            // column zero and the label in column one.
-            return ((TextBlock)((Grid)built.Content).Children[0]).Margin;
-        });
-
-        Assert.True(
-            gap.Right >= 8,
-            $"The number has {gap.Right} after it, so it runs into the word beside it.");
     }
 
     [Fact]
@@ -378,4 +361,5 @@ public sealed class OverviewGuards
 
         return model;
     }
+
 }

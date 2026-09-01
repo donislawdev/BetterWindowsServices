@@ -1,0 +1,222 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        THE FILTER CHIP AND THE ROW IT LIVES IN - `A5`. Styles and templates only, not one value.
+
+        THE ELEVENTH THEME FILE, AND THE ARGUMENT IS A PALETTE STUDY RATHER THAN A LINE COUNT. On
+        2026-09-01 the owner asked whether buttons ought to be a different colour from filters,
+        because everything in the chrome blended. The study measured why: a chip was 47 pixels tall
+        and the action button under it was 48, same corner, same text size - so seventeen controls
+        that change a QUESTION and seven that open a PLAN were the same silhouette to within a
+        pixel. The answer he approved is that the families are told apart by SHAPE, and that this
+        product's one saturated colour is spent once.
+
+        SO A CHIP IS NOW ITS OWN FAMILY, AND A FAMILY DESERVES A FILE. Controls.xaml keeps the
+        ordinary controls - the field somebody types into, the box somebody ticks, the items of the
+        column picker, and the button that matters most on a screen. This keeps the one control in
+        this window that is neither: a pill with no fill, which is a token rather than a control you
+        press. The immediate cause is the same as every earlier seam - the primary action's template
+        could not be added while Controls.xaml stood at 369 against a ceiling of 376.
+
+        WHAT CHANGED IN THE MOVE, so it is not hidden in a file that reads as a copy: the chip is
+        TRANSPARENT AT REST and its outline is SurfaceChipEdge rather than SurfacePanelEdge. A chip
+        that is off now has nothing but that outline to say it is a control, so the outline answers
+        to SC 1.4.11 in full and measures 3.20 where the old one measured 1.84.
+
+        MERGED AFTER THE VALUE FILES AND AFTER Text.xaml, which the group template reaches for
+        SubduedText through StaticResource - resolved WHILE THIS FILE IS BEING READ.
+    -->
+
+    <!--
+        A CHIP THAT IS ON HAS TO LOOK ON FROM ACROSS THE ROOM - backlog 163, and it was recorded as
+        a decision rather than an oversight: on 2026-08-11 Controls.xaml stood exactly on its own
+        ceiling, so a chip style would have forced a second split of the theme inside one session.
+        The theme has been split since, so the reason is spent.
+
+        WHAT WAS WRONG WITH THE DEFAULT. WPF UI's ToggleButton marks "checked" with a fill a shade
+        lighter than "not checked", against a window that is already dark. Whether a filter is on is
+        the single thing this row exists to say, and saying it in a shade is the same failure as
+        `docs/11` complaint 1 - the most important state on screen carried by the least visible
+        difference.
+
+        SurfaceSelected AND TextOnSurface RATHER THAN A NEW PAIR. Those two are the row selection
+        colours - already declared, already carrying a contrast threshold `ContrastGuards` enforces,
+        and already meaning "this one is picked" everywhere else in this window. A new brush would
+        be a new threshold to argue for a meaning the theme already has a colour for.
+
+        BasedOn THEIRS, WHICH IS TRAP 4 OF `docs/10` OBEYED RATHER THAN AVOIDED: their style sets
+        OverridesDefaultStyle and supplies a whole template, so a style of our own that did not
+        inherit it would silently throw away every other state - hover, pressed, disabled, focus.
+        What we override is three brushes it template-binds.
+
+        AND IT IS CHECKED ON THE PIXEL, not on the property. The same library hardcodes a
+        background inside its DataGrid cell template, where a Background setter is dead
+        unconditionally - so "the setter is there" is not evidence about the screen.
+    -->
+    <!--
+        AND THE CHIP STOPPED BORROWING THE LIBRARY'S BUTTON ON 2026-09-01, WHICH IS A DIFFERENT
+        REPAIR FROM THE ONE ABOVE AND HAS ITS OWN MEASUREMENT.
+
+        WHAT THE MEASUREMENT SAID. Read off the automation tree with the window at 1650x1050: a
+        filter chip was 47 pixels tall, and the action button under it - the one that opens a plan to
+        stop a service - was 48. Same rounded rectangle, same corner, same text size, same height to
+        within a pixel. Seventeen of the first and seven of the second, stacked in five rows, which
+        is what makes the top of that window read as a wall rather than as two kinds of thing.
+
+        THIS IS `docs/11` COMPLAINT 14 ONE CONTROL OVER, AND ITS RULE IS THE ONE FOLLOWED HERE. That
+        one was the scope switch borrowing the chip's appearance, and the owner's words were "they
+        read as a list choice, they should not look the same as a chip because it misleads". The rule
+        written down from it: when the rejection is about what a look MEANS, the repair is a whole
+        visual family, not a different shade of the family that is already wrong.
+
+        SO THE TEMPLATE IS WRITTEN OUT, WHICH IS TRAP 4 OF `docs/10` MET THE WAY ScopeBar.xaml AND
+        OverviewNumber MEET IT. A corner radius is the strongest of the three signals and there is no
+        setter for it: WPF UI's ToggleButton template resolves its own from a library resource, so
+        the only ways to reach it are to overwrite that resource for the whole application - every
+        control in the window - or to own the template. The cost is named and it is real: hover,
+        pressed, checked and disabled are this file's job now, and all four are below.
+
+        THE PART THAT IS KEPT FROM THE STYLE THIS REPLACES, because it was right: a chip that is ON
+        wears SurfaceSelected and TextOnSurface rather than a new pair. Those are the row selection
+        colours, they already carry thresholds ContrastGuards enforces, and they already mean "this
+        one is picked" everywhere else in this window. WPF UI's own "checked" is a shade lighter than
+        "not checked" against a dark window, which is `docs/11` complaint 1 exactly: the one state
+        this row exists to show, shown in the least visible difference there is.
+
+        A CHECKED CHIP UNDER THE POINTER BRIGHTENS ITS OUTLINE RATHER THAN ITS FILL, and that is a
+        choice made to avoid inventing a colour. A lighter accent would be a new brush with a new
+        threshold to argue, for a state that lasts as long as somebody's hand is still. White is
+        already the pairing on that fill, so the outline borrows what is there.
+    -->
+    <Style x:Key="ChipFocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{StaticResource FocusRing}"
+                            BorderThickness="{StaticResource FocusRingThickness}"
+                            CornerRadius="{StaticResource CornerChip}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FilterChip" TargetType="ToggleButton">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ChipFocusRing}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="Padding" Value="{StaticResource PadChip}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Pill"
+                            Background="{x:Static media:Brushes.Transparent}"
+                            BorderBrush="{StaticResource SurfaceChipEdge}"
+                            BorderThickness="{StaticResource BorderTile}"
+                            CornerRadius="{StaticResource CornerChip}"
+                            Padding="{TemplateBinding Padding}">
+                        <!--
+                            A ContentPresenter, SO THE CHIP'S TEXT IS THE THEME'S DEFAULT SIZE RATHER
+                            THAN THE 13 THIS STYLE WOULD HAVE ASKED FOR - a defeat, recorded rather
+                            than hidden. Four attempts, all measured: `docs/10` trap 16 has them, and
+                            backlog 272 carries what it costs. The short version is that an implicit
+                            TextBlock style outranks every inherited size, and the one thing that
+                            does win takes sixteen elements out of the automation tree.
+                        -->
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <!--
+                        ORDER IS THE BEHAVIOUR HERE, not tidiness: a later trigger wins, so "on"
+                        has to come after "pointer is here" or a checked chip would go grey under
+                        the hand, which is the one state this row exists to show, unshown.
+                    -->
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Pill" Property="Background"
+                                    Value="{StaticResource SurfaceHover}" />
+                        </Trigger>
+
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Pill" Property="Background"
+                                    Value="{StaticResource SurfaceSelected}" />
+                            <Setter TargetName="Pill" Property="BorderBrush"
+                                    Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="IsMouseOver" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Pill" Property="BorderBrush"
+                                    Value="{StaticResource TextOnSurface}" />
+                        </MultiTrigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+                            <Setter TargetName="Pill" Property="BorderBrush"
+                                    Value="{StaticResource SurfacePanelEdge}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        ONE FACET: ITS NAME, THEN ITS CHIPS. Here rather than inside MainWindow.xaml because what a
+        chip looks like is decided four lines above, and a template drawing chips is the same
+        subject - the window was carrying a nested ItemsControl whose only job was to apply the
+        style declared here. It also kept the window under the markup ceiling without shortening a
+        single reason, which is what a seam is for.
+
+        The hint sits on every group label rather than once beside the row, because the sentence is
+        about the boundary BETWEEN groups and a person reads whichever label they arrive at. It is
+        a tooltip rather than a second line: it explains a mechanism somebody discovers by clicking
+        once, which is worth having and not worth a line of a window whose job is 810 rows.
+
+        THE GROUP LABEL IS WHAT COMPLAINT 7 ASKED FOR, and it waited for this row on purpose.
+        docs/11 closed that complaint in half on 2026-08-05 and said the other half - a label over
+        the controls - was deliberately not built, because A5 was going to arrive and rewrite the
+        row. It has, so the label arrives with the row it labels rather than being invented twice.
+
+        THREE GROUPS SINCE 2026-08-12. Why these three and what each one may contain is decided in
+        FilterChips.cs, with the measurement that settled the boundary - it is not repeated here.
+        The single "Filters" label is gone: it named the row rather than any question in it.
+
+        THE LABELS LIVE INSIDE THE CHIPS CONTAINER ON PURPOSE. tools/window-journey tells the labels
+        of controls apart from the sentences the window says about the answer, and it does that by
+        asking whether the chips' ItemsControl is an ancestor. A label outside it would arrive as
+        one of the window's sentences.
+    -->
+    <DataTemplate x:Key="FilterGroupTemplate">
+        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginGroup}">
+            <TextBlock Text="{Binding Label}"
+                       ToolTip="{Binding Hint}"
+                       Margin="{StaticResource MarginBetweenControls}"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource SubduedText}" />
+
+            <ItemsControl ItemsSource="{Binding Chips}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Margin="{StaticResource MarginChip}"
+                                      Style="{StaticResource FilterChip}"
+                                      Content="{Binding Label}"
+                                      ToolTip="{Binding Member}"
+                                      IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

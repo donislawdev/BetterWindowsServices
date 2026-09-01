@@ -114,6 +114,16 @@
     <Thickness x:Key="MarginAfterNumber">0,0,8,0</Thickness>
 
     <!--
+        REMOVED 2026-09-01, THE DAY AFTER IT ARRIVED, AND THE COMMENT STAYS FOR ONE SENTENCE OF IT.
+        The owner looked at a chosen row grown to four lines and said it looked bad, which is a
+        verdict nothing here can compute. What is worth keeping is the FACT the next attempt would
+        otherwise pay for again, and it is this: WPF has no TextBlock.MaxLines - that property
+        belongs to WinUI - so a line cap has to be a height, and a height is only a line count if
+        the line box is set as well. Both values are gone with the trigger that used them.
+        The measurement behind "four" is beside CellProse in Cells.xaml. Backlog 192 is open again.
+
+        The original note follows.
+
         HOW TALL A CHOSEN ROW LETS ITS DESCRIPTION GROW, AS FOUR LINES OF EIGHTEEN.
 
         A HEIGHT RATHER THAN A LINE COUNT, AND THAT IS WPF RATHER THAN A CHOICE. TextBlock.MaxLines
@@ -125,8 +135,6 @@
 
         The argument for FOUR, with the measurement it came from, is beside CellProse below.
     -->
-    <system:Double x:Key="HeightProseLine">18</system:Double>
-    <system:Double x:Key="HeightProseWhenChosen">72</system:Double>
 
     <!--
         The mark for an entry running against its start type - backlog 165. A triangle rather than a
@@ -157,52 +165,6 @@
         146, full reasoning in CHANGELOG-DEV 2026-08-10.
     -->
     <GridLength x:Key="WidthCountLine">210</GridLength>
-
-    <!--
-        Type. Three sizes here and a fourth below, which arrived with the reason this line used
-        to say nobody had.
-
-        TextSizeSmall WAS 11 UNTIL 2026-08-05 AND 11 IS BELOW THE FLOOR. Microsoft's typography
-        guidance puts the minimum at 12 plain and 14 semibold, and the smallest size in this
-        window carried the count line, the notice and the query error - three of the four
-        sentences the window ever says. TypeScaleGuards holds the floor now, so it cannot go
-        back down without somebody arguing with a test.
-
-        TextSizeNormal stays at 13 and that is a decision rather than an oversight. The same
-        guidance calls Body 14, but 13 is above the floor and the owner has twice bought this
-        list's density with a measurement - their row spacing cost about 17% of the rows on
-        screen. A window whose job is 810 services spends nothing on a point of type it does
-        not need.
-    -->
-    <system:Double x:Key="TextSizeNormal">13</system:Double>
-    <system:Double x:Key="TextSizeHeading">18</system:Double>
-    <system:Double x:Key="TextSizeSmall">12</system:Double>
-
-    <!--
-        The fourth size, and the reason the comment above asked for. The floor for SEMIBOLD text
-        is 14, not 12 - a heavier stroke at a small size fills its own counters in - so a column
-        heading set semibold at TextSizeNormal would break the rule the same line of guidance
-        sets. It also earns its keep twice: a heading one point larger than its data is the
-        hierarchy this window had none of.
-    -->
-    <system:Double x:Key="TextSizeHeader">14</system:Double>
-
-    <!--
-        Semibold, and only for column headers. Bold is not on the ladder - the guidance says
-        semibold instead of bold, and never italic, "because it reduces readability, especially
-        for dyslexia". A header that looks like data is complaint 4 of the eleven.
-    -->
-    <FontWeight x:Key="TextWeightHeader">SemiBold</FontWeight>
-    <FontWeight x:Key="TextWeightNormal">Normal</FontWeight>
-
-    <FontFamily x:Key="TextFace">Segoe UI</FontFamily>
-
-    <!--
-        Monospaced, and only where alignment carries meaning: a launch path, a hash, a
-        security descriptor. Reading a hash in a proportional face is how two different
-        hashes look the same.
-    -->
-    <FontFamily x:Key="TextFaceFixed">Consolas</FontFamily>
 
     <!--
         HOW WIDE A TOOLTIP MAY GET BEFORE IT STOPS BEING READABLE - backlog 167.
@@ -254,6 +216,61 @@
     <Thickness x:Key="MarginChip">0,0,8,4</Thickness>
 
     <!--
+        WHAT MAKES A CHIP LOOK LIKE A CHIP AND NOT LIKE A BUTTON - 2026-09-01, and the case for it
+        is a measurement rather than taste. Read off the automation tree with the window at
+        1650x1050: a filter chip was 47 pixels tall and an action button beside it was 48. Two
+        controls that do completely different things - one writes a token into the query, the other
+        opens a plan that can stop a service - were drawn as the same rounded rectangle at the same
+        height with the same text size. `docs/11` complaint 14 is exactly this fault one control
+        over, and its rule is the one being followed here: when the look carries the wrong MEANING,
+        the repair is a whole visual family rather than a different shade of the old one.
+
+        THREE SIGNALS RATHER THAN ONE, because any single one of them is arguable and three
+        together are not: the corner becomes a pill, the height drops by about a fifth, and the
+        text drops to the body size. A person does not have to notice any of them to stop confusing
+        the two rows.
+
+        AND IT PAYS FOR ITSELF IN THE ONE CURRENCY THIS WINDOW IS SHORT OF. Measured the same run:
+        517 of 1050 pixels stand above the first row of data, and the four rows of chips are 206 of
+        those. This takes about 36 back, which is a row of services - small, and in the right
+        direction, which is more than the previous three attempts at this screen managed.
+    -->
+    <Thickness x:Key="PadChip">12,3,12,3</Thickness>
+
+    <!--
+        Inside the one button this product draws itself. Chosen to land on the same height as the
+        library's buttons beside it - measured at 48 device pixels - because a primary action that
+        is also a different SIZE from its neighbours reads as a control from another window rather
+        than as the important one in this row.
+    -->
+    <Thickness x:Key="PadButton">14,6,14,6</Thickness>
+
+    <!--
+        THE SCROLLBAR, AND BOTH NUMBERS COME FROM A MEASUREMENT RATHER THAN FROM TASTE. Scanned off
+        a capture of the real window on 2026-09-01: the thumb the control library draws is FIVE BY
+        THIRTEEN device pixels, which is about three by nine logical. WCAG 2.2 SC 2.5.8 puts the
+        minimum target at 24 by 24. The owner's words were that it is hard to catch, and it is about
+        a twentieth of the minimum.
+
+        TWELVE WIDE, AND THE LENGTH IS NOT OURS TO SET. Four measured attempts at a floor under the
+        thumb all came back at the same 19 device pixels, because Track computes the length while
+        arranging and overwrites anything it was given - the account is beside the style in
+        Controls.xaml and in `docs/10` trap 17. So this value buys the ACROSS of the target and
+        nothing of the along.
+    -->
+    <system:Double x:Key="WidthScrollBar">12</system:Double>
+
+    <!-- The thumb sits inside its bar rather than filling it, so the grip reads as a grip. -->
+    <Thickness x:Key="MarginScrollThumb">2</Thickness>
+
+    <!--
+        Larger than half the tallest chip on purpose. WPF clamps a corner radius to the box, so an
+        over-large value is "a pill whatever the height turns out to be" rather than a number that
+        has to be re-derived every time the padding or the type size moves.
+    -->
+    <CornerRadius x:Key="CornerChip">14</CornerRadius>
+
+    <!--
         Grouping, in the filter row and in the column picker. The gap between facets is wider than
         the gap between chips on purpose - that difference is the only thing on screen saying where
         one question ends. The picker's ceiling is what makes it scroll instead of running off the
@@ -302,4 +319,52 @@
     <Thickness x:Key="PaddingFooter">0,10,0,0</Thickness>
     <system:Double x:Key="HeightMenu">420</system:Double>
     <Thickness x:Key="MarginGroupHeading">12,8,12,2</Thickness>
+
+    <!--
+        THE MACHINE OVERVIEW AS THREE CARDS RATHER THAN SIX LINES, 2026-09-01. Why the composition
+        changed instead of the colours is at the head of OverviewView.xaml, beside the screen it is
+        about - these are the steps that drawing needs and the three that are not reused say why.
+    -->
+    <!--
+        EIGHT DOWN EACH SIDE RATHER THAN SIXTEEN, FROM 2026-09-01 EVENING, and the other eight
+        moved onto the buttons inside. The card looks identical - a line still starts sixteen from
+        its edge - and what changes is that the hover surface of a question now has air around the
+        words instead of ending on the first letter. Photographed: the pointer lit a panel whose
+        left boundary ran through the "1".
+    -->
+    <Thickness x:Key="PadTile">8,14,8,16</Thickness>
+
+    <!--
+        A card's edge, on all four sides - which is why it is not BorderPanelEdge. That one is
+        1,0,0,0, the single seam between the plan panel and the list beside it, and a card is a
+        thing rather than a seam. The corner is four because WPF UI rounds its surfaces at four, so
+        a square card would be the one square thing in a window full of rounded ones.
+    -->
+    <Thickness x:Key="BorderTile">1</Thickness>
+    <CornerRadius x:Key="CornerTile">4</CornerRadius>
+
+    <!--
+        Between one card and the next. On the RIGHT ONLY, which leaves twelve points hanging off the
+        last card of the row - accepted rather than answered with a negative margin on the row, which
+        would be a value nothing on screen explains and a second thing to get wrong.
+    -->
+    <Thickness x:Key="MarginTile">0,0,12,0</Thickness>
+
+    <!-- Between a card's number and its words, and above each block that follows the cards. -->
+    <Thickness x:Key="MarginTileLabel">0,2,0,0</Thickness>
+    <Thickness x:Key="MarginTileParts">0,14,0,0</Thickness>
+
+    <!--
+        The column a qualification's own number is right aligned in. Narrower than
+        ColumnOverviewNumber because these digits are set at 14 rather than 32, and a column sized
+        for the headline strands a single digit far from the words it counts.
+    -->
+    <GridLength x:Key="ColumnQualificationNumber">30</GridLength>
+
+    <!--
+        HOW WIDE THE ROW OF CARDS MAY GET. Wider than WidthOverview, which caps PROSE and still does
+        - the title, the hint and the footnote keep that cap inside this row, because a sentence and
+        a row of cards do not want the same measure. Three cards here are about 340 each.
+    -->
+    <system:Double x:Key="WidthOverviewFindings">1080</system:Double>
 </ResourceDictionary>

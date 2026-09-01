@@ -1,108 +1,75 @@
 // Explicit, because UseWPF swaps the implicit using set and takes what this needs out of it.
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
 
 /// <summary>
-/// The one column that is written for a person to read, and the one row that is allowed to be tall.
+/// The one column that is written for a person to read, and the reason it is not allowed to grow.
 ///
-/// <b>Backlog 192, owner's decision 2026-09-01 out of three roads.</b> A description runs to 1251
-/// characters on the machine this was built on and the cell gave it one line with an ellipsis, so
-/// the column showed the opening words of a sentence and nothing else. The chosen row now wraps it,
-/// up to four lines, and the rest of the list is exactly what it was.
+/// <b>Backlog 192 was built on 2026-09-01 and reverted the same day, by the owner, by looking at
+/// it.</b> A chosen row wrapped its description over four lines - the wiring worked, the cap was
+/// arithmetic rather than a guess, and it looked bad on the screen. That last judgement is the one
+/// thing this project has no arithmetic for and the owner is the only reader who can make it.
 ///
-/// <b>What these guards can and cannot say.</b> They hold the wiring - that the description column
-/// is built with the style that grows, that the style only grows for a chosen row, and that the cap
-/// really is four lines rather than a number that used to be four. <b>Whether it LOOKS right is the
-/// owner's eye and nothing here claims otherwise</b>, which is the division `docs/11` draws for
-/// every slice of this window.
+/// <b>THIS FILE NOW GUARDS THE DECISION RATHER THAN THE FEATURE, and that is the point of keeping
+/// it.</b> Three tests here used to hold the growing in place. A revert that simply deleted them
+/// would leave the next session free to build the same thing again from the same complaint, which
+/// is still open and still real: a description runs to 1251 characters on this machine and the cell
+/// gives it one line with an ellipsis. What answers that today is Enter, which opens the details
+/// panel, and the context menu, which copies it. Both were already there.
+///
+/// <b>What this cannot say:</b> whether a future answer looks right. That stays the owner's eye,
+/// which is the division `docs/11` draws for every slice of this window - and the division that
+/// just decided this.
 /// </summary>
 public sealed class ProseCellGuards
 {
     /// <summary>
-    /// The description column is built with the style that grows, and its neighbours are not.
+    /// The description cell is the same height as every other cell, whatever row is chosen.
     ///
-    /// <b>Asked of the built column rather than of the catalogue</b>, because the catalogue naming a
-    /// face proves nothing about what reaches the grid - the mapping from a face to a style lives in
-    /// <c>ListColumns</c> and is exactly the link that can be left out.
+    /// <b>Asked of the style rather than of a rendered row</b>, because a trigger is what made the
+    /// row grow and a trigger is what would bring it back. A style with no triggers cannot change
+    /// with the row it is drawn in, which is the whole of the decision in one assertion.
     /// </summary>
     [Fact]
-    public void The_description_is_the_only_column_built_to_grow()
+    public void The_description_cell_does_not_grow_for_a_chosen_row()
     {
-        var grid = Built();
+        _ = WpfHost.Resources;
 
         var prose = (Style)WpfHost.Resources["CellProse"];
 
-        var grew = WpfHost.On(() => grid.Columns
-            .OfType<DataGridTextColumn>()
-            .Where(column => ReferenceEquals(column.ElementStyle, prose))
-            .Select(column => column.SortMemberPath)
-            .ToList());
+        Assert.Empty(prose.Triggers);
 
-        Assert.Equal(["description"], grew);
-    }
-
-    /// <summary>
-    /// It grows only while its row is the chosen one, and the trigger asks the cell rather than the
-    /// row.
-    ///
-    /// <b>The row template lost a FindAncestor trigger on 2026-08-31 because walking the tree per
-    /// row was costing bindings</b> - eight to seven - so this checks that the reach here is the
-    /// short one: a TextBlock asking the cell it sits in, one level up, rather than the row.
-    /// </summary>
-    [Fact]
-    public void It_wraps_for_a_chosen_row_and_for_nothing_else()
-    {
-        var prose = (Style)WpfHost.Resources["CellProse"];
-
-        var trigger = Assert.IsType<DataTrigger>(Assert.Single(prose.Triggers));
-
-        // AS TEXT RATHER THAN AS A BOOLEAN, AND THAT IS XAML RATHER THAN A SLIP. A DataTrigger read
-        // from markup keeps its Value as the string the file held until the binding it watches gives
-        // it a type to convert against - so this came back "Expected: True, Actual: True" the first
-        // time it ran, which is a comparison of a bool against a string printing identically.
-        Assert.Equal("True", trigger.Value);
-
-        var asked = Assert.IsType<Binding>(trigger.Binding);
-
-        Assert.Equal("IsSelected", asked.Path.Path);
-        Assert.Equal(typeof(DataGridCell), asked.RelativeSource.AncestorType);
-
-        var wrapping = trigger.Setters.OfType<Setter>()
-            .Single(setter => setter.Property == TextBlock.TextWrappingProperty);
-
-        Assert.Equal(TextWrapping.Wrap, wrapping.Value);
-
-        // AND THE OTHER HALF: nothing wraps until then. A style that wrapped always would pass the
-        // assertion above and would make every row of a 810 row list a paragraph.
+        // AND NOT BY SETTING IT ALWAYS EITHER, which is the other way back to a list of paragraphs
+        // and would pass the assertion above. Wrapping is off for this cell exactly as it is for
+        // every other one, and it is inherited from CellText rather than set here.
         Assert.DoesNotContain(
             prose.Setters.OfType<Setter>(),
             setter => setter.Property == TextBlock.TextWrappingProperty);
     }
 
     /// <summary>
-    /// The cap is four lines, and it is four because the arithmetic says so.
+    /// The description column is still built with its own style, so the next answer has a place.
     ///
-    /// <b>WPF has no TextBlock.MaxLines - that property belongs to WinUI</b> - so the cap is a
-    /// height, and a height is only a number of lines while something says how tall a line is. The
-    /// two values live apart in the theme, so one can be changed without the other and the cap
-    /// would quietly stop being four.
-    ///
-    /// <b>Four rather than any other number, and it is measured rather than chosen.</b> Over the 800
-    /// entries of this machine 448 carry a description at all, the median is 95 characters and the
-    /// ninetieth is 321 - so four lines is the whole text for most of the list, and the tail stays
-    /// with the details panel that already shows it in full.
+    /// <b>The style says nothing more than <c>CellText</c> today and the name is still worth
+    /// holding.</b> This column is the one that carries sentences rather than values, and a revert
+    /// that also dissolved the name would make the next attempt start by rediscovering which column
+    /// that is - which is what <c>ColumnFace.Prose</c> exists to answer.
     /// </summary>
     [Fact]
-    public void The_cap_is_four_lines_rather_than_a_height_that_used_to_be()
+    public void The_description_column_is_still_the_one_built_from_prose()
     {
-        var line = (double)WpfHost.Resources["HeightProseLine"];
-        var cap = (double)WpfHost.Resources["HeightProseWhenChosen"];
+        var grid = Built();
 
-        Assert.Equal(4, cap / line);
+        var prose = (Style)WpfHost.Resources["CellProse"];
+
+        var built = WpfHost.On(() => grid.Columns
+            .OfType<DataGridTextColumn>()
+            .Count(column => ReferenceEquals(column.ElementStyle, prose)));
+
+        Assert.Equal(1, built);
     }
 
     private static DataGrid Built()
@@ -112,7 +79,7 @@ public sealed class ProseCellGuards
         var bar = new ColumnBar();
 
         // Every column on, because the description is off by default and a plan that left it out
-        // would make the first guard pass over a column that is not there.
+        // would make the guard above pass over a column that is not there.
         var plan = ColumnPlan.Of(
             new ColumnLayout([.. Columns.All.Select(column => new KeptColumn(column.Id, Shown: true, Width: null))]),
             EntryScope.Services);

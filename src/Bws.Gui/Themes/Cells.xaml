@@ -113,8 +113,11 @@
     </Style>
 
     <!--
-        THE ONE COLUMN THAT IS PROSE RATHER THAN A VALUE, AND THE ONLY CELL IN THIS LIST THAT GROWS.
-        Backlog 192, owner's decision 2026-09-01 out of three roads that were put to him.
+        THE ONE COLUMN THAT IS PROSE RATHER THAN A VALUE. IT GREW FOR A CHOSEN ROW FOR ONE DAY AND
+        THE OWNER REVERTED IT BY EYE - see the note under this comment. Backlog 192, built on
+        2026-09-01 out of three roads and taken out the same day by the only reader who can judge
+        how it looks. What follows is why it was built, kept because the measurement is still worth
+        having and the next attempt should not have to make it again.
 
         WHAT THE COMPLAINT WAS. A description is up to 1251 characters on this machine and the cell
         gave it one line with an ellipsis, so the column showed the first few words of a sentence
@@ -150,18 +153,23 @@
         cells of a tall row sit in the middle of it. Top-aligning them would mean touching every
         templated cell in this file for a row state none of them otherwise knows about.
     -->
-    <Style x:Key="CellProse" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
-        <Style.Triggers>
-            <DataTrigger Value="True"
-                         Binding="{Binding IsSelected,
-                             RelativeSource={RelativeSource AncestorType={x:Type DataGridCell}}}">
-                <Setter Property="TextWrapping" Value="Wrap" />
-                <Setter Property="LineHeight" Value="{StaticResource HeightProseLine}" />
-                <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
-                <Setter Property="MaxHeight" Value="{StaticResource HeightProseWhenChosen}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
+    <!--
+        AND THE OWNER LOOKED AT IT ON 2026-09-01 AND SAID NO. Everything above this line is the
+        argument for a chosen row that grows, the measurement behind the four line cap, and the
+        reasoning about scanning a column - all of it still true, and none of it the reason this
+        was reverted. It looked bad on the screen. That is a verdict this project has no arithmetic
+        for and the owner is the only reader who can give it.
+
+        THE KEY STAYS, AND THAT IS DELIBERATE. ListColumns names it for the description column, and
+        a name that means "this cell is prose rather than a value" is worth keeping even when it
+        currently says nothing more than CellText does - the column is still the one that holds
+        sentences, and the next thing done to it belongs here.
+
+        WHAT REMAINS FOR THE COMPLAINT THIS TRIED TO ANSWER: Enter opens the details panel, which
+        shows the whole description wrapped, and the context menu copies it. Both were already
+        there and both still are. Backlog 192 goes back to being open.
+    -->
+    <Style x:Key="CellProse" TargetType="TextBlock" BasedOn="{StaticResource CellText}" />
 
     <!--
         Numbers line up on their last digit, text on its first. Complaint 3 of the eleven, and

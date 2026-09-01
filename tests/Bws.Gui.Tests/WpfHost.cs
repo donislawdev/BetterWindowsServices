@@ -242,8 +242,9 @@ internal static class WpfHost
 
         foreach (var name in new[]
                  {
-                     "Values.xaml", "Colours.xaml", "Columns.xaml",
-                     "Text.xaml", "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+                     "Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
+                     "Text.xaml", "Overview.xaml", "Chips.xaml",
+                     "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
                  })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));

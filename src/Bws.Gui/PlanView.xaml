@@ -14,19 +14,15 @@
         one this window already had - so it asks the theme for no room at all.
 
         IT SHARES ITS COLUMN WITH THE DETAILS PANEL AND THE TWO ARE MUTUALLY EXCLUSIVE, which is a
-        decision rather than a saving. The details panel is opened by Enter on one row and this by a
-        menu over a selection, so they are never both the thing somebody is looking at - and a panel
-        across the bottom would take rows away at every window height, which is the argument the
-        details panel already carries against that shape.
+        decision rather than a saving: one is opened by Enter on a row and this by a verb over a
+        selection, so neither is ever what somebody is looking at while the other is.
 
         Focusable and IsTabStop are off because a UserControl is a ContentControl and arrives with
         both - `docs/10` trap 8, measured on this product. Hit testing stays ON, unlike the empty
         state, because this panel holds a button somebody has to be able to press.
 
-        Width is a number here for the reason DetailsView gives for the same line: `ADR-23` wants
-        appearance values named in the theme, the values file has no room to name one, and Width is
-        not among the attributes AppearanceGuards polices. It moves into the theme with the panel next
-        door, on the day backlog 173 gives that file room.
+        Width is a number here for the reason DetailsView gives for the same line, and moves into the
+        theme with that panel on the day backlog 173 gives the values file room.
     -->
 
     <UserControl.Style>
@@ -52,10 +48,8 @@
             to see where they are in the order.
 
             WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
-            promise is that the plan warns stopping three drags in seven, so the seven have to be
-            findable at a glance rather than by reading every line. Subdued for the ones nobody asked
-            for, which is the quieter of the two and therefore the right way round - the entries a
-            person picked are the ones they are looking for.
+            plan warns that stopping three drags seven along, so the seven have to be findable at a
+            glance. Subdued goes to the ones nobody asked for, which is the right way round.
         -->
         <DataTemplate x:Key="PlanLineTemplate">
             <TextBlock Text="{Binding Text}"
@@ -91,24 +85,15 @@
                        FontFamily="{StaticResource TextFaceFixed}"
                        Margin="{StaticResource MarginBetweenControls}" />
         </DataTemplate>
-        <!--
-            One converter for six sections, and it is the framework's own. Six style blocks with a
-            DataTrigger each would say the same thing six times and take this file past the markup
-            ceiling - which is exactly the room the empty state was moved out to make.
-        -->
+        <!-- One converter for six sections, and it is the framework's own. -->
         <BooleanToVisibilityConverter x:Key="WhenTrue" />
     </UserControl.Resources>
 
     <!--
-        THE PANEL'S OWN SURFACE, AND UNTIL 2026-08-19 IT HAD NONE. The owner looked at this panel for
-        the first time and said it looks bad, and this was why: with no fill and no edge it was drawn
-        straight over the list. The Account column ran underneath its first line and a selected row
-        carried its blue behind the text, so nothing said the right hand side of the window was a
-        different thing - which is also why the button at the bottom looked like it belonged to
-        nothing at all.
-
-        Padding as well as fill. Without it the first character sits on the edge, and the fill alone
-        then fails to separate the two.
+        THE PANEL'S OWN SURFACE, AND UNTIL 2026-08-19 IT HAD NONE - drawn straight over the list,
+        with the Account column running under its first line. The full account is beside
+        SurfacePanel in Colours.xaml. Padding as well as fill, or the first character sits on the
+        edge and the fill stops separating anything.
     -->
     <Border Background="{StaticResource SurfacePanel}"
             BorderBrush="{StaticResource SurfacePanelEdge}"
@@ -131,13 +116,10 @@
 
                 <!--
                     TWO NAMES, THE SAME PAIR THE DETAILS PANEL ALREADY SHOWS - the display name as
-                    the title because it is the one somebody recognises, and the manager's own name
-                    under it because it is the one they would type into a command. `ADR-14` is why
-                    the second one may never be dropped: display names are translated, so a panel
-                    carrying only that names nothing anybody could act on.
-
-                    The line under it disappears rather than emptying, because a heading with a
-                    reserved gap under it is the fault backlog 203 was written for.
+                    the title, the manager's own name under it. `ADR-14` is why the second may never
+                    be dropped: display names are translated, so a panel carrying only that names
+                    nothing anybody could act on. The line disappears rather than emptying - backlog
+                    203.
                 -->
                 <StackPanel Grid.Column="0" Margin="{StaticResource MarginGroup}">
                     <TextBlock x:Name="PlanHeading"
@@ -186,24 +168,22 @@
                            TextWrapping="Wrap"
                            Style="{StaticResource PlanNoticeText}" />
 
-                <!--
-                    WHY IT CANNOT BE CARRIED OUT HERE, SAID BEFORE ANYBODY PRESSES ANYTHING - the
-                    owner's decision of 2026-08-18, which the first version of this panel did not
-                    keep. It only appears when something is in the way, so no empty line is ever
-                    reserved for reassurance.
-                -->
-                <TextBlock x:Name="PlanBlocked"
-                           AutomationProperties.AutomationId="planBlocked"
-                           Text="{Binding Blocked}"
-                           TextWrapping="Wrap"
-                           Margin="{StaticResource MarginAboveStatus}"
-                           Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
-                           Style="{StaticResource NoticeText}" />
             </StackPanel>
 
-            <!-- Scrolls vertically and never sideways, so a long command wraps rather than hides. -->
-            <ScrollViewer Grid.Row="2"
-                          VerticalScrollBarVisibility="Auto"
+            <!--
+                THE LINE ABOVE THE SCROLLING HALF, 2026-09-01, and it is the repair for what the
+                owner called things running into each other. Photographed: the last visible line of
+                the plan was cut through the middle by the edge of the scrolling region, with
+                nothing on screen saying an edge was there - so a half-drawn row of letters read as
+                two sentences overlapping. A rule turns the same pixels into "there is more below".
+
+                Scrolls vertically and never sideways, so a long command wraps rather than hides.
+            -->
+            <Border Grid.Row="2"
+                    BorderBrush="{StaticResource SurfacePanelEdge}"
+                    BorderThickness="{StaticResource BorderFooterRule}"
+                    Padding="{StaticResource PaddingFooter}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <!--
@@ -307,6 +287,7 @@
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
+            </Border>
 
             <!--
                 THE FOOTER, AND THE RULE ABOVE IT IS WHY THE BUTTON STOPPED LOOKING ORPHANED. It sits
@@ -317,15 +298,34 @@
                 in the dark half a screen away from the plan it acts on.
 
                 INTERRUPT IS A SEPARATE BUTTON RATHER THAN THIS ONE CHANGING ITS WORD, and that is a
-                safety decision. A button whose verb changes under a finger turns a double click into
-                an instruction nobody gave. It appears to the LEFT and grows into the progress line,
-                so the rectangle a person aimed at never becomes something else - it becomes disabled.
+                safety decision: a verb that changes under a finger turns a double click into an
+                instruction nobody gave. It appears to the LEFT, so the rectangle somebody aimed at
+                never becomes something else - it becomes disabled.
             -->
             <Border Grid.Row="3"
                     BorderBrush="{StaticResource SurfacePanelEdge}"
                     BorderThickness="{StaticResource BorderFooterRule}"
                     Padding="{StaticResource PaddingFooter}"
                     Margin="{StaticResource MarginAboveStatus}">
+
+                <StackPanel>
+                <!--
+                    WHY IT CANNOT BE CARRIED OUT, MOVED DOWN HERE ON 2026-09-01 FROM THE TOP OF THE
+                    PANEL. The owner's decision of 2026-08-18 stands unchanged - it is said BEFORE
+                    anybody presses anything - and what changes is that it is now said beside the
+                    thing it is about. At the top it was a second warning under a title, three
+                    scrolling sections away from the grey button it explains.
+
+                    It only appears when something is in the way, so no empty line is ever reserved
+                    for reassurance.
+                -->
+                <TextBlock x:Name="PlanBlocked"
+                           AutomationProperties.AutomationId="planBlocked"
+                           Text="{Binding Blocked}"
+                           TextWrapping="Wrap"
+                           Margin="{StaticResource MarginBelowSearch}"
+                           Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
+                           Style="{StaticResource NoticeText}" />
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -352,17 +352,16 @@
                             Click="InterruptRequested" />
 
                     <!--
-                        THE TOOLTIP SAYS WHY IT IS GREY, AND ShowOnDisabled IS WHAT MAKES THAT
-                        REACHABLE AT ALL. WPF stops serving tooltips for a disabled control, so the
-                        reason bound below would be a sentence nobody could ever read without this
-                        line - a control refusing without a reason, which is what it was.
+                        THE TOOLTIP SAYS WHY IT IS GREY, AND ShowOnDisabled MAKES IT REACHABLE AT
+                        ALL: WPF stops serving tooltips for a disabled control, so without this line
+                        the reason below is a sentence nobody could read.
 
                         Bound rather than a fixed key, because the button has four ways of going
-                        quiet and only one of them was ever said out loud. What it says when nothing
-                        is in the way is the same sentence as before, chosen in CarryOutTip.
+                        quiet and only one was ever said out loud - CarryOutTip chooses between them.
                     -->
                     <Button Grid.Column="2"
                             x:Name="CarryOutButton"
+                            Style="{StaticResource PrimaryAction}"
                             AutomationProperties.AutomationId="planCarryOut"
                             Content="{DynamicResource gui.plan.carryOut}"
                             ToolTip="{Binding CarryOutTip}"
@@ -370,6 +369,7 @@
                             IsEnabled="{Binding CanCarryOut}"
                             Click="CarryOutRequested" />
                 </Grid>
+                </StackPanel>
             </Border>
         </Grid>
     </Border>

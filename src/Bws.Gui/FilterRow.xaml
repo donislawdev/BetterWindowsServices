@@ -71,6 +71,31 @@
             program keeps is a frozen contract at schema 2, and a new field in it is a schema bump
             and a conversation rather than an edit.
         -->
+        <!--
+            AND IT STOPPED WEARING THE ACCENT ON 2026-09-01, WHICH IS A FAULT THIS SESSION MADE AND
+            THEN SAW ON A PHOTOGRAPH OF ITS OWN CHANGE.
+
+            The chips beside it became pills that afternoon, so that a filter would stop being drawn
+            as the same rounded rectangle as the button that opens a plan to stop a service. That
+            repair worked and left this control as the one square, accented, forty-seven pixel tall
+            thing in a row of quiet pills - the loudest colour in the whole window, spent on a
+            disclosure toggle.
+
+            AND SPENT SAYING SOMETHING THE SCREEN ALREADY SAYS. What the accent announces is that the
+            filters are showing, which anybody can see by the filters showing. `docs/11` names this
+            shape twice already - the most important state carried in the least visible difference is
+            complaint 1, and its mirror is a difference nobody needs carried in the loudest one.
+
+            WHAT IT BECOMES IS THE FAMILY IT BELONGS TO, not a third invention: the quiet button, the
+            same as Columns and Show every instance beside it. Those three are the controls that
+            change WHAT THE LIST SHOWS rather than what the query asks - which is the boundary
+            `docs/11` section 2.9 already drew for where each of them stands.
+
+            BasedOn theirs, which is trap 4 of `docs/10` obeyed: WPF UI's style sets
+            OverridesDefaultStyle and supplies a whole template, so a style that did not inherit it
+            would silently drop hover, pressed, disabled and focus. What is overridden is the one
+            trigger that paints the accent.
+        -->
         <ToggleButton Grid.Column="0"
                       x:Name="FiltersToggle"
                       AutomationProperties.AutomationId="filtersToggle"
@@ -78,7 +103,19 @@
                       ToolTip="{DynamicResource gui.filter.toggle.hint}"
                       Margin="{StaticResource MarginBetweenControls}"
                       VerticalAlignment="Top"
-                      IsChecked="True" />
+                      IsChecked="True">
+            <ToggleButton.Style>
+                <Style TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                    <Style.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
+                            <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ToggleButton.Style>
+        </ToggleButton>
 
         <ItemsControl Grid.Column="1"
                       x:Name="ChipRow"

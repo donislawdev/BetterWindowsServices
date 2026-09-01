@@ -308,6 +308,7 @@ public sealed partial class MainViewModel : Observable
         if (_showingOverview)
         {
             Raise(nameof(Overview));
+            Raise(nameof(OverviewFindings));
         }
     }
 
@@ -418,9 +419,12 @@ public sealed partial class MainViewModel : Observable
                 ? Texts.Of("gui.status.matched.one", narrowed.Selected.Count, everything.Count)
                 : Texts.Of("gui.status.matched.many", narrowed.Selected.Count, everything.Count);
 
+        // The last argument is which screen has the middle of the window, and only one sentence
+        // under there asks about it - backlog 263. Passed rather than read out of this class by
+        // Sentences, because that class has never been allowed to know a window exists.
         Says.AboutTheAnswer(
             _query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
-            _readings.Have, _readings.Filling, rolled.Instances);
+            _readings.Have, _readings.Filling, rolled.Instances, !_showingOverview);
 
         TellTheList();
 

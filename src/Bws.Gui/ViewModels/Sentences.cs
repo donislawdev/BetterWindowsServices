@@ -43,9 +43,13 @@ internal static class Sentences
     /// <param name="folded">
     /// How many session copies were drawn under a template rather than as rows of their own.
     /// </param>
+    /// <param name="listOnScreen">
+    /// Whether the list is the thing in the middle of the window. False while the machine overview
+    /// has it, which REPLACES the list rather than sitting over it - so there are no rows at all.
+    /// </param>
     internal static string Admissions(
         Query query, bool held, int unreadable, int tooCostly, bool elevated,
-        ExtraRead have, bool filling, int folded)
+        ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
         var needs = query.Needs;
         var notes = new List<string>();
@@ -126,7 +130,23 @@ internal static class Sentences
         // The way out is named by its own label rather than by a direction, because the row that
         // holds the switch can be folded away itself and "the switch above" would then point at
         // nothing. Written out twice rather than picked into a variable - TextKeyGuards.
-        if (folded > 0)
+        //
+        // AND ONLY WHILE THE LIST IS THE THING ON SCREEN - backlog 263, owner's decision 2026-09-01.
+        // The machine overview REPLACES the list rather than sitting over it, so on that screen
+        // there are no rows at all. This sentence exists to explain a difference between a count
+        // and a NUMBER OF ROWS, and with no rows there is no difference to explain - it goes
+        // further than being idle, because it names a switch and a list that are not there to be
+        // looked at.
+        //
+        // THE SAME REASONING ALREADY LIVES IN MainWindow.ArrangeTheMiddle, which collapses the
+        // empty state on that screen for exactly this reason - in its words, it would otherwise
+        // leave "a sentence about a list nobody can see floating across the overview". It reached
+        // one of the three sentences and not this one.
+        //
+        // NOT THE ELEVATION SENTENCE ABOVE, and the line between them is what each is a fact
+        // about. Elevation is a fact about the MACHINE - it is why the numbers ON THIS SCREEN are
+        // short too - and backlog 16 put it first deliberately. This one is a fact about rows.
+        if (folded > 0 && listOnScreen)
         {
             notes.Add(folded == 1
                 ? Texts.Of("gui.status.folded.one", folded)

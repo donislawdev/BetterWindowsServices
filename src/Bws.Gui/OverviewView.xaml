@@ -1,209 +1,333 @@
 <UserControl x:Class="Bws.Gui.OverviewView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore"
+             xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
              Focusable="False"
              IsTabStop="False">
 
     <!--
         WHAT THIS MACHINE LOOKS LIKE BEFORE ANYBODY ASKS IT ANYTHING - `G`, the first-run screen.
 
-        THE SPECIFICATION'S OWN REASON, because it is a better one than anything this file could
-        invent: an administrator opens the tool on an unknown server and sees several hundred rows,
-        and that is the moment they either understand what it is for or close it. So the first thing
-        on screen is a handful of numbers, each of them a question the machine has already been
-        asked.
+        THE SPECIFICATION'S OWN REASON, because it is better than anything this file could invent:
+        an administrator opens the tool on an unknown server and sees several hundred rows, and that
+        is the moment they either understand what it is for or close it. So the first thing on screen
+        is a handful of numbers, each of them a question the machine has already been asked.
 
         IT REPLACES THE LIST RATHER THAN SITTING OVER IT - owner's decision, 2026-08-25, and it is
-        the difference between this and EmptyState.xaml next door. That one covers the middle of the
-        grid and deliberately keeps the headings, because the rows come back on the next key press.
-        This one is what the specification asks for in as many words - not the raw alphabetical
-        list - so the grid is collapsed behind it and comes back the moment anybody asks a question.
+        the difference between this and EmptyState.xaml next door, which covers the middle of the
+        grid and keeps the headings because the rows come back on the next key press.
 
-        EVERY NUMBER IS A BUTTON AND CLICKING IT WRITES ITS QUERY INTO THE SEARCH BOX. That is `A5`'s
-        promise applied to a screen with no chips on it: the filter you clicked is a query you can
-        read, edit and learn from. Which questions there are, and why each one is worded the way it
-        is, is decided in ViewModels/Overview.cs beside the reason for it - markup listing them
-        again would be a second copy that drifts.
+        EVERY NUMBER IS A BUTTON AND CLICKING IT WRITES ITS QUERY INTO THE SEARCH BOX - `A5`'s
+        promise on a screen with no chips. Which questions there are, and why each is worded the way
+        it is, is decided in ViewModels/Overview.cs beside the reason for it.
+
+        THREE CARDS RATHER THAN SIX LINES, FROM 2026-09-01, AND THE HISTORY IS THE ARGUMENT. The
+        owner rejected this screen three times. The first rejection named a measured fault - a text
+        style with no Foreground, so the numbers fell to system black at a contrast of 1.29 - and it
+        was repaired at the style. The second and third were the same sentence after that repair, and
+        the answer both times was another tuning of the same column: number brightened, qualification
+        indented, a rule down its left edge.
+
+        THEN IT WAS PHOTOGRAPHED, AND THE PICTURE SETTLES WHAT THE TUNINGS COULD NOT REACH. Six
+        lines, three different left edges for the labels, short rules beside single digits reading as
+        tick marks left over from a table, the numbers quieter than the sentences beside them, and
+        the block in the top third of a window with four hundred empty pixels under it. None of that
+        is a colour. The composition was the fault, so the composition is what changed.
 
         Focusable and IsTabStop are off because a UserControl IS a ContentControl and a
         ContentControl is BOTH BY DEFAULT. Without them this is a tab stop that does nothing, in
         front of the numbers it holds. `docs/10` trap 8.
 
         NOT IsHitTestVisible="False", unlike the empty state, and the difference is the whole point:
-        that panel must let clicks through to the rows underneath, and every line of this one is
-        meant to be clicked.
+        that panel must let clicks through to the rows underneath, and every number here is meant to
+        be clicked.
     -->
     <UserControl.Resources>
 
         <!--
-            ONE NUMBER AND WHAT IT COUNTS, AS A BUTTON THAT LOOKS LIKE A LINE OF TEXT.
-
-            WRITTEN OUT RATHER THAN BasedOn, which is trap 4 of `docs/10` met head on and the same
-            answer ScopeBar.xaml gives: this wants none of the library's chrome - no fill, no border,
-            no corner radius - so inheriting a template and then hiding every part of it would be a
-            worse lie than replacing it. The cost is named: every state this control has is this
-            file's job, so hover and keyboard focus are both below.
-
-            THE FOCUS RING IS A FocusVisualStyle RATHER THAN A TRIGGER ON IsKeyboardFocused, which
-            is the repair made on 2026-08-25 to the scope switch and the reason is the same:
-            IsKeyboardFocused says nothing about how the focus arrived, so clicking with a mouse lit
-            the ring. A focus visual is drawn by the framework only while the keyboard is the device
-            somebody is actually using.
-
-            The transparent background is what makes the whole line take a click rather than only
-            the letters - `docs/10`: a transparent brush takes hit testing, no brush does not.
+            THE TWO STYLES THIS SCREEN'S BUTTONS WEAR ARE IN Themes/Overview.xaml, and they left this
+            file on 2026-09-01 when the markup ratchet fired on it three edits running. That file
+            carries the argument for the seam. What could not go with them is below: a DataTemplate
+            here wires Click to a method, and an event handler in markup needs the code-behind of the
+            file declaring it - a resource dictionary has none.
         -->
-        <Style x:Key="OverviewFocusRing">
-            <Setter Property="Control.Template">
-                <Setter.Value>
-                    <ControlTemplate>
-                        <Border BorderBrush="{StaticResource FocusRing}"
-                                BorderThickness="{StaticResource FocusRingThickness}" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="OverviewNumber" TargetType="Button">
-            <Setter Property="FocusVisualStyle" Value="{StaticResource OverviewFocusRing}" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Padding" Value="{StaticResource PadCell}" />
-
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <!--
-                            Transparent through x:Static, which is the idiom ScopeBar.xaml and
-                            Cells.xaml already use - a value pointing at a NAME rather than invented
-                            in place, so `ADR-23` holds and the guard over it stays able to mean
-                            something.
-                        -->
-                        <Border x:Name="Line"
-                                Background="{x:Static media:Brushes.Transparent}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
-                        </Border>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Line" Property="Background"
-                                        Value="{StaticResource SurfaceHover}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <!--
-            THE NUMBER ITSELF, RIGHT ALIGNED IN A FIXED COLUMN so that a column of them is
-            comparable at a glance - complaint 3 of the eleven in `docs/11`, the same rule the
-            process identifier column follows.
+            ONE THING THAT HAS TO BE SAID ABOUT THE NUMBER OVER IT - a subtraction from it, or a
+            widening of it. Drawn INSIDE the card of the number it belongs to, so belonging is
+            carried by containment rather than by an indent and a hairline.
+
+            IT IS STILL A BUTTON AND STILL CARRIES ITS OWN QUERY, which is the half of the honesty
+            that matters: the headline leaves things out, and a person can click either exclusion and
+            see exactly what was taken away. A number nobody can ask for is a number they have to
+            take on trust - ViewModels/Overview.cs argues that in full.
         -->
-        <DataTemplate x:Key="OverviewRow">
+        <DataTemplate x:Key="OverviewQualification">
             <Button Style="{StaticResource OverviewNumber}"
+                    AutomationProperties.Name="{Binding Spoken}"
                     Click="AskThis"
                     ToolTip="{Binding Query}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="{StaticResource ColumnOverviewNumber}" />
+                        <ColumnDefinition Width="{StaticResource ColumnQualificationNumber}" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Column="0"
-                               Text="{Binding Count}"
+                               Text="{Binding CountText}"
                                HorizontalAlignment="Right"
-                               VerticalAlignment="Center"
-                               Margin="{StaticResource MarginAfterNumber}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource HeadingText}">
-                                <!--
-                                    A QUALIFICATION IS QUIETER THAN THE NUMBER IT QUALIFIES, and the
-                                    two are told apart by a property rather than by two collections -
-                                    OverviewLine.Leading carries the argument. A line saying "and 4
-                                    more are per-user templates" must not shout as loudly as the
-                                    number it is taking four off.
-                                -->
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Leading}" Value="False">
-                                        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-                                        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
-                                        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                               VerticalAlignment="Top"
+                               Margin="{StaticResource MarginAfterNumber}"
+                               Style="{StaticResource OverviewQualificationNumberText}" />
 
                     <TextBlock Grid.Column="1"
                                Text="{Binding Label}"
                                TextWrapping="Wrap"
-                               VerticalAlignment="Center"
-                               Margin="{StaticResource MarginBetweenControls}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Leading}" Value="False">
-                                        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                               Style="{StaticResource OverviewQualificationText}" />
                 </Grid>
             </Button>
         </DataTemplate>
+
+        <!--
+            ONE FINDING, AS A CARD. The number is the finding and is drawn as one - `G` puts a
+            handful of numbers first so somebody who has never seen this tool learns what it is for
+            without reading, and until today they were the quietest thing on the screen after the
+            title.
+
+            THE WHOLE CARD IS NOT ONE BUTTON, AND THAT IS DELIBERATE. A card holds two or three
+            different questions, so a click anywhere on it would have to guess which was meant. The
+            headline is a button, each qualification is a button, the card is the surface they share.
+        -->
+        <DataTemplate x:Key="OverviewTile">
+            <Border Background="{StaticResource SurfacePanel}"
+                    BorderBrush="{StaticResource SurfacePanelEdge}"
+                    BorderThickness="{StaticResource BorderTile}"
+                    CornerRadius="{StaticResource CornerTile}"
+                    Margin="{StaticResource MarginTile}"
+                    Padding="{StaticResource PadTile}">
+                <StackPanel>
+
+                    <Button Style="{StaticResource OverviewNumber}"
+                            DataContext="{Binding Headline}"
+                            AutomationProperties.Name="{Binding Spoken}"
+                            Click="AskThis"
+                            ToolTip="{Binding Query}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding CountText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock"
+                                           BasedOn="{StaticResource OverviewNumberText}">
+                                        <!--
+                                            A ZERO IS THE ABSENCE OF A FINDING AND STOPS SHOUTING
+                                            LIKE ONE - "0 orphans" is the line where nothing is.
+
+                                            THE NUMBER GOES QUIET AND THE LABEL DOES NOT, which
+                                            REVERSES half of a decision taken hours earlier the same
+                                            day - and it can be reversed because that decision was
+                                            made about a different drawing. On a flat line a subdued
+                                            digit beside a full strength label read as a number
+                                            greyed out by mistake, so the line went quiet together.
+                                            At 32 inside a card, colour alone demotes it - and a card
+                                            greyed end to end reads as DISABLED, which is the
+                                            complaint this rebuild is answering.
+
+                                            ASKED OF A BOOL RATHER THAN OF THE NUMBER, and the first
+                                            version asked the number and did not fire.
+                                            OverviewLine.Nothing carries that argument in full.
+                                        -->
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Nothing}" Value="True">
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource TextSubdued}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <TextBlock Text="{Binding Label}"
+                                       TextWrapping="Wrap"
+                                       Margin="{StaticResource MarginTileLabel}"
+                                       Style="{StaticResource OverviewLabelText}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!--
+                        NOTHING IS DRAWN WHEN THERE IS NOTHING TO SAY, which is complaint 12.2 of
+                        `docs/11` - a heading over an empty space states an untruth. Collapsed rather
+                        than left empty, because an empty element still spends its margin.
+                    -->
+                    <ItemsControl ItemsSource="{Binding Qualifications}"
+                                  ItemTemplate="{StaticResource OverviewQualification}"
+                                  Margin="{StaticResource MarginTileParts}">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasQualifications}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="{StaticResource WidthOverview}"
-                    HorizontalAlignment="Left"
-                    Margin="{StaticResource PadPanel}">
+    <ScrollViewer x:Name="Scroll"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <!--
+            THE BLOCK SITS IN THE MIDDLE OF THE WINDOW RATHER THAN AT THE TOP OF IT, from
+            2026-09-01. This window is usually most of a screen and this screen is six numbers, so
+            pinned to the top it left four hundred empty pixels underneath and read as unfinished
+            rather than as sparse. Centred, the emptiness is above and below in equal measure, which
+            is a composition rather than a remainder.
 
-            <TextBlock Text="{DynamicResource gui.overview.title}"
-                       TextWrapping="Wrap"
-                       Style="{StaticResource HeadingText}" />
+            THE MinHeight IS WHAT MAKES CENTRING POSSIBLE INSIDE A ScrollViewer, and it looks like
+            decoration. A ScrollViewer measures content against infinite height, so VerticalAlignment
+            there has nothing to centre within - the viewport's own height gives it something, and a
+            content taller than the viewport simply scrolls as before.
+        -->
+        <Grid MinHeight="{Binding ViewportHeight, ElementName=Scroll}">
+            <StackPanel MaxWidth="{StaticResource WidthOverviewFindings}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="{StaticResource PadPanel}">
 
-            <TextBlock Text="{DynamicResource gui.overview.hint}"
-                       TextWrapping="Wrap"
-                       Margin="{StaticResource MarginAboveStatus}"
-                       Style="{StaticResource SubduedText}" />
+                <!--
+                    THE PROSE KEEPS THE PROSE WIDTH INSIDE THE WIDER BLOCK. Cards want about a
+                    thousand points and a sentence wants about seventy characters, so the block is
+                    sized for the cards and every sentence in it carries the older cap, WidthOverview.
+                -->
+                <TextBlock Text="{DynamicResource gui.overview.title}"
+                           TextWrapping="Wrap"
+                           MaxWidth="{StaticResource WidthOverview}"
+                           HorizontalAlignment="Left"
+                           Style="{StaticResource HeadingText}" />
 
-            <!--
-                AN ItemsControl RATHER THAN SIX LINES WRITTEN OUT, exactly as the filters row and the
-                scope switch do it. Which numbers there are is data, decided where the reason for
-                each one lives.
+                <!--
+                    WHAT THE MACHINE READING IS DOING, ON THE SCREEN THAT HAS NO LIST TO SAY IT.
+                    Backlog 263.
 
-                THE AutomationId IS ON THE ItemsControl AND NOT ON A PANEL, which this window has now
-                paid for six times: WPF builds an automation peer for controls, not for layout
-                panels, so an identifier on a StackPanel sits on an element that is not in the tree.
-            -->
-            <ItemsControl AutomationProperties.AutomationId="overviewNumbers"
-                          AutomationProperties.Name="{DynamicResource gui.overview.hint}"
-                          Margin="{StaticResource MarginAboveStatus}"
-                          ItemsSource="{Binding Overview}"
-                          ItemTemplate="{StaticResource OverviewRow}" />
+                    Until the chrome above this screen was collapsed, the count line beside the
+                    search box carried "Reading the service control manager..." and the failure
+                    message. That row is gone here, and the empty state that would otherwise carry it
+                    is deliberately collapsed while this screen has the middle of the window - so
+                    without this line a first run that could not read the manager would say nothing
+                    at all, which is rule 8 in the first place anybody looks.
 
-            <!--
-                THE NUMBER `G` PROMISES AND THIS BUILD CANNOT COUNT, said rather than left off. It
-                needs `D6`, the stock baseline, which the specification puts in Phase 3 - and R3 in
-                that same document asks for exactly this: mark the absence rather than quietly show
-                a bad result.
-            -->
-            <TextBlock AutomationProperties.AutomationId="overviewNotYet"
-                       Text="{Binding OverviewMissing}"
-                       TextWrapping="Wrap"
-                       Margin="{StaticResource MarginAboveStatus}"
-                       Style="{StaticResource SubduedText}" />
+                    Red only for the failure. "Still reading" is ordinary news and passes in the
+                    subdued voice the hint below uses - Says.ReadingFailed is what tells them apart,
+                    because markup can only test for a value it is given.
+                -->
+                <TextBlock AutomationProperties.AutomationId="overviewReading"
+                           Text="{Binding Says.ReadingMessage}"
+                           TextWrapping="Wrap"
+                           MaxWidth="{StaticResource WidthOverview}"
+                           HorizontalAlignment="Left"
+                           Margin="{StaticResource MarginAboveStatus}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Says.ReadingMessage}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Says.ReadingFailed}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
-            <Button x:Name="DismissButton"
-                    AutomationProperties.AutomationId="overviewDismiss"
-                    Content="{DynamicResource gui.overview.dismiss}"
-                    ToolTip="{DynamicResource gui.overview.dismiss.hint}"
-                    HorizontalAlignment="Left"
-                    Margin="{StaticResource MarginAboveStatus}"
-                    Click="Dismiss" />
-        </StackPanel>
+                <TextBlock Text="{DynamicResource gui.overview.hint}"
+                           TextWrapping="Wrap"
+                           MaxWidth="{StaticResource WidthOverview}"
+                           HorizontalAlignment="Left"
+                           Margin="{StaticResource MarginAboveStatus}"
+                           Style="{StaticResource SubduedText}" />
+
+                <!--
+                    THE CARDS, IN ONE ROW OF EQUAL WIDTHS. A UniformGrid rather than a Grid with
+                    three declared columns, because how many findings there are is data - the
+                    questions live in ViewModels/Overview.cs and markup naming three of them would be
+                    a second copy that drifts the day a fourth arrives.
+
+                    THE AutomationId IS ON THE ItemsControl AND NOT ON A PANEL, which this window has
+                    now paid for six times: WPF builds an automation peer for controls, not for
+                    layout panels, so an identifier on a StackPanel sits on an element that is not in
+                    the tree.
+                -->
+                <ItemsControl AutomationProperties.AutomationId="overviewNumbers"
+                              AutomationProperties.Name="{DynamicResource gui.overview.hint}"
+                              Margin="{StaticResource MarginTileParts}"
+                              ItemsSource="{Binding OverviewFindings}"
+                              ItemTemplate="{StaticResource OverviewTile}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <primitives:UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <!--
+                    THE WAY OFF THIS SCREEN COMES BEFORE THE FOOTNOTE, and until 2026-09-01 it came
+                    after. The note about the number this build cannot count is the least important
+                    thing here and it stood between the numbers and the button, so the eye had to
+                    cross a paragraph of grey to reach the one control on the screen.
+
+                    AND IT STOPPED WEARING THE ACCENT ON 2026-09-01 EVENING, for two reasons that
+                    arrived together.
+
+                    THE ONE ANYBODY COULD SEE: it went DARK under the pointer. The accent was a
+                    LOCAL value on Background, and a local value is beaten inside the library's
+                    template by a trigger that paints the border it template-binds - so the button
+                    was blue at rest and the library's hover grey under the hand. The owner's words
+                    were that something was wrong with it, and something was.
+
+                    THE ONE THAT DECIDES WHERE IT ENDS UP: this button is the way OFF this screen,
+                    not its action. The action is clicking a number, which takes its question along.
+                    Carrying the loudest colour in the window on the exit pointed the eye at the
+                    door instead of at the content - backlog 270, closed here.
+                -->
+                <Button x:Name="DismissButton"
+                        AutomationProperties.AutomationId="overviewDismiss"
+                        Content="{DynamicResource gui.overview.dismiss}"
+                        ToolTip="{DynamicResource gui.overview.dismiss.hint}"
+                        HorizontalAlignment="Left"
+                        Margin="{StaticResource MarginTileParts}"
+                        Click="Dismiss" />
+
+                <!--
+                    THE NUMBER `G` PROMISES AND THIS BUILD CANNOT COUNT, said rather than left off.
+                    It needs `D6`, the stock baseline, which the specification puts in Phase 3 - and
+                    R3 in that same document asks for exactly this: mark the absence rather than
+                    quietly show a bad result.
+
+                    UNDER A RULE AND UNDER THE BUTTON SINCE 2026-09-01, and the SIZE is unchanged on
+                    purpose. Demoting it by making it smaller would put it at eleven points, and
+                    TextSizeSmall is twelve because eleven is below the floor TypeScaleGuards holds -
+                    so the demotion is position and a hairline instead.
+                -->
+                <!--
+                    THE RULE SPANS THE CARDS AND THE SENTENCE UNDER IT DOES NOT - the prose cap on
+                    the right element. Capping the BORDER stopped the line halfway across a screen
+                    the cards continue past, which reads as a drawing fault rather than a division.
+                -->
+                <Border BorderBrush="{StaticResource SurfaceRowLine}"
+                        BorderThickness="{StaticResource BorderFooterRule}"
+                        Margin="{StaticResource MarginTileParts}">
+                    <TextBlock AutomationProperties.AutomationId="overviewNotYet"
+                               Text="{Binding OverviewMissing}"
+                               TextWrapping="Wrap"
+                               MaxWidth="{StaticResource WidthOverview}"
+                               HorizontalAlignment="Left"
+                               Margin="{StaticResource MarginAboveStatus}"
+                               Style="{StaticResource SubduedText}" />
+                </Border>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

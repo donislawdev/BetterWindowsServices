@@ -115,6 +115,39 @@ public sealed class Says : Observable
     public string ListWayOut => _list.WayOut;
 
     /// <summary>
+    /// What the MACHINE READING is doing, for a screen that has no list on it to say it for.
+    ///
+    /// <b>Backlog 263. Two of the list's faces are about the reading and the rest are about the
+    /// query</b>, and only the first two mean anything where there are no rows. "Nothing matched"
+    /// on the machine overview would be a sentence about a list nobody can see - the same fault
+    /// that screen was repaired for, arriving from the other direction.
+    ///
+    /// <b>Why this is not <see cref="ListMessage"/> with a screen check bolted on:</b> the question
+    /// is not which screen is up, it is which SUBJECT the sentence is about. A reading that failed
+    /// is worth saying on any screen, and a query that matched nothing is worth saying only where
+    /// the query and its result are both visible.
+    ///
+    /// <b>And it is not <see cref="Status"/> either, deliberately.</b> That line carries the count
+    /// as well, and a count is about the list the overview is standing in front of rather than
+    /// about the numbers on it - the two are different sets, so putting it here would answer a
+    /// question nobody asked with a number that does not match the ones above it.
+    /// </summary>
+    public string ReadingMessage => _list.Face is ListFace.Loading or ListFace.Failed
+        ? _list.Message
+        : string.Empty;
+
+    /// <summary>
+    /// Which of the two <see cref="ReadingMessage"/> is saying, so a screen can colour them apart.
+    ///
+    /// <b>A second member rather than a colour decided in the markup</b>, for the reason
+    /// <see cref="NotElevated"/> gives about its own pair: markup can only test for a value it is
+    /// given. And the two are not the same news - "still reading" is ordinary and passes, "could
+    /// not read" is the failure rule 8 forbids a window to say quietly, so the difference has to
+    /// reach the screen rather than stay in a sentence somebody has to finish reading.
+    /// </summary>
+    public bool ReadingFailed => _list.Face is ListFace.Failed;
+
+    /// <summary>
     /// Whether a query is holding entries back. Complaint 7 - "you cannot see THAT it is
     /// filtering" - and the count line wears it as a weight, which is seen without being read.
     /// </summary>
@@ -154,9 +187,9 @@ public sealed class Says : Observable
     /// </summary>
     internal void AboutTheAnswer(
         Query query, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling,
-        int folded) =>
+        int folded, bool listOnScreen) =>
         Notice = Sentences.Admissions(
-            query, held, unreadable, tooCostly, Elevated, have, filling, folded);
+            query, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen);
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.
@@ -253,6 +286,8 @@ public sealed class Says : Observable
 
         Raise(nameof(ListMessage));
         Raise(nameof(ListWayOut));
+        Raise(nameof(ReadingMessage));
+        Raise(nameof(ReadingFailed));
         Raise(nameof(Narrowed));
     }
 }

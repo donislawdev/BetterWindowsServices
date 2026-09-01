@@ -77,6 +77,14 @@ public sealed class ContrastGuards
         ["SurfacePanel"] = 1.25,
         ["SurfacePanelEdge"] = 1.5,
 
+        // THE TWO THE PALETTE STUDY ADDED, 2026-09-01, and both answer to WCAG rather than to a
+        // floor of ours - which is the point of them. The primary action's fill is a component
+        // state, and a chip that is off has nothing but its outline to say it is a control at all,
+        // so the outline IS the component. Both measure over 3.2 and white on either clears the
+        // 4.5 text asks: 5.07 on the action, 5.10 on the chip edge.
+        ["SurfacePrimaryAction"] = ForState,
+        ["SurfaceChipEdge"] = ForState,
+
         // WCAG 2.2 SC 1.4.11 again, and THE NUMBER HERE IS THE WEAKER OF THE TWO CHECKS IT GETS.
         // The test below this table measures it against the window, where it comes out at 11.21
         // and clears anything - which would be a guard passing for the wrong reason, because a
@@ -302,4 +310,54 @@ public sealed class ContrastGuards
 
     private static string Hex(Color colour) =>
         string.Create(System.Globalization.CultureInfo.InvariantCulture, $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}");
+
+    /// <summary>
+    /// Every text style in the theme names its own colour, rather than taking whatever contains it.
+    ///
+    /// <b>THIS GUARD IS HERE BECAUSE THE FIRST SCREEN ANYBODY SEES SHIPPED WITH BLACK TEXT ON A
+    /// BLACK WINDOW.</b> Found by the owner looking at it on 2026-09-01, not by anything in this
+    /// repository. <c>HeadingText</c> set a face, a size and a weight and no Foreground - so the
+    /// colour of every heading was decided by whatever it happened to sit inside. In the machine
+    /// overview each number sits inside a Button whose style carries no <c>BasedOn</c>, so that
+    /// button never picked up the theme and fell back to the system default. Black on #202020 is
+    /// a ratio of <b>1.29</b>, measured with the rest of this file's arithmetic, against the 3.0
+    /// WCAG asks of large text.
+    ///
+    /// <b>The other tests here ask whether a declared colour is readable. This one asks whether
+    /// there is a declared colour at all</b> - and the second question turns out to be the one
+    /// that shipped a fault, because a style with no colour has no ratio to check and so passed
+    /// every check in this file by not being in it.
+    ///
+    /// <b>It reads the directory rather than a list of files</b>, for the reason
+    /// <see cref="Declared"/> spells out over its own sweep: a guard that has to be edited to keep
+    /// covering what it is named after is a guard that one day will not.
+    /// </summary>
+    [Fact]
+    public void Every_text_style_in_the_theme_names_the_colour_it_is_drawn_in()
+    {
+        var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
+        var text = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(themes, "*.xaml").Select(File.ReadAllText));
+
+        var styles = Regex.Matches(
+            text,
+            @"<Style x:Key=""([^""]+)"" TargetType=""TextBlock"">(.*?)</Style>",
+            RegexOptions.Singleline,
+            TimeSpan.FromSeconds(5));
+
+        // A floor, like every other sweep in this project: a pattern that matched nothing would
+        // clear this at once and read exactly like a theme with nothing wrong in it.
+        Assert.True(styles.Count >= 8, $"Only {styles.Count} text styles found. That is the sweep being wrong.");
+
+        var silent = styles
+            .Where(style => !style.Groups[2].Value.Contains("Property=\"Foreground\"", StringComparison.Ordinal))
+            .Select(style => style.Groups[1].Value)
+            .ToList();
+
+        Assert.True(
+            silent.Count == 0,
+            "These text styles name no colour, so they are drawn in whatever contains them: "
+                + string.Join(", ", silent));
+    }
 }

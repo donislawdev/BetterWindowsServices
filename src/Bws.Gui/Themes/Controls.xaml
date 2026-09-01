@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
         THE CONTROLS THIS WINDOW IS MADE OF, EVERYWHERE EXCEPT THE LIST - the field somebody
@@ -17,10 +18,13 @@
         of S6d2 needed cell templates a resource dictionary could hand to a column built in
         code.
 
-        THE media PREFIX WENT WITH THE LIST, and nothing beyond x is declared here on
-        purpose. The mutation entry that proves a styles file holds no value has to inject a
-        type the file can actually parse, so it uses Thickness rather than system:Double -
-        which only works while neither styles file declares the system prefix.
+        THE media PREFIX WENT WITH THE LIST ON 2026-08-11 AND CAME BACK ON 2026-09-01, when the
+        primary action's template needed a transparent fill for the state where it cannot be
+        pressed. What the old sentence here was really protecting is the SYSTEM prefix, and that
+        is still absent: the mutation entry proving a styles file holds no value has to inject a
+        type the file can parse, so it injects a Thickness rather than a system:Double - which
+        only works while neither styles file declares that prefix. Transparent is reached through
+        x:Static against a NAME, the same idiom Chips.xaml and Overview.xaml use.
 
         NEITHER THIS FILE NOR List.xaml LOADS ON ITS OWN. Both reach WPF UI's keys and both
         reach ours in Values.xaml, and StaticResource resolves them WHILE THE FILE IS BEING
@@ -100,94 +104,197 @@
         all answered by the choice it is bound to.
     -->
     <!--
-        A CHIP THAT IS ON HAS TO LOOK ON FROM ACROSS THE ROOM - backlog 163, and it was recorded as
-        a decision rather than an oversight: on 2026-08-11 Controls.xaml stood exactly on its own
-        ceiling, so a chip style would have forced a second split of the theme inside one session.
-        The theme has been split since, so the reason is spent.
+        THE ONE THING ON A SCREEN THAT MOST WANTS PRESSING - 2026-09-01 evening, owner's decision
+        after the palette study, and the colour's own argument is beside SurfacePrimaryAction in
+        Colours.xaml. What belongs here is why this is a TEMPLATE rather than three setters.
 
-        WHAT WAS WRONG WITH THE DEFAULT. WPF UI's ToggleButton marks "checked" with a fill a shade
-        lighter than "not checked", against a window that is already dark. Whether a filter is on is
-        the single thing this row exists to say, and saying it in a shade is the same failure as
-        `docs/11` complaint 1 - the most important state on screen carried by the least visible
-        difference.
+        BECAUSE THREE SETTERS WERE TRIED AND THE OWNER SAW THEM FAIL. The button off the first
+        screen wore the accent as a local value on Background - and went DARK under the pointer,
+        because the library's template answers hover by painting the border it template-binds, and
+        a value on the Button loses to a setter inside the template it is drawn by. That is the same
+        family as `docs/10` trap 16 and it is why every family this product invents now owns its
+        template outright.
 
-        SurfaceSelected AND TextOnSurface RATHER THAN A NEW PAIR. Those two are the row selection
-        colours - already declared, already carrying a contrast threshold `ContrastGuards` enforces,
-        and already meaning "this one is picked" everywhere else in this window. A new brush would
-        be a new threshold to argue for a meaning the theme already has a colour for.
+        THE COST IS THE SAME AS THE CHIP'S AND SO IS THE ANSWER: hover, pressed, disabled and focus
+        are this file's job, all four are below, and ButtonGuards holds them.
 
-        BasedOn THEIRS, WHICH IS TRAP 4 OF `docs/10` OBEYED RATHER THAN AVOIDED: their style sets
-        OverridesDefaultStyle and supplies a whole template, so a style of our own that did not
-        inherit it would silently throw away every other state - hover, pressed, disabled, focus.
-        What we override is three brushes it template-binds.
-
-        AND IT IS CHECKED ON THE PIXEL, not on the property. The same library hardcodes a
-        background inside its DataGrid cell template, where a Background setter is dead
-        unconditionally - so "the setter is there" is not evidence about the screen.
+        DISABLED MATTERS MORE HERE THAN ANYWHERE ELSE IN THIS WINDOW. "Carry this out" is disabled
+        exactly when the session cannot carry anything out, which is the moment somebody most needs
+        to be told - so it gives up the fill entirely rather than dimming it. An accent that is
+        merely a bit darker reads as a button that is still waiting to be pressed.
     -->
-    <Style x:Key="FilterChip" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-        <Style.Triggers>
-            <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Background" Value="{StaticResource SurfaceSelected}" />
-                <Setter Property="BorderBrush" Value="{StaticResource SurfaceSelected}" />
-                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-            </Trigger>
-        </Style.Triggers>
+    <Style x:Key="PrimaryActionFocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{StaticResource FocusRing}"
+                            BorderThickness="{StaticResource FocusRingThickness}"
+                            CornerRadius="{StaticResource CornerTile}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryAction" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PrimaryActionFocusRing}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+
+        <!--
+            THE SIZE IS NAMED BECAUSE THE WEIGHT IS, and TypeScaleGuards went red the moment it was
+            not. Microsoft's guidance puts the floor for SEMIBOLD text at 14 against 12 for plain,
+            so a style that asks for the heavier stroke and leaves the size to whatever contains it
+            is asking for a floor it cannot answer for. Fourteen is also what the buttons beside
+            this one are set at, which is the other half of why it is right.
+        -->
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="Padding" Value="{StaticResource PadButton}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face"
+                            Background="{StaticResource SurfacePrimaryAction}"
+                            BorderBrush="{StaticResource SurfacePrimaryAction}"
+                            BorderThickness="{StaticResource BorderTile}"
+                            CornerRadius="{StaticResource CornerTile}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <!--
+                        ORDER IS THE BEHAVIOUR: disabled comes last so it beats a pointer resting on
+                        a button that cannot be pressed.
+                    -->
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceSelected}" />
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{x:Static media:Brushes.Transparent}" />
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource SurfacePanelEdge}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!--
-        ONE FACET: ITS NAME, THEN ITS CHIPS. Here rather than inside MainWindow.xaml because what a
-        chip looks like is decided four lines above, and a template drawing chips is the same
-        subject - the window was carrying a nested ItemsControl whose only job was to apply the
-        style declared here. It also kept the window under the markup ceiling without shortening a
-        single reason, which is what a seam is for.
+        THE SCROLLBAR, WHICH THIS PRODUCT HAD NO STYLE FOR AT ALL UNTIL 2026-09-01. Scanned off a
+        capture of the real window: the thumb the library draws was FIVE BY THIRTEEN device pixels,
+        about three by nine logical, against the 24 by 24 WCAG 2.2 SC 2.5.8 asks of a target - and
+        it is the one control here that SHRINKS as the machine gains services.
 
-        The hint sits on every group label rather than once beside the row, because the sentence is
-        about the boundary BETWEEN groups and a person reads whichever label they arrive at. It is
-        a tooltip rather than a second line: it explains a mechanism somebody discovers by clicking
-        once, which is worth having and not worth a line of a window whose job is 810 rows.
+        A FIXED WIDTH RATHER THAN ONE THAT GROWS ON HOVER, said as a trade: the thin bar buys a few
+        pixels of list and spends them on a target somebody has to find first. No line buttons -
+        Windows stopped drawing them years ago and they are two more things nobody aims at.
 
-        THE GROUP LABEL IS WHAT COMPLAINT 7 ASKED FOR, and it waited for this row on purpose.
-        docs/11 closed that complaint in half on 2026-08-05 and said the other half - a label over
-        the controls - was deliberately not built, because A5 was going to arrive and rewrite the
-        row. It has, so the label arrives with the row it labels rather than being invented twice.
-
-        THREE GROUPS SINCE 2026-08-12. Why these three and what each one may contain is decided in
-        FilterChips.cs, with the measurement that settled the boundary - it is not repeated here.
-        The single "Filters" label is gone: it named the row rather than any question in it.
-
-        THE LABELS LIVE INSIDE THE CHIPS CONTAINER ON PURPOSE. tools/window-journey tells the labels
-        of controls apart from the sentences the window says about the answer, and it does that by
-        asking whether the chips' ItemsControl is an ancestor. A label outside it would arrive as
-        one of the window's sentences.
+        THERE IS NO FLOOR UNDER THE THUMB'S LENGTH AND THAT IS A DEFEAT, RECORDED RATHER THAN
+        HIDDEN. Four attempts, every one measured on the real window and every one answering 19
+        device pixels: MinHeight on the Thumb, the Track's properties bound explicitly, a minimum
+        pushed into the border inside the thumb, and finally an explicit Height. Track computes the
+        thumb's length while ARRANGING and overwrites whatever it was given, so the length stays
+        proportional - about 4.5% of the track at 336 entries. `docs/10` trap 17 and backlog 275
+        carry it. What this style does buy is the WIDTH, which went from 5 device pixels to 12.
     -->
-    <DataTemplate x:Key="FilterGroupTemplate">
-        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginGroup}">
-            <TextBlock Text="{Binding Label}"
-                       ToolTip="{Binding Hint}"
-                       Margin="{StaticResource MarginBetweenControls}"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource SubduedText}" />
+    <Style x:Key="ScrollThumb" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Grip"
+                            Background="{StaticResource SurfaceChipEdge}"
+                            CornerRadius="{StaticResource CornerChip}"
+                            Margin="{StaticResource MarginScrollThumb}" />
 
-            <ItemsControl ItemsSource="{Binding Chips}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Grip" Property="Background"
+                                    Value="{StaticResource TextSubdued}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Grip" Property="Background"
+                                    Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <ToggleButton Margin="{StaticResource MarginChip}"
-                                      Style="{StaticResource FilterChip}"
-                                      Content="{Binding Label}"
-                                      ToolTip="{Binding Member}"
-                                      IsChecked="{Binding IsOn, Mode=TwoWay}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-    </DataTemplate>
+    <!--
+        Implicit, because every scrolling surface in this window has to answer the same way - the
+        list, the plan panel, the details panel and the first screen. A keyed style would have to be
+        remembered at each of them, and the one that was forgotten would be the one somebody meets.
+    -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+        <Setter Property="Width" Value="{StaticResource WidthScrollBar}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track x:Name="PART_Track"
+                               IsDirectionReversed="True"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value}"
+                               ViewportSize="{TemplateBinding ViewportSize}">
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource ScrollThumb}" />
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <!--
+                THE SAME BAR LYING DOWN. Width and Height swap, the track stops being reversed
+                because horizontal runs the other way, and the floor moves from height to width -
+                the list scrolls sideways since 2026-08-12, so this half is not decoration.
+            -->
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="{StaticResource WidthScrollBar}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Track x:Name="PART_Track"
+                                               IsDirectionReversed="False"
+                                               Minimum="{TemplateBinding Minimum}"
+                                               Maximum="{TemplateBinding Maximum}"
+                                               Value="{TemplateBinding Value}"
+                                               ViewportSize="{TemplateBinding ViewportSize}">
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ScrollThumb}" />
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
     <!--
         The heading over one group of columns in the picker. Subdued, unticked and NOT ENABLED, so

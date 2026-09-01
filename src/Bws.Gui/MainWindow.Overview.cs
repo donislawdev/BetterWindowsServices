@@ -45,6 +45,7 @@ public partial class MainWindow
             if (changed.PropertyName == nameof(MainViewModel.ShowingOverview))
             {
                 ArrangeTheMiddle();
+                ArrangeTheChrome();
             }
         };
 
@@ -61,6 +62,7 @@ public partial class MainWindow
         _model.ShowingOverview = _kept is { OverviewSeen: false };
 
         ArrangeTheMiddle();
+        ArrangeTheChrome();
     }
 
     /// <summary>
@@ -99,5 +101,41 @@ public partial class MainWindow
         {
             ListEmptyState.ClearValue(VisibilityProperty);
         }
+    }
+
+    /// <summary>
+    /// Takes the list's own controls off the screen while the list is not on it - backlog 263.
+    ///
+    /// <b>Four rows that all act on a list that is not there.</b> The scope switch, the search box
+    /// and its count, four rows of filter chips, and an action bar whose four verbs are greyed
+    /// because there is nothing to pick. The screen under them opens with "This machine, before you
+    /// ask it anything" and every one of them is a way of asking.
+    ///
+    /// <b>Its own method rather than a few lines inside <see cref="ArrangeTheMiddle"/>, because
+    /// that name would stop being true.</b> That one owns the cell three controls compete for, this
+    /// one owns everything outside it, and a method whose name covers half of what it does is the
+    /// kind of prose this project has no guard for.
+    ///
+    /// <b>SET RATHER THAN CLEARED, and that is the opposite of what the empty state needs one
+    /// method up.</b> None of these four decides its own visibility - measured 2026-09-01, the two
+    /// Visibility setters in SearchRow and FilterRow are on CHILDREN, the placeholder hint and the
+    /// chip list behind its toggle. So there is no style to hand the decision back to, and a local
+    /// value is the only value there is.
+    ///
+    /// <b>The rows are Height="Auto", so a collapsed control gives its row back rather than leaving
+    /// a gap.</b> That is what makes this four bindings rather than a layout.
+    ///
+    /// <b>THE STATUS ROW IS NOT HERE AND MUST NOT BE.</b> It carries the sentence about running
+    /// without administrator rights, which backlog 16 put first because it is a fact about the
+    /// whole list - and before anybody has asked for anything is exactly when it matters most.
+    /// </summary>
+    private void ArrangeTheChrome()
+    {
+        var chrome = _model.ShowingOverview ? Visibility.Collapsed : Visibility.Visible;
+
+        Scope.Visibility = chrome;
+        Search.Visibility = chrome;
+        Filters.Visibility = chrome;
+        Actions.Visibility = chrome;
     }
 }
