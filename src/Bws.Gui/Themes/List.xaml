@@ -134,6 +134,26 @@
         <Setter Property="Margin" Value="{StaticResource MarginNone}" />
         <Setter Property="Padding" Value="{StaticResource MarginNone}" />
 
+        <!--
+            THE ROW IS THE HIT SURFACE, AND SINCE 2026-08-31 IT IS A SETTER RATHER THAN A TRIGGER.
+            What this line does is what the AlternationIndex=0 trigger below used to do through
+            TargetNullValue: give RowSurface a brush, because a null background takes no mouse hits
+            and the row would be a hole. Measured before that repair with row-cost.ps1: 106 of 603
+            points sampled across a row landed on a cell border rather than on the row. Backlog 221.
+
+            WHY IT MOVED. The trigger carried a Binding with RelativeSource FindAncestor, so every
+            realised row walked the visual tree up to the DataGrid - on realisation and again on
+            every recycle - to arrive at the same answer every time. A Setter needs no walk and no
+            binding at all, and the template already feeds Background to RowSurface.
+
+            WHAT IT COSTS: the grid's own RowBackground property stops reaching the row. Nothing sets
+            it, and a zebra stripe arrives through AlternatingRowBackground and the trigger below,
+            which is what backlog 123 asks for - so this takes nothing away that was in use. Setting
+            RowBackground on the grid after this line would silently do nothing, and that is the one
+            thing somebody could get wrong here.
+        -->
+        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="DataGridRow">
@@ -210,14 +230,6 @@
                             It costs backlog 123 nothing: a real RowBackground still wins, because
                             TargetNullValue only speaks when the source is null.
                         -->
-                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                            <Setter TargetName="RowSurface"
-                                    Property="Background"
-                                    Value="{Binding RowBackground,
-                                        RelativeSource={RelativeSource AncestorType={x:Type DataGrid}},
-                                        TargetNullValue={x:Static media:Brushes.Transparent}}" />
-                        </Trigger>
-
                         <Trigger Property="ItemsControl.AlternationIndex" Value="1">
                             <Setter TargetName="RowSurface"
                                     Property="Background"

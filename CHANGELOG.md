@@ -470,6 +470,17 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The list now scrolls a row at a time instead of sliding between rows, and it does that to stop
+  eating a processor core while you drag.** Scrolling used to spend two to three times more
+  processor per step than it does now, measured over a list whose rows are already on screen, and
+  on a machine with sixteen processors that showed up as the whole window using about five percent
+  while a scrollbar was being dragged slowly.
+  - **What you will see instead:** the scrollbar comes to rest on a row boundary rather than
+    halfway through one, so a slow drag steps rather than glides. On a list of a few hundred
+    entries a step is a row or two. On the full list of every entry the machine has, it is more.
+  - **The first pass through a list you have not looked at yet costs the same either way.** This
+    only helps once the rows have been on screen once.
+
 - **Snapshots are now written in format version 3, and a snapshot written by an earlier build is
   refused rather than read.** No field was added or renamed. What changed is what four of them
   say: half the values in the document were written in one spelling and half in another, so one

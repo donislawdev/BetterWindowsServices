@@ -193,6 +193,34 @@ public sealed class RowList : ObservableCollection<EntryRow>
         //
         // The invariant guarding this list did not see it either, because it asks whether the
         // list holds a row the query rejected, and in a swap both rows are wanted.
+        // WHICH ROWS ARE HERE AT ALL, ASKED ONCE INSTEAD OF SCANNED PER ROW. Without it the loop
+        // below calls IndexOf for every row that is not already in the right place - and on the
+        // pass that WIDENS a filter almost none of them is here at all, so almost every one of
+        // those calls walks the whole list to answer "no". Deleting a character that takes the list
+        // from 108 rows back to 810 is about 700 insertions against a list averaging 460 entries,
+        // which is on the order of three hundred thousand reference comparisons to learn nothing.
+        //
+        // A SET RATHER THAN A Dictionary<EntryRow, int>, and the difference is the bug that is not
+        // being written: every Move below changes the index of other rows, so a map of positions
+        // would have to be repaired after each one or it would start naming the wrong row. The set
+        // answers the only question whose answer a Move cannot change - whether the row is here.
+        //
+        // BUILT ONLY ONCE SOMETHING IS OUT OF PLACE, AND THAT IS NOT A MICRO-OPTIMISATION - IT IS
+        // THE DIFFERENCE BETWEEN HELPING AND HARMING. The commonest call by far is the tick, once a
+        // second, on a machine where nothing moved: every row is already where it belongs, the loop
+        // does nothing but walk, and a set built up front would add eight hundred hash insertions to
+        // a pass that had none. Built here, that pass never pays for it.
+        //
+        // BUILT AFTER THE REMOVING PASS, so it describes the list this loop actually walks. Rows
+        // inserted below are absent from it and that is harmless: each wanted row is asked about
+        // exactly once, before it is put in - and nothing is inserted before the first miss, which
+        // is where this is built.
+        //
+        // It leans on EntryRow using reference identity, which it does deliberately - RowIndex keeps
+        // one row object per service for as long as that service exists. DO NOT give EntryRow an
+        // Equals: two different readings of one service would collapse into one entry here.
+        HashSet<EntryRow>? present = null;
+
         for (var index = 0; index < wanted.Count; index++)
         {
             if (index < Count && ReferenceEquals(this[index], wanted[index]))
@@ -200,7 +228,9 @@ public sealed class RowList : ObservableCollection<EntryRow>
                 continue;
             }
 
-            var already = IndexOf(wanted[index]);
+            present ??= [.. this];
+
+            var already = present.Contains(wanted[index]) ? IndexOf(wanted[index]) : -1;
 
             // Moved rather than removed and added, because a move keeps the row object - and the
             // selection and the scroll position ride on the row objects being the same ones.

@@ -79,6 +79,38 @@ public sealed class RowStateGuards
     }
 
     /// <summary>
+    /// A row carries a brush of its own, because a row with none is a hole the pointer falls
+    /// through.
+    ///
+    /// <b>THIS IS A MEASUREMENT TURNED INTO A GUARD, AND THE MEASUREMENT IS WHY IT LOOKS ODD.</b>
+    /// A null background takes no mouse hits at all. Before this was understood, the row was
+    /// exactly that - and hover and selection worked only because WPF UI's cell template painted a
+    /// fully transparent border per cell which DID take hits, twenty of them doing the work of one.
+    /// Sampled with tools/gui-probe/row-cost.ps1 across a row: 106 of 603 points landed on a cell
+    /// border rather than on the row. Backlog 221.
+    ///
+    /// <b>Asserted on a row the style has actually been applied to</b>, rather than on the setter
+    /// in the markup: the value could equally arrive from the style this one is BasedOn, and what
+    /// matters is the brush a real row ends up with rather than which file put it there.
+    ///
+    /// <b>It says nothing about WHICH brush</b>, on purpose. Transparent is what the list wants
+    /// today and a zebra stripe would make it something else - backlog 123 - and neither is a hole.
+    /// </summary>
+    [Fact]
+    public void A_row_carries_a_brush_of_its_own_so_the_pointer_lands_on_it()
+    {
+        var background = OnAStaThread(() =>
+            new DataGridRow { Style = (Style)OurResources()["ListRow"] }.Background);
+
+        Assert.True(
+            background is not null,
+            "A row styled by ListRow has no background brush at all. A null background is not a "
+            + "colour, it is a hole: the row takes no mouse hits, so pointing at one lands on "
+            + "whatever is inside the cells and misses everywhere else. Backlog 221 measured that "
+            + "as 106 of 603 sampled points.");
+    }
+
+    /// <summary>
     /// The focus ring cannot be rendered here - keyboard focus needs a window the desktop has
     /// made active - so what is guarded is the one thing that killed the other three states:
     /// WHERE the setter lives. A ring moved back into a style trigger would leave this red.

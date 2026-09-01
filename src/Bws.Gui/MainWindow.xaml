@@ -158,17 +158,45 @@
             takes to answer, and a jump that happens instantly is fast AND jerky. A latency
             instrument cannot report a smoothness fault, which is why three clean runs came first.
 
-            ScrollUnit is the one that answers the complaint. A DataGrid scrolls by ITEM by default,
-            so the viewport can only ever stop on a row boundary - at 811 entries in a viewport of
-            about thirty, one pixel of thumb travel is worth several rows, and a slow drag therefore
-            moves in visible jumps. Pixel lets it stop between boundaries. It is NOT the same as
-            turning CanContentScroll off, which buys the same smoothness by disabling virtualisation
-            and building all 811 rows - Microsoft's performance guidance lists that as one of the
-            four ways to lose virtualisation without noticing.
+            ScrollUnit ANSWERED THAT COMPLAINT WITH Pixel AND WENT BACK TO Item ON 2026-08-31, and
+            both halves of that are the owner's decision after looking at the window with his own
+            hand. The whole of it is here rather than in a document, because this one attribute has
+            now been changed twice for opposite reasons and a third session would otherwise change
+            it back a third time.
+
+            WHY Pixel WAS RIGHT IN AUGUST: a DataGrid scrolls by ITEM by default, so the viewport can
+            only come to rest on a row boundary - at 811 entries in a viewport of about thirty, one
+            pixel of thumb travel is worth several rows, and a slow drag moves in visible jumps.
+            Pixel lets it stop between boundaries.
+
+            WHY IT IS Item AGAIN: on 2026-08-31 the owner reported the processor going to 5% while
+            scrolling, with a felt lag spike. On sixteen processors that is 0.8 of ONE core, and WPF
+            draws on a single thread - so it is a saturated interface thread rather than a busy
+            machine. Measured with tools/gui-probe/row-cost.ps1 -ScrollCost, four runs a variant with
+            the first discarded, on a traversal of a list whose rows already exist: Pixel 22-38 ms of
+            processor per step against 8-17 for Item, ranges not overlapping. On a COLD traversal
+            they are the same, 53-68 against 52-61, so this buys nothing on the first pass.
+
+            AND THE OWNER COMPARED THE TWO BUILDS BY HAND BEFORE THIS WAS CHANGED. Two executables,
+            same source, one attribute apart. The jumpiness Pixel was bought to remove turned out to
+            cost less than the processor it spent - which is a judgement about how the window FEELS,
+            and neither a probe nor a test can make it.
+
+            IT IS NOT THE SAME AS turning CanContentScroll off, which buys smoothness by disabling
+            virtualisation and building all 811 rows - Microsoft's performance guidance lists that as
+            one of the four ways to lose virtualisation without noticing. That road stays shut.
 
             Recycling is the cheaper half. The default, Standard, creates a container as a row
             enters the viewport and throws it away as it leaves, so a drag down the list allocates
             and collects the whole way. Recycling reuses the containers instead.
+
+            DEFERRED SCROLLING WAS TRIED ON 2026-08-31 AND REJECTED BY THE OWNER'S EYE THE SAME
+            HOUR, AND IT IS WRITTEN HERE SO THAT NOBODY PROPOSES IT AGAIN AS AN OBVIOUS SAVING.
+            IsDeferredScrollingEnabled makes the content wait for the thumb, so a drag asks for no
+            realisation at all - which is a real saving on the one gesture that costs most. What it
+            looks like is the whole problem: "when I drag the scrollbar you cannot see that it is
+            scrolling, because the list stands still". A list somebody drags in order to LOOK at it
+            is not improved by not drawing while they look. Backlog 253.
 
             WHAT IS DELIBERATELY NOT HERE: EnableColumnVirtualization. It is off by default, so
             turning it on is a real change rather than a no-op - but this grid sets
@@ -206,7 +234,7 @@
                   HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
                   HeadersVisibility="Column"
                   HorizontalScrollBarVisibility="Auto"
-                  VirtualizingPanel.ScrollUnit="Pixel"
+                  VirtualizingPanel.ScrollUnit="Item"
                   VirtualizingPanel.VirtualizationMode="Recycling"
                   SelectionUnit="FullRow"
                   SelectionMode="Extended"

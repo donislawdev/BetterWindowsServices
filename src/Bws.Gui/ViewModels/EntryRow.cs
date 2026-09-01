@@ -220,6 +220,29 @@ public sealed class EntryRow : Observable
     /// <summary>When this row last moved, for whoever is clearing the highlight.</summary>
     internal DateTimeOffset ChangedAt { get; private set; }
 
+    /// <summary>
+    /// How many times what this row SAYS has changed, for anything keeping an answer about it.
+    ///
+    /// <b>It exists for one reader and the reason is measured.</b> Sorting hands the view a
+    /// comparer, and a comparer is asked O(n log n) times for a sort and about ten times for every
+    /// single insertion into an already sorted view - which is every row arriving when a filter
+    /// widens. Working the key out on each of those calls means rebuilding the same string
+    /// thousands of times: for the list columns that is a <c>string.Join</c>, and for the triggers
+    /// column a Select, a Distinct and a Join. Measured on 702 insertions into a sorted view, with
+    /// the key built per comparison against a key already in hand: 117.5 ms against 66.6.
+    ///
+    /// <b>A counter rather than a flag, because the reader has to notice a change it did not
+    /// watch.</b> Whoever keeps a key alongside the number it was taken at can tell in one
+    /// comparison whether it still describes this row, and no subscription is needed to do it.
+    ///
+    /// <b>It moves exactly where <c>Item[]</c> is raised and nowhere else</b>, which is the same
+    /// promise: those are the two places this row's cells can change. A version that moved without
+    /// the cells moving would be a cache thrown away for nothing, and one that stood still while
+    /// they moved would sort the list by yesterday's values - silently, and in an order that looks
+    /// plausible.
+    /// </summary>
+    internal int Version { get; private set; }
+
     public static EntryRow Of(ScmEntry entry) => new(entry);
 
     /// <summary>
@@ -248,6 +271,10 @@ public sealed class EntryRow : Observable
 
         // The status and the process identifier as WORDS, which are cells and therefore say so
         // here rather than one property at a time.
+        //
+        // AND THE VERSION GOES WITH IT, in the same statement pair, because the two say the same
+        // thing to two different readers - see Version.
+        Version++;
         Raise(EveryCell);
 
         ChangedAt = now;
@@ -296,6 +323,7 @@ public sealed class EntryRow : Observable
         // a record, so == is memberwise, and several of its members are lists compared by
         // reference - two readings of an unchanged machine are already unequal. It would cost a
         // comparison to arrive at the same answer this line gives for nothing.
+        Version++;
         Raise(EveryCell);
 
         if (moved)

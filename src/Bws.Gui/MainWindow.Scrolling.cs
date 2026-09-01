@@ -66,6 +66,12 @@ public partial class MainWindow
             new ScrollChangedEventHandler(ListScrolled),
             handledEventsToo: true);
 
+        // A HANDLER ON ScrollBar.Scroll STOOD HERE FOR AN HOUR ON 2026-08-31 AND LEFT WITH THE
+        // SETTING IT EXISTED FOR. Deferred scrolling silences ScrollChanged during a drag, so the
+        // hold above needed a second road while that setting was on. The owner rejected deferring
+        // by eye the same hour - a list somebody drags in order to look at it cannot stand still -
+        // and a handler whose whole argument was a setting that is gone is machinery without a
+        // reason. Backlog 253 carries both halves.
         return scrolling;
     }
 
@@ -97,6 +103,18 @@ public partial class MainWindow
             return;
         }
 
+        Hold();
+    }
+
+    /// <summary>
+    /// Restarts the quarter second after which the machine may be read again.
+    ///
+    /// Stopped before started rather than started twice, because a running DispatcherTimer keeps its
+    /// original deadline when Start is called on it again - so a second gesture would be measured
+    /// from the first one and the hold would expire in the middle of it.
+    /// </summary>
+    private void Hold()
+    {
         _scrolling.Stop();
         _scrolling.Start();
     }

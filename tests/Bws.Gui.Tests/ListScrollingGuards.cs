@@ -30,19 +30,31 @@ namespace Bws.Gui.Tests;
 /// </summary>
 public sealed class ListScrollingGuards
 {
+    /// <summary>
+    /// The list scrolls by whole rows, and this assertion was the other way round until 2026-08-31.
+    ///
+    /// <b>BOTH DIRECTIONS WERE THE OWNER'S DECISION AND BOTH WERE TAKEN WITH A HAND ON THE
+    /// WINDOW.</b> Pixel arrived on 2026-08-17 because dragging the scrollbar slowly felt like it
+    /// snagged - at 811 entries in a viewport of about thirty, one pixel of thumb travel is worth
+    /// several rows, so an item-scrolled list moves in visible jumps. It went back on 2026-08-31
+    /// because of what it cost: measured with row-cost.ps1 -ScrollCost, four runs a variant with the
+    /// first discarded, over a list whose rows already exist, Pixel spends 22-38 ms of processor per
+    /// step against 8-17 for Item, and the ranges do not overlap. The owner then compared two builds
+    /// by hand - same source, one attribute apart - and chose this one.
+    ///
+    /// <b>What this test can and cannot say.</b> It says the setting is in force on the built grid,
+    /// which is what stops it being removed by somebody who never knew it was doing anything. It
+    /// says nothing about whether the list feels better, and nothing in a test process can: the
+    /// jumpiness this trades for is a judgement made by an eye.
+    /// </summary>
     [Fact]
-    public void The_list_scrolls_by_pixel_rather_than_by_whole_rows()
+    public void The_list_scrolls_by_whole_rows_rather_than_by_pixel()
     {
-        // ScrollUnit is the one that answers the complaint. A DataGrid scrolls by ITEM by default,
-        // so the viewport can only ever come to rest on a row boundary - over 811 entries in a
-        // viewport of about thirty, one pixel of scrollbar travel is worth several rows, so a slow
-        // drag moves in visible jumps rather than sliding.
-        //
-        // It is NOT the same as turning CanContentScroll off, which buys the same smoothness by
-        // switching virtualisation off and building all 811 rows. Microsoft's own performance
+        // NOT the same as turning CanContentScroll off, which would also stop between boundaries -
+        // by switching virtualisation off and building all 811 rows. Microsoft's own performance
         // guidance lists that as one of the four ways to lose virtualisation without noticing, and
         // the test below is what keeps the two from being confused with each other.
-        Assert.Equal(ScrollUnit.Pixel, OnTheGrid(VirtualizingPanel.GetScrollUnit));
+        Assert.Equal(ScrollUnit.Item, OnTheGrid(VirtualizingPanel.GetScrollUnit));
     }
 
     [Fact]

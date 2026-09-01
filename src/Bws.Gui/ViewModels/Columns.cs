@@ -358,41 +358,17 @@ internal static class Columns
     ///
     /// <b>Here rather than beside the window, and that is the same split this product makes for
     /// every other decision a handler would otherwise swallow.</b> A shortcut's MEANING lives in
-    /// <see cref="Shortcuts"/> and the key press lives in the window; which row a letter jumps to
-    /// lives in <see cref="RowList"/> and the scrolling lives in the window. An order is a
-    /// decision, so it lives where it can be asked without a desktop - what stays beside the grid
-    /// is subscribing to an event and handing this over.
+    /// <see cref="Shortcuts"/> and the key press lives in the window. An order is a decision, so it
+    /// lives where it can be asked without a desktop - what stays beside the grid is subscribing to
+    /// an event and handing this over.
+    ///
+    /// The comparison itself is <see cref="CellOrder"/>, in its own file since 2026-08-31: the
+    /// keeping of keys it now does needed more lines than this file had left under the ratchet, and
+    /// the seam was already there - this file is the CATALOGUE of columns, that one is how two rows
+    /// compare by one of them.
     /// </summary>
     internal static System.Collections.IComparer OrderedBy(Column column, bool ascending) =>
         new CellOrder(column, ascending);
-
-    /// <summary>
-    /// <b>Nothing sorts as less than something, on purpose.</b> A row with no value in this column
-    /// compares below every row that has one, so reversing the direction moves the whole group
-    /// from the top to the bottom. That is exactly what the empty string already does in every
-    /// column that says nothing with one, and a column behaving differently would be a rule
-    /// nobody could learn by using the list.
-    /// </summary>
-    private sealed class CellOrder(Column column, bool ascending) : System.Collections.IComparer
-    {
-        public int Compare(object? left, object? right)
-        {
-            var order = Order(Key(left), Key(right));
-
-            return ascending ? order : -order;
-        }
-
-        private static int Order(IComparable? left, IComparable? right) => (left, right) switch
-        {
-            (null, null) => 0,
-            (null, _) => -1,
-            (_, null) => 1,
-            _ => left.CompareTo(right)
-        };
-
-        private IComparable? Key(object? row) =>
-            row is EntryRow entry ? column.SortKey(entry.Entry) : null;
-    }
 
     /// <summary>
     /// Which heading in the picker each column sits under.
