@@ -83,6 +83,77 @@ $projects = @{
 
 # ---------------------------------------------------------------------------------------
 
+# WHAT THE SUITE SAID, KEPT INSTEAD OF DISCARDED - RULE 15 IN THE ONE TOOL THAT MADE IT
+# IMPOSSIBLE TO FOLLOW.
+#
+# This exists because of a loss that was measured, not because reporting is nice to have. Until
+# 2026-09-01 the run below read `2>&1 | Out-Null` and the failure read "did not pass" and nothing
+# else. On a red suite this gate destroyed the evidence in the same breath as it reported the
+# failure, and the name of the failing test had to be recovered by running the whole suite again
+# - which is the exact sequence tools/check.ps1 exists to end, standing inside the gate itself.
+#
+# It cost this project twice on 2026-09-01 alone: two red tests from a full run were never
+# written down and did not repeat, and the third red step of the day had to be re-run to find
+# out it was a clipboard test - backlog 206.
+#
+# AND THIS IS THE ONLY PLACE THE SUITE RUNS UNDER Debug. check.ps1 runs it twice under Release
+# with --no-build. A test that reddens only in Debug, or only under coverage instrumentation -
+# which changes timing, and three tests here decide their verdict on retries against a clock -
+# surfaces HERE and nowhere else. The one run nothing else reproduces was the one throwing its
+# output away.
+#
+# THE DISTILLER ITSELF LIVES IN A FILE OF ITS OWN, AND THAT IS NOT TIDINESS. From 2026-09-01
+# tools\coverage-probe\uncovered.ps1 needs the same answer to the same question, and the header of
+# this very file argues that one rule kept in two places is the failure this project keeps paying
+# for - it is the reason the floors live in one json read by two callers rather than in the gate
+# and the workflow.
+#
+# tests\failed-test-names.ps1 carries the function, the measurement behind the [FAIL] marker being
+# the one untranslated token in that output, and the reason both files stay in pure ASCII. The
+# self test below proves it, and proves it can fail.
+. (Join-Path $PSScriptRoot 'failed-test-names.ps1')
+
+# THE RAW TEXT IS PRINTED IN FULL AND THE NAMES ARE A SIGNPOST, NEVER A REPLACEMENT, and that
+# ordering is the lesson rather than a preference. Filtering is how the assertion message was
+# lost the first time this project went red without a trace, so a marker that ever stops
+# matching has to cost a convenience and not the evidence.
+function Show-RedSuite([string] $Project, [object[]] $Said) {
+    $lines = @($Said | ForEach-Object { if ($null -eq $_) { '' } else { $_.ToString() } })
+
+    # THE FILE FIRST, BEFORE ANYTHING IS PRINTED OR REPEATED. A console gets trimmed, and this
+    # script is run by hand - docs/04 point 13 names it as a command - as often as it is run by
+    # the gate. TestResults\ because .gitignore already covers [Tt]est[Rr]esult*/, so the raw
+    # output of a red run cannot wander into a commit.
+    $kept = Join-Path $root 'TestResults'
+    $null = New-Item -ItemType Directory -Force -Path $kept
+    $slug = ($Project -replace '[^A-Za-z0-9]+', '-').Trim('-')
+    $file = Join-Path $kept ('coverage-gate-{0}-{1}.log' -f $slug, (Get-Date -Format 'yyyyMMdd-HHmmss'))
+    $lines | Out-File -LiteralPath $file -Encoding utf8
+
+    $named = Get-FailedTestNames $lines
+
+    Write-Host ''
+    Write-Host ("RED SUITE            {0}" -f $Project) -ForegroundColor Red
+
+    if ($named.Count -gt 0) {
+        Write-Host ("tests that failed    {0}" -f $named.Count) -ForegroundColor Red
+        foreach ($one in $named) { Write-Host ("  {0}" -f $one) -ForegroundColor Red }
+    }
+    else {
+        Write-Host 'tests that failed    no [FAIL] marker in this output' -ForegroundColor Yellow
+        Write-Host '                     the runner said something else - read it below in full' -ForegroundColor Yellow
+    }
+
+    Write-Host ''
+    Write-Host 'what the runner said, in full:' -ForegroundColor Red
+    Write-Host ''
+    foreach ($line in $lines) { Write-Host $line }
+
+    Write-Host ''
+    Write-Host ("kept in              {0}" -f $file) -ForegroundColor Red
+    Write-Host ''
+}
+
 function Measure-Coverage([string[]] $Projects) {
     $results = Join-Path ([IO.Path]::GetTempPath()) ("bws-coverage-" + [guid]::NewGuid().ToString('N'))
 
@@ -91,11 +162,15 @@ function Measure-Coverage([string[]] $Projects) {
         # price of the floor meaning the same thing everywhere. Optimisation changes which
         # sequence points exist, so a floor measured in one configuration and checked in the other
         # would drift for a reason that has nothing to do with the tests.
-        & dotnet test (Join-Path $root $project) -c Debug --nologo `
-            --collect:"XPlat Code Coverage" --results-directory $results 2>&1 | Out-Null
+        # KEPT IN A VARIABLE RATHER THAN PIPED INTO Out-Null, and that one word is the whole of
+        # backlog 267. The redirection is unchanged - only where the text lands is - so the exit
+        # code still arrives the same way it did before.
+        $said = & dotnet test (Join-Path $root $project) -c Debug --nologo `
+            --collect:"XPlat Code Coverage" --results-directory $results 2>&1
 
         if ($LASTEXITCODE -ne 0) {
-            throw "$project did not pass. Coverage of a red suite says nothing."
+            Show-RedSuite -Project $project -Said $said
+            throw "$project did not pass. Coverage of a red suite says nothing. What it said is above."
         }
     }
 
@@ -210,8 +285,76 @@ if ($SelfTest) {
         Write-Host ("  {0} {1}" -f $verdict, $case.Name)
     }
 
+    # -----------------------------------------------------------------------------------
+    # AND THE SECOND HALF, ADDED 2026-09-01: THE REPORTING RATHER THAN THE COMPARISON.
+    #
+    # The arithmetic above was the only thing this self test ever proved, and the thing that
+    # actually cost this project a day was the gate saying "did not pass" with no name attached.
+    # So the distiller gets a guard of its own - it is the half that fails in silence, because a
+    # marker that stops matching reports nothing and reads exactly like a suite with nothing to
+    # say. That is the same family as backlog 243 and 238: a guard that stops firing looks like a
+    # guard that had nothing to report.
+    #
+    # THE SPECIMEN IS REAL OUTPUT, lifted from tools\check-logs\20260826-205804, with the
+    # localised runner lines around it kept in. That is the whole point of it and not decoration:
+    # it proves the names survive on a machine whose runner does not answer in English, and the
+    # line that would fool a label-keyed distiller - "Niepowodzenie <name> [10 s]" - is sitting
+    # right there in the input, one line under the one that must match.
+    $reportCases = @(
+        @{
+            Name = 'a red suite names every test that failed'
+            Lines = @(
+                '[xUnit.net 00:00:59.14]     Bws.Gui.Tests.CopyingAndPanelGuards.Control_C_over_two_chosen_rows_copies_both_of_them [FAIL]',
+                '  Niepowodzenie Bws.Gui.Tests.CopyingAndPanelGuards.Control_C_over_two_chosen_rows_copies_both_of_them [10 s]',
+                '  Komunikat o bledzie:',
+                '   Ctrl+C over two rows: the clipboard belonged to another process on 5 tries running.',
+                '[xUnit.net 00:01:10.03]     Bws.Gui.Tests.CopyingAndPanelGuards.The_context_menu_copies_what_each_item_promises [FAIL]',
+                '  Niepowodzenie Bws.Gui.Tests.CopyingAndPanelGuards.The_context_menu_copies_what_each_item_promises [10 s]',
+                '',
+                'Niepowodzenie! - niepowodzenie:     2, powodzenie:   393, lacznie:   395 - Bws.Gui.Tests.dll')
+            Expect = @(
+                'Bws.Gui.Tests.CopyingAndPanelGuards.Control_C_over_two_chosen_rows_copies_both_of_them',
+                'Bws.Gui.Tests.CopyingAndPanelGuards.The_context_menu_copies_what_each_item_promises')
+        },
+        @{
+            Name = 'a run with nothing red names nothing'
+            Lines = @(
+                'Powodzenie!    - niepowodzenie:     0, powodzenie:    38, lacznie:    38 - Bws.Cli.Tests.dll')
+            Expect = @()
+        },
+        @{
+            # The runner reports a retried test more than once. Two lines about one test is one
+            # name, or the count printed above the list stops meaning what it says.
+            Name = 'the same test reported twice is named once'
+            Lines = @(
+                '[xUnit.net 00:00:01.00]     Bws.Core.Tests.Something.Happens [FAIL]',
+                '[xUnit.net 00:00:02.00]     Bws.Core.Tests.Something.Happens [FAIL]')
+            Expect = @('Bws.Core.Tests.Something.Happens')
+        }
+    )
+
     Write-Host ""
-    Write-Host ("Self test: {0} of {1} decisions correct." -f ($cases.Count - $wrong), $cases.Count)
+    Write-Host "Self test - the names a red suite gives up:"
+    Write-Host ""
+
+    foreach ($report in $reportCases) {
+        $names = Get-FailedTestNames $report.Lines
+        $same = ((@($names) -join '|') -ceq (@($report.Expect) -join '|'))
+
+        if (-not $same) { $wrong++ }
+
+        Write-Host ("  {0} {1}" -f $(if ($same) { 'ok    ' } else { 'WRONG ' }), $report.Name)
+
+        if (-not $same) {
+            Write-Host ("         wanted {0}" -f (@($report.Expect) -join ', ')) -ForegroundColor Red
+            Write-Host ("         got    {0}" -f (@($names) -join ', ')) -ForegroundColor Red
+        }
+    }
+
+    $decisions = $cases.Count + $reportCases.Count
+
+    Write-Host ""
+    Write-Host ("Self test: {0} of {1} decisions correct." -f ($decisions - $wrong), $decisions)
 
     exit $(if ($wrong -eq 0) { 0 } else { 1 })
 }
