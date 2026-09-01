@@ -248,7 +248,10 @@ public sealed class ListingTableTests
             }
         ]);
 
-        Assert.Contains("NotSigned", lines[1], StringComparison.Ordinal);
+        // "Not signed" rather than "NotSigned" since backlog 260. This test is about the absence
+        // of an empty pair of brackets rather than about the spelling, but it named the value and
+        // the word change reached it.
+        Assert.Contains("Not signed", lines[1], StringComparison.Ordinal);
         Assert.DoesNotContain("(", lines[1], StringComparison.Ordinal);
     }
 
@@ -320,6 +323,35 @@ public sealed class ListingTableTests
             "\"status\": \"StartPending\"",
             ListingJson.Render([waiting]),
             StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The same repair on the signature column, and the same line held.
+    ///
+    /// <b>Backlog 260, owner's decision 2026-09-01.</b> The window has said <c>Not signed</c> and
+    /// <c>Untrusted root</c> since it grew this column, and this table printed <c>NotSigned</c> and
+    /// <c>UntrustedRoot</c> - the names of enumeration values. It is the same disagreement backlog
+    /// 124 settled for the state column, in the two surfaces that row did not name.
+    ///
+    /// <b>The machine readable half is asserted here for the same reason it is above</b>, and it
+    /// is the half that must not move: every tool in <c>tools/</c> comparing this product against
+    /// <c>sc.exe</c> reads the JSON, so a repair that reached it would break all of them silently.
+    /// </summary>
+    [Fact]
+    public void A_signature_verdict_of_two_words_is_printed_as_two_words_and_the_json_is_left_alone()
+    {
+        var unsigned = Entry("Aaa", "one") with
+        {
+            Signature = Reading<BinarySignature>.Present(
+                new BinarySignature(SignatureStatus.UntrustedRoot, 0, null))
+        };
+
+        var lines = Rendered([unsigned]);
+
+        Assert.Contains("Untrusted root", lines[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("UntrustedRoot", lines[1], StringComparison.Ordinal);
+
+        Assert.Contains("UntrustedRoot", ListingJson.Render([unsigned]), StringComparison.Ordinal);
     }
 
     private static string[] Rendered(IReadOnlyList<ScmEntry> entries) =>

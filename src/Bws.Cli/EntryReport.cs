@@ -70,7 +70,9 @@ internal static class EntryReport
             new Field("cli.show.binaryPath", entry => Say(entry.BinaryPath, value => value)),
             new Field("cli.show.binaryFile", entry => Say(entry.BinaryFile, value => value)),
             new Field("cli.show.binaryOnDisk", entry => Say(entry.BinaryOnDisk, YesOrNo)),
-            new Field("cli.show.signature", entry => Say(entry.Signature, value => value.Status.ToString())),
+            // SignatureWords rather than ToString - backlog 260. The listing table carries the same
+            // repair, and this is the second of its two surfaces.
+            new Field("cli.show.signature", entry => Say(entry.Signature, value => SignatureWords.Of(value.Status))),
             new Field("cli.show.publisher", entry => Publisher(entry)),
             new Field("cli.show.fileVersion", entry => Say(entry.FileVersion, value => value)),
             new Field("cli.show.binaryHash", entry => Say(entry.BinaryHash, value => value))
@@ -191,11 +193,17 @@ internal static class EntryReport
 
     private static string List(IReadOnlyList<string> values) => string.Join(", ", values);
 
+    // THE KIND GETS A WORD AND THE ACTION KEEPS ITS NAME, and that asymmetry is measured rather
+    // than careless - backlog 260. Seven of the nine kinds read as words jammed together, so they
+    // go through TriggerWords the way the state and the signature do. The action has three members
+    // - Unknown, Start and Stop - so its value name and the word for a person are the same string
+    // and there is nothing to disagree about. Turning it into a lookup would buy one more file and
+    // three more keys to say what it already says.
     private static string Triggers(IReadOnlyList<ServiceTrigger> triggers) => string.Join(
         ", ",
         triggers.Select(trigger => Texts.Of(
             "cli.show.trigger",
-            trigger.Kind.ToString(),
+            TriggerWords.Of(trigger.Kind),
             trigger.Action.ToString())));
 
     /// <summary>

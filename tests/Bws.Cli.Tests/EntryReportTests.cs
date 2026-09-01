@@ -94,7 +94,41 @@ public sealed class EntryReportTests
         };
 
         Assert.DoesNotContain("Publisher", EntryReport.Render(entry, full: false), StringComparison.Ordinal);
-        Assert.Contains("NotSigned", EntryReport.Render(entry, full: false), StringComparison.Ordinal);
+
+        // "Not signed" rather than "NotSigned" since backlog 260. This assertion was never about
+        // the spelling - it is here to prove the verdict is printed at all while the publisher is
+        // not - but it named the value, so the word change reached it.
+        Assert.Contains("Not signed", EntryReport.Render(entry, full: false), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What sets a trigger off is printed in words, and what it then does keeps its own name.
+    ///
+    /// <b>Backlog 260, owner's decision 2026-09-01.</b> Seven of the nine kinds read as two or
+    /// three words jammed together - <c>DeviceArrival</c> here - and the window has never spelled
+    /// them that way. Same fault as backlog 124, third and last family.
+    ///
+    /// <b>THE ACTION IS ASSERTED UNCHANGED ON PURPOSE, and that is the point of this test rather
+    /// than an accident of the specimen.</b> Its three members are <c>Unknown</c>, <c>Start</c> and
+    /// <c>Stop</c>, so the value name and the word for a person are already the same string. A
+    /// repair that swept it too would have bought a file and three keys to change nothing, and a
+    /// later reader would have no way to tell that was measured rather than missed.
+    /// </summary>
+    [Fact]
+    public void A_trigger_kind_of_two_words_is_printed_as_two_words_and_its_action_is_left_alone()
+    {
+        var entry = Entry with
+        {
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                [new ServiceTrigger(TriggerKind.DeviceArrival, TriggerAction.Start)])
+        };
+
+        var report = EntryReport.Render(entry, full: true);
+
+        Assert.Contains("Device arrival", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeviceArrival", report, StringComparison.Ordinal);
+
+        Assert.Contains("Start", report, StringComparison.Ordinal);
     }
 
     private static ScmEntry Entry => new()

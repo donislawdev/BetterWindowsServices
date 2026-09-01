@@ -141,7 +141,12 @@ internal static class ListingTable
         }
 
         var signature = entry.Signature.Value!;
-        var status = signature.Status.ToString();
+
+        // A WORD FOR A PERSON RATHER THAN THE NAME OF AN ENUMERATION VALUE - backlog 260, the same
+        // repair StatusWords carries for the state column. What went out of here before was
+        // NotSigned and UntrustedRoot, which the window has never said. The JSON is untouched and
+        // ListingJson is where that is asserted.
+        var status = SignatureWords.Of(signature.Status);
 
         return signature.Publisher is null
             ? status
