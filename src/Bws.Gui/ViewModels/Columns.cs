@@ -40,7 +40,11 @@ internal static class Columns
             Id = "description",
             LabelKey = "gui.column.description",
             WidthKey = "ColumnDescription",
-            Face = ColumnFace.Text,
+
+            // PROSE SINCE 2026-09-01, WHICH IS WHAT LETS THE CHOSEN ROW SHOW MORE THAN A FRAGMENT -
+            // backlog 192, owner's decision. The comment above this is the reason it was needed:
+            // one line and an ellipsis over a field that runs to 1251 characters on this machine.
+            Face = ColumnFace.Prose,
             ShownAtFirst = false,
             Reads = entry => CellFaces.Say(entry.Description, value => value)
         },

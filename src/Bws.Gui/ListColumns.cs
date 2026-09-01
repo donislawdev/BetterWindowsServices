@@ -280,6 +280,10 @@ internal static class ListColumns
             ColumnFace.Mismatch => Templated(grid, "AgainstStartTypeCell"),
             ColumnFace.Rollup => Templated(grid, "NameCell"),
             ColumnFace.Number => Written(grid, column, "CellNumber", "ColumnHeadingNumber"),
+
+            // The only cell in this list that grows, and only while its row is the chosen one.
+            // CellProse carries the whole argument and the measurement behind the line count.
+            ColumnFace.Prose => Written(grid, column, "CellProse", headerStyle: null),
             ColumnFace.Fixed => Written(grid, column, "CellFixed", headerStyle: null),
             _ => Written(grid, column, "CellText", headerStyle: null)
         };

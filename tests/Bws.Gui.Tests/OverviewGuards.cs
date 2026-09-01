@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using Bws.Core;
 using Bws.Gui.ViewModels;
 
@@ -276,6 +277,53 @@ public sealed class OverviewGuards
         Assert.All(asked, line => Assert.False(
             string.IsNullOrWhiteSpace(line.Query),
             "A line on this screen carries no question, so clicking its number would ask nothing."));
+    }
+
+    /// <summary>
+    /// The number and the words it counts do not touch.
+    ///
+    /// <b>FOUND BY LOOKING AT THE SCREEN ON 2026-09-01, WHICH IS WHAT THAT STEP OF THE PACKAGE WAS
+    /// FOR.</b> The first screen anybody sees read "113services running", "1set to start
+    /// automatically and did not come up", "0orphans" - every line of it, since the day it shipped.
+    /// Every guard in this project passed over it, because a missing space is not a missing element
+    /// and nothing here had ever rendered this screen for a person to look at.
+    ///
+    /// <b>The cause was a margin named for what it separates rather than for which side it is on.</b>
+    /// The label carried MarginBetweenControls, which is 0,0,8,0 - a gap on its RIGHT, where nothing
+    /// stands. So it pushed away from what came after it and left nothing between itself and the
+    /// number in front of it.
+    ///
+    /// <b>Asked of the template rather than of a rendered window</b>, because that is where the
+    /// value lives and a rendered check would need a desktop this test process does not have.
+    /// </summary>
+    [Fact]
+    public void The_number_does_not_touch_the_words_it_counts()
+    {
+        // FROM THE VIEW'S OWN RESOURCES RATHER THAN FROM THE MERGED THEME, and the first version of
+        // this asked the theme and got a null. The row template is declared inside OverviewView.xaml,
+        // where it belongs - it is about one screen rather than about the window - so the only way to
+        // reach it is to build the screen that owns it.
+        // THE THICKNESS COMES BACK RATHER THAN THE TEXTBLOCK, and the first version returned the
+        // control and read its Margin here. A WPF element belongs to the thread that made it, so
+        // that read threw about thread access rather than failing on the value - which is the
+        // arrangement WpfHost exists to make visible.
+        var gap = WpfHost.On(() =>
+        {
+            _ = WpfHost.Resources;
+
+            var view = new OverviewView();
+            var row = (DataTemplate)view.Resources["OverviewRow"];
+
+            var built = (Button)row.LoadContent();
+
+            // The first of the two, which is the one holding the count - the grid puts it in
+            // column zero and the label in column one.
+            return ((TextBlock)((Grid)built.Content).Children[0]).Margin;
+        });
+
+        Assert.True(
+            gap.Right >= 8,
+            $"The number has {gap.Right} after it, so it runs into the word beside it.");
     }
 
     [Fact]

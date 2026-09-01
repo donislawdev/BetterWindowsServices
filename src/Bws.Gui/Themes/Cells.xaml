@@ -113,6 +113,57 @@
     </Style>
 
     <!--
+        THE ONE COLUMN THAT IS PROSE RATHER THAN A VALUE, AND THE ONLY CELL IN THIS LIST THAT GROWS.
+        Backlog 192, owner's decision 2026-09-01 out of three roads that were put to him.
+
+        WHAT THE COMPLAINT WAS. A description is up to 1251 characters on this machine and the cell
+        gave it one line with an ellipsis, so the column showed the first few words of a sentence
+        and nothing else. Two answers already stood and both were partial: Enter opens the details
+        panel, which shows the whole thing wrapped, and the context menu copies it.
+
+        THE NUMBERS THAT DECIDED THE CAP, measured 2026-09-01 over the 800 entries of this machine
+        rather than argued: 448 of them carry a description at all, the median is 95 characters, the
+        ninetieth is 321 and the longest is 1251. So a row that grew to fit EVERY description would
+        be thirty lines tall for one entry in a hundred, and a cap of four lines shows the whole of
+        a description for most of the list while leaving the tail to the panel that already handles
+        it. Four is where the reading stops being a peek and starts being the text.
+
+        ONLY WHILE THE ROW IS CHOSEN. A list of 810 rows is read by scanning down a column, and rows
+        of different heights are what makes that scanning stop working - which is the argument that
+        kept this unbuilt until somebody decided. So the list at rest is exactly what it was, and
+        one row at a time is allowed to be tall.
+
+        THE COST, SAID RATHER THAN LEFT OUT. This is one binding per description cell, walking one
+        level from the TextBlock to the cell it sits in. The row template lost a FindAncestor
+        trigger on 2026-08-31 for costing exactly this kind of thing - bindings per row went from 8
+        to 7 - so this puts one back, on ONE column, and only while that column is switched on. A
+        property trigger with no binding cannot do this job: a cell style cannot reach the text
+        inside the cell, and TextWrapping is not an inherited property, so nothing travels down.
+
+        THE LINE BOX IS SET HERE RATHER THAN INHERITED, so that the cap really is four lines. WPF has
+        no TextBlock.MaxLines - that property belongs to WinUI - so the only cap available is a
+        height, and a height is only four lines if something says how tall a line is. The trimming
+        comes down from CellText untouched, so the fourth line still ends with an ellipsis when
+        there is more.
+
+        Vertical alignment is left centred, which is a choice rather than an oversight: the other
+        cells of a tall row sit in the middle of it. Top-aligning them would mean touching every
+        templated cell in this file for a row state none of them otherwise knows about.
+    -->
+    <Style x:Key="CellProse" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+        <Style.Triggers>
+            <DataTrigger Value="True"
+                         Binding="{Binding IsSelected,
+                             RelativeSource={RelativeSource AncestorType={x:Type DataGridCell}}}">
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="LineHeight" Value="{StaticResource HeightProseLine}" />
+                <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+                <Setter Property="MaxHeight" Value="{StaticResource HeightProseWhenChosen}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
         Numbers line up on their last digit, text on its first. Complaint 3 of the eleven, and
         it is how a column of process ids becomes comparable at a glance instead of being read
         one row at a time.

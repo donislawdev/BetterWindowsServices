@@ -114,7 +114,8 @@
                     <TextBlock Grid.Column="0"
                                Text="{Binding Count}"
                                HorizontalAlignment="Right"
-                               VerticalAlignment="Center">
+                               VerticalAlignment="Center"
+                               Margin="{StaticResource MarginAfterNumber}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource HeadingText}">
                                 <!--

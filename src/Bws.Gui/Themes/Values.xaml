@@ -98,6 +98,37 @@
     <Thickness x:Key="MarginAfterShape">0,0,8,0</Thickness>
 
     <!--
+        THE GAP BETWEEN A NUMBER AND THE WORDS IT COUNTS, AND IT WAS MISSING UNTIL 2026-09-01.
+        The overview - the first screen anybody sees - read "113services running", "1set to start
+        automatically and did not come up", "0orphans". Every line of it.
+
+        WHY IT WAS MISSING IS WORTH MORE THAN THE VALUE. The label carried MarginBetweenControls,
+        which is 0,0,8,0 - a gap on its RIGHT, where nothing stands - so it pushed away from what
+        came after it and left nothing between itself and the number in front. A margin named for
+        what it separates rather than for which side it is on reads as though it does both.
+
+        FOUND BY LOOKING AT THE SCREEN. Backlog 192's package asked for the first run screen to be
+        seen by an eye rather than counted by automation, and this is what the eye was for: every
+        guard in this project passed over it, because a missing space is not a missing element.
+    -->
+    <Thickness x:Key="MarginAfterNumber">0,0,8,0</Thickness>
+
+    <!--
+        HOW TALL A CHOSEN ROW LETS ITS DESCRIPTION GROW, AS FOUR LINES OF EIGHTEEN.
+
+        A HEIGHT RATHER THAN A LINE COUNT, AND THAT IS WPF RATHER THAN A CHOICE. TextBlock.MaxLines
+        exists in WinUI and does not exist here - the compiler said so on 2026-09-01, which is the
+        cheapest possible way to find out and is written down so the next session does not spend a
+        build on it. So the line box is set explicitly and the cap is four of them, which makes
+        "four lines" true by arithmetic rather than by an assumption about what Segoe UI does at
+        thirteen points.
+
+        The argument for FOUR, with the measurement it came from, is beside CellProse below.
+    -->
+    <system:Double x:Key="HeightProseLine">18</system:Double>
+    <system:Double x:Key="HeightProseWhenChosen">72</system:Double>
+
+    <!--
         The mark for an entry running against its start type - backlog 165. A triangle rather than a
         dot, and why that matters is argued where the style is, in Cells.xaml. Eight by eight to
         match ShapeMark, scaled to fit, so all three marks occupy the same square.

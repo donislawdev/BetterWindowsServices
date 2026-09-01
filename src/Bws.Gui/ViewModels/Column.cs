@@ -55,7 +55,23 @@ internal enum ColumnFace
     /// silently. The badge sits beside the cell the same way the run state's dot does, and
     /// <see cref="EntryRow.StandsFor"/> carries the argument from the row's side.
     /// </summary>
-    Rollup
+    Rollup,
+
+    /// <summary>
+    /// Prose rather than a value, so the chosen row gives it more than one line - backlog 192.
+    ///
+    /// <b>Its own face rather than a check for one identifier at the place a column is built.</b>
+    /// Every other difference between columns already travels this way, and an identifier read in
+    /// <c>ListColumns</c> would be a second place that knows which column is which - the fault
+    /// <c>ADR-14</c> is about, one layer up.
+    ///
+    /// <b>One column carries it today and the name still says what it means rather than naming
+    /// that column.</b> A description is the only field on an entry that is written for a person to
+    /// read instead of for a tool to match on, and if a second such field ever arrives it wants
+    /// exactly this treatment. <c>CellProse</c> in <c>Themes/Cells.xaml</c> carries the measurement
+    /// that decided how many lines.
+    /// </summary>
+    Prose
 }
 
 /// <summary>

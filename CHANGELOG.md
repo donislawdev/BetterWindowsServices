@@ -470,6 +470,18 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The row you pick shows its description, instead of the first few words of it.** A service
+  description runs to over a thousand characters and the column gave it one line with an ellipsis.
+  The chosen row now wraps it over up to four lines and the rest of the list is unchanged - rows are
+  the same height as before until you pick one.
+  - **Four lines rather than all of it**, because a row tall enough for the longest description on
+    this machine would be about thirty lines. Press Enter on a row for the whole text in the details
+    panel, which is where it has always been.
+  - The description column is off unless you turn it on, and this changes nothing when it is off.
+
+- **The numbers on the opening screen no longer touch the words beside them.** It read
+  "113services running" and "0orphans" on every line.
+
 - **On the command line, a state that takes two words is now written as two words.** The listing
   and `bws show` say `Start pending` where they used to say `StartPending`, which is how the window
   has always written it. The same goes for `Stop pending`, `Continue pending` and `Pause pending`.
