@@ -470,14 +470,39 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
-- **The row you pick shows its description, instead of the first few words of it.** A service
-  description runs to over a thousand characters and the column gave it one line with an ellipsis.
-  The chosen row now wraps it over up to four lines and the rest of the list is unchanged - rows are
-  the same height as before until you pick one.
-  - **Four lines rather than all of it**, because a row tall enough for the longest description on
-    this machine would be about thirty lines. Press Enter on a row for the whole text in the details
-    panel, which is where it has always been.
-  - The description column is off unless you turn it on, and this changes nothing when it is off.
+- **The opening screen is three cards rather than a column of lines.** Each card carries one number
+  large enough to read across a desk, the words it counts at full strength, and underneath them
+  whatever has to be said about that number - the per-user templates and the trigger-started entries
+  left out of "did not come up", and the entries pointing at a missing file beside the orphan count.
+  Every number on a card is still a question you can click.
+
+- **A filter and a button no longer look the same.** They did the same thing to within one pixel: the
+  same rounded rectangle, the same height, the same size of type - for a chip that changes your
+  question and a button that opens a plan to stop a service. A filter is now an outlined pill and a
+  button is a filled rectangle, so the two rows read as two kinds of thing without being read.
+
+- **The button that matters most on a screen is the only coloured one.** When the tool is running
+  without administrator rights, **Restart as administrator** is the only way forward and it used to
+  look like the seventh button in a row. It and **Carry this out** in the plan now carry the one
+  saturated colour in the window, and nothing else does.
+  - **Show the list** on the opening screen gave that colour up. It is the way off the screen rather
+    than what the screen is for, and the loudest thing on it was pointing at the door.
+
+- **The plan panel separates what stays from what scrolls.** A line of text cut in half by the edge
+  of the scrolling area, with nothing marking that edge, read as two sentences overlapping. There is
+  a rule there now - and the warning about missing administrator rights moved down beside the button
+  it explains, instead of sitting three sections above it.
+
+- **The scrollbar is wider.** The thumb was about three points across, which is hard to catch with a
+  pointer. It is now twelve. Its length is still set by how much of the list fits on screen.
+
+- **What "Show every instance" does is the first thing its tooltip says.** It used to open by
+  explaining how Windows makes per-user copies and left what the switch does until the last sentence.
+
+- **A signature and a trigger are said in words on the command line.** The listing and `bws show`
+  say `Not signed` and `Device arrival` where they used to print the internal name of a value.
+  - **`bws list --json` and snapshots are unaffected and will stay that way**, for the same reason
+    the entry below gives about pending states: that is what a script matches on.
 
 - **The numbers on the opening screen no longer touch the words beside them.** It read
   "113services running" and "0orphans" on every line.
@@ -636,6 +661,15 @@ Nothing has been released yet. Everything below is what the tool does today.
     many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
+
+- **The button on the opening screen no longer changes colour when you point at it.** It was blue
+  standing still and went dark under the pointer, which looked like something going wrong.
+
+- **Pointing at a card on the opening screen no longer draws a hard-edged box inside it.** The
+  highlight follows the shape of the card and leaves room around the words.
+
+- **A screen reader now names the numbers on the opening screen.** All six of them arrived as
+  unnamed buttons, so the first screen anybody meets said nothing to anybody who cannot see it.
 
 - **A word the command did not have room for is no longer called an unknown option.** Typing
   `bws start type Spooler manual` - the hyphen missed out of `start-type` - answered
