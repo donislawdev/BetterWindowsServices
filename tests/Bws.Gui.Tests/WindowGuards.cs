@@ -396,16 +396,21 @@ public sealed class WindowGuards
             return built;
         });
 
-        Assert.Equal(1, WpfHost.On(() => grid.FrozenColumnCount));
+        // TWO RATHER THAN ONE SINCE 2026-09-02, AND THAT IS THIS TEST ANSWERING ITS OWN QUESTION ON
+        // A FIRST RUN FOR THE FIRST TIME. The internal name went off by default that day, so the
+        // leftmost column ON SCREEN is now the second one in the collection - which is exactly the
+        // arrangement the second half below used to have to arrange by hand.
+        Assert.Equal(2, WpfHost.On(() => grid.FrozenColumnCount));
 
-        // The name column off, which is the state the literal one gets wrong. Its own place in the
-        // display order stays where it was, so the count has to grow to reach past it.
-        WpfHost.On(() => bar.Choices[0].IsShown = false);
+        // AND NOW THE ONE THAT IS SHOWING GOES OFF TOO, which is what the second half has to be now
+        // that the first half covers the old one. Its place in the display order stays where it was,
+        // so the count has to grow again to reach past both.
+        WpfHost.On(() => bar.Choices[1].IsShown = false);
 
         Assert.True(
-            WpfHost.On(() => grid.Columns[1].IsFrozen),
-            "With the name column turned off, the leftmost column on screen is not frozen - so "
-            + "scrolling right leaves nothing saying which service a row belongs to.");
+            WpfHost.On(() => grid.Columns[2].IsFrozen),
+            "With the two leftmost columns turned off, the leftmost column on screen is not frozen "
+            + "- so scrolling right leaves nothing saying which service a row belongs to.");
 
         // NOW A REORDER WHILE THAT COLUMN IS STILL OFF, and the two halves have to be combined like
         // this or the second one proves nothing. Measured by the mutation runner: with every column

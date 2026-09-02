@@ -18,7 +18,19 @@ internal static class Columns
             // name and nothing else, which is what keeps copying, sorting and plan building
             // reading the identity rather than a sentence about it.
             Face = ColumnFace.Rollup,
-            ShownAtFirst = true,
+
+            // OFF AT THE START SINCE 2026-09-02, ON THE OWNER'S DECISION, so the first screen is the
+            // one somebody already knows from services.msc - display name, description, state,
+            // start type and account, and never the internal name.
+            //
+            // WHAT IT COSTS WAS PUT TO HIM AND HE TOOK IT: the rollup badge lives in this cell, so
+            // out of the box nothing says that 23 per-user copies were folded away. The status line
+            // under the list still says it, and the column is one click away in Columns.
+            //
+            // `ADR-14` IS NOT BENT BY THIS. The internal name stays the identity everywhere it
+            // matters - in the data, in a copy, in a plan and in every command this window prints.
+            // What changed is which columns a stranger meets first.
+            ShownAtFirst = false,
             Reads = entry => entry.ServiceName
         },
         new Column
@@ -32,11 +44,18 @@ internal static class Columns
         },
         new Column
         {
-            // THE SECOND COLUMN OF services.msc, and the only one that answers "what even is
-            // this". Off at the start despite being second there, and that is a decision rather
-            // than an oversight: it is prose, so at any width a person can spare it shows a
-            // fragment and an ellipsis, and this window's six default columns are the ones that
-            // answer a question in a glance. Somebody who wants it turns it on and widens it.
+            // THE SECOND COLUMN OF services.msc, and the only one that answers "what even is this".
+            //
+            // ON AT THE START SINCE 2026-09-02, REVERSING WHAT STOOD HERE, on the owner's decision.
+            // The sentence it replaces argued that prose in a narrow column shows a fragment and an
+            // ellipsis, which is true and was the wrong thing to weigh: a stranger opening this
+            // window meets three hundred names and no way to tell what any of them are for, and a
+            // fragment of an answer beats none. Whoever disagrees turns it off in Columns.
+            //
+            // IT COSTS NOTHING EXTRA TO READ, and that was measured rather than assumed. Descriptions
+            // come back on the same handle as the rest of the configuration - 212-223 ms over 819
+            // entries, recorded beside the call in WindowsScmCatalog - so this column was always
+            // paid for and never shown. What it costs to DRAW is not measured yet.
             Id = "description",
             LabelKey = "gui.column.description",
             WidthKey = "ColumnDescription",
@@ -45,7 +64,7 @@ internal static class Columns
             // backlog 192, owner's decision. The comment above this is the reason it was needed:
             // one line and an ellipsis over a field that runs to 1251 characters on this machine.
             Face = ColumnFace.Prose,
-            ShownAtFirst = false,
+            ShownAtFirst = true,
             Reads = entry => CellFaces.Say(entry.Description, value => value)
         },
         new Column
@@ -87,11 +106,17 @@ internal static class Columns
             LabelKey = "gui.column.processId",
             WidthKey = "ColumnProcessId",
             Face = ColumnFace.Number,
-            ShownAtFirst = true,
+
+            // OFF AT THE START SINCE 2026-09-02, ON THE OWNER'S DECISION, for the same reason as the
+            // internal name: services.msc does not show it, and a number nobody asked for is width
+            // taken from the description beside it. It is also empty for every stopped entry, which
+            // on this machine is most of them - so the default view spent a column on blanks.
+            ShownAtFirst = false,
 
             // NOT ONE DRIVER OF 472 HAS ONE - measured, and it is a fact about what a driver IS
             // rather than about this machine. A column that is empty in every row of a list is a
-            // column spending width on nothing.
+            // column spending width on nothing. It stays here now that the column is off at the
+            // start everywhere: this says it must not come back for drivers even if that changes.
             OffAtFirstIn = EntryScope.Drivers,
 
             Reads = entry => CellFaces.Say(entry.ProcessId, Number),

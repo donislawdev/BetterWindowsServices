@@ -2,25 +2,24 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Focusable="False"
-             IsTabStop="False"
-             Width="440">
+             IsTabStop="False">
 
     <!--
-        WHAT AN OPERATION OVER THE SELECTION WOULD DO - the window's dry run, packet 2 of `S7`.
-
-        A UserControl in its own file, for the criterion the details panel established: a theme file
+        WHAT AN OPERATION OVER THE SELECTION WOULD DO - the window's dry run, packet 2 of `S7`. A
+        UserControl in its own file, for the criterion the details panel established: a theme file
         describes the look of ONE CONTROL, and a part of the window lives beside MainWindow.xaml.
 
-        IT SHARES ITS COLUMN WITH THE DETAILS PANEL AND THE TWO ARE MUTUALLY EXCLUSIVE - one is
-        opened by Enter on a row and this by a verb over a selection, so neither is ever what
-        somebody is looking at while the other is.
+        IT STOPPED BEING A COLUMN AND BECAME A SHEET ON 2026-09-02, on the owner's decision, and it
+        no longer shares anything with the details panel - it covers the window. The two are still
+        mutually exclusive and the window still closes one to open the other. Why a sheet and what
+        it costs are beside PlanSheet in Themes/Plan.xaml, and the argument is in `docs/11` 3.12.
+
+        IT HAS NO WIDTH OF ITS OWN ANY MORE - it used to carry 380, then 440 because everything in
+        it wrapped. Now it fills its cell and the sheet inside takes what it needs.
 
         Focusable and IsTabStop are off because a UserControl is a ContentControl and arrives with
-        both - `docs/10` trap 8. Hit testing stays ON, unlike the empty state, because this panel
-        holds a button somebody has to press.
-
-        WIDTH WENT 380 TO 440 ON 2026-09-02: everything in it wrapped. It is a number here for the
-        reason DetailsView gives, and moves into the theme with that panel at backlog 173.
+        both - `docs/10` trap 8. Hit testing stays ON: this holds a button somebody has to press,
+        and the scrim has to eat the clicks the list behind it must not receive.
     -->
 
     <UserControl.Style>
@@ -55,15 +54,14 @@
     </UserControl.Resources>
 
     <!--
-        THE PANEL'S OWN SURFACE, AND UNTIL 2026-08-19 IT HAD NONE - drawn straight over the list,
-        with the Account column running under its first line. The full account is beside
-        SurfacePanel in Colours.xaml. Padding as well as fill, or the first character sits on the
-        edge and the fill stops separating anything.
+        TWO LAYERS AND THE ORDER MATTERS: the dimming first so it lies under, the sheet second so it
+        lies on top. Both fill this control, which fills the whole window - see MainWindow.xaml,
+        where this stopped being a cell in the grid on 2026-09-02 and became a layer over all of it.
     -->
-    <Border Background="{StaticResource SurfacePanel}"
-            BorderBrush="{StaticResource SurfacePanelEdge}"
-            BorderThickness="{StaticResource BorderPanelEdge}"
-            Padding="{StaticResource PaddingPanel}">
+    <Grid>
+        <Border Style="{StaticResource PlanScrim}" />
+
+        <Border Style="{StaticResource PlanSheet}" Width="560">
 
         <Grid>
             <Grid.RowDefinitions>
@@ -273,6 +271,7 @@
 
                         <ItemsControl x:Name="CommandList"
                                       AutomationProperties.AutomationId="planCommands"
+                                      Button.Click="CopyCommandRequested"
                                       ItemsSource="{Binding Commands}"
                                       ItemTemplate="{StaticResource PlanCommandTemplate}" />
                     </StackPanel>
@@ -372,5 +371,6 @@
                 </StackPanel>
             </Border>
         </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

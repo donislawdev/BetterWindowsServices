@@ -207,8 +207,12 @@ public sealed class ColumnLayoutGuards
             { "columns": [ { "id": "serviceName" }, { "id": "description" } ], "schemaVersion": 1 }
             """);
 
-        Assert.True(read.Layouts!.Services.Columns[0].Shown);
-        Assert.False(read.Layouts.Services.Columns[1].Shown);
+        // BOTH EXPECTATIONS FLIPPED ON 2026-09-02 AND THE CLAIM DID NOT: serviceName went off by
+        // default and description came on, owner's decision. What this asserts is that an entry
+        // saying nothing about "shown" takes the column's own usual state - so the day those two
+        // states swapped is the day this test had to swap with them or stop meaning anything.
+        Assert.False(read.Layouts!.Services.Columns[0].Shown);
+        Assert.True(read.Layouts.Services.Columns[1].Shown);
     }
 
     /// <summary>
@@ -380,11 +384,17 @@ public sealed class ColumnLayoutGuards
         var drivers = ColumnLayout.DefaultFor(EntryScope.Drivers);
         var services = ColumnLayout.DefaultFor(EntryScope.Services);
 
-        foreach (var id in new[] { "processId", "account" })
-        {
-            Assert.False(drivers.Columns.Single(column => column.Id == id).Shown, id);
-            Assert.True(services.Columns.Single(column => column.Id == id).Shown, id);
-        }
+        // ACCOUNT IS THE ONE THAT STILL PROVES OffAtFirstIn DOES ANYTHING, and since 2026-09-02 it is
+        // the only one. The process id went off for EVERY scope that day, on the owner's decision to
+        // open on the five columns services.msc opens on - so "off here and on there" stopped being
+        // true of it, and asserting it would be asserting the wrong half.
+        Assert.False(drivers.Columns.Single(column => column.Id == "account").Shown);
+        Assert.True(services.Columns.Single(column => column.Id == "account").Shown);
+
+        // The process id keeps its own line, weaker on purpose. Its scope rule is now invisible from
+        // outside - it would be off for drivers even without one - and the rule is kept rather than
+        // deleted so that turning it back on for services cannot quietly turn it on for drivers too.
+        Assert.False(drivers.Columns.Single(column => column.Id == "processId").Shown);
 
         // Still in the catalogue for both, so somebody can ask for the three drivers that do have
         // an account. A column taken away would answer that question with silence.

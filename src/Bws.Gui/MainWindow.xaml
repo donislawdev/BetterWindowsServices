@@ -351,16 +351,6 @@
                            DataContext="{Binding Chosen}" />
 
         <!--
-            WHAT AN OPERATION OVER THE SELECTION WOULD DO, in the SAME CELL as the details panel and
-            mutually exclusive with it - the window closes one when it opens the other. Why that is
-            right, and why this file is a UserControl, are at the head of PlanView.xaml.
-        -->
-        <local:PlanView Grid.Row="4"
-                        Grid.Column="1"
-                        x:Name="PlanPanel"
-                        DataContext="{Binding Planned}" />
-
-        <!--
             WHAT THE ANSWER ADMITS ABOUT ITSELF, and the one way out this window offers. Its own
             file since 2026-08-25, for the reason at the head of StatusRow.xaml - the fourth part
             of this window to leave the same way, after the scope switch, the search row and the
@@ -371,5 +361,16 @@
             product allowed to name one.
         -->
         <local:StatusRow Grid.Row="5" Grid.ColumnSpan="2" x:Name="Status" />
+
+        <!--
+            WHAT AN OPERATION OVER THE SELECTION WOULD DO - a LAYER OVER THE WHOLE WINDOW since
+            2026-09-02 rather than a cell beside the list, still mutually exclusive with the details
+            panel. LAST IN THIS FILE ON PURPOSE: siblings paint in document order, so one place
+            higher would have put the status row over its dimming, elevate button and all.
+        -->
+        <local:PlanView Grid.Row="0" Grid.RowSpan="6"
+                        Grid.Column="0" Grid.ColumnSpan="2"
+                        x:Name="PlanPanel"
+                        DataContext="{Binding Planned}" />
     </Grid>
 </Window>

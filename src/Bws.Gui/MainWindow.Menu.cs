@@ -268,6 +268,28 @@ public partial class MainWindow
             return false;
         }
 
+        Put(text);
+
+        // The press did something either way: it either copied, or it said out loud that it could
+        // not. Handing it back after saying so would let it reach whatever is behind this window.
+        return true;
+    }
+
+    /// <summary>
+    /// Puts one string on the clipboard, or says why it could not.
+    ///
+    /// <b>Apart from the method above since 2026-09-02, and the reason is a second caller rather
+    /// than tidiness.</b> The plan sheet grew a copy button under each terminal command, and that
+    /// button has no row and no field - it has a string. Everything below it was already right and
+    /// had to stop being reachable only through a row.
+    ///
+    /// <b>A refusal is reported rather than swallowed</b>, which is rule 8 arriving somewhere it is
+    /// easy to think it does not apply. The clipboard belongs to whatever process grabbed it last,
+    /// so this genuinely fails on a working machine - and a copy that quietly did nothing leaves
+    /// somebody pasting the previous thing they copied into a command that stops a service.
+    /// </summary>
+    internal void Put(string text)
+    {
         try
         {
             // The flushing overload, so the text outlives this process. Copying a service name
@@ -278,9 +300,5 @@ public partial class MainWindow
         {
             _model.Says.CouldNotDo(refusal.Message);
         }
-
-        // The press did something either way: it either copied, or it said out loud that it could
-        // not. Handing it back after saying so would let it reach whatever is behind this window.
-        return true;
     }
 }

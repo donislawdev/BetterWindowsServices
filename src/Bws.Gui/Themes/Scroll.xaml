@@ -1,0 +1,152 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        THE SCROLLBAR, ON ITS OWN SINCE 2026-09-02, AND THE SEAM WAS FORCED RATHER THAN CHOSEN.
+        Controls.xaml stood one line under the markup ceiling, so the owner's remark that the bar is
+        too big could not be answered inside it. The subject is a clean one to cut on: a bar that
+        scrolls is not the field somebody types into, and nothing else in this file needs the two
+        templates below. Styles only, not one value of its own - ADR-23, same as its neighbours.
+
+        THIS BAR HAS BEEN WRONG IN BOTH DIRECTIONS INSIDE TWO DAYS, WHICH IS THE PART WORTH KEEPING.
+        On 2026-09-01 the library's own thumb was scanned at FIVE BY THIRTEEN device pixels and the
+        owner said it was hard to catch. It was made 12 wide with a floor of 44 under its length, and
+        on 2026-09-02 the same owner said it was too big and ugly. A scan said what was true in both
+        remarks: 12 wide painted #666666 measures 2.84 against the list, which made it the brightest
+        thing on that screen that is not text - while the TARGET underneath it was never the problem.
+
+        SO THE TARGET AND THE PAINT WERE SEPARATED, WHICH IS THE WHOLE DESIGN. The bar stays 12 wide,
+        because that is what the pointer has to hit and ButtonGuards ties the number to WCAG 2.2
+        SC 2.5.8 - a criterion asking 24, which this product already misses and is not going to miss
+        by more. What changed is what gets drawn inside those 12: four points at rest, eight once the
+        pointer is anywhere in the strip. Approach fattens it before anybody aims.
+
+        AND THE FLOOR UNDER THE LENGTH IS NOT SET HERE, WHICH IS WHY IT ONCE TOOK FIVE ATTEMPTS.
+        Track floors the length at half of what TryFindResource hands it for the scrollbar button, so
+        the floor is a RESOURCE KEY and Values.xaml carries both halves. MinHeight on the Thumb is
+        the near miss worth remembering: it reaches the ARRANGED size and not the computed one, so a
+        bar built in a test read 44 while the real list drew 13. Backlog 275, `docs/10` trap 17.
+    -->
+    <Style x:Key="ScrollThumb" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Background" Value="{StaticResource SurfaceScrollThumb}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <!--
+                        THE FILL ARRIVES BY TemplateBinding AND THAT IS LOAD BEARING, not tidiness.
+                        The bar's own template changes this Thumb's Background when the pointer
+                        enters the strip, and a colour written straight onto this Border would
+                        swallow that change without a word. The one state the bar cannot see is
+                        dragging, so it is the only trigger left in here.
+                    -->
+                    <Border x:Name="Grip"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource CornerScrollThumb}" />
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Grip" Property="Background"
+                                    Value="{StaticResource TextSubdued}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Implicit, because every scrolling surface in this window has to answer the same way - the
+        list, the plan sheet, the details panel and the first screen. A keyed style would have to be
+        remembered at each of them, and the one that was forgotten would be the one somebody meets.
+
+        No line buttons. Windows stopped drawing them years ago and they are two more things nobody
+        aims at, each of them stealing length from the one part of the bar people do aim at.
+    -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+        <Setter Property="Width" Value="{StaticResource WidthScrollBar}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track x:Name="PART_Track"
+                               IsDirectionReversed="True"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                               Value="{TemplateBinding Value}">
+                            <Track.Thumb>
+                                <!--
+                                    NAMED, BECAUSE THE TRIGGER BELOW HAS TO REACH IT. Width here is
+                                    PAINT and the bar around it is the TARGET - the pointer hits 12
+                                    points whatever this says. Centred, or the four points would sit
+                                    against one edge of the strip and read as a misalignment.
+                                -->
+                                <Thumb x:Name="Grip"
+                                       Style="{StaticResource ScrollThumb}"
+                                       Width="{StaticResource WidthScrollThumb}"
+                                       HorizontalAlignment="Center" />
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Grip" Property="Width"
+                                    Value="{StaticResource WidthScrollThumbAwake}" />
+                            <Setter TargetName="Grip" Property="Background"
+                                    Value="{StaticResource SurfaceScrollThumbAwake}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <!--
+                THE SAME BAR LYING DOWN. Width and Height swap, the track stops being reversed
+                because horizontal runs the other way, and the paint moves from width to height -
+                the list scrolls sideways since 2026-08-12, so this half is not decoration.
+            -->
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="{StaticResource WidthScrollBar}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Track x:Name="PART_Track"
+                                       IsDirectionReversed="False"
+                                       Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       ViewportSize="{TemplateBinding ViewportSize}"
+                                       Value="{TemplateBinding Value}">
+                                    <Track.Thumb>
+                                        <Thumb x:Name="Grip"
+                                               Style="{StaticResource ScrollThumb}"
+                                               Height="{StaticResource WidthScrollThumb}"
+                                               VerticalAlignment="Center" />
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Grip" Property="Height"
+                                            Value="{StaticResource WidthScrollThumbAwake}" />
+                                    <Setter TargetName="Grip" Property="Background"
+                                            Value="{StaticResource SurfaceScrollThumbAwake}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

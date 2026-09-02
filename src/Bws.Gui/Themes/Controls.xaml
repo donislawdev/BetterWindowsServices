@@ -156,7 +156,7 @@
                     <Border x:Name="Face"
                             Background="{StaticResource SurfacePrimaryAction}"
                             BorderBrush="{StaticResource SurfacePrimaryAction}"
-                            BorderThickness="{StaticResource BorderTile}"
+                            BorderThickness="{StaticResource BorderAllSides}"
                             CornerRadius="{StaticResource CornerTile}"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -192,108 +192,6 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-    </Style>
-
-    <!--
-        THE SCROLLBAR, WHICH THIS PRODUCT HAD NO STYLE FOR AT ALL UNTIL 2026-09-01. Scanned off a
-        capture of the real window: the thumb the library draws was FIVE BY THIRTEEN device pixels,
-        about three by nine logical, against the 24 by 24 WCAG 2.2 SC 2.5.8 asks of a target - and
-        it is the one control here that SHRINKS as the machine gains services.
-
-        A FIXED WIDTH RATHER THAN ONE THAT GROWS ON HOVER, said as a trade: the thin bar buys a few
-        pixels of list and spends them on a target somebody has to find first. No line buttons -
-        Windows stopped drawing them years ago and they are two more things nobody aims at.
-
-        AND THERE IS A FLOOR UNDER THE LENGTH SINCE 2026-09-02, OVERTURNING A DEFEAT WRITTEN HERE THE
-        DAY BEFORE - and NOTHING IN THIS FILE SETS IT, which is why it took five attempts. Track
-        floors the length at half of what TryFindResource gives it for the scrollbar button, so the
-        floor is a RESOURCE KEY and Values.xaml carries both halves. MinHeight on the Thumb is the
-        near miss worth remembering: it changes the arranged size, not the computed one, so a bar
-        built in a test reads 44 while the real list draws 13. Backlog 275, `docs/10` trap 17.
-    -->
-    <Style x:Key="ScrollThumb" TargetType="Thumb">
-        <Setter Property="OverridesDefaultStyle" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Thumb">
-                    <Border x:Name="Grip"
-                            Background="{StaticResource SurfaceChipEdge}"
-                            CornerRadius="{StaticResource CornerChip}"
-                            Margin="{StaticResource MarginScrollThumb}" />
-
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Grip" Property="Background"
-                                    Value="{StaticResource TextSubdued}" />
-                        </Trigger>
-                        <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="Grip" Property="Background"
-                                    Value="{StaticResource TextOnSurface}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!--
-        Implicit, because every scrolling surface in this window has to answer the same way - the
-        list, the plan panel, the details panel and the first screen. A keyed style would have to be
-        remembered at each of them, and the one that was forgotten would be the one somebody meets.
-    -->
-    <Style TargetType="ScrollBar">
-        <Setter Property="OverridesDefaultStyle" Value="True" />
-        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
-        <Setter Property="Width" Value="{StaticResource WidthScrollBar}" />
-
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ScrollBar">
-                    <Grid Background="{TemplateBinding Background}">
-                        <Track x:Name="PART_Track"
-                               IsDirectionReversed="True"
-                               Minimum="{TemplateBinding Minimum}"
-                               Maximum="{TemplateBinding Maximum}"
-                               Value="{TemplateBinding Value}"
-                               ViewportSize="{TemplateBinding ViewportSize}">
-                            <Track.Thumb>
-                                <Thumb Style="{StaticResource ScrollThumb}" />
-                            </Track.Thumb>
-                        </Track>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-
-        <Style.Triggers>
-            <!--
-                THE SAME BAR LYING DOWN. Width and Height swap, the track stops being reversed
-                because horizontal runs the other way, and the floor moves from height to width -
-                the list scrolls sideways since 2026-08-12, so this half is not decoration.
-            -->
-            <Trigger Property="Orientation" Value="Horizontal">
-                <Setter Property="Width" Value="Auto" />
-                <Setter Property="Height" Value="{StaticResource WidthScrollBar}" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ScrollBar">
-                            <Grid Background="{TemplateBinding Background}">
-                                <Track x:Name="PART_Track"
-                                               IsDirectionReversed="False"
-                                               Minimum="{TemplateBinding Minimum}"
-                                               Maximum="{TemplateBinding Maximum}"
-                                               Value="{TemplateBinding Value}"
-                                               ViewportSize="{TemplateBinding ViewportSize}">
-                                    <Track.Thumb>
-                                        <Thumb Style="{StaticResource ScrollThumb}" />
-                                    </Track.Thumb>
-                                </Track>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Trigger>
-        </Style.Triggers>
     </Style>
 
     <!--

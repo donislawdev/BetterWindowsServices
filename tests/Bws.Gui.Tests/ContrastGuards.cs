@@ -68,6 +68,37 @@ public sealed class ContrastGuards
         // stronger of the two signals rather than competing with the furniture.
         ["SurfaceRowLine"] = 1.25,
 
+        // THE SCROLLBAR THUMB ASLEEP AND AWAKE, 2026-09-02, AND THE PAIR IS THE POINT. The bar was
+        // one colour at 2.84 and the owner said it was too big and ugly - the width was half of
+        // that and the brightness was the other half. At rest the thumb answers "where am I in the
+        // list" for somebody who is not reaching for it: it identifies no component and competes
+        // with nothing, so SC 1.4.11 does not reach it and 1.4 is ours. It has to beat the line
+        // between two rows, which carries less and sits at 1.25.
+        //
+        // The awake colour is the one somebody can act on, so it answers to the standard rather
+        // than to us: 3.79 measured, against the 3.0 of 1.4.11. The step between the two is the
+        // largest of any state pair in this theme, which is what makes the wake-up readable.
+        ["SurfaceScrollThumb"] = 1.4,
+        ["SurfaceScrollThumbAwake"] = ForState,
+
+        // THE ONE ENTRY IN THIS TABLE ASKING FOR NOTHING, 2026-09-02, AND THE REASON IS THAT A
+        // RATIO IS THE WRONG QUESTION FOR IT. The scrim exists to REMOVE contrast - it dims the
+        // window while a plan sheet is open. Asking whether it is tellable from the window would be
+        // asking it to fail at the only job it has.
+        //
+        // What it must not do is make anything else worse, and it does the opposite: the sheet's own
+        // #343434 measures 1.25 against the bare window and better than that against a window under
+        // this scrim, which reads near #101010. So the check that matters is SurfacePanel's, which
+        // is already in this table and already passes without any help from here.
+        ["SurfaceScrim"] = 1.0,
+
+        // THE COMMAND INSET, 2026-09-02, AND ITS NUMBER HERE IS MEASURED AGAINST THE WRONG THING -
+        // which is backlog 286 showing up as an entry rather than as a sentence. This brush is only
+        // ever drawn inside the plan sheet, where it reads 1.22 against #343434. Against the window
+        // it reads 1.08, and that is the figure the test below takes. Floored at 1.0 rather than
+        // given a number nobody measured, so this table does not pretend to have checked it.
+        ["SurfaceCommandBox"] = 1.0,
+
         // THE PANEL AND ITS EDGE, 2026-08-19. Ours as well, and the floors say what each one is
         // for. The fill only has to make a whole column of the window tellable as its own
         // surface - a large region, which reads at a lower ratio than any thin thing in this
@@ -127,6 +158,31 @@ public sealed class ContrastGuards
         "SurfaceSelected", "SurfaceHover", "SurfaceChanged"
     ];
 
+    /// <summary>
+    /// The surfaces somebody's words are actually drawn on - three states a row takes, the panel a
+    /// plan is written in, and the three fills of the one button this product draws itself.
+    /// </summary>
+    private static readonly string[] CarriesText =
+    [
+        "SurfaceSelected", "SurfaceHover", "SurfaceChanged", "SurfacePanel", "SurfaceCommandBox",
+        "SurfacePrimaryAction", "SurfacePrimaryActionHover", "SurfacePrimaryActionPressed"
+    ];
+
+    /// <summary>
+    /// Furniture. Two lines, an outline, and the two states of a scrollbar thumb - nothing is ever
+    /// written on any of them, and asking whether white would read on a hairline is a question with
+    /// no reader behind it.
+    ///
+    /// <b>It exists so that the pair is exhaustive rather than so that anything is skipped.</b>
+    /// Every Surface brush has to be in one list or the other, which is what stops a text-bearing
+    /// surface being added one day and quietly checked by nothing.
+    /// </summary>
+    private static readonly string[] CarriesNoText =
+    [
+        "SurfaceRowLine", "SurfacePanelEdge", "SurfaceChipEdge",
+        "SurfaceScrollThumb", "SurfaceScrollThumbAwake", "SurfaceScrim"
+    ];
+
     [Fact]
     public void Every_declared_colour_clears_the_ratio_its_role_needs()
     {
@@ -153,19 +209,48 @@ public sealed class ContrastGuards
     }
 
     /// <summary>
-    /// Text on a coloured row is a second pair, and it pulls the other way: lightening a
+    /// Text on a coloured surface is a second pair, and it pulls the other way: lightening a
     /// surface separates it from the background and buries the white text on top of it.
     /// Checking one without the other is how a selected row becomes readable and invisible, or
     /// visible and unreadable.
+    ///
+    /// <b>IT SWEPT EVERY BRUSH CALLED Surface UNTIL 2026-09-02 AND WAS PASSING ON LUCK.</b> A line
+    /// between two rows and the outline of a chip were both being asked whether white text reads on
+    /// them, and both cleared it by accident of being very dark or very pale. The scrollbar thumb
+    /// added that day is the first piece of furniture dark enough to fail - #7A7A7A measures 4.29 -
+    /// and nobody has ever written a word on a scrollbar.
+    ///
+    /// <b>So the subject is named rather than discovered, which is the repair UnderTheRing below
+    /// already made for the same reason</b> - a guard that quietly widens its own subject stops
+    /// meaning what its name says. The old name said "every surface a row can take", which was
+    /// narrower than what it did and would have thrown away the panel and the button fills.
+    ///
+    /// <b>And the two lists together have to cover every Surface brush</b>, so a new one cannot be
+    /// added without somebody deciding whether anything is written on it. That is the same trick
+    /// the Required table plays one test further down, and for the same reason.
     /// </summary>
     [Fact]
-    public void White_text_stays_readable_on_every_surface_a_row_can_take()
+    public void White_text_stays_readable_on_every_surface_it_is_drawn_on()
     {
         var declared = Declared();
         var white = Colors.White;
         var short_ = new List<string>();
 
-        foreach (var (name, colour) in declared.Where(pair => pair.Name.StartsWith("Surface", StringComparison.Ordinal)))
+        var surfaces = declared
+            .Where(pair => pair.Name.StartsWith("Surface", StringComparison.Ordinal))
+            .Select(pair => pair.Name)
+            .ToList();
+
+        var unsorted = surfaces
+            .Where(name => !CarriesText.Contains(name) && !CarriesNoText.Contains(name))
+            .ToList();
+
+        Assert.True(
+            unsorted.Count == 0,
+            "These surfaces are in neither list, so nobody has said whether text is drawn on them. "
+            + "Put each one in CarriesText or in CarriesNoText: " + string.Join(", ", unsorted));
+
+        foreach (var (name, colour) in declared.Where(pair => CarriesText.Contains(pair.Name)))
         {
             var ratio = Contrast(white, colour);
 

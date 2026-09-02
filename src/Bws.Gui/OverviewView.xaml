@@ -111,7 +111,7 @@
             -->
             <Border Background="{StaticResource SurfacePanel}"
                     BorderBrush="{StaticResource SurfacePanelEdge}"
-                    BorderThickness="{StaticResource BorderTile}"
+                    BorderThickness="{StaticResource BorderAllSides}"
                     CornerRadius="{StaticResource CornerTile}"
                     Margin="{StaticResource MarginTile}"
                     Padding="{StaticResource PadTile}">

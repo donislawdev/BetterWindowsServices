@@ -33,9 +33,92 @@ public partial class PlanView : UserControl
     /// <summary>Somebody asked a run in progress to stop before its next step.</summary>
     internal event EventHandler? InterruptRequest;
 
+    /// <summary>
+    /// Somebody asked for one of the terminal commands, and it carries which one.
+    ///
+    /// <b>An event for the same reason as the two above, and here the reason is sharper.</b> The
+    /// clipboard belongs to whatever process grabbed it last, so a copy genuinely fails on a
+    /// working machine - and the window is the only thing that can SAY so, because it owns the
+    /// status line. A panel writing to the clipboard itself would be a second place that has to
+    /// remember rule 8, and the first one already does it correctly.
+    /// </summary>
+    internal event EventHandler<CommandAsked>? CopyRequest;
+
     public PlanView() => InitializeComponent();
 
     private void CloseRequested(object sender, RoutedEventArgs e) => Dismiss();
+
+    /// <summary>
+    /// One copy button under one command.
+    ///
+    /// <b>Caught on the ItemsControl rather than on the button, and that is pulapka 10 in a new
+    /// shape.</b> The template lives in Themes/Plan.xaml, which is a plain dictionary with no class
+    /// behind it, so a Click named there would resolve against nothing. Click is a routed event, so
+    /// the compiled markup one level up can hold the handler and let it bubble.
+    ///
+    /// <b>The command is read off the button's Tag rather than off the selection.</b> A plan over
+    /// several picked rows prints one line each, and anything else - the focused item, the panel's
+    /// DataContext - is a way of copying a command that is not the one under the finger.
+    /// </summary>
+    private void CopyCommandRequested(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not Button pressed || pressed.Tag is not string command)
+        {
+            return;
+        }
+
+        CopyRequest?.Invoke(this, new CommandAsked(command));
+        SaySoFor(pressed);
+    }
+
+    /// <summary>
+    /// Which command was asked for.
+    ///
+    /// <b>A type for one string, because the analyser asks for one</b> - MA0046 wants the second
+    /// parameter of an event handler to be an EventArgs, and the alternative was an event that says
+    /// somebody pressed something and leaves the caller to work out which line it was.
+    /// </summary>
+    internal sealed class CommandAsked(string command) : EventArgs
+    {
+        internal string Command { get; } = command;
+    }
+
+    /// <summary>
+    /// Turns one copy button into "Copied" and back again.
+    ///
+    /// <b>The clipboard says nothing when it works, so the button has to.</b> Without a word,
+    /// somebody who is not sure whether the press landed presses it again - which is harmless here
+    /// and is exactly the doubt this removes.
+    ///
+    /// <b>It is said even when the copy failed, and that is deliberate rather than sloppy.</b> A
+    /// refusal puts a sentence in the status line, which is louder than this and says more; two
+    /// reports of one failure in two places would read as two failures.
+    /// </summary>
+    private void SaySoFor(Button pressed)
+    {
+        var settled = TryFindResource("gui.plan.copy");
+        pressed.Content = TryFindResource("gui.plan.copied");
+
+        var clock = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+
+        clock.Tick += (_, _) =>
+        {
+            clock.Stop();
+
+            // ONLY IF NOTHING ELSE HAS TOUCHED IT. An ItemsControl recycles nothing here, but the
+            // panel can close and reopen inside two seconds, and putting a word back onto a button
+            // that now belongs to a different command is the kind of fault nobody would look for.
+            if (ReferenceEquals(pressed.Content, TryFindResource("gui.plan.copied")))
+            {
+                pressed.Content = settled;
+            }
+        };
+
+        clock.Start();
+    }
 
     private void CarryOutRequested(object sender, RoutedEventArgs e) =>
         CarryOutRequest?.Invoke(this, EventArgs.Empty);

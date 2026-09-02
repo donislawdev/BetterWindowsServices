@@ -76,6 +76,7 @@
                 <ResourceDictionary Source="Themes/Overview.xaml" />
                 <ResourceDictionary Source="Themes/Chips.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
+                <ResourceDictionary Source="Themes/Scroll.xaml" />
                 <ResourceDictionary Source="Themes/Plan.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />

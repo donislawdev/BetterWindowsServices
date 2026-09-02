@@ -114,7 +114,7 @@
                     <Border x:Name="Pill"
                             Background="{x:Static media:Brushes.Transparent}"
                             BorderBrush="{StaticResource SurfaceChipEdge}"
-                            BorderThickness="{StaticResource BorderTile}"
+                            BorderThickness="{StaticResource BorderAllSides}"
                             CornerRadius="{StaticResource CornerChip}"
                             Padding="{TemplateBinding Padding}">
                         <!--

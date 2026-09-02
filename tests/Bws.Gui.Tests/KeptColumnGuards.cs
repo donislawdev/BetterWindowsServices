@@ -261,12 +261,16 @@ public sealed class KeptColumnGuards : IDisposable
 
         // Both directions have something to undo: one column on that is normally off, and one off
         // that is normally on.
-        WpfHost.On(() => Choice(first, "description").IsShown = true);
+        //
+        // THE FIRST OF THE TWO WAS description UNTIL 2026-09-02, when it became one of the usual
+        // five and stopped being an example of "normally off". serviceName took its place by moving
+        // the other way on the same day.
+        WpfHost.On(() => Choice(first, "serviceName").IsShown = true);
         WpfHost.On(() => Choice(first, "displayName").IsShown = false);
 
         WpfHost.On(first.RestoreColumns);
 
-        Assert.False(WpfHost.On(() => Choice(first, "description").IsShown));
+        Assert.False(WpfHost.On(() => Choice(first, "serviceName").IsShown));
         Assert.True(WpfHost.On(() => Choice(first, "displayName").IsShown));
 
         Assert.Equal(
@@ -278,7 +282,7 @@ public sealed class KeptColumnGuards : IDisposable
 
         var second = WpfHost.On(() => new MainWindow(file));
 
-        Assert.False(WpfHost.On(() => Choice(second, "description").IsShown));
+        Assert.False(WpfHost.On(() => Choice(second, "serviceName").IsShown));
         Assert.True(WpfHost.On(() => Choice(second, "displayName").IsShown));
 
         WpfHost.On(second.Close);
@@ -422,9 +426,17 @@ public sealed class KeptColumnGuards : IDisposable
         return window;
     }
 
+    /// <summary>
+    /// A heading these tests can click, and it has to be one that is ON before anybody chooses.
+    ///
+    /// <b>It was serviceName until 2026-09-02 and that column went off by default that day</b> - the
+    /// owner's decision to open on the columns services.msc opens on. Nothing was wrong with these
+    /// tests: a sibling guard in this same file says an order by a column that is OFF is not
+    /// applied, and it was quietly doing its job to two tests that meant to click a visible one.
+    /// </summary>
     private static DataGridColumn Heading(MainWindow window) =>
         window.Entries.Columns.First(column =>
-            string.Equals(column.SortMemberPath, "serviceName", StringComparison.Ordinal));
+            string.Equals(column.SortMemberPath, "displayName", StringComparison.Ordinal));
 
 
     /// <summary>
@@ -453,8 +465,14 @@ public sealed class KeptColumnGuards : IDisposable
             WpfHost.On(() => grid.Columns.ToList()),
             column => Assert.Null(WpfHost.On(() => column.SortDirection)));
 
-        // And one that exists and is turned off - description is not among the usual six.
-        WpfHost.On(() => ListSorting.By(grid, new KeptSort("description", Descending: true)));
+        // And one that exists and is turned off - serviceName is not among the usual five.
+        //
+        // IT USED TO BE description ON BOTH LINES BELOW, AND THE TWO SWAPPED ON 2026-09-02. The
+        // owner turned the internal name off by default and the description on, so the column that
+        // stands for "exists and is hidden" and the column that stands for "is on screen" changed
+        // places. Naming them by what they ARE rather than by what they were is the only way this
+        // test keeps proving the two refusals are refusals.
+        WpfHost.On(() => ListSorting.By(grid, new KeptSort("serviceName", Descending: true)));
 
         Assert.All(
             WpfHost.On(() => grid.Columns.ToList()),
@@ -462,12 +480,12 @@ public sealed class KeptColumnGuards : IDisposable
 
         // The even claim: one that is on IS applied, so the two above are refusals rather than a
         // method that does nothing at all.
-        WpfHost.On(() => ListSorting.By(grid, new KeptSort("serviceName", Descending: true)));
+        WpfHost.On(() => ListSorting.By(grid, new KeptSort("displayName", Descending: true)));
 
         Assert.Equal(
             ListSortDirection.Descending,
             WpfHost.On(() => grid.Columns
-                .First(column => column.SortMemberPath == "serviceName").SortDirection));
+                .First(column => column.SortMemberPath == "displayName").SortDirection));
     }
 
     private string Somewhere()

@@ -44,20 +44,13 @@
     -->
 
     <!--
-        The spacing scale. Closed on purpose.
-
-        A session that wants seven cannot have seven - it picks the nearest step. That is the
-        whole mechanism against "six here, eight there", and it only works because the guard
-        makes the alternative fail the build rather than merely being discouraged.
-
-        Four steps, doubling. More steps means more ways for two screens to differ while both
-        being "correct".
+        A SPACING SCALE OF FOUR STEPS STOOD HERE UNTIL 2026-09-02 AND NOTHING HAD EVER USED IT.
+        SpaceTight, SpaceNormal, SpaceWide and SpaceSection - zero references in markup, zero in
+        code. Its own comment said "the guard makes the alternative fail the build", and there was
+        no such guard: every margin in this window is a named Thickness instead, written one at a
+        time. That sentence is the exact shape rule 3 warns about - a "because" nothing checks,
+        read by later sessions as a fact. Backlog 294 keeps the intent, which was a good one.
     -->
-    <system:Double x:Key="SpaceTight">4</system:Double>
-    <system:Double x:Key="SpaceNormal">8</system:Double>
-    <system:Double x:Key="SpaceWide">16</system:Double>
-    <system:Double x:Key="SpaceSection">24</system:Double>
-
     <system:Double x:Key="SizeNone">0</system:Double>
 
     <Thickness x:Key="PadCell">8,4,8,4</Thickness>
@@ -249,25 +242,21 @@
     <Thickness x:Key="PadButton">10,4,10,4</Thickness>
 
     <!--
-        THE SCROLLBAR. Scanned off a capture of the real window on 2026-09-01: the thumb the control
-        library draws is FIVE BY THIRTEEN device pixels, about three by nine logical, against the 24
-        by 24 WCAG 2.2 SC 2.5.8 asks of a target. The owner's words were that it is hard to catch.
+        THE SCROLLBAR: ONE TARGET, TWO PAINTS, A RADIUS AND A FLOOR. The bar is what the pointer
+        hits and the thumb is what gets drawn inside it, and keeping those two apart is the whole
+        design - the argument, the measurements and the two remarks that produced them are in
+        `docs/11` section 3.11, moved there when this file hit the markup ceiling.
+
+        The last two are the FLOOR under the length and they are not read by anything here: Track
+        looks the key up itself and takes half of it, so 72 gives 36 and ButtonGuards ties the pair.
     -->
     <system:Double x:Key="WidthScrollBar">12</system:Double>
-
-    <!--
-        AND THE LENGTH IS OURS AFTER ALL, OVERTURNING A DEFEAT WRITTEN HERE ON 2026-09-01. Track
-        floors it at HALF a number it looks up as a RESOURCE, so the floor is that key and nothing
-        else. Five attempts missed it, the fifth being MinHeight on the Thumb - that reaches the
-        ARRANGED size, not the computed one, so a bar built in a test read 44 while the real list
-        drew 13. Eighty-eight for a floor of 44, and ButtonGuards ties the two numbers together.
-    -->
-    <system:Double x:Key="LengthScrollThumbLeast">44</system:Double>
-    <system:Double x:Key="{x:Static windows:SystemParameters.VerticalScrollBarButtonHeightKey}">88</system:Double>
-    <system:Double x:Key="{x:Static windows:SystemParameters.HorizontalScrollBarButtonWidthKey}">88</system:Double>
-
-    <!-- The thumb sits inside its bar rather than filling it, so the grip reads as a grip. -->
-    <Thickness x:Key="MarginScrollThumb">2</Thickness>
+    <system:Double x:Key="WidthScrollThumb">6</system:Double>
+    <system:Double x:Key="WidthScrollThumbAwake">10</system:Double>
+    <CornerRadius x:Key="CornerScrollThumb">2</CornerRadius>
+    <system:Double x:Key="LengthScrollThumbLeast">36</system:Double>
+    <system:Double x:Key="{x:Static windows:SystemParameters.VerticalScrollBarButtonHeightKey}">72</system:Double>
+    <system:Double x:Key="{x:Static windows:SystemParameters.HorizontalScrollBarButtonWidthKey}">72</system:Double>
 
     <!--
         Larger than half the tallest chip on purpose. WPF clamps a corner radius to the box, so an
@@ -341,13 +330,24 @@
     <Thickness x:Key="PadTile">8,14,8,16</Thickness>
 
     <!--
-        A card's edge, on all four sides - which is why it is not BorderPanelEdge. That one is
-        1,0,0,0, the single seam between the plan panel and the list beside it, and a card is a
-        thing rather than a seam. The corner is four because WPF UI rounds its surfaces at four, so
-        a square card would be the one square thing in a window full of rounded ones.
+        BOXES WITH ALL FOUR EDGES, which is why neither is BorderPanelEdge - that one is 1,0,0,0,
+        a seam rather than a thing. BorderAllSides is shared by the card and the plan sheet on
+        purpose: one point is one point, and a second name for the same number is a second place to
+        change it. Four for a card because WPF UI rounds its surfaces at four, eight for the sheet
+        because it floats over a dimmed window rather than sitting in a row. The sheet's margin is
+        also its height limit - centred inside it, it cannot outgrow the window. `docs/11` 3.12.
     -->
-    <Thickness x:Key="BorderTile">1</Thickness>
+    <Thickness x:Key="BorderAllSides">1</Thickness>
     <CornerRadius x:Key="CornerTile">4</CornerRadius>
+    <CornerRadius x:Key="CornerPlanSheet">8</CornerRadius>
+    <Thickness x:Key="MarginPlanSheet">40</Thickness>
+
+    <!--
+        A FLOOR UNDER THE COPY BUTTON RATHER THAN LETTING IT FIT ITS WORD. That word becomes
+        "Copied" for two seconds, and a button growing by two characters shoves the command beside
+        it sideways - backlog 146 in a second place, where the search field moved the window.
+    -->
+    <system:Double x:Key="WidthCopyButton">78</system:Double>
 
     <!--
         Between one card and the next. On the RIGHT ONLY, which leaves twelve points hanging off the

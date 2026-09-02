@@ -98,10 +98,22 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     ///
     /// <b>Per scope since 2026-08-19</b>, because a column that is empty in one list is not empty
     /// in the other - <see cref="Column.OffAtFirstIn"/> carries the measurement.
+    ///
+    /// <b>AND IT ARRIVES SORTED SINCE 2026-09-02, WHICH IT NEVER DID BEFORE.</b> The list used to
+    /// come in whatever order the manager handed it over, which looks alphabetical by internal name
+    /// and is not quite - <c>AdobeARMservice</c> lands before <c>ADPSvc</c> because a capital sorts
+    /// before a lowercase letter, and nothing on screen said why. services.msc opens sorted by the
+    /// name it shows, ascending, and this is the same promise made deliberately rather than
+    /// inherited from an enumeration order nobody chose.
+    ///
+    /// <b>It is a DEFAULT and not a rule.</b> Anybody who has ever clicked a heading has a sort in
+    /// their profile, and that one still wins - this is only what a machine nobody has touched does.
     /// </summary>
     internal static ColumnLayout DefaultFor(EntryScope scope) =>
-        new([.. ViewModels.Columns.All.Select(column =>
-            new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null))]);
+        new(
+            [.. ViewModels.Columns.All.Select(column =>
+                new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null))],
+            Sort: new KeptSort("displayName", Descending: false));
 
     private static readonly JsonSerializerOptions Shape = new()
     {

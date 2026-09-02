@@ -60,19 +60,28 @@ public sealed class ColumnGuards
     }
 
     /// <summary>
-    /// Six before anybody chooses anything, and eleven waiting.
+    /// Five before anybody chooses anything, and they are the five services.msc opens on.
     ///
-    /// The six are the ones the window had, minus RAM and plus the display name - owner's
-    /// decision, 2026-08-11, because RAM belongs to the phase that does not exist and a column
-    /// that can only say "nobody looked" is a promise the window cannot keep.
+    /// <b>SIX UNTIL 2026-09-02, AND THE CHANGE WAS THE OWNER'S.</b> The internal name and the
+    /// process id went off and the description came on, so that somebody who has used the Windows
+    /// tool meets the same five answers in the same places: what it is called, what it is for,
+    /// whether it runs, when it starts, and who it runs as.
+    ///
+    /// <b>The list is written out rather than counted, and that is the half worth keeping.</b> A
+    /// count alone goes green on any five, so a session swapping one column for another would not
+    /// be noticed - and which five is the whole of the decision.
+    ///
+    /// Earlier: the six were the window's original set minus RAM and plus the display name, owner's
+    /// decision 2026-08-11, because RAM belongs to a phase that does not exist and a column that can
+    /// only say "nobody looked" is a promise the window cannot keep.
     /// </summary>
     [Fact]
-    public void Six_columns_are_shown_before_anybody_chooses_anything()
+    public void Five_columns_are_shown_before_anybody_chooses_anything()
     {
-        Assert.Equal(6, Columns.All.Count(column => column.ShownAtFirst));
+        Assert.Equal(5, Columns.All.Count(column => column.ShownAtFirst));
 
         Assert.Equal(
-            ["serviceName", "displayName", "status", "startType", "account", "processId"],
+            ["displayName", "description", "status", "startType", "account"],
             Columns.All.Where(column => column.ShownAtFirst).Select(column => column.Id));
     }
 

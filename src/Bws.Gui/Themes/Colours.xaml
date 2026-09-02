@@ -244,6 +244,25 @@
     <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
 
     <!--
+        THE SCROLLBAR THUMB, ASLEEP AND AWAKE, 2026-09-02, AND THIS PAIR EXISTS BECAUSE ONE COLOUR
+        COULD NOT DO BOTH JOBS. The bar was #6E6E6E at all times - 2.84 against the window, which
+        made a strip of furniture the brightest thing on the list screen that is not text, and the
+        owner's words were that it is too big and ugly.
+
+        1.4 IS OURS AND IT IS THE LOWEST FLOOR IN THIS FILE ON PURPOSE. At rest this thumb answers
+        one question - where am I in the list - for somebody who is not currently reaching for it.
+        It identifies no component and it competes with nothing, so SC 1.4.11 does not reach it; it
+        only has to stay ABOVE the line between two rows, which sits at 1.25 and carries less. The
+        moment the pointer enters the bar the awake colour takes over at 3.79, which does clear
+        1.4.11 - so the state somebody can actually act on is the state that answers to the standard.
+
+        THE TWO ARE ALSO TELLABLE FROM EACH OTHER, which is the check a ratio against the window
+        cannot make: 1.4 to 3.79 is a bigger step than any other pair of states in this theme.
+    -->
+    <SolidColorBrush x:Key="SurfaceScrollThumb">#3A3A3A</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceScrollThumbAwake">#7A7A7A</SolidColorBrush>
+
+    <!--
         THE PLAN PANEL'S OWN SURFACE, 2026-08-19, and it exists because the owner looked at the
         panel for the first time and the first thing he said was that it looks bad.
 
@@ -308,4 +327,35 @@
         same pixel. An outline sits at the edge and leaves the state underneath legible.
     -->
     <SolidColorBrush x:Key="FocusRing">#D6D6D6</SolidColorBrush>
+
+    <!--
+        THE DIMMING OVER THE WINDOW WHILE A PLAN IS ON SCREEN, 2026-09-02, AND IT IS THE ONE BRUSH
+        HERE WHOSE JOB IS TO REMOVE CONTRAST RATHER THAN MAKE IT. A plan asks one question - shall I
+        do this to your machine - and it used to be asked in a column beside a list it was squeezing
+        into unreadability. The sheet stopped fighting the list for width, and this is what stops it
+        competing for attention instead.
+
+        HALF-OPAQUE BLACK RATHER THAN A DARKER GREY, because it has to work over whatever is behind
+        it: the list, the first screen, the filters. A flat fill would have to be chosen against one
+        of them and would be wrong over the other two.
+
+        WHAT IT DOES TO THE NUMBERS, AND IT HELPS RATHER THAN HURTS: the panel surface #343434 sits
+        at 1.25 against the bare window, and the window under this scrim reads about #101010 - so
+        the sheet is MORE tellable from its surroundings than the panel ever was, not less. That is
+        also why its own entry in ContrastGuards is the one floor in that table asking for nothing.
+    -->
+    <SolidColorBrush x:Key="SurfaceScrim">#80000000</SolidColorBrush>
+
+    <!--
+        THE INSET UNDER A COMMAND SOMEBODY IS ABOUT TO COPY, 2026-09-02. Darker than the sheet it
+        sits in rather than lighter, which is what makes a block of text read as something to take
+        away rather than as another paragraph - the same convention every terminal and every code
+        block on the web uses, and the reason is that a recess reads as "this is not prose".
+
+        ITS RATIO IS THE WRONG ONE IN THE TABLE THAT CHECKS IT, AND THAT IS BACKLOG 286 IN ONE LINE.
+        ContrastGuards measures every brush against the WINDOW, where this reads 1.08 and looks like
+        nothing. It is never drawn on the window: it sits inside the plan sheet, where it measures
+        1.22 - the number that decides whether anybody sees it. White on it is 16.7 either way.
+    -->
+    <SolidColorBrush x:Key="SurfaceCommandBox">#262626</SolidColorBrush>
 </ResourceDictionary>

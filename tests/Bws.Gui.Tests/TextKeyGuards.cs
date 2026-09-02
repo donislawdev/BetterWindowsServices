@@ -122,7 +122,19 @@ public sealed class TextKeyGuards
         new(
             @"new ScopeChoice\(\s*""gui\.[^""]+""\s*,\s*""(gui\.[^""]+)""",
             RegexOptions.Compiled,
-            TimeSpan.FromSeconds(5))
+            TimeSpan.FromSeconds(5)),
+
+        // A TENTH, 2026-09-02, AND IT IS THE FIRST WORD IN THIS PRODUCT THAT ONLY EXISTS FOR TWO
+        // SECONDS. The copy button under a terminal command says "Copied" after it is pressed and
+        // goes back to "Copy" - a word no markup can carry, because the control shows one of two
+        // strings depending on something that has just happened.
+        //
+        // STILL A LITERAL AT THE PLACE SOMEBODY CHOOSES IT, which is the condition the nine above
+        // all meet and the reason none of them widened. TryFindResource with a written key is
+        // readable by exactly the same argument as Texts.Of: whoever changes the word can find the
+        // place that asks for it by searching for the key, and a key mentioned in a comment still
+        // does not match.
+        new(@"TryFindResource\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]

@@ -214,6 +214,9 @@
   "gui.plan.problem.cannotComeBack.many": "Restarting {0} would take these down and could not start them again, because they are disabled: {1}",
 
   "gui.plan.commands": "From a terminal",
+  "gui.plan.copy": "Copy",
+  "gui.plan.copied": "Copied",
+  "gui.plan.copy.hint": "Put this command on the clipboard, ready to paste into a terminal.",
   "gui.plan.carryOut": "Carry this out",
   "gui.plan.carryOut.hint": "Do the steps above, in that order, on this machine.",
   "gui.plan.interrupt": "Interrupt",

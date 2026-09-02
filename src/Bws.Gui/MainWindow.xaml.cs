@@ -257,6 +257,10 @@ public partial class MainWindow : Window
         // with two stories. The wiring stays here, where every other event of this panel is wired.
         PlanPanel.InterruptRequest += (_, _) => AskTheRunToStop();
 
+        // The clipboard rather than the panel, for the reason beside CopyRequest over there: only
+        // the window can say a copy was refused, because only the window owns the status line.
+        PlanPanel.CopyRequest += (_, asked) => Put(asked.Command);
+
         Closed += (_, _) => _timer.Stop();
     }
 

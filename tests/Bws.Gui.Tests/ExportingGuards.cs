@@ -143,10 +143,15 @@ public sealed class ExportingGuards
             shown);
 
         // Drag one to the front, and the file follows the window rather than the catalogue.
+        //
+        // IT WAS processId UNTIL 2026-09-02 AND THAT COLUMN WENT OFF BY DEFAULT THAT DAY, so
+        // dragging it proved nothing about a list it was no longer in. The account is the last of
+        // the five a first run shows, which makes it the same test: something from the far end
+        // arriving at the front.
         WpfHost.On(() => window.Entries.Columns
-            .First(column => column.SortMemberPath == "processId").DisplayIndex = 0);
+            .First(column => column.SortMemberPath == "account").DisplayIndex = 0);
 
-        Assert.Equal("processId", WpfHost.On(window.ShownColumns)[0]);
+        Assert.Equal("account", WpfHost.On(window.ShownColumns)[0]);
 
         WpfHost.On(window.Close);
     }

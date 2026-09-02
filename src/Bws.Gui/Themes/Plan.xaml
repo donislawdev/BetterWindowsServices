@@ -85,11 +85,112 @@
         against the surface under it. FixedText names both, and has named both since the day another
         style was caught with the same hole.
     -->
+    <!--
+        THE RECESS A COMMAND SITS IN. Darker than the sheet, one point of edge, and padded on both
+        sides - the argument for the fill is beside SurfaceCommandBox in Colours.xaml.
+    -->
+    <Style x:Key="PlanCommandBox" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceCommandBox}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CornerTile}" />
+        <Setter Property="Padding" Value="{StaticResource PadChip}" />
+        <Setter Property="Margin" Value="{StaticResource MarginChip}" />
+    </Style>
+
+    <!--
+        THE BUTTON THAT TAKES IT AWAY. Quiet on purpose: it stands beside a command in a fixed face,
+        and a filled button there would be the loudest thing in a block whose subject is the text.
+        An outline says "control" without saying "press me before you read this".
+
+        IT KEEPS ITS SIZE WHEN THE WORD CHANGES. Copy becomes Copied for two seconds, and a box that
+        grew by two characters would shift the command beside it every time somebody pressed it.
+    -->
+    <Style x:Key="PlanCopyButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="Padding" Value="{StaticResource PadChip}" />
+        <Setter Property="MinWidth" Value="{StaticResource WidthCopyButton}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face"
+                            Background="{x:Static media:Brushes.Transparent}"
+                            BorderBrush="{StaticResource SurfaceChipEdge}"
+                            BorderThickness="{StaticResource BorderAllSides}"
+                            CornerRadius="{StaticResource CornerTile}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        AND SINCE 2026-09-02 IT HAS A WAY OFF THE SCREEN, WHICH IS THE OWNER'S FIRST REMARK OF THE
+        SECOND SERIES. The command was a sentence somebody had to retype by hand, one character at
+        a time, into a terminal where one wrong character is a different service - the exact risk
+        the fixed-width face was chosen to reduce, left standing in the one place it mattered most.
+
+        A BOX PER COMMAND RATHER THAN ONE BUTTON FOR THE BLOCK. A plan over several picked rows
+        prints one line each, and copying all of them at once is a different thing from copying the
+        one somebody is about to run.
+
+        THE BUTTON IS ALWAYS THERE RATHER THAN ON HOVER. A control that appears under the pointer is
+        prettier and invisible to anybody working from the keyboard, and it is invisible to anybody
+        who does not already know it is there - which is everybody, the first time.
+
+        IT STOPPED WRAPPING AND STARTED SCROLLING. A long command used to grow the sheet downwards
+        and move the button under it, which is how a person aims at one thing and presses another.
+    -->
     <DataTemplate x:Key="PlanCommandTemplate">
-        <TextBlock Text="{Binding}"
-                   TextWrapping="Wrap"
-                   Style="{StaticResource FixedText}"
-                   Margin="{StaticResource MarginBetweenControls}" />
+        <Border Style="{StaticResource PlanCommandBox}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer Grid.Column="0"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              VerticalAlignment="Center">
+                    <TextBlock Text="{Binding}" Style="{StaticResource FixedText}" />
+                </ScrollViewer>
+
+                <!--
+                    THE COMMAND TRAVELS ON THE BUTTON ITSELF, in Tag, because an ItemsControl builds
+                    one of these per line and whoever handles the press has to know WHICH. Reading
+                    the selection, or the DataContext of whatever had focus, is how the wrong line
+                    gets copied.
+
+                    AND THERE IS NO Click HERE, WHICH IS PULAPKA 10 ARRIVING IN A NEW SHAPE. A theme
+                    file is a plain dictionary with no code behind it, so a handler named here would
+                    not resolve against anything. The press is caught by PlanView.xaml instead, on
+                    the ItemsControl above this template, where Click arrives by bubbling and the
+                    markup is compiled with a class that can hold the method.
+                -->
+                <Button Grid.Column="1"
+                        Style="{StaticResource PlanCopyButton}"
+                        AutomationProperties.AutomationId="planCopyCommand"
+                        AutomationProperties.Name="{DynamicResource gui.plan.copy}"
+                        Content="{DynamicResource gui.plan.copy}"
+                        ToolTip="{DynamicResource gui.plan.copy.hint}"
+                        Tag="{Binding}" />
+            </Grid>
+        </Border>
     </DataTemplate>
 
     <!--
@@ -202,5 +303,67 @@
     <Style x:Key="PlanBlockRefused" TargetType="Border" BasedOn="{StaticResource PlanBlock}">
         <Setter Property="BorderBrush" Value="{StaticResource MeaningWarning}" />
         <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
+    </Style>
+
+    <!--
+        THE DIMMING BEHIND THE SHEET, 2026-09-02. It fills whatever it is put in and it EATS THE
+        CLICKS, which is the half that is not decoration: while this question is on screen the list
+        under it must not be selectable, or somebody answers a plan about a row they have since
+        changed. A brush is what makes that true - `docs/10` records that a transparent fill takes
+        hit tests and NO fill takes none, so the colour here is load bearing twice over.
+    -->
+    <Style x:Key="PlanScrim" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceScrim}" />
+    </Style>
+
+    <!--
+        THE SHEET ITSELF, AND IT REPLACED A SIDE PANEL ON 2026-09-02 ON THE OWNER'S DECISION.
+
+        WHAT THE PANEL DID WRONG WAS NOT ITS LOOK, IT WAS ITS PLACE. Sharing a row with the list
+        meant taking width from it, so opening a plan trimmed `Display name` to nothing, cut the
+        account column in half and grew a horizontal scrollbar under a list that never needed one.
+        At 1000 by 800 it was worse: the panel took its own vertical scrollbar and a section heading
+        was left on screen with nothing under it. Every one of those is a width argument, and a
+        sheet does not have that argument - it is centred over the window and takes what it needs.
+
+        A PLAN IS A QUESTION, NOT AN INSPECTOR, and that is the reason underneath the geometry. It
+        asks whether to change this machine, it is answered once, and until it is answered nothing
+        else in the window is worth pressing. A panel says "look at this beside your list". This
+        says "answer this". The cost is real and was said out loud before it was chosen: the list
+        can no longer be read while the plan is open.
+
+        BORDER, RADIUS AND SHADOW TOGETHER, because two of the three read as a mistake. A fill with
+        no edge is a rectangle somebody painted over the window - which is what the panel looked
+        like and what the owner called flat. The shadow is what says WHICH layer is on top, and
+        without it a centred box just covers things.
+
+        THE MARGIN IS THE MAXIMUM HEIGHT. Centred with air above and below, the sheet can never be
+        taller than the window minus that air, and its body scrolls inside itself instead - so the
+        buttons at the foot are always on screen. That is the fault this replaces, said as geometry.
+    -->
+    <Style x:Key="PlanSheet" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CornerPlanSheet}" />
+        <Setter Property="Padding" Value="{StaticResource PaddingPanel}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource MarginPlanSheet}" />
+
+        <Setter Property="Effect">
+            <Setter.Value>
+                <!--
+                    Black rather than a colour, and soft rather than tight: a shadow that can be
+                    SEEN as a shape reads as a border drawn badly. This one only has to say that
+                    there is space between the sheet and the window behind it.
+                -->
+                <DropShadowEffect Color="Black"
+                                  BlurRadius="28"
+                                  ShadowDepth="8"
+                                  Direction="270"
+                                  Opacity="0.55" />
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>
