@@ -437,6 +437,31 @@ public sealed class MainViewModelTests
         Assert.Equal(string.Empty, model.Says.Notice);
     }
 
+    /// <summary>
+    /// <b>The window is where this one is actually seen, and where it was worst.</b> Two entries on
+    /// an ordinary machine hand back an indirection nobody resolved instead of a label, and since
+    /// the list gained a default order by display name they were its FIRST TWO ROWS - an at sign
+    /// sorts before every letter, so the first thing a stranger met was
+    /// <c>@todo.dll,-100;Microsoft IPv6 Protocol Driver</c>.
+    ///
+    /// Both arms are asserted together because the pair is the rule: one carries a comment a person
+    /// was meant to read, the other carries nothing and falls back to the internal name.
+    /// </summary>
+    [Fact]
+    public async Task A_row_shows_a_label_rather_than_an_indirection_nobody_resolved()
+    {
+        var machine = new LiveMachine(
+            Rows.Entry("Tcpip6", "@todo.dll,-100;Microsoft IPv6 Protocol Driver"),
+            Rows.Entry("tcpipreg", @"@%SystemRoot%\System32\drivers\tcpipreg.sys,-10110,"));
+
+        var model = await Loaded(machine);
+
+        var shown = model.Rows.ToDictionary(row => row.ServiceName, row => row.DisplayName, StringComparer.Ordinal);
+
+        Assert.Equal("Microsoft IPv6 Protocol Driver", shown["Tcpip6"]);
+        Assert.Equal("tcpipreg", shown["tcpipreg"]);
+    }
+
     [Fact]
     public async Task Pressing_F5_reads_everything_again_including_what_the_cheap_reading_cannot_see()
     {

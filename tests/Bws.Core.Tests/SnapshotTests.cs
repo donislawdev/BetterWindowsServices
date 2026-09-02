@@ -84,6 +84,39 @@ public sealed class SnapshotTests
         Assert.DoesNotContain("\"memory\"", Render(Specimens.All), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// <b>Written 2026-09-02 because the whole suite stayed green while this changed, which is the
+    /// only reason it is worth having.</b> Two entries on an ordinary machine hand back an
+    /// indirection nobody resolved instead of a label - <c>Tcpip6</c> and <c>tcpipreg</c> - and
+    /// nothing anywhere asserted what a document does with one.
+    ///
+    /// <b>The listing and the snapshot are the SAME document type, on purpose, so this asserts the
+    /// property that makes that safe:</b> what a person reads in <c>bws list</c> and what a script
+    /// reads from <c>bws list --json</c> are the same text. Leaving the raw value here would have
+    /// split the two halves of one command, which is a fault this project has already paid for once
+    /// with <c>Unrestricted</c> against <c>unrestricted</c>.
+    /// </summary>
+    [Fact]
+    public void An_unresolved_indirection_is_written_as_the_label_a_person_is_shown()
+    {
+        var entries = new[]
+        {
+            Entries.Named("Tcpip6", "@todo.dll,-100;Microsoft IPv6 Protocol Driver"),
+            Entries.Named("tcpipreg", @"@%SystemRoot%\System32\drivers\tcpipreg.sys,-10110,")
+        };
+
+        var written = Render(entries);
+
+        Assert.Equal(
+            "Microsoft IPv6 Protocol Driver",
+            EntryNamed(written, "Tcpip6").GetProperty("displayName").GetString());
+
+        // Nothing readable to fall back on, so the internal name is the only true thing left.
+        Assert.Equal(
+            "tcpipreg",
+            EntryNamed(written, "tcpipreg").GetProperty("displayName").GetString());
+    }
+
     [Fact]
     public void A_refusal_is_written_as_a_refusal_and_not_as_an_absence()
     {

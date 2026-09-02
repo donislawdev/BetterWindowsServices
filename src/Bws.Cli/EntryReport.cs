@@ -46,7 +46,9 @@ internal static class EntryReport
         (Identity,
         [
             new Field("cli.show.serviceName", entry => Given(entry.ServiceName)),
-            new Field("cli.show.displayName", entry => Given(entry.DisplayName)),
+            new Field(
+                "cli.show.displayName",
+                entry => Given(ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName))),
             new Field("cli.show.description", entry => Say(entry.Description, value => value)),
             new Field("cli.show.status", entry => Given(StatusWords.Of(entry.Status))),
             new Field("cli.show.startType", entry => Say(entry.StartType, value => value.ToString())),

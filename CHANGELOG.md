@@ -662,6 +662,17 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **Two drivers no longer show a file path where their name should be.** Windows stores some names
+  as a pointer into a binary's resources, and for `Tcpip6` and `tcpipreg` on an ordinary machine
+  that pointer leads nowhere - so the list read `@todo.dll,-100;Microsoft IPv6 Protocol Driver`
+  instead of a name, and sorted both of them above everything else. They now read
+  `Microsoft IPv6 Protocol Driver` and `tcpipreg`, and sit where those names belong.
+  - `sc.exe` and `Get-Service` still print the raw text for both, so this is a deliberate
+    difference from them rather than a disagreement. The internal name is unchanged everywhere it
+    is used to identify an entry.
+  - A snapshot taken now records the readable name, so a snapshot from before this change and one
+    from after it will differ on these two entries even though the machine did not.
+
 - **The button on the opening screen no longer changes colour when you point at it.** It was blue
   standing still and went dark under the pointer, which looked like something going wrong.
 

@@ -46,7 +46,13 @@ public sealed class EntryRow : Observable
 
         _entry = entry;
         ServiceName = entry.ServiceName;
-        _displayName = entry.DisplayName;
+
+        // Through the rule rather than straight off the entry, because two entries on an ordinary
+        // machine carry an indirection nobody resolved instead of a label - and since the list
+        // gained a default order those two were its first two rows, an at sign sorting before every
+        // letter. ServiceDisplayName carries the whole argument, including why a snapshot must go
+        // on storing what the manager said.
+        _displayName = ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName);
         _statusShape = CellFaces.StatusShape(entry.Status);
         _startShape = CellFaces.StartShape(entry, qualifies);
         _againstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
@@ -303,7 +309,7 @@ public sealed class EntryRow : Observable
 
         _entry = entry;
 
-        DisplayName = entry.DisplayName;
+        DisplayName = ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName);
         StatusShape = CellFaces.StatusShape(entry.Status);
         StartShape = CellFaces.StartShape(entry, qualifies);
         AgainstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);

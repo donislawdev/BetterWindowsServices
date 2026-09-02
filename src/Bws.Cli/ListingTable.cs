@@ -62,7 +62,10 @@ internal static class ListingTable
             rows.Add(Row(
             [
                 entry.ServiceName,
-                entry.DisplayName,
+
+                // The rule rather than the raw value, for the reason ServiceDisplayName carries:
+                // two entries hand back an indirection nobody resolved instead of a label.
+                ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName),
                 entry.EntryType.ToString(),
                 StatusWords.Of(entry.Status),
                 StartCell(entry),

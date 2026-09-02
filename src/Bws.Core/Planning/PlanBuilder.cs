@@ -337,7 +337,11 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         ScmEntry entry, StepOperation operation, StepReason reason, StartType? to = null) =>
         new(
             entry.ServiceName,
-            entry.DisplayName,
+
+            // A step carries the internal name as its identity and this only as its label, so the
+            // rule applies here for the same reason it applies in a listing - see
+            // ServiceDisplayName. Nothing keys, matches or compares on this text.
+            ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName),
             operation,
             reason,
             to,

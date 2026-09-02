@@ -281,7 +281,31 @@ public sealed record EntryDocument
         return new EntryDocument
         {
             ServiceName = entry.ServiceName,
-            DisplayName = entry.DisplayName,
+
+            // THROUGH ServiceDisplayName, AND THIS ONE LINE IS THE WHOLE OF A DECISION THAT WENT
+            // THE OTHER WAY FIRST, SO THE ARGUMENT IS WORTH KEEPING RATHER THAN THE CONCLUSION.
+            //
+            // The first answer was that a snapshot must record what the MANAGER said, because the
+            // day the resource behind an indirection is fixed, the stored text genuinely changes -
+            // and a substitution would read the same on both sides, so a comparison would report
+            // nothing. That is a real property and it lost to a simpler one.
+            //
+            // What settled it: docs/03 defines this field as "etykieta dla czlowieka, wylacznie do
+            // pokazania, nigdy jako klucz". A field that exists only in order to be shown should
+            // carry what is shown. The other reading treats it as a measurement, which its own
+            // definition says it is not - the measurements are serviceName, startType, account and
+            // the rest, and every one of those is stored exactly as the manager gave it.
+            //
+            // It also closes a split this project has already paid for once. ListingJson builds
+            // THIS document, so leaving it raw would have made `bws list` and `bws list --json`
+            // disagree about the same entry in the same command - the same shape of fault as
+            // `show` saying Unrestricted while `--json` said unrestricted.
+            //
+            // THE PRICE, SAID OUT LOUD: a snapshot taken before this line and one taken after it
+            // will differ on these two entries, and the difference did not happen on the machine.
+            // Owner's decision of 2026-09-02 that breaking changes are free while nobody is using
+            // the program is what makes that affordable, and it will not be affordable later.
+            DisplayName = ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName),
             Description = entry.Description.IsPresent ? entry.Description.Value : null,
             EntryType = entry.EntryType.ToString(),
             PerUserRole = entry.PerUserRole.ToString(),

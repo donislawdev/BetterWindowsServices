@@ -102,6 +102,35 @@ public sealed class ColumnGuards
     }
 
     /// <summary>
+    /// <b>Written 2026-09-02 after a photograph caught what a green suite had not.</b> Backlog 309.
+    /// Two entries on an ordinary machine hand back an indirection nobody resolved instead of a
+    /// label. The rule that replaces it was applied to <see cref="EntryRow"/>, a guard on the row
+    /// went green, and the cell on screen still read <c>@todo.dll,-100;Microsoft IPv6 Pro...</c> -
+    /// because <see cref="Column.Reads"/> takes an entry rather than a row, so the column is its own
+    /// path to the same fact.
+    ///
+    /// <b>The order matters as much as the text and is asserted with it.</b> This column declares no
+    /// <c>Sorts</c>, so <see cref="Column.SortKey"/> falls through to <c>Reads</c> - which means an
+    /// at sign sorting before every letter put these two at the very top of the Drivers and All
+    /// scopes. Measured the same day over 799 entries: positions 0 and 1.
+    /// </summary>
+    [Fact]
+    public void The_display_name_column_shows_a_label_rather_than_an_indirection()
+    {
+        var column = Columns.All.Single(column => column.Id == "displayName");
+
+        var readable = Rows.Entry("Tcpip6", "@todo.dll,-100;Microsoft IPv6 Protocol Driver");
+        var bare = Rows.Entry("tcpipreg", @"@%SystemRoot%\System32\drivers\tcpipreg.sys,-10110,");
+
+        Assert.Equal("Microsoft IPv6 Protocol Driver", column.Reads(readable));
+        Assert.Equal("tcpipreg", column.Reads(bare));
+
+        // The sort key is the same string, so nothing sorts under a punctuation mark any more.
+        Assert.Equal("Microsoft IPv6 Protocol Driver", column.SortKey(readable));
+        Assert.Equal("tcpipreg", column.SortKey(bare));
+    }
+
+    /// <summary>
     /// The row and the column agree, which is what makes the indexer the only path.
     ///
     /// Two ways to reach one cell would drift the first time somebody changed one of them, and
