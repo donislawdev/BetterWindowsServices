@@ -323,7 +323,7 @@
                                Text="{Binding Blocked}"
                                TextWrapping="Wrap"
                                Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
-                               Style="{StaticResource NoticeText}" />
+                               Style="{StaticResource ProblemText}" />
                 </Border>
 
                 <Grid>
@@ -360,7 +360,7 @@
                     -->
                     <Button Grid.Column="2"
                             x:Name="CarryOutButton"
-                            Style="{StaticResource PrimaryAction}"
+                            Style="{StaticResource DestructiveAction}"
                             AutomationProperties.AutomationId="planCarryOut"
                             Content="{DynamicResource gui.plan.carryOut}"
                             ToolTip="{Binding CarryOutTip}"

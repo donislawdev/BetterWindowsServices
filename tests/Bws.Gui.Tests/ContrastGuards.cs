@@ -99,6 +99,15 @@ public sealed class ContrastGuards
         // given a number nobody measured, so this table does not pretend to have checked it.
         ["SurfaceCommandBox"] = 1.0,
 
+        // THE DESTRUCTIVE FILL AND ITS TWO DARKER STATES, 2026-09-02, and they answer to exactly the
+        // same numbers as the primary action they sit beside - the fill to SC 1.4.11 because it is
+        // what identifies the control, the other two to 1.5 of ours because they only have to be
+        // TELLABLE from that fill. Measured: 3.00 at rest against the window, and white on it 5.44,
+        // 6.21 hovering, 7.03 pressed. Darker at every step, so the words get easier to read.
+        ["SurfaceDestructiveAction"] = ForState,
+        ["SurfaceDestructiveActionHover"] = 1.5,
+        ["SurfaceDestructiveActionPressed"] = 1.5,
+
         // THE PANEL AND ITS EDGE, 2026-08-19. Ours as well, and the floors say what each one is
         // for. The fill only has to make a whole column of the window tellable as its own
         // surface - a large region, which reads at a lower ratio than any thin thing in this
@@ -165,7 +174,8 @@ public sealed class ContrastGuards
     private static readonly string[] CarriesText =
     [
         "SurfaceSelected", "SurfaceHover", "SurfaceChanged", "SurfacePanel", "SurfaceCommandBox",
-        "SurfacePrimaryAction", "SurfacePrimaryActionHover", "SurfacePrimaryActionPressed"
+        "SurfacePrimaryAction", "SurfacePrimaryActionHover", "SurfacePrimaryActionPressed",
+        "SurfaceDestructiveAction", "SurfaceDestructiveActionHover", "SurfaceDestructiveActionPressed"
     ];
 
     /// <summary>

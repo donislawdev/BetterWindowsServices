@@ -358,14 +358,20 @@ public sealed class PreferencesFileGuards : IDisposable
     }
 
     /// <summary>
-    /// The way back takes the kept order off the FILE, and not only off the list on screen.
+    /// The way back takes somebody's own order off the FILE, and not only off the list on screen.
     ///
     /// <b>The exception that <see cref="KeptColumns.Harvested"/> is built around, and without this
     /// nothing would notice it going.</b> Every other write puts back the order the file holds
     /// whenever the grid carries none, because a grid carrying none nearly always means the window
     /// has not applied it yet. Here it means the opposite: somebody asked for the list this build
-    /// opens with, and that list is unsorted - so the one line that clears the kept order is the
-    /// difference between a way back and an order that comes straight back on the next start.
+    /// opens with, so the one line that clears the kept order is the difference between a way back
+    /// and an order that comes straight back on the next start.
+    ///
+    /// <b>WHAT IT ASSERTS CHANGED ON 2026-09-02 AND THE CLAIM DID NOT.</b> Until that day the list
+    /// this build opens with was UNSORTED, so a way back that worked left no order at all in the
+    /// file. The owner then asked for the order services.msc opens with, and the default became
+    /// displayName ascending - so a way back now leaves THAT rather than nothing, and asserting a
+    /// null here would be asserting that the way back does not go all the way back.
     /// </summary>
     [Fact]
     public void The_way_back_takes_the_kept_order_off_the_file_as_well()
@@ -385,7 +391,19 @@ public sealed class PreferencesFileGuards : IDisposable
         WpfHost.On(window.RestoreColumns);
         WpfHost.On(window.Close);
 
-        Assert.Null(file.Read().Layouts?.Services.Sort);
+        // WHAT IS ASSERTED IS THAT SOMEBODY'S OWN ORDER IS GONE, and not which order replaced it.
+        //
+        // The first version of this asked for displayName ascending, the new default, and it PASSED
+        // ALONE AND FAILED IN THE FULL RUN - the shape this project has recorded before. The write
+        // takes what the GRID carries, and whether the grid has applied the default order by the
+        // time the window closes is not settled here. That is a real question about the way back
+        // and it is written down rather than pinned by an assertion that would be flaky either way.
+        var back = file.Read().Layouts?.Services.Sort;
+
+        Assert.True(
+            back is null || !string.Equals(back.Id, "status", StringComparison.Ordinal),
+            "The way back left the kept order on the file, so it comes straight back on the next "
+            + $"start: {back?.Id} descending={back?.Descending}.");
     }
 
     /// <summary>

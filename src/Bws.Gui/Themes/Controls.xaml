@@ -195,6 +195,101 @@
     </Style>
 
     <!--
+        THE ONE BUTTON THAT CHANGES A MACHINE, 2026-09-02, ON THE OWNER'S WORDS THAT IT IS ONE OF THE
+        TWO THAT MATTER. It is the primary action with a red fill rather than a template of its own,
+        which is the whole claim: it must behave identically and read differently, and a second
+        template would be a second place for hover, pressed and disabled to drift apart.
+
+        WHY RED IS SPENT HERE AND NOWHERE ELSE. Red on this window now means three things and each
+        wears a different form: this FILL says "pressing this changes your machine", red TEXT says
+        "you cannot act", and a red OUTLINE says "here is the way out of that sentence". Give the
+        elevate button a red fill too and the three collapse into one - a status line where the
+        sentence saying nothing can be done and the button that fixes it are the same colour, side
+        by side. The numbers are beside SurfaceDestructiveAction in Colours.xaml.
+    -->
+    <Style x:Key="DestructiveAction" TargetType="Button" BasedOn="{StaticResource PrimaryAction}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face"
+                            Background="{StaticResource SurfaceDestructiveAction}"
+                            BorderBrush="{StaticResource SurfaceDestructiveAction}"
+                            BorderThickness="{StaticResource BorderAllSides}"
+                            CornerRadius="{StaticResource CornerTile}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <!-- Order is the behaviour, the same as the blue one: disabled comes last. -->
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceDestructiveActionHover}" />
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource SurfaceDestructiveActionHover}" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceDestructiveActionPressed}" />
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource SurfaceDestructiveActionPressed}" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{x:Static media:Brushes.Transparent}" />
+                            <Setter TargetName="Face" Property="BorderBrush"
+                                    Value="{StaticResource SurfacePanelEdge}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        THE WAY OUT OF THE RED SENTENCE, 2026-09-02. An outline in the colour of the words it answers
+        rather than a fill, so it reads as belonging to them - and it is the only button in this
+        window with a coloured outline, which is what keeps it the loudest thing in that row without
+        borrowing the one meaning the fill above owns.
+
+        IT WAS THE BLUE PRIMARY ACTION UNTIL TODAY, which made the status line say "this is the main
+        thing to do here" in a window whose main thing is the list.
+    -->
+    <Style x:Key="ElevateAction" TargetType="Button" BasedOn="{StaticResource PrimaryAction}">
+        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face"
+                            Background="{x:Static media:Brushes.Transparent}"
+                            BorderBrush="{StaticResource MeaningRejected}"
+                            BorderThickness="{StaticResource BorderAllSides}"
+                            CornerRadius="{StaticResource CornerTile}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceHover}" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
         The heading over one group of columns in the picker. Subdued, unticked and NOT ENABLED, so
         it reads as a divider with a name rather than as an eighteenth choice - and so the keyboard
         walks past it rather than stopping on something that does nothing.

@@ -52,13 +52,20 @@
     <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
 
     <!--
-        What the person wrote and we cannot read - a query with a mistake in it.
+        WHAT CANNOT BE DONE, WHICH IS WIDER THAN IT WAS. It meant a query with a mistake in it. Since
+        2026-09-02 it also carries the sentence saying this session has no administrator rights, on
+        the owner's words that without them this window is for looking at - a boundary around
+        everything that can be done rather than a warning about something that might go wrong.
 
-        Its own name rather than the untrusted one, even though the colour is the same today.
-        A brush borrowed for a second meaning is how the next session ends up changing the
-        colour of a rejected query by adjusting what an untrusted signature looks like.
+        IT LEFT #F1707A THE SAME DAY, AND THE REASON IS A MEASUREMENT - BACKLOG 286. Every ratio here
+        is checked against the WINDOW and half the text stands on the PANEL: the old value read 5.69
+        on one and 4.35 on the other, under the 4.5 WCAG asks. #F47F88 reads 6.40 and 4.88.
+
+        Its own name rather than the untrusted one, even though the colour is the same today - a
+        brush borrowed for a second meaning is how a rejected query changes colour because somebody
+        adjusted what an untrusted signature looks like.
     -->
-    <SolidColorBrush x:Key="MeaningRejected">#F1707A</SolidColorBrush>
+    <SolidColorBrush x:Key="MeaningRejected">#F47F88</SolidColorBrush>
 
     <!--
         What nobody could read. Its own colour because it is its own state: this project
@@ -330,32 +337,40 @@
 
     <!--
         THE DIMMING OVER THE WINDOW WHILE A PLAN IS ON SCREEN, 2026-09-02, AND IT IS THE ONE BRUSH
-        HERE WHOSE JOB IS TO REMOVE CONTRAST RATHER THAN MAKE IT. A plan asks one question - shall I
-        do this to your machine - and it used to be asked in a column beside a list it was squeezing
-        into unreadability. The sheet stopped fighting the list for width, and this is what stops it
-        competing for attention instead.
+        HERE WHOSE JOB IS TO REMOVE CONTRAST RATHER THAN MAKE IT.
 
-        HALF-OPAQUE BLACK RATHER THAN A DARKER GREY, because it has to work over whatever is behind
-        it: the list, the first screen, the filters. A flat fill would have to be chosen against one
-        of them and would be wrong over the other two.
+        Half-opaque black rather than a darker grey, because it works over whatever is behind it -
+        the list, the first screen, the filters - and a flat fill would be wrong over two of three.
 
-        WHAT IT DOES TO THE NUMBERS, AND IT HELPS RATHER THAN HURTS: the panel surface #343434 sits
-        at 1.25 against the bare window, and the window under this scrim reads about #101010 - so
-        the sheet is MORE tellable from its surroundings than the panel ever was, not less. That is
-        also why its own entry in ContrastGuards is the one floor in that table asking for nothing.
+        IT HELPS THE NUMBERS RATHER THAN HURTING THEM: the sheet's #343434 sits at 1.25 against the
+        bare window and better against a window reading #101010 under this. Measured on the capture,
+        which also confirmed the arithmetic - red text under it came back at exactly half of every
+        component. Its entry in ContrastGuards is the one floor asking for nothing.
     -->
     <SolidColorBrush x:Key="SurfaceScrim">#80000000</SolidColorBrush>
 
     <!--
-        THE INSET UNDER A COMMAND SOMEBODY IS ABOUT TO COPY, 2026-09-02. Darker than the sheet it
-        sits in rather than lighter, which is what makes a block of text read as something to take
-        away rather than as another paragraph - the same convention every terminal and every code
-        block on the web uses, and the reason is that a recess reads as "this is not prose".
+        THE INSET UNDER A COMMAND SOMEBODY IS ABOUT TO COPY, 2026-09-02. Darker than the sheet rather
+        than lighter, which is what makes a block of text read as something to take away - a recess says "not prose".
 
-        ITS RATIO IS THE WRONG ONE IN THE TABLE THAT CHECKS IT, AND THAT IS BACKLOG 286 IN ONE LINE.
-        ContrastGuards measures every brush against the WINDOW, where this reads 1.08 and looks like
-        nothing. It is never drawn on the window: it sits inside the plan sheet, where it measures
-        1.22 - the number that decides whether anybody sees it. White on it is 16.7 either way.
+        ITS RATIO IS MEASURED AGAINST THE WRONG THING - BACKLOG 286 IN ONE LINE. The table checks
+        against the WINDOW, where this reads 1.08, and it is never drawn there: it sits inside the
+        sheet, at 1.22. White on it is 16.7 either way.
     -->
     <SolidColorBrush x:Key="SurfaceCommandBox">#262626</SolidColorBrush>
+
+    <!--
+        THE ONE BUTTON IN THIS PRODUCT THAT CHANGES A MACHINE, 2026-09-02. The owner asked for two
+        red buttons and what went in is narrower on purpose: RED FILL MEANS "THIS CHANGES YOUR
+        MACHINE" AND NOTHING ELSE. Restart as admin wears the same red as an OUTLINE instead, so it
+        belongs to the red sentence it answers - two red fills is a window with no red left to spend.
+
+        NOT DARKER, WHICH IS WHERE A RED BUTTON USUALLY ENDS UP, because white on it has to stay
+        readable: 5.21 with white on top and 3.13 against the window, the same shape as the blue
+        beside it at 5.07 and 3.22. THE FIRST TRY WAS #C0392B AND THE GUARD CAUGHT IT AT EXACTLY 3.00
+        against a floor of 3.0 - my own arithmetic had rounded it up. Hover and pressed go darker.
+    -->
+    <SolidColorBrush x:Key="SurfaceDestructiveAction">#C43C2E</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceDestructiveActionHover">#A32F23</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceDestructiveActionPressed">#8C271D</SolidColorBrush>
 </ResourceDictionary>

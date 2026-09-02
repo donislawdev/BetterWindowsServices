@@ -68,6 +68,29 @@
                             <DataTrigger Binding="{Binding Says.Notice}" Value="">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
+
+                            <!--
+                                RED WHILE THIS SESSION HAS NO ADMINISTRATOR RIGHTS, 2026-09-02, on
+                                the owner's words that without them this window is for looking at.
+                                Amber says "watch out" and the truth is "you cannot act", which is
+                                a boundary rather than a caution.
+
+                                THE WHOLE LINE RATHER THAN ONE SENTENCE, AND THAT IS A CHOICE WITH A
+                                COST. Sentences.Admissions joins its notes into one string, so
+                                colouring only the elevation one would mean breaking this line into
+                                runs - a real change to the shape of the answer for a colour. The
+                                cheap version turned out to be the more honest one: the other notes
+                                on this line are all about a list that is INCOMPLETE for exactly the
+                                reason the first note gives, so while this is red they are as red.
+
+                                Bound to NotElevated rather than tested against the sentence itself,
+                                because comparing rendered text to a literal is a trigger that dies
+                                silently the day somebody edits the language file.
+                            -->
+                            <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">
+                                <Setter Property="Foreground"
+                                        Value="{StaticResource MeaningRejected}" />
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </TextBlock.Style>
@@ -81,7 +104,7 @@
                     Margin="{StaticResource MarginBetweenControls}"
                     VerticalAlignment="Center">
                 <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryAction}">
+                    <Style TargetType="Button" BasedOn="{StaticResource ElevateAction}">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">

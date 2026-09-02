@@ -300,8 +300,14 @@
         rhythm rather than the section rhythm: a gap under it and none above, because the rule the
         footer already draws is what separates it from the body.
     -->
+    <!--
+        THE RULE WENT FROM WARNING TO REFUSED ON 2026-09-02, ON THE OWNER'S WORDS. The only sentence
+        this block ever holds is the one saying this session has no administrator rights - Planned
+        writes nothing else into Blocked - and amber says "something might go wrong" where the truth
+        is "nothing here can be done at all". The rule and the words inside it now agree.
+    -->
     <Style x:Key="PlanBlockRefused" TargetType="Border" BasedOn="{StaticResource PlanBlock}">
-        <Setter Property="BorderBrush" Value="{StaticResource MeaningWarning}" />
+        <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
         <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
     </Style>
 

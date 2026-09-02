@@ -260,11 +260,8 @@ public sealed class KeptColumnGuards : IDisposable
             entry => entry is ColumnReset);
 
         // Both directions have something to undo: one column on that is normally off, and one off
-        // that is normally on.
-        //
-        // THE FIRST OF THE TWO WAS description UNTIL 2026-09-02, when it became one of the usual
-        // five and stopped being an example of "normally off". serviceName took its place by moving
-        // the other way on the same day.
+        // that is normally on. The first was description until 2026-09-02, when it became one of the
+        // usual five and serviceName took its place by moving the other way.
         WpfHost.On(() => Choice(first, "serviceName").IsShown = true);
         WpfHost.On(() => Choice(first, "displayName").IsShown = false);
 
@@ -427,12 +424,9 @@ public sealed class KeptColumnGuards : IDisposable
     }
 
     /// <summary>
-    /// A heading these tests can click, and it has to be one that is ON before anybody chooses.
-    ///
-    /// <b>It was serviceName until 2026-09-02 and that column went off by default that day</b> - the
-    /// owner's decision to open on the columns services.msc opens on. Nothing was wrong with these
-    /// tests: a sibling guard in this same file says an order by a column that is OFF is not
-    /// applied, and it was quietly doing its job to two tests that meant to click a visible one.
+    /// A heading these tests can click - one that is ON before anybody chooses. It was serviceName
+    /// until 2026-09-02, when that column went off by default and the sibling guard below started
+    /// correctly refusing an order by a hidden column to two tests meaning to click a visible one.
     /// </summary>
     private static DataGridColumn Heading(MainWindow window) =>
         window.Entries.Columns.First(column =>
@@ -465,13 +459,8 @@ public sealed class KeptColumnGuards : IDisposable
             WpfHost.On(() => grid.Columns.ToList()),
             column => Assert.Null(WpfHost.On(() => column.SortDirection)));
 
-        // And one that exists and is turned off - serviceName is not among the usual five.
-        //
-        // IT USED TO BE description ON BOTH LINES BELOW, AND THE TWO SWAPPED ON 2026-09-02. The
-        // owner turned the internal name off by default and the description on, so the column that
-        // stands for "exists and is hidden" and the column that stands for "is on screen" changed
-        // places. Naming them by what they ARE rather than by what they were is the only way this
-        // test keeps proving the two refusals are refusals.
+        // And one that exists and is turned off - serviceName is not among the usual five. It was
+        // description here and serviceName below until 2026-09-02, when the two swapped defaults.
         WpfHost.On(() => ListSorting.By(grid, new KeptSort("serviceName", Descending: true)));
 
         Assert.All(
