@@ -33,7 +33,7 @@ namespace Bws.Core;
 /// share that is a file transfer, on every listing that asks for signatures and on every
 /// snapshot.
 /// </param>
-public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPaths.Skip) : IBinaryInspector
+public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPaths.Skip) : IBinaryInspector
 {
     /// <summary>The file carries no signature of its own. Not a failure - the question moves on.</summary>
     private const int NoSignature = unchecked((int)0x800B0100);
@@ -265,13 +265,28 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
             using var handle = File.OpenHandle(file);
 
             uint size = 0;
-            PInvoke.CryptCATAdminCalcHashFromFileHandle2(admin, handle, ref size, default);
+
+            // ASKED THROUGH THE RETURN VALUE, the sixth and last place in this project that decided
+            // on the reported size alone. Backlog 303, and the argument in full is at
+            // WindowsScmCatalog.Enumerate: Windows does not clear the last error on success, so a
+            // size of zero read as a failure carries whatever the previous call on this thread left
+            // behind. This one runs 544 times per listing, once per distinct file.
+            var probed = PInvoke.CryptCATAdminCalcHashFromFileHandle2(admin, handle, ref size, default);
+            var probeError = Marshal.GetLastWin32Error();
+
+            if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+            {
+                return Reading<BinarySignature>.Denied(probeError, ManagerTerms.Describe(probeError));
+            }
 
             if (size == 0)
             {
-                var error = Marshal.GetLastWin32Error();
-
-                return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
+                // Asked for no room and did not fail. A file always hashes to something, so this
+                // is not a shape the system produces - refused with a definite code rather than
+                // with a stale one, because there is nothing true to say about it.
+                return Reading<BinarySignature>.Denied(
+                    (int)WIN32_ERROR.ERROR_INVALID_DATA,
+                    ManagerTerms.Describe((int)WIN32_ERROR.ERROR_INVALID_DATA));
             }
 
             var hash = new byte[size];
@@ -323,33 +338,57 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
         var cataloguePath = found.wszCatalogFile.ToString();
         var memberTag = Convert.ToHexString(hash);
 
-        fixed (char* cataloguePointer = cataloguePath)
-        fixed (char* memberPointer = memberTag)
-        fixed (char* filePointer = file)
-        fixed (byte* hashPointer = hash)
+        // THE HANDLE IS HELD OPEN WHILE SOMEBODY ELSE USES IT, since 2026-09-02. Backlog 306.
+        // The raw handle below is handed to WinTrust, which does its own work with it, and taking
+        // one out of a SafeHandle without this pair is what the documentation for that type
+        // forbids. It was not a fault in practice - the caller keeps the SafeHandle in a `using`,
+        // so nothing could close it in between - but that made the correctness a property of how
+        // the compiler decides a local is still live, rather than of anything written here.
+        //
+        // THE ARGUMENT FOR IT SITS IN OUR OWN obj DIRECTORY rather than in somebody's manual: the
+        // generator this project uses does exactly this in every wrapper it emits for a SafeHandle
+        // parameter, AddRef before the call and Release in a finally.
+        var held = false;
+
+        try
         {
-            var info = new WINTRUST_CATALOG_INFO
+            handle.DangerousAddRef(ref held);
+
+            fixed (char* cataloguePointer = cataloguePath)
+            fixed (char* memberPointer = memberTag)
+            fixed (char* filePointer = file)
+            fixed (byte* hashPointer = hash)
             {
-                cbStruct = (uint)sizeof(WINTRUST_CATALOG_INFO),
-                pcwszCatalogFilePath = cataloguePointer,
-                pcwszMemberTag = memberPointer,
-                pcwszMemberFilePath = filePointer,
-                hMemberFile = (HANDLE)handle.DangerousGetHandle(),
-                pbCalculatedFileHash = hashPointer,
-                cbCalculatedFileHash = (uint)hash.Length,
-                hCatAdmin = admin
-            };
+                var info = new WINTRUST_CATALOG_INFO
+                {
+                    cbStruct = (uint)sizeof(WINTRUST_CATALOG_INFO),
+                    pcwszCatalogFilePath = cataloguePointer,
+                    pcwszMemberTag = memberPointer,
+                    pcwszMemberFilePath = filePointer,
+                    hMemberFile = (HANDLE)handle.DangerousGetHandle(),
+                    pbCalculatedFileHash = hashPointer,
+                    cbCalculatedFileHash = (uint)hash.Length,
+                    hCatAdmin = admin
+                };
 
-            var data = Request(WINTRUST_DATA_UNION_CHOICE.WTD_CHOICE_CATALOG);
-            data.pCatalog = &info;
+                var data = Request(WINTRUST_DATA_UNION_CHOICE.WTD_CHOICE_CATALOG);
+                data.pCatalog = &info;
 
-            var result = Ask(ref data);
+                var result = Ask(ref data);
 
-            // The signer of a catalogue-signed file is whoever signed the catalogue. That
-            // is the same answer Explorer gives, and reading it from the catalogue file
-            // keeps four more functions out of the interop list.
-            return Reading<BinarySignature>.Present(
-                new BinarySignature(Classify(result), result, CataloguePublisher(cataloguePath)));
+                // The signer of a catalogue-signed file is whoever signed the catalogue. That
+                // is the same answer Explorer gives, and reading it from the catalogue file
+                // keeps four more functions out of the interop list.
+                return Reading<BinarySignature>.Present(
+                    new BinarySignature(Classify(result), result, CataloguePublisher(cataloguePath)));
+            }
+        }
+        finally
+        {
+            if (held)
+            {
+                handle.DangerousRelease();
+            }
         }
     }
 
@@ -384,73 +423,6 @@ public sealed class WindowsBinaryInspector(NetworkPaths networkPaths = NetworkPa
 
             return result;
         }
-    }
-
-    /// <summary>
-    /// Who signed the catalogue, read back from the catalogue file.
-    ///
-    /// <b>The only thing that is remembered, and until 2026-08-03 every file was.</b> The two
-    /// callers are not alike, which is the whole of this split. A binary carrying its own
-    /// signature is asked about exactly once per run - the second pass fixes the set of distinct
-    /// files before it asks anything - so remembering the answer saves nothing and only creates a
-    /// way for it to go stale. Catalogues are shared between many binaries, so remembering those
-    /// is the case the cache was written for.
-    ///
-    /// <b>What the stale answer looked like</b>, in a tool whose reason to exist is noticing that
-    /// a file changed: the verdict and the hash are worked out afresh every time and the
-    /// publisher was not, so a binary replaced between two readings inside one process reported a
-    /// new hash beside the old signer. No process lives long enough for that today. The second
-    /// phase of `ADR-13` - signatures read in the background while the window stays open - is a
-    /// process that does.
-    ///
-    /// The standard library reads the certificate out of a signed file without walking the
-    /// chain, which is exactly right here: the chain was already walked by the verification
-    /// above, and its verdict is carried separately. This call only answers "whose name is
-    /// on it".
-    /// </summary>
-    private string? CataloguePublisher(string catalogue) =>
-        _publishers.GetOrAdd(catalogue, ReadPublisher);
-
-    private static string? ReadPublisher(string file)
-    {
-        try
-        {
-            // CreateFromSignedFile, not the certificate loader. The loader reads a file that
-            // IS a certificate - what is needed here is the certificate embedded inside a
-            // signed binary, which is a different question about a different kind of file.
-            //
-            // Getting that wrong is silent: the loader throws on a signed executable, the
-            // throw is caught below, and every file on the machine comes back trusted with
-            // nobody's name against it. It shipped that way for one build and an integration
-            // test caught it, which is the only thing that would have.
-            // Both handles released, and the inner one was leaking. The extractor returns a
-            // certificate holding a native context, the constructor beside it copies from that
-            // certificate rather than taking it over, and nothing was disposing the original -
-            // so every signed file left one native handle to a finaliser. Over 544 distinct
-            // files in one snapshot that is 544 of them.
-            //
-            // Found by an analyser on 2026-08-02, not by a test. No test could see it: the
-            // answers were right, the run finished, and the only symptom was handles going
-            // back later than they should have.
-#pragma warning disable SYSLIB0057
-            using var signed = X509Certificate.CreateFromSignedFile(file);
-            using var certificate = new X509Certificate2(signed);
-#pragma warning restore SYSLIB0057
-
-            var name = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
-
-            return string.IsNullOrWhiteSpace(name) ? null : name;
-        }
-#pragma warning disable CA1031
-        // Null rather than a state of its own, and broad for the same reason as above. The
-        // verdict beside it already says whether there is a signature at all, so a file
-        // whose certificate will not parse reads as "trusted, and we could not put a name
-        // to it" - which is what happened, rather than an invented one.
-        catch (Exception)
-        {
-            return null;
-        }
-#pragma warning restore CA1031
     }
 
     /// <summary>

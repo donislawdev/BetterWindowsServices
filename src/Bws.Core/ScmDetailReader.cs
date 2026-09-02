@@ -108,12 +108,11 @@ internal static class ScmDetailReader
     /// </summary>
     internal static unsafe Reading<IReadOnlyList<ServiceTrigger>> ReadTriggers(SafeHandle service)
     {
-        PInvoke.QueryServiceConfig2W(
-            service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO, default, out var needed);
-
-        if (needed == 0)
+        if (!Sized(service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO, out var needed, out var refusal))
         {
-            return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
+            return refusal == 0
+                ? Reading<IReadOnlyList<ServiceTrigger>>.Absent()
+                : Refused<IReadOnlyList<ServiceTrigger>>(refusal);
         }
 
         var buffer = new byte[needed];
@@ -150,12 +149,11 @@ internal static class ScmDetailReader
     /// </summary>
     internal static unsafe Reading<IReadOnlyList<string>> ReadRequiredPrivileges(SafeHandle service)
     {
-        PInvoke.QueryServiceConfig2W(
-            service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, default, out var needed);
-
-        if (needed == 0)
+        if (!Sized(service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, out var needed, out var refusal))
         {
-            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
+            return refusal == 0
+                ? Reading<IReadOnlyList<string>>.Absent()
+                : Refused<IReadOnlyList<string>>(refusal);
         }
 
         var buffer = new byte[needed];
@@ -260,12 +258,12 @@ internal static class ScmDetailReader
     /// </summary>
     internal static unsafe Reading<string> ReadDescription(SafeHandle service)
     {
-        PInvoke.QueryServiceConfig2W(
-            service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, default, out var needed);
-
-        if (needed == 0)
+        if (!Sized(service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, out var needed, out var refusal))
         {
-            return Refused<string>(Marshal.GetLastWin32Error());
+            // Absent rather than refused when the call worked and had nothing: 384 of 819 entries
+            // have no description at all, and ServiceDescription.Of already tells the two apart
+            // for the value that DOES arrive.
+            return refusal == 0 ? Reading<string>.Absent() : Refused<string>(refusal);
         }
 
         var buffer = new byte[needed];
@@ -328,11 +326,21 @@ internal static class ScmDetailReader
             return Refused<string>(Marshal.GetLastWin32Error());
         }
 
-        PInvoke.QueryServiceObjectSecurity(service, DescriptorParts, default, 0, out var needed);
+        // The same rule as Sized below, written out because this is a different call and cannot
+        // share it. Backlog 303, and the argument in full is at WindowsScmCatalog.Enumerate.
+        var probed = PInvoke.QueryServiceObjectSecurity(service, DescriptorParts, default, 0, out var needed);
+        var probeError = Marshal.GetLastWin32Error();
+
+        if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+        {
+            return Refused<string>(probeError);
+        }
 
         if (needed == 0)
         {
-            return Refused<string>(Marshal.GetLastWin32Error());
+            // A securable object always has a descriptor, so this is the branch that says the
+            // call answered and handed over nothing - which is a fact rather than a failure.
+            return Reading<string>.Absent();
         }
 
         var buffer = new byte[needed];
@@ -372,6 +380,50 @@ internal static class ScmDetailReader
     /// remember that the next call would overwrite it.
     /// </summary>
     private static Reading<T> Refused<T>(int code) => Reading<T>.Denied(code, ManagerTerms.Describe(code));
+
+    /// <summary>
+    /// How much room one level of an entry's configuration wants, asked through the RETURN VALUE
+    /// rather than through the error code alone.
+    ///
+    /// <b>This rule was already written in this project, twice, and three calls in this file did
+    /// not follow it.</b> <c>WindowsScmCatalog.Enumerate</c> carries the argument in full and its
+    /// comment is blunt about what it costs: Windows does not clear the last error on success, so a
+    /// call with nothing to hand over leaves whatever the previous call on this thread put there -
+    /// and a decision made on the size alone reads that stale number as a refusal. That file also
+    /// records finding the same mistake in <c>ReadDependents</c> after a comment claimed otherwise.
+    /// Backlog 303 is the third finding of it, from outside.
+    ///
+    /// <b>What it changes on this machine today: nothing except eight wasted calls, and that is
+    /// measured rather than hoped.</b> <c>tools/scm-probe/probe-sizes.ps1</c> asked every level of
+    /// all 799 entries under both an elevated and a restricted token on 2026-09-02: a size of zero
+    /// never came back and no sizing call ever returned success. Eight descriptions DID fail with a
+    /// resource error while still reporting a size, and the old shape ignored that and asked again
+    /// with a buffer - the second call failed identically, so the answer was right and arrived
+    /// without asking the only question that decides it.
+    /// </summary>
+    /// <param name="needed">How much room the answer wants. Only meaningful when this returns true.</param>
+    /// <param name="refusal">
+    /// Why the caller may not go on. <b>Zero means there is nothing to read rather than that
+    /// something failed</b> - it is ERROR_SUCCESS, which is the true thing to say about a call that
+    /// worked and had nothing to hand over.
+    /// </param>
+    /// <returns>Whether there is an answer worth asking for.</returns>
+    private static bool Sized(SafeHandle service, SERVICE_CONFIG level, out uint needed, out int refusal)
+    {
+        var probed = PInvoke.QueryServiceConfig2W(service, level, default, out needed);
+        var probeError = Marshal.GetLastWin32Error();
+
+        if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+        {
+            refusal = probeError;
+
+            return false;
+        }
+
+        refusal = 0;
+
+        return needed != 0;
+    }
 
     /// <summary>
     /// Owner, group and permissions - the three parts of a descriptor that can be read with

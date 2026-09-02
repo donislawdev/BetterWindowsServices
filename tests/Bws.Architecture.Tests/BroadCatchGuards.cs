@@ -43,10 +43,18 @@ public sealed class BroadCatchGuards
             "instead of a sentence, and the process still ends with a failing code.",
 
         ["WindowsBinaryInspector.cs"] =
-            "One per file it opens - signature, version, hash and publisher. This runs over " +
-            "every binary a machine happens to have, none of which we chose, and the ways one " +
-            "file can be malformed are not a list anybody finishes. One bad file must cost its " +
-            "own answer rather than the other eight hundred.",
+            "One per file it opens - signature, version and hash. This runs over every binary a " +
+            "machine happens to have, none of which we chose, and the ways one file can be " +
+            "malformed are not a list anybody finishes. One bad file must cost its own answer " +
+            "rather than the other eight hundred.",
+
+        ["WindowsBinaryInspector.Publisher.cs"] =
+            "The publisher half of the same argument, and it moved here on 2026-09-02 when the " +
+            "size ratchet split that file - backlog 303. Reading a name out of a certificate " +
+            "meets everything a malformed certificate can be, and the answer to one unreadable " +
+            "one is no publisher for that file rather than no listing at all. " +
+            "This guard caught the split with the argument left behind, which is the second time " +
+            "it has done that: see Readings.cs below.",
 
         ["Readings.cs"] =
             "The window's first reading. A failure has to arrive as a line under an empty list " +

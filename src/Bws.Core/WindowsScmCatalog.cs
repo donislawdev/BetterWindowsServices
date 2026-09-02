@@ -31,7 +31,7 @@ namespace Bws.Core;
 /// holds the whole argument. Optional so that every caller gets the safe answer by saying
 /// nothing, and only the one that wants the other has to say so.
 /// </param>
-public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.Skip) : IScmCatalog
+public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.Skip) : IScmCatalog
 {
     // What a relative image path and \SystemRoot\ are relative to. Read once: it cannot
     // change while the process runs, and it is asked for on every entry of every listing.
@@ -243,91 +243,6 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             : Reading<IReadOnlyList<string>>.Present(names);
     }
 
-    // A list rather than a sequence, because the caller needs a count before it starts and an
-    // index while it runs. It was already building one internally - the sequence was hiding
-    // that behind a type that promised less than it delivered.
-    private static unsafe List<EnumeratedEntry> Enumerate(SafeHandle manager)
-    {
-        uint resume = 0;
-        var results = new List<EnumeratedEntry>(capacity: 1024);
-
-        while (true)
-        {
-            // Ask with an empty buffer first. The call is expected to fail and to report
-            // how much room it wants, which is the documented way to size this.
-            var probed = PInvoke.EnumServicesStatusEx(
-                manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
-                ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default,
-                out var needed, out _, ref resume, null!);
-
-            var probeError = Marshal.GetLastWin32Error();
-
-            // NOTHING LEFT AND REFUSED LOOKED THE SAME FROM HERE UNTIL 2026-08-03, and this
-            // took both to mean the first. Any failure that does not set the size - a refusal,
-            // a manager shutting down between two turns of this loop, resources running out -
-            // came back reporting no room needed, the loop broke, and ReadAll returned however
-            // many entries it happened to have collected by then. With a code of success, and a
-            // listing that looks exactly like a complete one.
-            //
-            // That is rule 8 of CLAUDE.md, in the one place in this file that had no guard
-            // against it.
-            //
-            // THE SENTENCE THAT STOOD HERE UNTIL 2026-08-26 WAS FALSE, and saying so is worth more
-            // than quietly replacing it. It said that ReadDependents had
-            // "the same buffer shape and the right check since it was written" and named this one
-            // as the odd one out. The buffer shape was the same. The check was not: that call's
-            // return value was discarded and the decision was made on the error code alone, which
-            // is the exact mistake the paragraph below describes. A comment claiming a guard exists
-            // is worse than no comment, because the next reader stops looking.
-            //
-            // ASKED THROUGH THE RETURN VALUE, NOT THROUGH THE ERROR CODE ALONE, and the
-            // difference is not style. Windows does not clear the last error on success, so a
-            // call that genuinely has nothing left to hand over can leave whatever the previous
-            // call in this thread put there - and a check reading only the number would throw
-            // on a stale one, turning a working listing into a failure. The return value is the
-            // only thing that says whether this call worked.
-            if (!probed && probeError != (int)WIN32_ERROR.ERROR_MORE_DATA)
-            {
-                throw new Win32Exception(probeError, "Enumerating the service control manager failed.");
-            }
-
-            if (needed == 0)
-            {
-                break;
-            }
-
-            var buffer = new byte[needed];
-
-            // Pinned across the call and the reading, for the reason set out in full at
-            // ReadConfiguration: each record here carries two absolute pointers into this very
-            // block, and the array is free to move the instant the interop wrapper returns.
-            fixed (byte* pinned = buffer)
-            {
-                var read = PInvoke.EnumServicesStatusEx(
-                    manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
-                    ENUM_SERVICE_STATE.SERVICE_STATE_ALL, new Span<byte>(pinned, buffer.Length),
-                    out _, out var returned, ref resume, null!);
-
-                var error = Marshal.GetLastWin32Error();
-
-                if (!read && error != (int)WIN32_ERROR.ERROR_MORE_DATA)
-                {
-                    throw new Win32Exception(error, "Enumerating the service control manager failed.");
-                }
-
-                results.AddRange(ManagerBlocks.ReadEnumerationBuffer(buffer, returned));
-            }
-
-            // A resume handle of zero means the manager has nothing left to hand over.
-            if (resume == 0)
-            {
-                break;
-            }
-        }
-
-        return results;
-    }
-
     private static ScmEntry Describe(SafeHandle manager, EnumeratedEntry enumerated, NetworkPaths networkPaths)
     {
         var configuration = ReadConfiguration(manager, enumerated, networkPaths);
@@ -395,11 +310,25 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
         }
 
-        PInvoke.QueryServiceConfig(service, default, out var needed);
+        // ASKED THROUGH THE RETURN VALUE, the rule Enumerate below sets out in full and the one
+        // this call did not follow until 2026-09-02. Backlog 303. Deciding on the size alone reads
+        // whatever the previous call on this thread left in the last error as though it were this
+        // call's refusal.
+        var probed = PInvoke.QueryServiceConfig(service, default, out var needed);
+        var probeError = Marshal.GetLastWin32Error();
+
+        if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+        {
+            return ScmConfiguration.Refused(probeError);
+        }
 
         if (needed == 0)
         {
-            return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
+            // The call answered and asked for no room. Every entry has a configuration, so this
+            // is not a shape the manager produces - measured over 799 entries under both tokens
+            // on 2026-09-02 and never seen once. Refused with a definite code rather than with a
+            // stale one, because there is no true thing to say about an answer that cannot happen.
+            return ScmConfiguration.Refused((int)WIN32_ERROR.ERROR_INVALID_DATA);
         }
 
         var buffer = new byte[needed];
