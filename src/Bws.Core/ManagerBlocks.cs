@@ -35,7 +35,10 @@ internal static class ManagerBlocks
     /// can be checked at all.</b> The half above needs a service handle and therefore a machine
     /// with a service on it - this half needs bytes, and the bytes that matter are the ones a
     /// machine does not produce on demand. Same shape as <see cref="ReadDependentNames"/> beside it
-    /// and as the two buffer readers left in <c>WindowsScmCatalog</c>, for the same reason.
+    /// and as <see cref="ReadConfigurationBuffer"/> below it, for the same reason. <b>That sentence
+    /// named those readers as "left in WindowsScmCatalog" until 2026-09-02, and the last of them
+    /// arrived here that day</b> - the seam was named in this header long before it was taken, and
+    /// what finally took it was the size ratchet on the file they were leaving.
     ///
     /// <b>BOUNDED BY THE BLOCK SINCE 2026-08-26, and until then this walked a count and a pointer
     /// that both came from the manager, with neither checked against the block they describe.</b>
@@ -91,9 +94,17 @@ internal static class ManagerBlocks
 
             var triggers = new List<ServiceTrigger>((int)count);
 
+            // READ THROUGH THE OFFSET THAT WAS CHECKED, NOT THROUGH THE POINTER THAT WAS NOT, and
+            // until 2026-09-02 this loop did the second. The check above establishes that the
+            // offset lands inside the block, and then the reading went back to info.pTriggers -
+            // so in the one case the check exists for, a pointer landing in range by accident, it
+            // validated one address and dereferenced another. A guard that looks like a guard and
+            // is not is worse than no guard, because the next reader stops looking. Backlog 297.
+            var records = (SERVICE_TRIGGER*)(start + offset);
+
             for (uint index = 0; index < count; index++)
             {
-                var trigger = info.pTriggers[index];
+                var trigger = records[index];
 
                 triggers.Add(new ServiceTrigger(
                     ManagerTerms.Trigger(trigger.dwTriggerType),
@@ -131,6 +142,46 @@ internal static class ManagerBlocks
     /// a null wherever that null happens to be, so the terminator is found inside the remaining
     /// span first and the string is built from that.
     /// </remarks>
+    /// <summary>
+    /// One name the manager pointed at, read no further than the block it should be inside.
+    ///
+    /// <b>Added 2026-09-02 by backlog 297, and what it replaces is the thing this whole file exists
+    /// to stop.</b> Both record walks used to call <c>PWSTR.ToString()</c>, which reads from an
+    /// address until it meets a null wherever that happens to be - no block, no ceiling, nothing.
+    /// Every other reading here is bounded by the block rather than by what the block claims, and
+    /// these two were simply the ones nobody had come back to.
+    ///
+    /// <b>An out-of-block pointer comes back as an empty name, and that is a compromise rather than
+    /// an answer - said out loud because nothing downstream can tell it from a service that has no
+    /// name.</b> It cannot happen while the block is pinned and the manager is honest, so what this
+    /// buys is that the impossible case is a bounded read instead of a fault on somebody's server.
+    /// What the ENTRY should then be is a real question and it has its own row rather than a guess
+    /// made here.
+    /// </summary>
+    private static unsafe string NameInside(PWSTR text, byte* buffer, int length)
+    {
+        var cursor = text.Value;
+
+        if (cursor is null)
+        {
+            return string.Empty;
+        }
+
+        var offset = (byte*)cursor - buffer;
+
+        if (offset < 0 || offset >= length)
+        {
+            return string.Empty;
+        }
+
+        var remaining = new ReadOnlySpan<char>(
+            (char*)(buffer + offset), (int)(length - offset) / sizeof(char));
+
+        var terminator = remaining.IndexOf('\0');
+
+        return terminator < 0 ? new string(remaining) : new string(remaining[..terminator]);
+    }
+
     internal static unsafe List<string> ReadMultiString(PWSTR start, byte* buffer, int length)
     {
         var values = new List<string>();
@@ -149,6 +200,12 @@ internal static class ManagerBlocks
         {
             return values;
         }
+
+        // Rebuilt from the offset that was just checked rather than kept as it arrived, the same
+        // correction ReadTriggerBuffer took on 2026-09-02 and for the same reason: the two are the
+        // same address whenever the check is meaningful, and where they are not, the walk below
+        // should follow the one this method has established something about. Backlog 297.
+        cursor = (char*)(buffer + offset);
 
         var end = (char*)(buffer + length);
 
@@ -196,7 +253,7 @@ internal static class ManagerBlocks
 
             for (uint index = 0; index < count; index++)
             {
-                names.Add(records[index].lpServiceName.ToString());
+                names.Add(NameInside(records[index].lpServiceName, start, buffer.Length));
             }
         }
 
@@ -222,8 +279,8 @@ internal static class ManagerBlocks
                 var status = record.ServiceStatusProcess;
 
                 entries.Add(new EnumeratedEntry(
-                    ServiceName: record.lpServiceName.ToString(),
-                    DisplayName: record.lpDisplayName.ToString(),
+                    ServiceName: NameInside(record.lpServiceName, start, buffer.Length),
+                    DisplayName: NameInside(record.lpDisplayName, start, buffer.Length),
                     EntryType: ManagerTerms.EntryType(status.dwServiceType),
                     PerUserRole: ManagerTerms.PerUserRole(status.dwServiceType),
                     Status: ManagerTerms.Status(status.dwCurrentState),
@@ -232,5 +289,73 @@ internal static class ManagerBlocks
         }
 
         return entries;
+    }
+
+    /// <remarks>
+    /// The size is checked before the cast, and it was not until 2026-08-03. The manager reports
+    /// how much room it wants and this asks for exactly that, so a buffer too small for the
+    /// structure cannot happen - which is a fact about the manager rather than about this code,
+    /// and it was nowhere written down. Owner's decision, 2026-08-03: the three places in this
+    /// project that read a reported size now check it, because the tool runs elevated on
+    /// production servers and a memory fault there is indistinguishable from a bug of ours.
+    /// </remarks>
+    internal static unsafe ScmConfiguration ReadConfigurationBuffer(byte[] buffer)
+    {
+        if (buffer.Length < sizeof(QUERY_SERVICE_CONFIGW))
+        {
+            return ScmConfiguration.Refused((int)WIN32_ERROR.ERROR_INVALID_DATA);
+        }
+
+        fixed (byte* start = buffer)
+        {
+            var configuration = *(QUERY_SERVICE_CONFIGW*)start;
+
+            var account = configuration.lpServiceStartName.ToString();
+            var dependencies = ManagerBlocks.ReadMultiString(
+                configuration.lpDependencies, start, buffer.Length);
+            var binaryPath = configuration.lpBinaryPathName.ToString();
+            var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
+
+            return new ScmConfiguration(
+                StartType: Reading<StartType>.Present(ManagerTerms.StartType(configuration.dwStartType)),
+                DelayedAuto: Reading<bool>.Absent(),
+                Account: string.IsNullOrEmpty(account)
+                    ? Reading<string>.Absent()
+                    : Reading<string>.Present(account),
+
+                // Declaring nothing is ordinary rather than missing information: 129 of 339
+                // services on the machine this was measured on declare no dependency at all.
+                DependsOn: dependencies.Count == 0
+                    ? Reading<IReadOnlyList<string>>.Absent()
+                    : Reading<IReadOnlyList<string>>.Present(dependencies),
+
+                // Filled in by its own call. Not read yet is the honest state here, not absent.
+                Triggers: Reading<IReadOnlyList<ServiceTrigger>>.NotRead(),
+
+                // 29 of 825 entries name nothing at all, all of them drivers, and for those
+                // the manager applies a default of its own. Absent says that, and the file
+                // question is answered from the default rather than left blank.
+                BinaryPath: string.IsNullOrWhiteSpace(binaryPath)
+                    ? Reading<string>.Absent()
+                    : Reading<string>.Present(binaryPath),
+
+                // Both worked out from the value above, once it is known which entry it is.
+                BinaryFile: Reading<string>.NotRead(),
+                BinaryOnDisk: Reading<bool>.NotRead(),
+
+                // Three more levels of the same call as the triggers, filled in by their own
+                // calls for the same reason: this buffer holds none of them.
+                RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
+                SidType: Reading<ServiceSidType>.NotRead(),
+                Description: Reading<string>.NotRead(),
+
+                ErrorControl: Reading<ErrorControl>.Present(ManagerTerms.ErrorControl(configuration.dwErrorControl)),
+
+                // Most entries belong to no group, which is a fact about them rather than
+                // something we failed to read.
+                LoadOrderGroup: string.IsNullOrEmpty(loadOrderGroup)
+                    ? Reading<string>.Absent()
+                    : Reading<string>.Present(loadOrderGroup));
+        }
     }
 }

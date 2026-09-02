@@ -118,13 +118,22 @@ internal static class ScmDetailReader
 
         var buffer = new byte[needed];
 
-        if (!PInvoke.QueryServiceConfig2W(
-                service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO, buffer, out _))
+        // PINNED FROM THE CALL TO THE WALK, and until 2026-09-02 the comment above this method
+        // described that as a requirement while the code did not meet it. The interop wrapper pins
+        // only for the duration of the native call, and SERVICE_TRIGGER_INFO carries an absolute
+        // pointer into this block - so a collection between the two left the walk aimed at an
+        // address the array had left. Backlog 297.
+        fixed (byte* pinned = buffer)
         {
-            return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
-        }
+            if (!PInvoke.QueryServiceConfig2W(
+                    service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO,
+                    new Span<byte>(pinned, buffer.Length), out _))
+            {
+                return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
+            }
 
-        return ManagerBlocks.ReadTriggerBuffer(buffer);
+            return ManagerBlocks.ReadTriggerBuffer(buffer);
+        }
     }
 
     /// <summary>
@@ -151,20 +160,25 @@ internal static class ScmDetailReader
 
         var buffer = new byte[needed];
 
-        if (!PInvoke.QueryServiceConfig2W(
-                service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, buffer, out _))
-        {
-            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
-        }
-
-        if (buffer.Length < sizeof(SERVICE_REQUIRED_PRIVILEGES_INFOW))
-        {
-            // Room reported for less than the structure the call promises. Nothing to read.
-            return Reading<IReadOnlyList<string>>.Absent();
-        }
-
+        // THE CALL IS INSIDE THE BLOCK, NOT ABOVE IT, since 2026-09-02. The pinning was already
+        // here and already argued for - it just started one statement too late, so the pointer the
+        // manager wrote was taken against an address the array was free to leave before the walk
+        // below picked it up. Backlog 297.
         fixed (byte* start = buffer)
         {
+            if (!PInvoke.QueryServiceConfig2W(
+                    service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
+                    new Span<byte>(start, buffer.Length), out _))
+            {
+                return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
+            }
+
+            if (buffer.Length < sizeof(SERVICE_REQUIRED_PRIVILEGES_INFOW))
+            {
+                // Room reported for less than the structure the call promises. Nothing to read.
+                return Reading<IReadOnlyList<string>>.Absent();
+            }
+
             // The structure is one pointer into this very buffer, so the multi-string is read
             // inside the fixed block for the same reason the triggers are.
             var privileges = ManagerBlocks.ReadMultiString(
@@ -256,20 +270,24 @@ internal static class ScmDetailReader
 
         var buffer = new byte[needed];
 
-        if (!PInvoke.QueryServiceConfig2W(
-                service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION, buffer, out _))
-        {
-            return Refused<string>(Marshal.GetLastWin32Error());
-        }
-
-        if (buffer.Length < sizeof(SERVICE_DESCRIPTIONW))
-        {
-            // Room reported for less than the structure the call promises. Nothing to read.
-            return Reading<string>.Absent();
-        }
-
+        // The call is inside the block for the reason set out at ReadRequiredPrivileges above:
+        // SERVICE_DESCRIPTIONW is one absolute pointer into this block, taken while the call runs,
+        // and nothing kept the block still between then and the reading. Backlog 297.
         fixed (byte* start = buffer)
         {
+            if (!PInvoke.QueryServiceConfig2W(
+                    service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION,
+                    new Span<byte>(start, buffer.Length), out _))
+            {
+                return Refused<string>(Marshal.GetLastWin32Error());
+            }
+
+            if (buffer.Length < sizeof(SERVICE_DESCRIPTIONW))
+            {
+                // Room reported for less than the structure the call promises. Nothing to read.
+                return Reading<string>.Absent();
+            }
+
             // The structure is one pointer into this very buffer, so the string is read inside
             // the fixed block for the same reason the triggers are.
             //

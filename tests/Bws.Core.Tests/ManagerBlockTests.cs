@@ -27,6 +27,93 @@ public sealed class ManagerBlockTests
     /// <summary>SERVICE_TRIGGER: two words, a pointer, a count, a pointer.</summary>
     private const int RecordLength = 32;
 
+    /// <summary>
+    /// ENUM_SERVICE_STATUSW on a 64 bit machine: two pointers and a SERVICE_STATUS of seven words,
+    /// which is 44 rounded up to 48. Written out here rather than asked of the type, which is
+    /// interop metadata this assembly cannot see - and the tests below assert the record COUNT so
+    /// that a wrong number here fails loudly instead of quietly clamping to nothing.
+    /// </summary>
+    private const int DependentRecordLength = 48;
+
+    /// <summary>
+    /// <b>Backlog 297.</b> Until 2026-09-02 this walk called <c>PWSTR.ToString()</c>, which reads
+    /// from an address until it meets a null wherever that happens to be - past the block, past the
+    /// array, past anything. Every other reading in that file is bounded by the block, and these
+    /// two record walks were the ones nobody had come back to.
+    ///
+    /// The name comes back empty rather than as whatever was at that address. That is a compromise
+    /// and it is written down as one where the method lives - what matters here is that the read
+    /// stops, on a process that runs elevated on other people's servers.
+    /// </summary>
+    [Fact]
+    public void A_dependent_name_pointing_outside_the_block_is_not_followed()
+    {
+        var buffer = new byte[DependentRecordLength];
+        var pinned = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+
+        try
+        {
+            // A page below the block, which is inside this process and not inside this array -
+            // the shape that used to be read from and would have handed back whatever was there.
+            var address = pinned.AddrOfPinnedObject().ToInt64();
+
+            BitConverter.TryWriteBytes(buffer.AsSpan(0), address - 4096);
+
+            var names = ManagerBlocks.ReadDependentNames(buffer, 1);
+
+            Assert.Single(names);
+            Assert.Equal(string.Empty, names[0]);
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
+
+    /// <summary>
+    /// A record whose name pointer is zero. The manager does not write one, and a walk that
+    /// dereferences it anyway ends the process rather than reporting anything.
+    /// </summary>
+    [Fact]
+    public void A_dependent_name_that_is_null_is_not_followed()
+    {
+        var names = ManagerBlocks.ReadDependentNames(new byte[DependentRecordLength], 1);
+
+        Assert.Single(names);
+        Assert.Equal(string.Empty, names[0]);
+    }
+
+    /// <summary>
+    /// A name that ends where the block ends, with no terminator after it. The manager terminates
+    /// what it writes - this asks what happens when it did not, which is the case the bound is for.
+    /// </summary>
+    [Fact]
+    public void A_dependent_name_running_to_the_end_of_the_block_stops_there()
+    {
+        var buffer = new byte[DependentRecordLength];
+        var pinned = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+
+        try
+        {
+            var address = pinned.AddrOfPinnedObject().ToInt64();
+
+            // The name starts two characters before the end of the block and neither of them is a
+            // null, so nothing inside the block closes it.
+            BitConverter.TryWriteBytes(buffer.AsSpan(0), address + DependentRecordLength - 4);
+            BitConverter.TryWriteBytes(buffer.AsSpan(DependentRecordLength - 4), (char)'h');
+            BitConverter.TryWriteBytes(buffer.AsSpan(DependentRecordLength - 2), (char)'i');
+
+            var names = ManagerBlocks.ReadDependentNames(buffer, 1);
+
+            Assert.Single(names);
+            Assert.Equal("hi", names[0]);
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
+
     [Fact]
     public void A_block_too_short_to_hold_its_own_header_is_nothing_read()
     {

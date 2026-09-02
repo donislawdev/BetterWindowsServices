@@ -171,7 +171,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         return statuses;
     }
 
-    public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
+    public unsafe Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
     {
         using var manager = PInvoke.OpenSCManager(
             lpMachineName: null!,
@@ -222,14 +222,21 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         }
 
         var buffer = new byte[needed];
+        List<string> names;
 
-        if (!PInvoke.EnumDependentServices(
-                service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, buffer, out _, out var returned))
+        // Pinned across the call and the reading - the argument is at ReadConfiguration. Each
+        // record here names a service through a pointer into this block.
+        fixed (byte* pinned = buffer)
         {
-            return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
-        }
+            if (!PInvoke.EnumDependentServices(
+                    service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL,
+                    new Span<byte>(pinned, buffer.Length), out _, out var returned))
+            {
+                return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
+            }
 
-        var names = ManagerBlocks.ReadDependentNames(buffer, returned);
+            names = ManagerBlocks.ReadDependentNames(buffer, returned);
+        }
 
         return names.Count == 0
             ? Reading<IReadOnlyList<string>>.Absent()
@@ -239,7 +246,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
     // A list rather than a sequence, because the caller needs a count before it starts and an
     // index while it runs. It was already building one internally - the sequence was hiding
     // that behind a type that promised less than it delivered.
-    private static List<EnumeratedEntry> Enumerate(SafeHandle manager)
+    private static unsafe List<EnumeratedEntry> Enumerate(SafeHandle manager)
     {
         uint resume = 0;
         var results = new List<EnumeratedEntry>(capacity: 1024);
@@ -290,19 +297,26 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
             }
 
             var buffer = new byte[needed];
-            var read = PInvoke.EnumServicesStatusEx(
-                manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
-                ENUM_SERVICE_STATE.SERVICE_STATE_ALL, buffer,
-                out _, out var returned, ref resume, null!);
 
-            var error = Marshal.GetLastWin32Error();
-
-            if (!read && error != (int)WIN32_ERROR.ERROR_MORE_DATA)
+            // Pinned across the call and the reading, for the reason set out in full at
+            // ReadConfiguration: each record here carries two absolute pointers into this very
+            // block, and the array is free to move the instant the interop wrapper returns.
+            fixed (byte* pinned = buffer)
             {
-                throw new Win32Exception(error, "Enumerating the service control manager failed.");
-            }
+                var read = PInvoke.EnumServicesStatusEx(
+                    manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
+                    ENUM_SERVICE_STATE.SERVICE_STATE_ALL, new Span<byte>(pinned, buffer.Length),
+                    out _, out var returned, ref resume, null!);
 
-            results.AddRange(ManagerBlocks.ReadEnumerationBuffer(buffer, returned));
+                var error = Marshal.GetLastWin32Error();
+
+                if (!read && error != (int)WIN32_ERROR.ERROR_MORE_DATA)
+                {
+                    throw new Win32Exception(error, "Enumerating the service control manager failed.");
+                }
+
+                results.AddRange(ManagerBlocks.ReadEnumerationBuffer(buffer, returned));
+            }
 
             // A resume handle of zero means the manager has nothing left to hand over.
             if (resume == 0)
@@ -367,7 +381,7 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         };
     }
 
-    private static ScmConfiguration ReadConfiguration(
+    private static unsafe ScmConfiguration ReadConfiguration(
         SafeHandle manager, EnumeratedEntry enumerated, NetworkPaths networkPaths)
     {
         // SERVICE_QUERY_CONFIG alone, and adding READ_CONTROL here would be the quiet
@@ -389,13 +403,32 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         }
 
         var buffer = new byte[needed];
+        ScmConfiguration configuration;
 
-        if (!PInvoke.QueryServiceConfig(service, buffer, out _))
+        // PINNED ACROSS THE CALL AND THE READING, NOT ONLY ACROSS THE CALL, and this is the whole
+        // of backlog 297. The interop wrapper pins for exactly as long as the native call runs -
+        // Windows.Win32.PInvoke.ADVAPI32.dll.g.cs puts its `fixed` INSIDE the method - so the array
+        // is loose again the moment it returns. The structure the manager wrote into it carries
+        // ABSOLUTE POINTERS into that same array, taken at the moment of the call, and the reading
+        // below follows them. A collection between the two moves the bytes to a new address and
+        // leaves those pointers aimed at where the array used to be.
+        //
+        // What that costs is the thing this whole file is careful about: an account or a launch
+        // path read from freed memory is either an access violation, which ends the process on
+        // somebody's server without a word, or worse - plausible rubbish in an audit.
+        //
+        // THE SPAN IS BUILT FROM THE PINNED POINTER RATHER THAN FROM THE ARRAY on purpose. Passing
+        // `buffer` would work identically, and would leave nothing on the page saying why the block
+        // exists - the next person would see a `fixed` whose variable nobody uses and take it out.
+        fixed (byte* pinned = buffer)
         {
-            return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
-        }
+            if (!PInvoke.QueryServiceConfig(service, new Span<byte>(pinned, buffer.Length), out _))
+            {
+                return ScmConfiguration.Refused(Marshal.GetLastWin32Error());
+            }
 
-        var configuration = ReadConfigurationBuffer(buffer);
+            configuration = ManagerBlocks.ReadConfigurationBuffer(buffer);
+        }
 
         var withOwnCalls = configuration with
         {
@@ -411,74 +444,6 @@ public sealed class WindowsScmCatalog(NetworkPaths networkPaths = NetworkPaths.S
         };
 
         return withOwnCalls.WithBinary(enumerated, WindowsDirectory, networkPaths);
-    }
-
-    /// <remarks>
-    /// The size is checked before the cast, and it was not until 2026-08-03. The manager reports
-    /// how much room it wants and this asks for exactly that, so a buffer too small for the
-    /// structure cannot happen - which is a fact about the manager rather than about this code,
-    /// and it was nowhere written down. Owner's decision, 2026-08-03: the three places in this
-    /// project that read a reported size now check it, because the tool runs elevated on
-    /// production servers and a memory fault there is indistinguishable from a bug of ours.
-    /// </remarks>
-    private static unsafe ScmConfiguration ReadConfigurationBuffer(byte[] buffer)
-    {
-        if (buffer.Length < sizeof(QUERY_SERVICE_CONFIGW))
-        {
-            return ScmConfiguration.Refused((int)WIN32_ERROR.ERROR_INVALID_DATA);
-        }
-
-        fixed (byte* start = buffer)
-        {
-            var configuration = *(QUERY_SERVICE_CONFIGW*)start;
-
-            var account = configuration.lpServiceStartName.ToString();
-            var dependencies = ManagerBlocks.ReadMultiString(
-                configuration.lpDependencies, start, buffer.Length);
-            var binaryPath = configuration.lpBinaryPathName.ToString();
-            var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
-
-            return new ScmConfiguration(
-                StartType: Reading<StartType>.Present(ManagerTerms.StartType(configuration.dwStartType)),
-                DelayedAuto: Reading<bool>.Absent(),
-                Account: string.IsNullOrEmpty(account)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(account),
-
-                // Declaring nothing is ordinary rather than missing information: 129 of 339
-                // services on the machine this was measured on declare no dependency at all.
-                DependsOn: dependencies.Count == 0
-                    ? Reading<IReadOnlyList<string>>.Absent()
-                    : Reading<IReadOnlyList<string>>.Present(dependencies),
-
-                // Filled in by its own call. Not read yet is the honest state here, not absent.
-                Triggers: Reading<IReadOnlyList<ServiceTrigger>>.NotRead(),
-
-                // 29 of 825 entries name nothing at all, all of them drivers, and for those
-                // the manager applies a default of its own. Absent says that, and the file
-                // question is answered from the default rather than left blank.
-                BinaryPath: string.IsNullOrWhiteSpace(binaryPath)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(binaryPath),
-
-                // Both worked out from the value above, once it is known which entry it is.
-                BinaryFile: Reading<string>.NotRead(),
-                BinaryOnDisk: Reading<bool>.NotRead(),
-
-                // Three more levels of the same call as the triggers, filled in by their own
-                // calls for the same reason: this buffer holds none of them.
-                RequiredPrivileges: Reading<IReadOnlyList<string>>.NotRead(),
-                SidType: Reading<ServiceSidType>.NotRead(),
-                Description: Reading<string>.NotRead(),
-
-                ErrorControl: Reading<ErrorControl>.Present(ManagerTerms.ErrorControl(configuration.dwErrorControl)),
-
-                // Most entries belong to no group, which is a fact about them rather than
-                // something we failed to read.
-                LoadOrderGroup: string.IsNullOrEmpty(loadOrderGroup)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(loadOrderGroup));
-        }
     }
 
 
