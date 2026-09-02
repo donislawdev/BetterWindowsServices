@@ -136,7 +136,7 @@ public sealed class AppearanceGuards
     private static readonly string[] StyleFiles =
     [
             "Text.xaml", "Overview.xaml", "Chips.xaml",
-            "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+            "Controls.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
         ];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>

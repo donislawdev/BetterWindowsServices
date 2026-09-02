@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -297,6 +300,117 @@ public sealed class PlanViewGuards
     /// <b>The reading happens before the model reaches the window</b>, so nothing is read while
     /// bindings are live - the same order <see cref="SelectionGuards"/> uses and for the same reason.
     /// </summary>
+    /// <summary>
+    /// Every word this panel puts on screen can actually be read on the surface it is drawn on.
+    ///
+    /// <b>WRITTEN 2026-09-02 BECAUSE THE PANEL SHIPPED WITH BLACK TEXT ON GREY AND EVERY GUARD IN
+    /// THIS PROJECT WAS SATISFIED.</b> Two of its data templates named a face and a size and no
+    /// Foreground, so the framework's default arrived instead - which is black. Against the panel's
+    /// own #343434 that is a ratio of 1.69 where WCAG asks 4.5, and it covered the warnings, the
+    /// refusals, the failures and the command somebody is meant to copy.
+    ///
+    /// <b>WHY NOTHING CAUGHT IT, WHICH IS THE PART WORTH KEEPING.</b> AppearanceGuards refuses a
+    /// theme TextBlock STYLE that names no colour - and a DataTemplate is not a style. ContrastGuards
+    /// measures every declared brush against the WINDOW - and a panel is lighter than the window, so
+    /// those numbers are optimistic here and say nothing at all about a colour nobody declared. Both
+    /// guards were right about what they check and neither could see this.
+    ///
+    /// <b>SO THIS ASKS THE BUILT PANEL RATHER THAN THE MARKUP.</b> It walks what is actually on
+    /// screen and reads the Foreground each TextBlock ENDED UP with, whether that came from a style,
+    /// a setter, a trigger or an inherited value - which is the only form of the question that
+    /// cannot be answered correctly and still be wrong.
+    /// </summary>
+    [Fact]
+    public async Task Every_word_on_the_panel_can_be_read_on_the_surface_it_is_drawn_on()
+    {
+        var window = await Ready();
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        var (thin, read) = WpfHost.On(() =>
+        {
+            // ARRANGED, OR THIS GUARD CHECKS NOTHING - and the first version of it did not, which
+            // was caught by taking the colour back out and watching it stay green. An ItemsControl
+            // builds no containers until a layout pass runs, so every sentence and every command
+            // this test exists for simply was not in the tree yet.
+            window.Width = 1100;
+            window.Height = 700;
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+            window.UpdateLayout();
+
+            var surface = ((SolidColorBrush)WpfHost.Resources["SurfacePanel"]).Color;
+            var found = new List<TextBlock>();
+            Collect(window.PlanPanel, found);
+
+            var words = found.Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToList();
+
+            return (words
+                .Select(text => (text.Text, Ratio(Ink(text), surface)))
+                .Where(pair => pair.Item2 < 4.5)
+                .Select(pair => string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{pair.Item2:F2}  {pair.Text}"))
+                .ToList(), words.Count);
+        });
+
+        // A GUARD SATISFIED BY ABSENCE IS SATISFIED FOR AS LONG AS NOBODY BUILDS ANYTHING, and this
+        // project has that lesson written in three other files. The panel shows a title, a name, a
+        // state, a heading and a step at the very least.
+        Assert.True(read >= 5, $"Only {read} lines were found on the panel, so nothing was measured.");
+
+        Assert.True(
+            thin.Count == 0,
+            "These lines are drawn on the plan panel at less than the 4.5 WCAG 2.2 SC 1.4.3 asks of "
+            + "text. A TextBlock that names no Foreground gets the framework's default, which is "
+            + "black, and black on this surface measures 1.69:"
+            + Environment.NewLine + string.Join(Environment.NewLine, thin));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>The colour a TextBlock ended up with, however it got there.</summary>
+    private static Color Ink(TextBlock text) =>
+        text.Foreground is SolidColorBrush brush ? brush.Color : Colors.Black;
+
+    /// <summary>Every TextBlock under something, including the ones a template built.</summary>
+    private static void Collect(DependencyObject from, List<TextBlock> into)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(from); i++)
+        {
+            var child = VisualTreeHelper.GetChild(from, i);
+
+            if (child is TextBlock text)
+            {
+                into.Add(text);
+            }
+
+            Collect(child, into);
+        }
+    }
+
+    /// <summary>WCAG 2.2 relative luminance, the same arithmetic ContrastGuards uses.</summary>
+    private static double Ratio(Color ink, Color surface)
+    {
+        var one = Luminance(ink);
+        var other = Luminance(surface);
+
+        return (Math.Max(one, other) + 0.05) / (Math.Min(one, other) + 0.05);
+    }
+
+    private static double Luminance(Color colour) =>
+        (0.2126 * Channel(colour.R)) + (0.7152 * Channel(colour.G)) + (0.0722 * Channel(colour.B));
+
+    private static double Channel(byte value)
+    {
+        var part = value / 255.0;
+
+        return part <= 0.04045 ? part / 12.92 : Math.Pow((part + 0.055) / 1.055, 2.4);
+    }
+
     private static async Task<MainWindow> Ready()
     {
         var machine = new LiveMachine(

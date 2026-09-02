@@ -198,6 +198,7 @@
                 -->
                 <RadioButton Style="{StaticResource ScopePosition}"
                              Content="{Binding Label}"
+                             ToolTip="{Binding Hint}"
                              IsChecked="{Binding IsOn, Mode=TwoWay}" />
             </DataTemplate>
         </ItemsControl.ItemTemplate>

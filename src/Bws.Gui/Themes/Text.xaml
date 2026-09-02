@@ -103,15 +103,32 @@
         reading: five headings and the title were all TextSizeHeading, so nothing was the top of
         anything.
 
-        TextSizeHeader rather than TextSizeNormal because 14 is the floor for semibold text in
-        the guidance TypeScaleGuards holds, and a section heading in a wall of sentences has to
-        be seen without being read.
+        IT WAS 14 SEMIBOLD IN WHITE UNTIL 2026-09-02, AND THE OWNER'S WORDS ABOUT THE PANEL WERE
+        THAT IT IS HARD TO UNDERSTAND AND THAT NOTHING IS VISIBLE IN IT. Both halves came from
+        here. A panel 380 wide had four to six of these down it, each the loudest thing in its
+        block - so the eye stopped on "In this order", "Worth knowing" and "The same thing from a
+        terminal" and slid off everything under them. **The labels were louder than the answer.**
+
+        WHAT REPLACED THE WEIGHT IS A SHAPE, WHICH IS WHY THE WEIGHT COULD GO. Since the same day
+        the block that matters carries a rule down its left side - Themes/Plan.xaml - so "this is a
+        section" is said by the shape and no longer needs to be said by the type as well. A label
+        that has to be seen without being read only has to be FOUND, and position finds it.
+
+        TWELVE FOR ONE BUILD AND THIRTEEN AFTER THE OWNER READ IT. Giving up the weight was right
+        and giving up the size as well was one step too far: TextSubdued on this panel's own surface
+        measures **4.76**, not the 6.23 it measures against the window, because a panel is lighter
+        than the window it sits on - and 4.76 at twelve points is technically over the line and thin
+        to read. Thirteen keeps the whole distinction on COLOUR, which is the axis that stays
+        legible: 4.76 against 12.45 for the content beside it.
+
+        WHAT THIS MEANS FOR EVERY OTHER PANEL TEXT, and it is the finding rather than the fix: every
+        ratio in ContrastGuards is measured against the WINDOW. Text on a panel sits on something
+        lighter, so every one of those numbers is optimistic there.
     -->
     <Style x:Key="SectionHeadingText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
     </Style>
 
     <!--
@@ -131,9 +148,38 @@
         it is the only line between the title and the sections. Weight is what it gives up, because
         weight is now the only thing that says "this is a section label".
     -->
-    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
+    <!--
+        THE PLAN PANEL'S OWN TITLE, 2026-09-02, AND IT IS SMALLER THAN THE SCREEN TITLE ON PURPOSE.
+        HeadingText is 18 and right for a screen somebody is standing in front of. This is a column
+        440 points wide holding a SENTENCE - "What stopping Adobe Acrobat Update Service would do" -
+        and a sentence at 18 in that column is two lines and ninety device pixels of a panel five
+        hundred tall. Measured the day the owner said the panel is hard to understand: the head was
+        a third of it and the body a half.
+
+        WHAT IT DOES NOT FIX, SAID HERE RATHER THAN LEFT TO LOOK SOLVED. The head still says one
+        thing three times - the title asks what would happen, the notice answers that nothing has,
+        and the name repeats what the title already named. That is wording rather than type, it
+        needs an imperative form of every operation this product knows, and it is its own row of the
+        backlog.
+    -->
+    <Style x:Key="PlanTitleText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        THIRTEEN SINCE 2026-09-02, DOWN FROM 14. This line sits in the FIXED head of the panel, so
+        every point it takes is a point the scrolling body never gets - measured that day: head 179
+        device pixels of 532, and a third of the head is this sentence over two lines. It is still
+        separated from the body by weight in the other direction (the body's own steps are 13
+        subdued unless somebody asked for them) and by position, which is what the note above says
+        was doing the work all along.
+    -->
+    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
         <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
     </Style>
 

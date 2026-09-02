@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:windows="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <!--
         The scale this product is built on - how big a gap is, how big a letter is, what shape a
@@ -113,28 +114,30 @@
     -->
     <Thickness x:Key="MarginAfterNumber">0,0,8,0</Thickness>
 
+    <!-- A gravestone, cut 2026-09-02 from twenty-three lines of history attached to no value.
+         The fact worth keeping: **WPF has no TextBlock.MaxLines**, so a line cap has to be a
+         height AND an explicit line box. Backlog 192 is open again. -->
+
     <!--
-        REMOVED 2026-09-01, THE DAY AFTER IT ARRIVED, AND THE COMMENT STAYS FOR ONE SENTENCE OF IT.
-        The owner looked at a chosen row grown to four lines and said it looked bad, which is a
-        verdict nothing here can compute. What is worth keeping is the FACT the next attempt would
-        otherwise pay for again, and it is this: WPF has no TextBlock.MaxLines - that property
-        belongs to WinUI - so a line cap has to be a height, and a height is only a line count if
-        the line box is set as well. Both values are gone with the trigger that used them.
-        The measurement behind "four" is beside CellProse in Cells.xaml. Backlog 192 is open again.
-
-        The original note follows.
-
-        HOW TALL A CHOSEN ROW LETS ITS DESCRIPTION GROW, AS FOUR LINES OF EIGHTEEN.
-
-        A HEIGHT RATHER THAN A LINE COUNT, AND THAT IS WPF RATHER THAN A CHOICE. TextBlock.MaxLines
-        exists in WinUI and does not exist here - the compiler said so on 2026-09-01, which is the
-        cheapest possible way to find out and is written down so the next session does not spend a
-        build on it. So the line box is set explicitly and the cap is four of them, which makes
-        "four lines" true by arithmetic rather than by an assumption about what Segoe UI does at
-        thirteen points.
-
-        The argument for FOUR, with the measurement it came from, is beside CellProse below.
+        THE NARROWEST A CARD ON THE FIRST SCREEN MAY GET BEFORE THE ROW WRAPS - backlog 277, read
+        off the screen that works. At the default the cards come out about 340 and every label sits
+        on one or two lines. At 1000 by 800 they were 275 device pixels with labels five lines deep.
     -->
+    <system:Double x:Key="WidthOverviewCardLeast">300</system:Double>
+
+    <!--
+        HOW SMALL THIS WINDOW MAY BE MADE - backlog 278, both numbers measured. At 1000 by 800 the
+        plan panel cut its own PRIMARY ACTION in half: its rows are Auto, Auto, star, Auto, and a
+        Grid whose Auto rows want more than there is clips from the BOTTOM. 640 is where the seven
+        actions stop being cut. The rejected alternative is in `docs/11` part 3.10.
+
+        THE HEIGHT WAS 600 FOR ONE BUILD AND THE PHOTOGRAPH RAISED IT. The arithmetic forgot the
+        block the steps now sit in, which spends 30 on its own margin and padding - so the button
+        was there and the body was 53 points of nothing with a stray rule in it. Read off the
+        picture: heading plus one step plus that chrome is 91, so 600 was 38 short.
+    -->
+    <system:Double x:Key="HeightWindowLeast">640</system:Double>
+    <system:Double x:Key="WidthWindowLeast">640</system:Double>
 
     <!--
         The mark for an entry running against its start type - backlog 165. A triangle rather than a
@@ -238,27 +241,30 @@
     <Thickness x:Key="PadChip">12,3,12,3</Thickness>
 
     <!--
-        Inside the one button this product draws itself. Chosen to land on the same height as the
-        library's buttons beside it - measured at 48 device pixels - because a primary action that
-        is also a different SIZE from its neighbours reads as a control from another window rather
-        than as the important one in this row.
+        Inside the one button this product draws itself. It WAS 14,6 so the box would land on the
+        library button's 48 device pixels, and the owner asked on 2026-09-01 for the elevate button
+        to be smaller. Matching the neighbours' box was buying nothing here: a primary action is
+        told apart by its fill, and this one never stands beside them anyway.
     -->
-    <Thickness x:Key="PadButton">14,6,14,6</Thickness>
+    <Thickness x:Key="PadButton">10,4,10,4</Thickness>
 
     <!--
-        THE SCROLLBAR, AND BOTH NUMBERS COME FROM A MEASUREMENT RATHER THAN FROM TASTE. Scanned off
-        a capture of the real window on 2026-09-01: the thumb the control library draws is FIVE BY
-        THIRTEEN device pixels, which is about three by nine logical. WCAG 2.2 SC 2.5.8 puts the
-        minimum target at 24 by 24. The owner's words were that it is hard to catch, and it is about
-        a twentieth of the minimum.
-
-        TWELVE WIDE, AND THE LENGTH IS NOT OURS TO SET. Four measured attempts at a floor under the
-        thumb all came back at the same 19 device pixels, because Track computes the length while
-        arranging and overwrites anything it was given - the account is beside the style in
-        Controls.xaml and in `docs/10` trap 17. So this value buys the ACROSS of the target and
-        nothing of the along.
+        THE SCROLLBAR. Scanned off a capture of the real window on 2026-09-01: the thumb the control
+        library draws is FIVE BY THIRTEEN device pixels, about three by nine logical, against the 24
+        by 24 WCAG 2.2 SC 2.5.8 asks of a target. The owner's words were that it is hard to catch.
     -->
     <system:Double x:Key="WidthScrollBar">12</system:Double>
+
+    <!--
+        AND THE LENGTH IS OURS AFTER ALL, OVERTURNING A DEFEAT WRITTEN HERE ON 2026-09-01. Track
+        floors it at HALF a number it looks up as a RESOURCE, so the floor is that key and nothing
+        else. Five attempts missed it, the fifth being MinHeight on the Thumb - that reaches the
+        ARRANGED size, not the computed one, so a bar built in a test read 44 while the real list
+        drew 13. Eighty-eight for a floor of 44, and ButtonGuards ties the two numbers together.
+    -->
+    <system:Double x:Key="LengthScrollThumbLeast">44</system:Double>
+    <system:Double x:Key="{x:Static windows:SystemParameters.VerticalScrollBarButtonHeightKey}">88</system:Double>
+    <system:Double x:Key="{x:Static windows:SystemParameters.HorizontalScrollBarButtonWidthKey}">88</system:Double>
 
     <!-- The thumb sits inside its bar rather than filling it, so the grip reads as a grip. -->
     <Thickness x:Key="MarginScrollThumb">2</Thickness>

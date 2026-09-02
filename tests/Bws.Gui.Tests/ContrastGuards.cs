@@ -85,6 +85,15 @@ public sealed class ContrastGuards
         ["SurfacePrimaryAction"] = ForState,
         ["SurfaceChipEdge"] = ForState,
 
+        // THE SAME BUTTON UNDER THE POINTER AND UNDER THE FINGER, 2026-09-02. Ours at 1.5, the same
+        // floor and the same argument as SurfaceHover above: SC 1.4.11 covers what IDENTIFIES a
+        // component, and the button was identified by the fill it has at rest - which answers to
+        // 3.0 on the line above and clears it. These two only have to be TELLABLE from that rest
+        // fill, which is a smaller job, and they are darker rather than lighter so white on them
+        // gets easier at every step: 5.07 at rest, 6.06 hovering, 7.17 pressed.
+        ["SurfacePrimaryActionHover"] = 1.5,
+        ["SurfacePrimaryActionPressed"] = 1.5,
+
         // WCAG 2.2 SC 1.4.11 again, and THE NUMBER HERE IS THE WEAKER OF THE TWO CHECKS IT GETS.
         // The test below this table measures it against the window, where it comes out at 11.21
         // and clears anything - which would be a guard passing for the wrong reason, because a

@@ -244,7 +244,7 @@ internal static class WpfHost
                  {
                      "Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
                      "Text.xaml", "Overview.xaml", "Chips.xaml",
-                     "Controls.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+                     "Controls.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
                  })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));

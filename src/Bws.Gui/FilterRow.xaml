@@ -99,7 +99,7 @@
         <ToggleButton Grid.Column="0"
                       x:Name="FiltersToggle"
                       AutomationProperties.AutomationId="filtersToggle"
-                      Content="{DynamicResource gui.filter.toggle}"
+                      AutomationProperties.Name="{DynamicResource gui.filter.toggle}"
                       ToolTip="{DynamicResource gui.filter.toggle.hint}"
                       Margin="{StaticResource MarginBetweenControls}"
                       VerticalAlignment="Top"
@@ -108,13 +108,31 @@
                 <Style TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
                     <Style.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
-                            <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
-                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                            <Setter Property="Background" Value="{DynamicResource ToggleButtonBackground}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForeground}" />
                         </Trigger>
                     </Style.Triggers>
                 </Style>
             </ToggleButton.Style>
+
+            <!--
+                AutomationProperties.Name IS ABOVE BECAUSE THE CONTENT STOPPED BEING A STRING. A
+                ContentControl handed a panel has no name of its own, so without that line the one
+                control folding this whole row away goes into the tree unnamed - and the three
+                instruments that find controls by identity would still see the id and report a
+                nameless button, which reads like a fault somewhere else.
+
+                The three brushes above are the library's OWN unchecked values, read off
+                DefaultToggleButtonStyle rather than guessed: this row does not want a checked LOOK
+                at all any more, and saying so by naming what unchecked wears is the one way that
+                cannot drift from it.
+            -->
+            <StackPanel Orientation="Horizontal">
+                <Path Style="{StaticResource FilterDisclosure}" />
+
+                <TextBlock Text="{DynamicResource gui.filter.toggle}" VerticalAlignment="Center" />
+            </StackPanel>
         </ToggleButton>
 
         <ItemsControl Grid.Column="1"
@@ -198,11 +216,24 @@
             from the sentences the window says about the answer, and it does that by identity. This
             is the fourth time that lesson has been paid for in this row.
         -->
+        <!--
+            VerticalAlignment SINCE 2026-09-02, AND WITHOUT IT THESE TWO WERE ON DIFFERENT LINES
+            WHILE SITTING IN THE SAME GRID ROW. Show every instance carried Top and this did not, so
+            the library's own Center took over - and a row four chips deep centres a control 70
+            points below its neighbour. Measured off `layout-baseline.json`: 185 against 255, with
+            their right edges 125 apart as well. The owner's words were that they look randomly
+            placed, and two controls of the same family at two heights and two right edges are
+            exactly that.
+
+            THE PAIR IS RIGHT ALIGNED AS A PAIR: this one sits on the window's content edge and
+            Show every instance sits against it, eight points away, both on the first chip row.
+        -->
         <Button Grid.Column="3"
                 x:Name="ColumnsButton"
                 AutomationProperties.AutomationId="columnsButton"
                 Content="{DynamicResource gui.columns.button}"
                 ToolTip="{DynamicResource gui.columns.hint}"
+                VerticalAlignment="Top"
                 Click="ChooseColumns">
             <Button.ContextMenu>
                 <!--

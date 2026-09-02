@@ -219,4 +219,44 @@
             </ItemsControl>
         </StackPanel>
     </DataTemplate>
+
+    <!--
+        THE MARK ON THE CONTROL THAT FOLDS THIS ROW AWAY, 2026-09-02, and it is here rather than in
+        Controls.xaml because what it belongs to is this row.
+
+        WHAT IT REPLACES AND WHY THE REPLACEMENT IS A SHAPE. The Filters button said whether the row
+        was open by wearing a DIFFERENT FILL when it was - and the fill it wore measured 1.31 against
+        the window with an edge at 1.84, which `docs/11` already records as the ratio at which you
+        cannot tell "the colour is not arriving" from "the colour arrives and nobody sees it". The
+        owner's words were that it looks like a random element. It was the least visible control in
+        the window, carrying the state of the largest block in it.
+
+        So the state moves off the fill and onto a triangle, and the button goes back to looking
+        exactly like Columns and Show every instance - the two beside it that also change what the
+        LIST shows rather than what the query asks.
+
+        A Path RATHER THAN A GLYPH, AND BOTH REASONS ARE MEASURED ONES FROM THIS PROJECT. A
+        character would need a font that carries it on Windows Server, which is a dependency nobody
+        would notice failing until the window was on one - and a TextBlock in CONTENT gets an
+        automation node of its own, which is trap 16 seen from the other side: sixteen texts
+        appeared in the tree the last time this product put one there. A Shape gets no peer, so the
+        button keeps one name and the tree keeps one node.
+
+        THE FILL FOLLOWS THE BUTTON'S OWN FOREGROUND rather than naming a brush, so the mark can
+        never be the one part of the control that does not answer to hover or to being disabled.
+    -->
+    <Style x:Key="FilterDisclosure" TargetType="Path">
+        <Setter Property="Fill"
+                Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+        <Setter Property="Data" Value="M 0,0 L 8,0 L 4,5 Z" />
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                         Value="False">
+                <Setter Property="Data" Value="M 0,0 L 5,4 L 0,8 Z" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

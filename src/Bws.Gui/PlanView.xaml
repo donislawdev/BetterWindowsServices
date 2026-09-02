@@ -3,26 +3,24 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Focusable="False"
              IsTabStop="False"
-             Width="380">
+             Width="440">
 
     <!--
         WHAT AN OPERATION OVER THE SELECTION WOULD DO - the window's dry run, packet 2 of `S7`.
 
-        A UserControl in its own file, for the criterion written down when the details panel met the
-        same question: a theme file describes the look of ONE CONTROL, and a part of the window lives
-        in its own file beside MainWindow.xaml. It declares no style of its own - every face below is
-        one this window already had - so it asks the theme for no room at all.
+        A UserControl in its own file, for the criterion the details panel established: a theme file
+        describes the look of ONE CONTROL, and a part of the window lives beside MainWindow.xaml.
 
-        IT SHARES ITS COLUMN WITH THE DETAILS PANEL AND THE TWO ARE MUTUALLY EXCLUSIVE, which is a
-        decision rather than a saving: one is opened by Enter on a row and this by a verb over a
-        selection, so neither is ever what somebody is looking at while the other is.
+        IT SHARES ITS COLUMN WITH THE DETAILS PANEL AND THE TWO ARE MUTUALLY EXCLUSIVE - one is
+        opened by Enter on a row and this by a verb over a selection, so neither is ever what
+        somebody is looking at while the other is.
 
         Focusable and IsTabStop are off because a UserControl is a ContentControl and arrives with
-        both - `docs/10` trap 8, measured on this product. Hit testing stays ON, unlike the empty
-        state, because this panel holds a button somebody has to be able to press.
+        both - `docs/10` trap 8. Hit testing stays ON, unlike the empty state, because this panel
+        holds a button somebody has to press.
 
-        Width is a number here for the reason DetailsView gives for the same line, and moves into the
-        theme with that panel on the day backlog 173 gives the values file room.
+        WIDTH WENT 380 TO 440 ON 2026-09-02: everything in it wrapped. It is a number here for the
+        reason DetailsView gives, and moves into the theme with that panel at backlog 173.
     -->
 
     <UserControl.Style>
@@ -43,48 +41,15 @@
 
     <UserControl.Resources>
         <!--
-            ONE STEP. The number is part of the sentence rather than a column, because a plan is read
-            as prose - "3. stop Netlogon (would break otherwise)" - and a person counting steps wants
-            to see where they are in the order.
+            THE THREE TEMPLATES THAT WERE HERE WENT TO Themes/Plan.xaml ON 2026-09-02, and the
+            ratchet is what asked: this file stood EXACTLY on the 376-line ceiling, so the redesign
+            the owner asked for could not add a line until something came out. What went is what a
+            step, a sentence and a command LOOK like. What stays is what this panel IS.
 
-            WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
-            plan warns that stopping three drags seven along, so the seven have to be findable at a
-            glance. Subdued goes to the ones nobody asked for, which is the right way round.
+            The converter cannot follow them, and that is a rule rather than an oversight: a styles
+            file may hold a Style or a DataTemplate and nothing else, so a value declared there is
+            one nobody reading the value files would find. AppearanceGuards holds that whitelist.
         -->
-        <DataTemplate x:Key="PlanLineTemplate">
-            <TextBlock Text="{Binding Text}"
-                       TextWrapping="Wrap"
-                       Margin="{StaticResource MarginBetweenControls}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource PlanStepText}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Asked}" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-        </DataTemplate>
-
-        <!-- One sentence in a list of them: a warning, a refusal, or a command to paste. -->
-        <DataTemplate x:Key="PlanSentenceTemplate">
-            <TextBlock Text="{Binding}"
-                       TextWrapping="Wrap"
-                       Margin="{StaticResource MarginBetweenControls}" />
-        </DataTemplate>
-
-        <!--
-            A COMMAND LINE, IN THE FIXED WIDTH FACE. `docs/03` part 4 asks for it wherever two
-            different things must not be able to look the same, and a command somebody is about to
-            paste into a terminal is exactly that - one wrong character is a different service.
-        -->
-        <DataTemplate x:Key="PlanCommandTemplate">
-            <TextBlock Text="{Binding}"
-                       TextWrapping="Wrap"
-                       FontFamily="{StaticResource TextFaceFixed}"
-                       Margin="{StaticResource MarginBetweenControls}" />
-        </DataTemplate>
         <!-- One converter for six sections, and it is the framework's own. -->
         <BooleanToVisibilityConverter x:Key="WhenTrue" />
     </UserControl.Resources>
@@ -126,30 +91,49 @@
                                AutomationProperties.AutomationId="planHeading"
                                Text="{Binding Heading}"
                                TextWrapping="Wrap"
-                               Style="{StaticResource HeadingText}" />
+                               Style="{StaticResource PlanTitleText}" />
 
+                    <!--
+                        THE MANAGER'S OWN NAME IN THE FIXED FACE SINCE 2026-09-02: this is the
+                        string somebody TYPES, so one wrong character is a different service - the
+                        argument the command block at the foot of this panel already won. It was
+                        SubduedText, twelve points of grey measuring 4.76 on this panel's own
+                        surface, so the one name `ADR-14` says anybody can act on was the smallest
+                        and faintest thing here.
+                    -->
                     <TextBlock x:Name="PlanSubtitle"
+                               Margin="{StaticResource MarginTileLabel}"
                                AutomationProperties.AutomationId="planSubtitle"
                                Text="{Binding Subtitle}"
                                TextTrimming="CharacterEllipsis"
                                ToolTip="{Binding Subtitle}"
                                Visibility="{Binding HasSubtitle, Converter={StaticResource WhenTrue}}"
-                               Style="{StaticResource SubduedText}" />
+                               Style="{StaticResource FixedText}" />
                 </StackPanel>
 
                 <!--
-                    The visible way out, beside Escape which is the fast one. Nielsen's third
-                    heuristic, which this product's own review names as its weakest.
+                    The visible way out, beside Escape which is the fast one - Nielsen's third
+                    heuristic. Why it is a mark rather than the word is beside PlanClose in
+                    Themes/Plan.xaml, with the measurement.
+
+                    IT KEEPS ITS NAME BY BEING GIVEN ONE: a button whose content is a shape has no
+                    text to take a name from, and three instruments read that tree by name.
                 -->
                 <Button Grid.Column="1"
+                        Style="{StaticResource PlanClose}"
                         AutomationProperties.AutomationId="planClose"
-                        Content="{DynamicResource gui.plan.close}"
+                        AutomationProperties.Name="{DynamicResource gui.plan.close}"
                         ToolTip="{DynamicResource gui.plan.close.hint}"
                         VerticalAlignment="Top"
                         Click="CloseRequested" />
             </Grid>
 
-            <StackPanel Grid.Row="1">
+            <!--
+                A GAP UNDER THIS BLOCK SINCE 2026-09-02: without one the state sentence sat ON the
+                rule dividing head from body. That rule belongs to the body's Border, which pads
+                INSIDE itself, so the air above it has to come from here.
+            -->
+            <StackPanel Grid.Row="1" Margin="{StaticResource MarginBelowSearch}">
                 <!--
                     WHERE THIS PANEL IS IN THE ONLY SEQUENCE IT HAS, AND IT IS STILL THE MOST
                     IMPORTANT LINE IN IT. A list of steps reads as a report of something done in
@@ -171,13 +155,10 @@
             </StackPanel>
 
             <!--
-                THE LINE ABOVE THE SCROLLING HALF, 2026-09-01, and it is the repair for what the
-                owner called things running into each other. Photographed: the last visible line of
-                the plan was cut through the middle by the edge of the scrolling region, with
-                nothing on screen saying an edge was there - so a half-drawn row of letters read as
-                two sentences overlapping. A rule turns the same pixels into "there is more below".
-
-                Scrolls vertically and never sideways, so a long command wraps rather than hides.
+                THE LINE ABOVE THE SCROLLING HALF, 2026-09-01, repairing what the owner called
+                things running into each other: the last visible line was cut through the middle by
+                the edge of the scrolling region with nothing saying an edge was there. A rule turns
+                the same pixels into "there is more below". Scrolls vertically and never sideways.
             -->
             <Border Grid.Row="2"
                     BorderBrush="{StaticResource SurfacePanelEdge}"
@@ -193,14 +174,24 @@
                         panel. The steps carry no such switch, because a plan with no steps never
                         opens this panel at all.
                     -->
-                    <TextBlock Text="{DynamicResource gui.plan.steps}"
-                               Margin="{StaticResource MarginSection}"
-                               Style="{StaticResource SectionHeadingText}" />
+                    <!--
+                        THE ONE BLOCK ON THIS PANEL THAT SAYS WHAT WOULD HAPPEN TO THE MACHINE, and
+                        since 2026-09-02 a block rather than a fourth paragraph. The heading moved
+                        INSIDE the rule with the steps, so the two are one object rather than a
+                        label pointing at a box. The block carries MarginSection now.
+                    -->
+                    <Border Style="{StaticResource PlanBlock}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource gui.plan.steps}"
+                                       Margin="{StaticResource MarginBelowSearch}"
+                                       Style="{StaticResource SectionHeadingText}" />
 
-                    <ItemsControl x:Name="StepList"
-                                  AutomationProperties.AutomationId="planSteps"
-                                  ItemsSource="{Binding Steps}"
-                                  ItemTemplate="{StaticResource PlanLineTemplate}" />
+                            <ItemsControl x:Name="StepList"
+                                          AutomationProperties.AutomationId="planSteps"
+                                          ItemsSource="{Binding Steps}"
+                                          ItemTemplate="{StaticResource PlanLineTemplate}" />
+                        </StackPanel>
+                    </Border>
 
                     <TextBlock AutomationProperties.AutomationId="planExtra"
                                Text="{Binding Extra}"
@@ -290,17 +281,15 @@
             </Border>
 
             <!--
-                THE FOOTER, AND THE RULE ABOVE IT IS WHY THE BUTTON STOPPED LOOKING ORPHANED. It sits
-                at the bottom of the panel rather than under the steps, which is right - `docs/11`
-                9.2 wants the effect shown before the ask, and a way to say yes that has to be
-                scrolled to is one somebody presses without reaching the end. What was missing was
-                anything joining it to the panel: with no fill and no rule it was a button floating
-                in the dark half a screen away from the plan it acts on.
+                THE FOOTER, AND THE RULE ABOVE IT IS WHY THE BUTTON STOPPED LOOKING ORPHANED. It
+                sits at the bottom rather than under the steps - `docs/11` 9.2 wants the effect
+                shown before the ask, and a way to say yes that has to be scrolled to is one
+                somebody presses without reaching the end.
 
-                INTERRUPT IS A SEPARATE BUTTON RATHER THAN THIS ONE CHANGING ITS WORD, and that is a
-                safety decision: a verb that changes under a finger turns a double click into an
-                instruction nobody gave. It appears to the LEFT, so the rectangle somebody aimed at
-                never becomes something else - it becomes disabled.
+                INTERRUPT IS A SEPARATE BUTTON RATHER THAN THIS ONE CHANGING ITS WORD, and that is
+                safety: a verb that changes under a finger turns a double click into an instruction
+                nobody gave. It appears to the LEFT, so the rectangle somebody aimed at never
+                becomes something else - it becomes disabled.
             -->
             <Border Grid.Row="3"
                     BorderBrush="{StaticResource SurfacePanelEdge}"
@@ -319,13 +308,24 @@
                     It only appears when something is in the way, so no empty line is ever reserved
                     for reassurance.
                 -->
-                <TextBlock x:Name="PlanBlocked"
-                           AutomationProperties.AutomationId="planBlocked"
-                           Text="{Binding Blocked}"
-                           TextWrapping="Wrap"
-                           Margin="{StaticResource MarginBelowSearch}"
-                           Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
-                           Style="{StaticResource NoticeText}" />
+                <!--
+                    A BLOCK WITH A WARNING-COLOURED RULE SINCE 2026-09-02, and the rule is all that
+                    is added: the sentence keeps its words, its colour and its own Visibility. Loose
+                    orange prose across a panel reads as damage, and this is not damage - it is the
+                    reason the button under it will refuse. THE BORDER REPEATS THE BINDING RATHER
+                    THAN TAKING IT: moving it up would leave the TextBlock permanently visible, and
+                    three guards read that exact property to say whether the window admits it
+                    cannot act.
+                -->
+                <Border Style="{StaticResource PlanBlockRefused}"
+                        Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}">
+                    <TextBlock x:Name="PlanBlocked"
+                               AutomationProperties.AutomationId="planBlocked"
+                               Text="{Binding Blocked}"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource NoticeText}" />
+                </Border>
 
                 <Grid>
                     <Grid.ColumnDefinitions>

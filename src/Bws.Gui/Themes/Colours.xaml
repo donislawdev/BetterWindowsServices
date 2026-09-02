@@ -173,6 +173,30 @@
     <SolidColorBrush x:Key="SurfacePrimaryAction">#1B72B8</SolidColorBrush>
 
     <!--
+        THE SAME BUTTON UNDER THE POINTER AND UNDER THE FINGER, 2026-09-01, AND BOTH EXIST BECAUSE
+        THE OWNER CALLED THE STATE THEY REPLACE UGLY. Hover was a WHITE border painted round the
+        accent - TextOnSurface on the template's Face - so pointing at the one saturated control in
+        the window put the brightest colour in the window round it, in a ring one point thick.
+
+        WHY DARKER RATHER THAN LIGHTER, AND IT IS ARITHMETIC RATHER THAN TASTE. White on #1B72B8
+        measures 5.07 and the text floor is 4.5, so the fill has almost no room to go UP: #1E7AC4
+        already drops it to 4.53 and #2A7FC4 fails at 4.26 - the search beside the base colour has
+        those numbers. Downwards there is no such wall, and every step makes the white text easier
+        rather than harder: 6.06 hovering and 7.17 pressed.
+
+        THE FLOOR EACH ANSWERS TO IS 1.5, THE SAME AS SurfaceHover, AND FOR THE SAME REASON WRITTEN
+        THERE. SC 1.4.11 covers a state needed to IDENTIFY a component, and a shade saying where the
+        pointer already is does not identify anything - the button was identified by the fill it has
+        at rest, which clears 3:1 on its own. They measure 2.69 and 2.27 against the window.
+
+        Both are the accent composited on the window at 85% and 72%, so they stay one family rather
+        than three blues: a hue shift between rest and pressed is what SurfaceSelected was doing
+        here before, and it read as a different control being pressed.
+    -->
+    <SolidColorBrush x:Key="SurfacePrimaryActionHover">#1C66A1</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfacePrimaryActionPressed">#1C5B8D</SolidColorBrush>
+
+    <!--
         THE ONLY THING IDENTIFYING A FILTER CHIP THAT IS OFF, from the same evening, and it answers
         to a higher ratio than any other edge in this file for exactly that reason.
 

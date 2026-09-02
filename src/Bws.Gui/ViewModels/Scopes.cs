@@ -49,10 +49,17 @@ public sealed class ScopeChoice : Observable
     private readonly Func<EntryScope> _read;
     private readonly Action<EntryScope> _write;
     private readonly string _labelKey;
+    private readonly string _hintKey;
 
-    internal ScopeChoice(string labelKey, EntryScope scope, Func<EntryScope> read, Action<EntryScope> write)
+    internal ScopeChoice(
+        string labelKey,
+        string hintKey,
+        EntryScope scope,
+        Func<EntryScope> read,
+        Action<EntryScope> write)
     {
         _labelKey = labelKey;
+        _hintKey = hintKey;
         _read = read;
         _write = write;
 
@@ -64,6 +71,26 @@ public sealed class ScopeChoice : Observable
 
     /// <summary>What the position says, in the language of whoever is reading it.</summary>
     public string Label => Texts.Of(_labelKey);
+
+    /// <summary>
+    /// What this position leaves out, which the word on it cannot say.
+    ///
+    /// <b>Backlog 273, and it was found by counting rather than by looking.</b> Of thirty controls
+    /// somebody can press or type into, twenty-seven carried a tooltip and these three did not: the
+    /// only one anywhere near them sits on the CONTAINER and says which list this is - a sentence
+    /// about the switch, not about the position under the pointer. "Services" on its own does not
+    /// say that drivers are excluded, and that is the one thing somebody searching for a driver
+    /// needs to know before they conclude it is missing.
+    ///
+    /// <b>Its own key, WRITTEN OUT, and the first attempt derived it from the label's instead.</b>
+    /// That version was shorter and TextKeyGuards went red on all three at once: a key assembled at
+    /// run time is a key no reader and no instrument can find, and that guard's entire worth is
+    /// that a string reaching a screen is written where somebody chose it. It has answered the same
+    /// question eight times by naming a shape rather than loosening a pattern, and this is the
+    /// ninth. Passing it in forces the same thing the derivation was for - a fourth position cannot
+    /// arrive with a word and no explanation.
+    /// </summary>
+    public string Hint => Texts.Of(_hintKey);
 
     /// <summary>
     /// Whether this is the position the window is on.
@@ -100,6 +127,7 @@ public sealed class ScopeChoice : Observable
     {
         Raise(nameof(IsOn));
         Raise(nameof(Label));
+        Raise(nameof(Hint));
     }
 }
 
@@ -194,14 +222,14 @@ public static class Scopes
         // SERVICES FIRST BECAUSE IT IS WHERE THE WINDOW OPENS, and the order is the reading order
         // of the two kinds rather than their size. Drivers are the larger half on this machine and
         // standing them first would put the rarer question in front of the common one.
-        new ScopeChoice("gui.scope.services", EntryScope.Services, read, write),
-        new ScopeChoice("gui.scope.drivers", EntryScope.Drivers, read, write),
+        new ScopeChoice("gui.scope.services", "gui.scope.services.hint", EntryScope.Services, read, write),
+        new ScopeChoice("gui.scope.drivers", "gui.scope.drivers.hint", EntryScope.Drivers, read, write),
 
         // EVERYTHING IS KEPT AND IT IS A CAPABILITY RATHER THAN A COURTESY - owner's decision,
         // 2026-08-19. Before the switch, one press of Escape gave back the whole machine, and two
         // scopes would have deleted that: there would be no way left to count what the manager
         // holds, or to see a service beside the driver it depends on, on one screen.
-        new ScopeChoice("gui.scope.all", EntryScope.Everything, read, write)
+        new ScopeChoice("gui.scope.all", "gui.scope.all.hint", EntryScope.Everything, read, write)
     ];
 }
 

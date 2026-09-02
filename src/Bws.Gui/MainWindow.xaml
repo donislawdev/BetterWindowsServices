@@ -8,7 +8,8 @@
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        Height="700" Width="1100">
+        Height="700" Width="1100"
+        MinHeight="{StaticResource HeightWindowLeast}" MinWidth="{StaticResource WidthWindowLeast}">
 
     <!--
         Every appearance value here points at a name in Themes/Values.xaml, and a guard in the

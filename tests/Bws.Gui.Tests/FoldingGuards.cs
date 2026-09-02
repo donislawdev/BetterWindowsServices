@@ -1,3 +1,6 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
@@ -140,6 +143,80 @@ public sealed class FoldingGuards
 
         Assert.Equal(EntryStatus.Stopped, folded.Entry.Status);
         Assert.Equal("2 instances, 1 running", folded.StandsFor);
+    }
+
+    /// <summary>
+    /// A Name column too narrow for both takes the COUNT away and never the name.
+    ///
+    /// <b>WRITTEN 2026-09-02 BECAUSE IT DID THE OPPOSITE AND SHIPPED THAT WAY.</b> The owner
+    /// photographed a row of their own list reading <c>"...1 instance"</c> - a service with no name
+    /// on it. The cell is a Grid, the name had the star and the badge was Auto, and a Grid gives an
+    /// Auto column what it asks for and a star column whatever is left: so the annotation survived
+    /// whole and the identity was trimmed to an ellipsis.
+    ///
+    /// <b>`ADR-14` is what decides it.</b> The internal name is the one string that is not
+    /// translated, the one somebody types into a terminal, and the one every plan and every
+    /// clipboard copy carries. A count of folded copies is a note ABOUT that row. A note may not be
+    /// the thing that survives while the identity disappears.
+    ///
+    /// <b>Arranged at a width too small for both, which is the only width that can tell the two
+    /// arrangements apart.</b> Give the cell enough room and either one passes.
+    /// </summary>
+    [Fact]
+    public async Task A_name_column_too_narrow_for_both_gives_way_on_the_count_and_not_on_the_name()
+    {
+        var model = await Looking(
+            Rows.Template("CDPUserSvc"),
+            Rows.Instance("CDPUserSvc_7b537") with { Status = EntryStatus.Stopped });
+
+        var folded = Assert.Single(model.Rows);
+
+        Assert.Equal("1 instance", folded.StandsFor);
+
+        var (name, badge) = WpfHost.On(() =>
+        {
+            var holder = new ContentPresenter
+            {
+                ContentTemplate = (DataTemplate)WpfHost.Resources["NameCell"],
+                Content = folded
+            };
+
+            // Narrower than "CDPUserSvc" and "1 instance" together, on purpose.
+            holder.Measure(new Size(70, 24));
+            holder.Arrange(new Rect(0, 0, 70, 24));
+            holder.UpdateLayout();
+
+            var texts = new List<TextBlock>();
+            Gather(holder, texts);
+
+            return (
+                texts.Single(text => text.Text == folded.Entry.ServiceName).ActualWidth,
+                texts.Single(text => text.Text == folded.StandsFor).ActualWidth);
+        });
+
+        Assert.True(name > 0, "The name was given no width at all, so the row shows no service.");
+
+        Assert.True(
+            name >= badge,
+            $"The name got {name} points and the count beside it got {badge}. In a cell too narrow "
+            + "for both, the count is the half that has to give way - a row reading \"...1 instance\" "
+            + "names nothing anybody could act on.");
+    }
+
+    /// <summary>Every TextBlock a template built, wherever it put them.</summary>
+    private static void Gather(DependencyObject from, List<TextBlock> into)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(from); i++)
+        {
+            var child = VisualTreeHelper.GetChild(from, i);
+
+            if (child is TextBlock text)
+            {
+                into.Add(text);
+            }
+
+            Gather(child, into);
+        }
     }
 
     /// <summary>

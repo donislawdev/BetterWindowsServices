@@ -90,8 +90,7 @@
         compile. Their assembly declares DefaultMenuStyle, DefaultToolTipStyle, DefaultButtonStyle
         and eighty others, and no named style for a menu ITEM: it is registered against the type.
         So the base is asked for the same way the framework asks for it.
-    -->
-    <!--
+
         WHAT THIS COSTS AND WHY IT IS ACCEPTED: an implicit style is looked up by type at merge
         time, so this line goes quiet rather than red if the library ever stops registering one.
         A named key throws. Nothing here can be named, so the honest arrangement is to say so.
@@ -169,15 +168,17 @@
                     -->
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfacePrimaryActionHover}" />
                             <Setter TargetName="Face" Property="BorderBrush"
-                                    Value="{StaticResource TextOnSurface}" />
+                                    Value="{StaticResource SurfacePrimaryActionHover}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Face" Property="Background"
-                                    Value="{StaticResource SurfaceSelected}" />
+                                    Value="{StaticResource SurfacePrimaryActionPressed}" />
                             <Setter TargetName="Face" Property="BorderBrush"
-                                    Value="{StaticResource SurfaceSelected}" />
+                                    Value="{StaticResource SurfacePrimaryActionPressed}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -203,13 +204,12 @@
         pixels of list and spends them on a target somebody has to find first. No line buttons -
         Windows stopped drawing them years ago and they are two more things nobody aims at.
 
-        THERE IS NO FLOOR UNDER THE THUMB'S LENGTH AND THAT IS A DEFEAT, RECORDED RATHER THAN
-        HIDDEN. Four attempts, every one measured on the real window and every one answering 19
-        device pixels: MinHeight on the Thumb, the Track's properties bound explicitly, a minimum
-        pushed into the border inside the thumb, and finally an explicit Height. Track computes the
-        thumb's length while ARRANGING and overwrites whatever it was given, so the length stays
-        proportional - about 4.5% of the track at 336 entries. `docs/10` trap 17 and backlog 275
-        carry it. What this style does buy is the WIDTH, which went from 5 device pixels to 12.
+        AND THERE IS A FLOOR UNDER THE LENGTH SINCE 2026-09-02, OVERTURNING A DEFEAT WRITTEN HERE THE
+        DAY BEFORE - and NOTHING IN THIS FILE SETS IT, which is why it took five attempts. Track
+        floors the length at half of what TryFindResource gives it for the scrollbar button, so the
+        floor is a RESOURCE KEY and Values.xaml carries both halves. MinHeight on the Thumb is the
+        near miss worth remembering: it changes the arranged size, not the computed one, so a bar
+        built in a test reads 44 while the real list draws 13. Backlog 275, `docs/10` trap 17.
     -->
     <Style x:Key="ScrollThumb" TargetType="Thumb">
         <Setter Property="OverridesDefaultStyle" Value="True" />

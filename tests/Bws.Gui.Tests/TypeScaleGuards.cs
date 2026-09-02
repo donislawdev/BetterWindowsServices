@@ -145,6 +145,19 @@ public sealed class TypeScaleGuards
     ///
     /// Asked as a comparison rather than against a number, so rescaling the whole theme cannot
     /// quietly reintroduce it.
+    ///
+    /// <b>THE ONE POINT OF SLACK CAME OUT ON 2026-09-02, AND IT CAME OUT BECAUSE THE MUTATION
+    /// REGISTRY REPORTED THIS GUARD MISSED.</b> The assertion read <c>step &gt;= heading - 1</c>,
+    /// which permitted the label to be a point BIGGER than the thing it labels - the exact state
+    /// the name of this guard forbids. It was survivable while the two were 13 against 14, because
+    /// the slack was the whole difference. When the section label came down to 13 the real gap
+    /// became zero, and one point of slack over a zero-point gap swallows any mutation that can be
+    /// written: dropping the step to <c>TextSizeSmall</c> left green.
+    ///
+    /// <b>So the guard was weaker than its own sentence, and had been since the day it was
+    /// written.</b> Equal is not smaller, which is what the name says and what this now asks. This
+    /// is the second time in one day that this guard was found green over the fault it is named
+    /// after - the first was on weight and colour, axes it does not look at at all.
     /// </summary>
     [Fact]
     public void The_substance_of_a_plan_is_not_smaller_than_the_label_above_it()
@@ -158,7 +171,7 @@ public sealed class TypeScaleGuards
         Assert.True(sizes.ContainsKey(step) && sizes.ContainsKey(heading), $"{step} or {heading} is not a declared size.");
 
         Assert.True(
-            sizes[step] >= sizes[heading] - 1,
+            sizes[step] >= sizes[heading],
             string.Create(CultureInfo.InvariantCulture, $"A step is {sizes[step]} and the heading over it is {sizes[heading]}.")
             + " The label is bigger than the thing it labels, so a reader's eye stops on the word"
             + " \"steps\" rather than on what would happen to their machine.");

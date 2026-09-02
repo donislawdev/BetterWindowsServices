@@ -207,10 +207,10 @@
         text would still take part in layout and push every name in the list sideways for the
         benefit of twenty-three of them.
 
-        The trimming comes down from CellText and is left alone deliberately: this column is Auto,
-        so the badge never gives way, and `CellTips` refuses to show a tooltip over text that did
-        not - so the placeholder it inherits costs a decision at hover time and nothing at all per
-        row.
+        THE TRIMMING COMES DOWN FROM CellText AND IS NOW THE POINT RATHER THAN A LEFTOVER. This
+        column took the star on 2026-09-02, so the badge is the half that gives way - and giving way
+        for a TextBlock means trimming. `CellTips` refuses a tooltip over text that did not trim, so
+        the placeholder costs a decision at hover time and nothing per row.
     -->
     <Style x:Key="CellBadge" TargetType="TextBlock" BasedOn="{StaticResource CellText}">
         <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
@@ -253,10 +253,23 @@
         beside one - and keeping it out of the cell is what stops it reaching the clipboard, the
         sort and the plan, all three of which read the identity.
 
-        THE NAME TAKES THE STAR AND THE BADGE IS Auto, so the badge lines up down the right edge of
-        the column and the name is the half that gives way. A count that moved with the length of
-        each name would have to be read row by row, which is complaint 3 of the eleven in `docs/11`
-        arriving at a different column.
+        THE BADGE TAKES THE STAR AND THE NAME IS Auto SINCE 2026-09-02, WHICH IS THE OPPOSITE OF
+        WHAT STOOD HERE AND THE SENTENCE IT REPLACES WAS ARGUING FOR A BUG. It read: the name takes
+        the star so the badges line up down the right edge, and the name is the half that gives way.
+        They did line up. What it cost is what the owner photographed: a Grid gives an Auto column
+        what it asks for and a star column the remainder, so on a Name column this width the name
+        was trimmed to nothing and the row read **"...1 instance"** - a service with no name on it.
+
+        `ADR-14` DECIDES THIS AND IT IS NOT A MATTER OF TASTE. The internal name is the identity -
+        the one string that is not translated, the one somebody types into a terminal, the one every
+        plan and every clipboard copy carries. A count of folded copies is an annotation about that
+        row. **An annotation may never be the thing that survives while the identity is trimmed
+        away.**
+
+        WHAT IT COSTS, SAID RATHER THAN GLOSSED: the badges no longer line up, because each now sits
+        where its name ends. That was worth something and it is worth less than a name: on this
+        machine 24 instances fold into seven templates, so seven badges in three hundred rows are
+        not a column anybody scans.
 
         A Grid rather than a StackPanel, for the reason spelled out over the cells below: a
         horizontal StackPanel measures its children against infinite width, so the name would never
@@ -265,8 +278,8 @@
     <DataTemplate x:Key="NameCell">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0"
                        Text="{Binding [serviceName]}"

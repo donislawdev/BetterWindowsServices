@@ -1,0 +1,206 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        WHAT A PLAN IS MADE OF ON SCREEN - one step, one sentence, one command, and the way out of
+        the panel. Templates and styles only, not one value.
+
+        THE TWELFTH THEME FILE, ON 2026-09-02, AND THE MARKUP RATCHET IS WHAT ASKED. The owner
+        looked at the built panel and said it is ugly. PlanView.xaml stood EXACTLY on the 376-line
+        ceiling, so the redesign could not add a line to it until something came out - which is the
+        ratchet doing the job SizeCeilings describes: a file at the ceiling makes the next person
+        look for a seam before they look for room.
+
+        THE SEAM IS THE ONE THIS PRODUCT KEEPS FINDING: what a thing IS stays in the view, what a
+        thing LOOKS LIKE comes here. Nothing moved that binds a Click - `docs/10` and AppearanceGuards
+        both record why, and it is not a style choice: a resource dictionary has no code-behind, so
+        a handler named in markup cannot be resolved from one. The close button below is the
+        borderline case and it passes, because a style carries no handler - PlanView.xaml still owns
+        the Click and hands this the look.
+
+        MERGED AFTER Controls.xaml, which is not optional. The close button reaches
+        PrimaryActionFocusRing through StaticResource, and StaticResource resolves WHILE THIS FILE
+        IS BEING READ - so a dictionary merged after this one is a name that does not exist yet.
+        App.xaml carries the order and three other places repeat it: WpfHost in the tests,
+        tools/wpfui-probe, and the pool in AppearanceGuards.
+    -->
+
+    <!--
+        ONE STEP. The number is part of the sentence rather than a column, because a plan is read
+        as prose - "3. stop Netlogon (would break otherwise)" - and a person counting steps wants
+        to see where they are in the order.
+
+        WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
+        plan warns that stopping three drags seven along, so the seven have to be findable at a
+        glance. Subdued goes to the ones nobody asked for, which is the right way round.
+    -->
+    <DataTemplate x:Key="PlanLineTemplate">
+        <TextBlock Text="{Binding Text}"
+                   TextWrapping="Wrap"
+                   Margin="{StaticResource MarginBetweenControls}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource PlanStepText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Asked}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </DataTemplate>
+
+    <!--
+        ONE SENTENCE IN A LIST OF THEM: a warning, a refusal, or something that did not work.
+
+        IT NAMED NO COLOUR UNTIL 2026-09-02 AND WAS THEREFORE DRAWN IN SYSTEM BLACK. The implicit
+        TextBlock style sets a face and a size and no Foreground, so a TextBlock that names neither
+        gets the framework's default - which is black. On this panel's #343434 that is a contrast
+        ratio of **1.69**, against the 4.5 WCAG asks. The owner's words were that the panel is black
+        text on grey and that nothing is visible in it, and a scan of the capture agreed exactly:
+        in the band holding this sentence NOT ONE PIXEL was brighter than the background.
+
+        MY OWN EYE READ THE SAME PICTURE AS LIGHT GREY, WHICH IS WHY THIS IS WRITTEN DOWN. The
+        glyphs are black and their antialiased edges are not, so at a glance the mass reads as grey
+        - `docs/11` already records that at these ratios you cannot tell "the colour is not
+        arriving" from "the colour arrives and nobody sees it". The instrument settles it, not the
+        eye, and the same fault is recorded beside HeadingText in Themes/Text.xaml from 2026-09-01.
+    -->
+    <DataTemplate x:Key="PlanSentenceTemplate">
+        <TextBlock Text="{Binding}"
+                   TextWrapping="Wrap"
+                   Foreground="{StaticResource TextOnSurface}"
+                   Margin="{StaticResource MarginBetweenControls}" />
+    </DataTemplate>
+
+    <!--
+        A COMMAND LINE, IN THE FIXED WIDTH FACE. `docs/03` part 4 asks for it wherever two
+        different things must not be able to look the same, and a command somebody is about to
+        paste into a terminal is exactly that - one wrong character is a different service.
+
+        THE FACE IS ASKED FOR BY STYLE RATHER THAN BY SETTER SINCE 2026-09-02, and that is the same
+        repair as the sentence above rather than tidying: this named the face and not the colour, so
+        the one thing on the panel a person is meant to COPY was drawn in system black at 1.69
+        against the surface under it. FixedText names both, and has named both since the day another
+        style was caught with the same hole.
+    -->
+    <DataTemplate x:Key="PlanCommandTemplate">
+        <TextBlock Text="{Binding}"
+                   TextWrapping="Wrap"
+                   Style="{StaticResource FixedText}"
+                   Margin="{StaticResource MarginBetweenControls}" />
+    </DataTemplate>
+
+    <!--
+        THE WAY OUT OF THE PANEL, AND IT BECAME A MARK RATHER THAN A WORD ON 2026-09-02 FOR ONE
+        MEASURED REASON: it was standing on the title's line and taking the room the title needed.
+
+        Read off the owner's capture of the built window. The panel is 380 wide, its padding takes
+        28 and the title's own group margin 20, which leaves 332 - and the library's Close button
+        was about 66 of it. The title left with 266 could not fit "AssignedAccessManager" beside
+        the words around it, so a two-line title became a THREE-line title, a hundred pixels of a
+        panel 380 tall. Giving those 66 back is the whole of this change: the cross is about 28
+        across, so the title gets roughly 38 points and its third line back.
+
+        AND IT STOPS COMPETING, WHICH IS THE SECOND HALF. A filled, bordered rectangle carrying a
+        word was the heaviest object in the panel after the title, sitting beside it. What closes a
+        panel is furniture rather than an action - the actions here are Carry this out and
+        Interrupt - so it wears no fill until a pointer is on it.
+
+        THE MARK IS A Path AND NOT A CHARACTER, the same decision as the disclosure in Chips.xaml
+        and for the same two measured reasons: a glyph needs a font that carries it on Windows
+        Server, and a TextBlock in CONTENT gets an automation node of its own. A Shape gets no
+        peer, so the tree keeps one node for one button - and PlanView.xaml sets
+        AutomationProperties.Name on it, because a button with no text has no name without one.
+
+        THE RING IS THE PRIMARY ACTION'S, BORROWED BY NAME. It is a rounded rectangle the size of
+        whatever it is drawn on, so nothing about it is specific to that button - and `ADR-23`
+        prefers one ring named once to a second one that will drift from it.
+    -->
+    <Style x:Key="PlanClose" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource PrimaryActionFocusRing}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <!--
+                        Transparent rather than no brush at all, which is `docs/10` trap 11: a
+                        transparent brush TAKES the pointer and a missing one does not, so without
+                        this the button would only be pressable on the two strokes of the cross.
+                    -->
+                    <Border x:Name="Face"
+                            Background="{x:Static media:Brushes.Transparent}"
+                            CornerRadius="{StaticResource CornerTile}"
+                            Padding="{TemplateBinding Padding}">
+                        <Path Data="M 0,0 L 10,10 M 10,0 L 0,10"
+                              Stroke="{TemplateBinding Foreground}"
+                              StrokeThickness="1.3"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round" />
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceHover}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background"
+                                    Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        A BLOCK WITH A LINE DOWN ITS LEFT SIDE, WHICH IS THE ONE NEW IDEA IN THE PANEL'S REDESIGN.
+
+        WHAT WAS WRONG. Every section of the panel was a heading with sentences under it and nothing
+        else - six of them in a column, told apart only by their words. The owner's capture shows the
+        result: three labels of equal weight down a narrow column, and no way to see which block is
+        WHAT WILL HAPPEN and which is a note about it. There was nothing to look at, only things to
+        read.
+
+        WHAT THE RULE SAYS AND WHY IT IS CHEAP. A block that matters gets a line beside it and the
+        COLOUR OF THE LINE SAYS WHICH KIND. No fill, so nothing new has to clear a contrast ratio
+        against the panel, and no corner, no shadow, no second surface. Two blocks carry one, which
+        is the whole list on purpose: the steps, because they are what the machine would do, and the
+        line saying why the button underneath will refuse. A rule on all six would be furniture
+        again.
+
+        NOT ONE NEW VALUE, AND THAT IS AN ARGUMENT RATHER THAN THRIFT. The rule is BorderPanelEdge,
+        the one-point left edge this panel already draws against the list, so every hairline on this
+        screen is the same weight - a three-point accent rule would be the only stroke of its
+        thickness in the window and would read as a different product.
+
+        THE PADDING WAS PaddingPanel FOR ONE DAY AND IT COST TOO MUCH. That value is 14,12,14,12,
+        which with MarginSection's 18 and 4 is 46 points of vertical chrome per block - on a panel
+        355 points tall, for two blocks, that is a quarter of it spent on air. Measured on the
+        owner's own capture the day after: with the refusal block on screen the body was 24 per cent
+        of the panel and the footer was 44. PadCell keeps the eight points of left air the rule
+        needs and spends four above and below instead of twelve.
+    -->
+    <Style x:Key="PlanBlock" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource SurfaceChipEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderPanelEdge}" />
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+        <Setter Property="Margin" Value="{StaticResource MarginSection}" />
+    </Style>
+
+    <!--
+        The refusal sits in the FOOTER rather than among the sections, so it takes the footer's
+        rhythm rather than the section rhythm: a gap under it and none above, because the rule the
+        footer already draws is what separates it from the body.
+    -->
+    <Style x:Key="PlanBlockRefused" TargetType="Border" BasedOn="{StaticResource PlanBlock}">
+        <Setter Property="BorderBrush" Value="{StaticResource MeaningWarning}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
+    </Style>
+</ResourceDictionary>

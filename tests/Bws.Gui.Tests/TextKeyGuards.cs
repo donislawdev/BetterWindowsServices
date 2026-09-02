@@ -107,7 +107,22 @@ public sealed class TextKeyGuards
         // not. A pattern loose enough to see any string starting with "gui." would also see one
         // inside a comment, and this file's whole worth is that a sentence MENTIONING a key is not
         // a screen showing it.
-        new(@"new ScopeChoice\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"new ScopeChoice\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+
+        // A NINTH, 2026-09-02, AND IT IS THE SECOND ARGUMENT OF THE EIGHTH RATHER THAN A NEW PLACE.
+        // Backlog 273: the three scope positions were the only pressable controls in the window
+        // carrying no tooltip of their own, so each one gained a key for what it LEAVES OUT beside
+        // the key for what it says.
+        //
+        // THE FIRST ATTEMPT DERIVED IT - Texts.Of(labelKey + ".hint") - AND THIS GUARD REPORTED ALL
+        // THREE, CORRECTLY. A key assembled at run time is a key nothing can find by reading, which
+        // is the failure this file exists to make loud. The repair was to write it where somebody
+        // chooses it, which is the same answer given eight times above, and this pattern reads that
+        // second literal rather than widening the first.
+        new(
+            @"new ScopeChoice\(\s*""gui\.[^""]+""\s*,\s*""(gui\.[^""]+)""",
+            RegexOptions.Compiled,
+            TimeSpan.FromSeconds(5))
     ];
 
     [Fact]
