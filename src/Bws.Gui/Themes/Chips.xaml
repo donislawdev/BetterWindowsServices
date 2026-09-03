@@ -191,10 +191,25 @@
         of controls apart from the sentences the window says about the answer, and it does that by
         asking whether the chips' ItemsControl is an ancestor. A label outside it would arrive as
         one of the window's sentences.
+
+        A DockPanel RATHER THAN A HORIZONTAL StackPanel SINCE 2026-09-03, AND IT IS THE WHOLE OF
+        BACKLOG 293. A horizontal StackPanel measures its children with INFINITE width, so the
+        WrapPanel below - which has been here since the row was built and was meant to do exactly
+        this - was handed a line with no end and never wrapped. The group then became as wide as
+        all of its chips in one row, and a WrapPanel outside can break BETWEEN items and never
+        inside one, so a group wider than the window was clipped at the edge rather than folded.
+        Seen on artifacts/shots-20260903/plan-narrow.png at 1000 by 800: State ran off the right
+        edge with a chip cut in half, and the Columns button went with it.
+
+        A DockPanel hands its last child what is LEFT, which is a real number, so the wrap that was
+        already written works. Nothing else about the group changes and that is checkable rather
+        than claimed: at 1650 by 1050 no group is wider than the row, so layout-snapshot.ps1
+        reports nothing moved.
     -->
     <DataTemplate x:Key="FilterGroupTemplate">
-        <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginGroup}">
+        <DockPanel Margin="{StaticResource MarginGroup}">
             <TextBlock Text="{Binding Label}"
+                       DockPanel.Dock="Left"
                        ToolTip="{Binding Hint}"
                        Margin="{StaticResource MarginBetweenControls}"
                        VerticalAlignment="Center"
@@ -217,7 +232,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-        </StackPanel>
+        </DockPanel>
     </DataTemplate>
 
     <!--

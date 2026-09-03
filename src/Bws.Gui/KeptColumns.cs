@@ -135,12 +135,27 @@ internal sealed class KeptColumns
     /// than a set of numbers written down twice - every column takes the width the theme names, so
     /// changing the theme still changes the list.
     ///
-    /// <b>THE KEPT ORDER IS TAKEN OFF HERE RATHER THAN LEFT TO THE HARVEST, and this is the one
-    /// place that has to say so out loud.</b> <see cref="Harvested"/> puts back the order the file
-    /// holds whenever the grid carries none, because a grid carrying none nearly always means the
-    /// window has not applied it yet. This is the exception: the way back is somebody asking for
-    /// the list this build opens with, and that list is unsorted - so without this line the order
-    /// they were trying to get rid of would be written straight back.
+    /// <b>THE KEPT ORDER IS SET HERE RATHER THAN LEFT TO THE HARVEST, AND SINCE 2026-09-03 IT IS
+    /// SET TO THE DEFAULT ORDER RATHER THAN CLEARED.</b> <see cref="Harvested"/> puts back the
+    /// order the file holds whenever the grid carries none, so what this line leaves behind is
+    /// what lands on disk in that case - and the way back is somebody asking for the list this
+    /// build opens with, which since 2026-09-02 is a SORTED list.
+    ///
+    /// <b>The sentence this replaces had an expiry date nobody collected.</b> It said "that list
+    /// is unsorted", true until the day the default gained displayName ascending on the owner's
+    /// decision - and clearing the order has meant writing a section with no sort ever since. A
+    /// section with no sort is applied as no sort rather than reconciled back to the default, so
+    /// that file opens UNSORTED, which is not the list this build opens with at all.
+    ///
+    /// <b>WHAT IS DEAD HERE AND WHAT IS NOT, MEASURED 2026-09-03 - backlog 315.</b> Twenty ways
+    /// back on a window built and never shown left the grid carrying no order SEVENTEEN times;
+    /// twenty on a settled window left it carrying one TWENTY times. The grid gets its order from
+    /// <c>ListColumns.Reapply</c> below, which needs the rows binding to have resolved, and that
+    /// happens at DataBind priority - so a window somebody is looking at has always won that race
+    /// and this line is never read on it. <b>It is a net with no reachable trigger</b>, kept
+    /// rather than deleted because deleting it is the owner's call and because the value it
+    /// writes is right in both branches instead of wrong in one. Nothing guards it and nothing
+    /// can: the write happens inside <see cref="While"/>, before any test can arrange the branch.
     /// </summary>
     internal void Defaults(DataGrid grid, ColumnBar bar, Says says)
     {
@@ -149,9 +164,9 @@ internal sealed class KeptColumns
         While(
             () =>
             {
-                _layouts = _layouts.With(_scope, _layouts.For(_scope) with { Sort = null });
-
                 Plan = ColumnPlan.Of(null, _scope);
+
+                _layouts = _layouts.With(_scope, _layouts.For(_scope) with { Sort = Plan.Layout.Sort });
 
                 bar.Follow(Plan);
 

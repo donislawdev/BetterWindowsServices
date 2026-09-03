@@ -662,6 +662,17 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **Filter chips stay inside a narrow window.** Below about a thousand pixels wide, a group of
+  chips wider than the row was drawn straight past the right edge of the window - so "Could not
+  check" showed as "Could r", "Runs while disabled" as "Runs", and one chip was cut through a
+  letter. They were not clipped by a narrow column: they were standing outside the window, where
+  nothing could read or click them.
+  - Each group of chips now folds onto as many lines as it needs, under its own label.
+  - The trade is stated rather than hidden: on a narrow window the filter row is now taller,
+    because chips that used to be off the screen are on it. **Filters** at the left of the row
+    folds the whole thing away.
+  - Nothing changes at the size the window opens with, where every group already fitted.
+
 - **The plan panel no longer becomes unusable after an unexpected error.** If anything went wrong
   while carrying a plan out - other than the one refusal the panel already knew about - the button
   stayed grey for the rest of the session, with a tooltip explaining that it was grey because a run
