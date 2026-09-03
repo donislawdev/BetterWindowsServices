@@ -81,6 +81,25 @@ public sealed class ConcurrencyGuards
             "half is covered by a run on a throwaway machine, which is the project's hard rule " +
             "about writes rather than a gap nobody noticed.",
 
+        ["MainViewModel.Planning.cs"] =
+            "Working out what an operation over a SELECTION would do, off the interface thread, " +
+            "added 2026-09-03 for backlog 301. The comment this file used to carry defended the " +
+            "opposite arrangement with a real measurement of the wrong axis: it timed how DEEP a " +
+            "cascade is - 316-360 ms against 325-366 with none at all - where a reader looks for " +
+            "how MANY entries are selected. tools/plan-probe measured that one over 799 entries " +
+            "on 2026-09-02: a hundred selected and asked to stop cost 19-27 ms, four hundred " +
+            "95-112, and the whole listing 224-240. Start at the same size is 0-1 ms because it " +
+            "orders nothing, so every millisecond of it is a round trip to the manager rather " +
+            "than a loop around one - which is why neither a topological sort nor a dictionary " +
+            "would have bought anything. Owner's decision: 240 ms with the window not answering " +
+            "is too much. EXACTLY ONE THING CROSSES THE BOUNDARY AND IT IS A SNAPSHOT: " +
+            "RowIndex.Everything builds a new list on every read, so the entries handed out " +
+            "there cannot be touched by the reading that runs once a second on this one. The " +
+            "BulkPlan comes back through an await, and BulkPlanBuilder reads and reasons and " +
+            "never writes. PlanBuildingGuards asserts the manager is not asked from the drawing " +
+            "thread, and that a preview overtaken by a later one is dropped rather than shown - " +
+            "a race that did not exist until this line did.",
+
         ["WindowsScmCatalog.cs"] =
             "Describing entries several at a time, added 2026-08-02. The same loop over the " +
             "same 810 entries costs 13-22 ms without opening a handle per entry and 455-475 " +

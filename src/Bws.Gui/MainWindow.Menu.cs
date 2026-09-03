@@ -128,11 +128,30 @@ public partial class MainWindow
 
     private void CopyEverything(object sender, RoutedEventArgs e) => Copy(Copying.Everything);
 
-    private void PreviewStop(object sender, RoutedEventArgs e) => Preview(ActionKind.Stop);
+    private async void PreviewStop(object sender, RoutedEventArgs e) =>
+        await Preview(ActionKind.Stop).ConfigureAwait(true);
 
-    private void PreviewStart(object sender, RoutedEventArgs e) => Preview(ActionKind.Start);
+    private async void PreviewStart(object sender, RoutedEventArgs e) =>
+        await Preview(ActionKind.Start).ConfigureAwait(true);
 
-    private void PreviewRestart(object sender, RoutedEventArgs e) => Preview(ActionKind.Restart);
+    private async void PreviewRestart(object sender, RoutedEventArgs e) =>
+        await Preview(ActionKind.Restart).ConfigureAwait(true);
+
+    /// <summary>
+    /// Which preview was asked for most recently, so an older one cannot land on top of it.
+    ///
+    /// <b>A counter arrived with the background work of backlog 301 and would have been machinery
+    /// answering nothing before it.</b> While the plan was worked out on the window's own thread,
+    /// two asks could not overlap - the menu could not even open again until the first had
+    /// finished. A quarter of a second is long enough for somebody to ask for Stop, change their
+    /// mind and ask for Start, and two builds that finish in the order they please would put the
+    /// first answer over the second with nothing on screen to say so.
+    ///
+    /// <b>Read and written on the window's thread only</b>, which is what makes an ordinary field
+    /// enough: both the increment and the comparison happen before and after an await that comes
+    /// back here.
+    /// </summary>
+    private int _previews;
 
     /// <summary>
     /// Works out what an operation over the picked rows would do, and puts it on screen.
@@ -158,7 +177,7 @@ public partial class MainWindow
     /// this file travels the same way: the control knows what it offered, and the model knows what
     /// that means.
     /// </param>
-    internal bool Preview(ActionKind kind, StartType? to = null)
+    internal async Task<bool> Preview(ActionKind kind, StartType? to = null)
     {
         var picked = Entries.SelectedItems.OfType<EntryRow>().ToList();
         var names = Everything(picked);
@@ -168,17 +187,34 @@ public partial class MainWindow
             return false;
         }
 
-        // Mutually exclusive with the details panel, for the reason at OpenDetails above.
+        // Mutually exclusive with the details panel, for the reason at OpenDetails above. Done
+        // before the waiting rather than after it, so the window answers the press at once even
+        // though the plan behind it takes a moment.
         _model.Chosen.Hide();
+
+        var asked = ++_previews;
+
+        // OFF THE WINDOW'S THREAD SINCE 2026-09-03 - backlog 301, and the numbers are at
+        // MainViewModel.PlanAsync. The whole listing selected and asked to stop was measured at
+        // 224-240 ms, all of it round trips to the manager, and the owner's decision was that a
+        // window not answering for that long is too much.
+        var plan = await _model.PlanAsync(new BulkAction(kind, names, To: to)).ConfigureAwait(true);
+
+        if (asked != _previews)
+        {
+            // Somebody asked for something else while this was being worked out. Dropped rather
+            // than shown: a preview that arrives after a later one would put an answer about Stop
+            // under a heading somebody opened for Start, and the panel has no way to say which of
+            // the two it is looking at.
+            return false;
+        }
 
         // THE LABEL TRAVELS BESIDE THE NAMES RATHER THAN INSTEAD OF THEM, and only when there is
         // one row: the plan is built from internal names because that is what identity is, and the
         // display name is what the title calls it so that somebody reads "Performance Logs and
         // Alerts" rather than "pla" before changing a machine. Both end up on screen - the panel
         // puts the internal name under the title, exactly as the details panel does.
-        return _model.Planned.Show(
-            _model.Plan(new BulkAction(kind, names, To: to)),
-            picked.Count == 1 ? picked[0].DisplayName : null);
+        return _model.Planned.Show(plan, picked.Count == 1 ? picked[0].DisplayName : null);
     }
 
     /// <summary>

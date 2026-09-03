@@ -319,7 +319,7 @@ public sealed class FoldingGuards
         WpfHost.Settled();
 
         Assert.True(
-            WpfHost.On(() => window.Preview(ActionKind.Stop)),
+            await WpfHost.On(() => window.Preview(ActionKind.Stop)),
             "The preview opened nothing, so this proves nothing about what it would have named.");
 
         Assert.Equal(
@@ -356,7 +356,7 @@ public sealed class FoldingGuards
         WpfHost.Settled();
 
         Assert.True(
-            WpfHost.On(() => window.Preview(ActionKind.Stop)),
+            await WpfHost.On(() => window.Preview(ActionKind.Stop)),
             "The preview opened nothing, so this proves nothing about what it would have named.");
 
         Assert.Equal(["CDPUserSvc"], model.Planned.Plan!.Action.ServiceNames);

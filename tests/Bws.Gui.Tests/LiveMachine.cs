@@ -118,10 +118,46 @@ internal sealed class LiveMachine : IScmCatalog
         return this;
     }
 
-    public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
-        _dependents.TryGetValue(serviceName, out var dependents)
+    /// <summary>
+    /// Every thread this machine was asked about a cascade on.
+    ///
+    /// <b>Recorded rather than counted, because the question backlog 301 asks is WHERE rather than
+    /// how often.</b> Building a plan spends one of these per selected name and each one opens the
+    /// manager and then the service - the whole listing selected and asked to stop was measured at
+    /// 224-240 ms - so the only thing that must never happen is that the thread drawing the window
+    /// is the one paying for it. A count would go up either way.
+    /// </summary>
+    internal HashSet<int> CascadeAskedOn { get; } = [];
+
+    private readonly ManualResetEventSlim _cascadeGate = new(initialState: true);
+
+    /// <summary>
+    /// Holds every cascade question until it is released, so two plans can be genuinely in flight.
+    ///
+    /// <b>Its own gate rather than the one above, and it WAITS WITH A DEADLINE - which is the
+    /// interesting half.</b> A plan built on the window's thread would meet this on the dispatcher,
+    /// and a wait with no end there turns a test that should go red into a run that never finishes.
+    /// That has cost this project a mutation run once already, which is why the note at the top of
+    /// tools/mutate/mutate.ps1 says a test asserting that a call comes straight back must time out
+    /// rather than simply wait.
+    /// </summary>
+    internal void HoldCascade() => _cascadeGate.Reset();
+
+    internal void ReleaseCascade() => _cascadeGate.Set();
+
+    public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
+    {
+        lock (CascadeAskedOn)
+        {
+            CascadeAskedOn.Add(Environment.CurrentManagedThreadId);
+        }
+
+        _cascadeGate.Wait(TimeSpan.FromSeconds(5));
+
+        return _dependents.TryGetValue(serviceName, out var dependents)
             ? Reading<IReadOnlyList<string>>.Present(dependents)
             : Reading<IReadOnlyList<string>>.Absent();
+    }
 
     private void Throw()
     {

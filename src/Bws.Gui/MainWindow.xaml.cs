@@ -170,10 +170,12 @@ public partial class MainWindow : Window
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
         // reaches into the model would be a second road to everything the model owns.
-        Actions.PreviewRequest += (_, asked) => Preview(asked.Kind);
+        Actions.PreviewRequest += async (_, asked) => await Preview(asked.Kind).ConfigureAwait(true);
         Actions.RefreshRequest += async (_, _) => await Refreshing().ConfigureAwait(true);
         Actions.ExportRequest += (_, _) => ExportWhatIsShown();
-        Actions.StartTypeRequest += (_, asked) => Preview(ActionKind.SetStartType, asked.Type);
+
+        Actions.StartTypeRequest += async (_, asked) =>
+            await Preview(ActionKind.SetStartType, asked.Type).ConfigureAwait(true);
 
         // TOLD WHEN A PERSON CHANGES THE SELECTION, rather than binding to it. A binding into a
         // list that reconciles itself once a second is another party in the middle of `A10`, and

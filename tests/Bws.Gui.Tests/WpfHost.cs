@@ -55,6 +55,42 @@ internal static class WpfHost
     internal static void Settled() =>
         Thread.Value.Invoke(() => { }, DispatcherPriority.ContextIdle);
 
+    /// <summary>
+    /// Waits until something on the window is true, and fails rather than waiting forever.
+    ///
+    /// <b>Needed since 2026-09-03, and only where a press starts work off this thread</b> -
+    /// backlog 301. A preview is worked out on the pool now, so a click and the panel it opens are
+    /// two moments rather than one, and <see cref="Settled"/> answers about the dispatcher rather
+    /// than about the pool: it comes straight back with the work still running.
+    ///
+    /// <b>A deadline rather than a wait, and that is not politeness.</b> A test that simply waited
+    /// for a condition the code no longer produces would hang the run instead of reddening it, and
+    /// a run that never ends reports nothing at all - which has cost this project a mutation run
+    /// once, and is written at the top of tools/mutate/mutate.ps1 for that reason.
+    ///
+    /// Use it only where something really is happening elsewhere. Everywhere else
+    /// <see cref="Settled"/> is the honest call, because it says the window has caught up rather
+    /// than that it eventually did.
+    /// </summary>
+    internal static void Until(Func<bool> ready, string what)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            Settled();
+
+            if (On(ready))
+            {
+                return;
+            }
+
+            System.Threading.Thread.Sleep(10);
+        }
+
+        Assert.Fail($"Waited ten seconds and this never became true: {what}");
+    }
+
     /// <summary>Everything the window merges, in the order it merges it.</summary>
     internal static ResourceDictionary Resources => Merged.Value;
 

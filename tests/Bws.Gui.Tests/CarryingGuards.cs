@@ -48,7 +48,7 @@ public sealed class CarryingGuards
         // Nothing on screen, nothing to press.
         Assert.False(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.True(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
@@ -83,7 +83,7 @@ public sealed class CarryingGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Interrupt.Visibility));
@@ -115,7 +115,7 @@ public sealed class CarryingGuards
     {
         var window = await Ready();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Blocked.Visibility));
@@ -126,7 +126,7 @@ public sealed class CarryingGuards
         // elevated session the default would hide this half and the assertion would pass empty.
         var refused = await Ready(elevated: false);
 
-        Assert.True(WpfHost.On(() => refused.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => refused.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => refused.PlanPanel.Blocked.Visibility));
@@ -151,7 +151,7 @@ public sealed class CarryingGuards
     {
         var refused = await Ready(elevated: false);
 
-        Assert.True(WpfHost.On(() => refused.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => refused.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.False(WpfHost.On(() => refused.PlanPanel.CarryOut.IsEnabled));
@@ -170,7 +170,7 @@ public sealed class CarryingGuards
         // it carried before any of this, which is the branch a chain of reasons is easiest to lose.
         var window = await Ready();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(
@@ -208,7 +208,7 @@ public sealed class CarryingGuards
         var window = await Ready();
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         // A run under way: the button is quiet and says which one, rather than what it would do.
@@ -229,8 +229,10 @@ public sealed class CarryingGuards
         var refusing = await Ready();
         var over = WpfHost.On(() => (MainViewModel)refusing.DataContext);
 
-        Assert.True(WpfHost.On(() => over.Planned.Show(
-            over.Plan(new BulkAction(ActionKind.Stop, ["nothing-is-called-this"])))));
+        var refusedPlan = await WpfHost.On(
+            () => over.PlanAsync(new BulkAction(ActionKind.Stop, ["nothing-is-called-this"])));
+
+        Assert.True(WpfHost.On(() => over.Planned.Show(refusedPlan)));
 
         WpfHost.Settled();
 
@@ -336,7 +338,7 @@ public sealed class CarryingGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         var before = WpfHost.On(() => window.PlanPanel.Notice.Text);
@@ -378,7 +380,7 @@ public sealed class CarryingGuards
     {
         var window = await Ready(elevated: false);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.False(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
@@ -387,7 +389,7 @@ public sealed class CarryingGuards
         // And it is not there when there is nothing in the way, so the line never becomes furniture.
         var elevated = await Ready();
 
-        Assert.True(WpfHost.On(() => elevated.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => elevated.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(string.Empty, WpfHost.On(() => elevated.PlanPanel.Blocked.Text));
@@ -410,7 +412,7 @@ public sealed class CarryingGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         // Nothing was refused and nothing has run, so neither section belongs on the screen.
@@ -454,7 +456,7 @@ public sealed class CarryingGuards
 
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         await Assert.ThrowsAsync<InvalidCastException>(() => WpfHost.On(() => window.CarryOut()));

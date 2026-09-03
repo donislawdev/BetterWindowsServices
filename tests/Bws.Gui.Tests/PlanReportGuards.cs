@@ -42,7 +42,7 @@ public sealed class PlanReportGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         var asked = WpfHost.On(() => window.PlanPanel.Heading.Text);
@@ -74,7 +74,7 @@ public sealed class PlanReportGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.True(WpfHost.On(() => window.PlanPanel.CommandsShown));
@@ -103,7 +103,7 @@ public sealed class PlanReportGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         // Nothing has run, so there is nothing to admit to and no heading claiming otherwise.
@@ -130,7 +130,7 @@ public sealed class PlanReportGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Empty(WpfHost.On(() => window.PlanPanel.WayBackLines));
@@ -157,7 +157,7 @@ public sealed class PlanReportGuards
         var window = await Ready();
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         WpfHost.On(() => panel.Finished(Ran(panel, refusing: "Spooler")));
@@ -165,7 +165,7 @@ public sealed class PlanReportGuards
 
         Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.FailureLines));
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Start)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Start)));
         WpfHost.Settled();
 
         Assert.Empty(WpfHost.On(() => window.PlanPanel.FailureLines));

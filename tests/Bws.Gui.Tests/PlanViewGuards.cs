@@ -28,7 +28,7 @@ public sealed class PlanViewGuards
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
@@ -52,7 +52,7 @@ public sealed class PlanViewGuards
     {
         var window = await Ready();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         var heading = WpfHost.On(() => window.PlanPanel.Heading.Text);
@@ -99,7 +99,7 @@ public sealed class PlanViewGuards
 
         WpfHost.Settled();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Contains(
@@ -114,7 +114,7 @@ public sealed class PlanViewGuards
         WpfHost.On(() =>
             window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "W32Time")));
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Subtitle.Visibility));
@@ -135,7 +135,7 @@ public sealed class PlanViewGuards
     {
         var window = await Ready();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Restart)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Restart)));
         WpfHost.Settled();
 
         var shown = WpfHost.On(() => window.PlanPanel.CommandLines);
@@ -165,7 +165,7 @@ public sealed class PlanViewGuards
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.DetailsPanel.Visibility));
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
@@ -196,7 +196,7 @@ public sealed class PlanViewGuards
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
         WpfHost.On(() => model.QueryText = "name:Spooler");
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
@@ -224,7 +224,7 @@ public sealed class PlanViewGuards
         WpfHost.On(() => window.Entries.UnselectAll());
         WpfHost.Settled();
 
-        Assert.False(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.False(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
 
         WpfHost.On(window.Close);
@@ -264,7 +264,7 @@ public sealed class PlanViewGuards
 
         WpfHost.Settled();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         var problems = WpfHost.On(() => window.PlanPanel.ProblemLines);
@@ -325,7 +325,7 @@ public sealed class PlanViewGuards
     {
         var window = await Ready();
 
-        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
         var (thin, read) = WpfHost.On(() =>

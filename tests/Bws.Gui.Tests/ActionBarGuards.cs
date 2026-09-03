@@ -107,7 +107,12 @@ public sealed class ActionBarGuards
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));
 
         WpfHost.On(() => window.Actions.Stop.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)));
-        WpfHost.Settled();
+
+        // WAITED FOR RATHER THAN SETTLED, since 2026-09-03: the plan behind this press is worked
+        // out off the window's thread - backlog 301 - so the click and the panel are two moments.
+        WpfHost.Until(
+            () => window.PlanPanel.Visibility == Visibility.Visible,
+            "the plan panel opened after the Stop button was pressed");
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
 
@@ -120,9 +125,12 @@ public sealed class ActionBarGuards
 
         // AND EACH OF THE THREE ASKS FOR ITS OWN THING rather than three buttons wired to one.
         WpfHost.On(() => window.Actions.Restart.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)));
-        WpfHost.Settled();
 
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.Until(
+            () => model.Planned.Plan?.Action.Kind == ActionKind.Restart,
+            "the plan panel came back with the restart it was asked for");
 
         Assert.Equal(ActionKind.Restart, WpfHost.On(() => model.Planned.Plan!.Action.Kind));
 
@@ -244,7 +252,10 @@ public sealed class ActionBarGuards
         WpfHost.Settled();
 
         WpfHost.On(() => items[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
-        WpfHost.Settled();
+
+        WpfHost.Until(
+            () => window.PlanPanel.Visibility == Visibility.Visible,
+            "the plan panel opened after a start type was chosen");
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.PlanPanel.Visibility));
 

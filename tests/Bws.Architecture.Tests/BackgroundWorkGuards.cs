@@ -47,6 +47,15 @@ public sealed class BackgroundWorkGuards
             "made about a file the code no longer lives in - and the second assertion below is " +
             "what says so out loud rather than allowing it quietly.",
 
+        ["MainWindow.Menu.cs"] =
+            "The three menu items that open a preview, added 2026-09-03 with backlog 301. WPF " +
+            "wires a Click handler in markup to a method returning nothing, so these three have " +
+            "no task to hand back either - and they had nothing to await until the plan behind " +
+            "them moved off the window's thread. An async void is the right shape here rather " +
+            "than a dropped task: a throw out of one reaches the dispatcher, where Mishaps says " +
+            "what happened and keeps the window, while a task nobody holds carries its failure " +
+            "away in silence.",
+
         ["MainWindow.Carrying.cs"] =
             "OnClosing, which the framework also declares as returning nothing. It has to await " +
             "a run in progress before letting the window go - without it, closing the window " +

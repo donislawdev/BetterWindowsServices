@@ -33,22 +33,45 @@ public sealed partial class MainViewModel
     /// <summary>
     /// What an operation over a selection would do. Works it out and changes nothing.
     ///
-    /// <b>On the calling thread, and that is a measurement rather than an oversight.</b> Building a
-    /// plan asks the manager who depends on each entry, so the obvious worry is that a selection
-    /// costs a question per entry per cascade member. Measured on this machine on 2026-08-18 through
-    /// the command line, five runs each with the first discarded: a plan with a thirteen member
-    /// cascade took 316-360 ms end to end and the same plan with no cascade at all took 325-366 ms.
-    /// The spread is wider than the difference, so by this project's own rule there is no
-    /// difference - the whole figure is process start and the reading of 810 entries.
+    /// <b>OFF THE CALLING THREAD SINCE 2026-09-03, AND THE COMMENT THAT STOOD HERE UNTIL THEN IS
+    /// KEPT BELOW BECAUSE IT WAS TRUE AND WAS STILL THE WRONG ANSWER.</b> Backlog 301. It read:
     ///
-    /// So no background work, no cancellation and no generation counter. That is the lesson of
-    /// backlog 21 applied a second time: the machinery there turned out to answer a race that did
-    /// not exist, and the limit was in a mechanism nobody had needed.
+    /// <i>"On the calling thread, and that is a measurement rather than an oversight. Measured on
+    /// this machine on 2026-08-18 through the command line, five runs each with the first
+    /// discarded: a plan with a thirteen member cascade took 316-360 ms end to end and the same
+    /// plan with no cascade at all took 325-366 ms. The spread is wider than the difference, so by
+    /// this project's own rule there is no difference."</i>
+    ///
+    /// Every word of that is correct about the question it asked, which is <b>how DEEP the cascade
+    /// is</b>. Nobody had ever measured the other axis - <b>how MANY entries are selected</b> - and
+    /// a sentence answering one question sits in the place where a reader looks for the other. Rule
+    /// 3 of the project's notes names exactly this shape.
+    ///
+    /// <b>Measured 2026-09-02 through `tools/plan-probe`, four runs with the cold one discarded,
+    /// 799 entries:</b> selections of 1, 5, 20, 50, 100, 200, 400 and everything, asking to stop.
+    /// A hundred cost 19-27 ms, two hundred 61-69, four hundred 95-112, and the whole listing
+    /// <b>224-240 ms</b>. Start at the same size is 0-1 ms because it orders nothing, so the entire
+    /// figure is round trips to the manager rather than the loops around them - which is why
+    /// neither a topological sort nor a dictionary would have bought anything measurable.
+    ///
+    /// <b>The owner's decision of 2026-09-03: 240 ms with the window not answering is too much.</b>
+    /// So the work moves, and nothing else about the plan changes - the same builder, the same
+    /// listing, the same answer.
+    ///
+    /// <b>THE LISTING IS TAKEN HERE, ON THE THREAD THAT OWNS IT, and that is the whole of the
+    /// safety argument for the line below.</b> <see cref="RowIndex.Everything"/> builds a new list
+    /// on every read, so what crosses to the background thread is a snapshot that nothing else can
+    /// touch. Handing the index over instead would put a reading that runs once a second on one
+    /// thread and a plan on another, both looking at the same rows.
     ///
     /// <b>Every entry the window holds is handed in, never the rows on screen</b>, and the reason is
-    /// at <see cref="RowIndex.Everything"/>: a plan looks entries up by name, so building one
+    /// also at <see cref="RowIndex.Everything"/>: a plan looks entries up by name, so building one
     /// against a filtered set would silently shorten a cascade.
     /// </summary>
-    internal BulkPlan Plan(BulkAction action) =>
-        new BulkPlanBuilder(_index.Everything, _catalog).Build(action);
+    internal Task<BulkPlan> PlanAsync(BulkAction action)
+    {
+        var entries = _index.Everything;
+
+        return Task.Run(() => new BulkPlanBuilder(entries, _catalog).Build(action));
+    }
 }
