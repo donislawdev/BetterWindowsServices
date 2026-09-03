@@ -135,27 +135,24 @@ internal sealed class KeptColumns
     /// than a set of numbers written down twice - every column takes the width the theme names, so
     /// changing the theme still changes the list.
     ///
-    /// <b>THE KEPT ORDER IS SET HERE RATHER THAN LEFT TO THE HARVEST, AND SINCE 2026-09-03 IT IS
-    /// SET TO THE DEFAULT ORDER RATHER THAN CLEARED.</b> <see cref="Harvested"/> puts back the
-    /// order the file holds whenever the grid carries none, so what this line leaves behind is
-    /// what lands on disk in that case - and the way back is somebody asking for the list this
-    /// build opens with, which since 2026-09-02 is a SORTED list.
+    /// <b>NOTHING TOUCHES THE KEPT ORDER HERE ANY MORE, AND THAT LINE WAS DELETED WITH A
+    /// MEASUREMENT BEHIND IT ON 2026-09-03 - backlog 315.</b> There used to be one, seeding this
+    /// scope's layout so that <see cref="Harvested"/> would have the right answer if the grid gave
+    /// none. It was a second road to a fact that <c>ListColumns.Reapply</c> below already
+    /// establishes, and the second road was the unguarded one.
     ///
-    /// <b>The sentence this replaces had an expiry date nobody collected.</b> It said "that list
-    /// is unsorted", true until the day the default gained displayName ascending on the owner's
-    /// decision - and clearing the order has meant writing a section with no sort ever since. A
-    /// section with no sort is applied as no sort rather than reconciled back to the default, so
-    /// that file opens UNSORTED, which is not the list this build opens with at all.
+    /// <b>Why it existed and why it stopped being needed.</b> Reapply hands the grid the default
+    /// layout INCLUDING its order, and the harvest reads that order back - but ListSorting.By used
+    /// to give up before marking anything when the grid had no collection view yet. Measured over
+    /// twenty ways back: a window nobody had shown came out carrying no order SEVENTEEN times, a
+    /// settled one none out of twenty. So the file was decided by a race, and the line was there
+    /// to make the losing side harmless. By now marks the heading whether or not there is a view -
+    /// the same probe reads twenty out of twenty - so the losing side is gone rather than padded.
     ///
-    /// <b>WHAT IS DEAD HERE AND WHAT IS NOT, MEASURED 2026-09-03 - backlog 315.</b> Twenty ways
-    /// back on a window built and never shown left the grid carrying no order SEVENTEEN times;
-    /// twenty on a settled window left it carrying one TWENTY times. The grid gets its order from
-    /// <c>ListColumns.Reapply</c> below, which needs the rows binding to have resolved, and that
-    /// happens at DataBind priority - so a window somebody is looking at has always won that race
-    /// and this line is never read on it. <b>It is a net with no reachable trigger</b>, kept
-    /// rather than deleted because deleting it is the owner's call and because the value it
-    /// writes is right in both branches instead of wrong in one. Nothing guards it and nothing
-    /// can: the write happens inside <see cref="While"/>, before any test can arrange the branch.
+    /// <b>What the way back must end up leaving is the order this build OPENS with, not nothing.</b>
+    /// A section with no sort is applied as no sort rather than reconciled back to the default, so
+    /// a file with none in it opens UNSORTED - which stopped being the list this build opens with
+    /// on 2026-09-02, when the default gained displayName ascending on the owner's decision.
     /// </summary>
     internal void Defaults(DataGrid grid, ColumnBar bar, Says says)
     {
@@ -165,8 +162,6 @@ internal sealed class KeptColumns
             () =>
             {
                 Plan = ColumnPlan.Of(null, _scope);
-
-                _layouts = _layouts.With(_scope, _layouts.For(_scope) with { Sort = Plan.Layout.Sort });
 
                 bar.Follow(Plan);
 
@@ -327,8 +322,13 @@ internal sealed class KeptColumns
     ///
     /// <b>Safe because the grid has no third state.</b> A click always leaves a direction on some
     /// heading - <c>WhenAHeadingIsClicked</c> sets ascending or descending and never nothing - so
-    /// an empty answer from the grid never means "this person took the order off". The one place
-    /// it can mean that is the way back, and <see cref="Defaults"/> clears the kept order itself.
+    /// an empty answer from the grid never means "this person took the order off".
+    ///
+    /// <b>The way back used to be the exception to that and no longer is, since 2026-09-03.</b>
+    /// It goes through <c>ListColumns.Reapply</c>, which asks <c>ListSorting.By</c> for the default
+    /// order - and By marks the heading whether or not the rows have arrived, so the grid always
+    /// has an answer to give and this fallback is not consulted on that path at all. Backlog 315
+    /// carries the measurement that settled it.
     /// </summary>
     private ColumnLayout Harvested(DataGrid grid)
     {

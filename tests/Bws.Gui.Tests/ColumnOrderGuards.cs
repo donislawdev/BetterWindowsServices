@@ -1,4 +1,5 @@
 // Explicit, because UseWPF swaps the implicit using set.
+using System.Windows.Controls;
 using Bws.Core;
 using Bws.Gui.ViewModels;
 
@@ -198,5 +199,51 @@ public sealed class ColumnOrderGuards
 
         Assert.Equal(0, order.Compare(null, null));
         Assert.True(order.Compare(null, EntryRow.Of(Rows.Entry("Spooler"))) < 0);
+    }
+
+    /// <summary>
+    /// An order asked for on a grid with no rows yet is MARKED, rather than dropped in silence.
+    ///
+    /// <b>Backlog 315, and this guard is the reason a line could be DELETED rather than kept as a
+    /// net nothing could reach.</b> <c>ListSorting.By</c> used to leave the moment it found no
+    /// collection view, before marking anything - so <c>ListColumns.Reapply</c> promised that the
+    /// order travels with the layout and delivered it only when the grid's rows binding had
+    /// already resolved. Measured over twenty ways back: a window nobody had shown came out
+    /// carrying no order SEVENTEEN times, a settled one none out of twenty, and what the file then
+    /// held was decided by a fallback in <c>KeptColumns</c> rather than by the caller. The same
+    /// probe after this change reads twenty out of twenty.
+    ///
+    /// <b>A bare grid IS the case rather than standing in for it.</b> An ItemsSource that has not
+    /// arrived yet and one that never will are the same thing from in here, and the second is the
+    /// one a test can arrange without racing a dispatcher - which is what makes this deterministic
+    /// where asserting the same fact through a window was seventeen times in twenty.
+    ///
+    /// <b>What it deliberately does NOT claim: that the rows are in that order.</b> There are no
+    /// rows. The comparer needs a view and is applied when there is one, which is why
+    /// <c>MainWindow.SortAsKept</c> still runs after the first reading.
+    /// </summary>
+    [Fact]
+    public void An_order_asked_for_before_the_rows_arrive_is_still_marked_on_the_heading()
+    {
+        var marked = WpfHost.On(() =>
+        {
+            var grid = new DataGrid();
+
+            foreach (var column in Columns.All)
+            {
+                grid.Columns.Add(new DataGridTextColumn { SortMemberPath = column.Id });
+            }
+
+            // THE STATE, SAID OUT LOUD RATHER THAN ASSUMED. If a later build hands a bare DataGrid
+            // a view of its own, this stops being the case this test says it is and the assertion
+            // below would start passing for another reason.
+            Assert.Null(grid.ItemsSource);
+
+            ListSorting.By(grid, new KeptSort("displayName", Descending: false));
+
+            return ListSorting.Of(grid);
+        });
+
+        Assert.Equal(new KeptSort("displayName", Descending: false), marked);
     }
 }

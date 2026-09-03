@@ -62,22 +62,38 @@ internal static class ListSorting
     /// The comparison itself is <c>Columns.OrderedBy</c>, the same one a click uses, so a list
     /// restored from a file and a list somebody just clicked are in the same order by
     /// construction rather than by two pieces of code agreeing.
+    ///
+    /// <b>THE HEADING IS MARKED WHETHER OR NOT THERE IS A VIEW TO SORT, SINCE 2026-09-03, AND
+    /// THAT IS THE WHOLE OF BACKLOG 315.</b> This used to leave the moment it found no view,
+    /// before marking anything - so a caller that had just asked for an order got one silently
+    /// and only sometimes, depending on whether the grid's rows binding had resolved. Measured
+    /// over twenty ways back: a window nobody had shown came out of it carrying no order at all
+    /// SEVENTEEN times, a settled one none out of twenty. That race then had to be answered a
+    /// second time in <c>KeptColumns</c>, by a line seeding the layout for a case nothing could
+    /// reach - two roads to one fact, one of them unguarded.
+    ///
+    /// <b>What is lost by marking without a view is nothing, and what would be lost by not
+    /// marking is the caller's promise.</b> No view means no rows, so a heading claiming an order
+    /// misrepresents nothing - there is nothing to be out of order. The comparer is still applied
+    /// only when there is somewhere to put it, and <c>MainWindow.SortAsKept</c> still exists for
+    /// exactly that reason: it runs once the first reading has arrived and hands the view the
+    /// comparer this call could not.
     /// </summary>
     internal static void By(DataGrid grid, KeptSort? sort)
     {
         ArgumentNullException.ThrowIfNull(grid);
 
-        if (CollectionViewSource.GetDefaultView(grid.ItemsSource) is not ListCollectionView view)
-        {
-            return;
-        }
+        var view = CollectionViewSource.GetDefaultView(grid.ItemsSource) as ListCollectionView;
 
         foreach (var column in grid.Columns)
         {
             column.SortDirection = null;
         }
 
-        view.CustomSort = null;
+        if (view is not null)
+        {
+            view.CustomSort = null;
+        }
 
         if (sort is not { } wanted || Columns.Of(wanted.Id) is not { } known)
         {
@@ -96,7 +112,10 @@ internal static class ListSorting
             ? ListSortDirection.Descending
             : ListSortDirection.Ascending;
 
-        view.CustomSort = Columns.OrderedBy(known, !wanted.Descending);
+        if (view is not null)
+        {
+            view.CustomSort = Columns.OrderedBy(known, !wanted.Descending);
+        }
     }
 
     /// <summary>

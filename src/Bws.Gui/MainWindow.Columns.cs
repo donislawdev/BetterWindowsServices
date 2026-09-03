@@ -156,9 +156,14 @@ public partial class MainWindow
     /// Puts the list in the order the file remembers.
     ///
     /// <b>Called once the first reading has arrived, and not while the columns are being built.</b>
-    /// A grid with no ItemsSource has no view to hand a comparer to, so an order applied at
-    /// construction is an order dropped in silence - ListSorting.By carries the rest of that
-    /// argument. Every later move between scopes goes through Reapply, which does it there.
+    /// A grid with no ItemsSource has no view to hand a COMPARER to, so an order applied at
+    /// construction sorts nothing - ListSorting.By carries the rest of that argument. Every later
+    /// move between scopes goes through Reapply, which does it there.
+    ///
+    /// <b>What By no longer drops, since 2026-09-03, is the MARK on the heading</b> - backlog 315.
+    /// That half never needed a view and losing it silently was the whole of that defect. This
+    /// call is still the one that gives the view its comparer, so it is still the moment the rows
+    /// actually move.
     /// </summary>
     internal void SortAsKept()
     {
