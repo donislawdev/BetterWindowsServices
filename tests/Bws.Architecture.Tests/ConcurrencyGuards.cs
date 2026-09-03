@@ -49,6 +49,17 @@ public sealed class ConcurrencyGuards
             "until it is back. It was MainViewModel.cs until 2026-08-18, when the state machine " +
             "was cut out into its own file - backlog 198.",
 
+        ["Readings.SecondPhase.cs"] =
+            "The expensive pass, off the interface thread, moved out of Readings.cs on 2026-09-03 " +
+            "when the size ratchet asked. Same argument as the file it came from and one number " +
+            "of its own: this pass was measured at about seven and a half seconds of processor " +
+            "over 810 entries, against under one and a half without it, so a window that ran it " +
+            "on the interface thread would stop answering for that long. Nothing crosses the " +
+            "boundary except the list going out and the filled list coming back through an await. " +
+            "It runs INSIDE a reading, and the reentrancy guard in the other file is what makes a " +
+            "second concurrency mechanism unnecessary rather than missing - which is the argument " +
+            "that had to move with the code.",
+
         ["Execution.cs"] =
             "Ctrl+C, and this file was concurrent long before it said so. The handler behind " +
             "Console.CancelKeyPress runs on a thread of the runtime's choosing while the plan " +
@@ -120,10 +131,25 @@ public sealed class ConcurrencyGuards
     /// Deliberately not <c>async</c> and <c>await</c>. Those are how a single thread waits
     /// without blocking, which is the opposite of the problem - and forbidding them would
     /// make the guard fire on the ordinary shape of a window.
+    ///
+    /// <b>WHITESPACE IS ALLOWED ROUND EVERY DOT SINCE 2026-09-03, AND WITHOUT IT THIS GUARD HAD A
+    /// HOLE THE FORMATTER COULD OPEN BY ITSELF.</b> A call long enough to wrap is written
+    /// <c>await Task</c> on one line and <c>.Run(...)</c> on the next, and a pattern asking for
+    /// those two with nothing between them does not see it. There was exactly one such call in the
+    /// product - the expensive pass in the window - and it had been invisible here for as long as
+    /// it has existed.
+    ///
+    /// <b>It came to light because the OTHER assertion below went red.</b> A seam moved that pass
+    /// into a file of its own, the file was listed as concurrent, and the guard against a list
+    /// rotting into a wish reported that the new entry named a place doing nothing of the kind.
+    /// So the check on the list is what found the hole in the pattern under it - which is the
+    /// shape this whole class rests on: a rule nobody can keep by remembering it needs the thing
+    /// checking it to be checked as well.
     /// </summary>
     private static readonly Regex Concurrency = new(
-        @"\bTask\.Run\b|\bParallel\.|\bnew\s+Thread\b|\block\s*\(|\bInterlocked\.|\bMonitor\.|" +
-        @"\bVolatile\.|\bThreadPool\.|\bConcurrent(Dictionary|Bag|Queue|Stack)\b|" +
+        @"\bTask\s*\.\s*Run\b|\bParallel\s*\.|\bnew\s+Thread\b|\block\s*\(|" +
+        @"\bInterlocked\s*\.|\bMonitor\s*\.|\bVolatile\s*\.|\bThreadPool\s*\.|" +
+        @"\bConcurrent(Dictionary|Bag|Queue|Stack)\b|" +
         @"\bSemaphoreSlim\b|\bManualResetEvent|\bAutoResetEvent\b|\bMutex\b|\bBarrier\b",
         RegexOptions.Compiled,
         Sources.Ceiling);

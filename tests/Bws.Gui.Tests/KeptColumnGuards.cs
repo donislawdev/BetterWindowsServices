@@ -49,43 +49,6 @@ public sealed class KeptColumnGuards : IDisposable
     }
 
     /// <summary>
-    /// A width that is not a width leaves the column where the theme puts it, and is named.
-    ///
-    /// The one field in the file a person can plausibly hand edit into nonsense - identifiers are
-    /// checked against the catalogue and the flags are true or false. Rule 8: the column quietly
-    /// being the wrong size is exactly the fault nobody would investigate.
-    /// </summary>
-    [Fact]
-    public void A_width_that_cannot_be_read_falls_back_to_the_theme_and_is_named()
-    {
-        _ = WpfHost.Resources;
-
-        var bar = new ColumnBar();
-        var refused = new List<string>();
-
-        var grid = WpfHost.On(() =>
-        {
-            var built = new DataGrid();
-
-            refused.AddRange(ListColumns.Fill(
-                built,
-                bar,
-                ColumnPlan.Of(
-                    new ColumnLayout([new KeptColumn("status", Shown: true, Width: "as wide as it likes")]),
-                    EntryScope.Services)));
-
-            return built;
-        });
-
-        Assert.Equal(["status"], refused);
-
-        var theme = WpfHost.On(() => (DataGridLength)WpfHost.Resources["ColumnStatus"]);
-        var status = WpfHost.On(() => grid.Columns.First(column => column.SortMemberPath == "status"));
-
-        Assert.Equal(theme.Value, WpfHost.On(() => status.Width.Value));
-    }
-
-    /// <summary>
     /// The kept order is the order the grid puts its columns in.
     ///
     /// <b>Asserted through <c>ColumnFromDisplayIndex</c> rather than through the collection</b>,

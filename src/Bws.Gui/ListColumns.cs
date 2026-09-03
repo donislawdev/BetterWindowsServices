@@ -350,6 +350,35 @@ internal static class ListColumns
         return (DataGridLength)grid.FindResource(column.WidthKey);
     }
 
+    /// <summary>
+    /// The widest a kept width may be before it stops being a width.
+    ///
+    /// <b>Ten thousand device independent pixels, which is about three times the widest screen
+    /// anybody puts a window on and nothing like a number a person types.</b> The point is not to
+    /// judge somebody's taste in columns - it is that everything above this is the same thing:
+    /// a file edited by hand or by something that got the units wrong.
+    /// </summary>
+    private const double Widest = 10_000;
+
+    /// <summary>
+    /// Whether this is a width at all, as opposed to a number the converter was willing to read.
+    ///
+    /// <b>BACKLOG 308(a). The converter refuses text that is not a number and accepts every number
+    /// there is</b>, so <c>1e300</c> came through as a perfectly good width - and the line above
+    /// makes the width its own floor, so the grid was then asked for a column that cannot be drawn
+    /// and the whole list went with it. Nothing on screen would have said why.
+    ///
+    /// <b>The share columns are held to the same number, and that is deliberate rather than lazy.</b>
+    /// A star weight of 1e300 is not a width but it reaches the same layout pass with the same
+    /// result, and a rule that only guarded the absolute ones would be a rule about how the file
+    /// happens to be spelled.
+    /// </summary>
+    private static bool AWidth(DataGridLength width) =>
+        !double.IsNaN(width.Value)
+        && !double.IsInfinity(width.Value)
+        && width.Value >= 0
+        && width.Value <= Widest;
+
     private static DataGridLength? Parsed(string text)
     {
         // Three exceptions rather than one broad catch, because they are the three the converter
@@ -358,7 +387,9 @@ internal static class ListColumns
         try
         {
             return Widths.ConvertFrom(null, System.Globalization.CultureInfo.InvariantCulture, text)
-                as DataGridLength?;
+                is DataGridLength width && AWidth(width)
+                ? width
+                : null;
         }
         catch (FormatException)
         {

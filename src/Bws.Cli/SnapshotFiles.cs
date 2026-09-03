@@ -24,6 +24,15 @@ namespace Bws.Cli;
 internal static class SnapshotFiles
 {
     /// <summary>
+    /// The largest a file may be before this build refuses to treat it as a snapshot.
+    ///
+    /// Sixty four megabytes, against a measured 1.009 MB for this machine's 799 entries - so about
+    /// fifty thousand entries, which no Windows installation has. The number refuses files that are
+    /// not snapshots rather than snapshots that are large, and that is the whole of its job.
+    /// </summary>
+    private const long Biggest = 64L * 1024 * 1024;
+
+    /// <summary>
     /// Where the snapshot goes when nobody said.
     ///
     /// The machine and the moment, in the directory the person is standing in. E1's own example
@@ -228,6 +237,27 @@ internal static class SnapshotFiles
 
         try
         {
+            // ASKED HOW BIG IT IS BEFORE READING IT ALL, SINCE 2026-09-03 - backlog 308(c). The
+            // reader below builds one string out of every byte, so a path pointing at something
+            // enormous ends the process with an out of memory failure and a stack trace, which is
+            // the one shape this tool's entry point cannot turn into a sentence worth reading.
+            //
+            // MEASURED RATHER THAN GUESSED: a snapshot of this machine, 799 entries, is 1.009 MB.
+            // Sixty four megabytes is therefore about fifty thousand entries, which no Windows
+            // installation has - so this refuses files that are not snapshots rather than
+            // snapshots that are large.
+            //
+            // A file that is not there falls through to the reader below, which produces the
+            // sentence about a path somebody got wrong. This clause only ever speaks about a file
+            // that exists.
+            if (File.Exists(path) && new FileInfo(path).Length > Biggest)
+            {
+                Console.Error.WriteLine(Texts.Of("cli.diff.tooBig", path, Biggest / (1024 * 1024)));
+                code = ExitCode.Usage;
+
+                return false;
+            }
+
             content = ReadText(path);
         }
 

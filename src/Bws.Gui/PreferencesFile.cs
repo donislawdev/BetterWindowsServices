@@ -64,6 +64,15 @@ internal sealed class PreferencesFile
     internal string Where => Path.Combine(_directory, Name);
 
     /// <summary>
+    /// The largest this file may be before it is treated as not being one.
+    ///
+    /// A megabyte, against a real one of eighteen short lines. The number is not a judgement about
+    /// how many columns anybody may keep - it is the point past which the thing at that path is
+    /// something else.
+    /// </summary>
+    private const long Biggest = 1024 * 1024;
+
+    /// <summary>
     /// Reads the layout back, moving the file aside if it turns out not to be one.
     ///
     /// <b>Quarantine rather than overwrite</b> - `ADR-18`. A file that will not parse is often the
@@ -82,6 +91,22 @@ internal sealed class PreferencesFile
                 // The ordinary first run, and the ordinary answer to somebody deleting the file:
                 // nothing is there, nothing went wrong, and the window opens as it always did.
                 return new LayoutReading();
+            }
+
+            // ASKED HOW BIG IT IS BEFORE READING IT ALL, SINCE 2026-09-03 - backlog 308(c). The
+            // reader below builds one string out of every byte in the file, so a path that happens
+            // to point at something enormous is a window that will not open, with an out of memory
+            // failure in place of a sentence. This file is eighteen short lines, so a megabyte is
+            // a thousandfold allowance rather than a limit anybody could meet by using the
+            // program - and it is quarantined like any other file that turns out not to be a
+            // layout, which is also what lets the next write succeed.
+            if (new FileInfo(Where).Length > Biggest)
+            {
+                return new LayoutReading
+                {
+                    Unreadable = Texts.Of("gui.layout.tooBig", Biggest / 1024),
+                    MovedAside = Aside()
+                };
             }
 
             content = ReadText(Where);

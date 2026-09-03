@@ -425,6 +425,44 @@ public sealed class PreferencesFileGuards : IDisposable
             Width: id == "serviceName" ? "333" : null));
     }
 
+    /// <summary>
+    /// A file too big to be a layout is refused before it is read - backlog 308(c).
+    ///
+    /// <b>The reader builds ONE STRING out of every byte in the file</b>, so a path that happens to
+    /// point at something enormous is a window that will not open, with an out of memory failure in
+    /// place of a sentence - and this read happens while the window is being constructed.
+    ///
+    /// <b>The size is set rather than written, which is how this stays a test somebody will run.</b>
+    /// Asking the file system for a length is instant on NTFS; writing two megabytes to disk on
+    /// every run to prove a rule about size would be a test that earns its own line in a report
+    /// about slow suites.
+    ///
+    /// Quarantined like any other file that turns out not to be a layout, which is `ADR-18` and
+    /// also what lets the next write succeed.
+    /// </summary>
+    [Fact]
+    public void A_file_too_big_to_be_a_layout_is_refused_rather_than_read_into_memory()
+    {
+        var file = Fresh();
+
+        Assert.Null(file.Write(ColumnLayouts.Default));
+
+        using (var big = new FileStream(file.Where, FileMode.Create, FileAccess.Write))
+        {
+            big.SetLength(2L * 1024 * 1024);
+        }
+
+        var reading = file.Read();
+
+        // THE SENTENCE RATHER THAN ONLY THE REFUSAL, AND THE MUTATION REGISTRY IS WHY. Two
+        // megabytes of nothing is also not a layout, so a run without the ceiling refuses it too -
+        // after reading every byte - and a test asserting only that something was refused would
+        // pass either way. What names the ceiling is the reason it gives.
+        Assert.Equal(Bws.Gui.Texts.Of("gui.layout.tooBig", 1024), reading.Unreadable);
+        Assert.NotNull(reading.MovedAside);
+        Assert.False(File.Exists(file.Where));
+    }
+
     private PreferencesFile Fresh(bool create = true) =>
         new(create ? Somewhere() : Path.Combine(Somewhere(), "not-yet"));
 

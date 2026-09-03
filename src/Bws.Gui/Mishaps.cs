@@ -106,7 +106,13 @@ internal static class Mishaps
         // The message rather than the type or the stack. This line is read by an administrator
         // in the middle of doing something else, and the rest of it belongs in a report nobody
         // has asked for yet - backlog, rather than invented here.
-        model.Says.CouldNotDo(failure.Message);
+        //
+        // EVERY CAUSE RATHER THAN THE TOP ONE, SINCE 2026-09-03. Backlog 307 named the command
+        // line and the reading, and this is the third road to the same line under the list -
+        // left on failure.Message it would be the one path that says less than the other two,
+        // which is how one answer becomes three answers that disagree. This net catches what
+        // nobody predicted, so it is the last place to be sure of what it is holding.
+        model.Says.CouldNotDo(string.Join(" ", Bws.Core.Causes.Of(failure)));
 
         return true;
     }

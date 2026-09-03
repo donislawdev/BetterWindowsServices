@@ -20,7 +20,7 @@ namespace Bws.Gui.ViewModels;
 ///
 /// Knows nothing about WPF, exactly like the class it came out of.
 /// </summary>
-internal sealed class Readings
+internal sealed partial class Readings
 {
     private readonly IScmCatalog _catalog;
     private readonly RowIndex _index;
@@ -83,6 +83,29 @@ internal sealed class Readings
     /// </summary>
     private readonly Action _changed;
 
+    /// <summary>
+    /// Whether the window this reads for has gone.
+    ///
+    /// <b>BACKLOG 300, AND WHAT IT DOES AND DOES NOT BUY IS WRITTEN AT <see cref="NoLongerWanted"/>
+    /// rather than left to be assumed.</b> Read and written on the interface thread only, the same
+    /// invariant as the flag below and for the same reason.
+    /// </summary>
+    private bool _gone;
+
+    /// <summary>
+    /// Whether a reading is in flight, so a second one does not start on top of it.
+    ///
+    /// <b>A plain bool because EVERY read and write of it happens on the interface thread, and that
+    /// is an invariant rather than an accident</b> - backlog 308(f), which found it named nowhere.
+    /// The readings themselves go to the pool, but the flag is raised before the work leaves and
+    /// lowered after the await brings control back here, and everything that asks about it -
+    /// the once-a-second tick, F5, the bar over the list - is a handler on this thread.
+    ///
+    /// <b>What would break it, said so that it is recognisable rather than only forbidden:</b>
+    /// touching this from inside a Task.Run, or from a timer that is not the dispatcher's. Either
+    /// would make two readings possible at once, and the fault would be a listing that flickers
+    /// between two answers on somebody else's machine - not an exception anybody could catch.
+    /// </summary>
     private bool _reading;
 
     /// <summary>Whether the last reading failed outright, which is not the same as admitting gaps.</summary>
@@ -196,6 +219,11 @@ internal sealed class Readings
         }
 #pragma warning restore CA1031
 
+        if (_gone)
+        {
+            return;
+        }
+
         Says.Incomplete = false;
         _failed = false;
 
@@ -277,6 +305,11 @@ internal sealed class Readings
             }
 #pragma warning restore CA1031
 
+            if (_gone)
+            {
+                return;
+            }
+
             Says.Incomplete = false;
             _everRead = true;
 
@@ -319,127 +352,41 @@ internal sealed class Readings
 
 
     /// <summary>
-    /// The second phase of `ADR-13`: what a listing costs too much to know up front.
+    /// The window has gone, so nothing that comes back is worth putting anywhere.
     ///
-    /// <b>INSIDE THE READING RATHER THAN ALONGSIDE IT, and that is the whole design.</b> The
-    /// obvious shape is to start this in the background and let the tick carry on, which needs a
-    /// cancellation, a generation counter and a rule for what happens when the composition of the
-    /// list changes underneath a pass that is still out. None of that is needed here: LoadAsync and
-    /// RefreshAsync both refuse to start while a reading is out, so for as long as this is running
-    /// nothing else can touch the index. The reentrancy guard that already existed is what makes
-    /// the race impossible rather than handled.
+    /// <b>BACKLOG 300, AND THE HONEST HALF IS WHAT THIS DOES NOT DO.</b> It does not stop the work.
+    /// The readings are already inside the pool when this is called, and neither
+    /// <c>IScmCatalog.ReadAll</c> nor the second pass takes a token to be interrupted by - so the
+    /// processor they are spending goes on being spent until they finish or the process ends.
     ///
-    /// <b>It is awaited, which BackgroundWorkGuards requires and which is also just true</b> - work
-    /// started and walked away from either silently does not happen or silently fails, and this one
-    /// runs unattended once a machine is left alone with the window open.
+    /// <b>What the report said would happen does not, and that was measured rather than argued.</b>
+    /// It claimed a continuation coming back to a closed dispatcher throws, the throw lands on a
+    /// pool thread, and the process dies. `tools/gui-probe/close-during-load.ps1` closed this
+    /// window fifteen times, ten of them genuinely in the middle of the expensive pass, and every
+    /// one of the fifteen exited with code 0 in 69-117 ms. The dispatcher abandons an operation
+    /// after shutdown rather than raising anything.
     ///
-    /// <b>The price is named rather than hidden: the tick is suppressed for as long as this takes.</b>
-    /// Status and process ids stop moving until it returns, on every full reading. That is the
-    /// trade this shape makes in exchange for not having a second concurrency mechanism, and it is
-    /// the number to measure before deciding this should run on every F5.
+    /// <b>So what is left is this: a reading that comes back to a window nobody is looking at
+    /// writes nothing.</b> That is small and it is not nothing - between the window closing and the
+    /// process ending, those continuations were rebuilding rows, recomputing a query and moving a
+    /// status line for a screen that had gone.
     ///
-    /// Both families in one pass because they are read from the same list and written into the same
-    /// records. They are nothing alike in cost - seconds against under a millisecond - which is why
-    /// the command line asks for them separately, but a window that has decided to pay for one has
-    /// no reason to make a second decision about the other.
+    /// <b>Stopping the work itself is a decision rather than an omission.</b> It would mean a token
+    /// through <c>SecondPass.Fill</c> and <c>MemoryPass.Fill</c> - which is contained, both are ours
+    /// and both already parallelise - and a token source living as long as this object, which makes
+    /// this class and everything holding it disposable. Two of fifteen runs spent more than a
+    /// quarter of a second of processor after the close was asked for, because pool threads are
+    /// background threads and go with the process. That is the size of what it would buy.
     /// </summary>
-    private async Task FillAsync(IReadOnlyList<ScmEntry> entries)
-    {
-        if (_inspector is null || _reader is null || entries.Count == 0 || !Asked())
-        {
-            return;
-        }
-
-        // Marked as attempted before the work rather than after it, so a pass that throws is not
-        // asked for again a second later - see the argument on _tried.
-        _tried |= _wanted();
-
-        _filling = true;
-
-        // Said before the work rather than after it, or the one state this announces would be
-        // announced only once it had stopped being true - the same argument as the reading above.
-        _settled();
-
-        IReadOnlyList<ScmEntry> filled;
-
-        try
-        {
-            filled = await Task
-                .Run(() => MemoryPass.Fill(SecondPass.Fill(entries, _inspector), _reader))
-                .ConfigureAwait(true);
-        }
-#pragma warning disable CA1031
-        // Broad, and for a narrower reason than the reading above. Every file this opens answers
-        // for itself - a refusal or a malformed binary comes back as a Reading rather than as a
-        // throw - so anything arriving here is the pass itself failing, and the list on screen is
-        // already good. It must not take the window down, and it must not be reported as the
-        // reading having failed either, because the reading succeeded.
-        catch (Exception failure)
-        {
-            _filling = false;
-
-            Says.Incomplete = true;
-            Says.CouldNotDo(failure.Message);
-            _settled();
-
-            return;
-        }
-#pragma warning restore CA1031
-
-        _filling = false;
-        _have = ExtraRead.Signatures | ExtraRead.Memory;
-
-        // WHAT WAS READ COUNTS AS TRIED, AND UNTIL 2026-08-26 ONLY WHAT WAS ASKED DID. The pass
-        // above fills BOTH families whatever the question wanted - they come off the same list and
-        // go into the same records - so a window that has run it once holds signatures and memory
-        // for these entries either way.
-        //
-        // Marking only the asked one meant the second question paid for both again. Somebody types
-        // signed:no, the pass runs, both families are read. They then type memory:>500MB, which is
-        // a family not in _tried, so WantsMore says yes and the next tick reads the whole manager
-        // again and verifies all 544 signatures a second time - measured at 7.5 s of processor and
-        // 18 MB, for an answer already sitting in the rows. The tick is suppressed for the whole of
-        // it, so the list stops moving as well.
-        _tried |= _have;
-
-        _index.Absorb(filled);
-        _settled();
-    }
-
-    /// <summary>
-    /// Whether the question on screen needs something this window has not tried to read yet.
-    ///
-    /// <b>THE PASS IS ASKED FOR RATHER THAN ALWAYS RUN, and the number behind that is the whole
-    /// reason - owner's decision, 2026-08-18.</b> Measured on this machine over about 810 entries,
-    /// four launches each with the first discarded: a window that always ran it spent 8.86-9.42 s
-    /// of processor against 1.39-1.42 s without, and 171 MB against 153. The spreads do not touch,
-    /// so the pass costs roughly seven and a half seconds of processor and eighteen megabytes -
-    /// on every F5 and on every change to what is installed, for an answer nobody had asked for.
-    ///
-    /// Asking for it is asking a question about it. `signed:no` in the box is somebody wanting
-    /// signatures, and that is the moment to go and get them.
-    /// </summary>
-    private bool Asked()
-    {
-        var wanted = _wanted();
-
-        return wanted != ExtraRead.None && (wanted & ~_tried) != ExtraRead.None;
-    }
-
-    /// <summary>
-    /// Whether the question on screen has outrun what the window went and read.
-    ///
-    /// <b>Answered by reading the machine again rather than by filling in what is held.</b> The
-    /// entries kept from the last full reading are older than the rows on screen - a tick has been
-    /// writing statuses into them since - so absorbing them would roll those changes back. Reading
-    /// again costs about half a second on top of a pass that costs seconds, and it is the
-    /// difference between a fresh answer and a stale one.
-    /// </summary>
-    internal bool WantsMore() => _inspector is not null && _reader is not null && Asked();
+    internal void NoLongerWanted() => _gone = true;
 
     private void Fail(Exception failure)
     {
-        Says.Status = Texts.Of("gui.status.failed", failure.Message);
+        // EVERY CAUSE RATHER THAN THE TOP ONE, SINCE 2026-09-03 - backlog 307. Both readings above
+        // reach the manager several entries at a time, and that hands back one exception holding all the
+        // failures at once: what arrived here was "One or more errors occurred." and nothing about
+        // which entries were refused. Causes says why the joining is left to whoever is speaking.
+        Says.Status = Texts.Of("gui.status.failed", string.Join(" ", Causes.Of(failure)));
         Says.Incomplete = true;
         _failed = true;
 

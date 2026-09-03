@@ -316,6 +316,15 @@ public sealed partial class MainViewModel : Observable
     public Task RefreshAsync() => _readings.RefreshAsync();
 
     /// <summary>
+    /// Nobody is looking at this any more, so a reading still out there writes nothing.
+    ///
+    /// Backlog 300. What it does and, more importantly, what it does NOT do is written at
+    /// <see cref="Readings.NoLongerWanted"/> - the short of it is that the work carries on and
+    /// only its answer is dropped.
+    /// </summary>
+    public void NoLongerWanted() => _readings.NoLongerWanted();
+
+    /// <summary>
     /// Takes the highlight off the rows that have worn it long enough. Driven by the same tick
     /// that refreshes, because it has to keep happening while nothing is moving.
     /// </summary>

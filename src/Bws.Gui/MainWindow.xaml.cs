@@ -263,7 +263,22 @@ public partial class MainWindow : Window
         // the window can say a copy was refused, because only the window owns the status line.
         PlanPanel.CopyRequest += (_, asked) => Put(asked.Command);
 
-        Closed += (_, _) => _timer.Stop();
+        Closed += (_, _) => NothingIsWatching();
+    }
+
+    /// <summary>
+    /// The window has gone, so nothing goes on asking the machine anything for it.
+    ///
+    /// <b>Two halves, and until 2026-09-03 there was one</b> - backlog 300. Stopping the timer
+    /// stops the NEXT reading being asked for and says nothing at all to the one already out,
+    /// which then comes back and rebuilds rows, re-runs a query and moves a status line for a
+    /// window nobody can see. What it still does not do is stop the work itself, and that is
+    /// written out at <see cref="ViewModels.Readings.NoLongerWanted"/> rather than left here.
+    /// </summary>
+    private void NothingIsWatching()
+    {
+        _timer.Stop();
+        _model.NoLongerWanted();
     }
 
     private async Task Tick()

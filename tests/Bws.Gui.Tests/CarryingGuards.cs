@@ -267,6 +267,7 @@ public sealed class CarryingGuards
         var gate = new TaskCompletionSource();
         using var stopping = new CancellationTokenSource();
         var closed = false;
+        var closings = 0;
 
         // HANDED A RUN RATHER THAN STARTING ONE, which is the seam MainWindow.TakeThisAsARun exists
         // for and the reason it takes a task rather than a plan. A real run here would stop services
@@ -274,6 +275,7 @@ public sealed class CarryingGuards
         WpfHost.On(() =>
         {
             window.Closed += (_, _) => closed = true;
+            window.Closing += (_, _) => closings++;
             window.TakeThisAsARun(gate.Task, stopping);
         });
 
@@ -283,12 +285,23 @@ public sealed class CarryingGuards
         Assert.False(closed);
         Assert.True(stopping.IsCancellationRequested);
 
+        // A REFUSED CLOSE IS NOT A CLOSE, AND UNTIL 2026-09-03 IT RAISED THE EVENT ANYWAY -
+        // backlog 308(e). The base call is what raises Closing, and it stood before the decision,
+        // so a close refused half way through changing a machine told every listener the window
+        // was going. The one listener is the column layout, which writes itself to disk from that
+        // event and has nowhere to report a failure - so this wrote the file for a window that was
+        // staying, and then wrote it again on the close that really happened.
+        Assert.Equal(0, closings);
+
         // And the run ends. The steps that give back what earlier ones took have run by now, which
         // is what asking a run to stop means here rather than abandoning it.
         gate.SetResult();
         WpfHost.Settled();
 
         Assert.True(closed);
+
+        // Once, for the close that really was one.
+        Assert.Equal(1, closings);
     }
 
     /// <summary>

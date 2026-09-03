@@ -234,10 +234,22 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
 
         // Only what is actually running. Stopping something already stopped is not a step,
         // it is noise in a preview somebody has to read carefully.
+        //
+        // ONE ENTRY HOWEVER MANY TIMES THE MANAGER NAMED IT, SINCE 2026-09-03 - backlog 305. The
+        // list below is whatever EnumDependentServices returned, and nothing promises the names in
+        // it are distinct or that two of them differ by more than case. A repeat used to reach
+        // Order, where the entries are put in a dictionary by name, and a dictionary meets a
+        // repeated key with an ArgumentException - so a name the manager happened to say twice
+        // turned the whole preview into a sentence about a failure, in a panel and in a terminal,
+        // with nothing to say it was the preview rather than the machine.
+        //
+        // Dropping the repeat rather than the step, which is the distinction BulkPlanBuilder
+        // draws about its own input: this is one entry described twice, not two things to do.
         var running = dependents.Value!
             .Select(Find)
             .OfType<ScmEntry>()
             .Where(entry => entry.Status != EntryStatus.Stopped)
+            .DistinctBy(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         return Order(running);

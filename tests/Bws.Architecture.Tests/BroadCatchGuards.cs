@@ -60,7 +60,17 @@ public sealed class BroadCatchGuards
             "The window's first reading. A failure has to arrive as a line under an empty list " +
             "rather than as a dialog nobody can act on, or a window that disappears. " +
             "It was MainViewModel.cs until 2026-08-18, when the state machine was cut out into " +
-            "its own file - backlog 198. The argument moved with the code, unchanged."
+            "its own file - backlog 198. The argument moved with the code, unchanged.",
+
+        ["Readings.SecondPhase.cs"] =
+            "The expensive pass, which moved out of the file above on 2026-09-03 when the size " +
+            "ratchet asked - and its catch is BROADER IN PLACE AND NARROWER IN REASON than the " +
+            "two it left behind. Every file that pass opens answers for itself: a refusal or a " +
+            "malformed binary comes back as a Reading rather than as a throw, so anything " +
+            "arriving at the catch is the pass itself failing while the list on screen is already " +
+            "good. It must not take the window down, and it must not be reported as the reading " +
+            "having failed either, because the reading succeeded. THE THIRD TIME THIS GUARD HAS " +
+            "CAUGHT A SEAM WITH THE ARGUMENT LEFT BEHIND, and the second in two days."
     };
 
     [Fact]

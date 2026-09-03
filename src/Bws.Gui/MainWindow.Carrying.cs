@@ -205,13 +205,21 @@ public partial class MainWindow
     /// </summary>
     protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        base.OnClosing(e);
-
         if (_running is not { IsCompleted: false } running)
         {
+            base.OnClosing(e);
+
             return;
         }
 
+        // BASE IS NOT CALLED ON THE REFUSED ATTEMPT, SINCE 2026-09-03 - backlog 308(e). Calling it
+        // is what raises the Closing event, and the column layout is written from a handler on that
+        // event - so a close refused half way through a run wrote the file, and the close that
+        // followed wrote it again. Two writes of one layout, one of them while the window is not
+        // going anywhere, and both through a path that has nowhere to report a failure.
+        //
+        // Skipping it here is the ordinary shape of a cancelled close rather than a shortcut: the
+        // event means "this window is closing", and after this line it is not.
         e.Cancel = true;
         _stopping?.Cancel();
 

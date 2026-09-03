@@ -368,6 +368,34 @@ public sealed class PlanBuilderTests
         Assert.NotNull(Warning(Plan(ActionKind.Start, "Spooler"), PlanWarningKind.AlreadyThere));
     }
 
+    /// <summary>
+    /// A name the manager gives twice is one entry, and it used to be a failure - backlog 305.
+    ///
+    /// <b>The cascade goes into a dictionary keyed by name to be put in order, and a dictionary
+    /// meets a repeated key by throwing.</b> Nothing promises that EnumDependentServices answers
+    /// with distinct names, or that two of them differ by more than case - so a repeat turned a
+    /// PREVIEW into a sentence about a failure, in the panel and in the terminal, with nothing to
+    /// say the failure was ours rather than the machine's.
+    ///
+    /// <b>Case is the half worth spelling out.</b> Two spellings of one name are one service:
+    /// identity here is case insensitive, which is `ADR-14`, so a plan carrying both would ask the
+    /// manager to stop the same entry twice.
+    /// </summary>
+    [Theory]
+    [InlineData("SessionEnv", "SessionEnv")]
+    [InlineData("SessionEnv", "SESSIONENV")]
+    public void A_dependant_the_manager_names_twice_is_one_step_rather_than_a_failure(
+        string first, string second)
+    {
+        var plan = Plan(ActionKind.Stop, "MRxSmb20", Chain([first, second, "Netlogon"]));
+
+        Assert.Empty(plan.Problems);
+
+        Assert.Equal(
+            ["SessionEnv", "Netlogon", "MRxSmb20"],
+            plan.Steps.Select(step => step.ServiceName));
+    }
+
     [Fact]
     public void A_plan_is_worked_out_without_reading_the_listing_again()
     {

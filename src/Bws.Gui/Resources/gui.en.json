@@ -83,6 +83,7 @@
   "gui.layout.otherSchema": "The kept column layout was written against schema version {0} and this program reads version {1}, so it was left alone and the usual columns are shown.",
   "gui.layout.carriedForward": "The kept column layout was written against schema version {0} and has been carried forward to version {1}. Your columns are as you left them, and the file will be saved in the newer shape the next time you change one.",
   "gui.layout.notKept": "The column layout was not saved, so this window will open the way it did last time. {0}",
+  "gui.layout.tooBig": "The file holding the column layout is larger than {0} KB, so it is not one this window wrote.",
   "gui.layout.noProfile": "Windows names no application data folder for this account, so there is nowhere to keep the layout.",
 
   "gui.search.hint": "Search services and drivers",

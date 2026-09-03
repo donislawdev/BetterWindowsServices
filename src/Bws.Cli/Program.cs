@@ -242,12 +242,19 @@ try
         {
             AtomicFile.Write(target, SnapshotJson.Render(snapshot));
         }
-        catch (DirectoryNotFoundException missing)
+        catch (Exception theirs) when (theirs is DirectoryNotFoundException or UnauthorizedAccessException)
         {
             // What somebody typed, not something that went wrong inside. ADR-18 forbids
             // inventing directories, so the honest answer is the one the usage code carries.
+            //
+            // BEING REFUSED THE FOLDER JOINED IT 2026-09-03 - backlog 308(d). It is the same
+            // sentence about the same thing: a path somebody chose that this account cannot write
+            // to. It used to fall through to the entry point, come back as code 1, and tell a
+            // script that the machine had failed - which is the distinction docs/12 step 5 asks
+            // about and the one audit.ps1 cannot check, because it asks whether a code is in the
+            // table rather than whether it is the right one.
             stopwatch.Stop();
-            Console.Error.WriteLine(missing.Message);
+            Console.Error.WriteLine(theirs.Message);
             return ExitCode.Usage;
         }
 
@@ -441,9 +448,16 @@ catch (Exception failure)
     // TypeInitializationException says only "something threw", and the sentence that
     // actually explains the failure sits underneath it. Printing one line and dropping
     // the rest is the quiet kind of silence rule 8 forbids.
-    for (Exception? level = failure; level is not null; level = level.InnerException)
+    //
+    // THROUGH Causes SINCE 2026-09-03, AND THE LOOP THAT STOOD HERE LOOKED COMPLETE -
+    // backlog 307. It walked InnerException, which is the whole chain for an ordinary
+    // exception and one branch of a tree for an AggregateException. The listing and the
+    // second pass both read several entries at once, which is exactly the shape that fails
+    // several times at once and hands back one exception holding all of them - so the
+    // failure this tool is most likely to meet is the one this loop read least of.
+    foreach (var cause in Causes.Of(failure))
     {
-        Console.Error.WriteLine(level.Message);
+        Console.Error.WriteLine(cause);
     }
 
     return ExitCode.Runtime;
