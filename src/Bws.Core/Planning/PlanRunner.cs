@@ -133,7 +133,11 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
     private StepResult RunStep(PlanStep step, TimeSpan timeout)
     {
-        var started = clock.Now;
+        // THE RULER RATHER THAN THE WALL CLOCK, SINCE 2026-09-03 - backlog 299. Everything below
+        // asks how long, never what time, and two readings of a wall clock across a machine
+        // resuming or a time correction give a deadline already passed and a step time that is
+        // negative. IClock.Elapsed is documented as a count that only goes forward.
+        var started = clock.Elapsed;
 
         // A CONFIGURATION CHANGE IS DONE WHEN IT RETURNS, so everything below - the target status,
         // the read before, the waiting after - is about a question this step does not ask. Writing
@@ -201,7 +205,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     /// <b>An unreadable status is not a failed step.</b> The setting was written or it was not, and
     /// that answer comes from the write rather than from a reading beside it.
     /// </summary>
-    private StepResult Configure(PlanStep step, DateTimeOffset started)
+    private StepResult Configure(PlanStep step, TimeSpan started)
     {
         var answer = control.Configure(step.ServiceName, step.To!.Value);
         var where = Where(control.Read(step.ServiceName));
@@ -210,12 +214,12 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
             ? Result(step, StepOutcome.Succeeded, where, Elapsed(started))
             : Refused(step, answer, where, started);
     }
-    private StepResult WaitFor(PlanStep step, EntryStatus target, TimeSpan timeout, DateTimeOffset started)
+    private StepResult WaitFor(PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started)
     {
         var giveUpAt = started + timeout;
         var status = EntryStatus.Unknown;
         uint? checkPoint = null;
-        DateTimeOffset? promisedBy = null;
+        TimeSpan? promisedBy = null;
 
         while (true)
         {
@@ -236,7 +240,7 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
                 return Result(step, StepOutcome.Succeeded, status, Elapsed(started));
             }
 
-            var now = clock.Now;
+            var now = clock.Elapsed;
 
             if (moved)
             {
@@ -267,9 +271,9 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     private static EntryStatus Where(ControlAnswer answer) =>
         answer.Worked ? answer.Progress!.Value.Status : EntryStatus.Unknown;
 
-    private long Elapsed(DateTimeOffset started) => (long)(clock.Now - started).TotalMilliseconds;
+    private long Elapsed(TimeSpan started) => (long)(clock.Elapsed - started).TotalMilliseconds;
 
-    private StepResult Refused(PlanStep step, ControlAnswer answer, EntryStatus status, DateTimeOffset started) =>
+    private StepResult Refused(PlanStep step, ControlAnswer answer, EntryStatus status, TimeSpan started) =>
         new()
         {
             Step = step,

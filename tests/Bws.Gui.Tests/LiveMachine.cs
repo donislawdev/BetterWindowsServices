@@ -185,7 +185,17 @@ internal sealed class SteppedClock : IClock
 
     public DateTimeOffset Now => _now;
 
-    public void Wait(TimeSpan duration) => _now += duration;
+    /// <summary>
+    /// The ruler that only goes forward - backlog 299. Moves with everything this clock moves
+    /// with, because nothing in the window asks it anything yet.
+    /// </summary>
+    public TimeSpan Elapsed { get; private set; }
 
-    internal void Advance(TimeSpan duration) => _now += duration;
+    public void Wait(TimeSpan duration) => Advance(duration);
+
+    internal void Advance(TimeSpan duration)
+    {
+        _now += duration;
+        Elapsed += duration;
+    }
 }
