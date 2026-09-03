@@ -151,8 +151,20 @@ internal static class SizeCeilings
     /// lines shorter than the dial that was holding it. **Thirty lines of slack is inside what the
     /// drift test forgives and outside what the mutation entry forgives**, which is the second one
     /// earning its place: a guard nobody can make fail is not holding anything.
+    ///
+    /// <b>495 to 488 on 2026-09-03, AND THE SAME ENTRY SAID MISSED FOR THE THIRD TIME.</b> Five
+    /// seams in one packet - the keyboard and the run state out of MainWindow and Planned, the
+    /// expensive pass out of Readings, and two out of the tests - took the longest shipped file
+    /// from 495 to 488, and nobody lowered the dial. Seven lines of slack is enough: the entry adds
+    /// ONE line to whatever file is longest today, so it landed at 489 against a ceiling of 495 and
+    /// the guard stayed green.
+    ///
+    /// **That is the third time this has happened and the second time the note above predicted
+    /// it**, so the sentence is worth putting plainly rather than sighing at: lowering this number
+    /// is not tidying up after a seam, it is the half of the seam that keeps the guard able to
+    /// fail. The longest is now MainViewModel.cs.
     /// </summary>
-    internal const int LongestShippedFile = 495;
+    internal const int LongestShippedFile = 488;
 
     /// <summary>
     /// The longest markup file in the product. <b>Measured again the same evening after the second

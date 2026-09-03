@@ -662,6 +662,53 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The plan panel no longer becomes unusable after an unexpected error.** If anything went wrong
+  while carrying a plan out - other than the one refusal the panel already knew about - the button
+  stayed grey for the rest of the session, with a tooltip explaining that it was grey because a run
+  was in progress. Nothing was running. Closing the panel and opening another plan brought it back,
+  which is not something anybody would think to try.
+  - The failure itself is still reported in the line under the list, as it always was.
+  - The button comes back live rather than reading "already done", because nothing knows how far
+    the run got. Pressing it again asks each entry where it is before doing anything to it, so an
+    entry already where you asked for it is reported as skipped rather than touched twice.
+
+- **The window keeps answering while it works out a plan for a large selection.** Selecting
+  everything and asking what stopping it would do took about a quarter of a second with the window
+  frozen for all of it - measured at 224-240 ms over 799 entries. The work is the same and takes the
+  same time; the window is simply no longer holding still for it.
+  - Asking for one thing and changing your mind before the first answer arrives now shows the
+    second answer rather than whichever finished first.
+
+- **A step of a plan can no longer report a negative time, or give up on a service that is still
+  working.** Both were worked out from the clock on the wall, so correcting the time, arriving at
+  daylight saving, or resuming a suspended machine moved them. Durations are now measured with a
+  count that only goes forward.
+
+- **A preview no longer fails when Windows names the same dependent service twice.** It came back as
+  an error message rather than a preview, with nothing to say the failure was in working the plan
+  out rather than on the machine.
+
+- **A failure with several causes says all of them instead of "One or more errors occurred".** The
+  listing and the signature pass both read many entries at once, so this is the shape most failures
+  in this tool actually have - and the sentence explaining what happened was one of the ones being
+  dropped. Repeated causes are said once.
+
+- **A column width that no screen could show is refused instead of breaking the list.** Hand editing
+  the layout file to something like `1e300` left every column unusable with nothing on screen to say
+  why. Such a value now falls back to the width the theme gives, and the column is named in the line
+  under the list, exactly as an unreadable one already was.
+
+- **Pointing `snapshot create` at a folder this account cannot write to now ends with the code for a
+  bad argument rather than the code for a failure inside the tool.** A script could not tell the two
+  apart.
+
+- **A file far too large to be a snapshot, or to be a saved column layout, is refused with a
+  sentence rather than read into memory first.** A whole machine is about one megabyte, and the
+  limits are sixty four megabytes and one respectively - so this refuses files that are not ours
+  rather than ones that are large.
+
+- **Closing the window while a plan is being carried out no longer writes the column layout twice.**
+
 - **Two drivers no longer show a file path where their name should be.** Windows stores some names
   as a pointer into a binary's resources, and for `Tcpip6` and `tcpipreg` on an ordinary machine
   that pointer leads nowhere - so the list read `@todo.dll,-100;Microsoft IPv6 Protocol Driver`
