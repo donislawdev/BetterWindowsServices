@@ -173,7 +173,7 @@ public sealed class PlanViewGuards
 
         // And back the other way, which is the half that is easy to leave out.
         WpfHost.On(() => model.Chosen.Row = model.Rows[0]);
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.OpenDetails)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.OpenDetails, out _)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.DetailsPanel.Visibility));
@@ -199,7 +199,7 @@ public sealed class PlanViewGuards
         Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.Visibility));

@@ -148,7 +148,7 @@ public sealed class KeyboardTests
     /// would pass on a window that had them the wrong way round.
     /// </summary>
     [Fact]
-    public async Task Escape_closes_the_panel_before_it_touches_the_query()
+    public void Escape_closes_the_panel_before_it_touches_the_query()
     {
         var window = WpfHost.Window();
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
@@ -161,11 +161,11 @@ public sealed class KeyboardTests
 
         Assert.True(WpfHost.On(() => model.Chosen.Show()));
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
         Assert.False(model.Chosen.Showing);
         Assert.Equal("name:spooler", model.QueryText);
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
         Assert.Equal(string.Empty, model.QueryText);
 
         WpfHost.On(window.Close);
@@ -179,11 +179,42 @@ public sealed class KeyboardTests
     /// next.
     /// </summary>
     [Fact]
-    public async Task Enter_with_no_row_chosen_is_handed_back()
+    public void Enter_with_no_row_chosen_is_handed_back()
     {
         var window = WpfHost.Window();
 
-        Assert.False(await WpfHost.On(() => window.Act(Shortcut.OpenDetails)));
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.OpenDetails, out _)));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// The one shortcut that waits for the machine claims its key BEFORE it starts waiting -
+    /// backlog 302.
+    ///
+    /// <b>A routed event is over the moment its handler gives control back, and an async method
+    /// gives control back at its first await.</b> So <c>e.Handled = await Act(...)</c> wrote the
+    /// answer into an argument WPF had already finished reading, and F5 reached the query box as
+    /// well as this window. Every other branch got away with the same line, because awaiting a
+    /// task that has already finished never yields - which is what made this a fault of shape
+    /// rather than of behaviour, and what would have handed it to the next asynchronous branch
+    /// anybody wrote.
+    ///
+    /// <b>WHAT THIS DOES NOT EXECUTE, said rather than left to be assumed: the routed event
+    /// itself.</b> Building a real <see cref="KeyEventArgs"/> needs a presentation source, which
+    /// needs a window on somebody's screen, and these tests deliberately show none. What is
+    /// checked is the one thing the fault was made of - that the answer is in hand before the work
+    /// is - and the signature is what now makes the other order impossible to write.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_claims_its_key_before_the_reading_it_starts_has_finished()
+    {
+        var window = WpfHost.Window();
+        var work = Task.CompletedTask;
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Refresh, out work)));
+
+        await work;
 
         WpfHost.On(window.Close);
     }

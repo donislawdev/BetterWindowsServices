@@ -67,7 +67,9 @@ internal static class PlanFixture
     /// <see cref="PlanViewGuards"/> uses, and for the reason written there: the reading happens
     /// before the model reaches the window, so nothing is read while bindings are live.
     /// </summary>
-    internal static async Task<MainWindow> Ready(bool elevated = true)
+    internal static async Task<MainWindow> Ready(
+        bool elevated = true,
+        Func<BulkPlan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
     {
         var machine = new LiveMachine(
             Rows.Entry("Spooler", "Print Spooler"),
@@ -84,7 +86,7 @@ internal static class PlanFixture
 
         await model.LoadAsync();
 
-        var window = WpfHost.Window(model);
+        var window = WpfHost.Window(model, carriedOutBy: carriedOutBy);
 
         WpfHost.On(() =>
         {

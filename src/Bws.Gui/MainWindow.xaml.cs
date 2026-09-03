@@ -171,7 +171,7 @@ public partial class MainWindow : Window
         // arrangement the plan panel uses for its own two buttons - a part of the window that
         // reaches into the model would be a second road to everything the model owns.
         Actions.PreviewRequest += (_, asked) => Preview(asked.Kind);
-        Actions.RefreshRequest += async (_, _) => await Act(Shortcut.Refresh).ConfigureAwait(true);
+        Actions.RefreshRequest += async (_, _) => await Refreshing().ConfigureAwait(true);
         Actions.ExportRequest += (_, _) => ExportWhatIsShown();
         Actions.StartTypeRequest += (_, asked) => Preview(ActionKind.SetStartType, asked.Type);
 
@@ -295,51 +295,6 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// The keyboard, which is how an administrator works - `docs/11` 9.1, and WCAG 2.1.1 as the
-    /// formal half of the same requirement.
-    ///
-    /// <b>Preview rather than bubble, and that is deliberate.</b> These three belong to the
-    /// window rather than to whatever has focus, and a bubbling handler would never see Escape
-    /// or Ctrl+F once a control decided to keep them. The cost of taking a key early is that it
-    /// can be taken from something that needed it, which is why nothing here is marked handled
-    /// unless it did something - an empty query box leaves Escape alone.
-    ///
-    /// What each key MEANS is decided in <see cref="Shortcuts"/> and can be tested. What is left
-    /// here is the doing, which cannot be.
-    /// </summary>
-    protected override async void OnPreviewKeyDown(KeyEventArgs e)
-    {
-        base.OnPreviewKeyDown(e);
-
-        if (!e.Handled)
-        {
-            e.Handled = await Act(Wanted(e.Key, e.KeyboardDevice.Modifiers)).ConfigureAwait(true);
-        }
-    }
-
-    /// <summary>
-    /// What a press means here, which is what it means anywhere except for the one key that
-    /// belongs to the list.
-    ///
-    /// <b>The focus question is asked here rather than in <see cref="Shortcuts"/>, on purpose.</b>
-    /// That class says it is deliberately ignorant of state, and where the keyboard is happens to
-    /// be the one piece of state only a window can answer - the same split, and the same reason,
-    /// as the letter that jumps to an entry.
-    ///
-    /// <b>Enter belongs to the list.</b> A preview handler sees the press before the query box
-    /// does, so taking it unconditionally would mean somebody finishing a query gets a panel about
-    /// whatever row happened to be selected - which is a window answering a question nobody asked.
-    /// </summary>
-    private Shortcut Wanted(Key key, ModifierKeys modifiers)
-    {
-        var wanted = Shortcuts.For(key, modifiers);
-
-        var theListPress = wanted is Shortcut.OpenDetails or Shortcut.CopyRow;
-
-        return theListPress && !Entries.IsKeyboardFocusWithin ? Shortcut.None : wanted;
-    }
-
-    /// <summary>
     /// Hands the bar above this window over to <see cref="TitleBar"/>, once there is a handle.
     ///
     /// Here rather than in the constructor because the attribute is set against a window HANDLE,
@@ -351,94 +306,6 @@ public partial class MainWindow : Window
         base.OnSourceInitialized(e);
 
         TitleBar.Darken(this);
-    }
-
-    /// <summary>
-    /// A character typed while the list has focus goes to the next entry beginning with it.
-    ///
-    /// <b>Text input rather than key down, and the reason is rule 3.</b> A key code names a
-    /// position on the keyboard - on a keyboard that is not American the key where A sits produces
-    /// something else, and a jump built on codes would land on the wrong entry while looking like
-    /// it worked. This carries the character somebody actually typed.
-    ///
-    /// <b>Only while the list has focus.</b> Anywhere else the letter belongs to whatever is there,
-    /// starting with the query box, and a window that swallows letters typed into a text field is
-    /// a window nobody can search in.
-    /// </summary>
-    protected override void OnPreviewTextInput(TextCompositionEventArgs e)
-    {
-        ArgumentNullException.ThrowIfNull(e);
-
-        base.OnPreviewTextInput(e);
-
-        if (!e.Handled && Entries.IsKeyboardFocusWithin)
-        {
-            e.Handled = JumpTo(Shortcuts.JumpLetter(e.Text));
-        }
-    }
-
-    /// <summary>
-    /// Carries out one shortcut, and says whether it did anything.
-    ///
-    /// <b>Apart from the handler so that it can be checked at all</b> - a handler the framework
-    /// calls is reachable only by pressing a key, and the answer this returns is exactly the
-    /// thing that is easy to get wrong: a key marked handled by something that decided to do
-    /// nothing is a key that silently stops working for whatever needed it next.
-    /// </summary>
-    internal async Task<bool> Act(Shortcut shortcut)
-    {
-        switch (shortcut)
-        {
-            case Shortcut.Refresh:
-                // F5, because admins trust it more than they trust an automatic - `A10` says so
-                // in as many words. It reads everything, including the configuration the
-                // per-second reading deliberately does not watch.
-                await _model.LoadAsync().ConfigureAwait(true);
-
-                return true;
-
-            case Shortcut.FocusQuery:
-                // Selected, not just focused. Ctrl+F in every other program starts a new search
-                // rather than appending to the last one, and a person who wanted to keep the old
-                // text still has it - one key press away, unselected by typing nothing.
-                Search.Box.Focus();
-                Search.Box.SelectAll();
-
-                return true;
-
-            case Shortcut.OpenDetails:
-                // The grid's own selection rather than the model's, because the model is only told
-                // at the moment somebody asks for something - see Copy, and the repair its comment
-                // describes. This is that moment.
-                _model.Chosen.Row = Entries.SelectedItem as EntryRow;
-
-                // The two panels share a column, so opening one puts the other away. Arranged here
-                // rather than by either of them, because neither has any business knowing the other
-                // exists - the window is what owns the layout they compete for.
-                _model.Planned.Hide();
-
-                return _model.Chosen.Show();
-
-            case Shortcut.CopyRow:
-                // The same thing the menu's last item does, because two ways to one answer that
-                // are written twice are two answers waiting to disagree.
-                return Copy(Copying.Everything);
-
-            case Shortcut.Back:
-                // A PANEL FIRST, THE QUERY LAST, and the order is the decision rather than the
-                // implementation - `docs/04` at Paczka 1. One press doing both at once takes
-                // somebody's query away while they were reaching for the panel, and a query is the
-                // more expensive of the two to type again.
-                //
-                // The plan panel joins the front of that queue in packet 2. Only one of the two can
-                // be open at a time, so which comes first cannot change what happens - it is written
-                // in this order because a plan is the more recent thing somebody opened, and if the
-                // two ever could overlap that is the one they would mean.
-                return _model.Planned.Hide() || _model.Chosen.Hide() || _model.ClearQuery();
-
-            default:
-                return false;
-        }
     }
 
     /// <summary>

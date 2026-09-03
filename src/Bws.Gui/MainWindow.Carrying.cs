@@ -51,6 +51,33 @@ public partial class MainWindow
     private CancellationTokenSource? _stopping;
 
     /// <summary>
+    /// How a plan is carried out: <see cref="Carrying.Out"/>, unless somebody handed this window
+    /// another way.
+    ///
+    /// <b>PRODUCTION CODE THAT EXISTS FOR A TEST, WHICH IS A COST RATHER THAN A PATTERN - the same
+    /// trade <see cref="TakeThisAsARun"/> was taken on and the same argument for taking it.</b>
+    /// What it buys is the failure path of the one method in this window that changes machines.
+    /// Until 2026-09-03 nothing could execute it at all: reaching it needs a run that throws, the
+    /// only run this window could start was a real one against a real manager, and a test suite
+    /// that started one would stop services on whatever machine ran it. So the repair backlog 298
+    /// asked for would have shipped with a green suite that had never been down that road.
+    ///
+    /// <b>It takes a plan and hands back a report, and that narrowness is the whole safety
+    /// argument.</b> Nothing here can become a road to a write that skips a plan - which is what
+    /// `PlanOnlyGuards` exists to prevent - because a plan is the first thing it is given. The
+    /// writer is still built in exactly one place, <see cref="Carrying"/>, and that guard reads
+    /// the sources for the construction rather than for a call.
+    ///
+    /// <b>Init rather than settable</b>, so a run cannot be swapped out from under a window that
+    /// is already using one.
+    /// </summary>
+    internal Func<BulkPlan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>> CarriedOutBy
+    {
+        get;
+        init;
+    } = Carrying.Out;
+
+    /// <summary>
     /// Carries out the plan on screen, off the drawing thread, and shows what came of it.
     ///
     /// <b>The window owns this rather than the panel or the view model, and each of the three
@@ -74,18 +101,22 @@ public partial class MainWindow
         using var stopping = new CancellationTokenSource();
 
         _stopping = stopping;
-        _model.Planned.Starting();
-
-        // ON THE INTERFACE THREAD, WHICH IS WHAT MAKES THE LINE BELOW SAFE. Progress<T> takes the
-        // context it is built on and posts back to it, so the steps arriving from a worker thread
-        // reach a bound property here rather than there. Built per run rather than kept, because
-        // building it anywhere else would capture whatever thread happened to be there.
-        var announce = new Progress<(PlanStep Step, int Number)>(
-            what => _model.Planned.Announce(what.Step, what.Number));
 
         try
         {
-            var running = Carrying.Out(
+            // INSIDE THE TRY RATHER THAN ABOVE IT, so that the finally covers every line that has
+            // told the panel anything. Two statements outside it was two statements whose failure
+            // left the panel saying a run was under way with nothing to end it.
+            _model.Planned.Starting();
+
+            // ON THE INTERFACE THREAD, WHICH IS WHAT MAKES THE LINE BELOW SAFE. Progress<T> takes
+            // the context it is built on and posts back to it, so the steps arriving from a worker
+            // thread reach a bound property here rather than there. Built per run rather than kept,
+            // because building it anywhere else would capture whatever thread happened to be there.
+            var announce = new Progress<(PlanStep Step, int Number)>(
+                what => _model.Planned.Announce(what.Step, what.Number));
+
+            var running = CarriedOutBy(
                 plan,
                 stopping.Token,
                 (step, number) => ((IProgress<(PlanStep, int)>)announce).Report((step, number)));
@@ -115,6 +146,17 @@ public partial class MainWindow
         {
             _running = null;
             _stopping = null;
+
+            // AND THE PANEL STOPS SAYING A RUN IS UNDER WAY, WHICH UNTIL 2026-09-03 ONLY THE TWO
+            // ENDINGS ABOVE DID - backlog 298. Both of them go through Finished, so anything else
+            // thrown between Starting and here left the flag raised: the button dead, the tooltip
+            // explaining that a run is in progress, and the step name of whatever was happening
+            // when it stopped. The exception itself is deliberately NOT caught - it carries on to
+            // the window's own net, which puts the sentence in the status line, and a catch here
+            // would take that away in exchange for nothing.
+            //
+            // A no-op on every ordinary path, because Finished has already lowered the flag.
+            _model.Planned.NoLongerRunning();
         }
     }
 

@@ -426,4 +426,54 @@ public sealed class CarryingGuards
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// A RUN THAT FAILS IN A WAY NOBODY PREDICTED LEAVES THE PANEL USABLE - backlog 298.
+    ///
+    /// <b>One named refusal ended a run tidily and everything else left the panel saying a run was
+    /// under way until the panel was closed.</b> The flag goes up before the first step and came
+    /// down in exactly one place, so anything thrown in between left three sentences on screen and
+    /// all three false: a button greyed out, a tooltip explaining that it is greyed out BECAUSE a
+    /// run is happening, and a progress line naming the step that was happening when it stopped.
+    ///
+    /// <b>THE PATH IS EXECUTED HERE RATHER THAN REASONED ABOUT, and until 2026-09-03 that was
+    /// impossible.</b> Reaching it needs a run that throws, and the only run this window could
+    /// start was a real one against a real manager - so the repair could not have been checked at
+    /// all, and its guard would have been a sentence. <see cref="MainWindow.CarriedOutBy"/> is
+    /// what makes it reachable, and it is production code carrying a test's cost, argued for
+    /// there.
+    ///
+    /// <b>The exception is asserted as still escaping, which is half the repair.</b> Catching it
+    /// here would take the failure away from the window's own net - the only thing that puts the
+    /// sentence in front of a person - and swapping a dead panel for a silent one is not a fix.
+    /// </summary>
+    [Fact]
+    public async Task A_run_that_throws_leaves_the_panel_able_to_ask_again()
+    {
+        var window = await Ready(carriedOutBy: (_, _, _) =>
+            Task.FromException<BulkRun>(new InvalidCastException("nobody predicted this")));
+
+        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
+
+        Assert.True(WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        await Assert.ThrowsAsync<InvalidCastException>(() => WpfHost.On(() => window.CarryOut()));
+
+        WpfHost.Settled();
+
+        // Nothing is running, and nothing claims to be.
+        Assert.False(panel.Busy);
+        Assert.Equal(string.Empty, panel.Progress);
+
+        // Read off the window rather than off the model, which is why this class exists: a panel
+        // that agrees with itself while the button stays grey is the fault this was about.
+        Assert.True(WpfHost.On(() => window.PlanPanel.CarryOut.IsEnabled));
+
+        // And the button is back to saying what it would do, rather than why it will not.
+        Assert.Equal(
+            Bws.Gui.Texts.Of("gui.plan.carryOut.hint"),
+            WpfHost.On(() => window.PlanPanel.CarryOut.ToolTip as string));
+
+        WpfHost.On(window.Close);
+    }
 }

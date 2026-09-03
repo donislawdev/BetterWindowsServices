@@ -55,7 +55,7 @@ public sealed class CopyingAndPanelGuards
             // - and the clipboard assertion alone could not see it while an earlier test had left
             // the right answer lying there.
             Assert.True(
-                await WpfHost.On(() => window.Act(Shortcut.CopyRow)),
+                WpfHost.On(() => window.Act(Shortcut.CopyRow, out _)),
                 "Ctrl+C reported that it did nothing, so there was nothing to copy."));
     }
 
@@ -140,7 +140,7 @@ public sealed class CopyingAndPanelGuards
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.DetailsPanel.Visibility));
 
         Assert.True(
-            await WpfHost.On(() => window.Act(Shortcut.OpenDetails)),
+            WpfHost.On(() => window.Act(Shortcut.OpenDetails, out _)),
             "Enter did nothing, so the panel is unreachable from the keyboard.");
 
         WpfHost.Settled();
@@ -163,12 +163,12 @@ public sealed class CopyingAndPanelGuards
 
         WpfHost.On(() => model.QueryText = "spooler");
         Choose(window);
-        await WpfHost.On(() => window.Act(Shortcut.OpenDetails));
+        WpfHost.On(() => window.Act(Shortcut.OpenDetails, out _));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.DetailsPanel.Visibility));
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
         WpfHost.Settled();
 
         Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.DetailsPanel.Visibility));
@@ -179,7 +179,7 @@ public sealed class CopyingAndPanelGuards
 
         // And only then the query, on the second press - which is what makes the first press a
         // panel key rather than a key that does both at once.
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
         WpfHost.Settled();
 
         Assert.Equal(string.Empty, WpfHost.On(() => model.QueryText));
@@ -215,7 +215,7 @@ public sealed class CopyingAndPanelGuards
 
         await TheClipboard.Copies(model, wanted!, "Ctrl+C over two rows", async () =>
             Assert.True(
-                await WpfHost.On(() => window.Act(Shortcut.CopyRow)),
+                WpfHost.On(() => window.Act(Shortcut.CopyRow, out _)),
                 "Ctrl+C reported that it did nothing, so there was nothing to copy."));
     }
 

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -88,11 +89,22 @@ internal static class WpfHost
     /// Whether the profile this window opens against has already put the machine overview away.
     /// False gives a genuine first run, which is what the tests about that screen need.
     /// </param>
-    internal static MainWindow Window(MainViewModel model, bool seenTheOverview = true)
+    /// <param name="carriedOutBy">
+    /// How this window carries a plan out. Nothing means the real one, which no test may reach -
+    /// the argument is at <see cref="MainWindow.CarriedOutBy"/>, and the short of it is that the
+    /// only run this window can start on its own would stop services on whoever's machine ran the
+    /// suite.
+    /// </param>
+    internal static MainWindow Window(
+        MainViewModel model,
+        bool seenTheOverview = true,
+        Func<BulkPlan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
     {
         _ = Resources;
 
-        return On(() => new MainWindow(Nowhere(seenTheOverview), model));
+        return On(() => carriedOutBy is null
+            ? new MainWindow(Nowhere(seenTheOverview), model)
+            : new MainWindow(Nowhere(seenTheOverview), model) { CarriedOutBy = carriedOutBy });
     }
 
     /// <summary>

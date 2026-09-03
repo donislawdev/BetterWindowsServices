@@ -44,7 +44,7 @@ public sealed class WindowGuards
     {
         var window = WpfHost.Window();
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.FocusQuery)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public sealed class WindowGuards
         // the state it starts in. Between 2026-08-13 and then it carried the member that hid kernel
         // drivers, and this test had to spend a press emptying it before it could ask its question.
         // Hiding drivers is the scope switch now and the box is only what somebody asked for.
-        Assert.False(await WpfHost.On(() => window.Act(Shortcut.Back)));
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class WindowGuards
     {
         var window = WpfHost.Window();
 
-        Assert.False(await WpfHost.On(() => window.Act(Shortcut.None)));
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.None, out _)));
     }
 
     /// <summary>
@@ -178,8 +178,14 @@ public sealed class WindowGuards
     public async Task F5_reads_everything_again_and_says_it_did()
     {
         var window = WpfHost.Window();
+        var work = Task.CompletedTask;
 
-        Assert.True(await WpfHost.On(() => window.Act(Shortcut.Refresh)));
+        // The answer comes back before the reading does, and that is the repair of backlog 302
+        // rather than an arrangement for this test: a routed event is over the moment its handler
+        // returns, so an answer that arrives after an await arrives after WPF has stopped asking.
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Refresh, out work)));
+
+        await work;
     }
 
     /// <summary>

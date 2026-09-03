@@ -36,14 +36,16 @@ public sealed class BackgroundWorkGuards
     /// </summary>
     private static readonly Dictionary<string, string> AllowedVoid = new(StringComparer.Ordinal)
     {
-        ["MainWindow.xaml.cs"] =
+        ["MainWindow.Keyboard.cs"] =
             "The overridden key handler, and the language has no alternative: the framework " +
             "declares it as returning nothing, so there is no task to hand back. Everything it " +
             "awaits reports its own failures into the window. It shared this entry with " +
-            "OnClosing until 2026-08-19, when the size ratchet moved that one to its own file - " +
-            "and the reason it is now TWO entries rather than one is that this list is keyed by " +
-            "file name, so a split silently leaves the moved code covered by a permission " +
-            "written about a file it no longer lives in.",
+            "OnClosing until 2026-08-19, when the size ratchet moved that one to its own file, " +
+            "and it was keyed to MainWindow.xaml.cs until 2026-09-03, when the ratchet moved the " +
+            "keyboard out as well. THE KEY MOVING TWICE IS THE POINT: this list is keyed by bare " +
+            "file name, so a seam that leaves the permission behind leaves an argument being " +
+            "made about a file the code no longer lives in - and the second assertion below is " +
+            "what says so out loud rather than allowing it quietly.",
 
         ["MainWindow.Carrying.cs"] =
             "OnClosing, which the framework also declares as returning nothing. It has to await " +
