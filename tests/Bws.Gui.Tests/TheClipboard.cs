@@ -75,9 +75,35 @@ internal static class TheClipboard
     /// </summary>
     internal static async Task Copies(MainViewModel model, string wanted, string how, Func<Task> ask)
     {
+        var refused = 0;
+        var silent = 0;
+        var replaced = 0;
+        var instead = string.Empty;
+
         for (var attempt = 1; ; attempt++)
         {
-            var ours = OursNow();
+            var (landing, found) = OursNow();
+            var ours = landing == Landing.Ours;
+
+            switch (landing)
+            {
+                case Landing.Refused:
+                    refused++;
+                    break;
+
+                case Landing.Silent:
+                    silent++;
+                    break;
+
+                case Landing.Replaced:
+                    replaced++;
+                    instead = found;
+                    break;
+
+                default:
+                    break;
+            }
+
             var saidBefore = WpfHost.On(() => model.Says.Problem);
 
             await ask();
@@ -99,10 +125,25 @@ internal static class TheClipboard
             // never this process's to read.
             Assert.True(
                 attempt < Attempts,
-                $"{how}: the clipboard belonged to another process on {Attempts} tries running, so "
-                + "nothing here was proved either way. This is the machine, not the window."
+                $"{how}: {Attempts} tries running proved nothing either way. This is the machine, "
+                + "not the window."
                 + Environment.NewLine
-                + $"Holding it right now: {WhoHoldsTheClipboard()}."
+                + $"The write was refused, so somebody held the clipboard: {refused} of "
+                + $"{Attempts}."
+                + Environment.NewLine
+                + $"The write went through and the read found NO text, so somebody held it while "
+                + $"this read: {silent} of {Attempts}."
+                + Environment.NewLine
+                + $"The read found somebody else's text, so somebody WROTE in between: {replaced} "
+                + $"of {Attempts}."
+                + (replaced == 0
+                    ? string.Empty
+                    : Environment.NewLine
+                        + $"Found in place of the sentinel: <{Shorten(instead)}>.")
+                + Environment.NewLine
+                + $"Holding it open right now: {WhoHoldsTheClipboard()}."
+                + Environment.NewLine
+                + $"Last process to PUT anything on it: {WhoOwnsTheClipboard()}."
                 + Environment.NewLine
                 + $"Each try waits for WPF's own ten write attempts before this one, so {Attempts} "
                 + "tries is roughly six seconds of asking, not one.");
@@ -149,13 +190,49 @@ internal static class TheClipboard
     private const string Sentinel = "bws-nothing-copied-yet";
 
     /// <summary>
-    /// Puts the sentinel down and says whether it is really there.
+    /// What became of the sentinel, and it is THREE outcomes rather than two - backlog 206.
+    /// </summary>
+    private enum Landing
+    {
+        /// <summary>Written and read back, so this process has the clipboard to watch.</summary>
+        Ours,
+
+        /// <summary>The write itself was refused, so somebody else held the clipboard.</summary>
+        Refused,
+
+        /// <summary>The write went through and the read found NO text at all to come back.</summary>
+        Silent,
+
+        /// <summary>The write went through and the read found somebody ELSE'S text.</summary>
+        Replaced
+    }
+
+    /// <summary>
+    /// Puts the sentinel down and says what became of it.
     ///
     /// <b>Reading it back is the whole point, and the version that only wrote it was half of
     /// backlog 197.</b> A swallowed refusal here left the clipboard holding somebody else's text,
     /// and every judgement after it was about that text rather than about this product.
+    ///
+    /// <b>IT ANSWERS WHICH OF THREE FAILURES HAPPENED SINCE 2026-09-03, AND UNTIL THEN IT
+    /// RETURNED A BOOL THAT COLLAPSED THEM ALL - backlog 206.</b> A false meant the write was
+    /// refused, or the write went through and the read came back with nothing, or it came back
+    /// with somebody else's text. The caller reported the first in all three cases. Those are
+    /// three different machines: one has a process holding the clipboard when we WRITE, one has a
+    /// process holding it when we READ, and one has a process writing between our two calls.
+    ///
+    /// <b>Measured on the day they were split, and the split earned itself within the hour.</b>
+    /// Three of these guards failed four runs in a row. Polling GetOpenClipboardWindow from
+    /// another process for 55 seconds across a failing run caught the clipboard open by NOBODY,
+    /// not once - so the sentence the caller printed was the one the evidence did not support.
+    /// The very first forced failure with the new message named a holder outright: <c>msrdc</c>,
+    /// the Remote Desktop client, which redirects the clipboard and opens it on every change.
+    ///
+    /// <b>The first split was still one name short and the same measurement said so.</b> It called
+    /// that case "replaced", and nothing had been replaced - ContainsText simply answered false.
+    /// A message that names the wrong mechanism costs the next session the same afternoon.
     /// </summary>
-    private static bool OursNow() =>
+    private static (Landing How, string Found) OursNow() =>
         WpfHost.On(() =>
         {
             try
@@ -167,14 +244,27 @@ internal static class TheClipboard
                 // read in between sometimes found neither.
                 Clipboard.SetDataObject(Sentinel, copy: true);
 
-                return Clipboard.ContainsText()
-                    && string.Equals(Clipboard.GetText(), Sentinel, StringComparison.Ordinal);
+                // ASKED IN TWO STEPS ON PURPOSE, because the two answers mean different
+                // machines - measured 2026-09-03 and the first version of this conflated them.
+                // No text at all is somebody holding the clipboard while this reads, which is
+                // what a Remote Desktop client doing clipboard redirection does on every change.
+                // Text that is not ours is somebody WRITING between two of our calls.
+                if (!Clipboard.ContainsText())
+                {
+                    return (Landing.Silent, string.Empty);
+                }
+
+                var back = Clipboard.GetText();
+
+                return string.Equals(back, Sentinel, StringComparison.Ordinal)
+                    ? (Landing.Ours, back)
+                    : (Landing.Replaced, back);
             }
             catch (System.Runtime.InteropServices.ExternalException)
             {
                 // The clipboard belongs to whoever grabbed it last. Saying so is what lets the
                 // caller tell "nothing was copied" from "this was never ours to watch".
-                return false;
+                return (Landing.Refused, string.Empty);
             }
         });
 
@@ -232,8 +322,53 @@ internal static class TheClipboard
         }
     }
 
+    /// <summary>
+    /// The last process to PUT something on the clipboard, which is a different question from who
+    /// has it open - and on the evidence of 2026-09-03 it is the more useful one.
+    ///
+    /// <b>Added because the other question kept answering "nobody" while the guards kept
+    /// failing</b> - 55 seconds of polling across a failing run caught no holder at all, and this
+    /// one named a process immediately. A contention that is over in microseconds leaves no holder
+    /// to find and does leave an owner.
+    ///
+    /// It answers about an instant, like its neighbour, and says nothing about who interfered -
+    /// only who wrote last. That is a fact worth printing rather than a diagnosis.
+    /// </summary>
+    private static string WhoOwnsTheClipboard()
+    {
+        try
+        {
+            var owner = GetClipboardOwner();
+
+            if (owner == IntPtr.Zero)
+            {
+                return "nobody - the clipboard is empty or was set by a process that has gone";
+            }
+
+            _ = GetWindowThreadProcessId(owner, out var processId);
+
+            if (processId == 0)
+            {
+                return $"window {owner}, whose process could not be named";
+            }
+
+            using var process = System.Diagnostics.Process.GetProcessById((int)processId);
+
+            return $"{process.ProcessName} (process {processId})";
+        }
+        // The same two as its neighbour, and for the same race: the process ended between the
+        // handle answering and the name being asked for.
+        catch (Exception asking) when (asking is ArgumentException or InvalidOperationException)
+        {
+            return $"process {asking.GetType().Name} - it ended before it could be named";
+        }
+    }
+
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr GetOpenClipboardWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetClipboardOwner();
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);

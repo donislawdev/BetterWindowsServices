@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 using static Bws.Gui.Tests.PlanFixture;
@@ -294,4 +295,89 @@ public sealed class ActionBarGuards
         WpfHost.On(() => window.Actions.Start),
         WpfHost.On(() => window.Actions.Restart)
     ];
+
+    /// <summary>
+    /// No action button stands outside the bar that holds them, at the narrowest window allowed.
+    ///
+    /// <b>The open question that <c>docs/10</c> trap 18 left behind, measured 2026-09-03 rather
+    /// than assumed.</b> That trap is about a horizontal StackPanel measuring its children with
+    /// infinite width, which is why a group of filter chips could stand outside the window. This
+    /// bar is a horizontal StackPanel too, and unlike the chips it CANNOT wrap - seven buttons on
+    /// one line is the design. So the question was whether it already overflows, and it does not:
+    /// at 640 the buttons end at 571 against a bar ending at 611.
+    ///
+    /// <b>It is a guard rather than a note because the margin is thin and the labels are
+    /// TRANSLATED.</b> Forty units of six hundred is about six per cent, and every one of these
+    /// seven words comes out of a language file. A longer word in another language pushes the last
+    /// button off the window with nothing to say so - and the answer then is a decision about the
+    /// bar, not a shorter word, which is exactly the moment somebody should be told.
+    ///
+    /// <b>Measured against the BAR rather than the window</b>, for the reason the chip guard
+    /// records: a control that shares its row is not bounded by the window's edge. Here the two
+    /// happen to be close, and asking the wrong one would still be asking the wrong one.
+    /// </summary>
+    [Fact]
+    public void No_action_button_stands_outside_the_bar_at_the_narrowest_window()
+    {
+        var window = WpfHost.Window();
+
+        var (buttons, worst, name, edge) = WpfHost.On(() =>
+        {
+            window.Width = (double)WpfHost.Resources["WidthWindowLeast"];
+            window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+            window.UpdateLayout();
+
+            var found = new List<Control>();
+
+            Gather(window.Actions, found);
+
+            var over = found
+                .Select(part => (
+                    Right: part.TransformToAncestor(window).Transform(new Point(part.ActualWidth, 0)).X,
+                    Says: (part as ContentControl)?.Content as string ?? part.Name))
+                .OrderByDescending(pair => pair.Right)
+                .First();
+
+            var bar = window.Actions;
+
+            return (
+                found.Count,
+                over.Right,
+                over.Says,
+                bar.TransformToAncestor(window).Transform(new Point(bar.ActualWidth, 0)).X);
+        });
+
+        // NOT VACUOUS: a walk that found nothing would have no widest button and no way to fail.
+        // Seven is what this build has, and asking for the exact number is deliberate - a button
+        // quietly disappearing from this bar is worth a red run of its own.
+        Assert.Equal(7, buttons);
+
+        Assert.True(
+            worst <= edge,
+            $"The action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so it is "
+            + "standing outside the bar, where it can be neither read nor clicked. These seven sit "
+            + "on one line and cannot wrap, so the answer is a decision about the bar rather than a "
+            + "shorter word.");
+
+        WpfHost.On(window.Close);
+    }
+
+    private static void Gather(DependencyObject from, List<Control> found)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(from); index++)
+        {
+            var child = VisualTreeHelper.GetChild(from, index);
+
+            if (child is Button or ToggleButton)
+            {
+                found.Add((Control)child);
+            }
+
+            Gather(child, found);
+        }
+    }
 }
