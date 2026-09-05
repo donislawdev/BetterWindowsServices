@@ -181,6 +181,66 @@ public sealed class PublicSurfaceGuards
             + Environment.NewLine + string.Join(Environment.NewLine, unexplained));
     }
 
+    /// <summary>
+    /// The list of surfaces kept out of the sweep is the one thing here that cannot prove
+    /// itself, and this is the guard for it.
+    ///
+    /// <b>Why the other three tests cannot cover this.</b> They all assert that a set is EMPTY -
+    /// no private shape, no unexplained alphabet, no stale permission. Widen the exclusion list
+    /// until it excludes everything and all three stay green, because a sweep over nothing finds
+    /// nothing. That is also why this class has no mutation entry of the usual kind: breaking
+    /// the sweep does not redden anything. It reddens this.
+    ///
+    /// <b>Written on 2026-09-05, when the list gained two entries.</b> The owner's decision, and
+    /// the reasoning is in docs/06. The list had named four surfaces while .gitignore names six,
+    /// and nothing could see the difference.
+    ///
+    /// <b>It asks both directions.</b> That the six really are excluded, and that the places
+    /// where published files live really are not - because a guard that excludes everything and
+    /// a guard that works look identical from outside.
+    /// </summary>
+    [Fact]
+    public void The_surfaces_left_out_of_the_sweep_are_the_ones_that_are_outside_git()
+    {
+        var root = SourceTree.Root();
+
+        (string Path, bool Swept)[] cases =
+        [
+            // Outside version control by decision, so private material is supposed to live there.
+            (Path.Combine("docs", "01-SPEC-PRODUKTOWY.md"), false),
+            (Path.Combine("tools", "check.ps1"), false),
+            (Path.Combine("artifacts", "anything.md"), false),
+            (Path.Combine(".claude", "settings.local.json"), false),
+            ("CLAUDE.md", false),
+            ("CHANGELOG-DEV.md", false),
+
+            // Published, and every one of these has to stay swept. A change that quietly stops
+            // reading src/ would make all three of the sweeps above pass over an empty set.
+            (Path.Combine("src", "Bws.Core", "ScmEntry.cs"), true),
+            (Path.Combine("tests", "Bws.Architecture.Tests", "PublicSurfaceGuards.cs"), true),
+            (Path.Combine(".github", "workflows", "anything.yml"), true),
+            ("README.md", true),
+            ("CHANGELOG.md", true),
+        ];
+
+        var wrong = new List<string>();
+
+        foreach (var (relative, swept) in cases)
+        {
+            if (InVersionControl(Path.Combine(root, relative)) != swept)
+            {
+                wrong.Add($"  {relative} is {(swept ? "not swept but should be" : "swept but should not be")}");
+            }
+        }
+
+        Assert.True(
+            wrong.Count == 0,
+            "The list of surfaces this guard leaves alone no longer matches what is outside "
+            + "version control. Either .gitignore moved or InVersionControl did, and the two "
+            + "have to say the same thing - docs/06 carries why:"
+            + Environment.NewLine + string.Join(Environment.NewLine, wrong));
+    }
+
     [Fact]
     public void The_list_does_not_keep_permissions_nobody_uses_any_more()
     {
@@ -279,14 +339,42 @@ public sealed class PublicSurfaceGuards
     /// The folders kept out of version control on purpose, which is where the private things are
     /// supposed to live. Reading them here would fail the build for material doing exactly what
     /// it was told to do.
+    ///
+    /// <b>Two of these six arrived on 2026-09-05, and the list had been wrong since the day
+    /// <c>artifacts/</c> was first ignored.</b> This method named four surfaces. <c>.gitignore</c>
+    /// ignores six - it also ignores <c>artifacts/</c> at line 24 and <c>.claude/</c> at line 54.
+    /// So two directories that are exactly as private as <c>docs/</c> were being read as if they
+    /// were published.
+    ///
+    /// <b>Nothing ever noticed, and the reason is worth keeping.</b> The sweep above looks at
+    /// <c>*.cs</c>, <c>*.md</c>, <c>*.json</c> and their kin. Until that day <c>artifacts/</c>
+    /// held only screenshots and a built executable, and <c>.claude/</c> held one settings file
+    /// with nothing private in it - so no file this guard reads had ever lived there. The first
+    /// Polish <c>.md</c> written into <c>artifacts/</c> reddened three tests at once, which is
+    /// the guard being right about the file and wrong about the folder.
+    ///
+    /// <b>What this costs, said rather than left to be found.</b> Anything genuinely private
+    /// that lands in those two directories is now unguarded there, exactly as it already is in
+    /// <c>docs/</c> and <c>tools/</c>. That is the trade this whole method makes: the four
+    /// surfaces outside git are where private material is SUPPOSED to live, and a guard that
+    /// fails the build for material doing what it was told is a guard people switch off. The
+    /// owner decided this on 2026-09-05 and the reasoning is in docs/06.
     /// </summary>
     private static bool InVersionControl(string path)
     {
         var relative = Path.GetRelativePath(SourceTree.Root(), path);
 
-        return !relative.StartsWith("docs" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            && !relative.StartsWith("tools" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            && !relative.Equals("CLAUDE.md", StringComparison.OrdinalIgnoreCase)
+        string[] outside = ["docs", "tools", "artifacts", ".claude"];
+
+        foreach (var directory in outside)
+        {
+            if (relative.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return !relative.Equals("CLAUDE.md", StringComparison.OrdinalIgnoreCase)
             && !relative.Equals("CHANGELOG-DEV.md", StringComparison.OrdinalIgnoreCase);
     }
 }
