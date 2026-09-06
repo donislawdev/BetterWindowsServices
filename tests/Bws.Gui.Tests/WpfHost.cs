@@ -292,7 +292,12 @@ internal static class WpfHost
                  {
                      "Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
                      "Text.xaml", "Overview.xaml", "Chips.xaml",
-                     "Controls.xaml", "Scroll.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+
+                     // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
+                     // bearing: the menu styles extend the implicit MenuItem style found there.
+                     "Controls.xaml", "Menus.xaml",
+
+                     "Scroll.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
                  })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));

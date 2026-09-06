@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
 
@@ -132,6 +133,33 @@ internal sealed record Column
 
     /// <summary>What its cell says about one entry.</summary>
     public required Func<ScmEntry, string> Reads { get; init; }
+
+    /// <summary>
+    /// The family of the second phase of `ADR-13` this cell reads, when it reads one at all.
+    ///
+    /// <b>SHOWING A COLUMN IS A WAY OF ASKING, AND UNTIL 2026-09-05 IT WAS NOT.</b> The window
+    /// worked out what to go and read from the QUERY alone - <c>Query.Needs</c>, summed over the
+    /// members somebody had typed. Turning a column on told nobody: <c>ColumnBar.Changed</c> had
+    /// exactly one subscriber, the one that writes the layout file. So the five columns fed by
+    /// the second phase - this one, the three beside it and the signature - said "unknown" on
+    /// every row, on every machine, for as long as the box above stayed empty. Reported by the
+    /// owner about the memory column, and it was never about memory.
+    ///
+    /// <b>The prose in Themes/Values claimed the opposite and nothing could contradict it.</b> The
+    /// note beside the picker's last item said turning on a signature column is what sends the
+    /// window to open eight hundred files. The measurement it quotes is real and belongs to the
+    /// query path. Nothing had ever measured the column path, because there was nothing there to
+    /// measure.
+    ///
+    /// <b>Declared here rather than in a map beside the catalogue, unlike the picker's headings.</b>
+    /// A heading is a fact about how a person is OFFERED all the columns, so it wants to be read
+    /// at once and lives in one table. This is a fact about this cell - it is the other half of
+    /// <see cref="Reads"/>, and the two are wrong together or right together. A guard checks the
+    /// pair mechanically rather than trusting the declaration: a cell that says "unknown" over an
+    /// entry whose first phase is complete is a cell reading the second phase, whatever it claims
+    /// here.
+    /// </summary>
+    public ExtraRead Needs { get; init; }
 
     /// <summary>
     /// What to sort it by, when that is not simply what the cell says.

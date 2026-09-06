@@ -25,6 +25,7 @@
   "gui.column.errorControl": "Error control",
   "gui.column.sidType": "Service SID type",
   "gui.column.dependsOn": "Depends on",
+  "gui.column.requiredBy": "Required by",
   "gui.column.triggers": "Triggers",
   "gui.column.requiredPrivileges": "Required privileges",
   "gui.column.securityDescriptor": "Security descriptor",
@@ -52,6 +53,8 @@
   "gui.columns.group.advanced": "Advanced",
   "gui.columns.hint": "Choose what the list shows. Drag a heading to move a column and its edge to resize. What you choose is kept, so the list opens the way you left it.",
   "gui.columns.restore": "Restore the usual columns",
+  "gui.columns.hideThisOne": "Hide this column",
+  "gui.columns.hideThisOne.refused": "This is the only column still showing, and a list of nothing is not a list.",
 
   "gui.details.close": "Close",
   "gui.details.close.hint": "Close the panel. Escape does the same, and clears the query when there is no panel.",

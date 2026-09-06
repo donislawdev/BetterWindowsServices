@@ -290,46 +290,6 @@
     </Style>
 
     <!--
-        The heading over one group of columns in the picker. Subdued, unticked and NOT ENABLED, so
-        it reads as a divider with a name rather than as an eighteenth choice - and so the keyboard
-        walks past it rather than stopping on something that does nothing.
-
-        A MenuItem rather than a group header, and that is the repair described in
-        ColumnEntryStyles: grouping a menu takes its items out of the automation tree entirely.
-    -->
-    <Style x:Key="ColumnHeadingItem" TargetType="MenuItem">
-        <Setter Property="Header" Value="{Binding Label}" />
-        <Setter Property="IsEnabled" Value="False" />
-        <Setter Property="Padding" Value="{StaticResource MarginGroupHeading}" />
-    </Style>
-
-    <Style x:Key="ColumnChoiceItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-        <Setter Property="Header" Value="{Binding Label}" />
-        <Setter Property="IsCheckable" Value="True" />
-        <Setter Property="IsChecked" Value="{Binding IsShown, Mode=TwoWay}" />
-        <Setter Property="IsEnabled" Value="{Binding MayHide}" />
-        <Setter Property="StaysOpenOnClick" Value="True" />
-    </Style>
-
-    <!--
-        THE WAY BACK FROM A LAYOUT SOMEBODY NO LONGER WANTS, 2026-08-25. What is chosen above is
-        written to disk and comes back on the next start, so without this item the only road back
-        to the six columns this window opens with is turning the others off one at a time.
-
-        NO "TURN THEM ALL ON" BESIDE IT, AND THE REASON IS MEASURED RATHER THAN TIDY. Turning on a
-        signature column is what sends the window to open eight hundred files - 8.86-9.42 s of
-        processor against 1.39-1.42 s without it, over about 810 entries. One item that switches
-        every column on is one item that stops the window for ten seconds.
-
-        StaysOpenOnClick is deliberately NOT here, unlike the choices above. Ticking four columns is
-        one errand spread over four clicks, and this is one errand finished in one - so the menu
-        closing is what says it happened.
-    -->
-    <Style x:Key="ColumnResetItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-        <Setter Property="Header" Value="{Binding Label}" />
-    </Style>
-
-    <!--
         EVERY TOOLTIP IN THIS WINDOW WRAPS - backlog 167, and it is the third answer to a question
         the owner asked twice.
 

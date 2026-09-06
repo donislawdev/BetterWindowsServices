@@ -273,9 +273,14 @@ public sealed class KeptColumnGuards : IDisposable
         WpfHost.On(window.Close);
     }
 
+    // INSIDE THE GROUPS SINCE 2026-09-05, because the picker stopped being a flat list that day.
+    // The menu is handed four submenus and the way back, so nothing at the top level is a choice
+    // at all - and the old spelling of this did not fail an assertion, it threw from First with
+    // "sequence contains no matching element", which reads like the column had been deleted.
     private static ColumnChoice Choice(MainWindow window, string id) =>
         window.ColumnsButton.ContextMenu!.ItemsSource
-            .OfType<ColumnChoice>()
+            .OfType<ColumnGroup>()
+            .SelectMany(group => group.Choices)
             .First(choice => choice.Column.Id == id);
 
     private static DataGrid Built(ColumnLayout layout)

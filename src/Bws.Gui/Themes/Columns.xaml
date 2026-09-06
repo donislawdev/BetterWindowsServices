@@ -120,6 +120,9 @@
     <DataGridLength x:Key="ColumnErrorControl">120</DataGridLength>
     <DataGridLength x:Key="ColumnSidType">140</DataGridLength>
     <DataGridLength x:Key="ColumnDependsOn">2*</DataGridLength>
+
+    <!-- The other direction, 2026-09-06. Same width as its pair, because they hold the same shape of value. -->
+    <DataGridLength x:Key="ColumnRequiredBy">2*</DataGridLength>
     <DataGridLength x:Key="ColumnTriggers">2*</DataGridLength>
     <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
     <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>

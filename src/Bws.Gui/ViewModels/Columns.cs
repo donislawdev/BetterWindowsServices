@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
 
@@ -230,6 +231,7 @@ internal static partial class Columns
             WidthKey = "ColumnSignature",
             Face = ColumnFace.Text,
             ShownAtFirst = false,
+            Needs = ExtraRead.Signatures,
             Reads = entry => CellFaces.SignatureLabel(entry.Signature)
         },
         new Column
@@ -239,6 +241,7 @@ internal static partial class Columns
             WidthKey = "ColumnPublisher",
             Face = ColumnFace.Text,
             ShownAtFirst = false,
+            Needs = ExtraRead.Signatures,
             Reads = entry => CellFaces.PublisherLabel(entry.Signature)
         },
         new Column
@@ -248,6 +251,7 @@ internal static partial class Columns
             WidthKey = "ColumnFileVersion",
             Face = ColumnFace.Text,
             ShownAtFirst = false,
+            Needs = ExtraRead.Signatures,
             Reads = entry => CellFaces.Say(entry.FileVersion, value => value)
         },
         new Column
@@ -260,6 +264,10 @@ internal static partial class Columns
             WidthKey = "ColumnBinaryHash",
             Face = ColumnFace.Fixed,
             ShownAtFirst = false,
+
+            // The same family as the signature and the version beside it, because one pass fills
+            // all three - SecondPass reads the file once and writes the three answers it found.
+            Needs = ExtraRead.Signatures,
             Reads = entry => CellFaces.Say(entry.BinaryHash, value => value)
         },
         new Column
@@ -271,6 +279,13 @@ internal static partial class Columns
             WidthKey = "ColumnMemory",
             Face = ColumnFace.Number,
             ShownAtFirst = false,
+
+            // ITS OWN FAMILY, AND THAT IS WHAT MAKES THIS COLUMN AFFORDABLE. Asking for memory
+            // used to drag the signature verification along with it, because one method filled
+            // both - so a column measured at under a millisecond over 110 processes would have
+            // cost the seven and a half seconds the file reading costs over 810 entries. Split on
+            // 2026-09-05, at Readings.FillAsync.
+            Needs = ExtraRead.Memory,
             Reads = entry => CellFaces.MemoryLabel(entry.Memory),
 
             // By the number rather than by the words, for the same reason the process id sorts
@@ -342,6 +357,28 @@ internal static partial class Columns
         },
 
         // THE THREE LISTS. Joined rather than counted - the reasoning is at CellFaces.NameList.
+        new Column
+        {
+            // WHAT BREAKS IF THIS STOPS - the other direction of the column below, 2026-09-06.
+            //
+            // ITS OWN COLUMN RATHER THAN A WIDER VERSION OF THAT ONE, and the reason is the same
+            // one that keeps the two mismatch columns apart: they answer opposite questions and a
+            // person arrives with one of them. "What does this need" is asked before starting
+            // something. "What needs this" is asked before stopping something, and it is the only
+            // one of the two that can talk somebody out of an action.
+            //
+            // IT IS THE ONLY COLUMN IN THIS CATALOGUE THAT COSTS A CALL PER ENTRY - 236-259 ms
+            // over 313 services, measured 2026-09-05, against 423-500 ms for the whole listing. So
+            // it declares a family and is read when somebody turns it on, exactly as the four
+            // signature columns and the memory column are.
+            Id = "requiredBy",
+            LabelKey = "gui.column.requiredBy",
+            WidthKey = "ColumnRequiredBy",
+            Face = ColumnFace.Text,
+            ShownAtFirst = false,
+            Needs = ExtraRead.RequiredBy,
+            Reads = entry => CellFaces.Say(entry.RequiredBy, value => string.Join(", ", value))
+        },
         new Column
         {
             Id = "dependsOn",

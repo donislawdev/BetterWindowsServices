@@ -162,8 +162,24 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// <b>Comparing two files of the SAME version is unaffected either way</b>, because both sides
     /// were written by one build. What this protects is the reader comparing an old file with a new
     /// one, and the script keyed on a value rather than on a field.
+    ///
+    /// <b>THREE TO FOUR ON 2026-09-06, and it is an added field again: Dependents.</b> Who breaks
+    /// if an entry stops joins what a snapshot holds - the owner's decision, taken with the whole
+    /// price on the table. It belongs here for the reason memory does not: it is configuration
+    /// rather than a measurement, so it reads the same twice in a row and moves only when somebody
+    /// changes the machine, which is the one thing this file is for.
+    ///
+    /// <b>The refusal is the point of the bump, exactly as it was for two.</b> Every member of
+    /// EntryDocument is required, so a version three file does not deserialise at all - and with
+    /// the number moved it is refused by name rather than as a JSON error about a missing member,
+    /// which tells its owner nothing.
+    ///
+    /// <b>What it costs somebody holding old snapshots, said rather than left to be met.</b> A
+    /// file written before today cannot be compared against one written after it. That is the
+    /// same trade taken on 2026-08-25 and again on 08-26, and it is taken for the same reason: a
+    /// diff that loads both and invents differences is worse than a file that says it is too old.
     /// </summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     /// <summary>
     /// Freezes a listing.

@@ -119,6 +119,78 @@ public sealed class QueryForTheWindowTests
         Assert.False(QueryParserTests.Valid("!type:driver").Excludes("nosuchfield", "driver"));
     }
 
+    /// <summary>
+    /// Every value this language OFFERS is a value it ACCEPTS.
+    ///
+    /// <b>The guard the surface needed before anything was allowed to draw a menu from it.</b>
+    /// <see cref="QueryFields.ValuesOf"/> was opened on 2026-09-05 so that the window could stop
+    /// spelling these out for itself - the filter chips carry fourteen of them as literals, which
+    /// is a second copy of a frozen contract with nothing comparing the two. A list offered to a
+    /// person is a promise that typing what it says will work, and this is the only place that
+    /// promise can be checked.
+    ///
+    /// <b>Every field rather than the ones somebody remembered.</b> A value spelled wrongly in the
+    /// table would be offered in a menu, typed by whoever clicked it, and refused by the parser -
+    /// which reads as the window writing a broken query rather than as one wrong word in a list.
+    /// </summary>
+    [Fact]
+    public void Every_value_this_language_offers_is_one_it_accepts()
+    {
+        var offered = 0;
+        var refused = new List<string>();
+
+        foreach (var field in QueryFields.Names)
+        {
+            foreach (var value in QueryFields.ValuesOf(field))
+            {
+                offered++;
+
+                if (!QueryParser.Parse($"{field}:{value}").IsValid)
+                {
+                    refused.Add($"  {field}:{value}");
+                }
+            }
+        }
+
+        // Without this the loop above passes over an empty set and proves nothing - the same
+        // failure the surface guards in the architecture tests are built to avoid.
+        Assert.True(offered > 0, "No field offered a single value, so the check below saw nothing.");
+
+        Assert.True(
+            refused.Count == 0,
+            "These values are offered to a person and refused by the parser, so a control drawn "
+            + "from this list writes a query the window then rejects:"
+            + Environment.NewLine + string.Join(Environment.NewLine, refused));
+    }
+
+    /// <summary>
+    /// A field that takes text, a number or a size offers no values, and an unknown name is an
+    /// ordinary answer rather than an exception.
+    ///
+    /// <b>The other direction, and it is what makes a caller able to ASK.</b> A menu built over
+    /// this list has to be able to tell "this column can be filtered to a set of words" from "this
+    /// one takes anything you type" - and it tells them apart by the list coming back empty. A
+    /// surface that answered with something for every field would need a second question.
+    /// </summary>
+    [Fact]
+    public void A_field_that_is_not_a_set_of_words_offers_nothing_and_an_unknown_name_is_not_a_fault()
+    {
+        Assert.NotEmpty(QueryFields.ValuesOf("status"));
+        Assert.Contains("running", QueryFields.ValuesOf("status"), StringComparer.Ordinal);
+
+        // Text, a number and a size in turn - three kinds, none of them a set of words.
+        Assert.Empty(QueryFields.ValuesOf("name"));
+        Assert.Empty(QueryFields.ValuesOf("pid"));
+        Assert.Empty(QueryFields.ValuesOf("memory"));
+
+        // Not knowing a name is what a window asking about an arbitrary column looks like.
+        Assert.Empty(QueryFields.ValuesOf("nosuchfield"));
+
+        // No name at all is a caller fault, and saying so here beats a null reference three
+        // frames inside the normaliser.
+        Assert.Throws<ArgumentNullException>(() => QueryFields.ValuesOf(null!));
+    }
+
     private static Query Expression(string text)
     {
         // Wrapped here rather than at every call, so that the tests above read as the language

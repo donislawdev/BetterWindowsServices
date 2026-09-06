@@ -62,6 +62,7 @@ public sealed class EntryReportTests
             LoadOrderGroup = Reading<string>.Absent(),
             ErrorControl = Reading<ErrorControl>.Absent(),
             DependsOn = Reading<IReadOnlyList<string>>.Absent(),
+            RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
             Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
             RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
             SecurityDescriptor = Reading<string>.Absent()
@@ -144,6 +145,7 @@ public sealed class EntryReportTests
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),
         DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"]),
+        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
         BinaryPath = Reading<string>.Present(@"C:\Windows\System32\spoolsv.exe"),
         BinaryFile = Reading<string>.Present(@"C:\Windows\System32\spoolsv.exe"),

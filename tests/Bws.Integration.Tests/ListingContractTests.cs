@@ -159,6 +159,93 @@ public sealed class ListingContractTests
         _ = JsonDocument.Parse(run.StandardOutput);
     }
 
+    /// <summary>
+    /// The other direction of that relation is read when it is asked for, and not before - and
+    /// what comes back agrees with sc.exe.
+    ///
+    /// <b>Both halves, because either alone passes over a build that does nothing.</b> A test that
+    /// only asked WITH the switch would pass on one that always read them, which is the cost this
+    /// family exists to avoid - a call per entry, measured at 236-259 ms over 313 services. A test
+    /// that only checked the field was null without it would pass on one that never reads them at
+    /// all.
+    ///
+    /// <b>sc.exe is the authority, as it is for the declared direction above.</b> Its own note
+    /// records that `sc enumdepend` truncates its output at three entries and exits with
+    /// ERROR_MORE_DATA - so the comparison runs over services whose answer is short enough for it
+    /// to be believed, and says how many it checked.
+    /// </summary>
+    [Fact]
+    public void Who_depends_on_a_service_is_read_when_asked_for_and_left_alone_when_not()
+    {
+        // WITHOUT THE SWITCH: nobody looked, so the field is null and the entry says so in
+        // "notRead" rather than reporting an empty list of dependents.
+        foreach (var entry in CommandLineTool.Listing("--query", "name:spooler"))
+        {
+            Assert.Equal(JsonValueKind.Null, entry.GetProperty("requiredBy").ValueKind);
+
+            Assert.True(
+                entry.TryGetProperty("notRead", out var notRead)
+                && notRead.EnumerateArray().Any(field => field.GetString() == "requiredBy"),
+                "The listing left requiredBy unread and did not say so, which is a short answer "
+                + "that looks complete.");
+        }
+
+        // WITH IT: the field is filled, and by something the system agrees with.
+        var read = 0;
+
+        foreach (var entry in CommandLineTool.Listing("--required-by", "--query", "!type:driver"))
+        {
+            if (entry.GetProperty("requiredBy").ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var name = CommandLineTool.Text(entry, "serviceName");
+
+            // SKIPPED RATHER THAN COMPARED WHEN THE AUTHORITY CUT ITS OWN ANSWER SHORT. sc.exe
+            // truncates enumdepend at three entries and exits with ERROR_MORE_DATA without
+            // retrying - measured 2026-08-01 - so a longer list is one it cannot speak about, and
+            // comparing ours against what it managed would fail the build over sc's own limit.
+            if (DependentsBySc(name) is not { } theirs)
+            {
+                continue;
+            }
+
+            var ours = entry.GetProperty("requiredBy").EnumerateArray().Select(value => value.GetString()!);
+
+            Assert.Equal(
+                string.Join('|', theirs).ToLowerInvariant(),
+                string.Join('|', ours.Order(StringComparer.OrdinalIgnoreCase)).ToLowerInvariant());
+
+            read++;
+        }
+
+        Assert.True(read > 0, "Not one service reported anybody depending on it, so this proves nothing.");
+    }
+
+    /// <summary>
+    /// What sc.exe says depends on a service, sorted so the comparison is about the names.
+    ///
+    /// <b>Only the ones it can answer about.</b> Its output truncates at three and exits with
+    /// ERROR_MORE_DATA without retrying - measured 2026-08-01 and recorded at
+    /// <c>IScmCatalog.ReadDependents</c> - so anything longer than that is skipped rather than
+    /// compared against a list the authority itself cut short.
+    /// </summary>
+    private static IReadOnlyList<string>? DependentsBySc(string name)
+    {
+        var names = CommandLineTool.ServiceControl("enumdepend", name).StandardOutput
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .Where(line => line.TrimStart().StartsWith("SERVICE_NAME:", StringComparison.OrdinalIgnoreCase))
+            .Select(line => line.Split(':', 2)[1].Trim())
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Three is where sc stops, so three or more is an answer it may have cut short and this
+        // says so with null rather than with a short list somebody would compare.
+        return names.Count >= 3 ? null : names;
+    }
+
     [Fact]
     public void Declared_dependencies_agree_with_sc_for_every_service_that_has_any()
     {

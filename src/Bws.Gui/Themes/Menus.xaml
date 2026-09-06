@@ -1,0 +1,131 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        THE TWO MENUS THIS WINDOW OPENS OVER ITS COLUMNS: the picker under the Columns button, and
+        the one under a right click on a column heading. Not one value of its own - ADR-23, the
+        same rule as every other file here.
+
+        IT LEFT Themes/Controls.xaml ON 2026-09-05 BECAUSE THE SIZE RATCHET SAID SO, and the seam
+        was the one that file already names in its own opening lines: it calls itself the controls
+        this window is made of, "the field somebody types into, the box somebody ticks, the chip" -
+        and a menu is not one of those. That day put four new styles into it at once, which was the
+        picker learning to nest and the heading learning to filter, and it went sixty-six lines past
+        a ceiling that may only ever come down.
+
+        ORDER INSIDE THIS FILE IS LOAD BEARING, which is the one thing to know before editing it.
+        ColumnGroupItem names ColumnChoiceItem with a StaticResource, and a StaticResource is
+        resolved as the dictionary is read - so a style naming one declared BELOW it fails at parse
+        time and takes the window down at startup rather than looking wrong.
+
+        AND SO IS THE FILE'S PLACE IN App.xaml: it is merged after Controls.xaml, which is where the
+        implicit MenuItem style these all extend is found. Merged first, every BasedOn here would
+        resolve to nothing.
+    -->
+
+    <Style x:Key="ColumnChoiceItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="IsCheckable" Value="True" />
+        <Setter Property="IsChecked" Value="{Binding IsShown, Mode=TwoWay}" />
+        <Setter Property="IsEnabled" Value="{Binding MayHide}" />
+        <Setter Property="StaysOpenOnClick" Value="True" />
+    </Style>
+
+    <!--
+        ONE GROUP OF COLUMNS, AS A SUBMENU - 2026-09-05, owner's decision. Until that day this was
+        an inert heading in a flat list of thirty-two items, and the menu is capped at 420 units:
+        counted from outside with it open, THIRTEEN ITEMS WERE ON SCREEN AND NINETEEN BELOW THE
+        FOLD, starting at Publisher. Two whole groups could not be reached without scrolling a menu
+        nobody scrolls. The measurement and the arithmetic against the alternative - raising the
+        ceiling gives a menu taller than the screen - are at ColumnGroup.
+
+        AFTER ColumnChoiceItem RATHER THAN BEFORE IT, and that is load bearing rather than tidy: a
+        StaticResource is resolved as the dictionary is read, so a style naming one declared below
+        it fails at parse time and takes the window down at startup.
+
+        A submenu rather than a GroupStyle, which is the repair described in ColumnEntryStyles:
+        grouping a menu puts a GroupItem between it and its items and takes the whole lot out of
+        the automation tree. A MenuItem holding MenuItems has nothing in between.
+    -->
+    <Style x:Key="ColumnGroupItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="ItemsSource" Value="{Binding Choices}" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource ColumnChoiceItem}" />
+    </Style>
+
+    <!--
+        ONE VALUE A COLUMN CAN BE NARROWED TO, under a right click on its heading - 2026-09-05, the
+        owner's ask. Bound to a FilterChip, which is the same object the row of chips above the list
+        is made of: it holds no state, reads whether it is on out of the query text, and writes a
+        member somebody can read. So this tick and that chip are one mechanism reached two ways.
+
+        THE TOOLTIP IS THE MEMBER ITSELF - status:running - which is the `A5` promise: seeing what
+        will be written before clicking is half of it, and watching it arrive in the box is the
+        other half. The chips have carried the same tooltip since they were built.
+
+        StaysOpenOnClick, because narrowing to running AND stopped is one errand over two clicks.
+    -->
+    <Style x:Key="ColumnValueItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="ToolTip" Value="{Binding Member}" />
+        <Setter Property="IsCheckable" Value="True" />
+
+        <!--
+            IsOn AND NOT IsShown, which is what a chip calls this and what the column choices in
+            the picker two styles up call theirs. The wrong one of those two binds perfectly, fails
+            at run time only, and reports nothing anywhere - the tick would simply never light.
+        -->
+        <Setter Property="IsChecked" Value="{Binding IsOn, Mode=TwoWay}" />
+        <Setter Property="StaysOpenOnClick" Value="True" />
+    </Style>
+
+    <!--
+        THE LAST ITEM OF THAT MENU, AND ON FIVE COLUMNS THE ONLY ONE. Those five have no field in
+        the query language at all, so there are no values to offer - and a menu that refused to open
+        on them would teach that the gesture is unreliable, which is the reasoning written out at
+        ColumnMenu.
+
+        DISABLED RATHER THAN ABSENT WHEN IT CANNOT BE DONE, which is the picker's own decision about
+        the last column showing: a person is told before acting rather than after.
+
+        AND ShowOnDisabled, WITHOUT WHICH THE REASON EXISTS EVERYWHERE EXCEPT ON THE SCREEN. WPF
+        shows no tooltip at all on a disabled control unless this says otherwise - trap 15 of
+        `docs/10`, paid for once already. The tooltip is set by the trigger rather than always, or
+        an item that CAN be clicked would explain why it cannot.
+    -->
+    <Style x:Key="ColumnHideItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding HideLabel}" />
+        <Setter Property="IsEnabled" Value="{Binding MayHide}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="ToolTip" Value="{Binding HideRefused}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        THE WAY BACK FROM A LAYOUT SOMEBODY NO LONGER WANTS, 2026-08-25. What is chosen above is
+        written to disk and comes back on the next start, so without this item the only road back
+        to the six columns this window opens with is turning the others off one at a time.
+
+        NO "TURN THEM ALL ON" BESIDE IT, AND THE REASON IS MEASURED RATHER THAN TIDY. Turning on a
+        signature column is what sends the window to open eight hundred files - 8.86-9.42 s of
+        processor against 1.39-1.42 s without it, over about 810 entries. One item that switches
+        every column on is one item that stops the window for ten seconds.
+
+        THAT SENTENCE WAS NOT TRUE WHEN IT WAS WRITTEN AND BECAME TRUE ON 2026-09-05, which is
+        worth more than quietly correcting it. Turning a column on reached exactly one listener,
+        the one that writes the layout file - so it cost nothing, read nothing, and the column sat
+        at "unknown" on every row. The measurement quoted above is real and belonged to the query
+        path. Nothing had ever measured the column path because there was nothing there to
+        measure, and prose has no guard - see Column.Needs for the whole account.
+
+        StaysOpenOnClick is deliberately NOT here, unlike the choices above. Ticking four columns is
+        one errand spread over four clicks, and this is one errand finished in one - so the menu
+        closing is what says it happened.
+    -->
+    <Style x:Key="ColumnResetItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+    </Style>
+</ResourceDictionary>

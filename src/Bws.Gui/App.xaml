@@ -76,6 +76,13 @@
                 <ResourceDictionary Source="Themes/Overview.xaml" />
                 <ResourceDictionary Source="Themes/Chips.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
+
+                <!--
+                    AFTER Controls.xaml AND NOT BEFORE IT. Every style in there extends the implicit
+                    MenuItem style, which this order is what makes reachable - see the file's own
+                    opening lines. It left Controls.xaml on 2026-09-05 when the size ratchet fired.
+                -->
+                <ResourceDictionary Source="Themes/Menus.xaml" />
                 <ResourceDictionary Source="Themes/Scroll.xaml" />
                 <ResourceDictionary Source="Themes/Plan.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />

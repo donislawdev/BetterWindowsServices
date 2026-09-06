@@ -312,8 +312,8 @@
 
     <!-- Between that rule and the button under it. -->
     <Thickness x:Key="PaddingFooter">0,10,0,0</Thickness>
+    <!-- The ceiling on a menu, with a scrollbar under it. Why it stopped deciding the column picker: ColumnGroup. -->
     <system:Double x:Key="HeightMenu">420</system:Double>
-    <Thickness x:Key="MarginGroupHeading">12,8,12,2</Thickness>
 
     <!--
         THE MACHINE OVERVIEW AS THREE CARDS RATHER THAN SIX LINES, 2026-09-01. Why the composition

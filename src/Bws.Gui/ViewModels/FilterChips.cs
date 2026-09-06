@@ -25,12 +25,18 @@ public sealed class FilterChip : Observable
 {
     private readonly Func<string> _read;
     private readonly Action<string> _write;
-    private readonly string _labelKey;
+    private readonly Func<string> _label;
 
     internal FilterChip(
         string labelKey, string field, string value, bool negated, Func<string> read, Action<string> write)
+        : this(() => Texts.Of(labelKey), field, value, negated, read, write)
     {
-        _labelKey = labelKey;
+    }
+
+    private FilterChip(
+        Func<string> label, string field, string value, bool negated, Func<string> read, Action<string> write)
+    {
+        _label = label;
         _read = read;
         _write = write;
 
@@ -38,6 +44,28 @@ public sealed class FilterChip : Observable
         Value = value;
         Negated = negated;
     }
+
+    /// <summary>
+    /// One value of one field, labelled with the word the language itself accepts.
+    ///
+    /// <b>UNTRANSLATED ON PURPOSE, AND THIS IS THE ONE PLACE IN THE WINDOW WHERE THAT IS RIGHT.</b>
+    /// A chip in the row above the list carries a translated label because it is a control somebody
+    /// meets before they know the language exists. These are the values behind a right click on a
+    /// column heading, offered as the exhaustive list of what that column can be narrowed to - and
+    /// what lands in the box when one is clicked is this exact word. Showing a translation of it
+    /// would teach a word that does not work when typed.
+    ///
+    /// <b>It is a contract token rather than prose</b>, which is why rule 13 is not bent here: the
+    /// spellings are frozen in `docs/07`, go out in queries people keep in scripts, and are the
+    /// same words `sc.exe` prints. The chip's own tooltip has shown the raw member since the day
+    /// chips were built, for the same reason.
+    ///
+    /// <b>Never negated.</b> A menu of ticks means "narrow to these", and members of one field are
+    /// ORed by the language - so ticking two shows both, which is what a person expects from a
+    /// list of ticks. Excluding is a different gesture and does not have one yet.
+    /// </summary>
+    internal static FilterChip Spelled(string field, string value, Func<string> read, Action<string> write) =>
+        new(() => value, field, value, negated: false, read, write);
 
     /// <summary>The field this chip constrains, in the language's own spelling.</summary>
     public string Field { get; }
@@ -48,8 +76,11 @@ public sealed class FilterChip : Observable
     /// <summary>Whether it excludes rather than selects. Two chips, not one with a sign.</summary>
     public bool Negated { get; }
 
-    /// <summary>What the chip says, in the language of whoever is reading it.</summary>
-    public string Label => Texts.Of(_labelKey);
+    /// <summary>
+    /// What the chip says: the language of whoever is reading it for a chip in the filter row,
+    /// and the language's own spelling for one built by <see cref="Spelled"/>.
+    /// </summary>
+    public string Label => _label();
 
     /// <summary>
     /// The member this chip stands for, written the way it appears in the box.

@@ -136,7 +136,15 @@ public sealed class AppearanceGuards
     private static readonly string[] StyleFiles =
     [
             "Text.xaml", "Overview.xaml", "Chips.xaml",
-            "Controls.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+
+            // Menus.xaml left Controls.xaml on 2026-09-05 when the markup ratchet fired on it -
+            // the picker learned to nest and a column heading learned to filter, four styles in
+            // one day. ADDED HERE IN THE SAME EDIT AS THE SPLIT, because a styles file this pool
+            // does not name is a styles file no rule in this class applies to, and nothing
+            // anywhere would say so.
+            "Controls.xaml", "Menus.xaml",
+
+            "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
         ];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>

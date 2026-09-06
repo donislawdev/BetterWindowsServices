@@ -199,15 +199,24 @@ public sealed class SecondPhaseTests
     }
 
     /// <summary>
-    /// A question about the OTHER expensive family costs nothing, because the pass read both.
+    /// A question about the OTHER family does not open a single file a second time.
     ///
-    /// <b>It cost the whole thing twice until 2026-08-26.</b> The pass fills signatures and memory
-    /// together - they come off the same list and go into the same records - and the window
-    /// remembered only the family that had been ASKED about. So somebody who typed signed:no and
-    /// then memory:>1MB was asking for something the rows already held, and the window answered by
-    /// reading the manager again and verifying every signature on the machine a second time. The
-    /// measurement in Readings puts that at 7.5 s of processor and 18 MB, with the tick suspended
-    /// for all of it, so the list stops moving as well.
+    /// <b>It cost the whole thing twice until 2026-08-26.</b> The pass filled signatures and memory
+    /// together and the window remembered only the family that had been ASKED about. So somebody
+    /// who typed signed:no and then memory:>1MB was asking for something the rows already held, and
+    /// the window answered by reading the manager again and verifying every signature on the
+    /// machine a second time - 7.5 s of processor and 18 MB, with the tick suspended for all of it.
+    ///
+    /// <b>WHAT THIS GUARDS CHANGED ON 2026-09-05 AND THE NUMBER IT GUARDS DID NOT.</b> The two
+    /// passes were split, so the rows no longer hold memory just because signatures were read -
+    /// which means the second question does now send the window back to the manager, once. That
+    /// read is measured at 423-500 ms over 810 entries and the memory pass behind it at under a
+    /// millisecond over 110 processes. The file reading is the cost this test was written about,
+    /// and not one file is opened again.
+    ///
+    /// <b>Exactly one more reading, not "at least one".</b> An upper bound is what makes this
+    /// catch the fault in the other direction: a window that forgot what it had tried would go
+    /// back to the manager on every tick for ever, and every one of those would look like progress.
     ///
     /// <b>Counted rather than timed</b>, for the reason the guard above gives: a duration in a test
     /// is a promise about somebody else's machine.
@@ -230,14 +239,91 @@ public sealed class SecondPhaseTests
 
         Assert.True(filesOpened > 0, "The pass never ran, so the second half of this proves nothing.");
 
-        // The other family, which that same pass has already read into these very rows.
+        // The other family, which since the split these rows do NOT hold - so this is a question
+        // the window has to go and answer rather than one it can answer from what it has.
         model.QueryText = "memory:>1MB";
 
         await model.RefreshAsync();
         await model.RefreshAsync();
 
+        // NOT ONE FILE OPENED AGAIN, which is the seven and a half seconds this test is about.
         Assert.Equal(filesOpened, inspector.Asked);
-        Assert.Equal(readings, machine.FullReads);
+
+        // One reading to fetch the family, and then it stops - two ticks, one read between them.
+        Assert.Equal(readings + 1, machine.FullReads);
+    }
+
+    /// <summary>
+    /// A question about memory alone does not open a single file.
+    ///
+    /// <b>THE SPLIT, FROM THE SIDE THAT COSTS MONEY - 2026-09-05, owner's decision.</b> One
+    /// expression filled both families, on the argument that a window which has decided to pay for
+    /// one has no reason to decide again about the other. The two prices are not comparable: asking
+    /// 110 processes what they are using is under a millisecond, and opening 810 binaries to verify
+    /// them is 7.5 s of processor and 18 MB. So the cheap answer could only ever be had at the
+    /// expensive one's price, with the tick suspended for all of it.
+    ///
+    /// <b>Counted rather than timed</b>, for the reason the guards above give.
+    /// </summary>
+    [Fact]
+    public async Task A_question_about_memory_alone_opens_no_files()
+    {
+        var inspector = new Inspector(SignatureStatus.NotSigned);
+        var memory = new Memory();
+        var model = new MainViewModel(new LiveMachine(Entry()), new SteppedClock(), inspector, memory);
+
+        await model.LoadAsync();
+
+        model.QueryText = "memory:>1MB";
+
+        await model.RefreshAsync();
+
+        Assert.True(memory.Asked > 0, "The memory pass never ran, so the rest of this proves nothing.");
+        Assert.Equal(0, inspector.Asked);
+    }
+
+    /// <summary>
+    /// Showing a column is a way of asking, which for five columns it was not until 2026-09-05.
+    ///
+    /// <b>THE FAULT AS THE OWNER MET IT.</b> The memory column read "unknown" on all 810 rows, on
+    /// every machine, for ever. The window worked out what to go and read from the QUERY alone, so
+    /// a column turned on told nobody - <c>ColumnBar.Changed</c> had one subscriber and it wrote
+    /// the layout file. Four more columns had the same fault and nobody had reported them.
+    ///
+    /// <b>Driven through a real picker rather than by handing the model an answer.</b> The claim
+    /// is that TICKING A BOX is what sends the window, so a test setting the question directly
+    /// would pass over a build where <see cref="ColumnBar.Needs"/> read the wrong flag or read
+    /// nothing at all.
+    ///
+    /// <b>And it asserts what did NOT happen, which is the half that keeps the fix affordable.</b>
+    /// The memory column must not drag the signature pass along behind it.
+    /// </summary>
+    [Fact]
+    public async Task Showing_a_column_is_what_sends_the_window_to_read_what_fills_it()
+    {
+        var inspector = new Inspector(SignatureStatus.NotSigned);
+        var memory = new Memory();
+        var model = new MainViewModel(new LiveMachine(Entry()), new SteppedClock(), inspector, memory);
+        var columns = new ColumnBar();
+
+        model.ColumnsNeed = () => columns.Needs;
+
+        await model.LoadAsync();
+        await model.RefreshAsync();
+
+        // Nobody has asked anything: the box is empty and the memory column starts off.
+        Assert.Equal(0, memory.Asked);
+
+        columns.Choices.Single(choice => choice.Column.Id == "memory").IsShown = true;
+
+        await model.RefreshAsync();
+
+        Assert.True(
+            memory.Asked > 0,
+            "Turning the memory column on did not send the window to read what fills it, so the "
+            + "column shows 'unknown' on every row - see Column.Needs.");
+
+        Assert.Equal(0, inspector.Asked);
     }
 
     private static MainViewModel Window(SignatureStatus status) =>
@@ -265,7 +351,21 @@ public sealed class SecondPhaseTests
 
     private sealed class Memory : IProcessMemoryReader
     {
-        public Reading<ProcessMemory> Read(int processId) =>
-            Reading<ProcessMemory>.Present(new ProcessMemory(1024, 2048, 1));
+        /// <summary>
+        /// How many processes this was asked about, which is the other half of the split.
+        ///
+        /// The inspector has counted since the day the pass was written and this did not, because
+        /// while one method filled both families there was nothing a second counter could tell
+        /// anybody. Once each family can run without the other, "the cheap one ran" and "the
+        /// expensive one did not" are two claims and each needs its own number.
+        /// </summary>
+        internal int Asked { get; private set; }
+
+        public Reading<ProcessMemory> Read(int processId)
+        {
+            Asked++;
+
+            return Reading<ProcessMemory>.Present(new ProcessMemory(1024, 2048, 1));
+        }
     }
 }

@@ -1,3 +1,5 @@
+using Bws.Core.Querying;
+
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
@@ -84,27 +86,49 @@ public sealed class ColumnChoice : Observable
 /// subject, and the window is the only thing that needs both.
 /// </summary>
 /// <summary>
-/// A heading in the column picker, as an ITEM rather than as a group.
+/// One heading in the column picker and the columns under it, as a SUBMENU.
 ///
-/// <b>It is an item because grouping a menu takes its contents out of the automation tree, and
-/// that was measured rather than feared.</b> The picker was grouped with <c>GroupStyle</c> on
-/// 2026-08-12 and looked right on screen - and from outside, a window whose menu was open offered
-/// twelve togglable elements, all of them filter chips, and not one of the seventeen columns. WPF
-/// builds a <c>GroupItem</c> between the menu and its items, and the menu's peer does not reach
-/// through it. A screen reader sees what the probe saw.
+/// <b>MEASURED 2026-09-05, WHICH IS WHY THIS IS NOT A FLAT LIST ANY MORE.</b> The picker handed
+/// the menu 32 items - 27 columns, four headings and the way back. The menu is capped at 420
+/// units, which on this machine at 150% is 630 device pixels, and an item measures 51 of them.
+/// Counted from outside with the menu open: <b>13 items on screen and 19 below the fold</b>,
+/// starting at Publisher - so the whole of "About the entry" and the whole of "Advanced" were
+/// reachable only by scrolling a menu most people never scroll. The owner reported it as the list
+/// looking small. It was not small, it was cut off.
 ///
-/// So the headings are items in the same flat list, told apart by a style selector: every entry
-/// stays a real <c>MenuItem</c> with a peer of its own, and the grouping is drawn rather than
-/// structural.
+/// <b>Raising the ceiling was the other way and it does not work.</b> Thirty-two items is about
+/// 1630 device pixels of menu, which is taller than the screen it opens on. Four items and a way
+/// back is 255, and the longest group inside is nine, which is 459 - so nothing scrolls anywhere.
+/// Owner's decision, 2026-09-05.
+///
+/// <b>A SUBMENU IS NOT A GROUP, AND THE DIFFERENCE IS THE WHOLE REASON THIS SHAPE IS ALLOWED.</b>
+/// The picker was grouped with <c>GroupStyle</c> on 2026-08-12, looked right on screen, and from
+/// outside offered twelve togglable elements - all of them filter chips - and not one of the
+/// seventeen columns. WPF builds a <c>GroupItem</c> between the menu and its items and the menu's
+/// peer does not reach through it. A submenu has no such thing in the middle: it is a
+/// <c>MenuItem</c> whose children are <c>MenuItem</c>s, each with a peer of its own. Verified from
+/// outside after the change rather than reasoned about, because that is how the first attempt was
+/// caught.
+///
+/// <b>What it costs, said rather than left to be found.</b> Which columns are on can no longer be
+/// read at a glance - it takes four openings instead of one scroll. That is the trade for every
+/// group being reachable at all.
 /// </summary>
-public sealed class ColumnHeading
+public sealed class ColumnGroup
 {
     private readonly string _labelKey;
 
-    internal ColumnHeading(string labelKey) => _labelKey = labelKey;
+    internal ColumnGroup(string labelKey, IReadOnlyList<ColumnChoice> choices)
+    {
+        _labelKey = labelKey;
+        Choices = choices;
+    }
 
     /// <summary>What this heading says, in the language of whoever is reading it.</summary>
     public string Label => Texts.Of(_labelKey);
+
+    /// <summary>The columns under it, in the catalogue's order.</summary>
+    public IReadOnlyList<ColumnChoice> Choices { get; }
 }
 
 /// <summary>
@@ -136,7 +160,11 @@ public sealed class ColumnBar
     {
         Choices = [.. Columns.All.Select(column => new ColumnChoice(column))];
 
-        // THE FLAT LIST THE MENU IS HANDED: a heading, then the columns under it, then the next.
+        // WHAT THE MENU IS HANDED: one item per heading, each carrying the columns under it, and
+        // the way back at the end. Five items instead of thirty-two, which is the difference
+        // between a menu that fits and one where nineteen items sat below the fold - see
+        // ColumnGroup for the measurement.
+        //
         // Built once, in the catalogue's order, because the picker is a chooser rather than a
         // readout and a list that rearranges itself under the pointer is harder to use.
         var entries = new List<object>();
@@ -154,12 +182,12 @@ public sealed class ColumnBar
             // ArgumentNullException about a key - inside the constructor of this class, which is
             // inside the constructor of the window. Six tests already go red when the map is
             // incomplete, and none of them named the column. This one does.
-            entries.Add(new ColumnHeading(Columns.GroupOf(first)
-                ?? throw new InvalidOperationException(
-                    $"The column '{first}' is under no heading. Columns.Groups has to name every "
-                    + "column in the catalogue - see the argument written at that map.")));
-
-            entries.AddRange(group);
+            entries.Add(new ColumnGroup(
+                Columns.GroupOf(first)
+                    ?? throw new InvalidOperationException(
+                        $"The column '{first}' is under no heading. Columns.Groups has to name every "
+                        + "column in the catalogue - see the argument written at that map."),
+                [.. group]));
         }
 
         // LAST, AFTER EVERY GROUP, because it is about the whole list rather than about one column
@@ -210,6 +238,23 @@ public sealed class ColumnBar
 
     /// <summary>The columns that are on, in the catalogue's order.</summary>
     public IEnumerable<ColumnChoice> Shown => Choices.Where(choice => choice.IsShown);
+
+    /// <summary>
+    /// What the columns on screen need the window to go and read - the picker's half of the
+    /// question <c>Query.Needs</c> answers for the box above the list.
+    ///
+    /// <b>Read off what is SHOWN rather than remembered, exactly like <see cref="FilterChip.IsOn"/>
+    /// reads the query text.</b> A field holding this would be a second copy of an answer the
+    /// ticks already carry, and the two would disagree the first time a kept layout was applied
+    /// through <see cref="Follow"/> - which happens before anybody has clicked anything.
+    ///
+    /// <b>Asked once a second rather than pushed on change, and that is why it is a property.</b>
+    /// The window's tick already asks whether the question on screen has outrun what was read, so
+    /// a column turned on is picked up by the next tick with nothing to subscribe to and no order
+    /// of wiring to get right. It costs one pass over 27 flags.
+    /// </summary>
+    internal ExtraRead Needs =>
+        Shown.Aggregate(ExtraRead.None, (needs, choice) => needs | choice.Column.Needs);
 
     /// <summary>
     /// Turns on what a kept layout had on, and turns the rest off.

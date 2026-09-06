@@ -29,9 +29,15 @@ internal sealed class ColumnEntryStyles : StyleSelector
         // THREE KINDS SINCE 2026-08-25, and the new one is neither of the other two: a heading
         // cannot be clicked and a choice is a tick box that stays open, while putting the columns
         // back is one errand that finishes when it happens.
+        //
+        // THE FIRST OF THE THREE OPENS A SUBMENU SINCE 2026-09-05 rather than sitting inert above
+        // the columns it names. Nineteen of thirty-two items were below the fold of a menu capped
+        // at 420 units - the measurement is at ColumnGroup. What did NOT change is why this class
+        // exists: a submenu is a MenuItem holding MenuItems, so every column still has an
+        // automation peer of its own, which is exactly what GroupStyle took away.
         var key = item switch
         {
-            ColumnHeading => "ColumnHeadingItem",
+            ColumnGroup => "ColumnGroupItem",
             ColumnReset => "ColumnResetItem",
             _ => "ColumnChoiceItem"
         };

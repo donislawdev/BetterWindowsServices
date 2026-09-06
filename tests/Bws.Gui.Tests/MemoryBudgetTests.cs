@@ -199,6 +199,7 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present(@"NT AUTHORITY\LocalService"),
         DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"]),
+        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
         BinaryPath = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe -k netsvcs -p"),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe"),

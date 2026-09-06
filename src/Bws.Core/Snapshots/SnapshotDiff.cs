@@ -378,6 +378,13 @@ public sealed record SnapshotDiff(
     ///
     /// <c>triggers</c> - same argument about order. The two words inside each one are written by
     /// this build rather than by the manager, so their spelling is ours and stable.
+    ///
+    /// <c>requiredBy</c> - the other direction of dependsOn, added 2026-09-06, and the same
+    /// argument twice over: service names, compared without case, in an order the manager promises
+    /// nowhere. IT WAS MISSED HERE ON THE DAY IT WAS ADDED and the guard below did not say so,
+    /// because it read a rendered specimen and this field is unread in every one - so a list field
+    /// that happened to be null was not an array and was invisible to the check whose entire
+    /// subject is a field nobody came back for. That guard asks the TYPE now.
     /// </summary>
     /// <remarks>
     /// <b>Internal rather than private so that a guard can check it covers every list in the
@@ -385,7 +392,7 @@ public sealed record SnapshotDiff(
     /// field is ADDED to the document and nobody comes here, which brings order-sensitivity back
     /// for that one field, silently, on a surface whose whole job is telling real drift from noise.
     /// </remarks>
-    internal static readonly string[] Unordered = ["dependsOn", "requiredPrivileges", "triggers"];
+    internal static readonly string[] Unordered = ["dependsOn", "requiredBy", "requiredPrivileges", "triggers"];
 
     /// <summary>
     /// Fields whose value names something Windows itself compares without case.

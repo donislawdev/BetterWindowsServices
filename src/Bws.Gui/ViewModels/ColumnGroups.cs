@@ -90,6 +90,10 @@ internal static partial class Columns
         ["loadOrderGroup"] = Advanced,
         ["errorControl"] = Advanced,
         ["dependsOn"] = Advanced,
+
+        // Beside its pair, because the two are one relation read in opposite directions and a
+        // person looking for either is looking for both.
+        ["requiredBy"] = Advanced,
         ["triggers"] = Advanced,
         ["requiredPrivileges"] = Advanced,
         ["securityDescriptor"] = Advanced

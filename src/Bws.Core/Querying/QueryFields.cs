@@ -49,6 +49,41 @@ public static class QueryFields
     /// <summary>Every field name, for anything that offers them to a person.</summary>
     public static IReadOnlyList<string> Names { get; } = [.. All.Select(field => field.Name)];
 
+    /// <summary>
+    /// The values a field accepts, as somebody would write them - empty for a field that takes
+    /// text, a number or a size rather than a set of words.
+    ///
+    /// <b>OPENED 2026-09-05, AND THE ASYMMETRY IT CLOSES HAD ALREADY BEEN PAID FOR TWICE.</b>
+    /// <see cref="Names"/> has been public since this language existed, so anything offering a
+    /// person a field could read the list. The values were internal, so anything offering a person
+    /// a VALUE had to spell it out again: the filter chips carry "running", "stopped", "paused"
+    /// and eleven more as literals in the window, which is a second copy of a frozen contract with
+    /// nothing checking the two against each other. Backlog 15 names the same wall for
+    /// autocompletion, and the header menu of 2026-09-05 met it a third time.
+    ///
+    /// <b>What is returned is the SPELLINGS and not the symbols behind them</b>, which is the whole
+    /// distinction this language keeps: <c>status:pending</c> is one word standing for four states,
+    /// and <c>type:driver</c> for two kinds. A caller offering these to a person is offering what
+    /// can be typed. What each one MEANS stays in here, where the matching happens.
+    ///
+    /// <b>Neither the accepted aliases of the field name nor the reserved words are in it.</b>
+    /// <c>any</c>, <c>none</c> and <c>?</c> are accepted by every enumeration field and are already
+    /// public as constants of their own - folding them in would make each field look as if it owned
+    /// them, and a caller drawing a list of values would draw the same three under all nine.
+    ///
+    /// An unknown field name answers with nothing rather than throwing, for the same reason
+    /// <see cref="Find"/> returns null: not knowing a name is an ordinary answer here.
+    /// </summary>
+    public static IReadOnlyList<string> ValuesOf(string field)
+    {
+        // Refused rather than answered with an empty list, and the difference matters here: an
+        // unknown NAME is an ordinary answer and gets one, but no name at all is a caller fault,
+        // and Normalise below would meet it as a null reference three frames down.
+        ArgumentNullException.ThrowIfNull(field);
+
+        return Find(field) is { } found ? [.. found.Values.Select(value => value.Text)] : [];
+    }
+
     private static readonly Dictionary<string, QueryField> ByName = BuildIndex();
 
     /// <summary>The field for a spelling, or null when nobody knows it.</summary>
@@ -268,6 +303,54 @@ public static class QueryFields
             Aliases = ["privileges"],
             OutcomeOf = entry => entry.RequiredPrivileges.Outcome,
             TextsOf = entry => entry.RequiredPrivileges.ValueOr(null)
+        },
+
+        new QueryField
+        {
+            // BOTH DIRECTIONS OF ONE RELATION, ADDED TOGETHER ON 2026-09-06 - the owner's decision,
+            // and adding only the second would have been the worse surface. The window has carried
+            // a "Depends on" column since backlog 165 and the language could not ask about it, so
+            // dependents:rpcss would have worked while dependson:rpcss did not - one half of a pair
+            // working is harder to explain than neither half.
+            //
+            // Text rather than an enumeration, for the reason privilege above is: the values are
+            // service names, which is an open set that differs on every machine. An enumeration
+            // would refuse a name this build had never heard of, so a correct query about somebody
+            // else's machine would come back as an error.
+            //
+            // WHAT THIS ONE COSTS: nothing. It arrives in the same configuration structure the
+            // start type and the account come from, so it declares no family - see the field below,
+            // which is the same relation read the other way round and is not free at all.
+            //
+            // Names come back exactly as the manager gives them, INCLUDING the leading plus that
+            // marks a load order group. So dependson:+netbiosgroup is a question somebody can ask,
+            // and a fragment search finds the group without it.
+            Name = "dependson",
+            Kind = QueryFieldKind.Text,
+            Aliases = ["dependsonservice", "requires"],
+            OutcomeOf = entry => entry.DependsOn.Outcome,
+            TextsOf = entry => entry.DependsOn.ValueOr(null)
+        },
+
+        new QueryField
+        {
+            // "What breaks if I stop this" - the question somebody has before touching a machine,
+            // and the one services.msc answers only by opening a service and reading a tab.
+            //
+            // IT DECLARES A FAMILY AND THE ONE ABOVE DOES NOT, which is the whole difference
+            // between the two directions. This takes a call per entry: measured 236-259 ms over
+            // 313 services on 2026-09-05, against 423-500 ms for the entire listing. So it is
+            // asked for rather than always read, exactly as signatures and memory are.
+            //
+            // THE FIRST HOP ONLY, which a person reading a member has to know: dependents:spooler
+            // finds what stands directly on Spooler, not the closure. That is what the manager
+            // answers and `05-PRZYPADKI-BRZEGOWE` records the measurement behind it.
+            Name = "requiredby",
+            Kind = QueryFieldKind.Text,
+            Aliases = ["dependents", "neededby"],
+            Needs = ExtraRead.RequiredBy,
+            OutcomeOf = entry => entry.RequiredBy.Outcome,
+            TextsOf = entry => entry.RequiredBy.ValueOr(null)
         },
 
         new QueryField

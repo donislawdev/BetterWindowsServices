@@ -29,6 +29,9 @@ public partial class MainWindow
     /// </summary>
     private KeptColumns? _kept;
 
+    /// <summary>The heading menu on screen, if one is. See OfferTheColumnMenu for why it is kept.</summary>
+    private ContextMenu? _headingMenu;
+
     /// <summary>
     /// Everything about which columns the list has - reading the kept layout, building the columns
     /// from it, and moving to another set when the scope moves.
@@ -47,6 +50,20 @@ public partial class MainWindow
         // A file that is unreadable, stale or from another build is reconciled into something
         // usable first, and whatever could not be honoured is said out loud.
         var kept = _kept = new KeptColumns(preferences);
+
+        // THE PICKER GETS A VOICE IN WHAT THE WINDOW GOES AND READS, 2026-09-05. Five columns are
+        // fed by the second phase of `ADR-13` and every one of them said "unknown" on every row
+        // until the box above the list happened to mention the same family - because the query was
+        // the only thing being asked. The full account is at Column.Needs.
+        //
+        // Wired HERE because this method is the only place that holds a grid, a bar and a model at
+        // once, which is the sentence above this one and the reason it says so.
+        //
+        // Before Follow rather than after, and it makes no difference: what is handed over is a
+        // question, so it is answered whenever the reading gets round to asking. It stands first
+        // because a kept layout with the memory column already on has to be heard on the FIRST
+        // reading, and that reading is started by the caller of this method.
+        _model.ColumnsNeed = () => _columns.Needs;
 
         _columns.Follow(kept.Plan);
 
@@ -175,4 +192,114 @@ public partial class MainWindow
 
     /// <summary>Puts the columns of the list on screen back to what this build opens with.</summary>
     internal void RestoreColumns() => _kept?.Defaults(Entries, _columns, _model.Says);
+
+    /// <summary>
+    /// The menu under a right click on a column heading, built for the column that was clicked.
+    ///
+    /// <b>THE OWNER'S ASK OF 2026-09-05: click Status, choose Running, without learning the query
+    /// language first.</b> What it offers is decided by <see cref="ColumnMenu"/> and the language
+    /// itself - this method is the introduction of the parties, which is the same division of work
+    /// the picker's own menu already uses.
+    ///
+    /// <b>Built each time rather than kept.</b> Every column offers a different list, and the
+    /// ticks in it are read out of the query text at the moment of asking - so a menu held between
+    /// openings would be a second copy of an answer that changes under it. Twenty-seven menus
+    /// standing ready would also be twenty-seven sets of chips subscribed to nothing.
+    ///
+    /// <b>The items are handed their own DataContext, one at a time.</b> A ContextMenu hangs off a
+    /// Popup, which is not in the visual tree, so what it inherits is a question with an answer
+    /// nobody should have to know - the picker carries the same note for the same reason.
+    ///
+    /// It answers whether it opened, so the caller can tell a heading from the empty space under
+    /// the last row without asking the visual tree a second time.
+    /// </summary>
+    internal bool OfferTheColumnMenu(object source)
+    {
+        if (HeadingUnder(source) is not { } heading
+            || heading.Column?.SortMemberPath is not { Length: > 0 } id
+            || ViewModels.Columns.Of(id) is null)
+        {
+            return false;
+        }
+
+        var model = new ColumnMenu(
+            id,
+            _columns.Choices.FirstOrDefault(choice => choice.Column.Id == id),
+            () => _model.QueryText,
+
+            // The PROPERTY rather than the field, which is the same door a chip and a keystroke go
+            // through: the setter is what parses the query, applies it and tells the list.
+            text => _model.QueryText = text);
+
+        var menu = new ContextMenu { PlacementTarget = heading };
+
+        foreach (var value in model.Values)
+        {
+            menu.Items.Add(new MenuItem
+            {
+                DataContext = value,
+                Style = (Style)FindResource("ColumnValueItem")
+            });
+        }
+
+        // Only when there is something above it to be separated FROM. A rule at the top of a menu
+        // is a line that means nothing, and on five columns of the catalogue this item is alone.
+        if (model.Values.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+        }
+
+        var away = new MenuItem { DataContext = model, Style = (Style)FindResource("ColumnHideItem") };
+
+        // ONE AT A TIME. A ContextMenu opened from code is not owned by anything in the visual
+        // tree, so nothing closes it on our behalf - and a second right click on a second heading
+        // would put a second popup on screen over the first, both live, both writing into the same
+        // query box. Closing the standing one first is one line and the alternative is a window
+        // that accumulates menus.
+        if (_headingMenu is { } standing)
+        {
+            standing.IsOpen = false;
+        }
+
+        // In code rather than in the style, because a ResourceDictionary with no code behind has
+        // nowhere to put an EventSetter's handler. The values above need none: a tick is bound
+        // two ways to the chip, so clicking one writes the member itself.
+        away.Click += (_, _) => model.Hide();
+
+        menu.Items.Add(away);
+
+        _headingMenu = menu;
+        menu.IsOpen = true;
+
+        return true;
+    }
+
+    /// <summary>
+    /// The menu a heading opened, so that the next one can close it - and so that a test which
+    /// opened one is not left with a popup standing over whatever it builds next.
+    /// </summary>
+    internal ContextMenu? HeadingMenu => _headingMenu;
+
+    /// <summary>
+    /// The column heading a right click landed on, or nothing.
+    ///
+    /// <b>It walks whichever tree the node is actually in</b>, and that is not defensive: the
+    /// thing under a pointer can be a content element rather than a visual one, and
+    /// <c>VisualTreeHelper.GetParent</c> throws on those. MainWindow.Menu.cs carries the same note
+    /// beside the row lookup, which solves the same problem with ContainerFromElement - there is
+    /// no such helper for a heading.
+    /// </summary>
+    private static System.Windows.Controls.Primitives.DataGridColumnHeader? HeadingUnder(object source)
+    {
+        var node = source as DependencyObject;
+
+        while (node is not null and not System.Windows.Controls.Primitives.DataGridColumnHeader)
+        {
+            node = node is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
+        }
+
+        return node as System.Windows.Controls.Primitives.DataGridColumnHeader;
+    }
 }

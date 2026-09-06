@@ -111,9 +111,11 @@ public sealed partial class MainViewModel : Observable
         _catalog = catalog;
 
         // Says is fetched rather than handed over, because a caller may replace it after this
-        // constructor has run - see the argument on Readings._look.
+        // constructor has run - see the argument on Readings._look. The last argument is fetched
+        // for the same reason and a second one: TWO things can ask the second phase for something
+        // and one of them is the picker, which the window builds after this - MainViewModel.Asking.
         _readings = new Readings(
-            catalog, _index, () => Says, Reread, TellTheList, inspector, reader, () => _query.Needs);
+            catalog, _index, () => Says, Reread, TellTheList, inspector, reader, () => Asked);
 
         // Reading the field and writing the property, which is deliberate and is the difference
         // between a chip that filters and a chip that only edits text: the setter is what parses
@@ -312,18 +314,6 @@ public sealed partial class MainViewModel : Observable
         }
     }
 
-    /// <summary>One tick of the live list: asks what is running and moves whatever moved.</summary>
-    public Task RefreshAsync() => _readings.RefreshAsync();
-
-    /// <summary>
-    /// Nobody is looking at this any more, so a reading still out there writes nothing.
-    ///
-    /// Backlog 300. What it does and, more importantly, what it does NOT do is written at
-    /// <see cref="Readings.NoLongerWanted"/> - the short of it is that the work carries on and
-    /// only its answer is dropped.
-    /// </summary>
-    public void NoLongerWanted() => _readings.NoLongerWanted();
-
     /// <summary>
     /// Takes the highlight off the rows that have worn it long enough. Driven by the same tick
     /// that refreshes, because it has to keep happening while nothing is moving.
@@ -432,7 +422,7 @@ public sealed partial class MainViewModel : Observable
         // under there asks about it - backlog 263. Passed rather than read out of this class by
         // Sentences, because that class has never been allowed to know a window exists.
         Says.AboutTheAnswer(
-            _query, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
+            Asked, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
             _readings.Have, _readings.Filling, rolled.Instances, !_showingOverview);
 
         TellTheList();

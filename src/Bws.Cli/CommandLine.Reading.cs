@@ -32,6 +32,13 @@ internal sealed partial record CommandLine
         var timing = false;
         var dryRun = false;
         var dependents = false;
+
+        // NOT SPELLED --dependents, AND THE COLLISION IS THE WHOLE REASON. That switch is above
+        // and belongs to stop and restart, where it means "take the ones standing on this with
+        // you". This one belongs to list and means "go and read who those are". One word for an
+        // action on one verb and a reading on another is a switch somebody has to look up every
+        // time - owner's decision 2026-09-06, and the name is the label the column wears.
+        var requiredByAsked = false;
         var signatures = false;
         var memory = false;
         var followNetwork = false;
@@ -194,6 +201,7 @@ internal sealed partial record CommandLine
             if (Arguments.Matches(argument, "--dependents")) { dependents = true; given.Add("--dependents"); continue; }
             if (Arguments.Matches(argument, "--signatures")) { signatures = true; given.Add("--signatures"); continue; }
             if (Arguments.Matches(argument, "--memory")) { memory = true; given.Add("--memory"); continue; }
+            if (Arguments.Matches(argument, "--required-by")) { requiredByAsked = true; given.Add("--required-by"); continue; }
             if (Arguments.Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
             if (Arguments.Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
             if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
@@ -289,6 +297,7 @@ internal sealed partial record CommandLine
             Timing = timing,
             DryRun = dryRun,
             Dependents = dependents,
+            RequiredBy = requiredByAsked,
             Signatures = signatures,
             Memory = memory,
             FollowNetwork = followNetwork,

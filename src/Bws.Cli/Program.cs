@@ -133,6 +133,11 @@ try
             entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
             inspected = stopwatch.ElapsedMilliseconds - before2;
 
+            // The same third family, and for the same sentence: the file on the other side has
+            // it. Left out, every entry lands in "neitherRead" - which is not a difference, so a
+            // comparison reports none while the field goes uncompared.
+            entries = RequiredByPass.Fill(entries, catalog!);
+
             after = Snapshot.Of(entries, note: null, new SystemClock());
         }
         else if (!SnapshotFiles.Load(options.Against, out after, out var laterFailed))
@@ -211,6 +216,11 @@ try
         var before = stopwatch.ElapsedMilliseconds;
         entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
         inspected = stopwatch.ElapsedMilliseconds - before;
+
+        // AND WHO DEPENDS ON EACH ENTRY, EVERY TIME, on the argument above and for a twentieth of
+        // the price - RequiredByPass carries the measurement. No switch here: one taken without it
+        // would compare against one that has it as though every service had lost its dependents.
+        entries = RequiredByPass.Fill(entries, catalog!);
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
         var target = SnapshotFiles.Target(options.Path, snapshot.Metadata);
@@ -306,6 +316,11 @@ try
         before = stopwatch.ElapsedMilliseconds;
         found = SecondPass.Fill([found], new WindowsBinaryInspector(networkPaths))[0];
         inspected = stopwatch.ElapsedMilliseconds - before;
+
+        // AND WHO STANDS ON IT, ALWAYS, ON THE SAME ARGUMENT AS THE LINE ABOVE: over the machine
+        // this is a call per entry, over one entry it is one call - and "what breaks if I stop
+        // this" is the question somebody typing `show` actually has.
+        found = RequiredByPass.Fill([found], catalog!)[0];
 
         stopwatch.Stop();
 
@@ -406,6 +421,14 @@ try
             var before = stopwatch.ElapsedMilliseconds;
             entries = MemoryPass.Fill(entries, new WindowsProcessMemoryReader());
             measured = stopwatch.ElapsedMilliseconds - before;
+        }
+
+        // The third family, asked for separately for the reason the other two are - RequiredByPass
+        // carries what it costs. ASKED OF THE CATALOGUE RATHER THAN ASSUMED TO HAVE ONE, unlike the
+        // two passes above: they build their own reader, and offline is the run with no manager.
+        if (catalog is not null && (options.RequiredBy || needs.HasFlag(ExtraRead.RequiredBy)))
+        {
+            entries = RequiredByPass.Fill(entries, catalog);
         }
 
         var result = parsed.Query!.Filter(entries);

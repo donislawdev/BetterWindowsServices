@@ -292,7 +292,13 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
             // Filled in by MemoryPass, and only when asked. Not read is honest here and it
             // is the ordinary state: a listing describes configuration, and this is the one
             // field that is a reading off a running machine instead.
-            Memory = Reading<ProcessMemory>.NotRead()
+            Memory = Reading<ProcessMemory>.NotRead(),
+
+            // Filled in by RequiredByPass, and only when asked - the OTHER direction of DependsOn
+            // three fields up, and the reason the two sit apart. That one arrives inside this same
+            // configuration structure and is free. This one is a call per entry, measured at
+            // 236-259 ms over 313 services, which is the whole listing again.
+            RequiredBy = Reading<IReadOnlyList<string>>.NotRead()
         };
     }
 

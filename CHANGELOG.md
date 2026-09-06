@@ -15,6 +15,21 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **Right-click a column heading to narrow the list to a value, or to put that column away.** On a
+  column the query language knows values for - Status, Start, Signature, Entry type, Triggers and
+  the rest - the menu lists them, and clicking one writes it into the search box where you can read
+  and edit it, exactly as the filter buttons do. Ticking two shows both.
+  - On a column with no values to offer, the menu still opens and offers to hide the column.
+
+- **"Required by" - what breaks if you stop a service.** Windows is asked directly rather than
+  guessed at from what everything else declares, so services grouped by a load order name are
+  counted too.
+  - A column in the window, off until you turn it on, because it costs a call per entry.
+  - `requiredby:spooler` in the search box or on the command line, and `dependson:rpcss` for the
+    direction the tool could already show and could not be asked about.
+  - `bws list --required-by` fills it for a listing. `bws show` and `bws snapshot create` read it
+    every time, without a switch.
+
 - **The window opens on what the machine looks like, not on several hundred rows.** On a profile
   that has never put it away, the first thing you see is a handful of numbers rather than an
   alphabetical list - and clicking any of them puts its question in the search box and shows you
@@ -470,6 +485,10 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The snapshot format is version 4.** Snapshots now carry what depends on each entry. A file
+  written by an older build is refused by name rather than half-read, so take a fresh snapshot of
+  anything you want to compare against from here on.
+
 - **The opening screen is three cards rather than a column of lines.** Each card carries one number
   large enough to read across a desk, the words it counts at full strength, and underneath them
   whatever has to be said about that number - the per-user templates and the trigger-started entries
@@ -661,6 +680,22 @@ Nothing has been released yet. Everything below is what the tool does today.
     many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
+
+- **Columns that could only ever say "unknown" now fill in when you turn them on.** Memory,
+  Signature, Publisher, File version and File hash are read from the machine only when something
+  asks for them, and until now the only thing that could ask was a query typed into the search box.
+  Turning the column on told nobody, so it showed "unknown" on every row for as long as the box
+  stayed empty. Showing a column is now a way of asking.
+  - The line under the list says which of them is being fetched while it happens, so a column that
+    costs several seconds no longer stops the list without explaining itself.
+  - Asking for memory no longer drags a signature check over every binary on the machine behind it.
+    On a normal machine that is the difference between an answer that arrives immediately and one
+    that takes about nine seconds.
+
+- **The Columns menu no longer hides most of what it offers.** It was one list of thirty-two items
+  against a menu that fits thirteen, so two whole groups - everything under About the entry and
+  Advanced - were reachable only by scrolling. The menu is now four groups you open, and nothing is
+  below the fold.
 
 - **Filter chips stay inside a narrow window.** Below about a thousand pixels wide, a group of
   chips wider than the row was drawn straight past the right edge of the window - so "Could not

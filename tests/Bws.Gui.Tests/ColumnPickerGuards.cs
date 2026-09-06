@@ -37,34 +37,46 @@ public sealed class ColumnPickerGuards
     /// back from a layout somebody no longer wants is turning columns off one at a time.
     /// </summary>
     [Fact]
-    public void The_picker_is_headings_and_choices_in_one_list_each_with_its_own_style()
+    public void The_picker_is_a_submenu_per_group_and_every_column_is_inside_exactly_one()
     {
         var bar = new ColumnBar();
 
-        Assert.Equal(bar.Choices.Count + 5, bar.Entries.Count);
-        Assert.IsType<ColumnHeading>(bar.Entries[0]);
+        // FOUR GROUPS AND THE WAY BACK, WHICH IS THE POINT OF THE SHAPE. The flat list was 32
+        // items against a menu capped at 420 units, and counted from outside on 2026-09-05 that
+        // showed thirteen and hid nineteen - see ColumnGroup.
+        Assert.Equal(5, bar.Entries.Count);
+        Assert.IsType<ColumnGroup>(bar.Entries[0]);
 
         // LAST, because it is about the whole list rather than about one column. A restore in the
         // middle of the groups would read as a column somebody could turn on.
         Assert.IsType<ColumnReset>(bar.Entries[^1]);
 
-        // Every heading says something, and every entry is one of the three kinds - a fourth kind
-        // would fall through the selector and wear whatever the menu's default is.
+        var inside = new List<ColumnChoice>();
+
+        // Every entry is one of the two kinds - a third would fall through the selector and wear
+        // whatever the menu's default is.
         foreach (var entry in bar.Entries)
         {
-            if (entry is ColumnHeading heading)
+            if (entry is ColumnGroup group)
             {
-                Assert.NotEmpty(heading.Label);
-            }
-            else if (entry is ColumnReset back)
-            {
-                Assert.NotEmpty(back.Label);
+                Assert.NotEmpty(group.Label);
+                Assert.NotEmpty(group.Choices);
+
+                inside.AddRange(group.Choices);
             }
             else
             {
-                Assert.IsType<ColumnChoice>(entry);
+                Assert.NotEmpty(Assert.IsType<ColumnReset>(entry).Label);
             }
         }
+
+        // EVERY COLUMN IS REACHABLE, AND THIS BECAME WORTH ASSERTING THE DAY THE LIST STOPPED
+        // BEING FLAT. A flat menu held every choice by construction, so a column going missing was
+        // arithmetic anybody could see in the count. Nested, a choice that never lands in a group
+        // is simply not in the menu - the picker still opens, still looks right, and one column can
+        // no longer be turned on by anyone.
+        Assert.Equal(bar.Choices.Count, inside.Count);
+        Assert.Equal(bar.Choices.OrderBy(choice => choice.Label, StringComparer.Ordinal), inside.OrderBy(choice => choice.Label, StringComparer.Ordinal));
 
         var styles = new Bws.Gui.ColumnEntryStyles();
 
@@ -83,20 +95,20 @@ public sealed class ColumnPickerGuards
             // handed - a null container is the case where it silently returns nothing.
             var container = new System.Windows.Controls.MenuItem();
 
-            var forHeading = styles.SelectStyle(bar.Entries[0], container);
+            var forGroup = styles.SelectStyle(bar.Entries[0], container);
             var forChoice = styles.SelectStyle(bar.Choices[0], container);
             var forReset = styles.SelectStyle(bar.Entries[^1], container);
 
-            Assert.NotNull(forHeading);
+            Assert.NotNull(forGroup);
             Assert.NotNull(forChoice);
             Assert.NotNull(forReset);
-            Assert.NotSame(forHeading, forChoice);
+            Assert.NotSame(forGroup, forChoice);
 
             // THE THIRD IS ITS OWN STYLE RATHER THAN A CHOICE'S, and the difference is not
             // cosmetic: a choice is a tick box bound to IsShown, so the way back wearing that style
             // would come up as a check mark that answers nothing.
             Assert.NotSame(forReset, forChoice);
-            Assert.NotSame(forReset, forHeading);
+            Assert.NotSame(forReset, forGroup);
         });
     }
 
@@ -108,9 +120,12 @@ public sealed class ColumnPickerGuards
     /// would find it somewhere they had no reason to look. A missing group is a failed test here
     /// instead.
     ///
-    /// <b>The second half is what makes the grouping worth having.</b> Four headings over seventeen
-    /// items help; a heading over one item is a divider pretending to be a category, and it costs a
-    /// line of a menu that already needs a scrollbar.
+    /// <b>The second half is what makes the grouping worth having.</b> Four headings over a
+    /// catalogue this size help - the number is asserted in ColumnGuards and deliberately not
+    /// repeated here, because a count of a growing set written in prose goes stale and nothing
+    /// ever comes back for it. A heading over one item is a category pretending to be one, and
+    /// since 2026-09-05 it costs more than a line: each heading is now a submenu, so a group of one
+    /// is a whole opening and closing to reach a single tick box.
     /// </summary>
     [Fact]
     public void Every_column_sits_under_a_heading_and_no_heading_holds_one_column()

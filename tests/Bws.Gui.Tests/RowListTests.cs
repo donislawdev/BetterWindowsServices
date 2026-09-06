@@ -177,6 +177,7 @@ public sealed class RowListTests
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Present("LocalSystem"),
         DependsOn = Reading<IReadOnlyList<string>>.Absent(),
+        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
         BinaryPath = Reading<string>.Absent(),
         BinaryFile = Reading<string>.Absent(),

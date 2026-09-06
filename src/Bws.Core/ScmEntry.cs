@@ -113,6 +113,35 @@ public sealed record ScmEntry
     public required Reading<IReadOnlyList<string>> DependsOn { get; init; }
 
     /// <summary>
+    /// What breaks if this entry stops - the other direction of the field above, and the one
+    /// somebody actually asks before touching a machine.
+    ///
+    /// <b>NOT free, which is the whole reason it is a family of its own.</b> The declaration above
+    /// arrives in the configuration structure the start type comes from and costs nothing. This
+    /// takes a call PER ENTRY: the manager is asked, one service at a time, who is standing on it.
+    /// Measured on this machine on 2026-09-05 through the same Win32 call reached from .NET,
+    /// five runs with the first discarded: <b>236-259 ms over 313 services, 784 dependents found,
+    /// nothing refused</b>. That is the size of the whole listing again - 423-500 ms over 810
+    /// entries - so paying it on every F5 for a column that is off by default is exactly the trade
+    /// `ADR-13` refuses. It is read when somebody asks, and <see cref="ExtraRead.RequiredBy"/> is
+    /// how they ask.
+    ///
+    /// <b>ASKED OF THE MANAGER RATHER THAN INVERTED FROM THE DECLARATIONS, and that is not
+    /// convenience.</b> An entry may declare a load order GROUP instead of a service -
+    /// RemoteAccess declares "+NetBIOSGroup" on this machine - and the declaration says nothing
+    /// about who is in that group. The manager knows and we would be guessing. The same argument
+    /// is written at <c>IScmCatalog.ReadDependents</c>, which is what this reads through, and it
+    /// is the reason the plan's cascade has always asked rather than inverted.
+    ///
+    /// <b>The first hop only.</b> What the manager returns is who depends on this entry directly,
+    /// not the closure - a service standing on a service standing on this one is not in this list.
+    /// `05-PRZYPADKI-BRZEGOWE` records that measurement because it is what decides whether a
+    /// cascade has to recurse, and a column showing one hop must not be read as showing all of
+    /// them.
+    /// </summary>
+    public required Reading<IReadOnlyList<string>> RequiredBy { get; init; }
+
+    /// <summary>
     /// The conditions under which the manager starts or stops this entry by itself.
     ///
     /// The first of the four families S4 was cut into, and the family that decided the

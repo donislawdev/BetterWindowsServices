@@ -140,6 +140,28 @@ public sealed record EntryDocument
     public required IReadOnlyList<string>? DependsOn { get; init; }
 
     /// <summary>
+    /// What breaks if this entry stops - the other direction of the field above, added 2026-09-06
+    /// and the reason this schema is version four.
+    ///
+    /// <b>IT IS HERE AND MEMORY IS NOT, which is the line this format draws.</b> A snapshot holds
+    /// what the machine is CONFIGURED to be, so that two of them taken a week apart differ only
+    /// where somebody changed something. Who depends on a service reads the same twice in a row
+    /// and moves when the machine is reconfigured, which is exactly that. How much memory a
+    /// process is holding is different a second later, so it has no field here at all and `D1`
+    /// says so.
+    ///
+    /// <b>Null covers three answers and only two are told apart here.</b> Nothing depends on this
+    /// entry - the ordinary case, most of the listing - and nobody went and asked, which is named
+    /// in "notRead" because reading it costs a call per entry and is off unless somebody asks. A
+    /// refusal is named in "unreadable" as everywhere else.
+    ///
+    /// <b>The first hop, not the closure</b>, which anything comparing two snapshots has to know:
+    /// a service that arrives standing on a service that stands on this one changes that other
+    /// entry's list and not this one's.
+    /// </summary>
+    public required IReadOnlyList<string>? RequiredBy { get; init; }
+
+    /// <summary>
     /// What starts or stops this entry by itself. Null when it has none, which is the
     /// ordinary case, and null as well when nobody asked - told apart by "notRead".
     /// </summary>
@@ -263,6 +285,7 @@ public sealed record EntryDocument
         Note(unreadable, notRead, nameof(entry.DelayedAuto), entry.DelayedAuto);
         Note(unreadable, notRead, nameof(entry.Account), entry.Account);
         Note(unreadable, notRead, nameof(entry.DependsOn), entry.DependsOn);
+        Note(unreadable, notRead, nameof(entry.RequiredBy), entry.RequiredBy);
         Note(unreadable, notRead, nameof(entry.Triggers), entry.Triggers);
         Note(unreadable, notRead, nameof(entry.BinaryPath), entry.BinaryPath);
         Note(unreadable, notRead, nameof(entry.BinaryFile), entry.BinaryFile);
@@ -315,6 +338,7 @@ public sealed record EntryDocument
             DelayedAuto = entry.DelayedAuto.IsPresent ? entry.DelayedAuto.Value : null,
             Account = entry.Account.IsPresent ? entry.Account.Value : null,
             DependsOn = entry.DependsOn.IsPresent ? entry.DependsOn.Value : null,
+            RequiredBy = entry.RequiredBy.IsPresent ? entry.RequiredBy.Value : null,
 
             Triggers = entry.Triggers.IsPresent
                 ? [.. entry.Triggers.Value!.Select(trigger =>

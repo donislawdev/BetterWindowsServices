@@ -46,6 +46,7 @@ internal static class Entries
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),
         DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"]),
+        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
 
         // Absent, because that is what a real entry that has been read looks like: measured
         // on a real machine, 688 of 810 have no trigger at all. Not read is a state of its

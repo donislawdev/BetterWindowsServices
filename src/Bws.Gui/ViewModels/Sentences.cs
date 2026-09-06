@@ -40,6 +40,16 @@ internal static class Sentences
     /// that explains an empty list, and somebody staring at one should not have to read past
     /// anything to find out why.
     /// </summary>
+    /// <param name="needs">
+    /// What the window is being asked to read - the second phase families, from every direction
+    /// somebody can ask from.
+    ///
+    /// <b>A Query stood here until 2026-09-05 and only its Needs was ever read.</b> That was
+    /// harmless while the query was the one thing that could ask, and it stopped being harmless
+    /// the day a shown column could ask too: this method would have gone on describing the box
+    /// above the list while the list itself was waiting on a pass nobody had explained. Rule 8,
+    /// arriving through a parameter that was more specific than the question.
+    /// </param>
     /// <param name="folded">
     /// How many session copies were drawn under a template rather than as rows of their own.
     /// </param>
@@ -48,10 +58,9 @@ internal static class Sentences
     /// has it, which REPLACES the list rather than sitting over it - so there are no rows at all.
     /// </param>
     internal static string Admissions(
-        Query query, bool held, int unreadable, int tooCostly, bool elevated,
+        ExtraRead needs, bool held, int unreadable, int tooCostly, bool elevated,
         ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
-        var needs = query.Needs;
         var notes = new List<string>();
 
         // FIRST, BECAUSE IT IS A FACT ABOUT THE WHOLE LIST RATHER THAN ABOUT THIS QUERY.

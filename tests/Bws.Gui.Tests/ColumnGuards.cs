@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Querying;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -37,11 +38,16 @@ public sealed class ColumnGuards
     [Fact]
     public void Every_column_is_offered_and_each_is_named_exactly_once()
     {
-        // TWENTY SEVEN SINCE 2026-08-26, and the one that moved it was a debt rather than an
-        // addition: `perUserRole` was in the core, in `--json`, in the snapshot and in the query
-        // language, and the window could FOLD by it while having nowhere to show it. Named by the
-        // two slices that built `A11` and paid here.
-        Assert.Equal(27, Columns.All.Count);
+        // TWENTY EIGHT SINCE 2026-09-06, and the one that moved it went the other way round from
+        // the last: `dependents` was read by the PLAN and by nothing a person could see. The
+        // manager has always been asked who stands on an entry before a cascade, and there was no
+        // column, no field in the query language and no line in a snapshot. Owner's decision, and
+        // it took the schema version with it.
+        //
+        // Twenty seven since 2026-08-26, and that one was a debt too: `perUserRole` was in the
+        // core, in `--json`, in the snapshot and in the query language, and the window could FOLD
+        // by it while having nowhere to show it.
+        Assert.Equal(28, Columns.All.Count);
 
         var twice = Columns.All
             .GroupBy(column => column.Id, StringComparer.Ordinal)

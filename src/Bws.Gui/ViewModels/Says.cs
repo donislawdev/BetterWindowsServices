@@ -186,10 +186,10 @@ public sealed class Says : Observable
     /// worth saying.
     /// </summary>
     internal void AboutTheAnswer(
-        Query query, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling,
+        ExtraRead needs, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling,
         int folded, bool listOnScreen) =>
         Notice = Sentences.Admissions(
-            query, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen);
+            needs, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen);
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.

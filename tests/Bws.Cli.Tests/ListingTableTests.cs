@@ -404,6 +404,7 @@ public sealed class ListingTableTests
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),
         DependsOn = Reading<IReadOnlyList<string>>.Absent(),
+        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
         BinaryPath = Reading<string>.Present(@"C:\Windows\System32\svchost.exe"),
         BinaryFile = Reading<string>.Present(@"C:\Windows\System32\svchost.exe"),

@@ -98,6 +98,15 @@ internal sealed partial record CommandLine
     /// </summary>
     internal bool Memory { get; private init; }
 
+    /// <summary>
+    /// Whether the listing should go and read who depends on each entry.
+    ///
+    /// Asked for rather than always read: a call per entry, measured at 236-259 ms over 313
+    /// services on 2026-09-05, against 423-500 ms for the whole listing. A query naming the
+    /// field turns it on by itself, exactly as one about signatures or memory does.
+    /// </summary>
+    internal bool RequiredBy { get; private init; }
+
     /// <summary>Null when no query was given, which selects everything.</summary>
     internal string? Query { get; private init; }
 

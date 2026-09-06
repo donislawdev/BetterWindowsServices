@@ -45,21 +45,31 @@ internal sealed partial class Readings
     /// trade this shape makes in exchange for not having a second concurrency mechanism, and it is
     /// the number to measure before deciding this should run on every F5.
     ///
-    /// Both families in one pass because they are read from the same list and written into the same
-    /// records. They are nothing alike in cost - seconds against under a millisecond - which is why
-    /// the command line asks for them separately, but a window that has decided to pay for one has
-    /// no reason to make a second decision about the other.
+    /// <b>One pass, but only the families that were asked for - see <see cref="Fill"/>.</b> They
+    /// come off the same list and go into the same records, so running them together costs one
+    /// rebuild rather than two. What they do NOT share is a price: seconds against under a
+    /// millisecond, which is why the command line has always asked for them separately and why
+    /// this stopped filling both on 2026-09-05.
     /// </summary>
     private async Task FillAsync(IReadOnlyList<ScmEntry> entries)
     {
-        if (_inspector is null || _reader is null || entries.Count == 0 || !Asked())
+        if (entries.Count == 0 || !Asked())
         {
             return;
         }
 
+        // ASKED ONCE AND CARRIED, rather than asked again at each of the four places below. The
+        // question is live - a column ticked or a member typed while this pass is out changes the
+        // answer - so asking twice would let this run mark as READ a family it never touched, and
+        // the row would then hold "unknown" with nothing left to go and fetch it.
+        //
+        // NARROWED TO WHAT THIS WINDOW CAN ACTUALLY READ, which is what makes the bang safe in
+        // Fill below: a family only survives this line when the thing that reads it is there.
+        var wanted = _wanted() & Available;
+
         // Marked as attempted before the work rather than after it, so a pass that throws is not
         // asked for again a second later - see the argument on _tried.
-        _tried |= _wanted();
+        _tried |= wanted;
 
         _filling = true;
 
@@ -71,9 +81,7 @@ internal sealed partial class Readings
 
         try
         {
-            filled = await Task
-                .Run(() => MemoryPass.Fill(SecondPass.Fill(entries, _inspector), _reader))
-                .ConfigureAwait(true);
+            filled = await Task.Run(() => Fill(entries, wanted)).ConfigureAwait(true);
         }
 #pragma warning disable CA1031
         // Broad, and for a narrower reason than the reading above. Every file this opens answers
@@ -103,23 +111,75 @@ internal sealed partial class Readings
         }
 
         _filling = false;
-        _have = ExtraRead.Signatures | ExtraRead.Memory;
 
-        // WHAT WAS READ COUNTS AS TRIED, AND UNTIL 2026-08-26 ONLY WHAT WAS ASKED DID. The pass
-        // above fills BOTH families whatever the question wanted - they come off the same list and
-        // go into the same records - so a window that has run it once holds signatures and memory
-        // for these entries either way.
+        // WHAT WAS ASKED FOR IS WHAT WAS READ, SINCE THE PASSES WERE SPLIT ON 2026-09-05, and this
+        // line used to claim both families unconditionally because the pass filled both.
         //
-        // Marking only the asked one meant the second question paid for both again. Somebody types
-        // signed:no, the pass runs, both families are read. They then type memory:>500MB, which is
-        // a family not in _tried, so WantsMore says yes and the next tick reads the whole manager
-        // again and verifies all 544 signatures a second time - measured at 7.5 s of processor and
-        // 18 MB, for an answer already sitting in the rows. The tick is suppressed for the whole of
-        // it, so the list stops moving as well.
-        _tried |= _have;
+        // That claim was true then and would be a lie now: a run asked only for memory does not
+        // open a single file, so recording signatures as held would leave the four signature
+        // columns showing nothing with the window convinced it had already looked. The reverse is
+        // the same shape and cheaper to hit - somebody with the signature column on and no memory
+        // column would have had the memory family marked as read without a process ever being
+        // asked.
+        //
+        // THE TRAP THIS REPLACES IS STILL LIVE AND HAS MOVED INTO Fill BELOW. Until 2026-08-26
+        // only the ASKED family was marked tried while both were read, so the second question
+        // paid for both again: signed:no runs the pass, then memory:>500MB is a family not in
+        // _tried, so the next tick re-reads the whole manager and verifies all 544 signatures a
+        // second time - 7.5 s of processor and 18 MB for an answer already in the rows. Marking
+        // exactly what was read keeps that closed from the other side.
+        _have |= wanted;
 
         _index.Absorb(filled);
         _settled();
+    }
+
+    /// <summary>
+    /// The two families, each read only if it was asked for.
+    ///
+    /// <b>SPLIT ON 2026-09-05, AND THE NUMBER IS THE WHOLE ARGUMENT.</b> One expression filled
+    /// both, on the reasoning that a window which has decided to pay for one has no reason to
+    /// decide again about the other. The two costs are not comparable: the file reading is
+    /// measured at 7.5 s of processor and 18 MB over about 810 entries, and asking 110 processes
+    /// what they are using is under a millisecond. So "no reason to decide again" meant the cheap
+    /// answer could only ever be had at the expensive one's price - and the tick is suppressed for
+    /// the whole of it, so the list stops moving too.
+    ///
+    /// <b>That was affordable while only a typed member could ask.</b> It stopped being
+    /// affordable the moment a shown column could: turning on the memory column would have frozen
+    /// the list for nine seconds to fetch a number that costs nothing, every time the layout was
+    /// restored and on every F5 after.
+    ///
+    /// <b>Order matters and is not alphabetical.</b> The signature pass resolves the binary and
+    /// writes three fields into new records, and the memory pass takes whatever list it is handed
+    /// - so signatures first means one rebuild rather than two when both are wanted. Memory must
+    /// still see the WHOLE listing, which it does: nothing here filters.
+    /// </summary>
+    private IReadOnlyList<ScmEntry> Fill(IReadOnlyList<ScmEntry> entries, ExtraRead wanted)
+    {
+        var filled = entries;
+
+        if (wanted.HasFlag(ExtraRead.Signatures))
+        {
+            filled = SecondPass.Fill(filled, _inspector!);
+        }
+
+        if (wanted.HasFlag(ExtraRead.Memory))
+        {
+            filled = MemoryPass.Fill(filled, _reader!);
+        }
+
+        // THE THIRD FAMILY, 2026-09-06, and it sits between the other two in price: 236-259 ms over
+        // 313 services against under a millisecond for memory and seven and a half seconds for
+        // signatures. Last because it is the only one that goes back to the manager, so a run that
+        // wants all three has already finished with the files and the processes by the time it
+        // starts walking services one at a time.
+        if (wanted.HasFlag(ExtraRead.RequiredBy))
+        {
+            filled = RequiredByPass.Fill(filled, _catalog);
+        }
+
+        return filled;
     }
 
     /// <summary>
@@ -135,12 +195,31 @@ internal sealed partial class Readings
     /// Asking for it is asking a question about it. `signed:no` in the box is somebody wanting
     /// signatures, and that is the moment to go and get them.
     /// </summary>
-    private bool Asked()
-    {
-        var wanted = _wanted();
+    private bool Asked() => (_wanted() & Available & ~_tried) != ExtraRead.None;
 
-        return wanted != ExtraRead.None && (wanted & ~_tried) != ExtraRead.None;
-    }
+    /// <summary>
+    /// The families this window has something to read them WITH.
+    ///
+    /// <b>PER FAMILY SINCE 2026-09-06, AND IT USED TO BE ALL OR NOTHING.</b> The pass refused to
+    /// start at all unless it held both a binary inspector and a process memory reader - which was
+    /// true enough while those were the only two families, and became a silent fault the moment a
+    /// third arrived that needs neither. Dependents come from the service manager, which this class
+    /// always has, so a window built without an inspector would have gone on answering "nobody
+    /// looked" about a column it could have filled at any time.
+    ///
+    /// <b>What it deliberately does NOT do is pretend.</b> A family that was asked for and cannot
+    /// be read stays out of <c>_have</c>, so the sentence under the list goes on saying nobody
+    /// looked - which is true, and is what <c>Without_an_inspector_the_window_still_admits_it_has
+    /// _not_looked</c> is about. It only stops the window from refusing to read the families it
+    /// CAN.
+    /// </summary>
+    private ExtraRead Available =>
+        (_inspector is null ? ExtraRead.None : ExtraRead.Signatures)
+        | (_reader is null ? ExtraRead.None : ExtraRead.Memory)
+
+        // Never absent: this class cannot exist without a manager to read, and the pass that uses
+        // it asks the same catalogue the listing came from.
+        | ExtraRead.RequiredBy;
     /// <summary>
     /// Whether the question on screen has outrun what the window went and read.
     ///
@@ -150,6 +229,6 @@ internal sealed partial class Readings
     /// again costs about half a second on top of a pass that costs seconds, and it is the
     /// difference between a fresh answer and a stale one.
     /// </summary>
-    internal bool WantsMore() => _inspector is not null && _reader is not null && Asked();
+    internal bool WantsMore() => Asked();
 
 }

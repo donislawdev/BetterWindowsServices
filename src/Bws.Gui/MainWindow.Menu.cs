@@ -91,7 +91,8 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// A right click that landed on no row gets no menu.
+    /// A right click that landed on no row gets no ROW menu - and on a heading it gets the
+    /// heading's own.
     ///
     /// The alternative is the fault the handler above exists to prevent, arriving by the back
     /// door: click the header or the empty space under the last row, and the menu offers to copy
@@ -100,13 +101,23 @@ public partial class MainWindow
     /// <b>The keyboard route is left alone</b>, and it is told apart by the cursor position being
     /// negative, which is how WPF reports a menu opened from the menu key. There the focused row
     /// IS the selected row, so there is nothing to point at.
+    ///
+    /// <b>THE HEADING GOT A MENU OF ITS OWN ON 2026-09-05 - the owner's ask.</b> That space was
+    /// free precisely because of the line below: a right click on a heading was suppressed here
+    /// and did nothing at all. It is still suppressed - what opens instead is built for the
+    /// column that was clicked, by <see cref="OfferTheColumnMenu"/>, which answers false when the
+    /// pointer was on neither a row nor a heading and then nothing opens, exactly as before.
     /// </summary>
     private void OfferTheMenuOnlyOnARow(object sender, ContextMenuEventArgs e)
     {
-        if (e.CursorLeft >= 0 && !_pointedAtARow)
+        if (e.CursorLeft < 0 || _pointedAtARow)
         {
-            e.Handled = true;
+            return;
         }
+
+        e.Handled = true;
+
+        OfferTheColumnMenu(e.OriginalSource);
     }
 
     /// <summary>

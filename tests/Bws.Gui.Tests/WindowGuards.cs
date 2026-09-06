@@ -218,21 +218,30 @@ public sealed class WindowGuards
 
         Assert.True(opened, "The button has no menu to open, so there is no way in to the columns.");
 
-        // THIRTY TWO SINCE 2026-08-26: twenty seven columns, four headings and the way back to the
-        // usual ones, which are all items in the same flat list. The column that moved it is
-        // `perUserRole` - a field the window could already fold by and could not show.
+        // FIVE SINCE 2026-09-05: four groups and the way back to the usual columns. The list was
+        // flat until that day and had grown to thirty-two - twenty-seven columns, four headings
+        // and the way back - against a menu capped at 420 units. Counted from outside on the real
+        // window: THIRTEEN ITEMS ON SCREEN AND NINETEEN BELOW THE FOLD, starting at Publisher, so
+        // two whole groups could be reached only by scrolling. Owner's decision, and the arithmetic
+        // against the alternative is at ColumnGroup.
         //
-        // THIRTY ONE SINCE 2026-08-25: twenty six columns and the same five. Before that, thirty.
+        // (It was thirty-two from 2026-08-26 when `perUserRole` arrived, thirty-one from 08-25,
+        // and twenty-four from 08-17 - backlog 190, on the owner's earlier report that the window
+        // shows too few columns.)
+        Assert.Equal(5, WpfHost.On(() => menu!.Items.Count));
+
+        // AND THE COUNT ABOVE NO LONGER SAYS THE THING THIS TEST IS NAMED FOR. While the list was
+        // flat, "every column is in the menu" was arithmetic on one number. Nested, a column that
+        // never lands in a group is simply absent - the menu opens, looks right, and one column
+        // cannot be turned on by anybody. So the promise is asserted against the catalogue rather
+        // than against a number, and grouping is checked where the grouping happens.
         //
-        // TWENTY FOUR SINCE 2026-08-17: twenty columns and four headings, which are items in
-        // the same flat list rather than groups around it. It was twenty two from 2026-08-12, and
-        // the delayed start and binary-on-disk columns made it twenty four - backlog 190, on the
-        // owner's report that the window shows too few columns. Grouping a menu with GroupStyle
-        // takes its contents out of the automation tree entirely - measured on the real window,
-        // where an open picker offered twelve togglable elements, all of them filter chips, and
-        // none of the columns. The count is asserted whole rather than filtered so that a heading
-        // quietly becoming tickable, or a column quietly becoming a heading, still moves it.
-        Assert.Equal(32, WpfHost.On(() => menu!.Items.Count));
+        // Written against Items rather than ItemsSource because that is what the menu will build
+        // from: a group holding no choices makes a submenu that opens on nothing.
+        var carried = WpfHost.On(
+            () => menu!.Items.OfType<ColumnGroup>().Sum(group => group.Choices.Count));
+
+        Assert.Equal(Columns.All.Count, carried);
         Assert.Same(WpfHost.On(() => (object)window.ColumnsButton), WpfHost.On(() => menu!.PlacementTarget));
 
         // Closed again, because this host is shared and a menu left open sits over whatever the

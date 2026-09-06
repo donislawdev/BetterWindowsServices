@@ -91,14 +91,23 @@ public sealed class DocumentValueGuards
     {
         string[] orderCarriesMeaning = [];
 
-        var lists = JsonDocument
-            .Parse(SnapshotJson.Render(Snapshot.Of(Specimens.Inspected, note: null, new FakeClock())))
-            .RootElement.GetProperty("entries")
-            .EnumerateArray()
-            .SelectMany(entry => entry.EnumerateObject())
-            .Where(property => property.Value.ValueKind == JsonValueKind.Array)
-            .Select(property => property.Name)
-            .Distinct(StringComparer.Ordinal)
+        // ASKED OF THE TYPE RATHER THAN OF A RENDERED SPECIMEN, SINCE 2026-09-06 - AND THE CHANGE
+        // IS A REPAIR THAT A REAL MISS PAID FOR. This read the JSON of Specimens.Inspected and kept
+        // whatever came out as an ARRAY. A list field that is null in that fixture is not an array,
+        // so it was invisible here: `requiredBy` arrived that day, sat unread in every specimen,
+        // and this guard - whose entire subject is a field nobody came back for - went green over
+        // exactly that.
+        //
+        // The document's own shape cannot hide one. Every member typed as a list is a list whatever
+        // any fixture happens to hold, and the names are camel-cased the way EntryDocument writes
+        // them.
+        var lists = typeof(EntryDocument)
+            .GetProperties()
+            .Where(property =>
+                property.PropertyType != typeof(string)
+                && property.PropertyType.IsGenericType
+                && property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
+            .Select(property => char.ToLowerInvariant(property.Name[0]) + property.Name[1..])
             .Except(Bookkeeping, StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();

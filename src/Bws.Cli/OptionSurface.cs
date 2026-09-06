@@ -113,6 +113,11 @@ internal static class OptionSurface
         // not about how much memory it is holding while it happens.
         ("--memory", [CommandKind.List]),
 
+        // Listing only, and NOT the same switch as --dependents further down. That one is an
+        // instruction to a write verb - take the services standing on this one with you. This is
+        // a reading, and it costs a call per entry: 236-259 ms over 313 services.
+        ("--required-by", [CommandKind.List]),
+
         // The two verbs that resolve a launch path against the disk. A plan does not - it
         // works from names the manager already gave it - and a comparison of two files never
         // touches a machine at all, so on either of those this would be a switch that does
