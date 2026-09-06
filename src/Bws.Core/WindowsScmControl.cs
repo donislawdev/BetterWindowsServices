@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.System.Services;
+using Windows.Win32.System.Threading;
 using Bws.Core.Planning;
 
 namespace Bws.Core;
@@ -31,6 +32,44 @@ public sealed class WindowsScmControl : IScmControl
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Planning.EquivalentCommand.Unhandled)
     };
+
+    /// <summary>
+    /// Ends a process. The one call in this project that nothing can refuse on the machine's behalf.
+    ///
+    /// <b>PROCESS_TERMINATE and nothing else</b>, which is the same rule the three above follow and
+    /// matters more here than anywhere: the handle this opens cannot read a byte of that process,
+    /// cannot write one, and can do exactly the one thing the plan said it would.
+    ///
+    /// <b>The handle is opened and closed inside this call, so nothing outlives the step.</b> That
+    /// costs the one guarantee an open handle would buy - Windows will not reuse a process number
+    /// while somebody holds a handle to it - and the caller pays for it differently, by reading the
+    /// number again immediately before asking for this. <b>A window remains between that reading
+    /// and this call and it is not zero.</b> Closing it needs a process identity Windows does not
+    /// hand out in one piece, and pretending otherwise would be the kind of sentence this project
+    /// spends its documents warning about.
+    /// </summary>
+    public ControlAnswer Terminate(int processId)
+    {
+        using var process = PInvoke.OpenProcess_SafeHandle(
+            PROCESS_ACCESS_RIGHTS.PROCESS_TERMINATE,
+            bInheritHandle: false,
+            (uint)processId);
+
+        if (process.IsInvalid)
+        {
+            // A protected process, a process that has already gone, or no such number at all. The
+            // number travels with the refusal because it is the only thing that tells them apart,
+            // and the layer above asks the entry where it is before calling any of them a failure.
+            return Refusal();
+        }
+
+        // The exit code a killed process reports. One rather than zero, because zero is what a
+        // process that finished its own work reports, and anything reading an exit code afterwards
+        // would otherwise be told this one shut down cleanly.
+        return PInvoke.TerminateProcess(process, uExitCode: 1)
+            ? ControlAnswer.Done()
+            : Refusal();
+    }
 
     public ControlAnswer Read(string serviceName)
     {
@@ -174,7 +213,8 @@ public sealed class WindowsScmControl : IScmControl
             return ControlAnswer.At(new ServiceProgress(
                 ManagerTerms.Status(status.dwCurrentState),
                 status.dwCheckPoint,
-                TimeSpan.FromMilliseconds(status.dwWaitHint)));
+                TimeSpan.FromMilliseconds(status.dwWaitHint),
+                status.dwProcessId));
         }
     }
 

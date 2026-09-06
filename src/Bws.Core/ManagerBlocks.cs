@@ -1,3 +1,4 @@
+using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Services;
 
@@ -284,7 +285,14 @@ internal static class ManagerBlocks
                     EntryType: ManagerTerms.EntryType(status.dwServiceType),
                     PerUserRole: ManagerTerms.PerUserRole(status.dwServiceType),
                     Status: ManagerTerms.Status(status.dwCurrentState),
-                    ProcessId: status.dwProcessId));
+                    ProcessId: status.dwProcessId,
+
+                    // A bit of a field the manager already filled in, so this costs nothing and
+                    // is read for every entry rather than for the one somebody asks about. It
+                    // changes with the entry's state rather than with its configuration, which
+                    // is why it stays out of the snapshot: two snapshots differing here would be
+                    // saying what the status field already said.
+                    AcceptsStop: (status.dwControlsAccepted & PInvoke.SERVICE_ACCEPT_STOP) != 0));
             }
         }
 

@@ -47,6 +47,20 @@ public static class EquivalentCommand
     /// </summary>
     private const string Dependents = "--dependents";
 
+    /// <summary>
+    /// Asking to skip the polite stop and end the process straight away.
+    ///
+    /// <b>The word is the one every Windows administrator already has for this</b> - taskkill
+    /// documents /f as "processes be forcefully ended", and the kill tool that shipped with the
+    /// debugger used the same letter for the same thing. It is deliberately NOT on the ordinary
+    /// stop, where Windows has already given it another meaning: Stop-Service -Force means "even if
+    /// something depends on it", which is what --dependents does here.
+    /// </summary>
+    private const string Force = "--force";
+
+    /// <summary>Bringing back what the forcing verb took down, in one line rather than two.</summary>
+    private const string Restart = "--restart";
+
     /// <summary>What somebody would type to ask for this, on one line.</summary>
     public static string For(ServiceAction action)
     {
@@ -89,9 +103,30 @@ public static class EquivalentCommand
         // nothing, carried in from a selection whose tick box belongs to a different question. That
         // is the same shape as the nine two-way branches this file's Unhandled constant describes:
         // a condition phrased as everything-except answers for kinds nobody has written yet.
-        return action.IncludeDependents && action.Kind is ActionKind.Stop or ActionKind.Restart
-            ? $"{command} {Dependents}"
-            : command;
+        var switches = new List<string>();
+
+        if (action.IncludeDependents && action.Kind is ActionKind.Stop or ActionKind.Restart)
+        {
+            switches.Add(Dependents);
+        }
+
+        // TWO SWITCHES THAT ONLY THE FORCING VERB TAKES, AND THE ORDER THEY ARE ADDED IN IS THE
+        // ORDER THEY ARE READ IN. --restart says what the line ends with, --force says what it skips
+        // on the way, and a person scanning a runbook reads the destination before the shortcut.
+        if (action.Kind == ActionKind.ForceRestart)
+        {
+            switches.Add(Restart);
+        }
+
+        // ONLY WHERE IT MEANS ANYTHING. Every other verb here asks the manager to move something and
+        // has no politeness to skip, so rendering it elsewhere would hand somebody a line their own
+        // tool declines - which is the fault the bridge guard beside Dependents was written for.
+        if (action.Immediate && action.Kind is ActionKind.ForceStop or ActionKind.ForceRestart)
+        {
+            switches.Add(Force);
+        }
+
+        return switches.Count == 0 ? command : $"{command} {string.Join(' ', switches)}";
     }
 
     /// <summary>
@@ -144,7 +179,8 @@ public static class EquivalentCommand
     /// no line, which is what a start type nobody can name does.
     /// </summary>
     public static bool HasAVerb(ActionKind kind) =>
-        kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart or ActionKind.SetStartType;
+        kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart or ActionKind.SetStartType
+            or ActionKind.ForceStop or ActionKind.ForceRestart;
 
     /// <summary>
     /// What somebody would type to put one entry back where a run found it.
@@ -202,6 +238,12 @@ public static class EquivalentCommand
         ActionKind.Start => "start",
         ActionKind.Restart => "restart",
         ActionKind.SetStartType => "start-type",
+
+        // ONE VERB FOR BOTH FORCING ASKS AND THE SECOND ONE CARRIES A SWITCH. The command
+        // line has kill and no force-restart, because a verb per combination is how a tool
+        // ends up with eight of them - and because what the two share is the dangerous half.
+        ActionKind.ForceStop => "kill",
+        ActionKind.ForceRestart => "kill",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No command verb for this action.")
     };
 
@@ -217,6 +259,13 @@ public static class EquivalentCommand
         StepOperation.Stop => "stop",
         StepOperation.Start => "start",
         StepOperation.SetStartType => "start-type",
+
+        // A STEP THAT ENDS A PROCESS HAS NO LINE OF ITS OWN, and this is the same distinction
+        // restart makes one method up: a person asks to force a stop, they never ask for the
+        // fourth step by itself. The ask renders, the step does not.
+        StepOperation.Terminate => throw new ArgumentOutOfRangeException(
+            nameof(operation), operation, NoLineForATerminate),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Unhandled)
     };
@@ -227,6 +276,16 @@ public static class EquivalentCommand
     /// A diagnostic rather than anything a person reads on purpose, like <see cref="Unhandled"/>
     /// beside it. Reaching it means an ask was built for a type this tool will not write.
     /// </summary>
+    /// <summary>
+    /// What a terminate step says when somebody tries to render it as a line.
+    ///
+    /// Reaching it means a caller asked for the command line of a STEP rather than of an ask, and
+    /// this is the one step nobody can type. The line for the whole ask is what a person wants.
+    /// </summary>
+    private const string NoLineForATerminate =
+        "There is no command line for a step that ends a process on its own. What somebody types is "
+        + "the ask - bws kill NAME - and the steps are what this tool makes of it.";
+
     private const string NoWordForThatType =
         "There is no command line word for this start type, so there is no line to hand anybody. "
         + "Boot and System belong to entries this tool does not operate on, and Unknown is what a "

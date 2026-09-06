@@ -1,6 +1,11 @@
 using Bws.Core.Planning;
 using Bws.Core.Tests.Fakes;
 
+// THE MACHINE THESE TESTS REASON ABOUT LIVES IN ITS OWN FILE SINCE 2026-09-06, and it is imported
+// this way so that not one of the assertions below had to change. The size ratchet asked for the
+// split and DependencyChain carries the argument for where the seam is.
+using static Bws.Core.Tests.Fakes.DependencyChain;
+
 namespace Bws.Core.Tests;
 
 /// <summary>
@@ -413,72 +418,4 @@ public sealed class PlanBuilderTests
     /// <summary>
     /// The chain as the manager describes it, transitive sets included, in the order given.
     /// </summary>
-    private static FakeScmCatalog Chain(IReadOnlyList<string>? asListed = null)
-    {
-        var entries = new List<ScmEntry>(Specimens.All)
-        {
-            Running("MRxSmb20", "SMB 2.0 Redirector"),
-            Running("LanmanWorkstation", "Stacja robocza"),
-            Running("SessionEnv", "Konfiguracja pulpitu zdalnego"),
-            Running("Netlogon", "Logowanie do sieci")
-        };
-
-        var listed = asListed ?? ["SessionEnv", "Netlogon", "LanmanWorkstation"];
-
-        return new FakeScmCatalog(entries)
-            .DependedOnBy("MRxSmb20", [.. listed])
-            .DependedOnBy("LanmanWorkstation", "SessionEnv", "Netlogon");
-    }
-
-    private static ScmEntry Running(string serviceName, string displayName) =>
-        Entries.Named(serviceName, displayName) with
-        {
-            Status = EntryStatus.Running,
-            StartType = Reading<StartType>.Present(Core.StartType.Manual),
-            DelayedAuto = Reading<bool>.Absent(),
-            ProcessId = Reading<int>.Present(4444)
-        };
-
-    /// <summary>
-    /// Disabled and running at once, which is not a contradiction and is the case that
-    /// matters here. Measured on a real machine: switching a service to disabled leaves it
-    /// running until something stops it, which is glossary pitfall P7.
-    /// </summary>
-    private static ScmEntry Disabled(string serviceName, string displayName) =>
-        Running(serviceName, displayName) with
-        {
-            StartType = Reading<StartType>.Present(Core.StartType.Disabled)
-        };
-
-    private static FakeScmCatalog Rebuild(FakeScmCatalog catalog, string serviceName, Func<ScmEntry, ScmEntry> change)
-    {
-        var entries = catalog.ReadAll()
-            .Select(entry => string.Equals(entry.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase)
-                ? change(entry)
-                : entry)
-            .ToList();
-
-        return new FakeScmCatalog(entries)
-            .DependedOnBy("MRxSmb20", "SessionEnv", "Netlogon", "LanmanWorkstation")
-            .DependedOnBy("LanmanWorkstation", "SessionEnv", "Netlogon");
-    }
-
-    /// <summary>
-    /// Builds with the cascade included, which is what most of these are about. The plain
-    /// form, where it is not, has tests of its own.
-    /// </summary>
-    private static OperationPlan Plan(ActionKind kind, string serviceName, FakeScmCatalog? catalog = null) =>
-        Plan(kind, serviceName, includeDependents: true, catalog);
-
-    private static OperationPlan Plan(
-        ActionKind kind, string serviceName, bool includeDependents, FakeScmCatalog? catalog = null)
-    {
-        catalog ??= Specimens.Catalog();
-
-        return new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(kind, serviceName, includeDependents));
-    }
-
-    private static PlanWarning Warning(OperationPlan plan, PlanWarningKind kind) =>
-        Assert.Single(plan.Warnings, warning => warning.Kind == kind);
 }

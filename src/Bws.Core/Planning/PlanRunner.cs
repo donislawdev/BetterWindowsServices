@@ -94,12 +94,25 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
             // needed.
             var putsBack = step.Reason == StepReason.Restore;
 
-            if (abandoned || ((forwardFailed || cancelled) && !putsBack))
+            // THE STRONGER ATTEMPT STANDING BEHIND ONE THAT MAY NOT WORK, AND IT NEEDS THE OPPOSITE
+            // TREATMENT FROM THE LINE ABOVE. An escalation exists for the case where an earlier
+            // step did not arrive, so the ordinary rule - stop going forward once something failed -
+            // would skip the only step that was ever going to help. It is still held by an
+            // interruption, because that is somebody saying stop rather than something going wrong.
+            var stronger = step.Reason == StepReason.Escalation;
+
+            if (abandoned
+                || (cancelled && !putsBack)
+                || (forwardFailed && !putsBack && !stronger))
             {
                 results.Add(Skipped(
                     step,
                     cancelled || abandoned ? SkipReason.Cancelled : SkipReason.EarlierStepFailed,
                     EntryStatus.Unknown,
+
+                    // Nobody asked the manager about this entry, so there is nothing to say about
+                    // the process behind it. Absent would claim there is none.
+                    Reading<int>.NotRead(),
                     milliseconds: 0));
 
                 continue;
@@ -152,17 +165,23 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
         if (!before.Worked)
         {
-            return Refused(step, before, EntryStatus.Unknown, started);
+            return Refused(step, before, EntryStatus.Unknown, Reading<int>.NotRead(), started);
         }
 
         if (before.Progress!.Value.Status == target)
         {
             // Asked for a state it is already in. Not a failure and not work - the plan said
             // this might happen and warned about it, and doing nothing is the honest answer.
-            return Skipped(step, SkipReason.AlreadyThere, target, Elapsed(started));
+            return Skipped(step, SkipReason.AlreadyThere, target, Holding(before), Elapsed(started));
         }
 
-        var request = control.Request(step.ServiceName, step.Operation);
+        // ENDING A PROCESS DOES NOT GO THROUGH THE MANAGER, so it is not a Request - and the reading
+        // taken four lines up is the whole reason this sits here rather than anywhere else. It is
+        // the freshest answer available about where the entry is and what is holding it, taken
+        // immediately before anything happens.
+        var request = step.Operation == StepOperation.Terminate
+            ? End(step, before)
+            : control.Request(step.ServiceName, step.Operation);
 
         if (!request.Worked)
         {
@@ -174,10 +193,10 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
             if (after.Worked && after.Progress!.Value.Status == target)
             {
-                return Skipped(step, SkipReason.AlreadyThere, target, Elapsed(started));
+                return Skipped(step, SkipReason.AlreadyThere, target, Holding(after), Elapsed(started));
             }
 
-            return Refused(step, request, Where(after), started);
+            return Refused(step, request, Where(after), Holding(after), started);
         }
 
         return WaitFor(step, target, timeout, started);
@@ -208,16 +227,21 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     private StepResult Configure(PlanStep step, TimeSpan started)
     {
         var answer = control.Configure(step.ServiceName, step.To!.Value);
-        var where = Where(control.Read(step.ServiceName));
+        var seen = control.Read(step.ServiceName);
 
         return answer.Worked
-            ? Result(step, StepOutcome.Succeeded, where, Elapsed(started))
-            : Refused(step, answer, where, started);
+            ? Result(step, StepOutcome.Succeeded, Where(seen), Holding(seen), Elapsed(started))
+            : Refused(step, answer, Where(seen), Holding(seen), started);
     }
     private StepResult WaitFor(PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started)
     {
         var giveUpAt = started + timeout;
         var status = EntryStatus.Unknown;
+
+        // Carried alongside the status rather than read again at the end, because the point of it
+        // is the step that gives up: by then the entry is exactly where nobody can act on it, and
+        // the last process seen holding it is the only handle a person has on what to do next.
+        var processId = Reading<int>.NotRead();
         uint? checkPoint = null;
         TimeSpan? promisedBy = null;
 
@@ -227,17 +251,18 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
             if (!answer.Worked)
             {
-                return Refused(step, answer, status, started);
+                return Refused(step, answer, status, processId, started);
             }
 
             var progress = answer.Progress!.Value;
             var moved = checkPoint is null || progress.CheckPoint > checkPoint || progress.Status != status;
 
             status = progress.Status;
+            processId = Holding(answer);
 
             if (status == target)
             {
-                return Result(step, StepOutcome.Succeeded, status, Elapsed(started));
+                return Result(step, StepOutcome.Succeeded, status, processId, Elapsed(started));
             }
 
             var now = clock.Elapsed;
@@ -253,16 +278,56 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
 
             if (now >= giveUpAt || (promisedBy is not null && now >= promisedBy))
             {
-                return Result(step, StepOutcome.TimedOut, status, Elapsed(started));
+                return Result(step, StepOutcome.TimedOut, status, processId, Elapsed(started));
             }
 
             clock.Wait(Cadence);
         }
     }
 
+    /// <summary>
+    /// Ends the process the step named, having checked it is still the one the step named.
+    ///
+    /// <b>THE ONE PLACE THIS CLASS LOOKS AT SOMETHING AGAIN, AND IT IS NOT THE CLASS WORKING
+    /// ANYTHING OUT AFRESH.</b> Windows hands out process numbers again once a process is gone, and
+    /// a plan built one moment is carried out the next - so the number in the preview can, by the
+    /// time this runs, belong to something nobody has ever heard of. Refusing on a mismatch
+    /// delivers exactly the plan that was shown or nothing at all, which is the promise. Deciding
+    /// to end a DIFFERENT process would be the class inventing a step, and it does not do that.
+    ///
+    /// <b>The window between this reading and the call is narrow and is not closed.</b> Holding the
+    /// process open would close it, at the cost of a handle outliving the step, and the honest
+    /// answer is that a process identity Windows hands out in one piece is what this really wants
+    /// and there is not one.
+    /// </summary>
+    private ControlAnswer End(PlanStep step, ControlAnswer before)
+    {
+        var holding = Holding(before);
+
+        return holding.IsPresent && holding.Value == step.ProcessId
+            ? control.Terminate(holding.Value)
+            : ControlAnswer.Refused(0, ProcessMoved);
+    }
+
+    /// <summary>
+    /// Said in the plainest words available, because it is the one refusal here that is ours rather
+    /// than the system's - the same shape as the one <see cref="Configure"/> gives for a start type
+    /// it has no number for.
+    /// </summary>
+    private const string ProcessMoved =
+        "The process behind this entry is not the one the plan named, so nothing was ended. "
+        + "Ask again to build a plan against the machine as it is now.";
+
     private static EntryStatus Target(StepOperation operation) => operation switch
     {
         StepOperation.Stop => EntryStatus.Stopped,
+
+        // THE SAME TARGET AS A STOP, and that is the point of it rather than a shortcut. Ending the
+        // process is how this step gets there, and the manager noticing the process die and moving
+        // the entry is what finishes it - so the step is done when the ENTRY says so, never when
+        // the call returns.
+        StepOperation.Terminate => EntryStatus.Stopped,
+
         StepOperation.Start => EntryStatus.Running,
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, EquivalentCommand.Unhandled)
@@ -271,39 +336,66 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     private static EntryStatus Where(ControlAnswer answer) =>
         answer.Worked ? answer.Progress!.Value.Status : EntryStatus.Unknown;
 
+    /// <summary>
+    /// Which process was holding the entry, as last seen, in the three states that are true of it.
+    ///
+    /// <b>NotRead where the status itself could not be read</b>, because nobody asked the manager
+    /// and got an answer - the same distinction <see cref="Where"/> flattens into Unknown, kept
+    /// here because a number has no Unknown to flatten into. <b>Absent where the manager answered
+    /// zero</b>, which is what it reports for an entry with no process rather than a process
+    /// numbered nought.
+    /// </summary>
+    private static Reading<int> Holding(ControlAnswer answer)
+    {
+        if (!answer.Worked)
+        {
+            return Reading<int>.NotRead();
+        }
+
+        var processId = answer.Progress!.Value.ProcessId;
+
+        return processId == 0 ? Reading<int>.Absent() : Reading<int>.Present((int)processId);
+    }
+
     private long Elapsed(TimeSpan started) => (long)(clock.Elapsed - started).TotalMilliseconds;
 
-    private StepResult Refused(PlanStep step, ControlAnswer answer, EntryStatus status, TimeSpan started) =>
+    private StepResult Refused(
+        PlanStep step, ControlAnswer answer, EntryStatus status, Reading<int> processId, TimeSpan started) =>
         new()
         {
             Step = step,
             Outcome = StepOutcome.Failed,
             SkippedBecause = null,
             Status = status,
+            ProcessId = processId,
             ErrorCode = answer.ErrorCode,
             Error = answer.Error,
             Milliseconds = Elapsed(started)
         };
 
-    private static StepResult Skipped(PlanStep step, SkipReason because, EntryStatus status, long milliseconds) =>
+    private static StepResult Skipped(
+        PlanStep step, SkipReason because, EntryStatus status, Reading<int> processId, long milliseconds) =>
         new()
         {
             Step = step,
             Outcome = StepOutcome.Skipped,
             SkippedBecause = because,
             Status = status,
+            ProcessId = processId,
             ErrorCode = 0,
             Error = null,
             Milliseconds = milliseconds
         };
 
-    private static StepResult Result(PlanStep step, StepOutcome outcome, EntryStatus status, long milliseconds) =>
+    private static StepResult Result(
+        PlanStep step, StepOutcome outcome, EntryStatus status, Reading<int> processId, long milliseconds) =>
         new()
         {
             Step = step,
             Outcome = outcome,
             SkippedBecause = null,
             Status = status,
+            ProcessId = processId,
             ErrorCode = 0,
             Error = null,
             Milliseconds = milliseconds

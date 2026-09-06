@@ -283,6 +283,7 @@ public sealed class StartTypeTests
             Outcome = StepOutcome.Succeeded,
             SkippedBecause = null,
             Status = EntryStatus.Stopped,
+            ProcessId = Reading<int>.NotRead(),
             ErrorCode = 0,
             Error = null,
             Milliseconds = 1

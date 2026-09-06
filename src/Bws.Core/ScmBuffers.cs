@@ -19,13 +19,20 @@ namespace Bws.Core;
 /// Internal rather than public: these are how this assembly talks to itself while reading, and
 /// the contract the rest of the world sees is <see cref="ScmEntry"/>.
 /// </summary>
+/// <param name="AcceptsStop">
+/// The one bit of the accepted-controls mask this tool acts on, exactly as the manager reported
+/// it - false for a stopped entry, which is why nothing may read this without reading
+/// <paramref name="Status"/> beside it. The four states are put on it one layer up, where a
+/// stopped entry becomes an absence rather than a no.
+/// </param>
 internal readonly record struct EnumeratedEntry(
     string ServiceName,
     string DisplayName,
     EntryType EntryType,
     PerUserRole PerUserRole,
     EntryStatus Status,
-    uint ProcessId)
+    uint ProcessId,
+    bool AcceptsStop)
 {
     internal bool IsDriver =>
         EntryType is Core.EntryType.KernelDriver or Core.EntryType.FileSystemDriver;

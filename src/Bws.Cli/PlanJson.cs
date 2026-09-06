@@ -51,6 +51,33 @@ internal sealed record PlanWarningJson(string Kind, string ServiceName, IReadOnl
 /// beside its step and has to be readable on its own. A run of four results where one of them set
 /// something would otherwise say what happened without saying what was asked.
 /// </param>
+/// <param name="ProcessId">
+/// Which process was holding the entry, as last seen, or null.
+///
+/// <b>Here because the sentence beside it is not a contract and this is - owner's decision,
+/// 2026-09-06.</b> The human line already names the process on a step that gave up, and leaving it
+/// only there would force a script wanting it to match English prose. The document one file over
+/// says why that is not allowed: a warning carries its kind beside its message precisely so nobody
+/// has to, and a reader driven to a regular expression breaks the first time somebody improves the
+/// wording.
+///
+/// <b>The fact cannot be recovered afterwards, which is what makes it worth a field.</b> A step
+/// that timed out leaves an entry nothing can move by asking again. Asking the machine a second
+/// time answers about a different moment - the process may have gone, or the number may now belong
+/// to something else - so the reading taken when we gave up is held only here.
+///
+/// <b>Null means no process, and the three states behind it are readable from the fields
+/// alongside.</b> An entry that reached Stopped has none. A step never attempted says so through
+/// <c>skippedBecause</c>. A step whose reading was refused carries the manager's own
+/// <c>errorCode</c> and <c>error</c> - so rule 8 is met by the object rather than by this field
+/// growing a shape of its own. <b>One narrow case stays ambiguous and is named rather than
+/// hidden:</b> a failed step with a null here was either never read or read and found without a
+/// process, and only the error number tells those apart.
+///
+/// <b>It adds nothing a script could not already learn.</b> <c>bws list --json</c> has carried
+/// <c>processId</c> for every entry since the listing existed, so this is the same fact in the one
+/// document that was missing it, not a new capability.
+/// </param>
 internal sealed record StepResultJson(
     string ServiceName,
     string Operation,
@@ -58,6 +85,7 @@ internal sealed record StepResultJson(
     string Outcome,
     string? SkippedBecause,
     string Status,
+    int? ProcessId,
     int ErrorCode,
     string? Error,
     long Milliseconds,
@@ -139,6 +167,10 @@ internal static class PlanJson
                     Camel(result.Outcome.ToString()),
                     result.SkippedBecause is null ? null : Camel(result.SkippedBecause.Value.ToString()),
                     result.Status.ToString(),
+
+                    // A number or nothing, the same shape the listing gives this field. Absent and
+                    // never-asked both arrive as null on purpose - the argument is at the record.
+                    result.ProcessId.IsPresent ? result.ProcessId.Value : null,
                     result.ErrorCode,
                     result.Error,
                     result.Milliseconds,

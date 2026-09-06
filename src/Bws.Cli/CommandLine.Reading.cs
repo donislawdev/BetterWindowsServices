@@ -43,6 +43,7 @@ internal sealed partial record CommandLine
         var memory = false;
         var followNetwork = false;
         var force = false;
+        var restart = false;
         var full = false;
         string? query = null;
         var path = string.Empty;
@@ -204,6 +205,7 @@ internal sealed partial record CommandLine
             if (Arguments.Matches(argument, "--required-by")) { requiredByAsked = true; given.Add("--required-by"); continue; }
             if (Arguments.Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
             if (Arguments.Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
+            if (Arguments.Matches(argument, "--restart")) { restart = true; given.Add("--restart"); continue; }
             if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
             if (Arguments.Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
@@ -302,6 +304,7 @@ internal sealed partial record CommandLine
             Memory = memory,
             FollowNetwork = followNetwork,
             Force = force,
+            Restart = restart,
             Full = full,
             Query = query,
             Path = path,

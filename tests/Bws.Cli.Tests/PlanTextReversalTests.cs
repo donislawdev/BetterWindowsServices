@@ -83,6 +83,9 @@ public sealed class PlanTextReversalTests
         Outcome = StepOutcome.Succeeded,
         SkippedBecause = null,
         Status = operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running,
+        ProcessId = operation == StepOperation.Stop
+            ? Reading<int>.Absent()
+            : Reading<int>.Present(4812),
         ErrorCode = 0,
         Error = null,
         Milliseconds = 10

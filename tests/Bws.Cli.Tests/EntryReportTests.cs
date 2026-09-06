@@ -141,6 +141,7 @@ public sealed class EntryReportTests
         PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
+        AcceptsStop = Reading<bool>.Present(true),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),

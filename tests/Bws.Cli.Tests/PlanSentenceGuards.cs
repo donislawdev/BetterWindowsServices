@@ -41,6 +41,49 @@ public sealed class PlanSentenceGuards
             StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Every kind of warning the core can produce has words of its own here.
+    ///
+    /// <b>Written 2026-09-06 with the wildcard that made it necessary, and the wildcard is the
+    /// point.</b> This switch ended in <c>_ =&gt; "is already in that state, so nothing would
+    /// change"</c>, so a warning kind added without a sentence did not go missing - it came out
+    /// wearing another warning's words, on a screen whose whole job is telling somebody what is
+    /// about to happen to their machine. A silence would have been survivable. That was not.
+    ///
+    /// <b>Two lengths, because half the sentences here come in pairs</b> and a key that exists for
+    /// one count and not the other fails only when somebody happens to hit the other count.
+    ///
+    /// <b>It asks for a key coming back, which is what a missing string looks like.</b>
+    /// <c>Texts.Of</c> answers with the key itself rather than throwing, deliberately - a missing
+    /// string should look wrong on screen instead of taking the tool down mid-run - so the key
+    /// arriving on screen is exactly the failure to look for.
+    /// </summary>
+    [Fact]
+    public void Every_kind_of_warning_has_words_of_its_own()
+    {
+        string[][] lengths = [["W32Time"], ["W32Time", "Dnscache"]];
+
+        var wordless = new List<string>();
+
+        foreach (var kind in Enum.GetValues<PlanWarningKind>())
+        {
+            foreach (var related in lengths)
+            {
+                var said = PlanText.Describe(new PlanWarning(kind, "Spooler", related));
+
+                if (said.StartsWith("cli.", StringComparison.Ordinal))
+                {
+                    wordless.Add($"{kind} with {related.Length}: {said}");
+                }
+            }
+        }
+
+        Assert.True(
+            wordless.Count == 0,
+            "A warning the core can produce has no sentence in the terminal, so its key reaches the "
+            + "screen instead of words:" + Environment.NewLine + string.Join(Environment.NewLine, wordless));
+    }
+
     [Fact]
     public void A_refusal_naming_one_driver_does_not_call_it_these_drivers()
     {

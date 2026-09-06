@@ -173,6 +173,7 @@ public sealed class RowListTests
         PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1),
+        AcceptsStop = Reading<bool>.Present(true),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Present("LocalSystem"),

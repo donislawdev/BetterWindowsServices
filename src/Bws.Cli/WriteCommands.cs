@@ -23,7 +23,8 @@ internal static class WriteCommands
     /// --timeout and --dependents on it, and the plan builder gives it no cascade.
     /// </summary>
     internal static bool Writes(CommandKind kind) =>
-        kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart or CommandKind.SetStartType;
+        kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart
+            or CommandKind.SetStartType or CommandKind.Kill;
 
     /// <summary>
     /// Which ask a write command is. Read only where <see cref="Writes"/> is already true.
@@ -36,8 +37,16 @@ internal static class WriteCommands
     /// is the discard having been worth writing. Under the old shape <c>bws start-type X disabled</c>
     /// would have restarted X.
     /// </summary>
-    internal static ActionKind AskedFor(CommandKind kind) => kind switch
+    /// <param name="restart">
+    /// Whether the forcing verb was asked to bring the entry back afterwards.
+    ///
+    /// <b>A switch decides which ASK this is, which no other verb here needs</b> - and that is
+    /// the price of one verb covering both. The alternative was a second verb, and a tool with
+    /// eight of them is how nobody finds the one they want.
+    /// </param>
+    internal static ActionKind AskedFor(CommandKind kind, bool restart = false) => kind switch
     {
+        CommandKind.Kill => restart ? ActionKind.ForceRestart : ActionKind.ForceStop,
         CommandKind.Stop => ActionKind.Stop,
         CommandKind.Start => ActionKind.Start,
         CommandKind.Restart => ActionKind.Restart,

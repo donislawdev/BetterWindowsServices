@@ -27,7 +27,8 @@ namespace Bws.Cli.Tests;
 public sealed class EquivalentCommandBridgeGuards
 {
     private static readonly CommandKind[] WriteVerbs =
-        [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType];
+        [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
+            CommandKind.Kill];
 
     /// <summary>
     /// Every ask the core has a verb for, with the value the fourth one needs.
@@ -145,6 +146,13 @@ public sealed class EquivalentCommandBridgeGuards
         ActionKind.Stop => CommandKind.Stop,
         ActionKind.Start => CommandKind.Start,
         ActionKind.SetStartType => CommandKind.SetStartType,
+
+        // BOTH FORCING ASKS ARE ONE VERB, and the discard is why this had to be written out.
+        // It read "anything else is a restart", so the first ask that was neither a stop, a
+        // start nor a setting was checked against the wrong verb's switch list - and the
+        // guard reported a fault in the core that was really a fault in this line.
+        ActionKind.ForceStop or ActionKind.ForceRestart => CommandKind.Kill,
+
         _ => CommandKind.Restart
     };
 }

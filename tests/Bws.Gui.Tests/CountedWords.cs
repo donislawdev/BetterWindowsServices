@@ -83,6 +83,11 @@ internal static class CountedWords
         // read" is the singular half doing its job, and "{0} takes one name" counts nothing at all
         // - the placeholder there is a verb, not a number.
         "carries", "takes",
+        // One more on 2026-09-06, from the sentence about who dies when a process is ended:
+        // "Ending the process behind {0} also ends {1} other entries". The placeholder before it
+        // is a service name rather than a number, so the verb after it stays singular whatever the
+        // count of the OTHER placeholder in the same sentence is.
+        "ends",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

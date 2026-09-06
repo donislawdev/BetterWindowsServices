@@ -14,6 +14,65 @@ namespace Bws.Integration.Tests;
 /// </summary>
 public sealed class PlanContractTests
 {
+    /// <summary>
+    /// Whether an entry will take a stop, against a second implementation of the same question.
+    ///
+    /// <b>The only place the accepted-controls bit is checked against anything but ourselves.</b>
+    /// It is read from a field of the enumeration buffer and turned into a warning, and every unit
+    /// test of that path hands the field in - so all of them would stay green if the mask were
+    /// tested against the wrong bit. This asks Windows twice, through two different pieces of code
+    /// reading the same structure.
+    ///
+    /// <b>sc.exe is NOT the authority here, and that is measured rather than assumed.</b> Its
+    /// query output on this machine prints the state and no list of accepted controls at all -
+    /// for a stoppable entry and an unstoppable one alike - so it cannot tell the two apart.
+    /// ServiceController, which is what Get-Service hands back, exposes the same bit as CanStop.
+    ///
+    /// <b>Both directions, because one of them is the assertion that could pass by accident.</b> A
+    /// mask stuck at false would name every entry on the machine, and only the second half catches
+    /// that. Read-only throughout: a plan that is only shown asks the manager for nothing.
+    /// </summary>
+    [Fact]
+    public void Whether_an_entry_takes_a_stop_is_what_the_system_says_it_is()
+    {
+        var refuses = OneRunningService(takesAStop: false);
+        var takes = OneRunningService(takesAStop: true);
+
+        Assert.Contains(PlanWarnings(refuses), kind => kind == "doesNotAcceptStop");
+        Assert.DoesNotContain(PlanWarnings(takes), kind => kind == "doesNotAcceptStop");
+    }
+
+    private static string OneRunningService(bool takesAStop)
+    {
+        var name = CommandLineTool.PowerShell(
+            "(Get-Service | Where-Object { $_.Status -eq 'Running' -and $_.CanStop -eq $"
+            + (takesAStop ? "true" : "false")
+            + " } | Select-Object -First 1).Name");
+
+        // A machine with none of one kind would leave this test asserting about nothing, which is
+        // the one way a green run means least. Every Windows has both, so an empty answer here is
+        // a broken question rather than an unusual machine.
+        Assert.False(
+            string.IsNullOrWhiteSpace(name),
+            $"No running service on this machine reports CanStop = {takesAStop}, so there is "
+            + "nothing to compare against. That is a question that failed rather than an answer.");
+
+        return name;
+    }
+
+    private static IEnumerable<string> PlanWarnings(string serviceName)
+    {
+        var run = CommandLineTool.Run("stop", serviceName, "--dry-run", "--json");
+
+        Assert.Equal(0, run.ExitCode);
+
+        return JsonDocument.Parse(run.StandardOutput).RootElement
+            .GetProperty("warnings")
+            .EnumerateArray()
+            .Select(warning => warning.GetProperty("kind").GetString()!)
+            .ToList();
+    }
+
     [Fact]
     public void A_plan_that_was_only_shown_says_so_in_the_document()
     {

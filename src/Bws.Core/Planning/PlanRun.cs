@@ -61,6 +61,23 @@ public sealed record StepResult
     /// <summary>Where the entry was left, as last seen. Unknown when it could not be read.</summary>
     public required EntryStatus Status { get; init; }
 
+    /// <summary>
+    /// Which process was holding the entry, as last seen.
+    ///
+    /// <b>Here for the step that gave up, which is the one case where this record has to say
+    /// something a person can act on.</b> An entry left in StopPending has been asked to stop,
+    /// has not stopped, and will not be moved by asking again - so the only thing left to name
+    /// is the process still holding it. Every other outcome carries it too, because it comes
+    /// from the same reading and leaving it out of three results to have it in one would make
+    /// its absence mean something it does not.
+    ///
+    /// <b>Three states and each is a different sentence.</b> Present is a process. Absent is the
+    /// manager answering that there is none, which is ordinary for an entry that stopped.
+    /// NotRead is nobody having asked - a step skipped before it was reached, or one whose very
+    /// first reading was refused.
+    /// </summary>
+    public required Reading<int> ProcessId { get; init; }
+
     /// <summary>The manager's own number, or zero. See <see cref="ControlAnswer.ErrorCode"/>.</summary>
     public required int ErrorCode { get; init; }
 

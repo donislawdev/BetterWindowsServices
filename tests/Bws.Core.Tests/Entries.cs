@@ -42,6 +42,11 @@ internal static class Entries
         PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
+
+        // Running, so the manager has an answer here. Absent belongs to a stopped entry and the
+        // two must move together - a specimen that is stopped and still claims to take a stop is
+        // a shape no machine produces, which is what StoppedEntryGuards is about.
+        AcceptsStop = Reading<bool>.Present(true),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),

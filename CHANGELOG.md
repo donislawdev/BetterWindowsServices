@@ -15,6 +15,42 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **`bws kill NAME` - for a service that will not stop.** It asks politely first and ends the
+  process behind the entry only if that does not work, so a service that stops on its own is never
+  ended. Both steps are in the preview and the second one says it is conditional.
+  - **The preview names the process by number, and everything else living in it.** Ending a process
+    takes every other service in it with it, whether or not they stopped first - so those are steps
+    too, asked to stop politely before the process goes away, and the plan says what happens to the
+    ones that do not.
+  - `--force` skips asking politely. It changes the plan rather than the run, so the preview shows
+    one step instead of several and you see the difference before anything happens.
+  - `--restart` brings the entry back once the process is gone, along with anything that shared it.
+  - **Entries this machine does not work without are warned about, not refused.** The warning says
+    ending them stops the machine rather than the service. You are still allowed to do it.
+  - Refused outright where there is nothing to name: no process, a process number no service ever
+    has, or a list of what dies that Windows would not let us read in full.
+  - `--dry-run` works here like everywhere else, and this is the one command where the preview
+    matching the run matters most.
+
+- **A stop that was never going to be accepted now says so before you press anything.** Some
+  services do not take a stop at all - Windows refuses the request outright instead of trying - and
+  until now that only showed up afterwards, as an error number. The preview names it: *"Dnscache is
+  not accepting stop requests, so the stop will be refused rather than time out."*
+  - It names the entries **in the way** as well as the one you asked about. One of those refusing a
+    stop is what makes the rest of the plan unreachable, and that is worth knowing first.
+  - A service that is simply already stopped is **not** described this way. It is not refusing
+    anything - it has already arrived.
+  - `bws stop NAME --dry-run --json` carries it as `"kind": "doesNotAcceptStop"` beside the
+    sentence, so a script can branch on it without reading English.
+
+- **When the tool gives up waiting, it names the process still holding the service.** *"gave up
+  after 60 s, still stopping, held by process 4812"* in the terminal, and the same fact in the
+  window's plan sheet. A service stuck part-way through stopping will not move because you ask it
+  again, so the process is the only thing left to look at.
+  - Every result in `bws stop NAME --json` now carries `processId` beside its status, so a runbook
+    can read the number instead of matching the sentence. It is `null` where there is no process,
+    and the fields beside it - `skippedBecause`, `errorCode` - say which kind of nothing it was.
+
 - **Right-click a column heading to narrow the list to a value, or to put that column away.** On a
   column the query language knows values for - Status, Start, Signature, Entry type, Triggers and
   the rest - the menu lists them, and clicking one writes it into the search box where you can read

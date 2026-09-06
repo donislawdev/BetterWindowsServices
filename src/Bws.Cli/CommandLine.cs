@@ -79,6 +79,17 @@ internal sealed partial record CommandLine
     internal bool Force { get; private init; }
 
     /// <summary>
+    /// Whether the forcing verb was asked to bring the entry back once the process is gone.
+    ///
+    /// <b>A switch rather than a second verb, and the reason is discoverability rather than
+    /// tidiness.</b> An administrator whose service will not restart types the verb they know
+    /// and looks for a flag. What they must NOT be given is --force on restart: on Windows that
+    /// spelling already means "even if something depends on it", so it would be read as
+    /// something else entirely by everybody who has used Restart-Service.
+    /// </summary>
+    internal bool Restart { get; private init; }
+
+    /// <summary>
     /// Whether a report should also print the fields that are genuinely empty.
     ///
     /// It never governs a field nobody could read. Those print either way - rule 8 of CLAUDE.md,
@@ -268,7 +279,7 @@ internal sealed partial record CommandLine
     internal IReadOnlyList<string> Misplaced { get; private init; } = [];
 
     /// <summary>Which ask this is, when it is one. See <see cref="WriteCommands"/>.</summary>
-    internal ActionKind Action => WriteCommands.AskedFor(Kind);
+    internal ActionKind Action => WriteCommands.AskedFor(Kind, Restart);
 
     /// <summary>Whether this command changes anything at all.</summary>
     internal bool IsWrite => WriteCommands.Writes(Kind);

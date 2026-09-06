@@ -61,6 +61,32 @@ public sealed record ScmEntry
     /// </summary>
     public required Reading<int> ProcessId { get; init; }
 
+    /// <summary>
+    /// Whether the entry will take a stop at all, as the manager reports it right now.
+    ///
+    /// <b>This is what turns "we asked and waited and gave up" into "it was never going to
+    /// accept one", and until 2026-09-06 nothing in this project read it.</b> A service that
+    /// does not accept a stop refuses the control immediately rather than timing out - so
+    /// without this the plan could not say beforehand what the manager was going to say
+    /// afterwards, which is the one thing a preview exists to do.
+    ///
+    /// <b>One bit rather than the whole accepted-controls mask, and that is the same decision
+    /// <see cref="DelayedAuto"/> writes down.</b> The mask also carries pause, continue,
+    /// shutdown and more, and this tool sends none of them. A bit nobody sends is a bit no test
+    /// can check and no reader can trust - the day a pause arrives it gets a field of its own,
+    /// read at the same moment and costing the same nothing.
+    ///
+    /// <b>Absent means the entry is stopped, and the distinction is load bearing.</b> The
+    /// manager reports an empty mask for anything not running, so a plain false here would read
+    /// as "this service refuses to be stopped" about a service that is merely already stopped.
+    /// Present is therefore only ever set for an entry that is somewhere other than stopped.
+    ///
+    /// <b>Deliberately not in the snapshot and not a column.</b> It describes where the entry is
+    /// this second rather than how it is configured, so two snapshots differing here would be
+    /// repeating what <see cref="Status"/> already said, as drift nobody caused.
+    /// </summary>
+    public required Reading<bool> AcceptsStop { get; init; }
+
     /// <summary>Comes from the configuration query, which can be refused.</summary>
     public required Reading<StartType> StartType { get; init; }
 

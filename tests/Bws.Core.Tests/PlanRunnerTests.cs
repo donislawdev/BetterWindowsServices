@@ -144,8 +144,8 @@ public sealed class PlanRunnerTests
         // shutdown a failure, which is the pitfall 02-DECYZJE-TECHNICZNE warns about by name.
         var readings = Enumerable
             .Range(1, 40)
-            .Select(step => new ServiceProgress(EntryStatus.StopPending, (uint)step, TimeSpan.FromSeconds(5)))
-            .Append(new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero))
+            .Select(step => new ServiceProgress(EntryStatus.StopPending, (uint)step, TimeSpan.FromSeconds(5), ProcessId: 4812))
+            .Append(new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0))
             .ToArray();
 
         var clock = new FakeClock();
@@ -166,7 +166,7 @@ public sealed class PlanRunnerTests
         // minute we were prepared to wait never comes into it.
         var clock = new FakeClock();
         var control = Running("MRxSmb20")
-            .Reaching("MRxSmb20", new ServiceProgress(EntryStatus.StopPending, 7, TimeSpan.FromSeconds(2)));
+            .Reaching("MRxSmb20", new ServiceProgress(EntryStatus.StopPending, 7, TimeSpan.FromSeconds(2), ProcessId: 4812));
 
         var run = Run(Plan(ActionKind.Stop, "MRxSmb20", dependents: false), control, clock);
         var result = Assert.Single(run.Results);
@@ -176,6 +176,14 @@ public sealed class PlanRunnerTests
         // Where it was left, which is the half a person needs to decide what to do next.
         Assert.Equal(EntryStatus.StopPending, result.Status);
         Assert.Equal(TimeSpan.FromSeconds(2), clock.Waited);
+
+        // AND WHAT IS HOLDING IT THERE, WHICH IS THE OTHER HALF - 2026-09-06. An entry stuck in
+        // StopPending will not be moved by asking again, so the process is the only thing left a
+        // person can act on. Carried from the last reading rather than looked up afterwards: by
+        // the time this is read the entry may be gone, and a second question would answer about
+        // a different moment than the one being reported.
+        Assert.True(result.ProcessId.IsPresent);
+        Assert.Equal((int)FakeScmControl.FakeProcess, result.ProcessId.Value);
     }
 
     [Fact]
@@ -185,7 +193,7 @@ public sealed class PlanRunnerTests
         // not a promise to hold anybody to. Then, and only then, our own limit decides.
         var clock = new FakeClock();
         var control = Running("MRxSmb20")
-            .Reaching("MRxSmb20", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero));
+            .Reaching("MRxSmb20", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, ProcessId: 4812));
 
         var run = Run(
             Plan(ActionKind.Stop, "MRxSmb20", dependents: false), control, clock, TimeSpan.FromSeconds(30));

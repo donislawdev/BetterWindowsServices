@@ -63,6 +63,23 @@ internal enum CommandKind
     SetStartType,
 
     /// <summary>
+    /// Stop it, and end the process behind it if that does not work.
+    ///
+    /// <b>Spelled the way `E1` of the specification wrote it from the start - <c>bws kill NAME</c> -
+    /// and the word is the one every Windows administrator already has for this.</b> taskkill
+    /// documents its own /f as "processes be forcefully ended" and says outright that it replaces
+    /// the kill tool, and PowerShell's alias for Stop-Process is literally <c>kill</c>.
+    ///
+    /// <b>A verb rather than a switch on <see cref="Stop"/>, for two reasons that are not taste.</b>
+    /// The word carries the blast radius: somebody reading a shell history, a change ticket or a
+    /// runbook sees what happened without reading the flags. And <c>-Force</c> on a Windows SERVICE
+    /// already means something else - Stop-Service -Force is documented as "even if it has dependent
+    /// services", which is what <c>--dependents</c> does here, so a stop wearing that flag would be
+    /// confidently wrong rather than merely unfamiliar.
+    /// </summary>
+    Kill,
+
+    /// <summary>
     /// Freeze the state of every entry into a file.
     ///
     /// Spelled as two words on the command line - <c>bws snapshot create</c> - because `E1`
@@ -131,7 +148,15 @@ internal static class OptionSurface
 
         // The one verb that writes a file somebody keeps. Nothing else here overwrites
         // anything, so nothing else has an existing file to be asked about.
-        ("--force", [CommandKind.SnapshotCreate]),
+        // TWO VERBS AND ONE MEANING, WHICH IS WHY IT COULD BE REUSED AT ALL. On both it says the
+        // same thing: skip the safeguard this tool would otherwise give you. On snapshot create the
+        // safeguard is "I will not write over your file", and on kill it is "I will ask the service
+        // politely first". A switch that meant two unrelated things would have needed two names.
+        ("--force", [CommandKind.SnapshotCreate, CommandKind.Kill]),
+
+        // Only on the verb that takes something down without asking. Every other write verb here
+        // either brings a service back already - restart - or was never going to take one down.
+        ("--restart", [CommandKind.Kill]),
 
         // Only where there is a field that can be empty rather than merely unread. It says
         // "print the ones that are genuinely absent as well", which every other verb here either
@@ -142,7 +167,7 @@ internal static class OptionSurface
         // could hide one would be exactly that, spelled as an option.
         ("--full", [CommandKind.Show]),
 
-        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -159,9 +184,10 @@ internal static class OptionSurface
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff]),
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill]),
 
-        ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType]),
+        ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
+            CommandKind.Kill]),
 
         // Not on start, and this one was missed the first time round. Starting is not the
         // mirror of stopping: the manager brings up whatever the entry needs by itself, and
@@ -169,7 +195,7 @@ internal static class OptionSurface
         // word - so accepting it here would be the same silence one level further down,
         // where somebody writing "start it and everything under it" gets one step and no
         // hint that the rest of their sentence was dropped.
-        ("--dependents", [CommandKind.Stop, CommandKind.Restart]),
+        ("--dependents", [CommandKind.Stop, CommandKind.Restart, CommandKind.Kill]),
 
         // NOT ON start-type, AND THAT IS THE SAME SENTENCE AS --dependents ARRIVING AT IT FROM THE
         // OTHER SIDE. Both of these are about a service MOVING: one asks what may be taken down
@@ -177,7 +203,7 @@ internal static class OptionSurface
         // the manager answers when the configuration is written and there is no state to wait for -
         // so either switch here would be a word that does nothing, which is the silence this table
         // was built to end.
-        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart])
+        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill])
     ];
 
     /// <summary>
@@ -251,7 +277,7 @@ internal static class OptionSurface
     /// come to this tool for.
     /// </summary>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "snapshot"];
+        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -297,7 +323,8 @@ internal static class OptionSurface
         // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
         // in the window: a fifth shape must fail here loudly rather than quietly claim to take one
         // name when it does not.
-        CommandKind.Show or CommandKind.Stop or CommandKind.Start or CommandKind.Restart =>
+        CommandKind.Show or CommandKind.Stop or CommandKind.Start or CommandKind.Restart
+            or CommandKind.Kill =>
             "cli.takes.oneName",
 
         _ => throw new ArgumentOutOfRangeException(

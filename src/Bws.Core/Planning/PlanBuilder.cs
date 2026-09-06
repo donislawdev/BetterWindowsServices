@@ -86,25 +86,27 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 [.. driversInTheWay.Select(entry => entry.ServiceName)]);
         }
 
-        if (action.Kind == ActionKind.Restart)
-        {
-            // Everything a restart has to put back: the entry asked about, and whatever the
-            // cascade takes down on the way to it. A disabled one cannot come back, so the
-            // restart would be an outage dressed as a round trip.
-            //
-            // Only where the answer is known. An unreadable start type is not a reason to
-            // refuse - that would turn missing information into a decision, which is the
-            // opposite of what the four read outcomes exist for.
-            var stuckDown = cascade
-                .Append(target)
-                .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
-                .Select(entry => entry.ServiceName)
-                .ToList();
+        // WHAT ENDING A PROCESS DRAGS IN, WORKED OUT BEFORE ANY STEP EXISTS. Everything above is
+        // about entries that DEPEND on this one. This is an unrelated question with an unrelated
+        // answer - who merely lives in the same process - and on a plan that ends that process it
+        // is the casualty list. ForcedStop carries the whole of it.
+        ForcedStop.Ending? ending = null;
 
-            if (stuckDown.Count > 0)
+        if (ForcedStop.Asked(action.Kind))
+        {
+            var (refusal, decided) = ForcedStop.Decide(entries, target, cascade, warnings, action.Immediate);
+
+            if (refusal is { } why)
             {
-                return Refuse(action, PlanProblemKind.CannotComeBack, stuckDown);
+                return Refuse(action, why);
             }
+
+            ending = decided;
+        }
+
+        if (StuckDown(action.Kind, target, cascade) is { Count: > 0 } cannotComeBack)
+        {
+            return Refuse(action, PlanProblemKind.CannotComeBack, cannotComeBack);
         }
 
         if (!action.IncludeDependents && blocking.Count > 0)
@@ -115,9 +117,9 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 [.. blocking.Select(entry => entry.ServiceName)]));
         }
 
-        AddSteps(steps, action.Kind, target, cascade, action.To);
+        AddSteps(steps, action, target, cascade, ending);
 
-        AddWarnings(warnings, target, action, cascade);
+        AddWarnings(warnings, target, action, cascade, ending);
 
         return new OperationPlan
         {
@@ -139,26 +141,28 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
     /// </summary>
     private static void AddSteps(
         List<PlanStep> steps,
-        ActionKind kind,
+        ServiceAction action,
         ScmEntry target,
         IReadOnlyList<ScmEntry> cascade,
-        StartType? to)
+        ForcedStop.Ending? ending)
     {
-        switch (kind)
+        var to = action.To;
+
+        switch (action.Kind)
         {
             case ActionKind.Stop:
                 AddStops(steps, cascade, target);
                 break;
 
             case ActionKind.Start:
-                steps.Add(Step(target, StepOperation.Start, StepReason.Requested));
+                steps.Add(PlanSteps.Made(target, StepOperation.Start, StepReason.Requested));
                 break;
 
             case ActionKind.SetStartType:
                 // ONE STEP AND NO CASCADE. Nothing is taken down, nothing comes back, and nothing
                 // depends on the order - which is why this arm is one line under a switch whose
                 // other arms are four.
-                steps.Add(Step(target, StepOperation.SetStartType, StepReason.Requested, to));
+                steps.Add(PlanSteps.Made(target, StepOperation.SetStartType, StepReason.Requested, to));
                 break;
 
             case ActionKind.Restart:
@@ -174,13 +178,25 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 // service stopped - the plan had taken it down and then classified putting
                 // it back as forward progress to be abandoned.
                 AddStops(steps, cascade, target);
-                steps.Add(Step(target, StepOperation.Start, StepReason.Restore));
+                steps.Add(PlanSteps.Made(target, StepOperation.Start, StepReason.Restore));
 
                 for (var index = cascade.Count - 1; index >= 0; index--)
                 {
-                    steps.Add(Step(cascade[index], StepOperation.Start, StepReason.Restore));
+                    steps.Add(PlanSteps.Made(cascade[index], StepOperation.Start, StepReason.Restore));
                 }
 
+                break;
+
+            case ActionKind.ForceStop:
+                ForcedStop.AddSteps(steps, cascade, target, ending!.Value, PlanSteps.Moving);
+                break;
+
+            case ActionKind.ForceRestart:
+                // THE MIRROR COSTS ONE LINE BECAUSE THE STOPPING HALF ALREADY PUT EVERY CASUALTY IN
+                // THE PLAN AS A STEP. That was the fourth argument for making the neighbours steps
+                // rather than a footnote: what has a step going down has a step coming back.
+                ForcedStop.AddSteps(steps, cascade, target, ending!.Value, PlanSteps.Moving);
+                ForcedStop.AddRestores(steps, cascade, target, ending.Value, PlanSteps.Moving);
                 break;
 
             default:
@@ -188,17 +204,41 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
                 // real machine that nobody asked for. It refuses here instead - the ask has to be
                 // given a plan in the place that builds plans.
                 throw new ArgumentOutOfRangeException(
-                    nameof(kind), kind, EquivalentCommand.Unhandled);
+                    nameof(action), action.Kind, EquivalentCommand.Unhandled);
         }
     }
+
+
+    /// <summary>
+    /// Everything a restart would take down and could not put back, and nothing at all for an
+    /// ask that puts nothing back.
+    ///
+    /// <b>Out of Build 2026-09-06 because the analyser asked, and the seam is the same one it
+    /// found last time:</b> everything left in Build is about what is IN THE WAY, and this is a
+    /// question about the way back. A disabled entry that is running can be stopped and cannot
+    /// be started again, so a restart of it is an outage dressed as a round trip.
+    ///
+    /// <b>Only where the answer is known.</b> An unreadable start type is not a reason to
+    /// refuse - that would turn missing information into a decision, which is the opposite of
+    /// what the four read outcomes exist for.
+    /// </summary>
+    private static List<string> StuckDown(
+        ActionKind kind, ScmEntry target, IReadOnlyList<ScmEntry> cascade) =>
+        kind is ActionKind.Restart or ActionKind.ForceRestart
+            ? [.. cascade
+                .Append(target)
+                .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
+                .Select(entry => entry.ServiceName)]
+            : [];
+
     private static void AddStops(List<PlanStep> steps, IReadOnlyList<ScmEntry> cascade, ScmEntry target)
     {
         foreach (var dependent in cascade)
         {
-            steps.Add(Step(dependent, StepOperation.Stop, StepReason.Cascade));
+            steps.Add(PlanSteps.Made(dependent, StepOperation.Stop, StepReason.Cascade));
         }
 
-        steps.Add(Step(target, StepOperation.Stop, StepReason.Requested));
+        steps.Add(PlanSteps.Made(target, StepOperation.Stop, StepReason.Requested));
     }
 
     /// <summary>
@@ -280,7 +320,11 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
     }
 
     private void AddWarnings(
-        List<PlanWarning> warnings, ScmEntry target, ServiceAction action, IReadOnlyList<ScmEntry> cascade)
+        List<PlanWarning> warnings,
+        ScmEntry target,
+        ServiceAction action,
+        IReadOnlyList<ScmEntry> cascade,
+        ForcedStop.Ending? ending)
     {
         if (cascade.Count > 0)
         {
@@ -332,12 +376,47 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
             }
         }
 
+        // WHAT THE MANAGER IS GOING TO SAY, SAID BEFORE IT SAYS IT - backlog 8. An entry that does
+        // not accept a stop refuses the control outright, so the step fails rather than times out,
+        // and until this was read the plan had no way of telling those two apart in advance.
+        //
+        // The cascade is asked as well as the target, and it is the more useful half: an entry in
+        // the way that will not take a stop makes every step after it in the plan unreachable, and
+        // that is worth knowing before the first one runs rather than after.
+        //
+        // Only where the answer is PRESENT. Absent means the entry is already stopped, where the
+        // question does not arise - and turning that into a warning would put a sentence about a
+        // refusal next to a step that is going to be skipped for having nothing to do.
+        if (action.Kind is ActionKind.Stop or ActionKind.Restart
+                or ActionKind.ForceStop or ActionKind.ForceRestart)
+        {
+            var refusing = cascade
+                .Append(target)
+                .Where(entry => entry.AcceptsStop is { IsPresent: true, Value: false })
+                .Select(entry => entry.ServiceName)
+                .ToList();
+
+            if (refusing.Count > 0)
+            {
+                warnings.Add(new PlanWarning(
+                    PlanWarningKind.DoesNotAcceptStop, target.ServiceName, refusing));
+            }
+        }
+
         // Glossary pitfall P7. Somebody who stops an automatic service and walks away has
         // done something that lasts until the next boot, which is rarely what they meant.
-        if (action.Kind == ActionKind.Stop
+        if (action.Kind is ActionKind.Stop or ActionKind.ForceStop
             && target.StartType is { IsPresent: true, Value: StartType.Automatic })
         {
             warnings.Add(new PlanWarning(PlanWarningKind.ReturnsAfterReboot, target.ServiceName));
+        }
+
+        // THE TWO SENTENCES ONLY A FORCING ASK PRODUCES, and neither of them is the shared process
+        // warning above - that one does not fire for these kinds at all, because it says the
+        // neighbours keep running and here they do not.
+        if (ending is { } dies)
+        {
+            ForcedStop.AddWarnings(warnings, target, dies);
         }
     }
 
@@ -345,79 +424,7 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         entries.FirstOrDefault(entry =>
             string.Equals(entry.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase));
 
-    private static PlanStep Step(
-        ScmEntry entry, StepOperation operation, StepReason reason, StartType? to = null) =>
-        new(
-            entry.ServiceName,
 
-            // A step carries the internal name as its identity and this only as its label, so the
-            // rule applies here for the same reason it applies in a listing - see
-            // ServiceDisplayName. Nothing keys, matches or compares on this text.
-            ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName),
-            operation,
-            reason,
-            to,
-            operation == StepOperation.SetStartType ? WayBackTo(entry) : null);
-
-    /// <summary>
-    /// The start type a way back would have to write, or nothing where there is no honest answer.
-    ///
-    /// <b>THE ONE PLACE THAT CAN ANSWER THIS, WHICH IS WHY IT IS ASKED WHILE THE PLAN IS BEING
-    /// BUILT.</b> A step knows what it set and a result knows what came of it - the entry as it was
-    /// found is only in scope here, and reading it later would be reading a machine this tool has
-    /// since changed.
-    ///
-    /// <b>Nothing at all rather than a guess, in three cases, and each is a different silence.</b>
-    /// The manager can refuse a configuration read. The type can be one this tool has no word for.
-    /// And an automatic entry can carry the delay flag, which is the case worth spelling out:
-    ///
-    /// <b>An automatic entry may also be marked to start late, and nothing this tool writes can say
-    /// "automatic, and late".</b> The delay is a separate field on the entry rather than a sixth
-    /// start type, and 13 of 78 automatic services carry it on a real machine - measured
-    /// 2026-08-01.
-    ///
-    /// <b>MEASURED ON A REAL MACHINE 2026-08-25, THREE WAYS, AND IT REFUTED THE PREDICTION WRITTEN
-    /// BEFORE THE RUN AND THEN REFUTED THE SENTENCE THAT REPLACED IT.</b> On a service made delayed
-    /// automatic and read with sc.exe after every step:
-    ///
-    /// <list type="bullet">
-    /// <item>our write to manual, then sc.exe to auto - plain automatic. The flag is gone.</item>
-    /// <item>sc.exe to demand, then our write to automatic - plain automatic. Gone again.</item>
-    /// <item>our write to manual, then our write to automatic - AUTOMATIC (DELAYED), twice.</item>
-    /// </list>
-    ///
-    /// So sc.exe clears the flag on every start type it writes and this tool never touches it -
-    /// which is exactly what WindowsScmControl.Configure promises in as many words, and it means a
-    /// round trip made entirely with this tool DOES land back on delayed automatic.
-    ///
-    /// <b>The way back is refused here anyway, and that is a decision rather than the measurement.</b>
-    /// It would be correct today and it would rest on a property of our own write that no guard
-    /// holds - one line changed in Configure and every one of those lines becomes a claim that
-    /// quietly stopped being true. A way back is the most dangerous sentence this tool prints, and
-    /// "correct as long as nobody changes the writer" is not the footing for it. Silence costs
-    /// somebody one manual step. The alternative costs them a machine that comes up differently
-    /// from the way they left it.
-    ///
-    /// <b>Said out loud because it is the owner's to decide, not mine:</b> the measurement says
-    /// this could be offered, and beside it sits a larger question - our Automatic and the Automatic
-    /// in services.msc are not the same write. Backlog 231 and 232.
-    ///
-    /// A reading that is present and false is the only one that clears it. Denied and never read
-    /// both mean nobody knows, and this is not the place to decide that nobody knows means no.
-    /// </summary>
-    private static StartType? WayBackTo(ScmEntry entry)
-    {
-        if (!entry.StartType.IsPresent)
-        {
-            return null;
-        }
-
-        var was = entry.StartType.Value;
-
-        return was == StartType.Automatic && entry.DelayedAuto is not { IsPresent: true, Value: false }
-            ? null
-            : was;
-    }
 
     private static OperationPlan Refuse(
         ServiceAction action, PlanProblemKind kind, IReadOnlyList<string>? related = null) => new()

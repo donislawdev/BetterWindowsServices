@@ -69,6 +69,10 @@ internal static class Arguments
             // expression over strings compares the whole of one, so there is no path where this
             // word is read as "start" with something left over.
             "start-type" => CommandKind.SetStartType,
+
+            // The word taskkill says it replaces, and the word PowerShell aliases Stop-Process
+            // to. Somebody reaching for this has typed it before somewhere else.
+            "kill" => CommandKind.Kill,
             _ => CommandKind.None
         };
 

@@ -43,6 +43,8 @@ internal static class PlanWords
         ActionKind.Start => Texts.Of("gui.plan.doing.start"),
         ActionKind.Restart => Texts.Of("gui.plan.doing.restart"),
         ActionKind.SetStartType => Texts.Of("gui.plan.doing.setStartType"),
+        ActionKind.ForceStop => Texts.Of("gui.plan.doing.forceStop"),
+        ActionKind.ForceRestart => Texts.Of("gui.plan.doing.forceRestart"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };
@@ -52,6 +54,14 @@ internal static class PlanWords
     {
         StepReason.Requested => Texts.Of("gui.plan.reason.requested"),
         StepReason.Cascade => Texts.Of("gui.plan.reason.cascade"),
+        StepReason.SharesTheProcess => Texts.Of("gui.plan.reason.sharesTheProcess"),
+
+        // NAMED RATHER THAN LEFT TO THE DISCARD, WHICH USED TO SAY "put back". A step that
+        // ends a process is the opposite of one that gives something back, and the discard
+        // would have labelled the most dangerous line in the panel with the gentlest word
+        // this file has.
+        StepReason.Escalation => Texts.Of("gui.plan.reason.escalation"),
+
         _ => Texts.Of("gui.plan.reason.restore")
     };
 
@@ -94,7 +104,44 @@ internal static class PlanWords
 
         PlanWarningKind.CascadeUnreadable => Texts.Of("gui.plan.warning.cascadeUnreadable", warning.ServiceName),
 
-        _ => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName)
+        // THE LITERAL SITS INSIDE Texts.Of RATHER THAN IN A TERNARY HANDED TO IT, and the first
+        // attempt did the second - TextKeyGuards found both halves and was right to. Its patterns
+        // read the argument of a call, so a key chosen one line earlier is a key nobody can find by
+        // searching for it, which is the same failure that file records against a key assembled at
+        // run time. The five arms above are all written this way and now so is this one.
+        PlanWarningKind.DoesNotAcceptStop => warning.Related.Count == 1
+            ? Texts.Of(
+                "gui.plan.warning.doesNotAcceptStop.one",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
+            : Texts.Of(
+                "gui.plan.warning.doesNotAcceptStop.many",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
+
+        PlanWarningKind.TerminationTakesWithIt => warning.Related.Count == 1
+            ? Texts.Of(
+                "gui.plan.warning.takesWithIt.one",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
+            : Texts.Of(
+                "gui.plan.warning.takesWithIt.many",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
+
+        PlanWarningKind.CriticalService => warning.Related.Count == 1
+            ? Texts.Of(
+                "gui.plan.warning.critical.one",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
+            : Texts.Of(
+                "gui.plan.warning.critical.many",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
+
+        PlanWarningKind.AlreadyThere => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName),
+
+        // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
+        // kind but one used to fall through to "is already in that state, so nothing would change" -
+        // a warning added without a sentence would have said something confident and wrong about a
+        // machine rather than nothing at all. The terminal's own switch had the same shape and was
+        // changed the same day.
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
 
     /// <summary>
@@ -232,15 +279,35 @@ internal static class PlanWords
             : Ordinary(result);
 
     private static string Ordinary(StepResult result) => result.Outcome == StepOutcome.TimedOut
-        ? Texts.Of(
-            "gui.plan.failure.timedOut",
-            result.Step.ServiceName,
-            Word(result.Step.Operation))
+        ? TimedOut(result)
         : Texts.Of(
             "gui.plan.failure.refused",
             result.Step.ServiceName,
             Word(result.Step.Operation),
             result.Error ?? string.Empty);
+
+    /// <summary>
+    /// A step that was watched and did not arrive, naming the process still holding the entry.
+    ///
+    /// <b>The one outcome in this window with nowhere else to send somebody, and until 2026-09-06
+    /// it ended at "it may arrive by itself".</b> That sentence is true and it is the whole of what
+    /// there was: the entry has been asked, has not moved, and asking again does nothing. Naming
+    /// the process is what turns a dead end into somewhere to look.
+    ///
+    /// <b>Two sentences rather than one with a gap in it.</b> The reading has three states and only
+    /// one is a number - the manager can say there is no process, and nobody may have got an answer
+    /// at all. Both of those read correctly as the shorter sentence and neither is worth its own.
+    /// </summary>
+    private static string TimedOut(StepResult result) => result.ProcessId.IsPresent
+        ? Texts.Of(
+            "gui.plan.failure.timedOut.process",
+            result.Step.ServiceName,
+            Word(result.Step.Operation),
+            result.ProcessId.Value)
+        : Texts.Of(
+            "gui.plan.failure.timedOut",
+            result.Step.ServiceName,
+            Word(result.Step.Operation));
 
     /// <summary>
     /// What one step DOES, in one word, said in one place.
@@ -260,6 +327,7 @@ internal static class PlanWords
         StepOperation.Stop => Texts.Of("gui.plan.operation.stop"),
         StepOperation.Start => Texts.Of("gui.plan.operation.start"),
         StepOperation.SetStartType => Texts.Of("gui.plan.operation.setStartType"),
+        StepOperation.Terminate => Texts.Of("gui.plan.operation.terminate"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };

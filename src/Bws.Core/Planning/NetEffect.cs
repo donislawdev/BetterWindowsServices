@@ -176,6 +176,11 @@ public static class NetEffect
     private static bool Before(StepOperation first) => first switch
     {
         StepOperation.Stop => true,
+        // ENDING A PROCESS IS A STOP THAT ASKS NOBODY, so all three of these answer for it
+        // exactly as they answer for a stop. Leaving it out would not have been silent: each
+        // throws for an operation it was never taught, and the throw would land while the
+        // report was being written - after the machine had already been changed.
+        StepOperation.Terminate => true,
         StepOperation.Start => false,
         _ => throw new ArgumentOutOfRangeException(
             nameof(first), first, EquivalentCommand.Unhandled)
@@ -185,6 +190,7 @@ public static class NetEffect
     private static StepOperation Undoing(StepOperation last) => last switch
     {
         StepOperation.Stop => StepOperation.Start,
+        StepOperation.Terminate => StepOperation.Start,
         StepOperation.Start => StepOperation.Stop,
         _ => throw new ArgumentOutOfRangeException(
             nameof(last), last, EquivalentCommand.Unhandled)
@@ -195,6 +201,7 @@ public static class NetEffect
     {
         StepOperation.Start => true,
         StepOperation.Stop => false,
+        StepOperation.Terminate => false,
         _ => throw new ArgumentOutOfRangeException(
             nameof(last), last, EquivalentCommand.Unhandled)
     };

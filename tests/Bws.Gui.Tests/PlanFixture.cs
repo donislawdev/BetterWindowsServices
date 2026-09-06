@@ -57,6 +57,7 @@ internal static class PlanFixture
         Outcome = refused ? StepOutcome.Failed : StepOutcome.Succeeded,
         SkippedBecause = null,
         Status = refused ? EntryStatus.Running : EntryStatus.Stopped,
+        ProcessId = refused ? Reading<int>.Present(4812) : Reading<int>.Absent(),
         ErrorCode = refused ? 5 : 0,
         Error = refused ? "Access is denied." : null,
         Milliseconds = 10

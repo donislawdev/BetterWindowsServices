@@ -150,8 +150,24 @@ internal static class PlanText
         // sentence for it, together.
         StepOutcome.Failed => Texts.Of("cli.run.outcome.failed", result.Error!, result.ErrorCode),
 
-        StepOutcome.TimedOut => Texts.Of(
-            "cli.run.outcome.timedOut", Took(result.Milliseconds), StatusWords.Of(result.Status)),
+        // THE ONE OUTCOME THAT NAMES THE PROCESS, SINCE 2026-09-06. A refusal already carries the
+        // manager's own number and sentence, and a step that arrived has nothing left to explain.
+        // This one had neither: "gave up after 60 s, still stopping" is the end of the line, and
+        // the entry cannot be moved by asking it again - so the process still holding it is the
+        // only thing left that a person can act on.
+        //
+        // Two keys rather than a blank, because the reading has three states and only one of them
+        // is a number. Absent is an entry the manager says has no process, and NotRead is nobody
+        // having got an answer - neither is worth a sentence of its own here, and both read
+        // correctly as the shorter line.
+        StepOutcome.TimedOut => result.ProcessId.IsPresent
+            ? Texts.Of(
+                "cli.run.outcome.timedOut.process",
+                Took(result.Milliseconds),
+                StatusWords.Of(result.Status),
+                result.ProcessId.Value)
+            : Texts.Of(
+                "cli.run.outcome.timedOut", Took(result.Milliseconds), StatusWords.Of(result.Status)),
 
         _ => Texts.Of($"cli.run.outcome.{Camel(result.SkippedBecause ?? SkipReason.AlreadyThere)}")
     };
@@ -198,7 +214,30 @@ internal static class PlanText
         PlanWarningKind.CascadeUnreadable => Texts.Of(
             "cli.plan.warning.cascadeUnreadable", warning.ServiceName),
 
-        _ => Texts.Of("cli.plan.warning.alreadyThere", warning.ServiceName)
+        PlanWarningKind.DoesNotAcceptStop => Texts.Of(
+            Count("cli.plan.warning.doesNotAcceptStop", warning),
+            warning.ServiceName, warning.Related.Count, Join(warning.Related)),
+
+        // NOT THE SHARED PROCESS SENTENCE, WHICH SAYS THE OPPOSITE. That one tells somebody
+        // the neighbours keep running, which is true of an ordinary stop and exactly wrong
+        // here - so the builder does not raise it for a forcing ask at all.
+        PlanWarningKind.TerminationTakesWithIt => Texts.Of(
+            Count("cli.plan.warning.takesWithIt", warning),
+            warning.ServiceName, warning.Related.Count, Join(warning.Related)),
+
+        PlanWarningKind.CriticalService => Texts.Of(
+            Count("cli.plan.warning.critical", warning),
+            warning.ServiceName, warning.Related.Count, Join(warning.Related)),
+
+        PlanWarningKind.AlreadyThere => Texts.Of("cli.plan.warning.alreadyThere", warning.ServiceName),
+
+        // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
+        // kind but one used to fall through to "is already in that state, so nothing would change" -
+        // so a warning added without a sentence would not have been silent, which is survivable, but
+        // would have said something confident and wrong about a machine, which is not. The window's
+        // own switch had the same shape and was changed the same day.
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
 
     internal static string Describe(PlanProblem problem) => problem.Kind switch
@@ -248,9 +287,21 @@ internal static class PlanText
     /// This column is prose for a person, and the line somebody would paste has its own place at
     /// the foot of the document.
     /// </summary>
-    private static string Operation(PlanStep step) => step.Operation == StepOperation.SetStartType
-        ? Texts.Of("cli.plan.operation.setStartType", step.To!.Value.ToString())
-        : Texts.Of($"cli.plan.operation.{Camel(step.Operation)}");
+    /// <summary>
+    /// What one step does, in the column a person scans down.
+    ///
+    /// <b>Two of the four carry a VALUE, and the word alone leaves out the part somebody is
+    /// reading the line to check.</b> "set" without the type is two lines that look identical
+    /// setting two different things, and "terminate" without the process is the most dangerous
+    /// line this tool prints naming the one thing it is NOT about - the entry is a service, and
+    /// what ends is a process that may be running several of them.
+    /// </summary>
+    private static string Operation(PlanStep step) => step.Operation switch
+    {
+        StepOperation.SetStartType => Texts.Of("cli.plan.operation.setStartType", step.To!.Value.ToString()),
+        StepOperation.Terminate => Texts.Of("cli.plan.operation.terminate", step.ProcessId!.Value),
+        _ => Texts.Of($"cli.plan.operation.{Camel(step.Operation)}")
+    };
 
     private static string Reason(StepReason reason) => Texts.Of($"cli.plan.reason.{Camel(reason)}");
 

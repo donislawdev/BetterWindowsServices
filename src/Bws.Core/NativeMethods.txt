@@ -65,6 +65,21 @@ StartService
 ControlService
 QueryServiceStatusEx
 
+// Ending a process, which is the fourth of those and the only one that asks nobody's permission.
+//
+// THE SENTENCE THIS FILE MAKES ABOUT ITSELF CHANGED ON 2026-09-06 AND IS REWRITTEN RATHER THAN
+// LEFT STANDING. The block above says these calls are the whole answer to "what can this tool do
+// to my machine", and that answer used to be "ask the manager to move things". It now includes
+// one line that ends a process outright, taking every other service living in that process with
+// it. `C3` of the specification asked for it from the start and the owner settled its shape that
+// day - the point of writing it here is that a reader of this file should not have to find that
+// out from anywhere else.
+//
+// OpenProcess is already on this list for reading memory, and PROCESS_TERMINATE is already a
+// member of the rights enumeration below. What was missing was the verb, and the verb is the
+// whole of what changed.
+TerminateProcess
+
 // How much memory the process behind an entry is using.
 //
 // The only block here that leaves the service control manager entirely: memory belongs to
@@ -138,6 +153,16 @@ SERVICE_QUERY_STATUS
 SERVICE_START
 SERVICE_STOP
 SERVICE_CONTROL_STOP
+
+// Whether the entry will even take a stop, read from a field of the status structure the
+// enumeration already fills in. Nothing new is called for it and nothing new can be done with
+// it - this is the difference between asking a service to stop and finding out afterwards that
+// it was never going to accept one.
+//
+// Named rather than written as 1, which is the argument the two enumerations below make about
+// themselves: a bit tested against a bare number is a bit nobody can check later.
+SERVICE_ACCEPT_STOP
+
 SC_STATUS_TYPE
 ENUM_SERVICE_TYPE
 ENUM_SERVICE_STATUS_PROCESSW

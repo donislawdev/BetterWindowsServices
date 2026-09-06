@@ -30,15 +30,29 @@ public sealed class UsageContractTests
     /// <summary>
     /// The whole switch surface, spelled out rather than derived.
     ///
-    /// A list here can go stale, and that is the point: adding a switch to the tool without
-    /// adding it here fails, and adding it here without documenting it fails too. Deriving
-    /// the list from the code would make the guard agree with whatever the code does, which
-    /// is not a guard.
+    /// A list here can go stale, and that is the point: adding it here without documenting it
+    /// fails. Deriving the list from the code would make the guard agree with whatever the code
+    /// does, which is not a guard.
+    ///
+    /// <b>THE OTHER HALF OF THAT SENTENCE WAS FALSE AND IS CORRECTED, 2026-09-06.</b> It read
+    /// "adding a switch to the tool without adding it here fails", and nothing anywhere compared
+    /// this list against what the tool accepts - so a switch added to the surface and never
+    /// written down was invisible to every check in this file. It happened: --restart shipped in
+    /// the parser and the switch table with the help saying nothing about it, and this file
+    /// stayed green. <c>UsageSurfaceGuards</c> in the command line tests is what makes the
+    /// sentence true, and it lives there because it needs to see OptionSurface.
     /// </summary>
     private static readonly string[] EverySwitch =
     [
         "--query", "--signatures", "--memory", "--json", "--timing",
         "--dry-run", "--dependents", "--timeout", "--note",
+
+        // Added 2026-09-06 with the forcing verb, and they were added BY HAND after a guard in
+        // Bws.Cli.Tests went red about them - which is the repair this list needed. The comment
+        // above promises that adding a switch without adding it here fails, and until that day
+        // nothing made the promise true: --restart lived in the tool, in the parser and in the
+        // switch table for a whole package while this file said nothing at all.
+        "--restart",
 
         // Added 2026-08-02, and their absence from this list is why nobody noticed that the
         // first of them did not work at all. This guard was green while `bws --help` answered
@@ -61,7 +75,7 @@ public sealed class UsageContractTests
     /// noticed, because every test that exercised the command spelled it correctly itself.
     /// </summary>
     private static readonly string[] EveryCommand =
-        ["list", "stop", "start", "restart", "snapshot create"];
+        ["list", "stop", "start", "restart", "kill", "snapshot create"];
 
     [Fact]
     public void The_usage_text_mentions_every_switch_the_tool_accepts()

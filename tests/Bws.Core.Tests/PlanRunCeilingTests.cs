@@ -86,6 +86,7 @@ public sealed class PlanRunCeilingTests
         Outcome = outcome,
         SkippedBecause = null,
         Status = EntryStatus.Stopped,
+        ProcessId = Reading<int>.Absent(),
         ErrorCode = outcome == StepOutcome.Failed ? 1053 : 0,
         Error = outcome == StepOutcome.Failed ? "The service did not respond in a timely fashion." : null,
         Milliseconds = milliseconds

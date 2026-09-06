@@ -29,9 +29,9 @@ public sealed class PlanRunClockTests
             .At("Spooler", EntryStatus.Running)
             .Reaching(
                 "Spooler",
-                new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5)),
-                new ServiceProgress(EntryStatus.StopPending, 2, TimeSpan.FromSeconds(5)),
-                new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero));
+                new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5), ProcessId: 4812),
+                new ServiceProgress(EntryStatus.StopPending, 2, TimeSpan.FromSeconds(5), ProcessId: 4812),
+                new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 
         var run = new PlanRunner(control, new JumpingClock(TimeSpan.FromHours(1)))
             .Run(Stopping(), TimeSpan.FromMinutes(1));
@@ -52,8 +52,8 @@ public sealed class PlanRunClockTests
             .At("Spooler", EntryStatus.Running)
             .Reaching(
                 "Spooler",
-                new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5)),
-                new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero));
+                new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5), ProcessId: 4812),
+                new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 
         var run = new PlanRunner(control, new JumpingClock(TimeSpan.FromHours(-1)))
             .Run(Stopping(), TimeSpan.FromMinutes(1));

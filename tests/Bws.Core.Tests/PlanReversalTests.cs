@@ -149,6 +149,9 @@ public sealed class PlanReversalTests
             Outcome = outcome,
             SkippedBecause = skipped,
             Status = operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running,
+            ProcessId = operation == StepOperation.Stop
+                ? Reading<int>.Absent()
+                : Reading<int>.Present(4812),
             ErrorCode = outcome == StepOutcome.Failed ? 5 : 0,
             Error = outcome == StepOutcome.Failed ? "Access is denied." : null,
             Milliseconds = 10

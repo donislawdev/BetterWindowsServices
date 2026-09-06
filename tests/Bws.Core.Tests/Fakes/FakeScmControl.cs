@@ -33,6 +33,80 @@ internal sealed class FakeScmControl : IScmControl
     /// </summary>
     internal List<(string Name, StartType To)> Configured { get; } = [];
 
+    /// <summary>
+    /// Processes this was asked to end, in order.
+    ///
+    /// <b>A third list rather than more of <see cref="Requested"/>, and the reason is the reason
+    /// these lists exist at all.</b> Half of what the tests check is what the runner did NOT do,
+    /// and "asked the manager to move it", "wrote a setting on it" and "ended the process behind
+    /// it" are three different wrong answers to look for. An empty list here is the assertion that
+    /// carries the most weight in this file.
+    /// </summary>
+    internal List<int> Ended { get; } = [];
+
+    private int? _terminateRefusedWith;
+
+    private readonly HashSet<int> _survives = [];
+
+    /// <summary>A process the system will not let anybody open for ending - protected, or gone.</summary>
+    internal FakeScmControl RefusingToEnd(int errorCode)
+    {
+        _terminateRefusedWith = errorCode;
+        return this;
+    }
+
+    /// <summary>
+    /// A process that takes the request and does not die of it.
+    ///
+    /// <b>Win32 documents this and it is not a curiosity:</b> ending a process is asynchronous, and
+    /// a process with pending driver work cannot exit until that work finishes or is cancelled. So
+    /// a successful call and an entry that never reaches Stopped is a real pair, and the tool has to
+    /// report it as a step that ran out of time rather than as one that worked.
+    /// </summary>
+    internal FakeScmControl SurvivingTermination(int processId)
+    {
+        _survives.Add(processId);
+        return this;
+    }
+
+    public ControlAnswer Terminate(int processId)
+    {
+        Ended.Add(processId);
+
+        if (_terminateRefusedWith is { } refused)
+        {
+            return ControlAnswer.Refused(refused, "Access is denied.");
+        }
+
+        if (!_survives.Contains(processId))
+        {
+            // Every entry running in that process, because that is what ending it does. The whole
+            // point of the neighbours being steps is that a test can see them arrive here without
+            // having been asked.
+            foreach (var entry in _entries.Values.Where(entry => entry.ProcessId == processId))
+            {
+                entry.Status = EntryStatus.Stopped;
+
+                // AND THE SCRIPT IS TORN UP, WHICH THE FIRST VERSION FORGOT. A scripted entry
+                // keeps handing out its last reading for as long as anybody looks, which is how
+                // "stuck" is expressed here - so an entry scripted to sit in StopPending went on
+                // saying so after its process had gone, and the tool was reported as failing to
+                // notice a death this double never modelled.
+                entry.Moving = false;
+                entry.AfterRequest = null;
+            }
+        }
+
+        return ControlAnswer.Done();
+    }
+
+    /// <summary>Which process an entry runs in, for the tests that end one.</summary>
+    internal FakeScmControl RunningIn(string serviceName, int processId)
+    {
+        Entry(serviceName).ProcessId = processId;
+        return this;
+    }
+
     /// <summary>An entry whose configuration the manager will not write.</summary>
     internal FakeScmControl RefusingConfiguration(string serviceName, int errorCode)
     {
@@ -123,7 +197,8 @@ internal sealed class FakeScmControl : IScmControl
 
         if (!entry.Moving || entry.AfterRequest is null)
         {
-            return ControlAnswer.At(new ServiceProgress(entry.Status, CheckPoint: 0, TimeSpan.Zero));
+            return ControlAnswer.At(
+                new ServiceProgress(entry.Status, CheckPoint: 0, TimeSpan.Zero, Held(entry)));
         }
 
         // The last reading stays on the table. An entry that has arrived should keep saying
@@ -136,6 +211,19 @@ internal sealed class FakeScmControl : IScmControl
 
         return ControlAnswer.At(reading);
     }
+
+    /// <summary>
+    /// A process for an entry that is anywhere but stopped, and none for one that is.
+    ///
+    /// A number rather than nothing, because the fake exists to produce the shapes a real
+    /// manager produces - and a running entry with no process behind it is not one of them.
+    /// The value itself carries no meaning beyond being the same one every time, so a test
+    /// asserting on it is asserting that the reading was carried rather than invented.
+    /// </summary>
+    internal const uint FakeProcess = 4812;
+
+    private static uint Held(Behaviour entry) =>
+        entry.Status == EntryStatus.Stopped ? 0 : (uint)entry.ProcessId;
 
     private Behaviour Entry(string serviceName)
     {
@@ -151,6 +239,12 @@ internal sealed class FakeScmControl : IScmControl
     /// <summary>How one entry behaves while a plan runs.</summary>
     private sealed class Behaviour
     {
+        /// <summary>
+        /// The process this entry runs in. Shared with any other entry given the same number,
+        /// which is what ending one of them has to take down with it.
+        /// </summary>
+        internal int ProcessId { get; set; } = (int)FakeProcess;
+
         internal int? ConfigureRefusedWith { get; set; }
 
         internal EntryStatus Status { get; set; } = EntryStatus.Running;

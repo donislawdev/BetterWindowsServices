@@ -27,6 +27,7 @@ internal static class Rows
         PerUserRole = PerUserRole.None,
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
+        AcceptsStop = Reading<bool>.Present(true),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Present("LocalSystem"),
@@ -47,12 +48,14 @@ internal static class Rows
         Memory = Reading<ProcessMemory>.NotRead()
     };
 
-    /// <summary>Stopped, and with no process either - the two go together and forgetting the
-    /// second is how a test ends up asserting about a service that is somehow both.</summary>
+    /// <summary>Stopped, and with no process and no accepted controls either - the three go
+    /// together and forgetting one is how a test ends up asserting about a service that is
+    /// somehow both.</summary>
     internal static ScmEntry Stopped(string name) => Entry(name) with
     {
         Status = EntryStatus.Stopped,
-        ProcessId = Reading<int>.Absent()
+        ProcessId = Reading<int>.Absent(),
+        AcceptsStop = Reading<bool>.Absent()
     };
 
     internal static ScmEntry Driver(string name) => Entry(name) with

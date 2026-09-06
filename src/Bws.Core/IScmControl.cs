@@ -12,7 +12,17 @@ namespace Bws.Core;
 /// sets its own deadline, and a service that legitimately needs half a minute is not
 /// reported as stuck by a tool that decided ten seconds was enough.
 /// </summary>
-public readonly record struct ServiceProgress(EntryStatus Status, uint CheckPoint, TimeSpan WaitHint);
+/// <param name="ProcessId">
+/// The process behind the entry, or zero when there is none - raw, exactly as the manager
+/// reported it, the same way <paramref name="CheckPoint"/> is. It comes out of the same
+/// structure as everything else here and costs nothing to carry.
+///
+/// <b>Here so that a step which gave up can name what it gave up on.</b> "Still stopping" and
+/// "still stopping, process 4812" are the same fact with and without somewhere to go next.
+/// Zero becomes an absence one layer up, where the four read states live.
+/// </param>
+public readonly record struct ServiceProgress(
+    EntryStatus Status, uint CheckPoint, TimeSpan WaitHint, uint ProcessId);
 
 /// <summary>
 /// What the manager said. Facts only - the wording belongs to the layer above, same as
@@ -72,6 +82,34 @@ public interface IScmControl
     /// state to watch for, no wait hint, and nothing to poll.
     /// </summary>
     ControlAnswer Configure(string serviceName, StartType wanted);
+
+    /// <summary>
+    /// End a process, without asking anything whether it minds.
+    ///
+    /// <b>THE ONLY METHOD ON THIS INTERFACE THAT DOES NOT TOUCH THE SERVICE CONTROL MANAGER, and it
+    /// lives here anyway on purpose.</b> The read-only mode section F promises is the absence of
+    /// this interface - one thing not to hold. Putting the one call that can end a process behind a
+    /// second interface would make that promise a pair of things to remember, and a promise you
+    /// have to remember twice is one somebody eventually keeps once.
+    ///
+    /// <b>It takes a process rather than a service, which is the narrowest surface that can do the
+    /// job.</b> Deciding WHICH process belongs to an entry is a reading, and readings are worked
+    /// out above this seam where a test can drive them - the same line every other method here
+    /// draws. Checking that the number still means what the plan said is the caller's job for the
+    /// same reason.
+    ///
+    /// <b>Returning does not mean the process is gone.</b> Win32 documents the call as
+    /// asynchronous: it starts the ending and comes back, and a process with pending driver work
+    /// cannot exit until that work is finished or cancelled. So this answers whether the request
+    /// was accepted, and where the entry ended up is a separate question asked afterwards - the
+    /// same shape as <see cref="Request"/>.
+    ///
+    /// <b>Access denied means two different things and only a reading tells them apart.</b> A
+    /// protected process refuses to be opened for this, and so does a process that has already
+    /// gone - Win32 documents error 5 for a terminate on a process that has ended. Asking the entry
+    /// where it is afterwards answers which happened.
+    /// </summary>
+    ControlAnswer Terminate(int processId);
 
     /// <summary>Where the entry is now. The answer says whether it could be read at all.</summary>
     ControlAnswer Read(string serviceName);

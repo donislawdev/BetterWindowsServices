@@ -261,6 +261,13 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
                 ? Reading<int>.Absent()
                 : Reading<int>.Present((int)enumerated.ProcessId),
 
+            // The manager reports an empty set of accepted controls for anything that is not
+            // running, so this is an absence there rather than a no. Present false is a real
+            // and different answer: the entry is up and will not take a stop.
+            AcceptsStop = enumerated.Status == EntryStatus.Stopped
+                ? Reading<bool>.Absent()
+                : Reading<bool>.Present(enumerated.AcceptsStop),
+
             StartType = configuration.StartType,
             DelayedAuto = configuration.DelayedAuto,
             Account = configuration.Account,
