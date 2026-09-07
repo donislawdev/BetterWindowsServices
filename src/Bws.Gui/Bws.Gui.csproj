@@ -67,4 +67,25 @@
     <AssemblyTitle>Better Windows Services</AssemblyTitle>
   </PropertyGroup>
 
+  <!--
+    ONE ICON FILE FOR BOTH SHIPPED PROJECTS, which is why it sits above them rather than in
+    either. Two copies of an icon is two icons that will differ, and nothing would report it.
+    The same trade tests/SourceTree.cs already makes one directory down.
+
+    THIS ALSO SETS THE WINDOW'S ICON AND THAT IS NOT AN ASSUMPTION. A WPF window with no
+    Window.Icon of its own falls back to the assembly icon, which covers the title bar, the
+    taskbar button and the Alt+Tab list. Documented behaviour, not a side effect:
+    https://learn.microsoft.com/dotnet/api/system.windows.window.icon
+    So there is deliberately no Icon= in MainWindow.xaml - a second declaration would be a
+    second thing to keep in step.
+
+    Drawn by tools/icon/bean.ps1 and packed by tools/icon/make-ico.ps1, both outside git.
+    Ten sizes: 16, 20, 24, 32, 36, 40, 48 as DIBs and 64, 96, 256 as PNG. 36 is in nobody's
+    published minimum and is there because at the 150 per cent scaling this was measured on,
+    36 is exactly what the taskbar asks for. docs/PROJEKT-IKONY-20260907.md carries the rest.
+  -->
+  <PropertyGroup>
+    <ApplicationIcon>..\bws.ico</ApplicationIcon>
+  </PropertyGroup>
+
 </Project>

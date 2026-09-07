@@ -52,4 +52,14 @@
     <AssemblyTitle>Better Windows Services (command line)</AssemblyTitle>
   </PropertyGroup>
 
+  <!--
+    THE SAME FILE THE WINDOW USES, not a copy - see the longer note in Bws.Gui.csproj.
+
+    A console program does have an icon worth setting: Explorer shows it, a shortcut takes it,
+    and so does the taskbar while the program runs. One product, one mark.
+  -->
+  <PropertyGroup>
+    <ApplicationIcon>..\bws.ico</ApplicationIcon>
+  </PropertyGroup>
+
 </Project>

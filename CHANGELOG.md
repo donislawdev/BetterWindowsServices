@@ -15,6 +15,16 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **The program has an icon.** A bean, in the same green the window uses for a service that is
+  running. It shows in the title bar, on the taskbar, in Alt+Tab, in the Start menu and beside the
+  file in Explorer, for both the window and the command line program.
+  - **It is drawn at ten sizes rather than the five Windows asks for as a minimum**, so that at
+    125, 150, 250 and 400 per cent display scaling Windows finds an exact match and never has to
+    resize one for you. On a display at 150 per cent - a common setting - the taskbar asks for 36
+    pixels, which is a size most programs do not supply.
+  - **It holds up on a light taskbar and on a dark one.** The dark outline carries the shape
+    against a light background and the green fill carries it against a dark one.
+
 - **The window offers a forced stop, and only where one is called for.** A stop that gives up, or
   that Windows refuses outright, now carries a way out under its own sentence: *Force stop...* -
   or *Force restart...* when it was a restart that failed. Nothing is ended by pressing it. It
@@ -783,7 +793,7 @@ Nothing has been released yet. Everything below is what the tool does today.
 - **The window keeps answering while it works out a plan for a large selection.** Selecting
   everything and asking what stopping it would do took about a quarter of a second with the window
   frozen for all of it - measured at 224-240 ms over 799 entries. The work is the same and takes the
-  same time; the window is simply no longer holding still for it.
+  same time - the window is simply no longer holding still for it.
   - Asking for one thing and changing your mind before the first answer arrives now shows the
     second answer rather than whichever finished first.
 
