@@ -105,9 +105,17 @@ public interface IScmControl
     /// same shape as <see cref="Request"/>.
     ///
     /// <b>Access denied means two different things and only a reading tells them apart.</b> A
-    /// protected process refuses to be opened for this, and so does a process that has already
-    /// gone - Win32 documents error 5 for a terminate on a process that has ended. Asking the entry
-    /// where it is afterwards answers which happened.
+    /// process that has already gone refuses to be opened for this - Win32 documents error 5 for a
+    /// terminate on a process that has ended - and so does a live process whose own access control
+    /// list says no. Asking the entry where it is afterwards answers which happened.
+    ///
+    /// <b>WHAT IT DOES NOT MEAN IS "PROTECTED", AND THAT IS EXACTLY WHAT THIS PARAGRAPH SAID
+    /// UNTIL SOMEBODY MEASURED IT.</b> Windows publishes the rights it withholds from a protected
+    /// process and PROCESS_TERMINATE is not among them, so protection on its own never refuses
+    /// this. Counted on two machines on 2026-09-08: seven protected service processes here and
+    /// three refusals, four there and two - and one program answering opposite ways on the two
+    /// machines at the same protection level. A protection level is a reason to show a person
+    /// beside a refusal, never the refusal itself.
     /// </summary>
     ControlAnswer Terminate(int processId);
 
