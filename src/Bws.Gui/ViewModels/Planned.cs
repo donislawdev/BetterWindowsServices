@@ -93,8 +93,13 @@ public sealed partial class Planned : Observable
     /// broken in the direction that costs the most: a press, a column of refusals from the manager,
     /// and a person left working out why.
     /// </summary>
+    /// <b>AND THE NAME TYPED BACK, SINCE 2026-09-07, WHICH IS THE HEAVIEST CONFIRMATION THIS
+    /// PROJECT HAS.</b> `docs/11` 9.2 point 2 puts the weight of an ask on the size of what it
+    /// does, and <see cref="NeedsTyping"/> is where that scale is decided. It is last in the chain
+    /// on purpose: every other clause is about whether this CAN be done, and this one is about
+    /// whether somebody has said they mean it.
     public bool CanCarryOut =>
-        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true };
+        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true } && Confirmed;
 
     /// <summary>
     /// Whether this session can change anything at all.
@@ -139,6 +144,12 @@ public sealed partial class Planned : Observable
         : Busy ? Texts.Of("gui.plan.blocked.running")
         : _run is not null ? Texts.Of("gui.plan.blocked.alreadyDone")
         : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
+
+        // THE FIFTH WAY THIS BUTTON GOES QUIET, AND IT IS THE ONLY ONE SOMEBODY CAN CLEAR FROM
+        // WHERE THEY ARE STANDING. The other four are facts about the session, the run or the
+        // plan - this one is a sentence saying what to type, and the tooltip is where a person
+        // resting on a grey button finds out there is anything to do at all.
+        : !Confirmed ? Texts.Of("gui.plan.blocked.notTyped", TypeTheName)
         : Texts.Of("gui.plan.carryOut.hint");
 
     /// <summary>Every step, in the order it would happen, numbered as a person would count them.</summary>
@@ -236,10 +247,21 @@ public sealed partial class Planned : Observable
     /// <b>The sentence changed together with the button rather than before it or after it</b>, which
     /// is what the note left at Krok 5 asked for in as many words.
     /// </summary>
+    /// <b>AND IT LEADS WITH WHY THIS SHEET IS OPEN, WHEN SOMETHING OPENED IT.</b> A forcing plan is
+    /// reached only from a failure, and the sheet that carried that failure is closed by the time
+    /// this one appears - one question per sheet. So this line is the only place left saying what
+    /// happened before, which is the whole of what the offer knew and the new plan does not.
+    ///
+    /// <b>Only while nothing has been done, which is the same rule the rest of this property
+    /// follows.</b> Once there is a result the sentence is a report, and a report opening with the
+    /// reason somebody started would put the older of two facts first.
     public string Notice => !Showing ? string.Empty
         : Busy ? Texts.Of("gui.plan.notice.running")
-        : _run is not { } run ? Texts.Of("gui.plan.notice.notYet")
-        : Reported(run);
+        : _run is not { } run
+            ? _because.Length == 0
+                ? Texts.Of("gui.plan.notice.notYet")
+                : Texts.Of("gui.plan.notice.because", _because, Texts.Of("gui.plan.notice.notYet"))
+            : Reported(run);
 
     /// <summary>
     /// How a finished run reads, in the singular and in the plural.
@@ -261,22 +283,6 @@ public sealed partial class Planned : Observable
         : run.Runs.Count == 1
             ? Texts.Of("gui.plan.notice.partly.one")
             : Texts.Of("gui.plan.notice.partly.many", Arrived(run), run.Runs.Count);
-
-    /// <summary>
-    /// The entries that did not get where they were asked to go, one line each, with the manager's
-    /// own words where it refused.
-    ///
-    /// <b>Rule 8 of the untouchable rules, at the moment it matters most.</b> A run that half worked
-    /// and says only "done" is the silent partial answer that rule exists against - and here the
-    /// person is holding a machine somebody else depends on.
-    ///
-    /// Steps never attempted are not listed. They are not failures and the counts in
-    /// <see cref="Notice"/> already carry them, so a line each would bury the one or two lines
-    /// somebody has to act on.
-    /// </summary>
-    public IReadOnlyList<string> Failures => _run is not { } run
-        ? []
-        : [.. run.Results.Where(Failed).Select(PlanWords.Describe)];
 
     /// <summary>
     /// What somebody would type to put the machine back where this run found it. `ADR-11`'s
@@ -303,7 +309,11 @@ public sealed partial class Planned : Observable
     /// What a person calls the one entry, when there is one and the caller knows it. Null or empty
     /// means the title names the entry the way the manager does - see <see cref="Subtitle"/>.
     /// </param>
-    internal bool Show(BulkPlan plan, string? shownAs = null)
+    /// <param name="because">
+    /// What happened that led here, for a plan somebody was offered rather than asked for. Empty
+    /// for every plan opened from the menu, which is all but one of them.
+    /// </param>
+    internal bool Show(BulkPlan plan, string? shownAs = null, string? because = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
 
@@ -313,6 +323,13 @@ public sealed partial class Planned : Observable
         }
 
         _shownAs = shownAs ?? string.Empty;
+        _because = because ?? string.Empty;
+
+        // WHATEVER WAS TYPED INTO THE OLD SHEET GOES WITH IT, and this is the line that would be
+        // easiest to leave out and worst to. A name typed to confirm ending one process, still
+        // sitting in the box under a plan about a different one, is a heavy confirmation that
+        // somebody has already answered without being asked.
+        Typed = string.Empty;
 
         // A NEW PLAN DROPS THE OLD RUN, and getting this wrong would be the worst bug this panel
         // could have: a report of what happened to five services, sitting under the steps of a plan
@@ -358,6 +375,11 @@ public sealed partial class Planned : Observable
         _plan = null;
         _run = null;
         _shownAs = string.Empty;
+        _because = string.Empty;
+
+        // For the reason given at Show: a name typed to confirm one thing must never be waiting
+        // in the box for the next.
+        Typed = string.Empty;
         Busy = false;
         Progress = string.Empty;
         Showing = false;

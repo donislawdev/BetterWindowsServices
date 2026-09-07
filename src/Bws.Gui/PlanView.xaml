@@ -1,6 +1,7 @@
 <UserControl x:Class="Bws.Gui.PlanView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Bws.Gui"
              Focusable="False"
              IsTabStop="False">
 
@@ -61,7 +62,13 @@
     <Grid>
         <Border Style="{StaticResource PlanScrim}" />
 
-        <Border Style="{StaticResource PlanSheet}" Width="560">
+        <!--
+            NAMED SINCE 2026-09-07, because backlog 278 is a question about THIS rectangle: at
+            1000 by 800 the sheet once ran past the window and cut the main button in half. The
+            confirmation box grows the footer, so the height of this is the number that had to be
+            measured rather than estimated - see the guard that reads it.
+        -->
+        <Border x:Name="Sheet" Style="{StaticResource PlanSheet}" Width="560">
 
         <Grid>
             <Grid.RowDefinitions>
@@ -117,7 +124,12 @@
                     IT KEEPS ITS NAME BY BEING GIVEN ONE: a button whose content is a shape has no
                     text to take a name from, and three instruments read that tree by name.
                 -->
+                <!--
+                    NAMED SINCE 2026-09-07, because it is where the keyboard goes when a sheet that
+                    can end a process opens without a box to type into. See PlanView.WayIn.
+                -->
                 <Button Grid.Column="1"
+                        x:Name="PlanCloseButton"
                         Style="{StaticResource PlanClose}"
                         AutomationProperties.AutomationId="planClose"
                         AutomationProperties.Name="{DynamicResource gui.plan.close}"
@@ -232,10 +244,20 @@
                                    Margin="{StaticResource MarginSection}"
                                    Style="{StaticResource SectionHeadingText}" />
 
+                        <!--
+                            THE ONE SECTION WITH A WAY OUT UNDER IT, SINCE 2026-09-07. A failure
+                            that can be escalated carries an offer beside its own sentence rather
+                            than in the footer - `docs/11` 9.2 point 4, because a button in the
+                            footer would be detached from the entry it is about, and a plan over
+                            twenty rows can fail on any of them. Click is caught here for the
+                            reason the commands below give: the template lives in a plain
+                            dictionary with no class behind it, and the event bubbles.
+                        -->
                         <ItemsControl x:Name="FailureList"
                                       AutomationProperties.AutomationId="planFailures"
+                                      Button.Click="ForceRequested"
                                       ItemsSource="{Binding Failures}"
-                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+                                      ItemTemplate="{StaticResource PlanFailureTemplate}" />
                     </StackPanel>
 
                     <StackPanel x:Name="WayBackSection"
@@ -280,96 +302,12 @@
             </Border>
 
             <!--
-                THE FOOTER, AND THE RULE ABOVE IT IS WHY THE BUTTON STOPPED LOOKING ORPHANED. It
-                sits at the bottom rather than under the steps - `docs/11` 9.2 wants the effect
-                shown before the ask, and a way to say yes that has to be scrolled to is one
-                somebody presses without reaching the end.
-
-                INTERRUPT IS A SEPARATE BUTTON RATHER THAN THIS ONE CHANGING ITS WORD, and that is
-                safety: a verb that changes under a finger turns a double click into an instruction
-                nobody gave. It appears to the LEFT, so the rectangle somebody aimed at never
-                becomes something else - it becomes disabled.
+                THE ASK, AND IT LEFT THIS FILE ON 2026-09-07 - see PlanFooter.xaml for what it holds
+                and why the confirmation box could only ever live there. The seam is the one this
+                sheet was already shaped around: the row above scrolls and is evidence, this never
+                scrolls and is the question.
             -->
-            <Border Grid.Row="3"
-                    BorderBrush="{StaticResource SurfacePanelEdge}"
-                    BorderThickness="{StaticResource BorderFooterRule}"
-                    Padding="{StaticResource PaddingFooter}"
-                    Margin="{StaticResource MarginAboveStatus}">
-
-                <StackPanel>
-                <!--
-                    WHY IT CANNOT BE CARRIED OUT, MOVED DOWN HERE ON 2026-09-01 FROM THE TOP OF THE
-                    PANEL. The owner's decision of 2026-08-18 stands unchanged - it is said BEFORE
-                    anybody presses anything - and what changes is that it is now said beside the
-                    thing it is about. At the top it was a second warning under a title, three
-                    scrolling sections away from the grey button it explains.
-
-                    It only appears when something is in the way, so no empty line is ever reserved
-                    for reassurance.
-                -->
-                <!--
-                    A BLOCK WITH A WARNING-COLOURED RULE SINCE 2026-09-02, and the rule is all that
-                    is added: the sentence keeps its words, its colour and its own Visibility. Loose
-                    orange prose across a panel reads as damage, and this is not damage - it is the
-                    reason the button under it will refuse. THE BORDER REPEATS THE BINDING RATHER
-                    THAN TAKING IT: moving it up would leave the TextBlock permanently visible, and
-                    three guards read that exact property to say whether the window admits it
-                    cannot act.
-                -->
-                <Border Style="{StaticResource PlanBlockRefused}"
-                        Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}">
-                    <TextBlock x:Name="PlanBlocked"
-                               AutomationProperties.AutomationId="planBlocked"
-                               Text="{Binding Blocked}"
-                               TextWrapping="Wrap"
-                               Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
-                               Style="{StaticResource ProblemText}" />
-                </Border>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Column="0"
-                               x:Name="PlanProgress"
-                               AutomationProperties.AutomationId="planProgress"
-                               Text="{Binding Progress}"
-                               TextWrapping="Wrap"
-                               VerticalAlignment="Center"
-                               Style="{StaticResource SubduedText}" />
-
-                    <Button Grid.Column="1"
-                            x:Name="InterruptButton"
-                            AutomationProperties.AutomationId="planInterrupt"
-                            Content="{DynamicResource gui.plan.interrupt}"
-                            ToolTip="{DynamicResource gui.plan.interrupt.hint}"
-                            Margin="{StaticResource MarginBetweenControls}"
-                            Visibility="{Binding Busy, Converter={StaticResource WhenTrue}}"
-                            Click="InterruptRequested" />
-
-                    <!--
-                        THE TOOLTIP SAYS WHY IT IS GREY, AND ShowOnDisabled MAKES IT REACHABLE AT
-                        ALL: WPF stops serving tooltips for a disabled control, so without this line
-                        the reason below is a sentence nobody could read.
-
-                        Bound rather than a fixed key, because the button has four ways of going
-                        quiet and only one was ever said out loud - CarryOutTip chooses between them.
-                    -->
-                    <Button Grid.Column="2"
-                            x:Name="CarryOutButton"
-                            Style="{StaticResource DestructiveAction}"
-                            AutomationProperties.AutomationId="planCarryOut"
-                            Content="{DynamicResource gui.plan.carryOut}"
-                            ToolTip="{Binding CarryOutTip}"
-                            ToolTipService.ShowOnDisabled="True"
-                            IsEnabled="{Binding CanCarryOut}"
-                            Click="CarryOutRequested" />
-                </Grid>
-                </StackPanel>
-            </Border>
+            <local:PlanFooter Grid.Row="3" x:Name="Footer" />
         </Grid>
         </Border>
     </Grid>

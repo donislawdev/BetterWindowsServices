@@ -15,6 +15,21 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **The window offers a forced stop, and only where one is called for.** A stop that gives up, or
+  that Windows refuses outright, now carries a way out under its own sentence: *Force stop...* -
+  or *Force restart...* when it was a restart that failed. Nothing is ended by pressing it. It
+  opens a fresh plan naming the process and everything that would go with it, exactly as the
+  terminal's `bws kill` does.
+  - **There is no other way in.** Force stop is not in the action bar and not in a row's menu, so
+    ending the process behind a healthy service is not something you can do by mistake.
+  - **The button names what it will do:** *End process 1408*, rather than "carry this out".
+  - **Where the process holds more than the one service you picked - or holds a service this
+    machine does not work without - the entry's name has to be typed before the button comes
+    alive.** On this machine 105 of 110 service processes hold exactly one service, so most of the
+    time there is nothing extra to type.
+  - **Enter cannot end a process.** The keyboard lands on the box you have to type into, or on the
+    way out when there is none - never on the button.
+
 - **`bws kill NAME` - for a service that will not stop.** It asks politely first and ends the
   process behind the entry only if that does not work, so a service that stops on its own is never
   ended. Both steps are in the preview and the second one says it is conditional.
@@ -716,6 +731,17 @@ Nothing has been released yet. Everything below is what the tool does today.
     many binaries are signed through a Windows catalogue all move it.
 
 ### Fixed
+
+- **`bws kill` said "is a driver" about services that are not drivers.** A stopped service has no
+  process to end, and instead of saying so the tool reached for the nearest sentence it knew. It
+  now says what is actually true: there is no process to end, either because the entry is not
+  running or because the number Windows gave is not one a service process can have. The same
+  wording was missing in the window and is there now.
+
+- **`bws kill` on an entry whose dependants could not all be read** said the same wrong thing.
+  It now says that the list of what would go with the process is known to be short, which is why
+  there is no plan to offer.
+
 
 - **Columns that could only ever say "unknown" now fill in when you turn them on.** Memory,
   Signature, Publisher, File version and File hash are read from the machine only when something

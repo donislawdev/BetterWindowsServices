@@ -84,6 +84,12 @@
                 -->
                 <ResourceDictionary Source="Themes/Menus.xaml" />
                 <ResourceDictionary Source="Themes/Scroll.xaml" />
+                <!--
+                    PlanLines.xaml immediately before Plan.xaml, which is App.xaml's order and is
+                    load bearing in the ordinary way: both reach names declared above them, and one
+                    theme file split into two on 2026-09-07 rather than either half being new.
+                -->
+                <ResourceDictionary Source="Themes/PlanLines.xaml" />
                 <ResourceDictionary Source="Themes/Plan.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />

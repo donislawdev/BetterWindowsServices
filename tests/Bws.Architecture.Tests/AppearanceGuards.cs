@@ -144,7 +144,11 @@ public sealed class AppearanceGuards
             // anywhere would say so.
             "Controls.xaml", "Menus.xaml",
 
-            "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+            // PlanLines.xaml left Plan.xaml on 2026-09-07 when the markup ratchet fired on THAT
+            // one - a failure that can be escalated needed a template of its own. Added here in
+            // the same edit as the split, for the reason the note above gives: a styles file this
+            // pool does not name is one no rule in this class reaches, and nothing would say so.
+            "PlanLines.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
         ];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>

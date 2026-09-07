@@ -84,6 +84,60 @@ public sealed class PlanSentenceGuards
             + "screen instead of words:" + Environment.NewLine + string.Join(Environment.NewLine, wordless));
     }
 
+    /// <summary>
+    /// Every kind of refusal the core can produce says its own thing, and no two say the same
+    /// thing.
+    ///
+    /// <b>WRITTEN 2026-09-07 BECAUSE THE FAULT ABOVE HAD ALREADY HAPPENED IN THE SWITCH NEXT DOOR
+    /// AND SHIPPED.</b> The warning switch got named arms and a throw on 2026-09-06. The refusal
+    /// switch, six lines further down the same file, kept its wildcard - and the two refusals a
+    /// forcing plan can produce arrived that night with no words at all. Measured on this machine
+    /// on 2026-09-07 against the shipped build: <c>bws kill ALG --dry-run</c> printed <i>"ALG is a
+    /// driver. This tool shows drivers but does not start or stop them."</i> about a service
+    /// <c>sc qc</c> calls WIN32_OWN_PROCESS, which was simply stopped and therefore had no process
+    /// to end. A confident false statement about the machine, on the one verb that can kill.
+    ///
+    /// <b>IT ASKS SOMETHING THE WARNING GUARD DOES NOT, AND HAD TO.</b> That one looks for a key
+    /// arriving on screen, which is what a MISSING string looks like. A wildcard is never missing -
+    /// it hands back another kind's sentence, fully worded. So the question here is whether two
+    /// kinds say the same thing, which is the only shape a shared arm has.
+    ///
+    /// <b>The lists are two lengths apart for the reason the warning guard gives</b>, and the
+    /// entries differ per kind so that two sentences comparing equal really are one sentence
+    /// reused rather than two that happen to be about the same names.
+    /// </summary>
+    [Fact]
+    public void Every_kind_of_refusal_says_its_own_thing()
+    {
+        var said = new Dictionary<string, PlanProblemKind>(StringComparer.Ordinal);
+        var shared = new List<string>();
+
+        foreach (var kind in Enum.GetValues<PlanProblemKind>())
+        {
+            var sentence = PlanText.Describe(new PlanProblem(kind, "Spooler", ["W32Time"]));
+
+            if (said.TryGetValue(sentence, out var already))
+            {
+                shared.Add($"{already} and {kind} both say: {sentence}");
+            }
+            else
+            {
+                said.Add(sentence, kind);
+            }
+
+            if (sentence.StartsWith("cli.", StringComparison.Ordinal))
+            {
+                shared.Add($"{kind} has no sentence at all: {sentence}");
+            }
+        }
+
+        Assert.True(
+            shared.Count == 0,
+            "Two refusals the core tells apart come out of the terminal as one sentence, so one of "
+            + "them is wearing the other's words:" + Environment.NewLine
+            + string.Join(Environment.NewLine, shared));
+    }
+
     [Fact]
     public void A_refusal_naming_one_driver_does_not_call_it_these_drivers()
     {

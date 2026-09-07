@@ -34,6 +34,17 @@ public partial class PlanView : UserControl
     internal event EventHandler? InterruptRequest;
 
     /// <summary>
+    /// Somebody pressed the way out under a failure, and it carries which failure.
+    ///
+    /// <b>An event for the same reason as the others, and here it is the strongest of the three.</b>
+    /// Pressing this closes this sheet and opens another with a plan worked out against the machine
+    /// as it is at that moment - which means asking the manager, off this thread, and deciding what
+    /// happens if a second ask arrives while the first is still being worked out. All of that lives
+    /// where a preview is already opened from a menu, and none of it belongs to a panel.
+    /// </summary>
+    internal event EventHandler<ForceAsked>? ForceRequest;
+
+    /// <summary>
     /// Somebody asked for one of the terminal commands, and it carries which one.
     ///
     /// <b>An event for the same reason as the two above, and here the reason is sharper.</b> The
@@ -44,9 +55,54 @@ public partial class PlanView : UserControl
     /// </summary>
     internal event EventHandler<CommandAsked>? CopyRequest;
 
-    public PlanView() => InitializeComponent();
+    public PlanView()
+    {
+        InitializeComponent();
+
+        // THE FOOTER'S TWO PRESSES ARE PASSED ON UNCHANGED, and that is all this sheet does with
+        // them. The foot of the sheet moved to a file of its own on 2026-09-07 - PlanFooter.xaml
+        // says why - and the window still hears exactly the two events it always heard, so nothing
+        // outside these two lines had to learn that the ask lives somewhere else now.
+        Footer.CarryOutRequest += (_, _) => CarryOutRequest?.Invoke(this, EventArgs.Empty);
+        Footer.InterruptRequest += (_, _) => InterruptRequest?.Invoke(this, EventArgs.Empty);
+    }
 
     private void CloseRequested(object sender, RoutedEventArgs e) => Dismiss();
+
+    /// <summary>
+    /// Somebody pressed the way out under one failure.
+    ///
+    /// <b>Caught on the ItemsControl rather than on the button, which is the same shape the copy
+    /// buttons use and for the same reason</b> - the template lives in Themes/Plan.xaml, a plain
+    /// dictionary with no class behind it, so a Click named there would resolve against nothing.
+    ///
+    /// <b>The failure is read off the button's Tag rather than off anything else.</b> A plan over
+    /// several picked rows can fail on any of them, so the selection, the focused item and this
+    /// panel's own DataContext are all ways of escalating something that is not the thing under
+    /// the finger - and this is the one press in this window where that would end the wrong
+    /// process.
+    /// </summary>
+    private void ForceRequested(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not Button pressed || pressed.Tag is not PlanFailure failure)
+        {
+            return;
+        }
+
+        ForceRequest?.Invoke(this, new ForceAsked(failure));
+    }
+
+    /// <summary>
+    /// Which failure the way out was pressed under.
+    ///
+    /// <b>A type for one value, because the analyser asks for one</b> - MA0046 wants the second
+    /// parameter of an event handler to be an EventArgs. The same trade <see cref="CommandAsked"/>
+    /// takes, one event along.
+    /// </summary>
+    internal sealed class ForceAsked(PlanFailure failure) : EventArgs
+    {
+        internal PlanFailure Failure { get; } = failure;
+    }
 
     /// <summary>
     /// One copy button under one command.
@@ -120,12 +176,6 @@ public partial class PlanView : UserControl
         clock.Start();
     }
 
-    private void CarryOutRequested(object sender, RoutedEventArgs e) =>
-        CarryOutRequest?.Invoke(this, EventArgs.Empty);
-
-    private void InterruptRequested(object sender, RoutedEventArgs e) =>
-        InterruptRequest?.Invoke(this, EventArgs.Empty);
-
     /// <summary>
     /// Puts the panel away, and says whether there was one to put away.
     ///
@@ -169,7 +219,69 @@ public partial class PlanView : UserControl
     /// exactly the one a dead binding produces: a session that cannot change anything, a live
     /// button, and nothing on screen to say so.
     /// </summary>
-    internal TextBlock Blocked => PlanBlocked;
+    internal TextBlock Blocked => Footer.Blocked;
+
+    /// <summary>
+    /// The box the entry's name has to be typed into before a process may be ended, and whether it
+    /// is on the screen at all.
+    ///
+    /// <b>Handed through from the footer rather than reached for, so nothing outside this sheet has
+    /// to know the ask lives in a file of its own now.</b> Six guards read this panel by name, and
+    /// a seam that made every one of them say Footer.Confirm would be a seam charging for itself
+    /// in every test that goes near it.
+    /// </summary>
+    internal System.Windows.Controls.TextBox Confirm => Footer.Confirm;
+
+    /// <summary>Whether the confirmation box and its label are on the screen at all.</summary>
+    internal bool ConfirmShown => Footer.ConfirmShown;
+
+    /// <summary>
+    /// The sheet itself, so its height can be measured against the window it has to fit inside.
+    ///
+    /// <b>Backlog 278 is a question about this rectangle</b> - at 1000 by 800 the sheet once ran
+    /// past the bottom of the window and took half of the main button with it. Adding anything to
+    /// the footer reopens that question, and the design that asked for a confirmation box put its
+    /// cost at "about seventy units" and said in as many words that the figure was an estimate.
+    /// </summary>
+    internal System.Windows.Controls.Border TheSheet => Sheet;
+
+    /// <summary>
+    /// Where the keyboard goes when this sheet opens.
+    ///
+    /// <b>THE ONE THING KEEPING ENTER FROM ENDING A PROCESS, and it is a property rather than a
+    /// call so that a test can ask what it chose.</b> A window built for a test is never put on a
+    /// screen, so nothing in this assembly can assert that a control really took focus - Focus()
+    /// answers false for everything in an unshown window. What CAN be checked is the decision, and
+    /// the decision is the half that would be wrong.
+    ///
+    /// <b>The box when it is there, and the way out when it is not</b> - the design's fifth
+    /// collision, taken as recommended. Neither is the button that ends anything, which is the
+    /// whole of what this has to guarantee.
+    ///
+    /// <b>The close mark rather than a Cancel button, and that is a departure from the drawing
+    /// worth naming.</b> The design's panels put a Cancel in the footer; this sheet has never had
+    /// one - it has the mark in the corner and Escape, which do exactly what a Cancel would. Adding
+    /// a third button to say a third time what two things already say would have been a new control
+    /// in the one row the design was trying to keep from growing.
+    /// </summary>
+    internal System.Windows.Controls.Control WayIn => ConfirmShown ? Footer.Confirm : PlanCloseButton;
+
+    /// <summary>
+    /// Sends the keyboard to <see cref="WayIn"/>, and says whether anything took it.
+    ///
+    /// <b>At Input priority rather than now, because "shown" and "arranged" are two moments.</b> A
+    /// control that has just been given a Visibility has not been through layout yet, and focus
+    /// offered to something with no size is focus that goes nowhere quietly.
+    /// </summary>
+    /// <remarks>
+    /// The operation is discarded on purpose and the analyser asks for it to be said - MA0134.
+    /// Nothing waits for a focus to land: whoever opened the sheet has already answered whether it
+    /// opened, and the keyboard arriving one layout pass later is the whole point of the priority.
+    /// </remarks>
+    internal void TakeTheKeyboard() =>
+        _ = Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Input,
+            () => WayIn.Focus());
 
     /// <summary>
     /// The steps as they reach the screen.
@@ -187,7 +299,20 @@ public partial class PlanView : UserControl
     internal IReadOnlyList<string> CommandLines => [.. CommandList.Items.OfType<string>()];
 
     /// <summary>What did not work, as it reaches the screen.</summary>
-    internal IReadOnlyList<string> FailureLines => [.. FailureList.Items.OfType<string>()];
+    internal IReadOnlyList<string> FailureLines =>
+        [.. FailureList.Items.OfType<PlanFailure>().Select(failure => failure.Text)];
+
+    /// <summary>
+    /// The ways out offered under those failures, as they reach the screen.
+    ///
+    /// <b>Read off the items rather than off the model, for the reason every other line here is.</b>
+    /// Planned can be perfectly right about which failure may be escalated while the button binds
+    /// to nothing - and a dead binding here paints a section that looks like a dead end, which is
+    /// indistinguishable from the state this whole slice exists to remove.
+    /// </summary>
+    internal IReadOnlyList<string> OfferLines =>
+        [.. FailureList.Items.OfType<PlanFailure>().Where(failure => failure.HasOffer)
+            .Select(failure => failure.Label)];
 
     /// <summary>The way back, as it reaches the screen.</summary>
     internal IReadOnlyList<string> WayBackLines => [.. WayBackList.Items.OfType<string>()];
@@ -227,8 +352,8 @@ public partial class PlanView : UserControl
     /// live through a run is a second ask one click away - which is exactly the kind of fault a
     /// binding that resolves to nothing produces in silence.
     /// </summary>
-    internal Button CarryOut => CarryOutButton;
+    internal Button CarryOut => Footer.CarryOut;
 
     /// <summary>The way to stop a run, which only exists while there is one.</summary>
-    internal Button Interrupt => InterruptButton;
+    internal Button Interrupt => Footer.Interrupt;
 }

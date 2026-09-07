@@ -240,9 +240,26 @@ internal static class PlanText
             nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
 
+    /// <summary>
+    /// A refusal in words.
+    ///
+    /// <b>NAMED ARMS AND A REFUSAL SINCE 2026-09-07, AND THE WILDCARD THAT WAS HERE HAD SHIPPED.</b>
+    /// The two refusals a forcing plan can produce arrived in the core on 2026-09-06 with no words
+    /// here, and the discard answered for them with the sentence about a driver. Measured on this
+    /// machine rather than reasoned about: <c>bws kill ALG --dry-run</c> printed <i>"ALG is a
+    /// driver. This tool shows drivers but does not start or stop them."</i> - and <c>sc qc ALG</c>
+    /// answers WIN32_OWN_PROCESS. The entry was simply stopped, so there was no process to end, and
+    /// the tool made a confident false statement about the machine on the one verb that can kill.
+    ///
+    /// <b>A discard that PICKS one of the remaining kinds is worse than one that says nothing.</b>
+    /// The warning switch above learned exactly this on 2026-09-06 and this one was left behind by
+    /// a day. Nothing went red, because no guard asked whether two kinds share a sentence.
+    /// </summary>
     internal static string Describe(PlanProblem problem) => problem.Kind switch
     {
         PlanProblemKind.UnknownService => Texts.Of("cli.plan.problem.unknownService", problem.ServiceName),
+
+        PlanProblemKind.NotOperable => Texts.Of("cli.plan.problem.notOperable", problem.ServiceName),
 
         // The other sentence with a plural and no number in it, paired the same day and for the
         // same reason - "these drivers" about one driver.
@@ -263,7 +280,15 @@ internal static class PlanText
                     : "cli.plan.problem.cannotComeBack.many",
             problem.ServiceName, problem.Related.Count, Join(problem.Related)),
 
-        _ => Texts.Of("cli.plan.problem.notOperable", problem.ServiceName)
+        // NO COUNT AND NO PLURAL ON EITHER OF THESE TWO, and that is a fact about them rather than
+        // an omission. Both speak about the one entry somebody named - there is no list to grow.
+        PlanProblemKind.NoProcessToEnd => Texts.Of("cli.plan.problem.noProcessToEnd", problem.ServiceName),
+
+        PlanProblemKind.CascadeUnreadable =>
+            Texts.Of("cli.plan.problem.cascadeUnreadable", problem.ServiceName),
+
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };
 
     private static bool IsTheTarget(PlanProblem problem) =>

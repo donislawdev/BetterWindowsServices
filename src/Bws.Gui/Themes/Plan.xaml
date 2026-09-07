@@ -3,195 +3,31 @@
                     xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
-        WHAT A PLAN IS MADE OF ON SCREEN - one step, one sentence, one command, and the way out of
-        the panel. Templates and styles only, not one value.
+        WHAT THE PLAN SHEET IS: the dimming behind it, the sheet itself, the way out of it, and the
+        two blocks a section can sit in. Styles only, not one value.
 
-        THE TWELFTH THEME FILE, ON 2026-09-02, AND THE MARKUP RATCHET IS WHAT ASKED. The owner
-        looked at the built panel and said it is ugly. PlanView.xaml stood EXACTLY on the 376-line
-        ceiling, so the redesign could not add a line to it until something came out - which is the
-        ratchet doing the job SizeCeilings describes: a file at the ceiling makes the next person
-        look for a seam before they look for room.
+        IT SPLIT IN TWO ON 2026-09-07 AND THE MARKUP RATCHET IS WHAT ASKED, for the second time in
+        five days and the second time pointing at the same seam. A failure that can be escalated
+        needed a template of its own, and this file stood at 445 lines against a ceiling of 376 -
+        so what one LINE of a plan looks like went to PlanLines.xaml and what the SHEET looks like
+        stayed here. That is the division this file's first version already described in its own
+        opening sentence, made real once it had to be.
 
-        THE SEAM IS THE ONE THIS PRODUCT KEEPS FINDING: what a thing IS stays in the view, what a
-        thing LOOKS LIKE comes here. Nothing moved that binds a Click - `docs/10` and AppearanceGuards
-        both record why, and it is not a style choice: a resource dictionary has no code-behind, so
-        a handler named in markup cannot be resolved from one. The close button below is the
-        borderline case and it passes, because a style carries no handler - PlanView.xaml still owns
-        the Click and hands this the look.
+        NEITHER HALF LOADS ON ITS OWN, which is what the guard's own message warns about: both use
+        names from Colours.xaml and Values.xaml through StaticResource, resolved WHILE THE FILE IS
+        READ. So the order in App.xaml is the behaviour, and PlanLines.xaml is merged immediately
+        before this one. Four places repeat that order and all four had to learn the new name:
+        App.xaml, WpfHost in the tests, tools/wpfui-probe, and the pool in AppearanceGuards.
 
-        MERGED AFTER Controls.xaml, which is not optional. The close button reaches
-        PrimaryActionFocusRing through StaticResource, and StaticResource resolves WHILE THIS FILE
-        IS BEING READ - so a dictionary merged after this one is a name that does not exist yet.
-        App.xaml carries the order and three other places repeat it: WpfHost in the tests,
-        tools/wpfui-probe, and the pool in AppearanceGuards.
+        MERGED AFTER Controls.xaml, which is not optional. The close button below reaches
+        PrimaryActionFocusRing through StaticResource, and a dictionary merged after this one is a
+        name that does not exist yet.
+
+        Nothing here binds a Click - `docs/10` and AppearanceGuards both record why, and it is not
+        a style choice: a resource dictionary has no code-behind, so a handler named in markup
+        cannot be resolved from one. The close button is the borderline case and it passes, because
+        a style carries no handler - PlanView.xaml still owns the Click and this hands it the look.
     -->
-
-    <!--
-        ONE STEP. The number is part of the sentence rather than a column, because a plan is read
-        as prose - "3. stop Netlogon (would break otherwise)" - and a person counting steps wants
-        to see where they are in the order.
-
-        WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
-        plan warns that stopping three drags seven along, so the seven have to be findable at a
-        glance. Subdued goes to the ones nobody asked for, which is the right way round.
-    -->
-    <DataTemplate x:Key="PlanLineTemplate">
-        <TextBlock Text="{Binding Text}"
-                   TextWrapping="Wrap"
-                   Margin="{StaticResource MarginBetweenControls}">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource PlanStepText}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Asked}" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
-    </DataTemplate>
-
-    <!--
-        ONE SENTENCE IN A LIST OF THEM: a warning, a refusal, or something that did not work.
-
-        IT NAMED NO COLOUR UNTIL 2026-09-02 AND WAS THEREFORE DRAWN IN SYSTEM BLACK. The implicit
-        TextBlock style sets a face and a size and no Foreground, so a TextBlock that names neither
-        gets the framework's default - which is black. On this panel's #343434 that is a contrast
-        ratio of **1.69**, against the 4.5 WCAG asks. The owner's words were that the panel is black
-        text on grey and that nothing is visible in it, and a scan of the capture agreed exactly:
-        in the band holding this sentence NOT ONE PIXEL was brighter than the background.
-
-        MY OWN EYE READ THE SAME PICTURE AS LIGHT GREY, WHICH IS WHY THIS IS WRITTEN DOWN. The
-        glyphs are black and their antialiased edges are not, so at a glance the mass reads as grey
-        - `docs/11` already records that at these ratios you cannot tell "the colour is not
-        arriving" from "the colour arrives and nobody sees it". The instrument settles it, not the
-        eye, and the same fault is recorded beside HeadingText in Themes/Text.xaml from 2026-09-01.
-    -->
-    <DataTemplate x:Key="PlanSentenceTemplate">
-        <TextBlock Text="{Binding}"
-                   TextWrapping="Wrap"
-                   Foreground="{StaticResource TextOnSurface}"
-                   Margin="{StaticResource MarginBetweenControls}" />
-    </DataTemplate>
-
-    <!--
-        A COMMAND LINE, IN THE FIXED WIDTH FACE. `docs/03` part 4 asks for it wherever two
-        different things must not be able to look the same, and a command somebody is about to
-        paste into a terminal is exactly that - one wrong character is a different service.
-
-        THE FACE IS ASKED FOR BY STYLE RATHER THAN BY SETTER SINCE 2026-09-02, and that is the same
-        repair as the sentence above rather than tidying: this named the face and not the colour, so
-        the one thing on the panel a person is meant to COPY was drawn in system black at 1.69
-        against the surface under it. FixedText names both, and has named both since the day another
-        style was caught with the same hole.
-    -->
-    <!--
-        THE RECESS A COMMAND SITS IN. Darker than the sheet, one point of edge, and padded on both
-        sides - the argument for the fill is beside SurfaceCommandBox in Colours.xaml.
-    -->
-    <Style x:Key="PlanCommandBox" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource SurfaceCommandBox}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
-        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
-        <Setter Property="CornerRadius" Value="{StaticResource CornerTile}" />
-        <Setter Property="Padding" Value="{StaticResource PadChip}" />
-        <Setter Property="Margin" Value="{StaticResource MarginChip}" />
-    </Style>
-
-    <!--
-        THE BUTTON THAT TAKES IT AWAY. Quiet on purpose: it stands beside a command in a fixed face,
-        and a filled button there would be the loudest thing in a block whose subject is the text.
-        An outline says "control" without saying "press me before you read this".
-
-        IT KEEPS ITS SIZE WHEN THE WORD CHANGES. Copy becomes Copied for two seconds, and a box that
-        grew by two characters would shift the command beside it every time somebody pressed it.
-    -->
-    <Style x:Key="PlanCopyButton" TargetType="Button">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-        <Setter Property="Padding" Value="{StaticResource PadChip}" />
-        <Setter Property="MinWidth" Value="{StaticResource WidthCopyButton}" />
-        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="Face"
-                            Background="{x:Static media:Brushes.Transparent}"
-                            BorderBrush="{StaticResource SurfaceChipEdge}"
-                            BorderThickness="{StaticResource BorderAllSides}"
-                            CornerRadius="{StaticResource CornerTile}"
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Face" Property="Background"
-                                    Value="{StaticResource SurfaceHover}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!--
-        AND SINCE 2026-09-02 IT HAS A WAY OFF THE SCREEN, WHICH IS THE OWNER'S FIRST REMARK OF THE
-        SECOND SERIES. The command was a sentence somebody had to retype by hand, one character at
-        a time, into a terminal where one wrong character is a different service - the exact risk
-        the fixed-width face was chosen to reduce, left standing in the one place it mattered most.
-
-        A BOX PER COMMAND RATHER THAN ONE BUTTON FOR THE BLOCK. A plan over several picked rows
-        prints one line each, and copying all of them at once is a different thing from copying the
-        one somebody is about to run.
-
-        THE BUTTON IS ALWAYS THERE RATHER THAN ON HOVER. A control that appears under the pointer is
-        prettier and invisible to anybody working from the keyboard, and it is invisible to anybody
-        who does not already know it is there - which is everybody, the first time.
-
-        IT STOPPED WRAPPING AND STARTED SCROLLING. A long command used to grow the sheet downwards
-        and move the button under it, which is how a person aims at one thing and presses another.
-    -->
-    <DataTemplate x:Key="PlanCommandTemplate">
-        <Border Style="{StaticResource PlanCommandBox}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <ScrollViewer Grid.Column="0"
-                              HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Disabled"
-                              VerticalAlignment="Center">
-                    <TextBlock Text="{Binding}" Style="{StaticResource FixedText}" />
-                </ScrollViewer>
-
-                <!--
-                    THE COMMAND TRAVELS ON THE BUTTON ITSELF, in Tag, because an ItemsControl builds
-                    one of these per line and whoever handles the press has to know WHICH. Reading
-                    the selection, or the DataContext of whatever had focus, is how the wrong line
-                    gets copied.
-
-                    AND THERE IS NO Click HERE, WHICH IS PULAPKA 10 ARRIVING IN A NEW SHAPE. A theme
-                    file is a plain dictionary with no code behind it, so a handler named here would
-                    not resolve against anything. The press is caught by PlanView.xaml instead, on
-                    the ItemsControl above this template, where Click arrives by bubbling and the
-                    markup is compiled with a class that can hold the method.
-                -->
-                <Button Grid.Column="1"
-                        Style="{StaticResource PlanCopyButton}"
-                        AutomationProperties.AutomationId="planCopyCommand"
-                        AutomationProperties.Name="{DynamicResource gui.plan.copy}"
-                        Content="{DynamicResource gui.plan.copy}"
-                        ToolTip="{DynamicResource gui.plan.copy.hint}"
-                        Tag="{Binding}" />
-            </Grid>
-        </Border>
-    </DataTemplate>
 
     <!--
         THE WAY OUT OF THE PANEL, AND IT BECAME A MARK RATHER THAN A WORD ON 2026-09-02 FOR ONE

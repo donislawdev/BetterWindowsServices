@@ -97,6 +97,19 @@ public sealed partial class Planned
         // What the button says about itself moves with every one of these: elevation is fixed for
         // the session, but running, finished and nothing-to-run all change here.
         Raise(nameof(CarryOutTip));
+
+        // AND WHAT IT SAYS ON ITS FACE, which changes with the plan rather than with a count -
+        // "End process 1408" on a forcing plan and "Carry this out" on every other. A button whose
+        // label was raised nowhere would keep naming the process of the plan before this one.
+        Raise(nameof(CarryOutLabel));
+
+        // THE CONFIRMATION BOX AND ITS LABEL, WHICH APPEAR AND GO WITH THE PLAN. This is the
+        // heading-over-nothing fault of backlog 203 in its most expensive form: a box asking for a
+        // name left standing over a plan that never wanted one would keep the button grey with no
+        // way for anybody to work out why.
+        Raise(nameof(NeedsTyping));
+        Raise(nameof(TypeTheName));
+        Raise(nameof(TypeToConfirm));
         Raise(nameof(HasCommands));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));

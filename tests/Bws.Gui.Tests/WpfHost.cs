@@ -297,7 +297,11 @@ internal static class WpfHost
                      // bearing: the menu styles extend the implicit MenuItem style found there.
                      "Controls.xaml", "Menus.xaml",
 
-                     "Scroll.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+                     // PlanLines.xaml before Plan.xaml, for the same reason and from the same
+                     // list in App.xaml. They were one file until 2026-09-07.
+                     "Scroll.xaml", "PlanLines.xaml", "Plan.xaml",
+
+                     "List.xaml", "Marks.xaml", "Cells.xaml"
                  })
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));

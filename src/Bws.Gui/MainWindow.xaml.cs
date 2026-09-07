@@ -249,9 +249,29 @@ public partial class MainWindow : Window
             }
         };
 
+        ListenToThePlanSheet();
+
+        Closed += (_, _) => NothingIsWatching();
+    }
+
+    /// <summary>
+    /// The four things the plan sheet asks this window for.
+    ///
+    /// <b>A method of its own since 2026-09-07, and the length limit is what asked - MA0051, which
+    /// is the size ratchet arriving as a compiler error rather than as a test.</b> The fourth event
+    /// took this constructor to 125 lines against 120, and the seam it points at is a real one:
+    /// everything above is what the window is MADE of, and these four are what one part of it asks
+    /// the window to do on somebody's behalf.
+    ///
+    /// <b>Wired in one place rather than beside each thing it reaches.</b> Each of the four ends
+    /// somewhere different - a run, a token, the clipboard, a new plan - and they are together here
+    /// because what they have in common is the panel, not the destination.
+    /// </summary>
+    private void ListenToThePlanSheet()
+    {
         // THE ONLY PLACE IN THIS WINDOW THAT LEADS TO A MACHINE CHANGING. An async lambda on an
-        // event, which is the shape this constructor already uses twice above - so the run is
-        // awaited by something rather than started and dropped.
+        // event, which is the shape the constructor already uses twice - so the run is awaited by
+        // something rather than started and dropped.
         PlanPanel.CarryOutRequest += async (_, _) => await CarryOut().ConfigureAwait(true);
 
         // Through a method rather than into the field, because everything else that touches the
@@ -263,7 +283,10 @@ public partial class MainWindow : Window
         // the window can say a copy was refused, because only the window owns the status line.
         PlanPanel.CopyRequest += (_, asked) => Put(asked.Command);
 
-        Closed += (_, _) => NothingIsWatching();
+        // THE WAY OUT FROM UNDER A FAILURE, AND IT OPENS A PLAN RATHER THAN CARRYING ONE OUT. The
+        // same shape as the first - an async lambda awaiting the work - because working a plan out
+        // asks the manager and that moved off this thread on 2026-09-03.
+        PlanPanel.ForceRequest += async (_, asked) => await Force(asked.Failure).ConfigureAwait(true);
     }
 
     /// <summary>

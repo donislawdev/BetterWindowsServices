@@ -225,7 +225,83 @@ public partial class MainWindow
         // display name is what the title calls it so that somebody reads "Performance Logs and
         // Alerts" rather than "pla" before changing a machine. Both end up on screen - the panel
         // puts the internal name under the title, exactly as the details panel does.
-        return _model.Planned.Show(plan, picked.Count == 1 ? picked[0].DisplayName : null);
+        var shown = _model.Planned.Show(plan, picked.Count == 1 ? picked[0].DisplayName : null);
+
+        if (shown)
+        {
+            PlanPanel.TakeTheKeyboard();
+        }
+
+        return shown;
+    }
+
+    /// <summary>
+    /// Takes up the offer under a failure: closes the sheet reporting it and opens a new one
+    /// holding a plan that ends the process.
+    ///
+    /// <b>A NEW SHEET RATHER THAN A SECOND QUESTION ON THIS ONE, and that is the design's first
+    /// named collision.</b> A sheet that has been carried out is a RECORD, and `docs/11` 3.12 says
+    /// a sheet asks one question and is answered once. Growing a second ask onto a record would put
+    /// a report of what happened and a proposal about what could still happen on one surface, with
+    /// one button underneath and nothing saying which of the two it belongs to.
+    ///
+    /// <b>The reason travels across and the plan does not.</b> What opens here is worked out
+    /// against the machine as it is at this moment - the entry may have finished stopping while
+    /// somebody read the failure, in which case the core refuses to build anything and says so.
+    /// Carrying the old plan over would have been carrying an answer about a machine that has
+    /// moved.
+    ///
+    /// <b>It goes through the same counter every other preview goes through</b>, so an offer taken
+    /// up while a menu preview is still being worked out cannot be overtaken by it. The two are the
+    /// same kind of event and the window has no way to tell a person which of two answers it is
+    /// showing.
+    /// </summary>
+    internal async Task<bool> Force(PlanFailure failure)
+    {
+        ArgumentNullException.ThrowIfNull(failure);
+
+        if (failure.Offer is not { } offer)
+        {
+            return false;
+        }
+
+        // THE OLD SHEET GOES FIRST, BEFORE THE WAITING RATHER THAN AFTER IT. Working the new plan
+        // out means asking the manager, which takes a moment - and a record of a failed run left
+        // standing under a press somebody has already made reads as a button that did nothing.
+        _model.Planned.Hide();
+
+        var asked = ++_previews;
+
+        var plan = await _model
+            .PlanAsync(new BulkAction(offer.Kind, [offer.ServiceName]))
+            .ConfigureAwait(true);
+
+        if (asked != _previews)
+        {
+            return false;
+        }
+
+        // THE NAME A PERSON RECOGNISES IS LOOKED UP AGAIN RATHER THAN CARRIED, because the offer
+        // travels with the manager's own name - `ADR-14`, the only thing identity may be made of -
+        // and the row it belongs to is the one thing that knows what to call it. A row that has
+        // gone from the listing since gives nothing, and the title falls back to the internal name,
+        // which is exactly what it does for every plan not built by this window.
+        var shownAs = _model.Rows
+            .FirstOrDefault(row => string.Equals(
+                row.ServiceName, offer.ServiceName, StringComparison.OrdinalIgnoreCase))
+            ?.DisplayName;
+
+        var shown = _model.Planned.Show(plan, shownAs, offer.Because);
+
+        if (shown)
+        {
+            // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
+            // one sheet in the window whose main button ends a process, so Enter arriving on it
+            // with nothing to say where focus is would be an instruction nobody gave.
+            PlanPanel.TakeTheKeyboard();
+        }
+
+        return shown;
     }
 
     /// <summary>

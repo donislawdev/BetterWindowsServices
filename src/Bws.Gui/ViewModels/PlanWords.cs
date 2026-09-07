@@ -150,6 +150,23 @@ internal static class PlanWords
     /// <b>The same singular and plural pair as the warnings above, and for the same reason.</b> A
     /// refusal is read by somebody deciding whether to press, so a sentence pointing at "these
     /// drivers" when there is one of them is a sentence they have to check against the list.
+    ///
+    /// <b>NAMED ARMS AND A REFUSAL SINCE 2026-09-07, AND THE WILDCARD THAT WAS HERE HAD ALREADY
+    /// SHIPPED A FALSE SENTENCE ON THE OTHER SURFACE.</b> The two refusals a forcing plan can
+    /// produce arrived in the core on 2026-09-06 with no words on either interface, and both
+    /// switches ended in a discard rather than a throw - so instead of saying nothing they each
+    /// said the last thing they knew how to say. Measured rather than reasoned:
+    /// <c>bws kill ALG --dry-run</c> answered <i>"ALG is a driver. This tool shows drivers but does
+    /// not start or stop them."</i> about a WIN32_OWN_PROCESS service that was merely stopped,
+    /// confirmed against <c>sc qc ALG</c>. This switch was one step behind the same fault: it would
+    /// have reached a window the moment the window could build such a plan, wearing the sentence
+    /// about a disabled entry that cannot come back.
+    ///
+    /// <b>A discard that PICKS one of the remaining kinds is worse than one that says nothing</b>,
+    /// which is the lesson the warning switch above recorded a day earlier and this one did not
+    /// get. Nothing went red either time, because no guard asked whether two kinds shared a
+    /// sentence - <c>PluralGuards</c> asks only whether a key is missing, and a wildcard is never
+    /// missing.
     /// </summary>
     internal static string Describe(PlanProblem problem) => problem.Kind switch
     {
@@ -166,9 +183,21 @@ internal static class PlanWords
             ? Texts.Of("gui.plan.problem.cascadeNotOperable.one", problem.ServiceName, Listed(problem.Related))
             : Texts.Of("gui.plan.problem.cascadeNotOperable.many", problem.ServiceName, Listed(problem.Related)),
 
-        _ => problem.Related.Count == 1
+        PlanProblemKind.CannotComeBack => problem.Related.Count == 1
             ? Texts.Of("gui.plan.problem.cannotComeBack.one", problem.ServiceName, Listed(problem.Related))
-            : Texts.Of("gui.plan.problem.cannotComeBack.many", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.cannotComeBack.many", problem.ServiceName, Listed(problem.Related)),
+
+        // NO COUNT AND NO PLURAL ON EITHER OF THE NEXT TWO, and that is a fact about them rather
+        // than an omission. Both speak about the one entry somebody named - there is no list to
+        // grow, so there is no second sentence for a second length.
+        PlanProblemKind.NoProcessToEnd =>
+            Texts.Of("gui.plan.problem.noProcessToEnd", problem.ServiceName),
+
+        PlanProblemKind.CascadeUnreadable =>
+            Texts.Of("gui.plan.problem.cascadeUnreadable", problem.ServiceName),
+
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };
 
     internal static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);

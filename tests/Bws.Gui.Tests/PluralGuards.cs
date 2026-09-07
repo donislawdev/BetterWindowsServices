@@ -205,44 +205,6 @@ public sealed class PluralGuards
         Assert.Equal(Bws.Gui.Texts.Of("gui.plan.notice.partly.one"), panel.Notice);
     }
 
-    /// <summary>
-    /// Every kind of warning the core can produce has words of its own in this window.
-    ///
-    /// <b>The twin of the same guard in the terminal tests, written 2026-09-06 with the wildcard
-    /// that made both necessary.</b> Each switch ended in <c>_ =&gt; "is already in that state, so
-    /// nothing would change"</c>, so a warning kind added without a sentence did not go missing -
-    /// it arrived wearing another warning's words, in the panel whose whole job is telling somebody
-    /// what is about to happen to their machine.
-    ///
-    /// <b>Two lengths, because half of these come in a singular and a plural</b> and a key written
-    /// for one count and not the other fails only when somebody happens to hit the other count.
-    /// </summary>
-    [Fact]
-    public void Every_kind_of_warning_has_words_of_its_own()
-    {
-        string[][] lengths = [["W32Time"], ["W32Time", "Dnscache"]];
-
-        var wordless = new List<string>();
-
-        foreach (var kind in Enum.GetValues<PlanWarningKind>())
-        {
-            foreach (var related in lengths)
-            {
-                var said = PlanWords.Describe(new PlanWarning(kind, "Spooler", related));
-
-                if (said.StartsWith("gui.", StringComparison.Ordinal))
-                {
-                    wordless.Add($"{kind} with {related.Length}: {said}");
-                }
-            }
-        }
-
-        Assert.True(
-            wordless.Count == 0,
-            "A warning the core can produce has no sentence in the window, so its key reaches the "
-            + "panel instead of words:" + Environment.NewLine + string.Join(Environment.NewLine, wordless));
-    }
-
     [Fact]
     public void A_cascade_of_one_and_a_cascade_of_two_are_different_sentences()
     {
@@ -373,7 +335,12 @@ public sealed class PluralGuards
         .. panel.Steps.Select(line => line.Text),
         .. panel.Warnings,
         .. panel.Problems,
-        .. panel.Failures,
+        // BOTH HALVES OF A FAILURE SINCE 2026-09-07, because both reach a screen. The line became
+        // an object when a way out arrived under it, and reading only the sentence would leave the
+        // word on that button - the one press in this panel that leads to a process ending -
+        // outside everything this file checks.
+        .. panel.Failures.Select(failure => failure.Text),
+        .. panel.Failures.Select(failure => failure.Label),
         .. panel.Commands,
         .. panel.WayBack
     ];
