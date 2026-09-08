@@ -84,6 +84,9 @@ public sealed partial class MainViewModel : Observable
     /// </summary>
     private bool _showingEveryInstance;
 
+    /// <summary>Asked about a process before ending one. Null in a test - PlanBuilder.Ask.</summary>
+    private readonly IEndingFactsReader? _processes;
+
 
     public MainViewModel()
         : this(
@@ -92,7 +95,11 @@ public sealed partial class MainViewModel : Observable
             // Skip, exactly as the command line defaults, because a launch path on a share can
             // hang on a machine that cannot reach it - and this one runs on every full reading.
             new WindowsBinaryInspector(NetworkPaths.Skip),
-            new WindowsProcessMemoryReader())
+            new WindowsProcessMemoryReader(),
+
+            // NOT on the reading path, unlike the three above: asked once, while a plan that ends a
+            // process is being built, so the window can refuse one up front - PlanBuilder.Ask.
+            new WindowsEndingFactsReader())
     {
     }
 
@@ -105,10 +112,12 @@ public sealed partial class MainViewModel : Observable
         IScmCatalog catalog,
         IClock clock,
         IBinaryInspector? inspector = null,
-        IProcessMemoryReader? reader = null)
+        IProcessMemoryReader? reader = null,
+        IEndingFactsReader? processes = null)
     {
         _index = new RowIndex(clock);
         _catalog = catalog;
+        _processes = processes;
 
         // Says is fetched rather than handed over, because a caller may replace it after this
         // constructor has run - see the argument on Readings._look. The last argument is fetched

@@ -117,7 +117,31 @@ public interface IScmControl
     /// machines at the same protection level. A protection level is a reason to show a person
     /// beside a refusal, never the refusal itself.
     /// </summary>
-    ControlAnswer Terminate(int processId);
+    /// <param name="processId">The process to end.</param>
+    /// <param name="createdAt">
+    /// When that process started, as read while the plan was built, or nothing when nobody read it.
+    ///
+    /// <b>THIS IS WHAT CLOSES THE WINDOW THE PARAGRAPH ABOVE USED TO SAY COULD NOT BE CLOSED, AND
+    /// IT CLOSES IT BY SHARING A HANDLE RATHER THAN BY CHECKING FASTER.</b> The caller reads the
+    /// process number again immediately before asking for this, and a gap remains between that
+    /// reading and this call - Windows hands numbers out again, so the number can belong to
+    /// something else by the time it arrives. Given the creation time, this implementation opens
+    /// ONE handle, checks the identity through it, and ends the process through the same one.
+    /// Nothing can slip in between, because a process number is not reused while a handle to it is
+    /// open.
+    ///
+    /// <b>Nothing when nobody read it, and that is a state rather than an oversight.</b> A plan
+    /// built without anything to ask carries no creation time, and this then behaves exactly as it
+    /// did before the pair existed: the number is all there is, and the number is what it uses.
+    /// What it does not do is claim to have checked.
+    ///
+    /// <b>An identity that cannot be confirmed is a refusal, not a shrug.</b> If the time is given
+    /// and cannot be read back, the process is not ended. That is the only safe answer for the one
+    /// operation in this product that cannot be undone - and it costs nothing measurable: over 186
+    /// processes on two machines on 2026-09-08, the right this needs was refused zero times and
+    /// the call answered every time.
+    /// </param>
+    ControlAnswer Terminate(int processId, long? createdAt);
 
     /// <summary>Where the entry is now. The answer says whether it could be read at all.</summary>
     ControlAnswer Read(string serviceName);

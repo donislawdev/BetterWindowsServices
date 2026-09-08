@@ -44,6 +44,17 @@ internal sealed class FakeScmControl : IScmControl
     /// </summary>
     internal List<int> Ended { get; } = [];
 
+    /// <summary>
+    /// The creation time handed down with each ending, in the same order as <see cref="Ended"/>.
+    ///
+    /// <b>Recorded rather than acted on, because the real check cannot live above this seam.</b>
+    /// Comparing the identity is <see cref="Bws.Core.WindowsScmControl"/>'s job and it does it on
+    /// the handle it kills with, which is the whole point of it - nothing a fake does here could
+    /// stand in for that. What a test CAN ask on this side is whether the plan carried the second
+    /// half of the identity down at all, and this is what it asks.
+    /// </summary>
+    internal List<long?> EndedWith { get; } = [];
+
     private int? _terminateRefusedWith;
 
     private readonly HashSet<int> _survives = [];
@@ -69,9 +80,10 @@ internal sealed class FakeScmControl : IScmControl
         return this;
     }
 
-    public ControlAnswer Terminate(int processId)
+    public ControlAnswer Terminate(int processId, long? createdAt)
     {
         Ended.Add(processId);
+        EndedWith.Add(createdAt);
 
         if (_terminateRefusedWith is { } refused)
         {

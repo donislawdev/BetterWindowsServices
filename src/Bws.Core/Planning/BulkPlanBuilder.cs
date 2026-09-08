@@ -17,7 +17,16 @@ namespace Bws.Core.Planning;
 /// caller usually has one already and reading it again would cost a fifth of a second to learn
 /// nothing new.
 /// </summary>
-public sealed class BulkPlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog catalog)
+/// <param name="processes">
+/// Handed straight to <see cref="PlanBuilder"/> and used for nothing here - see that class for what
+/// it is and what its absence means. Threaded through rather than left out because a selection is
+/// exactly where a refusal discovered late is most expensive: the entries before it in the order
+/// have already been dealt with by then.
+/// </param>
+public sealed class BulkPlanBuilder(
+    IReadOnlyList<ScmEntry> entries,
+    IScmCatalog catalog,
+    IEndingFactsReader? processes = null)
 {
     public BulkPlan Build(BulkAction action)
     {
@@ -27,7 +36,7 @@ public sealed class BulkPlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog
         // what somebody asked keeps its repeats, because it is a record.
         var asked = action.ServiceNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var builder = new PlanBuilder(entries, catalog);
+        var builder = new PlanBuilder(entries, catalog, processes);
         var plans = new List<OperationPlan>();
         var problems = new List<PlanProblem>();
 

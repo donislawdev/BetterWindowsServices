@@ -287,6 +287,19 @@ internal static class PlanText
         PlanProblemKind.CascadeUnreadable =>
             Texts.Of("cli.plan.problem.cascadeUnreadable", problem.ServiceName),
 
+        // TWO KEYS FOR ONE REASON, AND THE SECOND IS NOT DEFENSIVE PADDING. A refusal that came
+        // from the operating system carries the operating system's own words, and printing those
+        // is the difference between "it would not work" and a sentence somebody can search for.
+        // A refusal that came from anywhere else has no such words, and a sentence reading
+        // "It said:  (error 0)" would be worse than one that never promised them.
+        PlanProblemKind.ProcessCannotBeEnded => problem.Error is { } said
+            ? Texts.Of(
+                "cli.plan.problem.processCannotBeEnded",
+                problem.ServiceName, problem.ProcessId, said, problem.ErrorCode)
+            : Texts.Of(
+                "cli.plan.problem.processCannotBeEnded.plain",
+                problem.ServiceName, problem.ProcessId),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };

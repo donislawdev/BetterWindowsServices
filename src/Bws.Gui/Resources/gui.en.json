@@ -231,7 +231,9 @@
   "gui.plan.problem.cannotComeBack.one": "Restarting {0} would take this down and could not start it again, because it is disabled: {1}",
   "gui.plan.problem.cannotComeBack.many": "Restarting {0} would take these down and could not start them again, because they are disabled: {1}",
   "gui.plan.problem.noProcessToEnd": "There is no process to end for {0}. Either the manager names none, which is ordinary for an entry that is not running, or the number it gave is not one a service process can have.",
-  "gui.plan.problem.cascadeUnreadable": "Could not read everything that depends on {0}, so the list of what would go with its process would be shorter than the truth.",
+  "gui.plan.problem.processCannotBeEnded": "Windows will not let this tool end process {1}, which is the process {0} runs in. It said: {2} (error {3}). Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
+  "gui.plan.problem.processCannotBeEnded.plain": "Windows will not let this tool end process {1}, which is the process {0} runs in. Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
+  "gui.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0}, so the list of what would go with its process would be shorter than the truth.",
 
   "gui.plan.commands": "From a terminal",
   "gui.plan.copy": "Copy",

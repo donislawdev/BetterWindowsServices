@@ -24,7 +24,13 @@ internal static class ForcedStop
     /// three only ever travel together. Null says the ask does not end anything, which is every ask
     /// but two.
     /// </summary>
-    internal readonly record struct Ending(int ProcessId, IReadOnlyList<ScmEntry> Sharing, bool Immediate);
+    /// <param name="CreatedAt">
+    /// When that process started, carried so the step can freeze it beside the number. The two
+    /// halves of an identity are only worth anything together, so they travel together from the
+    /// moment they are read. Nothing when nobody read it.
+    /// </param>
+    internal readonly record struct Ending(
+        int ProcessId, IReadOnlyList<ScmEntry> Sharing, bool Immediate, long? CreatedAt);
 
     internal static bool Asked(ActionKind kind) =>
         kind is ActionKind.ForceStop or ActionKind.ForceRestart;
@@ -40,18 +46,29 @@ internal static class ForcedStop
     /// manager a second time would be a second answer to a question with one answer, and the two
     /// could disagree.
     /// </summary>
-    internal static (PlanProblemKind? Refusal, Ending? Ending) Decide(
+    internal static (PlanProblem? Refusal, Ending? Ending) Decide(
         IReadOnlyList<ScmEntry> entries,
         ScmEntry target,
         IReadOnlyList<ScmEntry> cascade,
         IReadOnlyList<PlanWarning> warnings,
-        bool immediate)
+        bool immediate,
+        EndingFacts facts)
     {
         if (ProcessNeighbours.Endable(target) is not { } processId)
         {
             // Nothing to name in the preview, so there is no preview. Four quite different readings
             // arrive here and PlanProblemKind.NoProcessToEnd says why they are one answer.
-            return (PlanProblemKind.NoProcessToEnd, null);
+            return (Because(PlanProblemKind.NoProcessToEnd, target), null);
+        }
+
+        // ASKED BEFORE ANYTHING ELSE IS WORKED OUT, AND THAT ORDER IS THE POINT OF RUNG FIVE. Every
+        // question below this one is about what else comes down on the way. If the thing at the end
+        // of that road cannot be reached at all, working out the road is time spent describing a
+        // journey nobody can take - and on a plan that is carried out, it is a machine taken apart
+        // to reach something unreachable.
+        if (Unreachable(facts, target, processId) is { } unreachable)
+        {
+            return (unreachable, null);
         }
 
         if (warnings.Any(warning => warning.Kind == PlanWarningKind.CascadeUnreadable))
@@ -60,7 +77,7 @@ internal static class ForcedStop
             // preview is a preview OF. On an ordinary stop an incomplete cascade means the plan may
             // do more than it shows, which is said out loud and left to a person. Here it is a list
             // of what dies, known to be short, and no wording makes that acceptable.
-            return (PlanProblemKind.CascadeUnreadable, null);
+            return (Because(PlanProblemKind.CascadeUnreadable, target), null);
         }
 
         // Minus anything the cascade is already taking down, because an entry named twice in one
@@ -73,8 +90,55 @@ internal static class ForcedStop
                     other.ServiceName, entry.ServiceName, StringComparison.OrdinalIgnoreCase)))
         ];
 
-        return (null, new Ending(processId, sharing, immediate));
+        return (null, new Ending(
+            processId,
+            sharing,
+            immediate,
+            facts.Created.IsPresent ? facts.Created.Value : null));
     }
+
+    /// <summary>
+    /// Whether Windows has already said no, asked before the plan is worked out rather than found
+    /// out by a step that meets it.
+    ///
+    /// <b>Three answers, and two of them are not the same refusal.</b> A process that has gone is
+    /// not a process that will not be ended - one is a machine that moved on and the other is a
+    /// permission. Saying "Windows will not let this tool end it" about something that simply is
+    /// not there any more would be a confident sentence about the wrong subject, and confident
+    /// wrong sentences are what this project spends its documents guarding against.
+    ///
+    /// <b>Nothing read means nothing said.</b> A plan built with nobody to ask behaves exactly as
+    /// it did before this existed: it names the process, it tries, and it finds out. That is a
+    /// worse experience and an honest one - what it never does is claim to have checked.
+    /// </summary>
+    private static PlanProblem? Unreachable(EndingFacts facts, ScmEntry target, int processId)
+    {
+        var rights = facts.CanBeEnded;
+
+        if (rights.Outcome == ReadOutcome.NotRead || (rights.IsPresent && rights.Value))
+        {
+            return null;
+        }
+
+        if (rights.Outcome == ReadOutcome.Absent)
+        {
+            // It was there in the listing and it is not there now. The word for that already
+            // exists and it is not a word about permissions.
+            return Because(PlanProblemKind.NoProcessToEnd, target);
+        }
+
+        return new PlanProblem(
+            PlanProblemKind.ProcessCannotBeEnded,
+            target.ServiceName,
+            [],
+            ProcessId: processId,
+            ErrorCode: rights.ErrorCode,
+            Error: rights.Reason);
+    }
+
+    /// <summary>The plain shape, for the reasons that carry nothing but a name.</summary>
+    private static PlanProblem Because(PlanProblemKind kind, ScmEntry target) =>
+        new(kind, target.ServiceName, []);
 
     /// <summary>
     /// Ask everything politely, then end what is left.
@@ -128,7 +192,8 @@ internal static class ForcedStop
             // step in front of it and the person asked for exactly this, so calling it an
             // escalation would print "if the stop does not work" over a plan with no stop in it.
             ending.Immediate ? StepReason.Requested : StepReason.Escalation,
-            ProcessId: ending.ProcessId));
+            ProcessId: ending.ProcessId,
+            ProcessCreatedAt: ending.CreatedAt));
     }
 
     /// <summary>

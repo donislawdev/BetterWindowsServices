@@ -193,6 +193,17 @@ internal static class PlanWords
         PlanProblemKind.NoProcessToEnd =>
             Texts.Of("gui.plan.problem.noProcessToEnd", problem.ServiceName),
 
+        // Two keys for one reason, and the second is not defensive padding - see the same switch in
+        // the command line's PlanText for the argument. A refusal from the operating system carries
+        // its words, and one from anywhere else must not promise them.
+        PlanProblemKind.ProcessCannotBeEnded => problem.Error is { } said
+            ? Texts.Of(
+                "gui.plan.problem.processCannotBeEnded",
+                problem.ServiceName, problem.ProcessId, said, problem.ErrorCode)
+            : Texts.Of(
+                "gui.plan.problem.processCannotBeEnded.plain",
+                problem.ServiceName, problem.ProcessId),
+
         PlanProblemKind.CascadeUnreadable =>
             Texts.Of("gui.plan.problem.cascadeUnreadable", problem.ServiceName),
 

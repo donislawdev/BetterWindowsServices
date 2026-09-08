@@ -212,6 +212,22 @@ public sealed record ServiceAction(
 /// That is not the runner working the plan out afresh, which it never does: it is the runner
 /// declining to carry out a step that stopped meaning what the preview said.
 /// </param>
+/// <param name="ProcessCreatedAt">
+/// When that process started, read at the same moment as the number, and nothing at all when
+/// nobody read it.
+///
+/// <b>THE OTHER HALF OF AN IDENTITY, AND IT IS CARRIED RATHER THAN SHOWN.</b> A process number on
+/// its own stops meaning what the preview said the moment the process behind it exits, because
+/// Windows gives numbers out again. The pair is the nearest thing to an identity Windows hands
+/// over, and the second half is only worth reading if it travels with the first - so it is frozen
+/// into the plan beside it rather than looked up again later.
+///
+/// <b>Never printed.</b> The preview names the process by number because a person can check that
+/// against Task Manager. A file time would be noise carrying no decision.
+///
+/// <b>Nothing here is a state, not an oversight.</b> A plan built without anything to ask carries
+/// no time, and the run then checks the number alone - exactly what it did before this existed.
+/// </param>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
@@ -219,7 +235,8 @@ public sealed record PlanStep(
     StepReason Reason,
     StartType? To = null,
     StartType? From = null,
-    int? ProcessId = null);
+    int? ProcessId = null,
+    long? ProcessCreatedAt = null);
 
 /// <summary>Kinds of thing worth saying before somebody presses the button.</summary>
 public enum PlanWarningKind
@@ -372,11 +389,56 @@ public enum PlanProblemKind
     /// and rule 5 of the untouchable rules says the preview shows exactly what execution does.
     /// There is no wording that makes an incomplete casualty list acceptable.
     /// </summary>
-    CascadeUnreadable
+    CascadeUnreadable,
+
+    /// <summary>
+    /// Windows will not let this tool end that process, and it said so before anything was tried.
+    ///
+    /// <b>RUNG FIVE OF SPECIFICATION <c>C3</c>, WHICH ASKED FOR THIS FROM THE START: say straight
+    /// away that it cannot be done, rather than trying.</b> Until 2026-09-08 the tool tried, took
+    /// error 5 after the fact, and reported it as a step that failed - which is a true report of a
+    /// worse experience, because by then the plan had already asked several other services to stop.
+    ///
+    /// <b>The question asked is a handle, not a protection level, and that distinction was
+    /// measured rather than reasoned.</b> Opening a handle with the right to end a process changes
+    /// nothing and answers exactly what the ending needs to know. The protection level also reads
+    /// perfectly and does NOT answer it: on 2026-09-08, seven protected processes on one machine
+    /// and three refusals, four and two on the other, with one program answering opposite ways on
+    /// the two machines at the same level. A refusal built on protection would have turned away
+    /// four processes out of seven that this tool can in fact end. See
+    /// <c>docs/POMIAR-ZABIJANIE-20260908.md</c> and backlog 320.
+    ///
+    /// <b>A refusal rather than a warning, for the reason <see cref="CascadeNotOperable"/> gives.</b>
+    /// Listing the steps and noting underneath that the last one cannot work would show a machine
+    /// being taken apart to reach something unreachable. Rule 5 of the untouchable rules says the
+    /// preview shows exactly what execution does, and a preview whose last step is known to be
+    /// impossible does not.
+    /// </summary>
+    ProcessCannotBeEnded
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>
-public sealed record PlanProblem(PlanProblemKind Kind, string ServiceName, IReadOnlyList<string> Related)
+/// <param name="Kind">Which reason.</param>
+/// <param name="ServiceName">The entry somebody asked about.</param>
+/// <param name="Related">Other entries the reason names, when it names any.</param>
+/// <param name="ProcessId">
+/// The process the refusal is about, for <see cref="PlanProblemKind.ProcessCannotBeEnded"/> and
+/// nothing else. Zero everywhere else, the way <see cref="PlanStep.To"/> is nothing for every
+/// operation but one.
+/// </param>
+/// <param name="ErrorCode">
+/// The system's own number for the refusal, for the same one kind. Kept beside the sentence
+/// because the two are for different readers and only the number keeps its meaning across
+/// machines - <see cref="Reading{T}.ErrorCode"/> makes the same argument at length.
+/// </param>
+/// <param name="Error">The system's own words for that number, in the system's language.</param>
+public sealed record PlanProblem(
+    PlanProblemKind Kind,
+    string ServiceName,
+    IReadOnlyList<string> Related,
+    int ProcessId = 0,
+    int ErrorCode = 0,
+    string? Error = null)
 {
     internal PlanProblem(PlanProblemKind kind, string serviceName)
         : this(kind, serviceName, [])

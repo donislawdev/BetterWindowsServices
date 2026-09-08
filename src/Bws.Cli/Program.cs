@@ -347,7 +347,7 @@ try
     {
         // Never null here: the only command that leaves it unbuilt is the file comparison,
         // which is not a write and never reaches this branch.
-        var plan = new PlanBuilder(entries, catalog!)
+        var plan = new PlanBuilder(entries, catalog!, new WindowsEndingFactsReader())
             .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents, wanted, options.Force));
 
         if (!plan.IsRunnable)

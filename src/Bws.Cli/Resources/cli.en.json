@@ -98,7 +98,9 @@
   "cli.plan.problem.cannotComeBack.one": "{2} is disabled and restarting {0} would stop it, so it could not be started again. Set it to start automatically or on demand first, or use bws stop if stopping is what you want.",
   "cli.plan.problem.cannotComeBack.many": "{1} entries this restart would stop are disabled, so it could not start them again: {2}. Set them to start automatically or on demand first, or use bws stop if stopping them is what you want.",
   "cli.plan.problem.noProcessToEnd": "There is no process to end for {0}. Either the manager names none, which is ordinary for an entry that is not running, or the number it gave is not one a service process can have.",
-  "cli.plan.problem.cascadeUnreadable": "Could not read everything that depends on {0}, so the list of what ending its process would take down would be shorter than the truth. There is no preview this tool can honestly offer for that.",
+  "cli.plan.problem.processCannotBeEnded": "Windows will not let this tool end process {1}, which is the process {0} runs in. It said: {2} (error {3}). Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
+  "cli.plan.problem.processCannotBeEnded.plain": "Windows will not let this tool end process {1}, which is the process {0} runs in. Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
+  "cli.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0}, so the list of what ending its process would take down would be shorter than the truth. There is no preview this tool can honestly offer for that.",
 
   "cli.column.name": "NAME",
   "cli.column.displayName": "DISPLAY NAME",

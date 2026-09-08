@@ -10,7 +10,20 @@ namespace Bws.Core.Planning;
 /// The listing is handed in rather than fetched, because the caller usually has one
 /// already and reading it again would cost a fifth of a second to learn nothing new.
 /// </summary>
-public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog catalog)
+/// <param name="processes">
+/// Something to ask about the process behind an entry, for the one ask that ends one.
+///
+/// <b>Optional, and the absence is a state rather than a default.</b> Nothing here writes, so
+/// every caller that can reach a real machine should hand one over - both of the two in this
+/// product do. Without it a forced stop is planned exactly as it was before rung five of
+/// specification <c>C3</c> existed: the process is named, the plan is built, and a refusal is
+/// discovered by the step that meets it. <see cref="EndingFacts.NobodyAsked"/> is what that looks
+/// like from the inside, and it is a value with a name rather than a null threaded through.
+/// </param>
+public sealed class PlanBuilder(
+    IReadOnlyList<ScmEntry> entries,
+    IScmCatalog catalog,
+    IEndingFactsReader? processes = null)
 {
     public OperationPlan Build(ServiceAction action)
     {
@@ -94,7 +107,8 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
 
         if (ForcedStop.Asked(action.Kind))
         {
-            var (refusal, decided) = ForcedStop.Decide(entries, target, cascade, warnings, action.Immediate);
+            var (refusal, decided) = ForcedStop.Decide(
+                entries, target, cascade, warnings, action.Immediate, Ask(target));
 
             if (refusal is { } why)
             {
@@ -426,6 +440,26 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
 
 
 
+    /// <summary>
+    /// What the process behind this entry will say about itself, asked once, for the one ask that
+    /// ends one.
+    ///
+    /// <b>ASKED HERE AND NOWHERE ELSE, AND ONLY FOR THAT ASK.</b> Two handle opens against one
+    /// process while a plan is built is nothing. The same two against every running entry on every
+    /// listing would be a cost on the path a person waits for, paid for a pair of facts that are
+    /// different a second later - which is the argument the specification already makes about
+    /// memory, and the reason memory is off unless somebody asks for it.
+    ///
+    /// <b>Not asked at all when there is no number to ask about.</b> An entry that is not running
+    /// has no process, and <see cref="ForcedStop.Decide"/> has a word for that already - asking
+    /// the operating system about process zero to be told so would be a call made to learn
+    /// something this class already knows.
+    /// </summary>
+    private EndingFacts Ask(ScmEntry target) =>
+        processes is not null && ProcessNeighbours.Endable(target) is { } endable
+            ? processes.Read(endable)
+            : EndingFacts.NobodyAsked();
+
     private static OperationPlan Refuse(
         ServiceAction action, PlanProblemKind kind, IReadOnlyList<string>? related = null) => new()
     {
@@ -433,5 +467,21 @@ public sealed class PlanBuilder(IReadOnlyList<ScmEntry> entries, IScmCatalog cat
         Steps = [],
         Warnings = [],
         Problems = [new PlanProblem(kind, action.ServiceName, related ?? [])]
+    };
+
+    /// <summary>
+    /// The same refusal, for a reason that arrives already made.
+    ///
+    /// <b>One place decides why there is no plan for a forced stop, and it is not this class.</b>
+    /// <see cref="ForcedStop"/> knows the process number and the system's own words for the
+    /// refusal, and rebuilding the problem here out of pieces passed up would be a second place
+    /// that has to agree with the first.
+    /// </summary>
+    private static OperationPlan Refuse(ServiceAction action, PlanProblem problem) => new()
+    {
+        Action = action,
+        Steps = [],
+        Warnings = [],
+        Problems = [problem]
     };
 }

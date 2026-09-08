@@ -304,8 +304,13 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     {
         var holding = Holding(before);
 
+        // THE CREATION TIME GOES DOWN WITH THE NUMBER AND THE OTHER SIDE CHECKS IT ON THE HANDLE IT
+        // KILLS WITH. This class checks that the ENTRY still names the same process, which is a
+        // different question from whether the NUMBER still names the same process - Windows gives
+        // numbers out again, and only something holding a handle can rule that out. So this half of
+        // the identity is carried rather than compared here. Backlog 323.
         return holding.IsPresent && holding.Value == step.ProcessId
-            ? control.Terminate(holding.Value)
+            ? control.Terminate(holding.Value, step.ProcessCreatedAt)
             : ControlAnswer.Refused(0, ProcessMoved);
     }
 

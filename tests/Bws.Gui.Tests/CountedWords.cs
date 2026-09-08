@@ -88,6 +88,12 @@ internal static class CountedWords
         // is a service name rather than a number, so the verb after it stays singular whatever the
         // count of the OTHER placeholder in the same sentence is.
         "ends",
+        // One more on 2026-09-08, from rung five's refusal: "end process {1}, which is the process
+        // {0} runs in". Both placeholders in that sentence are names rather than numbers - one is
+        // a process and one is a service - so the verb after the second stays singular no matter
+        // what. This guard cannot tell a name from a count and is not meant to: it asks, and this
+        // list is where the answer goes.
+        "runs",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

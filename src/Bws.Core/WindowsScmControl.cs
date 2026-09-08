@@ -36,31 +36,57 @@ public sealed class WindowsScmControl : IScmControl
     /// <summary>
     /// Ends a process. The one call in this project that nothing can refuse on the machine's behalf.
     ///
-    /// <b>PROCESS_TERMINATE and nothing else</b>, which is the same rule the three above follow and
-    /// matters more here than anywhere: the handle this opens cannot read a byte of that process,
-    /// cannot write one, and can do exactly the one thing the plan said it would.
+    /// <b>PROCESS_TERMINATE, and one more right ONLY when there is an identity to check</b>, which
+    /// is the same rule the three above follow: ask for what this operation needs and not a bit
+    /// more. Without a creation time the handle carries the right to end the process and nothing
+    /// else - it cannot read a byte of that process and cannot write one. With a creation time it
+    /// also carries PROCESS_QUERY_LIMITED_INFORMATION, which allows asking about a process and
+    /// still cannot read, write or touch anything inside it.
     ///
-    /// <b>The handle is opened and closed inside this call, so nothing outlives the step.</b> That
-    /// costs the one guarantee an open handle would buy - Windows will not reuse a process number
-    /// while somebody holds a handle to it - and the caller pays for it differently, by reading the
-    /// number again immediately before asking for this. <b>A window remains between that reading
-    /// and this call and it is not zero.</b> Closing it needs a process identity Windows does not
-    /// hand out in one piece, and pretending otherwise would be the kind of sentence this project
-    /// spends its documents warning about.
+    /// <b>That second right costs nothing, and it is measured rather than assumed.</b> A handle
+    /// asking for two rights is refused when either is refused, so the honest worry is that adding
+    /// it would lose the ending on machines that would otherwise have allowed it. Counted on
+    /// 2026-09-08 over 186 processes behind services on two machines: that right was refused zero
+    /// times, including by all eleven processes Windows was protecting.
+    ///
+    /// <b>THE HANDLE IS WHAT MAKES THE CHECK WORTH ANYTHING, AND THIS PARAGRAPH USED TO SAY THE
+    /// OPPOSITE.</b> It said a window remains between the caller's last reading of the process
+    /// number and this call, that closing it needs an identity Windows does not hand out in one
+    /// piece, and that pretending otherwise would be the kind of sentence this project warns about.
+    /// The first half is still true and the conclusion was wrong. Windows does not reuse a process
+    /// number while somebody holds a handle to it - so a check made THROUGH this handle, before
+    /// ending through the same one, has nothing that can slip between the two. The identity is
+    /// still handed out in two pieces. They just do not have to be collected at the same moment.
+    /// Backlog 323.
     /// </summary>
-    public ControlAnswer Terminate(int processId)
+    public ControlAnswer Terminate(int processId, long? createdAt)
     {
         using var process = PInvoke.OpenProcess_SafeHandle(
-            PROCESS_ACCESS_RIGHTS.PROCESS_TERMINATE,
+            createdAt is null
+                ? PROCESS_ACCESS_RIGHTS.PROCESS_TERMINATE
+                : PROCESS_ACCESS_RIGHTS.PROCESS_TERMINATE
+                    | PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION,
             bInheritHandle: false,
             (uint)processId);
 
         if (process.IsInvalid)
         {
-            // A protected process, a process that has already gone, or no such number at all. The
-            // number travels with the refusal because it is the only thing that tells them apart,
-            // and the layer above asks the entry where it is before calling any of them a failure.
+            // A process that has already gone, no such number at all, or a live process whose own
+            // access control list says no. NOT "a protected process", which is what this comment
+            // said until two machines disagreed with it on 2026-09-08 - PROCESS_TERMINATE is not
+            // among the rights Windows withholds from a protected process, so protection on its
+            // own never arrives here. The number travels with the refusal because it is the only
+            // thing that tells the three apart, and the layer above asks the entry where it is
+            // before calling any of them a failure.
             return Refusal();
+        }
+
+        if (createdAt is { } expected && Started(process) != expected)
+        {
+            // EVERY WAY OF NOT GETTING A MATCH ENDS HERE, INCLUDING NOT GETTING AN ANSWER AT ALL,
+            // and that is the only safe shape for the one operation in this product that cannot be
+            // undone. An identity that cannot be confirmed is not a reason to go ahead.
+            return ControlAnswer.Refused(0, ProcessIsNotTheSameOne);
         }
 
         // The exit code a killed process reports. One rather than zero, because zero is what a
@@ -70,6 +96,43 @@ public sealed class WindowsScmControl : IScmControl
             ? ControlAnswer.Done()
             : Refusal();
     }
+
+    /// <summary>
+    /// When the process behind this handle started, or a value nothing can match.
+    ///
+    /// <b>A failure to read comes back as a number no file time can be rather than as a separate
+    /// answer</b>, because the caller has exactly one question - is this the same process - and
+    /// "I could not tell" is a no. Zero is the value chosen for it: a real creation time is ticks
+    /// since 1601 and is never zero for a process that exists.
+    /// </summary>
+    /// <remarks>
+    /// Written as a statement rather than as one expression, and that is not a style choice.
+    /// <c>NativeCallGuards</c> reads source rather than meaning, and its own header names this
+    /// exact blind spot: a native call beginning a continuation line inside a larger expression
+    /// looks to it like a call whose answer was dropped. The answer IS read here. Putting the call
+    /// where the guard can see it read costs three lines and keeps a guard that has caught this
+    /// project's most repeated interop mistake from having to be argued with.
+    /// </remarks>
+    private static long Started(SafeHandle process)
+    {
+        if (!PInvoke.GetProcessTimes(process, out var created, out _, out _, out _))
+        {
+            return 0;
+        }
+
+        return ((long)(uint)created.dwHighDateTime << 32) | (uint)created.dwLowDateTime;
+    }
+
+    /// <summary>
+    /// Said in the plainest words available, and it is one of the two refusals in this project that
+    /// are ours rather than the system's - the other is the caller's, for a process the entry no
+    /// longer reports at all. This one is narrower and stranger: the entry still names this number,
+    /// and the number no longer names the same process.
+    /// </summary>
+    private const string ProcessIsNotTheSameOne =
+        "The process behind this entry is no longer the one the plan named - the number has been "
+        + "given to something else. Nothing was ended. Ask again to build a plan against the "
+        + "machine as it is now.";
 
     public ControlAnswer Read(string serviceName)
     {

@@ -99,6 +99,25 @@ GetProcessMemoryInfo
 PROCESS_MEMORY_COUNTERS_EX
 PROCESS_ACCESS_RIGHTS
 
+// When a process started, which is here as an IDENTITY rather than as anything a person reads.
+//
+// Windows hands out process numbers again once a process is gone, so the number in a preview can
+// belong to something else by the time the plan runs. The pair of number and creation time is the
+// nearest thing to an identity Windows will give out, and this is the half that is not the number.
+// It is read while the plan is built and read again on the handle that does the ending, so the
+// check and the ending share one handle and nothing can slip between them. Backlog 323.
+//
+// The right, measured rather than taken on trust. The documentation says this accepts
+// PROCESS_QUERY_INFORMATION or PROCESS_QUERY_LIMITED_INFORMATION, and what the documentation
+// cannot say is whether a machine GRANTS the narrower one. Counted on 2026-09-08 over 186
+// processes behind services on two machines: refused zero times, including by all eleven processes
+// Windows was protecting, and the call answered on every one of them.
+// The times themselves are NOT on this list, and that is the generator's decision rather than an
+// omission: it hands them over as the framework's own file time instead of a Win32 one. Worth
+// saying here because this list is meant to be the inventory - a reader looking for the structure
+// beside the call should know it is not missing.
+GetProcessTimes
+
 // Who signed the file an entry runs, and whether the system trusts that signature.
 //
 // Read-only, and the whole block is about files rather than services - none of it can

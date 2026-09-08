@@ -72,6 +72,6 @@ public sealed partial class MainViewModel
     {
         var entries = _index.Everything;
 
-        return Task.Run(() => new BulkPlanBuilder(entries, _catalog).Build(action));
+        return Task.Run(() => new BulkPlanBuilder(entries, _catalog, _processes).Build(action));
     }
 }
