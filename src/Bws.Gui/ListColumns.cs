@@ -316,6 +316,30 @@ internal static class ListColumns
             ? built.Width.Value
             : (double)grid.FindResource("ColumnFloor");
 
+        // AND A CEILING WHERE THE THEME DECLARES ONE. A share keeps growing with the window, which
+        // is right for a column whose content can always use more and wrong for one whose cannot -
+        // past a point the extra is empty ground in the middle of the row. Measured maximised on
+        // 2026-09-08: Display name held 717 against a longest text of 409 and Account 478 against
+        // 199, so 587 of a 2516 viewport stood empty while Description was being cut. Columns.xaml
+        // carries the numbers and the reason they are what they are.
+        //
+        // Named by convention off the width key rather than carried as a field on the column table,
+        // because two of twenty-eight columns have a content width that stops growing - a nullable
+        // field saying "none" twenty-six times records that worse than its absence does.
+        //
+        // TryFindResource, not FindResource: having no ceiling is the ordinary answer here, and the
+        // throwing overload would turn it into an exception per column per rebuild.
+        //
+        // ONLY OVER A SHARE, AND THAT CONDITION IS THE WHOLE OF WHY THIS IS NOT A ONE LINER. A width
+        // can arrive from the file as an ABSOLUTE number, because that is what a column somebody
+        // dragged is recorded as - and the floor two statements above is then that same number. A
+        // ceiling over it would cap a width the person chose by hand, and would sit under its own
+        // floor while doing it. A share is nobody's choice, so capping one takes nothing away.
+        if (built.Width.IsStar && grid.TryFindResource(column.WidthKey + "Ceiling") is double ceiling)
+        {
+            built.MaxWidth = ceiling;
+        }
+
         // NOT USED BY THE GRID, WHICH IS WHY IT CAN CARRY THIS. Sorting is handled below rather
         // than left to the grid, so this path is never resolved against a row - it is how the
         // handler finds out which column was clicked, by identity rather than by header text or by

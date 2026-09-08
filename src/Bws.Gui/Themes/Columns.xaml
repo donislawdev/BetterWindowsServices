@@ -142,4 +142,35 @@
         did, the seven fixed columns were the ones that gave way, all the way to twenty pixels.
     -->
     <system:Double x:Key="ColumnFloor">90</system:Double>
+
+    <!--
+        CEILINGS, AND ONLY WHERE THE CONTENT HAS ONE. A share keeps growing with the window, which
+        is right for a column that can always use more room and wrong for one that cannot - past a
+        point the extra is empty ground in the middle of a row, and it pushes the description away
+        from the name it belongs to.
+
+        FOUND 2026-09-08 BY PHOTOGRAPHING THE WINDOW MAXIMISED, which had never been done - every
+        picture this project had of its own window until that day was at the size it opens at or
+        SMALLER, while the owner keeps it maximised. The numbers came from columns.ps1, which has
+        measured the maximised state all along: nobody had looked at the pixels it stood for.
+
+        Measured at a viewport of 2516 against 1041 at the default size:
+
+          Display name   717 wide, longest text on this machine 409  ->  308 spare
+          Account        478 wide, longest text on this machine 199  ->  279 spare
+          Description    956 wide, longest text 7488                 ->  starved, and cut
+
+        So 587 of 2516 - 23% of the window - stood empty in two columns that had stopped needing
+        it, while the one column that can always use more was being ellipsised.
+
+        THESE TWO NUMBERS ARE HEADROOM OVER A MEASUREMENT, NOT THE MEASUREMENT. 480 is 17% over the
+        longest display name here and 280 is 41% over the longest account. A machine with longer
+        text gets an ellipsis, which is what it already gets at the default size, where these
+        columns are 225 and 150 - well under both ceilings. NOTHING HERE CHANGES THE DEFAULT SIZE.
+
+        No ceiling on Description, on a path or on a hash: their content has no natural width, so
+        every pixel given to them is used.
+    -->
+    <system:Double x:Key="ColumnDisplayNameCeiling">480</system:Double>
+    <system:Double x:Key="ColumnAccountCeiling">280</system:Double>
 </ResourceDictionary>

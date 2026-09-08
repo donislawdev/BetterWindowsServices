@@ -136,9 +136,63 @@ public sealed class BinaryPathResolverTests
     [InlineData(@"system32\drivers\Acx01000.sys", @"C:\WINDOWS\system32\drivers\Acx01000.sys")]
     [InlineData(@"\??\C:\Program Files\Contoso\x.sys", @"C:\Program Files\Contoso\x.sys")]
     [InlineData(@"C:\WINDOWS\System32\spoolsv.exe", @"C:\WINDOWS\System32\spoolsv.exe")]
+    // The percent spellings, which are the common ones and were untested until 2026-09-08.
+    // Counted that day on 786 entries carrying a launch command: 270 hold a percent sign, and
+    // %SystemRoot% is 264 of them, %windir% 3.
+    [InlineData(@"%SystemRoot%\system32\svchost.exe -k netsvcs -p", @"C:\WINDOWS\system32\svchost.exe")]
+    [InlineData(@"%windir%\system32\AppVClient.exe", @"C:\WINDOWS\system32\AppVClient.exe")]
     public void Every_shape_the_manager_returns_lands_on_the_same_kind_of_path(string raw, string expected)
     {
         Assert.Equal(expected, Resolve(raw, onDisk: [expected]).File);
+    }
+
+    [Theory]
+    [InlineData(@"%SystemRoot%\System32\alg.exe")]
+    [InlineData(@"%windir%\System32\alg.exe")]
+    public void The_Windows_directory_a_percent_name_means_is_the_one_handed_in(string raw)
+    {
+        // The two spellings of one idea, made to agree. \SystemRoot\ has always resolved against
+        // the directory the caller hands in, while %SystemRoot% went through the process's own
+        // environment block until 2026-09-08 - and that block carries the signed-in user's
+        // variables over the machine's, so the same entry could resolve to two different files
+        // for two people and their snapshots would differ with nothing on the machine changed.
+        //
+        // Handing in a directory this machine does not have is what tells the two apart. The old
+        // code answered C:\WINDOWS here whatever it was given, because it never read the argument.
+        const string elsewhere = @"D:\OtherWindows";
+        const string expected = @"D:\OtherWindows\System32\alg.exe";
+
+        var resolved = BinaryPathResolver.Resolve(
+            raw,
+            "Any",
+            isDriver: false,
+            elsewhere,
+            candidate => candidate.Equals(expected, StringComparison.OrdinalIgnoreCase),
+            NetworkPaths.Follow);
+
+        Assert.Equal(expected, resolved.File);
+        Assert.True(resolved.OnDisk.Value);
+    }
+
+    [Fact]
+    public void A_percent_name_that_stands_for_nothing_is_left_exactly_as_written()
+    {
+        // What the framework did, kept on purpose. Dropping the name, or cutting the path off at
+        // it, would report a file nobody asked about - and this tool answers "not there" only
+        // about paths it actually looked for.
+        const string raw = @"C:\Tools\%BWS_NO_SUCH_VARIABLE%\agent.exe";
+
+        Assert.Equal(raw, Resolve(raw, onDisk: []).File);
+    }
+
+    [Fact]
+    public void A_lone_percent_sign_is_a_character_in_a_name_and_not_a_variable_opening()
+    {
+        // Legal in a file name and rare enough to be got wrong. A scan that treats the first
+        // percent as an opening and runs to the end of the string would eat the rest of the path.
+        const string raw = @"C:\Tools\100% Coverage\agent.exe";
+
+        Assert.Equal(raw, Resolve(raw, onDisk: [raw]).File);
     }
 
     [Fact]

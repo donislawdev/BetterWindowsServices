@@ -380,6 +380,65 @@ public sealed class AppearanceGuards
     }
 
     /// <summary>The entries a theme file declares, which for a resource dictionary is its root's children.</summary>
+    [Fact]
+    public void A_column_ceiling_names_a_share_that_exists_and_sits_above_the_floor()
+    {
+        // THE MECHANISM IS A NAMING CONVENTION, SO A TYPO IN IT DOES NOTHING AND SAYS NOTHING.
+        // ListColumns looks a ceiling up as the width key with "Ceiling" after it, through
+        // TryFindResource - so ColumnDisplaynameCeiling, one letter wrong in the middle, is an
+        // error nowhere. The column simply goes on growing, and the only way to notice is to
+        // maximise the window and measure it. Which is exactly how the fault these ceilings answer
+        // stayed unseen for the whole life of this project: every picture ever taken of this window
+        // was at the size it opens at or smaller, and the owner keeps it maximised.
+        //
+        // Three things have to hold and each fails quietly on its own:
+        //   - what stands before "Ceiling" is a width key that exists, or nothing is ever read
+        //   - that width is a SHARE, because a fixed column is already its own ceiling and capping
+        //     one would fight the floor ListColumns puts under it at the same value
+        //   - the ceiling is above ColumnFloor, or the column can never reach its own minimum
+        var entries = TopLevel("Columns.xaml");
+
+        static string? KeyOf(XElement entry) => entry
+            .Attributes()
+            .FirstOrDefault(attribute => attribute.Name.LocalName == "Key")?
+            .Value;
+
+        static double Number(XElement entry) =>
+            double.Parse(entry.Value.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+
+        var widths = entries
+            .Where(entry => entry.Name.LocalName == "DataGridLength")
+            .ToDictionary(entry => KeyOf(entry)!, entry => entry.Value.Trim());
+
+        var floor = Number(entries.Single(entry => KeyOf(entry) == "ColumnFloor"));
+
+        var ceilings = entries
+            .Where(entry => KeyOf(entry)?.EndsWith("Ceiling", StringComparison.Ordinal) == true)
+            .ToList();
+
+        // Not a formality: with none declared this test would pass by having nothing to say, and
+        // the day somebody deletes the last ceiling is the day it should be noticed.
+        Assert.NotEmpty(ceilings);
+
+        foreach (var ceiling in ceilings)
+        {
+            var key = KeyOf(ceiling)!;
+            var capped = key[..^"Ceiling".Length];
+
+            Assert.True(
+                widths.TryGetValue(capped, out var width),
+                $"{key} names no column width. ListColumns looks for {capped} and finds nothing, so this caps nothing.");
+
+            Assert.True(
+                width!.EndsWith('*'),
+                $"{key} caps {capped}, which is {width} and not a share. A fixed width is already its own ceiling.");
+
+            Assert.True(
+                Number(ceiling) > floor,
+                $"{key} is {Number(ceiling)} against a ColumnFloor of {floor}, so that column can never reach its own minimum.");
+        }
+    }
+
     private static List<XElement> TopLevel(string name) =>
         [.. XDocument
             .Load(Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", name))
