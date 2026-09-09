@@ -259,6 +259,7 @@ public sealed class ForcedStopGuards
         Assert.False(panel.CanCarryOut);
     }
 
+
     /// <summary>
     /// The name is matched the way the manager matches it, and a trailing space is a keyboard
     /// rather than a change of mind.

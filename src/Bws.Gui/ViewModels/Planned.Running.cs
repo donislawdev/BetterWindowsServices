@@ -22,6 +22,18 @@ public sealed partial class Planned
     private bool _busy;
     private string _progress = string.Empty;
 
+    /// <summary>
+    /// What the step on screen was announced as, without the clock on the end of it.
+    ///
+    /// <b>Kept apart from <see cref="Progress"/> because the clock is rebuilt every second and the
+    /// sentence is not.</b> Appending to Progress itself would grow the line once a second, which
+    /// is the kind of fault that looks like a memory leak and reads like a stutter.
+    /// </summary>
+    private string _step = string.Empty;
+
+    /// <summary>When the step on screen was announced, or nothing when none is running.</summary>
+    private DateTimeOffset? _stepBegan;
+
     /// <summary>Whether a run is happening right now.</summary>
     public bool Busy
     {
@@ -53,6 +65,8 @@ public sealed partial class Planned
     {
         Busy = true;
         Progress = string.Empty;
+        _step = string.Empty;
+        _stepBegan = null;
 
         // The button goes quiet here, so what it says about itself has to move with it - otherwise
         // a person resting on a greyed button mid-run reads the sentence describing what it would
@@ -70,13 +84,34 @@ public sealed partial class Planned
     /// attempts calls the sixth step the third one while somebody is trying to work out where a run
     /// has got to.
     /// </summary>
-    internal void Announce(PlanStep step, int number) =>
-        Progress = Texts.Of(
+    internal void Announce(PlanStep step, int number)
+    {
+        _step = Texts.Of(
             "gui.plan.progress",
             number,
             _plan?.Steps.Count() ?? 0,
             PlanWords.Word(step.Operation),
             step.ServiceName);
+
+        // THE CLOCK RESTARTS PER STEP, NOT PER RUN, because the ceiling is per step. A run of six
+        // steps may take six minutes without any one of them being near its limit, and a single
+        // number counting up towards sixty through all of it would be a number that means nothing.
+        _stepBegan = _clock.Now;
+
+        Tick();
+    }
+
+    /// <summary>
+    /// Rebuilds the line on screen from the step and how long it has been going.
+    ///
+    /// <b>Called from a timer while a run is under way</b> - see <see cref="Watching"/>, which owns
+    /// the timer and nothing else. Split from it so that everything decided here can be checked
+    /// without one.
+    /// </summary>
+    internal void Tick() =>
+        Progress = _stepBegan is not { } began
+            ? _step
+            : PlanWords.StillWaiting(_step, _clock.Now - began, Waiting);
 
     /// <summary>
     /// A run has ended, whether it finished or was interrupted.
@@ -92,6 +127,7 @@ public sealed partial class Planned
         _run = run;
         Busy = false;
         Progress = string.Empty;
+        _stepBegan = null;
 
         Raise(nameof(CanCarryOut));
         Raise(nameof(Notice));
@@ -146,6 +182,7 @@ public sealed partial class Planned
 
         Busy = false;
         Progress = string.Empty;
+        _stepBegan = null;
 
         Raise(nameof(CanCarryOut));
         Raise(nameof(CarryOutTip));

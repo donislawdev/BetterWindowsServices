@@ -133,6 +133,15 @@ internal static class PlanWords
                 "gui.plan.warning.critical.many",
                 warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
 
+        // SAME NAMES, DIFFERENT WHEN - see the terminal's own arm for the whole of the argument.
+        PlanWarningKind.CriticalStartType => warning.Related.Count == 1
+            ? Texts.Of(
+                "gui.plan.warning.criticalStartType.one",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
+            : Texts.Of(
+                "gui.plan.warning.criticalStartType.many",
+                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
+
         PlanWarningKind.AlreadyThere => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName),
 
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
@@ -371,4 +380,36 @@ internal static class PlanWords
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };
+
+    /// <summary>
+    /// The step on screen, with how long it has been going and how long it has left.
+    ///
+    /// <b>`docs/11` SECTION 7 ASKS FOR THIS ABOVE TEN SECONDS AND IT WAS NOT THERE</b> - backlog
+    /// 330, and the pre-release audit's RELEASE-008. The line said which step was happening and
+    /// nothing about how long it had been happening, so a stop that had been going fifty seconds
+    /// and one that had been going two looked the same. A single StartService on Windows Server
+    /// 2025 has been measured here at 30 375 - 30 450 ms, so the half minute this is about is not
+    /// hypothetical.
+    ///
+    /// <b>Both numbers, because one of them alone is the wrong sentence.</b> Elapsed on its own
+    /// says how long somebody has been waiting and not whether waiting is nearly over. The ceiling
+    /// on its own is the thing they could already have read off the box. Together they say the one
+    /// thing worth knowing at that moment: whether this is about to be given up on.
+    ///
+    /// <b>Whole seconds, rounded down.</b> A tenth of a second changing under somebody's eye is
+    /// motion carrying no information, and this line sits under a list they are trying to read.
+    ///
+    /// <b>Past the ceiling is a real state rather than an impossible one.</b> The ceiling caps our
+    /// watching, not the manager's answering - PlanRunner says so - so a step can sit at seventy of
+    /// sixty while the entry's own wait hint is still being honoured. The words have to survive
+    /// that rather than pretend it cannot happen.
+    /// </summary>
+    internal static string StillWaiting(string step, TimeSpan waited, int ceiling)
+    {
+        var seconds = (int)waited.TotalSeconds;
+
+        return seconds < 1
+            ? step
+            : Texts.Of("gui.plan.progress.waiting", step, seconds, ceiling);
+    }
 }

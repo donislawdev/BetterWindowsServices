@@ -110,6 +110,14 @@ public sealed partial class Planned
         Raise(nameof(NeedsTyping));
         Raise(nameof(TypeTheName));
         Raise(nameof(TypeToConfirm));
+
+        // AND THE WAITING ROW, FOR THE SAME REASON AND WITH THE SAME COST WHEN IT IS FORGOTTEN -
+        // which it was, for the length of one build on 2026-09-09. The binding was written, the
+        // markup was right, the property answered correctly when asked - and nothing asked, so the
+        // row was evaluated once while no plan was showing and never again. It came up in a
+        // screenshot rather than in a test, which is `docs/08` position 19 arriving on schedule:
+        // a binding that silently keeps a stale answer reddens nothing in this project.
+        Raise(nameof(Waits));
         Raise(nameof(HasCommands));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));

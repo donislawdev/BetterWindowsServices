@@ -118,6 +118,30 @@ internal static class Execution
     }
 
     /// <summary>
+    /// Whether this run has to say out loud that it did not have administrator rights.
+    /// </summary>
+    /// <param name="elevated">
+    /// The answer, handed in rather than fetched.
+    ///
+    /// <b>THAT IS THE WHOLE OF WHAT MAKES THIS CHECKABLE, and it is the shape
+    /// <c>Mishaps.Told</c> already uses in the window for the same reason.</b> Reaching for
+    /// <see cref="Session.IsElevated"/> inside here would put the decision behind a fact about the
+    /// machine running the test - so the guard would be green on a developer's elevated session,
+    /// green on an unelevated one, and green if the condition were inverted. Split off, it takes a
+    /// boolean and a test can hand it both.
+    /// </param>
+    /// <param name="kind">
+    /// What was asked for, because one command already says this better than this sentence can.
+    ///
+    /// <c>snapshot create</c> prints its own line about exactly this, and that one goes further:
+    /// it names the consequence of comparing such a file later, which is where the harm from an
+    /// unelevated reading actually lands. Two paragraphs about one fact is the shape that drifts
+    /// apart at the first edit, so the more specific one wins and this stays quiet.
+    /// </param>
+    internal static bool AdmitsNotElevated(bool elevated, CommandKind kind) =>
+        !elevated && kind != CommandKind.SnapshotCreate;
+
+    /// <summary>
     /// Everything the run has to admit to, on the error channel, with the exit code left
     /// alone. A partial answer is not a failure, and reporting it as one would make scripts
     /// treat an ordinary lack of permissions as a broken tool. Staying quiet about it is the
@@ -132,6 +156,28 @@ internal static class Execution
         long inspected,
         long measured)
     {
+        // THE WIDEST ADMISSION FIRST, AND UNTIL 2026-09-09 IT WAS THE ONE THIS TOOL NEVER MADE.
+        //
+        // Everything below is about a FIELD that could not be read on an entry we were handed. This
+        // is about entries we were never handed at all, and it is the only one of the two that
+        // cannot be counted from here: an entry the manager did not enumerate leaves nothing behind
+        // to notice. Session.IsElevated carries the measurement - 807 entries against 810 on one
+        // machine, and five more whose descriptor was refused - together with the sentence that
+        // matters, which is that a listing taken this way is a different document rather than a
+        // shorter one.
+        //
+        // <b>The window has said this since it learned to plan, and the terminal did not.</b> Found
+        // by the pre-release audit of 2026-09-09 asking why two interfaces answered the same
+        // question differently. Rule 8 forbids silence in a result, and this was the largest piece
+        // of silence left in the product.
+        //
+        // NOT ON `snapshot create`, WHICH ALREADY SAYS IT BETTER - the whole of that argument is at
+        // AdmitsNotElevated, together with the reason the decision is a method rather than a line.
+        if (AdmitsNotElevated(Session.IsElevated(), options.Kind))
+        {
+            Console.Error.WriteLine(Texts.Of("cli.warning.notElevated"));
+        }
+
         var refused = entries.Count(entry => entry.StartType.Outcome == ReadOutcome.Denied);
 
         if (refused > 0)

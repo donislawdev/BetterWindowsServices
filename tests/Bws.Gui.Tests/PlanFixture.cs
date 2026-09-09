@@ -70,7 +70,7 @@ internal static class PlanFixture
     /// </summary>
     internal static async Task<MainWindow> Ready(
         bool elevated = true,
-        Func<BulkPlan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
+        Func<BulkPlan, TimeSpan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
     {
         var machine = new LiveMachine(
             Rows.Entry("Spooler", "Print Spooler"),

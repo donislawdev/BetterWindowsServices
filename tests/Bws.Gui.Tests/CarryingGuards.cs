@@ -464,7 +464,7 @@ public sealed class CarryingGuards
     [Fact]
     public async Task A_run_that_throws_leaves_the_panel_able_to_ask_again()
     {
-        var window = await Ready(carriedOutBy: (_, _, _) =>
+        var window = await Ready(carriedOutBy: (_, _, _, _) =>
             Task.FromException<BulkRun>(new InvalidCastException("nobody predicted this")));
 
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);

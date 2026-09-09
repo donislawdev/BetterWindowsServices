@@ -247,7 +247,7 @@ internal static class ForcedStop
         // where a person takes down an entry the machine needs without ever typing its name.
         // Glossary pitfall P1: this says "you should not", which is a different sentence from "you
         // cannot" and from "confirm that you mean it", and the wording keeps them apart.
-        var critical = ProcessNeighbours.Critical(ending.Sharing.Append(target));
+        var critical = CriticalEntries.Named(ending.Sharing.Append(target));
 
         if (critical.Count > 0)
         {

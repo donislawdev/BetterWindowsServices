@@ -390,6 +390,8 @@ public sealed class PlanBuilder(
             }
         }
 
+        CriticalEntries.AddWarnings(warnings, target, action, cascade);
+
         // WHAT THE MANAGER IS GOING TO SAY, SAID BEFORE IT SAYS IT - backlog 8. An entry that does
         // not accept a stop refuses the control outright, so the step fails rather than times out,
         // and until this was read the plan had no way of telling those two apart in advance.
@@ -437,8 +439,6 @@ public sealed class PlanBuilder(
     private ScmEntry? Find(string serviceName) =>
         entries.FirstOrDefault(entry =>
             string.Equals(entry.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase));
-
-
 
     /// <summary>
     /// What the process behind this entry will say about itself, asked once, for the one ask that

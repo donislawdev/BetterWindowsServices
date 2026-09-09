@@ -120,13 +120,29 @@ public sealed partial class Planned
     /// both questions and answered them into the preview a person is looking at. Asking a second
     /// time is a second answer to a question with one answer, and the two only have to disagree
     /// once for the box to be missing from a sheet whose own warning says the machine will stop.
+    ///
+    /// <b>THIS REACHED THE ORDINARY STOP ON 2026-09-09 WITHOUT A LINE HERE CHANGING, AND THAT IS
+    /// WHY THERE IS A PARAGRAPH ABOUT IT.</b> The core began raising
+    /// <see cref="PlanWarningKind.CriticalService"/> on a plain stop that day, and because this
+    /// property reads warnings rather than action kinds, the box appeared on such a plan by itself.
+    /// The owner's decision was to keep it: stopping one of those seven entries takes the machine
+    /// down, and the sentence two paragraphs up - the weight of a confirmation follows the size of
+    /// what it does - points here rather than at an exemption for the ordinary verb.
+    ///
+    /// <b>Reading warnings rather than kinds is what made that free, and it is worth naming as the
+    /// property it is</b>: the question this asks is "does the preview say the effect reaches past
+    /// the entry somebody named", and every future warning that means yes joins on its own. The
+    /// cost of the same property is that one arriving which does NOT mean yes would join too, so
+    /// the list below is a decision each time rather than a default.
     /// </summary>
     public bool NeedsTyping =>
         Showing
         && _run is null
         && _plan is { } plan
         && plan.Plans.Any(one => one.Warnings.Any(warning =>
-            warning.Kind is PlanWarningKind.TerminationTakesWithIt or PlanWarningKind.CriticalService));
+            warning.Kind is PlanWarningKind.TerminationTakesWithIt
+                or PlanWarningKind.CriticalService
+                or PlanWarningKind.CriticalStartType));
 
     /// <summary>
     /// The name that has to be typed, which is the manager's own rather than the one on the title.

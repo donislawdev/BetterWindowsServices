@@ -47,6 +47,50 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!--
+    ONE FILE, AND UNTIL 2026-09-09 PublishSingleFile PRODUCED SIX.
+
+    MEASURED RATHER THAN REASONED ABOUT, by the pre-release audit of that day: publishing this
+    project self-contained and single-file left Bws.Gui.exe beside D3DCompiler_47_cor3.dll,
+    wpfgfx_cor3.dll, PresentationNative_cor3.dll, PenImc_cor3.dll and vcruntime140_cor3.dll -
+    about eight megabytes of WPF's own native halves. The single-file bundler leaves native
+    libraries out by default because they have to be loaded from a path on disk, and nothing in
+    the build said so, so the promise and the output had disagreed since the day the window
+    existed.
+
+    WHY THAT IS A PRODUCT PROBLEM AND NOT A PACKAGING PREFERENCE. Phase 1 of the specification
+    promises a portable executable, and PreferencesFile describes the person it is for as "the
+    admin who copies the executable to the twentieth server". Copying Bws.Gui.exe alone is
+    exactly what that person does.
+
+    WHAT IT COSTS, MEASURED RATHER THAN REASONED ABOUT - AND THE PREDICTION WAS WRONG. The
+    runtime extracts the native halves into the temporary directory on the first launch of a
+    version and reuses them afterwards, 7.9 MB of them, so the expectation written down before
+    the measurement was that a first run would be well over the budget. From launch to a row on
+    the screen, on this machine, published self-contained, tools/gui-probe/first-row.ps1:
+
+      six files, nothing to extract      798 - 960 ms   5 passes, a sixth discarded as cold
+      one file, already extracted        776 - 978 ms   5 passes, a sixth discarded as cold
+      one file, first run of a version   829 - 982 ms   5 cycles, extraction deleted each time
+
+    THE SPREAD IS WIDER THAN ANY DIFFERENCE BETWEEN THE THREE, so what this says is that the
+    change costs nothing measurable here - including on the run that does the extracting, which
+    is the one it was expected to cost. All three stay inside the one second section 8.1 allows.
+
+    The file grows by what it now carries: 163 071 236 bytes to 171 289 067.
+
+    The command line project deliberately does NOT have this. It has no native libraries of its
+    own, so its publish already produced one file, and a property that changes nothing is a
+    property somebody later has to work out the purpose of.
+
+    WHAT IS NOT SOLVED HERE, said rather than left to be found: a publish still writes two .pdb
+    files beside the executable. They are debugging symbols, nothing needs them to run, and
+    whether a release ships them is a packaging question rather than this one.
+  -->
+  <PropertyGroup>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       WithCulture=false is load-bearing here for the same reason it is in Bws.Cli: MSBuild

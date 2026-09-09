@@ -67,7 +67,7 @@ internal static class Carrying
     /// often enough to pass a test and throws on a collection.
     /// </param>
     internal static Task<BulkRun> Out(
-        BulkPlan plan, CancellationToken stopping, Action<PlanStep, int> announce) =>
+        BulkPlan plan, TimeSpan ceiling, CancellationToken stopping, Action<PlanStep, int> announce) =>
         Task.Run(
             () =>
             {
@@ -78,7 +78,7 @@ internal static class Carrying
                 // one.
                 var runner = new BulkRunner(new PlanRunner(new WindowsScmControl(), new SystemClock()));
 
-                return runner.Run(plan, Ceiling, stopping, abandonment: default, starting: announce);
+                return runner.Run(plan, ceiling, stopping, abandonment: default, starting: announce);
             },
             CancellationToken.None);
 }

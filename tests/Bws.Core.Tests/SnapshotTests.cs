@@ -251,6 +251,86 @@ public sealed class SnapshotTests
         Assert.NotNull(failure);
     }
 
+    /// <summary>
+    /// <b>RELEASE-010 of the pre-release audit, 2026-09-09.</b> The reader's own message went
+    /// straight through, so an empty file answered with a clause about <c>isFinalBlock</c> - a
+    /// condition inside a serializer - followed by <c>Path: $ | LineNumber: 0 |
+    /// BytePositionInLine: 0.</c> The first sentence was already the useful one.
+    ///
+    /// <b>Asserted by naming the vocabulary that must not appear rather than the whole sentence.</b>
+    /// The wording of a parser failure belongs to the runtime and will change without asking us -
+    /// pinning the sentence would make this guard go red at the next .NET upgrade for a reason
+    /// unrelated to any change here, which `docs/04` says teaches people to ignore a guard.
+    /// </summary>
+    [Fact]
+    public void A_parser_failure_is_said_in_this_tool_s_words_rather_than_the_serialiser_s()
+    {
+        Assert.False(SnapshotJson.TryRead(string.Empty, out _, out var failure));
+
+        Assert.NotNull(failure);
+        Assert.DoesNotContain("isFinalBlock", failure, StringComparison.Ordinal);
+        Assert.DoesNotContain("BytePositionInLine", failure, StringComparison.Ordinal);
+        Assert.DoesNotContain("Path: $", failure, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A failure carrying no position of its own keeps its sentence and says nothing about where.
+    ///
+    /// <b>Unreachable through <see cref="SnapshotJson.TryRead"/>, which is why the method is
+    /// internal.</b> Every serialiser failure met so far carries a line and a column, so this is
+    /// the shape a future runtime - or an exception somebody wrapped - would arrive in. Saying
+    /// nothing about where beats inventing a zero and sending a person to the top of the file.
+    /// </summary>
+    [Fact]
+    public void A_failure_with_no_position_says_what_went_wrong_and_stops_there() =>
+        Assert.Equal(
+            "Something went wrong.",
+            SnapshotJson.Said(new JsonException("Something went wrong.")));
+
+    /// <summary>
+    /// One sentence stays one sentence. The trim keeps the first, and a message that only has one
+    /// must come through whole rather than losing its full stop.
+    /// </summary>
+    [Fact]
+    public void A_single_sentence_comes_through_whole() =>
+        Assert.StartsWith(
+            "The file ends too soon.",
+            SnapshotJson.Said(new JsonException("The file ends too soon. Path: $ | LineNumber: 4 | BytePositionInLine: 2.")),
+            StringComparison.Ordinal);
+
+    /// <summary>
+    /// Everything after the serialiser's own separator is its position inside the document rather
+    /// than a description of the problem, and this tool says the position in its own words.
+    /// </summary>
+    [Fact]
+    public void The_serialisers_own_tail_is_cut_at_its_own_separator()
+    {
+        var said = SnapshotJson.Said(new JsonException(
+            "Bad token. Expected something else, when isFinalBlock is true. Path: $.entries | LineNumber: 0 | BytePositionInLine: 7."));
+
+        Assert.DoesNotContain("isFinalBlock", said, StringComparison.Ordinal);
+        Assert.DoesNotContain("Path:", said, StringComparison.Ordinal);
+        Assert.Equal("Bad token.", said);
+    }
+
+    /// <summary>
+    /// Where, kept on purpose, and counted the way a person's editor counts.
+    ///
+    /// The serializer numbers lines and columns from zero. Nothing an administrator opens the file
+    /// with does, so a position taken straight from it would send somebody to the wrong place with
+    /// a confident number - which is worse than saying nothing about where.
+    /// </summary>
+    [Fact]
+    public void The_position_of_the_trouble_survives_and_is_counted_from_one()
+    {
+        // Third line, and the brace is the first character on it. A reader counting from zero
+        // would call that line 2.
+        Assert.False(SnapshotJson.TryRead("{\n  \"entries\": [\n}", out _, out var failure));
+
+        Assert.NotNull(failure);
+        Assert.Contains("Line 3", failure, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void An_entry_that_is_empty_is_refused_rather_than_thrown_over()
     {

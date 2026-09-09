@@ -1,3 +1,4 @@
+using System.Windows.Threading;
 using Bws.Core.Planning;
 
 namespace Bws.Gui;
@@ -71,7 +72,7 @@ public partial class MainWindow
     /// <b>Init rather than settable</b>, so a run cannot be swapped out from under a window that
     /// is already using one.
     /// </summary>
-    internal Func<BulkPlan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>> CarriedOutBy
+    internal Func<BulkPlan, TimeSpan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>> CarriedOutBy
     {
         get;
         init;
@@ -102,12 +103,30 @@ public partial class MainWindow
 
         _stopping = stopping;
 
+        var watching = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+
+        watching.Tick += (_, _) => _model.Planned.Tick();
+
         try
         {
             // INSIDE THE TRY RATHER THAN ABOVE IT, so that the finally covers every line that has
             // told the panel anything. Two statements outside it was two statements whose failure
             // left the panel saying a run was under way with nothing to end it.
             _model.Planned.Starting();
+
+            // A SECOND HAND ON THE LINE UNDER THE PLAN. `docs/11` section 7 asks for progress above
+            // ten seconds, and until 2026-09-09 the line said which step was happening and nothing
+            // about how long it had been happening - so a stop fifty seconds into its ceiling and
+            // one two seconds in read identically.
+            //
+            // THE TIMER LIVES HERE AND NOT IN THE PANEL, which is the same division everything else
+            // in this file makes: a DispatcherTimer in a view model is a view model no test can
+            // build without a dispatcher, and what it would be testing is WPF's clock. The panel
+            // owns what the line SAYS - Planned.Tick - and this owns when it is asked.
+            watching.Start();
 
             // ON THE INTERFACE THREAD, WHICH IS WHAT MAKES THE LINE BELOW SAFE. Progress<T> takes
             // the context it is built on and posts back to it, so the steps arriving from a worker
@@ -116,8 +135,12 @@ public partial class MainWindow
             var announce = new Progress<(PlanStep Step, int Number)>(
                 what => _model.Planned.Announce(what.Step, what.Number));
 
+            // THE CEILING COMES FROM THE PANEL RATHER THAN FROM A CONSTANT, SINCE 2026-09-09 -
+            // backlog 330. Read here, at the press, rather than held anywhere: the box is on the
+            // sheet in front of somebody and what they last typed into it is what they meant.
             var running = CarriedOutBy(
                 plan,
+                TimeSpan.FromSeconds(_model.Planned.Waiting),
                 stopping.Token,
                 (step, number) => ((IProgress<(PlanStep, int)>)announce).Report((step, number)));
 
@@ -144,6 +167,8 @@ public partial class MainWindow
         }
         finally
         {
+            watching.Stop();
+
             _running = null;
             _stopping = null;
 

@@ -74,6 +74,67 @@ public static class SnapshotJson
     /// thing for a person to run into - they pointed at the wrong file - and an exception
     /// would turn it into something that looks like the tool falling over.
     /// </summary>
+    /// <summary>
+    /// What a parser failure says to a person, which is not what it says to a developer.
+    ///
+    /// <b>RELEASE-010 of the pre-release audit, 2026-09-09.</b> The reader's own message went
+    /// straight to the operator, so pointing at an empty file answered with
+    /// <c>"Expected the input to start with a valid JSON token, when isFinalBlock is true. Path: $
+    /// | LineNumber: 0 | BytePositionInLine: 0."</c> - two clauses of vocabulary belonging to the
+    /// inside of a serializer and one debugging tail, after one sentence that was genuinely useful.
+    ///
+    /// <b>What is kept is chosen rather than trimmed to taste.</b> The first sentence says WHAT is
+    /// wrong and is the half worth reading. The position says WHERE, and in a snapshot of a
+    /// thousand entries that is the difference between a fix and a search - so it is kept, in this
+    /// tool's own words and counted from one, because a person looking at a file in an editor
+    /// counts that way and the reader does not.
+    ///
+    /// <b>Cut on their own separator rather than on a phrase.</b> <c>" Path: "</c> is where the
+    /// serializer stops describing the problem and starts describing its own position in the
+    /// document, and cutting there needs no knowledge of which clauses a given version writes.
+    /// Matching on <c>isFinalBlock</c> by name would have been a guess about somebody else's
+    /// wording, and it would rot silently at the next runtime.
+    ///
+    /// <b>What this costs, said rather than left to be found:</b> a failure whose second sentence
+    /// carries something the first does not would lose it here. Every shape met so far puts the
+    /// what in the first sentence and a restatement in the second, and the position - which is the
+    /// part that could not be recovered - is kept explicitly for that reason.
+    /// </summary>
+    /// <remarks>
+    /// Internal rather than private for one reason, and it is the same one QueryPatterns gives:
+    /// two of its three branches cannot be reached through TryRead. A serialiser failure always
+    /// carries a position and always writes its own tail, so a message without either - which is
+    /// what a future runtime, or a wrapped exception, would hand over - has no way in from outside.
+    /// A branch nothing can reach is a branch nothing checks.
+    /// </remarks>
+    internal static string Said(JsonException problem)
+    {
+        var whole = problem.Message;
+
+        var tail = whole.IndexOf(" Path: ", StringComparison.Ordinal);
+        var said = tail < 0 ? whole : whole[..tail];
+
+        var second = said.IndexOf(". ", StringComparison.Ordinal);
+
+        if (second >= 0)
+        {
+            said = said[..(second + 1)];
+        }
+
+        if (problem.LineNumber is not { } line || problem.BytePositionInLine is not { } column)
+        {
+            return said;
+        }
+
+        // Counted from one, and converted with the invariant culture rather than inside the hole:
+        // these are digits in a sentence about a file, and a machine whose culture writes numerals
+        // differently would otherwise print a position no editor agrees with.
+        var where = (line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var at = (column + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        return said + " Line " + where + ", position " + at + ".";
+    }
+
     public static bool TryRead(string content, out Snapshot? snapshot, out string? failure)
     {
         snapshot = null;
@@ -85,7 +146,7 @@ public static class SnapshotJson
         }
         catch (JsonException problem)
         {
-            failure = problem.Message;
+            failure = Said(problem);
             return false;
         }
 

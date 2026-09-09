@@ -15,6 +15,51 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **The preview says when a plan would take down something the machine needs.** Seven entries -
+  the two halves of RPC, the account manager, key isolation, the session manager and plug and play
+  - are named on the sheet before you press anything: *PlugPlay is one this machine does not work
+  without. Stopping it takes the machine down, not just the service.*
+  - **It says so on an ordinary stop or restart, not only on a forced one.** Until now that
+    sentence appeared only where a plan ended a process, so `bws stop PlugPlay` said nothing about
+    it.
+  - **A cascade is named too.** Asking to stop something with `--dependents` can take down an entry
+    you never typed, and that is the case with the least warning attached to it.
+  - **Disabling one has its own sentence**, because the harm lands later: *the manager will not
+    start it at the next boot - not on demand either - and the machine comes up without it.*
+  - **In the window, those plans ask you to type the entry's name** before the button comes alive,
+    the same confirmation a plan that ends a process already asked for.
+
+- **The window says how long the step it is on has been going, and lets you change how long it
+  waits.** *Step 1 of 3: stop Spooler - 12 s of 60*, and a box on the plan reading *Wait up to
+  [60] seconds for each step*.
+  - Sixty seconds unless you say otherwise, which is what the terminal has always used.
+  - **The box is only on plans that have something to wait for.** Setting a start type moves no
+    service, so there is no state to arrive at and no box.
+  - It goes off screen while the run is happening, because the number is read when you press.
+
+- **`bws` says when it is not running as an administrator.** A session without those rights is
+  handed fewer entries by Windows and refused more of what it does get, so the answer is not the
+  whole machine - and nothing in the tool can say what is missing from it. The window has said this
+  since it could plan anything, and the terminal now does too.
+
+- **`bws --help` says what a snapshot holds.** Every launch path and file hash, the account each
+  entry runs as, its privileges and its security descriptor, plus the name of the machine and of
+  the account that took it - written with whatever permissions its directory gives it. A directory
+  other people can read is one they can read all of that in.
+
+### Fixed
+
+- **The window publishes as one file.** A self-contained single-file publish used to leave
+  `Bws.Gui.exe` beside five native libraries belonging to Windows Presentation Foundation, about
+  eight megabytes of them - so copying just the executable to another machine copied a program that
+  was missing part of itself. Measured: it costs nothing noticeable at start-up, including on the
+  first run of a new version, which is the run that unpacks them.
+
+- **A file that is not a snapshot is refused in this tool's words.** The message used to carry the
+  reader's own, including a clause about `isFinalBlock` and a tail reading
+  `Path: $ | LineNumber: 0 | BytePositionInLine: 0`. It now says what is wrong and where, with the
+  line and position counted from one the way an editor counts them.
+
 - **The program has an icon.** A bean, in the same green the window uses for a service that is
   running. It shows in the title bar, on the taskbar, in Alt+Tab, in the Start menu and beside the
   file in Explorer, for both the window and the command line program.

@@ -92,7 +92,10 @@ internal static class ForcedStopFixture
     /// manager, and a suite that started one would stop services on whatever computer ran it.
     /// </summary>
     internal static Task<BulkRun> GaveUp(
-        BulkPlan plan, CancellationToken stopping, Action<PlanStep, int> announce) =>
+        BulkPlan plan,
+        TimeSpan ceiling,
+        CancellationToken stopping,
+        Action<PlanStep, int> announce) =>
         Task.FromResult(new BulkRun
         {
             Plan = plan,

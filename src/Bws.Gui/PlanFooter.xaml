@@ -111,6 +111,51 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!--
+                    HOW LONG ONE STEP MAY BE WATCHED FOR, WHICH THE WINDOW HAD NO WAY OF SAYING UNTIL
+                    2026-09-09 - backlog 330, and the pre-release audit's RELEASE-008. The terminal has
+                    had a timeout switch since it could stop anything, so "wait longer" was an answer available
+                    to one of two interfaces, and somebody here whose service needed ninety seconds
+                    could only watch it be abandoned at sixty.
+
+                    THE WHOLE ROW GOES WHEN THE PLAN HAS NOTHING TO WAIT FOR, which is backlog 203 for
+                    the second time in this file: a start type change writes a setting and moves no
+                    service, so a box offering to change how long it is watched for would be a control
+                    that does nothing on a sheet where everything else does something.
+
+                    A PLAIN TEXTBOX RATHER THAN A NUMBER BOX WITH ARROWS. What somebody types here is a
+                    number they already know - the service they have learnt is slow - rather than one
+                    they arrive at by nudging, and the arrows would be two more Tab stops between the
+                    plan and the button that carries it out. The model refuses anything that is not a
+                    whole number of seconds, which is the terminal's own rule rather than a new one.
+
+                    UpdateSourceTrigger for the same reason the confirmation box has it: without it the
+                    number would be typed and the run would still use the old one until somebody
+                    clicked elsewhere, which is a disagreement between the screen and the machine.
+                -->
+                <StackPanel x:Name="WaitingSection"
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            ToolTip="{DynamicResource gui.plan.waiting.hint}"
+                            Visibility="{Binding Waits, Converter={StaticResource WhenTrue}}">
+                    <TextBlock Text="{DynamicResource gui.plan.waiting.label}"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource SubduedText}" />
+
+                    <TextBox x:Name="WaitingBox"
+                             AutomationProperties.AutomationId="planWaiting"
+                             AutomationProperties.Name="{DynamicResource gui.plan.waiting.label}"
+                             Width="56"
+                             Margin="{StaticResource MarginBetweenControls}"
+                             TextAlignment="Right"
+                             Text="{Binding Waiting, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Text="{DynamicResource gui.plan.waiting.unit}"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource SubduedText}" />
+                </StackPanel>
+
                 <TextBlock Grid.Column="0"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"

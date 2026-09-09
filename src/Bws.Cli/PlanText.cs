@@ -229,6 +229,14 @@ internal static class PlanText
             Count("cli.plan.warning.critical", warning),
             warning.ServiceName, warning.Related.Count, Join(warning.Related)),
 
+        // SAME NAMES, DIFFERENT WHEN. The sentence above is about a machine going down while
+        // somebody watches, this one about a machine that comes up wrong weeks later. Sharing a
+        // sentence would have meant dropping the timing, which is the half that decides what an
+        // administrator does next.
+        PlanWarningKind.CriticalStartType => Texts.Of(
+            Count("cli.plan.warning.criticalStartType", warning),
+            warning.ServiceName, warning.Related.Count, Join(warning.Related)),
+
         PlanWarningKind.AlreadyThere => Texts.Of("cli.plan.warning.alreadyThere", warning.ServiceName),
 
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every

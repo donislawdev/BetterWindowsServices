@@ -77,45 +77,6 @@ internal static class ProcessNeighbours
     }
 
     /// <summary>
-    /// Entries the machine does not work without, by name.
-    ///
-    /// <b>A STARTER LIST AND IT SAYS SO, because a list that pretends to be complete is worse than
-    /// one that admits it is not.</b> These are the entries whose process ending stops a Windows
-    /// machine rather than inconveniencing it: the two halves of RPC, which nearly everything else
-    /// calls into, the account manager and key isolation, which live in the process Windows treats
-    /// as critical, and the session manager. There will be others on somebody else's machine.
-    ///
-    /// <b>Its proper home is the guarded list of section H</b> - the specification's own word for a
-    /// set an administrator maintains - and this is not that. This is what can be said today
-    /// without a configuration mechanism to hold it, and the glossary's pitfall `P1` is why it is
-    /// worded as "you should not" rather than "you cannot": the owner decided on 2026-09-06 that
-    /// these are warned about and not refused, because an administrator has the right to manage
-    /// their own machine.
-    ///
-    /// <b>Compared without case, like every service name in this project</b> - `ADR-14`.
-    /// </summary>
-    private static readonly HashSet<string> WithoutTheseTheMachineStops = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "RpcSs",
-        "RpcEptMapper",
-        "DcomLaunch",
-        "SamSs",
-        "KeyIso",
-        "LSM",
-        "PlugPlay"
-    };
-
-    /// <summary>
-    /// The entries in this list that the machine does not work without, named in the order given.
-    ///
-    /// <b>Asked of the whole casualty list rather than of the target alone</b>, because a shared
-    /// process is exactly where somebody ends up taking down a critical entry they never named.
-    /// </summary>
-    internal static IReadOnlyList<string> Critical(IEnumerable<ScmEntry> dying) =>
-        [.. dying.Where(entry => WithoutTheseTheMachineStops.Contains(entry.ServiceName))
-            .Select(entry => entry.ServiceName)];
-
-    /// <summary>
     /// Whether this entry has already been asked to stop.
     ///
     /// <b>The plan is built after a stop that did not work, which is the only way into it from the
