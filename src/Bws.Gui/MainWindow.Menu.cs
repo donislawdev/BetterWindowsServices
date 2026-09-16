@@ -148,7 +148,8 @@ public partial class MainWindow
     /// framework calls is reachable only by clicking, and what it does is worth asserting. How a
     /// menu opens under a button lives in <see cref="ButtonMenu"/>, which is where it went while
     /// there were two of these and the reasoning was written twice. The second was the examples
-    /// button, and it went on 2026-08-13 - its six questions are in the search box's tooltip now.
+    /// button, and it went on 2026-08-13 - its questions are in the search box's tooltip now, cut
+    /// to the list on screen since 2026-09-16.
     /// </summary>
     internal bool OpenColumns() => Filters.OpenColumns();
 

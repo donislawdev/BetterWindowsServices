@@ -188,7 +188,8 @@ public sealed class SuggestionGuards
 
         Assert.True(hoverAt >= 0, "The item template has no trigger on IsMouseOver, so a row under the pointer looks like every other row.");
         Assert.Equal("Face", hoverTarget);
-        Assert.Equal(WpfHost.Declared("SurfaceHover"), hoverBrush);
+        // The panel's hover since 2026-09-16 - the window's read 1.30 on this surface.
+        Assert.Equal(WpfHost.Declared("SurfaceHoverOnPanel"), hoverBrush);
         Assert.True(selectedAt > hoverAt, "The selection trigger stands before the hover one, so pointing at the chosen row takes its colour away.");
     }
 

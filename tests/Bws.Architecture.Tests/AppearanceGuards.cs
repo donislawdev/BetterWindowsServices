@@ -110,7 +110,7 @@ public sealed class AppearanceGuards
     /// thickness say how thick a LINE is, which is what Values.xaml still answers.
     /// </summary>
     private static readonly string[] ValueFiles =
-        ["Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml"];
+        ["Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Surfaces.xaml", "Columns.xaml"];
 
     /// <summary>
     /// The halves that hold styles and no value of their own.
@@ -163,7 +163,13 @@ public sealed class AppearanceGuards
             // one - a failure that can be escalated needed a template of its own. Added here in
             // the same edit as the split, for the reason the note above gives: a styles file this
             // pool does not name is one no rule in this class reaches, and nothing would say so.
-            "PlanLines.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml"
+            "PlanLines.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml",
+
+            // Details.xaml, 2026-09-16: the panel about one entry, whose values had been drawn in
+            // black for thirty-four days because their only style lived in the view and named no
+            // colour - and the guard that catches that reads the theme. Added here in the same
+            // edit as the file, for the reason every entry above gives.
+            "Details.xaml"
         ];
 
     /// <summary>Both pools, for the rules that apply to any file allowed to hold appearance.</summary>

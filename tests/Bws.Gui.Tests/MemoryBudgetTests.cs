@@ -39,21 +39,46 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
     /// A ratchet on today's measurement, exactly like the file length ceilings: nothing here
     /// says this is a good number, it says this is the number and it is not allowed to grow.
     ///
-    /// <b>Measured 2026-08-02, three runs, identical to a tenth of a megabyte: 0.8 MB, being
-    /// 0.6 MB of entries and 0.2 MB of rows.</b> The ceiling is a little under twice that,
-    /// which is room for a collector's noise and not room for a regression - the measurement
-    /// is stable enough that it does not need more.
+    /// <b>Measured 2026-09-16, five runs, identical to within 32 bytes: 1 397 840-1 397 872 bytes,
+    /// being 1 032 712 of entries and 365 128-365 160 of rows.</b> The ceiling is a little under
+    /// twice that, which is room for a collector's noise and not room for a regression - the
+    /// measurement is stable enough that it does not need more.
+    ///
+    /// <b>RAISED ONCE, ON THE OWNER'S DECISION OF 2026-09-16, AND THE REASON WAS MEASURED RATHER
+    /// THAN ASSUMED.</b> The first ceiling was 1.5 MB over a reading of 0.8 MB on 2026-08-02 (0.6 of
+    /// entries, 0.2 of rows). By 2026-09-15 the reading was 1.3 MB alone and 1.5 in a full run of
+    /// this assembly, and the test went red in two full runs out of three - backlog 362. Where the
+    /// growth came from, layer by layer:
+    /// <list type="bullet">
+    /// <item><description><b>316 720 bytes of the entries layer is the fixture, not the product:</b>
+    /// the description below was added to <see cref="One"/> on 2026-08-13 (commit c395038) and
+    /// the ceiling was never re-measured. Five runs with that string and five with an empty one:
+    /// 1 032 712 against 715 872-715 992 bytes of entries - 391 bytes an entry, which is the
+    /// string. The rows held 451 bytes a row either way, so a row does not copy it.</description></item>
+    /// <item><description>The remaining 80 KB of the entries layer is three fields the fixture
+    /// gained after August (<c>PerUserRole</c>, <c>RequiredBy</c>, <c>AcceptsStop</c>) and the
+    /// record's own shape. <see cref="Reading{T}"/> is a struct, so a field costs its width,
+    /// not an object.</description></item>
+    /// <item><description>The rows layer grew from about 260 to 451 bytes a row, and that part IS
+    /// the product - the columns the window gained between August and September. It is not a
+    /// leak: <see cref="A_thousand_ticks_hold_nothing"/> holds that separately.</description></item>
+    /// </list>
+    /// So the 1.5 MB ceiling had 0.2 MB of headroom over a number that moves by 0.2 between a
+    /// lone run and a full one, which is a guard that goes red at random - and the note in
+    /// `Parallelism.cs` says what that teaches everybody. The 2.5 MB below is the original
+    /// rule applied to today's reading. It is not a licence: the next raise needs the same
+    /// measurement, layer by layer, and the owner's word.
     ///
     /// <b>The number is worth reading before it is guarded.</b> The ladder in
     /// `tools/memory-probe` put the whole window at 96.5-97.3 MB of private bytes, of which
-    /// about 26.5 is ours rather than WPF's. This says the DATA in that 26.5 is 0.8. What the
+    /// about 26.5 is ours rather than WPF's. This says the DATA in that 26.5 is 1.4. What the
     /// window holds is not what it costs: the rest is assemblies, XAML, the theme and code
     /// compiled on the way past. Anybody arriving here to make the window lighter by holding
     /// less should read that sentence twice before starting.
     ///
     /// It may only ever go down.
     /// </summary>
-    private const long RowsCeilingBytes = 3L * 1024 * 1024 / 2;
+    private const long RowsCeilingBytes = 5L * 1024 * 1024 / 2;
 
     /// <summary>
     /// What a thousand ticks may add. Effectively nothing, and that is the point.
@@ -93,17 +118,20 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
 
         Assert.Equal(Entries, model.Rows.Count);
 
+        // The bytes beside the megabytes, because a tenth of a megabyte is 80 KB over 810 entries
+        // and the question "which field grew" is answered in bytes per entry, never in tenths.
         output.WriteLine(
             $"HELD {held / 1024.0 / 1024.0:F1} MB for {Entries} entries " +
             $"= {data / 1024.0 / 1024.0:F1} MB of entries + {rows / 1024.0 / 1024.0:F1} MB of rows, " +
-            $"ceiling {RowsCeilingBytes / 1024 / 1024} MB");
+            $"ceiling {RowsCeilingBytes / 1024.0 / 1024.0:F1} MB " +
+            $"(bytes: held {held}, entries {data}, rows {rows}, ceiling {RowsCeilingBytes})");
 
         Assert.True(
             held < RowsCeilingBytes,
-            $"A loaded listing now holds {held / 1024.0 / 1024.0:F1} MB on the managed heap for " +
-            $"{Entries} entries, past a ceiling of {RowsCeilingBytes / 1024 / 1024} MB set at what it " +
-            "held on 2026-08-02. Either something began holding more per entry, or the ceiling " +
-            "needs an argument rather than a raise - it may only ever go down.");
+            $"A loaded listing now holds {held / 1024.0 / 1024.0:F1} MB ({held} bytes) on the managed " +
+            $"heap for {Entries} entries, past a ceiling of {RowsCeilingBytes / 1024.0 / 1024.0:F1} MB " +
+            "set at what it held on 2026-09-16. Either something began holding more per entry, or " +
+            "the ceiling needs an argument rather than a raise - it may only ever go down.");
 
         GC.KeepAlive(model);
     }

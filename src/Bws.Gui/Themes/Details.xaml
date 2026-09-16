@@ -1,0 +1,172 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        HOW THE PANEL ABOUT ONE ENTRY LOOKS - its surface, its four kinds of text, and the marks it
+        borrows from the list. Seventeenth theme file, 2026-09-16, and it exists because of a
+        measurement rather than a preference: the owner said the panel was black text on grey, and
+        tools/gui-probe/details-shot.ps1 read the pixels and found not one pixel lighter than the
+        ground anywhere a value was drawn. The values WERE black - #000000 on #202020, a ratio of
+        1.29 - for the thirty-four days since the panel was built, because the only style they had
+        was declared in the view, based on the implicit TextBlock style, and named no colour. The
+        guard that catches exactly that reads this directory and not the views, which is why the
+        styles moved here: a colour named in a theme file is a colour something checks.
+
+        ADR-23, the same rule as every other theme file: not one value of its own, every number and
+        colour below is a name declared in Values.xaml, Spacing.xaml, Type.xaml or Colours.xaml.
+
+        MERGED AFTER Marks.xaml AND BEFORE Catalogue.xaml, and the position is load bearing in the
+        ordinary way: three styles below extend the list's marks by StaticResource, which resolves
+        while this file is being read. App.xaml, the test host and AppearanceGuards all carry that
+        order, and CatalogueGuards holds App.xaml and the host to the same list.
+
+        THE DESIGN THIS DRAWS IS docs/PROJEKT-SZCZEGOLY-20260916.md, and the reasoning that is
+        not repeated here lives there - four levels of hierarchy on one axis each (size for the
+        title, weight for a section, colour for a value against its label), a surface so the panel
+        is not the same #202020 the list stands on, and the list's own marks beside the status and
+        the start type so one entry is not drawn in two languages.
+    -->
+
+    <!--
+        THE SURFACE. What the plan sheet has (PlanSheet in Plan.xaml) without the corner and the
+        margin: this panel is docked beside the list rather than floating over it - docs/11 3.12,
+        an inspector shows and a sheet asks - so it takes the sheet's fill and its one-point edge on
+        the side facing the list, and nothing that says "above".
+
+        WHAT THE FILL COSTS, said here because ContrastGuards will not say it: every ratio that
+        guard measures is against the WINDOW, and #343434 is lighter, so every colour on this panel
+        reads lower than the number in Colours.xaml. TextSubdued is 4.76 here against 6.23 there,
+        measured with tools/contrast/contrast.ps1 -Background '#343434' on 2026-09-16. Over the
+        4.5 that WCAG 1.4.3 asks, and the reason the labels are thirteen points rather than twelve.
+    -->
+    <Style x:Key="DetailPanel" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderPanelEdge}" />
+        <Setter Property="Padding" Value="{StaticResource PaddingPanel}" />
+    </Style>
+
+    <!--
+        THE PANEL'S TITLE IS THE DISPLAY NAME, AND IT MAY TAKE TWO LINES. HeadingText as before,
+        plus wrapping under a ceiling of two lines with an ellipsis on the last: the owner's own
+        capture shows the Bluetooth user service's Polish display name - forty-five characters -
+        cut after four words on one line, in a panel whose whole purpose is to show the entry in
+        full. HeightDetailTitle is two lines of TextSizeHeading and
+        is held to that by TypeScaleGuards, so the ceiling cannot drift from the size it was made
+        for. The whole name is still in the tooltip, as every cell in the list keeps it.
+    -->
+    <Style x:Key="DetailTitleText" TargetType="TextBlock" BasedOn="{StaticResource HeadingText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="MaxHeight" Value="{StaticResource HeightDetailTitle}" />
+    </Style>
+
+    <!--
+        THE HEADING OF ONE SECTION - FOURTEEN, SEMIBOLD, WHITE - AND THAT IS THE ONE PLACE THIS
+        PANEL DEPARTS FROM THE PLAN SHEET ON PURPOSE. Fourteen and not the body's thirteen because
+        TypeScaleGuards holds semibold text to the fourteen-point floor of docs/11 3.6, and said so
+        on the first build - the ladder's Body Strong, the size PlanTitleText already uses. The sheet's SectionHeadingText is thirteen in
+        TextSubdued, and Text.xaml carries the owner's reason: under those headings stand white
+        sentences, so a grey heading is the only grey thing in its block and position finds it.
+        Under THESE headings stands a form whose whole left column is grey - a grey heading would
+        be the twenty-ninth label. Weight is what a label does not have, so weight is what says
+        "this is a section"; the rule down the block's left side (PanelBlock) says where it ends.
+    -->
+    <Style x:Key="DetailSectionText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
+    </Style>
+
+    <!--
+        A SENTENCE ABOUT A WHOLE SECTION, shown only when there is one - today that is the note
+        saying that a field marked "not read" is read once its column is on. It stands UNDER the
+        lines, with the gap above it that a status line takes, because the lines it explains are
+        the ones above it. Collapsed on the empty string, so a section with nothing to say spends
+        no line on saying it.
+    -->
+    <Style x:Key="DetailNoteText" TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource MarginAboveStatus}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Note}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        WHAT A FIELD IS CALLED. TextSubdued at body size - thirteen, not the twelve of SubduedText,
+        because the label and the value beside it differ on COLOUR and nothing else; a second
+        difference in size made the label the smallest and dimmest thing on the panel, which is
+        half of what the owner meant by "cannot be seen". BodySubduedText since 2026-09-16, which
+        is exactly that, said once in Text.xaml rather than a fourth time here.
+    -->
+    <Style x:Key="DetailLabelText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}">
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <!--
+        WHAT THIS ENTRY SAYS IN IT - white, because it is the answer. Wraps rather than trims: this
+        panel is where somebody comes to READ a description of 1251 characters, and the cell it
+        came from is the place that trims.
+
+        THE FIXED FACE FOR A PATH, A HASH AND A DESCRIPTOR, decided by the line's Wears code rather
+        than by which column it is - docs/03 part 4, alignment carries meaning where two different
+        values must not be able to look the same. And the subdued colour for a value that is not
+        one: "none", "not read" and "no access" are states of the reading, and a state wears the
+        colour of the label so it cannot be mistaken for something the machine said. Built on
+        BodyText since 2026-09-16: the white comes from there, and the colour guard follows
+        BasedOn to find it - the day before, a style built on another was invisible to it.
+    -->
+    <Style x:Key="DetailValueText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Wears}" Value="fixed">
+                <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Missing}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        THE LIST'S OWN MARKS, EACH SHOWN ONLY ON THE LINE THAT WEARS IT. The base styles in
+        Marks.xaml decide colour and shape from a code named StatusShape, StartShape or
+        AgainstShape on whatever they are bound to - a row in the list, a line here - so the
+        panel cannot draw a running entry in a colour the list does not use. What this file adds is
+        only WHEN: collapsed unless the line's Wears code is this mark's, so a line about the
+        account carries no dot and the mark column is one width shared by every line.
+
+        THE START AND THE MISMATCH MARK HAVE Hidden IN THEIR BASE AND Visible IN THEIR BASE'S
+        TRIGGERS. A trigger in the base outranks a setter in the derived style, so on the one line
+        that wears them their own code turns them on exactly as it does in the list, and on every
+        other line the code is empty, no trigger matches, and Collapsed from below holds. Measured
+        on the screen on 2026-09-16, recorded in docs/PROJEKT-SZCZEGOLY-20260916.md section 10.
+    -->
+    <Style x:Key="DetailStatusMark" TargetType="Ellipse" BasedOn="{StaticResource StatusMark}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="{StaticResource MarginDetailMark}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Wears}" Value="status">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DetailStartMark" TargetType="Ellipse" BasedOn="{StaticResource StartMark}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="{StaticResource MarginDetailMark}" />
+    </Style>
+
+    <Style x:Key="DetailAgainstMark" TargetType="Path" BasedOn="{StaticResource AgainstMark}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="{StaticResource MarginDetailMark}" />
+    </Style>
+</ResourceDictionary>

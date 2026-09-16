@@ -37,6 +37,32 @@ public sealed class ChosenGuards
     /// A key marked handled by something that decided to do nothing is a key that silently stops
     /// working for whatever needed it next - the same reasoning Escape carries.
     /// </summary>
+    /// <summary>
+    /// Every opening says so, and a refresh of the followed row does not - the view scrolls to the
+    /// top on the first and must leave a reader's place alone on the second. Found on the owner's
+    /// capture of 2026-09-16: a panel opened on a new entry with its first lines above the fold.
+    /// </summary>
+    [Fact]
+    public void Opening_the_panel_says_so_and_a_refresh_of_the_row_does_not()
+    {
+        var row = EntryRow.Of(Rows.Entry("Spooler"));
+        var chosen = new Chosen { Row = row };
+        var opened = 0;
+        chosen.Opened += (_, _) => opened++;
+
+        Assert.True(chosen.Show());
+        Assert.Equal(1, opened);
+
+        // The row moves underneath the open panel - the sections are rebuilt, the opening is not
+        // repeated.
+        row.Absorb(Rows.Entry("Spooler") with { Status = EntryStatus.Stopped }, DateTimeOffset.UtcNow);
+        Assert.Equal(1, opened);
+
+        // Opening it again, on the same entry, is an opening.
+        Assert.True(chosen.Show());
+        Assert.Equal(2, opened);
+    }
+
     [Fact]
     public void Enter_with_nothing_chosen_opens_nothing()
     {

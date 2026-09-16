@@ -390,17 +390,17 @@ public sealed class KeyboardTests
     }
 
     /// <summary>
-    /// Ctrl+F is an arrival: an empty box offers its six questions, a box with text in it -
-    /// selected whole, so nothing to complete - offers nothing.
+    /// Ctrl+F is an arrival: an empty box offers the questions that fit the list on screen, a
+    /// box with text in it - selected whole, so nothing to complete - offers nothing.
     /// </summary>
     [Fact]
-    public void Control_F_on_an_empty_box_offers_the_six_questions_and_on_a_full_one_nothing()
+    public void Control_F_on_an_empty_box_offers_the_questions_that_fit_the_list_and_on_a_full_one_nothing()
     {
         var window = WpfHost.Window();
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
         Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
-        Assert.Equal(QueryExamples.All.Count, model.Suggesting.Offered.Count);
+        Assert.Equal(QueryExamples.For(model.Scope).Count, model.Suggesting.Offered.Count);
 
         WpfHost.On(() => model.Suggesting.Close());
         WpfHost.On(() => window.Search.Box.Text = "spool");

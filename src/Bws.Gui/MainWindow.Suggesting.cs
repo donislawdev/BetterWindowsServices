@@ -1,3 +1,5 @@
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Bws.Gui.ViewModels;
@@ -37,7 +39,7 @@ public partial class MainWindow
     /// something to come FROM is a person: a click, Tab, Ctrl+F. A focus that arrives from nowhere
     /// is the framework handing the box its keyboard back - at the window's start, or on the return
     /// after Alt+Tab - and that is not a moment anybody asked for help. The model has a word for
-    /// each and shows the six questions only on the first.
+    /// each and shows the questions that fit the list only on the first.
     ///
     /// <b>And a click in a box that already has the keyboard is an arrival too</b>, said through
     /// the mouse rather than through focus, because focus has nothing to report: somebody who
@@ -98,11 +100,48 @@ public partial class MainWindow
 
         return shortcut switch
         {
-            Shortcut.NextSuggestion => list.IsOpen ? list.Next() : list.Ask(box.Text, box.CaretIndex, box.SelectionLength),
-            Shortcut.PreviousSuggestion => list.Previous(),
+            Shortcut.NextSuggestion => Announced(list.IsOpen ? list.Next() : list.Ask(box.Text, box.CaretIndex, box.SelectionLength)),
+            Shortcut.PreviousSuggestion => Announced(list.Previous()),
             Shortcut.TakeSuggestion => Write(list.Take()),
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Tells a screen reader which row a press just chose, and hands the press's answer back.
+    ///
+    /// <b>Backlog 361: the list never has the keyboard, so nothing in it is ever announced on its
+    /// own.</b> Measured 2026-09-16 with a listener subscribed as a reader is (tools/gui-probe/
+    /// announce.ps1): no focus event ever names a row, and the only thing that arrives on Down is
+    /// a selection event from the row's own peer - silent when the list opens, because the first
+    /// row is chosen before its container exists. So the window says it itself, through the
+    /// notification event Windows documents for a change somewhere other than the focus: raised on
+    /// the BOX, which is where the keyboard is, carrying the sentence the model composes. Most
+    /// recent wins, so holding Down does not queue up a reading of every row passed.
+    ///
+    /// <b>Only for a press, never for typing.</b> A list that replaces itself under every
+    /// keystroke chooses a first row every time, and reading that row out while somebody types
+    /// would talk over their own typing. What a reader is told about the list APPEARING is the
+    /// count, and that is not built - written in `docs/08`.
+    ///
+    /// The peer is created on demand, because it exists only once a client has asked for it, and
+    /// raising into an empty room costs nothing - the framework checks for listeners first.
+    /// </summary>
+    private bool Announced(bool pressDidSomething)
+    {
+        var list = _model.Suggesting;
+
+        if (pressDidSomething && list.IsOpen && list.Chosen is not null
+            && UIElementAutomationPeer.CreatePeerForElement(Search.Box) is { } peer)
+        {
+            peer.RaiseNotificationEvent(
+                AutomationNotificationKind.Other,
+                AutomationNotificationProcessing.MostRecent,
+                list.Spoken,
+                "suggestion");
+        }
+
+        return pressDidSomething;
     }
 
     /// <summary>

@@ -83,7 +83,8 @@ internal static partial class Columns
             WidthKey = "ColumnStatus",
             Face = ColumnFace.Status,
             ShownAtFirst = true,
-            Reads = entry => CellFaces.StatusLabel(entry.Status)
+            Reads = entry => CellFaces.StatusLabel(entry.Status),
+            Marks = entry => CellFaces.StatusShape(entry.Status)
         },
         new Column
         {
@@ -92,7 +93,8 @@ internal static partial class Columns
             WidthKey = "ColumnStart",
             Face = ColumnFace.StartType,
             ShownAtFirst = true,
-            Reads = entry => CellFaces.StartLabel(entry, StartQualifiers.Of(entry))
+            Reads = entry => CellFaces.StartLabel(entry, StartQualifiers.Of(entry)),
+            Marks = entry => CellFaces.StartShape(entry, StartQualifiers.Of(entry))
         },
         new Column
         {
@@ -217,7 +219,8 @@ internal static partial class Columns
             WidthKey = "ColumnAgainstStartType",
             Face = ColumnFace.Mismatch,
             ShownAtFirst = false,
-            Reads = entry => CellFaces.Judgement(entry.RunsAgainstItsStartType)
+            Reads = entry => CellFaces.Judgement(entry.RunsAgainstItsStartType),
+            Marks = entry => CellFaces.AgainstShape(entry.RunsAgainstItsStartType)
         },
         // THE SECOND PHASE OF `ADR-13`, arriving 2026-08-18 - backlog 21. Until this slice the
         // window read none of these and said so, which was honest and left the fields invisible.
@@ -238,7 +241,8 @@ internal static partial class Columns
             Face = ColumnFace.Text,
             ShownAtFirst = false,
             Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.SignatureLabel(entry.Signature)
+            Reads = entry => CellFaces.SignatureLabel(entry.Signature),
+            Outcome = entry => entry.Signature.Outcome
         },
         new Column
         {
@@ -248,7 +252,8 @@ internal static partial class Columns
             Face = ColumnFace.Text,
             ShownAtFirst = false,
             Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.PublisherLabel(entry.Signature)
+            Reads = entry => CellFaces.PublisherLabel(entry.Signature),
+            Outcome = entry => entry.Signature.Outcome
         },
         new Column
         {
@@ -258,7 +263,8 @@ internal static partial class Columns
             Face = ColumnFace.Text,
             ShownAtFirst = false,
             Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.Say(entry.FileVersion, value => value)
+            Reads = entry => CellFaces.Say(entry.FileVersion, value => value),
+            Outcome = entry => entry.FileVersion.Outcome
         },
         new Column
         {
@@ -274,7 +280,8 @@ internal static partial class Columns
             // The same family as the signature and the version beside it, because one pass fills
             // all three - SecondPass reads the file once and writes the three answers it found.
             Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.Say(entry.BinaryHash, value => value)
+            Reads = entry => CellFaces.Say(entry.BinaryHash, value => value),
+            Outcome = entry => entry.BinaryHash.Outcome
         },
         new Column
         {
@@ -293,6 +300,7 @@ internal static partial class Columns
             // 2026-09-05, at Readings.FillAsync.
             Needs = ExtraRead.Memory,
             Reads = entry => CellFaces.MemoryLabel(entry.Memory),
+            Outcome = entry => entry.Memory.Outcome,
 
             // By the number rather than by the words, for the same reason the process id sorts
             // that way: "9.9 MB" sorts above "10.0 MB" as text, and a column nobody can order is
@@ -311,7 +319,8 @@ internal static partial class Columns
             WidthKey = "ColumnRunsWhileDisabled",
             Face = ColumnFace.Mismatch,
             ShownAtFirst = false,
-            Reads = entry => CellFaces.Judgement(entry.RunsWhileDisabled)
+            Reads = entry => CellFaces.Judgement(entry.RunsWhileDisabled),
+            Marks = entry => CellFaces.AgainstShape(entry.RunsWhileDisabled)
         },
         new Column
         {
@@ -383,7 +392,8 @@ internal static partial class Columns
             Face = ColumnFace.Text,
             ShownAtFirst = false,
             Needs = ExtraRead.RequiredBy,
-            Reads = entry => CellFaces.Say(entry.RequiredBy, value => string.Join(", ", value))
+            Reads = entry => CellFaces.Say(entry.RequiredBy, value => string.Join(", ", value)),
+            Outcome = entry => entry.RequiredBy.Outcome
         },
         new Column
         {

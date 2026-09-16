@@ -189,8 +189,8 @@ public partial class MainWindow : Window
         Entries.ContextMenu = RowMenu.Build(RowMenu.GroupsFor(this), (Style)FindResource("RowMenuItem"));
 
         // THE EXAMPLES MENU AND ITS BUTTON WENT ON 2026-08-13, owner's decision, and there is
-        // nothing to wire in their place: the six questions are in the search box's tooltip now,
-        // composed as one string in QueryExamples.cs. A tooltip bound on the box needs no handler,
+        // nothing to wire in their place: the questions are in the search box's tooltip now, cut
+        // to the list on screen and composed as one string in QueryExamples.cs. A tooltip bound on the box needs no handler,
         // no ItemsSource handed over and no Popup to reason about.
 
         // On the interface thread by design. The tick itself does nothing but start a reading

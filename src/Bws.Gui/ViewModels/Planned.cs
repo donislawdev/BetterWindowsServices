@@ -222,10 +222,14 @@ public sealed partial class Planned : Checked
         ? string.Empty
         : Texts.Of("gui.plan.overlapping", string.Join(", ", plan.Overlapping));
 
-    /// <summary>Everything worth knowing before anybody presses anything.</summary>
+    /// <summary>
+    /// Everything worth knowing before anybody presses anything - except the warnings that make
+    /// the ask heavy, which stand in the footer over the confirmation box as <see cref="Danger"/>
+    /// since 2026-09-16 and are not repeated here.
+    /// </summary>
     public IReadOnlyList<string> Warnings => _plan is not { } plan
         ? []
-        : [.. plan.Warnings.Select(PlanWords.Describe)];
+        : [.. plan.Warnings.Where(warning => !Heavy(warning)).Select(PlanWords.Describe)];
 
     /// <summary>
     /// The entries that get no plan at all, and why.

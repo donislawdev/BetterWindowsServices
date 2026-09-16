@@ -15,8 +15,14 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **"Copy all" over the commands of a plan.** A plan over several entries prints one command
+  per entry, each with its own Copy, and there was no way to take them all at once. When there
+  are several, a "Copy all" stands over the list - and over the commands that put things back -
+  and puts every one of them on the clipboard, one per line, ready to paste into a terminal. It
+  ends where the Copy of each line ends.
+
 - **The search box offers what you can type, under the box, as you type.** Click into the
-  empty box and six questions to start from appear - *Set to start and not running*, *The file it
+  empty box and the questions to start from appear - *Set to start and not running*, *The file it
   runs is not there* - each one a query you can pick and then edit. Type the first letters of a
   field and the fields that begin with them appear, each with a sentence saying what it asks
   about, and the four that take seconds say so. Type the colon and every value the field accepts
@@ -25,6 +31,25 @@ Nothing has been released yet. Everything below is what the tool does today.
   the list and only the list, and Ctrl+Z takes back a row you did not mean. A click on a row
   writes it too. The box's own tooltip is unchanged - this is the same language, offered where
   you are already looking.
+
+- **`Bws.Gui.exe --catalogue` now shows every part of the window, not only its styles.** The
+  hidden sheet that lists the window's components gained the templates the rows and cells are
+  drawn with, and every view of the window - the search row, the filters, the details panel, the
+  plan, the list - each in its states: with data, empty, when the machine refused, while still
+  reading. A fifth column shows a chip lit and a suggestion row chosen, number columns are shown
+  a million, and the sheet sizes itself to its columns instead of cutting the last one. It is a
+  developer's screen, reached only by that argument, and nothing on it reads your machine.
+
+- **A screen reader is told which row Down and Up chose in the list under the search box.**
+  The keyboard stays in the box while the list is open, so nothing in the list is ever focused
+  and a screen reader had nothing to say about it. Each press now announces the row - its word,
+  what it asks about, and its place, *2 of 5* - through the box that has the keyboard. Holding
+  Down reads the row you stop on, not every row passed.
+
+- **The questions to start from fit the list you are on.** On *Drivers* the search box offers
+  the three a driver can answer - a driver has no account and no trigger, and *Services only*
+  asked of the drivers list would find nothing. On *Services* it offers five, and on *All* every
+  one of the six. The box's tooltip lists the same questions as the list under it.
 
 - **Each list on the switch above the search box says how big it is** - *Services 336*,
   *Drivers 463*, *All 799* - the size of the list, whatever you have typed. The line beside the
@@ -99,6 +124,60 @@ Nothing has been released yet. Everything below is what the tool does today.
   other people can read is one they can read all of that in.
 
 ### Fixed
+
+- **The box of seconds on a plan takes what you type.** On a start or a restart plan, nothing
+  typed into "Wait up to ... seconds" arrived: an empty progress sentence lay over the box and
+  took every click, so the keyboard never reached it. The sentence leaves when it has nothing to
+  say, and the box is under the pointer again.
+
+- **The reason a name has to be typed stands over the box, in red.** Stopping an entry the
+  machine does not work without asks you to type its name - and the sentence saying why stood
+  three sections up, in plain white, beside milder notes. It stands in the footer now, over the
+  box, red and heavier, and only there. The hint on the box and the sentence under the grey
+  button said "this ends more than the one entry you picked" whether or not that was true - they
+  say what is true.
+
+- **The Filters button answers the pointer.** While the filters were open - which they are by
+  default - pointing at the button and pressing it changed nothing but its arrow. It shows the
+  pointer and the press now, like every other button.
+
+- **The list under the search box reads as a list.** On an empty box it leads with the
+  question in plain words - *Switched off and running anyway* - and the query follows; while
+  typing, the word leads. A line over the list says what it is, the keys stand in a foot of
+  their own under a rule, there is a gap between the word and its sentence where the two ran
+  together, both are one size, and a row lights up under the pointer.
+
+- **Pointing at something on a panel shows.** The hover colour was chosen for the window and was
+  invisible on the lighter panels - the list under the search box, the close mark and the Copy
+  buttons of a plan sheet. They have a hover of their own now.
+
+- **The wheel over the commands of a plan scrolls the plan.** With enough commands to fill the
+  sheet, the wheel over them did nothing, because each command kept the wheel for itself.
+
+- **A wrong box of seconds is edged in red on all four sides.** The bottom edge was missing: the
+  control draws a line of its own along the bottom, over the colour the box was given.
+
+- **The details panel is readable.** Its values - the status, the account, the path, the
+  description - were drawn in black on the dark window, and had been since the panel first
+  appeared: not one pixel of them was lighter than the ground they stood on. They are white now,
+  on a surface of the panel's own with an edge towards the list, so the panel no longer runs into
+  the list beside it. The labels sit at the same size as the values and differ from them in
+  colour alone. Each section is a block with a line down its left side and a bold heading, like
+  the blocks of a plan. The status and the startup type carry the same dot and ring the list
+  draws beside them. The description runs the full width of the panel under its label instead of
+  in a narrow column beside it. A field with genuinely nothing in it says *none* rather than
+  standing empty, and a field this window has not read yet - the signature, the publisher, the
+  file version, the hash, the memory, what requires the entry - says *not read* with a line under
+  the section saying that turning its column on reads it. The panel's title takes two lines before
+  it is shortened, so a long display name is read whole. Opening the panel on another entry starts
+  it at the top. The two names in the panel's head are no longer repeated as the first two lines of
+  the first section - a copy of the entry still carries them.
+
+- **A field the window has not asked the machine about says *not read*, not *unknown*.** *Unknown*
+  is what a cell says when the machine answered with something this tool cannot name, and it was
+  also what a cell said for the second between a column being turned on and its reading landing -
+  and what the details panel said, six times, about any entry you looked at. The two are different
+  facts and now have different words.
 
 - **A saved layout without a sort no longer opens the list in the manager's order.** If your
   profile was written before the list started opening sorted, it opened in the order Windows

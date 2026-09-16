@@ -98,6 +98,30 @@
     </Style>
 
     <!--
+        THE TWO BODY STYLES, 2026-09-16, AND THE REASON THEY EXIST IS SIX STYLES THAT SAID THE SAME
+        THING. "Segoe, 13, white" stood in this theme under two names and "Segoe, 13, subdued" under
+        four - SectionHeadingText, PlanStepText, DetailLabelText and OverviewQualificationText - each
+        written out in full, so a change to how ordinary text reads was six edits that had to
+        agree. GUI rule 7 of CLAUDE.md: the same set of properties used twice is a missing name.
+        The six keep their names, because a name says WHERE the text is and is the place a change
+        for that place goes - they are BasedOn these two now, and the list under the search box is
+        the first thing to use the pair directly. Both guards that read text styles - the colour
+        guard in ContrastGuards and the size guard in TypeScaleGuards - resolve BasedOn since the
+        same day, because until then a style built on another was invisible to both.
+    -->
+    <Style x:Key="BodyText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <Style x:Key="BodySubduedText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+    </Style>
+
+    <!--
         THE NUMBER BESIDE A SCOPE POSITION - "Services 336" - since 2026-09-15, point 8(c) of
         `docs/11` 2.14. Subdued and small like the text above, and with its weight SAID: the
         position's template hands its own weight down to everything inside it, and the position
@@ -137,11 +161,7 @@
         ratio in ContrastGuards is measured against the WINDOW. Text on a panel sits on something
         lighter, so every one of those numbers is optimistic there.
     -->
-    <Style x:Key="SectionHeadingText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-    </Style>
+    <Style x:Key="SectionHeadingText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}" />
 
     <!--
         WHERE THE PLAN PANEL IS IN ITS SEQUENCE - nothing done, doing it, done.
@@ -189,11 +209,7 @@
         subdued unless somebody asked for them) and by position, which is what the note above says
         was doing the work all along.
     -->
-    <Style x:Key="PlanNoticeText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
-    </Style>
+    <Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}" />
 
     <!--
         ONE STEP OF A PLAN, AND UNTIL 2026-08-19 IT HAD NO STYLE OF ITS OWN. It was built on
@@ -204,11 +220,7 @@
         dimmer rather than smaller, because `C2` wants those findable at a glance and a size
         difference makes them hard to read rather than easy to skip.
     -->
-    <Style x:Key="PlanStepText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
-    </Style>
+    <Style x:Key="PlanStepText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}" />
 
     <!--
         THE COUNT, WHICH MOVED OUT FROM UNDER THE LIST AND STOPPED BEING SUBDUED. Complaint 8 of
@@ -291,6 +303,25 @@
     </Style>
 
     <!--
+        THE ONE SENTENCE ON A PLAN SHEET THAT SAYS THE MACHINE ITSELF WOULD GO DOWN, 2026-09-16 -
+        the owner's remark over a stop of PlugPlay: it stood in "Worth knowing", white, at the same
+        weight as "it will be back after the next restart", and the box asking for the name under
+        it said nothing about why. So it is the heaviest text on the sheet after the title: the
+        header size, semibold, and the one red that clears 4.5 on the sheet's own surface -
+        MeaningRejected at 4.88 on #343434, where MeaningUntrusted reads 4.35 (`docs/11` section 8,
+        contrast.ps1 -Background '#343434'). Semibold rather than bold, and 14 rather than 13, is
+        `docs/11` 3.6: the ladder allows semibold from 14 up and bold nowhere, and TypeScaleGuards
+        holds both halves. ProblemText above is the same red one size down and unweighted, for the
+        sentence saying why a button is grey - that one explains, this one warns.
+    -->
+    <Style x:Key="DangerText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+    </Style>
+
+    <!--
         THE FOUR VOICES OF THE MACHINE OVERVIEW - `G`, rebuilt as cards on 2026-09-01 after the
         owner rejected the line-by-line version three times. The argument for the shape is beside
         PadTile in Values.xaml. What belongs here is why there are FOUR of them and not two.
@@ -336,10 +367,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
     </Style>
 
-    <Style x:Key="OverviewQualificationText" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
-        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+    <Style x:Key="OverviewQualificationText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}">
         <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
-        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
     </Style>
 </ResourceDictionary>

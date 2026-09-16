@@ -167,7 +167,7 @@
     -->
     <!--
         THE RECESS A COMMAND SITS IN. Darker than the sheet, one point of edge, and padded on both
-        sides - the argument for the fill is beside SurfaceCommandBox in Colours.xaml.
+        sides - the argument for the fill is beside SurfaceCommandBox in Surfaces.xaml.
     -->
     <Style x:Key="PlanCommandBox" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SurfaceCommandBox}" />
@@ -208,14 +208,43 @@
                     </Border>
 
                     <ControlTemplate.Triggers>
+                        <!--
+                            THE PANEL'S HOVER SINCE 2026-09-16: the window's read 1.30 on this sheet,
+                            so pointing at "Copy" showed nothing. Argument beside the brush.
+                        -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Face" Property="Background"
-                                    Value="{StaticResource SurfaceHover}" />
+                                    Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!--
+        THE BUTTON THAT TAKES EVERY COMMAND OF A SECTION AT ONCE, 2026-09-16 - the owner's remark
+        over a sheet with five commands and five buttons that each took one. The same quiet outline
+        as the button beside a line, standing at the right end of the section's heading, and it is
+        only there when there is more than one line to take (Planned.HasSeveralCommands). Its Tag
+        carries the lines already joined, so the press bubbles to the same handler as its siblings.
+    -->
+    <Style x:Key="PlanCopyAllButton" TargetType="Button" BasedOn="{StaticResource PlanCopyButton}">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <!--
+        THE BOX WITH NOTHING DRAWN, 2026-09-16 - the owner's remark that "Copy all" stood further
+        right than the "Copy" of every line under it. It did, by exactly the box: a line's button sits
+        inside PlanCommandBox, behind its margin, its edge and its padding, and the heading's button
+        sat in the heading with none of them. GUI rule 14 forbids a margin found by measuring the gap,
+        so the heading's button stands in the same box with its paint taken off - the same three
+        tokens, one BasedOn, and the two right edges are one number whatever those tokens become.
+        PlanViewGuards asks for the two edges, not for the tokens.
+    -->
+    <Style x:Key="PlanCommandGhost" TargetType="Border" BasedOn="{StaticResource PlanCommandBox}">
+        <Setter Property="Background" Value="{x:Null}" />
+        <Setter Property="BorderBrush" Value="{x:Null}" />
     </Style>
 
     <!--
@@ -243,6 +272,19 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!--
+                    THE WHEEL IS NOT THIS VIEWER'S TO KEEP - the owner's remark of 2026-09-16 over a
+                    sheet of twenty commands: "the scroll stops working". A ScrollViewer marks every
+                    wheel event handled whether or not it has anywhere to go, and this one scrolls
+                    sideways only - so with command boxes under the pointer the sheet behind them
+                    never heard the wheel. NOTHING HERE CAN SAY OTHERWISE, and two doors were tried:
+                    the framework's own switch for it, HandlesMouseWheelScrolling, is not settable
+                    from markup (MC3072, the same day), and a viewer of our own that ignores the
+                    wheel cannot be named from a theme file, `docs/10` trap 10. So the sheet takes
+                    the wheel BEFORE this viewer sees it: PlanView.xaml catches PreviewMouseWheel on
+                    its body, which tunnels through here first, and raises the wheel on the body
+                    itself. The bar and the keys still scroll a long command sideways.
+                -->
                 <ScrollViewer Grid.Column="0"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Disabled"

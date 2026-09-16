@@ -121,7 +121,25 @@ public sealed class ConcurrencyGuards
             "sequential one by construction, and ReadAllContractTests compares a parallel " +
             "reading against a single-threaded one field by field - which is also the only " +
             "check on the assumption underneath this: that one OpenSCManager handle may be " +
-            "used by OpenService from several threads at once."
+            "used by OpenService from several threads at once.",
+
+        ["Catalogue.Machines.cs"] =
+            "The component catalogue's LOADING state, added 2026-09-16 (docs/PROJEKT-KATALOG-" +
+            "20260916.md, section 3.4). A view is shown loading by being put over a model whose " +
+            "machine has not answered, and the machine has not answered because its read is " +
+            "waiting on a gate - a ManualResetEventSlim - that the sheet opens when it closes. " +
+            "One pool thread per loading sample, released by Prepared.Dispose, and the count of " +
+            "reads that reached the gate is Interlocked so a test can read it from the other " +
+            "side. CatalogueViewGuards holds both: that disposing lets the read go, and that " +
+            "the sheet's model reads its machine once.",
+
+        ["Catalogue.Views.cs"] =
+            "The same screen, one file over: the models behind the views are loaded with await " +
+            "off any window - through the model's own Task.Run, which Readings.cs argued for - " +
+            "and the views are built over them afterwards on the thread that can build a " +
+            "control. The seam between the two is the file's header. What is added here is the " +
+            "one read that is started and not awaited, which is the loading sample and is " +
+            "listed as such in BackgroundWorkGuards."
     };
 
     /// <summary>

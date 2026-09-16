@@ -13,11 +13,25 @@ public sealed class DetailLine
 {
     private readonly string _labelKey;
 
-    internal DetailLine(string labelKey, string value, bool fixedWidth)
+    internal DetailLine(
+        string labelKey, string value, string wears, ReadOutcome outcome, string mark = "")
     {
         _labelKey = labelKey;
         Value = value;
-        FixedWidth = fixedWidth;
+        Wears = wears;
+        Outcome = outcome;
+
+        // A word carries a state that a blank cannot. In a column of eight hundred a blank cell
+        // means "genuinely nothing" and reads that way; beside a label on a panel about ONE entry
+        // it reads as "did not load" - backlog 367, found by the component catalogue the first day
+        // it drew this panel over a driver. `docs/06` part 3: never a blank standing in for an
+        // answer.
+        Shown = value.Length == 0 ? Texts.Of("gui.details.none") : value;
+        Missing = value.Length == 0 || outcome != ReadOutcome.Present;
+
+        StatusShape = wears == "status" ? mark : string.Empty;
+        StartShape = wears == "start" ? mark : string.Empty;
+        AgainstShape = wears == "mismatch" ? mark : string.Empty;
     }
 
     /// <summary>What the field is called, in the language of whoever is reading it.</summary>
@@ -31,17 +45,64 @@ public sealed class DetailLine
     /// cell and another in the panel. Two paths to one answer drift the first time either is
     /// touched, and nothing in a green build would notice. <see cref="Details"/> composes the
     /// bracketed half, and says why.
+    ///
+    /// <b>The cell's words exactly, blank included</b> - what the panel DRAWS is <see cref="Shown"/>.
+    /// Kept apart so the guard holding this line to its cell keeps holding, and so a copy and the
+    /// panel share one word for nothing without either inventing it.
     /// </summary>
     public string Value { get; }
 
     /// <summary>
-    /// Whether it is drawn in a fixed width face - a launch path and a security descriptor.
-    ///
-    /// The same decision <see cref="ColumnFace.Fixed"/> makes in the list and for the same reason
-    /// out of `docs/03` part 4: alignment carries meaning there, and two different values must not
-    /// be able to look the same.
+    /// What the panel draws and a copy pastes: <see cref="Value"/>, or the word for nothing when
+    /// the value is blank.
     /// </summary>
-    public bool FixedWidth { get; }
+    public string Shown { get; }
+
+    /// <summary>
+    /// Which face the line wears, as a code the view's triggers compare against: <c>text</c>,
+    /// <c>number</c>, <c>fixed</c>, <c>prose</c>, <c>status</c>, <c>start</c> or <c>mismatch</c>.
+    ///
+    /// <b>A code rather than the enum</b>, like the shape codes beside it: a trigger compares a
+    /// string, the enum is internal to this assembly, and a translated word would stop matching
+    /// the day a second language file appeared. The fixed face is the same decision
+    /// <see cref="ColumnFace.Fixed"/> makes in the list and for the same reason out of `docs/03`
+    /// part 4; prose is the one field written for a person, drawn under its label at full width
+    /// rather than in a column beside it.
+    /// </summary>
+    public string Wears { get; }
+
+    /// <summary>
+    /// How the reading behind the value went, for the columns that can say - the six fed by the
+    /// second phase, through <see cref="Column.Outcome"/>. <c>Present</c> for every other column,
+    /// which is a stated limit rather than a fact about them: see that member.
+    /// </summary>
+    public ReadOutcome Outcome { get; }
+
+    /// <summary>
+    /// Whether what is drawn is a state of the reading rather than something the machine holds -
+    /// nothing, not read, no access. Drawn in the colour of the label so it cannot pass for an
+    /// answer.
+    /// </summary>
+    public bool Missing { get; }
+
+    /// <summary>
+    /// The code of the mark this line wears, under the name the list's own mark styles bind to -
+    /// <see cref="EntryRow.StatusShape"/> and its two siblings - so the panel draws the dot the
+    /// list draws, out of the same style, and cannot drift a colour from it.
+    ///
+    /// <b>Three names for one mark, two of them always empty</b>, and that is the cheaper of two
+    /// shapes: a row carries three marks in three cells and must name them apart, and rewriting
+    /// three theme styles to a shared name for one more client would touch every cell template
+    /// in the list. A line wears at most one, so the other two say nothing and the styles they
+    /// feed stay collapsed.
+    /// </summary>
+    public string StatusShape { get; }
+
+    /// <inheritdoc cref="StatusShape"/>
+    public string StartShape { get; }
+
+    /// <inheritdoc cref="StatusShape"/>
+    public string AgainstShape { get; }
 }
 
 /// <summary>
@@ -97,7 +158,19 @@ public sealed class DetailSection
 internal static class Details
 {
     /// <summary>Everything the window can say about one entry, in the picker's own order.</summary>
-    internal static IReadOnlyList<DetailSection> Of(ScmEntry entry)
+    internal static IReadOnlyList<DetailSection> Of(ScmEntry entry) => Build(entry, identity: true);
+
+    /// <summary>
+    /// What the panel shows: everything, less the two names its head already carries.
+    ///
+    /// <b>Apart from <see cref="Of"/> since 2026-09-16, and it is a view of the same list rather than
+    /// a second one.</b> The panel's head shows the display name and the internal name, and until
+    /// that day the first section repeated both a line below it - the one entry drawn twice on 380
+    /// points. A copy keeps them, because a copy has no head.
+    /// </summary>
+    internal static IReadOnlyList<DetailSection> Shown(ScmEntry entry) => Build(entry, identity: false);
+
+    private static IReadOnlyList<DetailSection> Build(ScmEntry entry, bool identity)
     {
         ArgumentNullException.ThrowIfNull(entry);
 
@@ -107,17 +180,55 @@ internal static class Details
         {
             var lines = Columns.All
                 .Where(column => Columns.GroupOf(column.Id) == heading)
-                .Select(column => new DetailLine(
-                    column.LabelKey,
-                    Said(column, entry),
-                    column.Face == ColumnFace.Fixed))
+                .Where(column => identity || !Identity.Contains(column.Id))
+                .Select(column => Line(column, entry))
                 .ToList();
 
-            sections.Add(new DetailSection(heading, lines));
+            // ONE SENTENCE UNDER A SECTION WHOSE LINES NOBODY HAS ASKED FOR YET, saying what would
+            // read them. "Not read" six times is the truth and an idle one; the note is the half
+            // that tells somebody what to do about it. The section's note has existed since
+            // 2026-08-13 for exactly this kind of sentence and carried none until today.
+            var note = lines.Any(line => line.Outcome == ReadOutcome.NotRead)
+                ? NotReadNote
+                : string.Empty;
+
+            sections.Add(new DetailSection(heading, lines, note));
         }
 
         return sections;
     }
+
+    /// <summary>
+    /// The sentence under a section with a line nobody has asked for yet. A constant rather than
+    /// a literal at the place it is used, because that is the shape TextKeyGuards reads a key in
+    /// - a key it cannot find in the source is a key it reports as said nowhere.
+    /// </summary>
+    private const string NotReadNote = "gui.details.notRead.note";
+
+    /// <summary>The two columns that are the entry's identity, and that the panel's head shows.</summary>
+    private static readonly HashSet<string> Identity = new(StringComparer.Ordinal)
+    {
+        "serviceName", "displayName"
+    };
+
+    private static DetailLine Line(Column column, ScmEntry entry) => new(
+        column.LabelKey,
+        Said(column, entry),
+        Wears(column.Face),
+        column.Outcome?.Invoke(entry) ?? ReadOutcome.Present,
+        column.Marks?.Invoke(entry) ?? string.Empty);
+
+    /// <summary>The face as the code the view's triggers read - see <see cref="DetailLine.Wears"/>.</summary>
+    private static string Wears(ColumnFace face) => face switch
+    {
+        ColumnFace.Number => "number",
+        ColumnFace.Fixed => "fixed",
+        ColumnFace.Prose => "prose",
+        ColumnFace.Status => "status",
+        ColumnFace.StartType => "start",
+        ColumnFace.Mismatch => "mismatch",
+        _ => "text"
+    };
 
     /// <summary>
     /// What one line says: the cell's own words, and after them - in brackets - what the machine
@@ -158,12 +269,14 @@ internal static class Details
     /// <b>A label, a tab and a value per line.</b> Tab because a spreadsheet and a ticket both take
     /// it, and one field per line because several of these values run to hundreds of characters.
     /// The section headings stay, on their own lines, because they are how the picker groups the
-    /// same fields - somebody who copies this recognises the shape of it.
+    /// same fields - somebody who copies this recognises the shape of it. The word for nothing is
+    /// the panel's word, since 2026-09-16 - "Account" followed by a tab and nothing was a line a
+    /// ticket reader had to guess at.
     /// </summary>
     internal static string AsText(ScmEntry entry) => string.Join(
         Environment.NewLine,
         Of(entry).SelectMany(section => section.Lines
-            .Select(line => line.Label + "	" + line.Value)
+            .Select(line => line.Label + "\t" + line.Shown)
             .Prepend(section.Heading)));
 
     /// <summary>

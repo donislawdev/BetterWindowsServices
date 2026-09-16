@@ -63,6 +63,41 @@ public sealed class ChipGuards
     }
 
     /// <summary>
+    /// The button that folds the filters answers the pointer while the filters are open - which
+    /// is a question about the ORDER of its triggers, and nothing but this reads that order.
+    ///
+    /// <b>The fault, measured 2026-09-16 by gui-probe/reach.ps1: Filters 0.0% under the pointer
+    /// while every button beside it answered.</b> The library's hover and pressed triggers set
+    /// Background on the control, a trigger in a style outranks one in a template, and this style
+    /// carries a trigger on IsChecked painting the unchecked brushes - so while checked, which is
+    /// how the window opens, that trigger beat both of theirs. The repair is hover and pressed
+    /// written into this style AFTER the checked trigger, because a later trigger wins over an
+    /// earlier one for the same property. Reverse the order and the build is green, the catalogue
+    /// draws every state it knows, and the button goes dead again.
+    /// </summary>
+    [Fact]
+    public void The_filters_toggle_answers_the_pointer_after_it_has_answered_being_open()
+    {
+        var order = WpfHost.On(() =>
+        {
+            var style = (Style)WpfHost.Resources["QuietToggle"];
+
+            Assert.NotNull(style.BasedOn);
+            Assert.Equal(typeof(ToggleButton), style.BasedOn!.TargetType);
+
+            return style.Triggers.OfType<Trigger>().Select(trigger => trigger.Property.Name).ToList();
+        });
+
+        var isChecked = order.IndexOf(nameof(ToggleButton.IsChecked));
+        var hover = order.IndexOf(nameof(UIElement.IsMouseOver));
+        var pressed = order.IndexOf(nameof(ButtonBase.IsPressed));
+
+        Assert.True(isChecked >= 0, "QuietToggle no longer paints the unchecked look while checked");
+        Assert.True(hover > isChecked, $"the hover trigger of QuietToggle stands at {hover}, before or without the checked trigger at {isChecked} - while the filters are open the checked look wins and the button does nothing under the pointer");
+        Assert.True(pressed > hover, $"the pressed trigger of QuietToggle stands at {pressed}, before or without hover at {hover} - a press would be painted as a hover");
+    }
+
+    /// <summary>
     /// A chip that is on is drawn in the colour this window uses for "this one is picked".
     ///
     /// <b>The claim the style this replaced already made, kept across the rewrite.</b> WPF UI marks

@@ -180,6 +180,40 @@ internal sealed record Column
     public ExtraRead Needs { get; init; }
 
     /// <summary>
+    /// How the reading behind the cell went, for the columns whose "not read" is a lasting state
+    /// rather than a moment - the six fed by the second phase.
+    ///
+    /// <b>The details panel is what asked for it, 2026-09-16.</b> A cell in a column of eight
+    /// hundred says "not read" for the second between the column being turned on and the reading
+    /// landing, and a person watching a column knows why. The panel about ONE entry says it six
+    /// times over, for as long as nobody turns the columns on, and it has to say it differently
+    /// from an answer: in the colour of a label, with a sentence under the section telling what
+    /// would read them. To do that it has to know that "not read" is a state and not a word the
+    /// machine holds, and <see cref="Reads"/> hands over words. So the six columns that need a
+    /// family declare how their reading went, and a guard beside <see cref="Needs"/> holds the
+    /// two together: a column that needs a family and cannot say whether it was read is the panel
+    /// drawing a state as an answer.
+    ///
+    /// Nothing on the other twenty-two, and that is a cost said rather than hidden: a refusal on
+    /// one of those - "no access" on the account of an entry this session may not open - is drawn
+    /// as an answer in white. The word is right and rule 8 is kept; the colour is not, and the day
+    /// it matters this becomes a required member. Backlog 372.
+    /// </summary>
+    public Func<ScmEntry, ReadOutcome>? Outcome { get; init; }
+
+    /// <summary>
+    /// The code of the mark this cell wears beside its word, for the four columns that wear one -
+    /// the same codes <see cref="EntryRow"/> exposes for the list's templates, so the details
+    /// panel draws a running entry in the dot the list draws it in.
+    ///
+    /// <b>Declared on the column since 2026-09-16, and the list does not read it yet</b> - the
+    /// row still computes its three shapes by name, and the two mismatch columns share one
+    /// template bound to one of them (backlog 371). The day the list reads this, that fault has
+    /// nowhere left to live.
+    /// </summary>
+    public Func<ScmEntry, string>? Marks { get; init; }
+
+    /// <summary>
     /// What to sort it by, when that is not simply what the cell says.
     ///
     /// <b>Only the process identifier needs it today, and it needs it badly.</b> Sorted as text,

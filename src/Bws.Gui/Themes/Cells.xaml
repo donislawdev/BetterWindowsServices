@@ -103,6 +103,13 @@
         The tooltip is the other half of the same rule. Text that gives way has to be gettable -
         and ONLY such text, since 2026-08-25. Worked out when asked rather than bound on every
         cell of every row, which is what the switch below turns on. `CellTips` has the argument.
+
+        NO COLOUR OF ITS OWN, ON PURPOSE, and since 2026-09-16 the colour guard knows it by name
+        rather than by not looking. The library's BodyTextBlockStyle underneath sets size and
+        weight and nothing else (probed that day), so a cell wears the Foreground its grid row
+        sets for the row's state - which is what every other text style in this theme is
+        forbidden to do, and the one place it is right: a cell that named its own colour would
+        stop taking the row's. ContrastGuards lists CellText as the exception with the argument.
     -->
     <Style x:Key="CellText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />

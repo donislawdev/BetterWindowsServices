@@ -27,11 +27,12 @@ public sealed class QueryExampleTests
     [Fact]
     public void Every_example_is_a_query_the_language_accepts()
     {
-        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+        // ALL SIX, not the model's cut. Since backlog 358 the model hands out the examples that fit
+        // the list on screen, and the window opens on Services - which leaves out the one example
+        // that is for the whole machine. A claim about every example has to ask for every example.
+        Assert.NotEmpty(QueryExamples.All);
 
-        Assert.NotEmpty(model.Examples);
-
-        foreach (var example in model.Examples)
+        foreach (var example in QueryExamples.All)
         {
             var parsed = QueryParser.Parse(example.Query);
 
@@ -55,9 +56,7 @@ public sealed class QueryExampleTests
     [Fact]
     public void No_example_asks_for_a_reading_the_window_does_not_take()
     {
-        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
-
-        foreach (var example in model.Examples)
+        foreach (var example in QueryExamples.All)
         {
             var parsed = QueryParser.Parse(example.Query);
 

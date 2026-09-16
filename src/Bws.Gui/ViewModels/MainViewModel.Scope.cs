@@ -55,8 +55,24 @@ public sealed partial class MainViewModel
 
             Raise(nameof(Scope));
             Raise(nameof(SearchHint));
+            Raise(nameof(Examples));
+            Raise(nameof(SearchTip));
         }
     }
+
+    /// <summary>
+    /// Questions somebody can start from on the list they are standing on, each one a query they
+    /// can then edit - <see cref="QueryExamples.For"/>.
+    ///
+    /// <b>Cut by scope since 2026-09-16, backlog 358.</b> Three of the six selected nothing on
+    /// Drivers, and an example that selects nothing teaches the language wrong and blames the
+    /// person for it. The tooltip below and the list under the box both read this, so the two
+    /// cannot disagree.
+    /// </summary>
+    public IReadOnlyList<QueryExample> Examples => QueryExamples.For(Scope);
+
+    /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
+    public string SearchTip => QueryExamples.Tip(Examples);
 
     /// <summary>
     /// What the readings call when the machine has been asked again.

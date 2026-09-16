@@ -144,7 +144,20 @@ public sealed class DetailsGuards
             Assert.Equal(column!.Reads(entry), line.Value);
         }
 
-        Assert.All(sections, section => Assert.Equal(string.Empty, section.Note));
+        // A NOTE UNDER EXACTLY THE SECTIONS WITH A LINE NOBODY HAS ASKED FOR YET, since 2026-09-16
+        // - and none anywhere else. The specimen leaves the second phase unread, so Basics (memory)
+        // and What it runs (signature, publisher, version, hash) and Advanced (required by) carry
+        // it, and About the entry does not. Asserted both ways, because a note on every section
+        // would be the old apology back under a new name.
+        foreach (var section in sections)
+        {
+            var unread = section.Lines.Any(line => line.Outcome == ReadOutcome.NotRead);
+
+            Assert.Equal(unread ? Texts.Of("gui.details.notRead.note") : string.Empty, section.Note);
+        }
+
+        Assert.Contains(sections, section => section.Note.Length > 0);
+        Assert.Contains(sections, section => section.Note.Length == 0);
     }
 
     /// <summary>
@@ -182,9 +195,118 @@ public sealed class DetailsGuards
             .SelectMany(section => section.Lines)
             .ToDictionary(line => line.Label, StringComparer.Ordinal);
 
-        Assert.True(lines[Texts.Of("gui.column.binaryPath")].FixedWidth);
-        Assert.True(lines[Texts.Of("gui.column.securityDescriptor")].FixedWidth);
-        Assert.False(lines[Texts.Of("gui.column.displayName")].FixedWidth);
+        Assert.Equal("fixed", lines[Texts.Of("gui.column.binaryPath")].Wears);
+        Assert.Equal("fixed", lines[Texts.Of("gui.column.securityDescriptor")].Wears);
+        Assert.Equal("text", lines[Texts.Of("gui.column.displayName")].Wears);
+        Assert.Equal("prose", lines[Texts.Of("gui.column.description")].Wears);
+    }
+
+    /// <summary>
+    /// The lines the list marks with a shape carry the same shape code, under the same name the
+    /// list's own mark styles bind to - so the panel draws the dot beside "Running" out of the
+    /// style the list draws it with, and cannot show a running entry in a colour the list does
+    /// not use. `docs/11` 3.1: a state is a shape, a colour and a word, and until 2026-09-16 the
+    /// panel had the word alone.
+    /// </summary>
+    [Fact]
+    public void The_status_and_the_start_type_wear_the_marks_the_list_draws()
+    {
+        var entry = Rows.Entry("Spooler");
+        var lines = Details.Of(entry)
+            .SelectMany(section => section.Lines)
+            .ToDictionary(line => line.Label, StringComparer.Ordinal);
+
+        var status = lines[Texts.Of("gui.column.status")];
+        var start = lines[Texts.Of("gui.column.startType")];
+        var account = lines[Texts.Of("gui.column.account")];
+
+        Assert.Equal("status", status.Wears);
+        Assert.Equal(CellFaces.StatusShape(entry.Status), status.StatusShape);
+        Assert.Equal(string.Empty, status.StartShape);
+
+        Assert.Equal("start", start.Wears);
+        Assert.Equal(CellFaces.StartShape(entry, StartQualifiers.Of(entry)), start.StartShape);
+        Assert.Equal(string.Empty, start.StatusShape);
+
+        Assert.Equal(string.Empty, account.StatusShape);
+        Assert.Equal(string.Empty, account.StartShape);
+        Assert.Equal(string.Empty, account.AgainstShape);
+    }
+
+    /// <summary>
+    /// Nothing is drawn as a word, not as a blank - backlog 367, found by the component catalogue
+    /// the first day it drew this panel over a driver: "Account" and "PID" with nothing after them,
+    /// which on a panel about one entry reads as "did not load". The cell's own words stay in
+    /// Value, blank included, so the guard holding a line to its cell keeps holding; what is DRAWN
+    /// is Shown, and it carries the word.
+    /// </summary>
+    [Fact]
+    public void A_field_with_genuinely_nothing_in_it_says_none_rather_than_showing_a_blank()
+    {
+        var driver = Rows.Entry("disk") with
+        {
+            Account = Reading<string>.Absent(),
+            ProcessId = Reading<int>.Absent()
+        };
+
+        var lines = Details.Shown(driver)
+            .SelectMany(section => section.Lines)
+            .ToDictionary(line => line.Label, StringComparer.Ordinal);
+
+        var account = lines[Texts.Of("gui.column.account")];
+
+        Assert.Equal(string.Empty, account.Value);
+        Assert.Equal(Texts.Of("gui.details.none"), account.Shown);
+        Assert.True(account.Missing);
+
+        Assert.Equal(Texts.Of("gui.details.none"), lines[Texts.Of("gui.column.processId")].Shown);
+
+        var status = lines[Texts.Of("gui.column.status")];
+
+        Assert.Equal(status.Value, status.Shown);
+        Assert.False(status.Missing);
+    }
+
+    /// <summary>
+    /// A field the window has not asked the machine for yet says so - "not read", the glossary's
+    /// word, in the colour of a label - and never "unknown", which is what the machine says when
+    /// it answered with something this code cannot name. The panel says it six times over an
+    /// entry somebody is looking at, so the two sentences had to come apart.
+    /// </summary>
+    [Fact]
+    public void A_field_nobody_has_asked_for_yet_says_not_read_and_is_drawn_as_a_state()
+    {
+        var lines = Details.Shown(Rows.Entry("Spooler"))
+            .SelectMany(section => section.Lines)
+            .ToDictionary(line => line.Label, StringComparer.Ordinal);
+
+        var signature = lines[Texts.Of("gui.column.signature")];
+
+        Assert.Equal(ReadOutcome.NotRead, signature.Outcome);
+        Assert.Equal(Texts.Of("gui.cell.notRead"), signature.Shown);
+        Assert.True(signature.Missing);
+
+        Assert.Equal(ReadOutcome.Present, lines[Texts.Of("gui.column.startType")].Outcome);
+    }
+
+    /// <summary>
+    /// The panel does not repeat its own head: the two names it shows above the sections are not
+    /// lines of the first section as well. A copy has no head, so it keeps them.
+    /// </summary>
+    [Fact]
+    public void The_panel_leaves_the_two_names_to_its_head_and_a_copy_keeps_them()
+    {
+        var entry = Rows.Entry("Spooler", "Print Spooler");
+        var shown = Details.Shown(entry).SelectMany(section => section.Lines).Select(line => line.Label).ToList();
+        var copied = Details.Of(entry).SelectMany(section => section.Lines).Select(line => line.Label).ToList();
+
+        Assert.DoesNotContain(Texts.Of("gui.column.name"), shown);
+        Assert.DoesNotContain(Texts.Of("gui.column.displayName"), shown);
+        Assert.Contains(Texts.Of("gui.column.name"), copied);
+        Assert.Contains(Texts.Of("gui.column.displayName"), copied);
+        Assert.Equal(copied.Count - 2, shown.Count);
+
+        Assert.Contains("Print Spooler", Details.AsText(entry), StringComparison.Ordinal);
     }
 
     /// <summary>

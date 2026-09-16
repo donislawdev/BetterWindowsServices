@@ -270,7 +270,7 @@ internal static class WpfHost
     /// </summary>
     internal static readonly string[] ThemeFiles =
                  [
-                     "Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
+                     "Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Surfaces.xaml", "Columns.xaml",
                      "Text.xaml", "Overview.xaml", "Chips.xaml",
 
                      // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
@@ -283,6 +283,10 @@ internal static class WpfHost
                      "Scroll.xaml", "PlanLines.xaml", "Plan.xaml",
 
                      "List.xaml", "Marks.xaml", "Cells.xaml",
+
+                     // After Marks.xaml, whose mark styles it extends - the panel about one
+                     // entry took a theme file of its own on 2026-09-16.
+                     "Details.xaml",
 
                      // LAST, exactly as in App.xaml, and for the ordinary reason: the catalogue's
                      // own look is drawn out of names declared above it. Arrived 2026-09-10 with

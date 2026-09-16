@@ -1,0 +1,296 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        What the window is painted with - selection, hover, the panel and its edge, the rules, the
+        scrim, the buttons, the focus ring. Brushes only, not one number and not one style.
+
+        SPLIT OUT OF Colours.xaml ON 2026-09-16, and the seam was in that file's own first
+        paragraph: it says it holds the colours that MEAN something about an entry, and eighteen of
+        its twenty-nine brushes were furniture. It stood exactly on the markup ceiling of 376 the
+        day a hover brush for the panel surfaces was needed, so the furniture moved here and the
+        meanings stayed. The immediate cause is the one every split of a value file has had: a
+        ceiling that may only go down, and a file standing on it.
+
+        WHAT THAT SEAM MEANS FOR A READER: "what colour says a service is stopped" is answered in
+        Colours.xaml, "what colour is the sheet under a plan" is answered here, and neither file
+        has to be opened to know which to open.
+
+        EVERY BRUSH HERE ANSWERS TO A FLOOR IN ContrastGuards, most of them floors this project
+        chose rather than WCAG's, and each says beside itself what it is measured against. THE
+        MEASUREMENT IS AGAINST THE WINDOW UNLESS THE COMMENT SAYS OTHERWISE - and since
+        2026-09-16 one of them says otherwise, because a brush that clears its floor on the window
+        can fail it on the panel: SurfaceHover reads 1.70 on the window and 1.30 on SurfacePanel.
+
+        MERGED IMMEDIATELY AFTER Colours.xaml AND BEFORE EVERY STYLES FILE, like every value file.
+        The styles reach these keys through StaticResource, resolved WHILE THE FILE IS BEING READ.
+    -->
+
+    <!--
+        Selection, and it is here because the built-in theme does not cover it.
+
+        Measured by looking: with ThemeMode="Dark" the Fluent theme styles the controls but
+        leaves DataGrid's own selection alone, so a selected row came out light grey with
+        dark text on a dark window - and the focused cell drew a box that reads as somewhere
+        to type, on a list that is read only. That is the "two products in one window" this
+        whole file exists to prevent, arriving from the one direction ADR-24 assumed was
+        covered.
+    -->
+    <!--
+        Selection has to be TELLABLE APART from an ordinary row, which is what WCAG 2.2
+        SC 1.4.11 asks of a component state, so it answers to 3:1 against the list background
+        and not to taste. The old #2D4F6C gave 1.90.
+
+        Two ratios pull against each other here and both are checked: lighten the surface and
+        it separates better from the background while white text on it separates worse.
+        #3F7099 gives 3.09 against the background and 5.26 for white on top - the only pair in
+        the search where both clear their threshold with room.
+
+        Hover answers to a floor of OUR choosing and that is said plainly rather than dressed
+        up as a standard: 1.4.11 covers states needed to IDENTIFY a component, and a pointer
+        already says where the pointer is. What is not defensible is 1.14, which is what
+        #2A2A2A gave - below the point where the state can be seen at all.
+    -->
+    <SolidColorBrush x:Key="SurfaceSelected">#3F7099</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceHover">#454545</SolidColorBrush>
+
+    <!--
+        HOVER FOR EVERYTHING THAT STANDS ON THE PANEL SURFACE, 2026-09-16 - the list under the
+        search box, the close mark and the copy buttons of the plan sheet. SurfaceHover above is
+        measured against the window, where it reads 1.70, and every one of those controls stands
+        on SurfacePanel (#343434), where the same brush reads 1.30 - under the 1.5 this project
+        set as the point at which a state can be seen at all. So a row of the list under the box
+        did not answer the pointer in any way a person could see, which is half of what the owner
+        called unintuitive. Measured with tools/contrast/contrast.ps1 -Background '#343434'.
+
+        #565656 reads 1.69 on the panel - the same distance SurfaceHover keeps from the window -
+        and ContrastGuards measures it THERE, in the one test in that file that asks about the
+        panel rather than the window.
+    -->
+    <SolidColorBrush x:Key="SurfaceHoverOnPanel">#565656</SolidColorBrush>
+
+    <!--
+        THE ONE THING ON A SCREEN THAT MOST WANTS PRESSING - 2026-09-01 evening, owner's decision
+        after a palette study, and the study is the reason this is one brush rather than two.
+
+        WHAT WAS WRONG. Every control in the chrome - seventeen chips, seven action buttons, the
+        column picker, the filter switch - was drawn from the same two greys, so a BUTTON meant
+        nothing. Meanwhile SurfaceSelected did three jobs at once: the picked row, the chip that is
+        on, and the button off the first screen. The one saturated colour in the window meant three
+        things and the shape of a control meant none.
+
+        THE OBVIOUS REPAIR WAS MEASURED AND REJECTED. A second, brighter blue for the primary button
+        beside the selection blue: tools/contrast/contrast.ps1 gives #0F6CBD against #3F7099 a ratio
+        of 1.02, and #0078D4 gives 1.16. Those are the same LIGHTNESS. They would differ in hue and
+        in nothing else, and in nothing at all to somebody with reduced colour vision. So the
+        families are told apart by SHAPE - pill, rectangle, rectangle - and colour is spent once.
+
+        WHY THIS EXACT BLUE, AND THE SEARCH IS WHY IT IS NOT BRIGHTER. Two ratios pull against each
+        other, the same pair SurfaceSelected was chosen by: lift the fill and it separates better
+        from the window while white on it separates worse. Measured across the search - #1B72B8
+        gives 3.22 against the window and 5.07 for white on top, and it is the only candidate that
+        clears both thresholds with room. #1E7AC4 reads better against the window at 3.60 and drops
+        white text to 4.53, which is the line rather than a margin. #2A7FC4 fails text outright at
+        4.26.
+
+        TWO CONTROLS WEAR IT AND THAT IS THE WHOLE LIST: the button that restarts this tool with
+        administrator rights, which is the only way forward when the session has none, and the
+        button that carries out a plan. Neither is ever on screen beside the other.
+    -->
+    <SolidColorBrush x:Key="SurfacePrimaryAction">#1B72B8</SolidColorBrush>
+
+    <!--
+        THE SAME BUTTON UNDER THE POINTER AND UNDER THE FINGER, 2026-09-01, AND BOTH EXIST BECAUSE
+        THE OWNER CALLED THE STATE THEY REPLACE UGLY. Hover was a WHITE border painted round the
+        accent - TextOnSurface on the template's Face - so pointing at the one saturated control in
+        the window put the brightest colour in the window round it, in a ring one point thick.
+
+        WHY DARKER RATHER THAN LIGHTER, AND IT IS ARITHMETIC RATHER THAN TASTE. White on #1B72B8
+        measures 5.07 and the text floor is 4.5, so the fill has almost no room to go UP: #1E7AC4
+        already drops it to 4.53 and #2A7FC4 fails at 4.26 - the search beside the base colour has
+        those numbers. Downwards there is no such wall, and every step makes the white text easier
+        rather than harder: 6.06 hovering and 7.17 pressed.
+
+        THE FLOOR EACH ANSWERS TO IS 1.5, THE SAME AS SurfaceHover, AND FOR THE SAME REASON WRITTEN
+        THERE. SC 1.4.11 covers a state needed to IDENTIFY a component, and a shade saying where the
+        pointer already is does not identify anything - the button was identified by the fill it has
+        at rest, which clears 3:1 on its own. They measure 2.69 and 2.27 against the window.
+
+        Both are the accent composited on the window at 85% and 72%, so they stay one family rather
+        than three blues: a hue shift between rest and pressed is what SurfaceSelected was doing
+        here before, and it read as a different control being pressed.
+    -->
+    <SolidColorBrush x:Key="SurfacePrimaryActionHover">#1C66A1</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfacePrimaryActionPressed">#1C5B8D</SolidColorBrush>
+
+    <!--
+        THE ONLY THING IDENTIFYING A FILTER CHIP THAT IS OFF, from the same evening, and it answers
+        to a higher ratio than any other edge in this file for exactly that reason.
+
+        A chip at rest has no fill any more - that is what stops seventeen of them reading as the
+        same control as the seven action buttons under them. What is left is the outline, so SC
+        1.4.11 applies to it in full: 3:1 for what identifies a component. #6E6E6E measures 3.20.
+
+        SurfacePanelEdge WAS TRIED FIRST AND IS NOT ENOUGH. It measures 1.84, which is right for a
+        seam between two regions that are both already visible, and wrong for the one mark saying a
+        control is there at all.
+    -->
+    <SolidColorBrush x:Key="SurfaceChipEdge">#6E6E6E</SolidColorBrush>
+
+    <!--
+        The line between one row and the next, so a row can be carried across six columns and
+        1650 pixels without the eye losing it. Complaint 2 of the eleven.
+
+        IT IS A LINE AND NOT A ZEBRA STRIPE, AND THAT IS A MEASUREMENT RATHER THAN A PREFERENCE.
+        The owner asked for stripes on 2026-08-05. Three ways of drawing them were tried against
+        the pixel and the first two failed:
+
+          1. AlternationCount plus a trigger on ItemsControl.AlternationIndex - nothing painted.
+             The grid coerces AlternationCount to nothing while AlternatingRowBackground is null.
+          2. DataGrid.AlternatingRowBackground - painted, and DISQUALIFIED BY WHAT THAT PROVED.
+             Set to one colour with our own row trigger set to another, the grid's colour is the
+             one on screen. Left in, it would have taken selection, hover and the
+             moved-a-moment-ago highlight off every second row, silently.
+          3. A horizontal grid line - paints, at 1200,212 in the capture, and touches none of the
+             three row states because the grid draws it rather than the row's background.
+
+        WHY 2 BEAT OUR TRIGGER WAS WRITTEN HERE AS "COERCION" AND THAT WAS WRONG. Read out of
+        their markup on 2026-08-05 with tools/wpfui-probe template: their row template carries
+        a trigger on ItemsControl.AlternationIndex = 0 which sets the border's Background from
+        the grid's RowBackground - and AlternationIndex is zero for every row while
+        AlternationCount is, so that trigger is ALWAYS ON. A setter inside a control template's
+        triggers outranks the TemplateBinding on the same element, so our row Background died
+        there rather than to any coercion. Naming it coercion made the whole family look
+        unfixable, when the real answer was to stop borrowing the template - see ListRow.
+
+        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
+        a separator identifies nothing, it only has to be seen between two rows. #333333 measures
+        1.30 against the window, and deliberately stays under hover at 1.70 so that pointing at a
+        row still reads as the stronger signal.
+    -->
+    <SolidColorBrush x:Key="SurfaceRowLine">#333333</SolidColorBrush>
+
+    <!--
+        THE SCROLLBAR THUMB, ASLEEP AND AWAKE, 2026-09-02, AND THIS PAIR EXISTS BECAUSE ONE COLOUR
+        COULD NOT DO BOTH JOBS. The bar was #6E6E6E at all times - 2.84 against the window, which
+        made a strip of furniture the brightest thing on the list screen that is not text, and the
+        owner's words were that it is too big and ugly.
+
+        1.4 IS OURS AND IT IS THE LOWEST FLOOR IN THIS FILE ON PURPOSE. At rest this thumb answers
+        one question - where am I in the list - for somebody who is not currently reaching for it.
+        It identifies no component and it competes with nothing, so SC 1.4.11 does not reach it; it
+        only has to stay ABOVE the line between two rows, which sits at 1.25 and carries less. The
+        moment the pointer enters the bar the awake colour takes over at 3.79, which does clear
+        1.4.11 - so the state somebody can actually act on is the state that answers to the standard.
+
+        THE TWO ARE ALSO TELLABLE FROM EACH OTHER, which is the check a ratio against the window
+        cannot make: 1.4 to 3.79 is a bigger step than any other pair of states in this theme.
+    -->
+    <SolidColorBrush x:Key="SurfaceScrollThumb">#3A3A3A</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceScrollThumbAwake">#7A7A7A</SolidColorBrush>
+
+    <!--
+        THE PLAN PANEL'S OWN SURFACE, 2026-08-19, and it exists because the owner looked at the
+        panel for the first time and the first thing he said was that it looks bad.
+
+        HE WAS RIGHT AND THE CAUSE WAS THIS: the panel had no fill at all, so it was drawn
+        straight over the list. The Account column ran under its first line and a selected row
+        carried its blue behind the text. Nothing said the right hand side was a different
+        surface, which is why the button at the bottom of it looked like it belonged to nothing.
+
+        A LARGE REGION READS AT A LOWER RATIO THAN A THIN LINE, which is why this sits near the
+        row line rather than near hover: it is a whole column of the window rather than a state
+        a row takes, and lifting it further would make the list look like it was in a hole.
+    -->
+    <SolidColorBrush x:Key="SurfacePanel">#343434</SolidColorBrush>
+
+    <!--
+        The line between the list and the panel. Stronger than the line between two rows, and
+        deliberately: that one separates two things of the same kind, this one separates two
+        regions doing different jobs, and it is the only edge the panel has.
+    -->
+    <SolidColorBrush x:Key="SurfacePanelEdge">#4A4A4A</SolidColorBrush>
+
+    <!--
+        A row that moved a moment ago. A10 rule three: a change has to be visible rather than
+        stealthy, because a list that quietly corrects itself is one where somebody looking
+        away misses the thing they were waiting for.
+
+        Deliberately dim. It marks every service that starts or stops while the window is
+        open, which on a working machine is a steady trickle - loud enough to catch the eye
+        from across the screen and it would be a fairground.
+
+        DIM IS NOT THE SAME AS INVISIBLE, and #3A3320 was the second. It measured 1.30 against
+        the background, and that number explains an argument this project could not settle for
+        three slices: whether the colour was reaching a pixel at all. At 1.30 it hardly shows
+        when it does arrive, so a rendering fault and a contrast fault looked identical from
+        the outside. #63563A keeps the amber and measures 2.27.
+    -->
+    <SolidColorBrush x:Key="SurfaceChanged">#63563A</SolidColorBrush>
+
+    <!--
+        WHERE THE KEYBOARD IS. The fourth row state, and the only one that is a formal
+        requirement rather than a courtesy - WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator,
+        and `ADR-24` removed the only one this list had when it took the box off the focused
+        cell. That was the right call about appearance: the box read as somewhere to type, on a
+        list nobody can type into. It was also the removal of the whole indicator.
+
+        IT ANSWERS TO FOUR BACKGROUNDS, NOT ONE, AND THAT IS WHY IT IS THIS PALE. A ring is
+        drawn against whatever the row already is, so the ratio that matters is the worst of
+        the four a row can take. Measured with tools/contrast/contrast.ps1 against each:
+
+          #202020  the window          11.21
+          #454545  hover                6.60
+          #63563A  moved a moment ago   4.94
+          #3F7099  selected             3.62   <- the one that decided the colour
+
+        Every brush above answers to the window background alone, which is the ordinary case
+        and is what ContrastGuards measures. This one has its own test in that file, because a
+        guard that checked it against the window would pass it at 11.21 and never look at the
+        3.62 that is the real floor.
+
+        DRAWN AS AN OUTLINE AND NOT A FILL, and that is not only taste. A fill would have to
+        beat the three states it lands on top of, so focus and selection would fight over the
+        same pixel. An outline sits at the edge and leaves the state underneath legible.
+    -->
+    <SolidColorBrush x:Key="FocusRing">#D6D6D6</SolidColorBrush>
+
+    <!--
+        THE DIMMING OVER THE WINDOW WHILE A PLAN IS ON SCREEN, 2026-09-02, AND IT IS THE ONE BRUSH
+        HERE WHOSE JOB IS TO REMOVE CONTRAST RATHER THAN MAKE IT.
+
+        Half-opaque black rather than a darker grey, because it works over whatever is behind it -
+        the list, the first screen, the filters - and a flat fill would be wrong over two of three.
+
+        IT HELPS THE NUMBERS RATHER THAN HURTING THEM: the sheet's #343434 sits at 1.25 against the
+        bare window and better against a window reading #101010 under this. Measured on the capture,
+        which also confirmed the arithmetic - red text under it came back at exactly half of every
+        component. Its entry in ContrastGuards is the one floor asking for nothing.
+    -->
+    <SolidColorBrush x:Key="SurfaceScrim">#80000000</SolidColorBrush>
+
+    <!--
+        THE INSET UNDER A COMMAND SOMEBODY IS ABOUT TO COPY, 2026-09-02. Darker than the sheet rather
+        than lighter, which is what makes a block of text read as something to take away - a recess says "not prose".
+
+        ITS RATIO IS MEASURED AGAINST THE WRONG THING - BACKLOG 286 IN ONE LINE. The table checks
+        against the WINDOW, where this reads 1.08, and it is never drawn there: it sits inside the
+        sheet, at 1.22. White on it is 16.7 either way.
+    -->
+    <SolidColorBrush x:Key="SurfaceCommandBox">#262626</SolidColorBrush>
+
+    <!--
+        THE ONE BUTTON IN THIS PRODUCT THAT CHANGES A MACHINE, 2026-09-02. The owner asked for two
+        red buttons and what went in is narrower on purpose: RED FILL MEANS "THIS CHANGES YOUR
+        MACHINE" AND NOTHING ELSE. Restart as admin wears the same red as an OUTLINE instead, so it
+        belongs to the red sentence it answers - two red fills is a window with no red left to spend.
+
+        NOT DARKER, WHICH IS WHERE A RED BUTTON USUALLY ENDS UP, because white on it has to stay
+        readable: 5.21 with white on top and 3.13 against the window, the same shape as the blue
+        beside it at 5.07 and 3.22. THE FIRST TRY WAS #C0392B AND THE GUARD CAUGHT IT AT EXACTLY 3.00
+        against a floor of 3.0 - my own arithmetic had rounded it up. Hover and pressed go darker.
+    -->
+    <SolidColorBrush x:Key="SurfaceDestructiveAction">#C43C2E</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceDestructiveActionHover">#A32F23</SolidColorBrush>
+    <SolidColorBrush x:Key="SurfaceDestructiveActionPressed">#8C271D</SolidColorBrush>
+</ResourceDictionary>

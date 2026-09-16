@@ -193,7 +193,7 @@ public sealed class EntryRow : Observable
     /// stylistic.</b> Eleven of the seventeen columns of `A8` are off by default and most of them
     /// stay off - a security descriptor is several hundred characters and a privilege list runs to
     /// twenty-eight names on this machine. Holding all of that as text on every one of 810 rows
-    /// would spend the whole of the 1.5 MB the row list is allowed by MemoryBudgetTests on cells
+    /// would spend the whole of the 2.5 MB the row list is allowed by MemoryBudgetTests on cells
     /// nobody has turned on. Computed here, only the cells a virtualised grid has realised are
     /// ever worked out - about thirty rows of them.
     ///

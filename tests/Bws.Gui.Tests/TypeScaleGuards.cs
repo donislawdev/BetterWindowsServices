@@ -178,20 +178,56 @@ public sealed class TypeScaleGuards
     }
 
     /// <summary>Every setter of one named style, as text, in the order the theme declares them.</summary>
-    private static List<string> Setters(string key) =>
-        Regex
-            .Matches(
-                // NO \b AFTER THE CLOSING QUOTE, and the first version had one. A word boundary
-                // between a quote and a space is not a boundary at all, so the pattern matched
-                // nothing and the guard failed saying the style was absent - which is the safe
-                // direction, and only because it was written to say so rather than to pass on
-                // finding none. The quotes already make the key exact.
-                Regex.Match(Theme(), $@"<Style\s+x:Key=""{Regex.Escape(key)}"".*?</Style>", RegexOptions.Singleline, Ceiling).Value,
-                @"<Setter\s+Property=""(\w+)""\s+Value=""([^""]*)""",
-                RegexOptions.None,
-                Ceiling)
-            .Select(match => $"{match.Groups[1].Value}={match.Groups[2].Value}")
-            .ToList();
+    private static List<string> Setters(string key)
+    {
+        // RESOLVED THROUGH BasedOn SINCE 2026-09-16, the day six styles that spelled out "Segoe,
+        // 13" in full became BasedOn two body styles that say it once. Before that a style built
+        // on another had no setters here at all, and worse: the alias form is a self-closing tag,
+        // and the old pattern ran from its opening tag to the NEXT style's closing one, counting
+        // a neighbour's setters as its own. A style's own setters win over its base's, and only
+        // what stands before <Style.Triggers> counts - a size that applies in one state is not
+        // the style's size. Depth is bounded by a number rather than a cycle check, because a
+        // theme with a cycle in it does not load.
+        var setters = new Dictionary<string, string>(StringComparer.Ordinal);
+        Gather(key, setters, depth: 0);
+
+        return setters.Select(pair => $"{pair.Key}={pair.Value}").ToList();
+    }
+
+    private static void Gather(string key, Dictionary<string, string> setters, int depth)
+    {
+        // NO \b AFTER THE CLOSING QUOTE, and the first version had one. A word boundary
+        // between a quote and a space is not a boundary at all, so the pattern matched
+        // nothing and the guard failed saying the style was absent - which is the safe
+        // direction, and only because it was written to say so rather than to pass on
+        // finding none. The quotes already make the key exact.
+        var style = Regex.Match(
+            Theme(),
+            $@"<Style\s+x:Key=""{Regex.Escape(key)}""(?<head>[^>]*?)(?:/>|>(?<body>.*?)</Style>)",
+            RegexOptions.Singleline,
+            Ceiling);
+
+        if (!style.Success || depth > 8)
+        {
+            return;
+        }
+
+        var basedOn = Regex.Match(style.Groups["head"].Value, @"BasedOn=""\{StaticResource\s+(\w+)\}""", RegexOptions.None, Ceiling);
+
+        if (basedOn.Success)
+        {
+            Gather(basedOn.Groups[1].Value, setters, depth + 1);
+        }
+
+        var body = style.Groups["body"].Value;
+        var triggers = body.IndexOf("<Style.Triggers>", StringComparison.Ordinal);
+        var own = triggers < 0 ? body : body[..triggers];
+
+        foreach (Match setter in Regex.Matches(own, @"<Setter\s+Property=""(\w+)""\s+Value=""([^""]*)""", RegexOptions.None, Ceiling))
+        {
+            setters[setter.Groups[1].Value] = setter.Groups[2].Value;
+        }
+    }
 
     /// <summary>The key a named setter points at, with the StaticResource wrapper taken off.</summary>
     private static string? Named(List<string> setters, string property) =>
@@ -215,7 +251,9 @@ public sealed class TypeScaleGuards
 
     private static IEnumerable<string> Styles() =>
         Regex
-            .Matches(Theme(), @"<Style\b.*?</Style>", RegexOptions.Singleline, Ceiling)
+            // The self-closing form is a style too - an alias with nothing of its own - and
+            // without the alternative here it would swallow the next style whole.
+            .Matches(Theme(), @"<Style\b[^>]*?(?:/>|>.*?</Style>)", RegexOptions.Singleline, Ceiling)
             .Select(match => match.Value);
 
     /// <summary>
@@ -243,5 +281,42 @@ public sealed class TypeScaleGuards
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
         return string.Join(Environment.NewLine, Directory.EnumerateFiles(themes, "*.xaml").Select(File.ReadAllText));
+    }
+
+    /// <summary>
+    /// The ceiling under the details panel's title is two lines of the heading size and not three
+    /// - so the display name wraps to a second line and never a third, and the number cannot drift
+    /// from the size it was made for when either of them moves.
+    ///
+    /// <b>A number standing in for a computation, and this is the guard that makes it one.</b>
+    /// GUI rule 14 says layout is computed, never measured, and a ceiling of exactly two lines
+    /// cannot be written in markup without a converter - so Values.xaml holds a number beside a
+    /// comment saying what it is a function of, and this holds the number to the function. The
+    /// bounds are the face's own leading: Segoe UI sets a line at about 1.33 of its size, so two
+    /// lines lie between 2.0 and 3.0 sizes with room for the slack the first photograph asked for
+    /// (48 trimmed the title on its first line; 56 does not).
+    /// </summary>
+    [Fact]
+    public void The_details_title_ceiling_is_two_lines_of_the_heading_size_and_not_three()
+    {
+        var sizes = Sizes();
+        var ceiling = Regex.Match(
+            Theme(),
+            @"<system:Double\s+x:Key=""HeightDetailTitle""\s*>\s*([0-9.]+)\s*<",
+            RegexOptions.None,
+            Ceiling);
+
+        Assert.True(ceiling.Success, "HeightDetailTitle is not declared in the theme, so the details title has no ceiling.");
+        Assert.True(sizes.ContainsKey("TextSizeHeading"), "TextSizeHeading is not declared, so there is nothing to hold the ceiling to.");
+
+        var height = double.Parse(ceiling.Groups[1].Value, CultureInfo.InvariantCulture);
+        var heading = sizes["TextSizeHeading"];
+
+        Assert.True(
+            height >= 2 * 1.33 * heading && height < 3 * 1.2 * heading,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"HeightDetailTitle is {height} against a heading size of {heading}: two lines need at least "
+                + $"{2 * 1.33 * heading:0.#} and three would fit from {3 * 1.2 * heading:0.#}."));
     }
 }

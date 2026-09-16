@@ -82,7 +82,7 @@ public sealed class SystemAccountTests
 
         Assert.Equal(Texts.Of("gui.cell.noAccess"), denied["account"]);
         Assert.Equal(string.Empty, absent["account"]);
-        Assert.Equal(Texts.Of("gui.cell.unknown"), unread["account"]);
+        Assert.Equal(Texts.Of("gui.cell.notRead"), unread["account"]);
 
         var holds = Columns.Of("account")!.Holds!;
 

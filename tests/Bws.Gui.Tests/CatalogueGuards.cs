@@ -1,6 +1,7 @@
 // Explicit, because UseWPF swaps the implicit using set and takes System.IO out of it.
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Windows;
 using System.Xml.Linq;
 using Bws.Gui.ViewModels;
 
@@ -26,7 +27,16 @@ public sealed class CatalogueGuards
     /// <summary>Where the theme files live.</summary>
     private static string Themes => Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-    /// <summary>Every keyed style a theme file declares AT THE TOP LEVEL, which is what a component is.</summary>
+    /// <summary>
+    /// Every keyed style AND every keyed data template a theme file declares AT THE TOP LEVEL,
+    /// which is what a component is.
+    ///
+    /// <b>Templates since 2026-09-16.</b> The row under the search box IS SuggestionRow and a
+    /// filter group IS FilterGroupTemplate - a sheet that counted styles alone was complete about
+    /// half of what the window is made of. Catalogue.xaml's own templates are left out on both
+    /// sides: they are the sheet, and a sheet drawing its own row template inside its own row
+    /// template is a mirror.
+    /// </summary>
     private static IReadOnlyList<string> Declared()
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -41,8 +51,10 @@ public sealed class CatalogueGuards
                 continue;
             }
 
+            var sheet = string.Equals(Path.GetFileName(file), "Catalogue.xaml", StringComparison.OrdinalIgnoreCase);
+
             keys.AddRange(root.Elements()
-                .Where(element => element.Name.LocalName == "Style")
+                .Where(element => element.Name.LocalName == "Style" || (element.Name.LocalName == "DataTemplate" && !sheet))
                 .Select(element => element.Attribute(x + "Key")?.Value)
                 .Where(key => key is not null)
                 .Select(key => key!));
@@ -232,5 +244,246 @@ public sealed class CatalogueGuards
             invented.Length == 0,
             $"{invented.Length} component(s) are drawn wrong on the sheet and have no wrong state "
             + $"in their style: [{string.Join(", ", invented)}].");
+    }
+
+    /// <summary>
+    /// <b>A sample on the sheet puts at least one pixel on a bitmap - GUI rule 10, and the sheet
+    /// shipped three blank cells for six days on the strength of a measurement.</b>
+    ///
+    /// AgainstMark, StartMark and FilterDisclosure all measure to their token size and draw
+    /// nothing - two are hidden until a row's state shows them, one takes its colour from the
+    /// button around it - so "has a size" passed them and the sheet showed three empty cells,
+    /// which read as three components that draw nothing. Since 2026-09-16 the model renders each
+    /// sample on the way in and turns a blank one into a sentence. This renders them AGAIN, with
+    /// its own code, so that a model that lets a blank through - a render that threw and was read
+    /// as "could not ask", say - is caught by something that did not share its mistake.
+    ///
+    /// Alpha rather than a colour count: a path with no geometry is zero pixels of any opacity,
+    /// while a panel-coloured border on a panel with text in it is two colours and paints.
+    /// </summary>
+    [Fact]
+    public void Every_drawn_sample_puts_a_pixel_on_the_sheet()
+    {
+        var blank = WpfHost.On(() =>
+        {
+            var found = new List<string>();
+
+            // The same two bounds the sheet draws to, read from the theme rather than written here.
+            var widest = (double)WpfHost.Resources["WidthCatalogueExtreme"];
+            var tallest = (double)WpfHost.Resources["HeightCatalogueTall"];
+
+            foreach (var group in Catalogue.Read(WpfHost.Resources))
+            {
+                foreach (var entry in group.Entries)
+                {
+                    if (entry.Normal.Element is not { } element)
+                    {
+                        continue;
+                    }
+
+                    element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+                    var width = (int)Math.Ceiling(Math.Min(element.DesiredSize.Width, widest));
+                    var height = (int)Math.Ceiling(Math.Min(element.DesiredSize.Height, tallest));
+
+                    if (width <= 0 || height <= 0)
+                    {
+                        found.Add(entry.Key + " (no size)");
+
+                        continue;
+                    }
+
+                    element.Arrange(new Rect(0, 0, width, height));
+
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                        width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+
+                    bitmap.Render(element);
+
+                    var pixels = new byte[width * 4 * height];
+                    bitmap.CopyPixels(pixels, width * 4, 0);
+
+                    var painted = false;
+
+                    for (var at = 3; at < pixels.Length && !painted; at += 4)
+                    {
+                        painted = pixels[at] != 0;
+                    }
+
+                    if (!painted)
+                    {
+                        found.Add(entry.Key);
+                    }
+                }
+            }
+
+            return found;
+        });
+
+        Assert.True(
+            blank.Count == 0,
+            $"{blank.Count} sample(s) on the sheet draw no pixel at all: [{string.Join(", ", blank)}]. "
+            + "A cell that shows nothing is a claim that the component draws nothing - say why instead.");
+    }
+
+    /// <summary>
+    /// The three components that draw nothing alone are on the sheet as a SENTENCE, not as a
+    /// blank - and the sentence is the one the pixel check writes, so that the guard above is
+    /// known to be guarding something that really happens. A sheet on which nothing ever needed
+    /// the sentence would be the absence-shaped pass this file warns about.
+    /// </summary>
+    [Fact]
+    public void A_component_that_draws_nothing_alone_says_so_rather_than_standing_blank()
+    {
+        var entries = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
+            .SelectMany(group => group.Entries)
+            .ToDictionary(entry => entry.Key, entry => entry.Normal, StringComparer.Ordinal);
+
+        foreach (var key in new[] { "AgainstMark", "StartMark", "FilterDisclosure" })
+        {
+            Assert.True(entries.ContainsKey(key), $"{key} is not on the sheet at all.");
+            Assert.Null(entries[key].Element);
+            Assert.Contains("draws nothing on its own", entries[key].Instead, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// <b>Every keyed template is drawn over a specimen, and the extreme one differs from the
+    /// ordinary one.</b> A template whose data shape this sheet does not know is a red build, not
+    /// a row saying "nothing here knows what data X draws" - the same rule the factory table
+    /// holds for styles, and the reason a new template is a new row in Catalogue.Specimens.cs.
+    /// </summary>
+    [Fact]
+    public void Every_template_is_drawn_over_a_specimen_of_its_own_data()
+    {
+        var templates = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
+            .SelectMany(group => group.Entries)
+            .Where(entry => entry.Target == "DataTemplate")
+            .ToArray();
+
+        // Eleven on the day this was written. Fewer means a file stopped being read - the
+        // absence-shaped pass this file warns about - so the count is held, not just the shape.
+        Assert.True(templates.Length >= 11, $"Only {templates.Length} template(s) reached the sheet.");
+
+        var unknown = templates.Where(entry => entry.Normal.Element is null).Select(entry => $"{entry.Key}: {entry.Normal.Instead}").ToArray();
+
+        Assert.True(
+            unknown.Length == 0,
+            $"{unknown.Length} template(s) have no specimen to be drawn over: [{string.Join(", ", unknown)}]. "
+            + "Add a row to Catalogue.TemplateSpecimens - a template drawn over nothing is a blank cell.");
+
+        var same = templates.Where(entry => entry.Extreme.Element is null).Select(entry => entry.Key).ToArray();
+
+        Assert.True(same.Length == 0, $"{same.Length} template(s) have no extreme specimen: [{string.Join(", ", same)}].");
+    }
+
+    /// <summary>
+    /// The chosen column holds the states a chip and a suggestion row spend their working lives
+    /// in - lit, and reached by Down - and the sheet drew neither until 2026-09-16. Read off the
+    /// style's template triggers, so the two are checked by effect: the chip is checked, the row
+    /// is selected, and a plain button, which no trigger ever chooses, has a dash.
+    /// </summary>
+    [Fact]
+    public void A_chip_is_shown_lit_and_a_suggestion_row_selected_in_the_chosen_column()
+    {
+        var entries = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
+            .SelectMany(group => group.Entries)
+            .ToDictionary(entry => entry.Key, entry => entry, StringComparer.Ordinal);
+
+        WpfHost.On(() =>
+        {
+            Assert.True(entries["FilterChip"].Chosen.Element is System.Windows.Controls.Primitives.ToggleButton { IsChecked: true });
+            Assert.True(entries["SuggestionItem"].Chosen.Element is System.Windows.Controls.ListBoxItem { IsSelected: true });
+        });
+
+        Assert.Null(entries["PrimaryAction"].Chosen.Element);
+        Assert.Equal("-", entries["PrimaryAction"].Chosen.Instead);
+
+        // A menu item's check mark is drawn only in the SubmenuItem role, which a sample with no
+        // menu around it never has - so the cell says so instead of showing an empty box and
+        // calling it chosen.
+        Assert.Null(entries["ColumnChoiceItem"].Chosen.Element);
+        Assert.Contains("inside an open menu", entries["ColumnChoiceItem"].Chosen.Instead, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The one thing the extreme column exists to show, checked as an EFFECT rather than as the
+    /// presence of TextTrimming in the markup - GUI rule 10. The plan button's label trims with an
+    /// ellipsis, and a label long enough to need one gets one when laid out at the column's width.
+    /// </summary>
+    [Fact]
+    public void The_trimmed_button_label_ends_in_an_ellipsis_when_its_text_does_not_fit()
+    {
+        var trimmed = WpfHost.On(() =>
+        {
+            var entry = Catalogue.Read(WpfHost.Resources)
+                .SelectMany(group => group.Entries)
+                .Single(entry => entry.Key == "TrimmedButtonLabel");
+
+            var element = entry.Extreme.Element!;
+            var width = (double)WpfHost.Resources["WidthCatalogueExtreme"];
+
+            // Unconstrained first: how wide the text WANTS to be. Then at the column's width.
+            element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var wanted = element.DesiredSize.Width;
+
+            element.Measure(new Size(width, double.PositiveInfinity));
+            element.Arrange(new Rect(0, 0, width, element.DesiredSize.Height));
+            element.UpdateLayout();
+
+            var block = Descendants(element).OfType<System.Windows.Controls.TextBlock>().First();
+
+            return (block.TextTrimming, Wanted: wanted, Given: width, Laid: block.ActualWidth);
+        });
+
+        // Needs trimming: the text wants more than the column has. Gets it: the mechanism WPF
+        // draws the ellipsis with is on the block, and the block was laid out inside the column.
+        Assert.True(trimmed.Wanted > trimmed.Given, $"The extreme specimen wants {trimmed.Wanted} and the column gives {trimmed.Given} - nothing to trim.");
+        Assert.Equal(System.Windows.TextTrimming.CharacterEllipsis, trimmed.TextTrimming);
+        Assert.True(trimmed.Laid <= trimmed.Given, "The label was laid out wider than the column it was given.");
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, index);
+
+            yield return child;
+
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A sample taller than the row is marked tall, and the sheet's style raises its ceiling for
+    /// it - the plan sheet was drawn as two faint edges until 2026-09-16 because its own margin
+    /// pushed its content past a 96 pixel clip. Both halves: the model marks it, and the theme
+    /// declares the taller ceiling the style reaches for.
+    /// </summary>
+    [Fact]
+    public void A_sample_taller_than_the_row_is_given_the_taller_ceiling()
+    {
+        var sheet = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
+            .SelectMany(group => group.Entries)
+            .Single(entry => entry.Key == "PlanSheet");
+
+        Assert.NotNull(sheet.Normal.Element);
+        Assert.True(sheet.Normal.Tall, "PlanSheet measures past the row ceiling and is not marked tall.");
+
+        var row = WpfHost.On(() => (double)WpfHost.Resources["HeightCatalogueSample"]);
+        var tall = WpfHost.On(() => (double)WpfHost.Resources["HeightCatalogueTall"]);
+
+        Assert.True(tall > row, $"The taller ceiling ({tall}) is not taller than the row ceiling ({row}).");
+
+        // And a plain button is not tall - the flag is measured, not handed out.
+        var button = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
+            .SelectMany(group => group.Entries)
+            .Single(entry => entry.Key == "PrimaryAction");
+
+        Assert.False(button.Normal.Tall);
     }
 }

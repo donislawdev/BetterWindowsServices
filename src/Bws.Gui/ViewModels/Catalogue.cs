@@ -35,7 +35,7 @@ namespace Bws.Gui.ViewModels;
 /// them. <c>tools/gui-probe/reach.ps1</c> is the instrument that measures the same two without a
 /// person.
 /// </summary>
-public static class Catalogue
+public static partial class Catalogue
 {
     /// <summary>
     /// The words the samples carry.
@@ -55,6 +55,22 @@ public static class Catalogue
         + "wrapping, clipping and the ellipsis can all be looked at in one place";
 
     /// <summary>
+    /// What a style that draws a NUMBER is given as its extreme - a million, written the way the
+    /// machine writes a million, because a thousands separator is the one thing a number column
+    /// has to make room for and a right aligned digit is the one thing a long word cannot test.
+    /// </summary>
+    private static readonly string BigNumber = 1_000_000.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
+
+    /// <summary>
+    /// The extreme text for a style: a number for the styles that draw one, the long line for
+    /// the rest. Told apart by the KEY, which is the one place this file reads a key of a style -
+    /// a number style is one that says so in its name (CellNumber, CountLine, OverviewNumberText),
+    /// because a style has no other way of saying what kind of text it is for.
+    /// </summary>
+    private static string Extreme(string key) =>
+        key.Contains("Number", StringComparison.Ordinal) || key.Contains("Count", StringComparison.Ordinal) ? BigNumber : Long;
+
+    /// <summary>
     /// The theme files, by the name they are merged under. Anything else in the merged set belongs
     /// to WPF UI, and a catalogue of somebody else's library is not what rule 4 asks for.
     /// </summary>
@@ -68,14 +84,19 @@ public static class Catalogue
     /// </summary>
     /// <param name="Element">The control, styled, ready to be put on the sheet.</param>
     /// <param name="Instead">What to say where a sample cannot be built.</param>
+    /// <param name="Tall">
+    /// Whether the sample measured past the row ceiling and needs the taller one. Decided here,
+    /// by measuring, so that the sheet's style can raise its ceiling without a list of tall
+    /// components anywhere - since 2026-09-16, when the plan sheet was found drawn as two edges.
+    /// </param>
     /// <remarks>
     /// <see cref="Instead"/> is empty rather than null where there is a sample, because the sheet
     /// hides it with a trigger on the empty string - the same shape EmptyState.xaml uses. A null
     /// would not match that trigger and the explanation would sit under every working sample.
     /// </remarks>
-    public sealed record Sample(FrameworkElement? Element, string Instead)
+    public sealed record Sample(FrameworkElement? Element, string Instead, bool Tall = false)
     {
-        public static Sample Of(FrameworkElement element) => new(element, string.Empty);
+        public static Sample Of(FrameworkElement element, bool tall = false) => new(element, string.Empty, tall);
 
         public static Sample None(string why) => new(null, why);
     }
@@ -94,27 +115,85 @@ public static class Catalogue
         Sample Normal,
         Sample Disabled,
         Sample Wrong,
-        Sample Extreme);
+        Sample Chosen,
+        Sample Extreme)
+    {
+        /// <summary>
+        /// The same samples as a list with a heading each, for a group drawn one state UNDER the
+        /// next rather than beside it - the views, which are as wide as a window and would not
+        /// stand five abreast on any screen. Only the states the component has: a dash is left out
+        /// here, where it would be a labelled row saying nothing.
+        /// </summary>
+        public IReadOnlyList<Labelled> Stacked { get; init; } = [];
+    }
+
+    /// <summary>One state of a component with the name of the state, for the stacked layout.</summary>
+    public sealed record Labelled(string Heading, Sample Sample);
 
     /// <summary>The components declared in one theme file, in the order somebody can search.</summary>
     /// <remarks>
-    /// The three column names hang off the group rather than off the window, because the headings
-    /// are repeated above every file - a heading printed once at the top of a sheet this long
-    /// scrolls away after the first group, and every column under it is then unlabelled.
+    /// The column names hang off the group rather than off the window, because the headings are
+    /// repeated above every file - a heading printed once at the top of a sheet this long scrolls
+    /// away after the first group, and every column under it is then unlabelled.
+    ///
+    /// <b>Five columns since 2026-09-16, and the fifth is the state a chip spends its working life
+    /// in.</b> A filter chip that is lit, a row in the list under the search box that Down has
+    /// reached, a column in the picker that is on - every one of them has a style with a trigger
+    /// for it, and until that day the sheet drew each of them only in the state nobody looks at.
     /// </remarks>
     public sealed record Group(string Name, IReadOnlyList<Entry> Entries)
     {
         /// <summary>The first column of samples: the component as the window draws it.</summary>
-        public string Normally => "as it ships";
+        public string Normally { get; init; } = "as it ships";
 
         /// <summary>The second: the same thing with IsEnabled off.</summary>
-        public string Off => "disabled";
+        public string Off { get; init; } = "disabled";
 
         /// <summary>The third: holding something wrong, for the components that can.</summary>
-        public string WhenWrong => "wrong";
+        public string WhenWrong { get; init; } = "wrong";
 
-        /// <summary>The fourth: more text than it has room for.</summary>
-        public string TooMuch => "more text than fits";
+        /// <summary>The fourth: checked, selected or switched on, for the components that can be.</summary>
+        public string WhenChosen { get; init; } = "chosen";
+
+        /// <summary>The fifth: more text than it has room for.</summary>
+        public string TooMuch { get; init; } = "more text than fits";
+
+        /// <summary>
+        /// Whether the group is drawn one state under the next rather than five abreast - the
+        /// views, which are as wide as a window. The sheet's markup picks the row template by
+        /// this, and hides the column headings, which a stacked row carries on each state instead.
+        /// </summary>
+        public bool IsStacked { get; init; }
+
+        /// <summary>
+        /// The headings a group of VIEWS wears - the four states of a view with data, GUI rule
+        /// 3, and the extreme one. Set on the group rather than on the window, because a column
+        /// headed "disabled" with an empty list under it would teach the sheet to be read wrong.
+        /// Each entry gets its states stacked under these headings, dashes left out.
+        /// </summary>
+        public static Group OfViews(IReadOnlyList<Entry> entries)
+        {
+            const string WithData = "with data";
+            const string Empty = "empty";
+            const string Wrong = "wrong";
+            const string Loading = "loading";
+            const string Extreme = "extreme";
+
+            static IEnumerable<Labelled> States(Entry entry) =>
+                new[] { (WithData, entry.Normal), (Empty, entry.Disabled), (Wrong, entry.Wrong), (Loading, entry.Chosen), (Extreme, entry.Extreme) }
+                    .Where(state => state.Item2.Element is not null || state.Item2.Instead != NoSuchState)
+                    .Select(state => new Labelled(state.Item1, state.Item2));
+
+            return new Group("views", [.. entries.Select(entry => entry with { Stacked = [.. States(entry)] })])
+            {
+                IsStacked = true,
+                Normally = WithData,
+                Off = Empty,
+                WhenWrong = Wrong,
+                WhenChosen = Loading,
+                TooMuch = Extreme
+            };
+        }
     }
 
     /// <summary>
@@ -151,6 +230,8 @@ public static class Catalogue
 
         var groups = new List<Group>();
 
+        var limits = Limits.Of(resources);
+
         foreach (var dictionary in resources.MergedDictionaries)
         {
             var source = dictionary.Source?.OriginalString;
@@ -183,7 +264,7 @@ public static class Catalogue
                     continue;
                 }
 
-                entries.Add(Describe(named, style));
+                entries.Add(Describe(named, style, limits));
             }
 
             if (entries.Count == 0)
@@ -202,6 +283,9 @@ public static class Catalogue
                 source is null ? "read from disk" : System.IO.Path.GetFileName(source),
                 entries.OrderBy(entry => entry.Key, StringComparer.Ordinal).ToArray()));
         }
+
+        // The keyed templates, after the styles - a second kind of component, since 2026-09-16.
+        groups.AddRange(Templates(resources, limits));
 
         return groups;
     }
@@ -226,7 +310,7 @@ public static class Catalogue
     /// allowed and changes nothing anybody can see, so a column of identical text would be three
     /// hundred pixels of noise on a screen whose whole job is to make a difference visible.
     /// </summary>
-    private static Entry Describe(string key, Style style)
+    private static Entry Describe(string key, Style style, Limits limits)
     {
         var target = style.TargetType;
 
@@ -241,204 +325,16 @@ public static class Catalogue
         if (why is not null)
         {
             return new Entry(
-                key, name, Sample.None(why), Sample.None(string.Empty), Sample.None(string.Empty), Sample.None(string.Empty));
+                key, name, Sample.None(why), Sample.None(string.Empty), Sample.None(string.Empty), Sample.None(string.Empty), Sample.None(string.Empty));
         }
 
         return new Entry(
             key,
             name,
-            Make(name, style, Short, enabled: true),
-            Make(name, style, Short, enabled: false),
-            Wrong(name, style),
-            Make(name, style, Long, enabled: true));
-    }
-
-    /// <summary>
-    /// The component holding something wrong, where its style says it can.
-    ///
-    /// <b>READ OFF THE STYLE RATHER THAN OFF A LIST OF KEYS, which is the property that keeps
-    /// this column true after the interface is rebuilt.</b> A component has a wrong state when
-    /// its style triggers on <c>Validation.HasError</c> - the framework's own flag, and the only
-    /// one a theme file can trigger on without naming a type of this assembly (`docs/10` trap
-    /// 10). So a style that gains such a trigger appears in this column with no edit here, and one
-    /// that loses it drops out the same way. A dash for the rest, said once in the note at the top.
-    ///
-    /// <b>Put into the state the way the product puts it there</b>: the sample's text is bound and
-    /// the binding is marked invalid, so <c>Validation.HasError</c> goes true on the control and
-    /// the style's own trigger draws whatever it draws. Nothing here paints an edge - a sample the
-    /// sheet coloured itself would be a picture of this file rather than of the component.
-    /// </summary>
-    private static Sample Wrong(string target, Style style)
-    {
-        if (!Triggers(style).Any(trigger => trigger.Property == Validation.HasErrorProperty))
-        {
-            return Sample.None(NoSuchState);
-        }
-
-        var made = Make(target, style, Short, enabled: true);
-
-        if (made.Element is not TextBox box)
-        {
-            // The one control this table knows how to hand something wrong to. A style over
-            // another type that learns to be wrong is a row here saying so, rather than a sample
-            // of a state that was never entered - the same honesty as the disabled column.
-            return Sample.None($"has a wrong state, but nothing here knows how to make a {target} wrong");
-        }
-
-        box.SetBinding(TextBox.TextProperty, new Binding(nameof(Held.Text)) { Source = new Held(Short) });
-
-        var expression = BindingOperations.GetBindingExpression(box, TextBox.TextProperty)!;
-
-        Validation.MarkInvalid(expression, new ValidationError(new NeverRight(), expression, Short, null));
-
-        return Sample.Of(box);
-    }
-
-    /// <summary>Every trigger a style carries, including the ones it inherits through BasedOn.</summary>
-    private static IEnumerable<Trigger> Triggers(Style style)
-    {
-        for (var at = style; at is not null; at = at.BasedOn)
-        {
-            foreach (var trigger in at.Triggers.OfType<Trigger>())
-            {
-                yield return trigger;
-            }
-        }
-    }
-
-    /// <summary>Something for a sample's text to be bound to, so that its binding can be marked wrong.</summary>
-    private sealed record Held(string Text);
-
-    /// <summary>
-    /// A rule that is never satisfied - the shape <c>Validation.MarkInvalid</c> asks for, and
-    /// nothing else: the sample is wrong because the sheet says so, not because of what it holds.
-    /// </summary>
-    private sealed class NeverRight : ValidationRule
-    {
-        public override ValidationResult Validate(object value, System.Globalization.CultureInfo cultureInfo) =>
-            new(false, Short);
-    }
-
-    /// <summary>
-    /// Why a component cannot stand on its own, where that is the case.
-    ///
-    /// <b>Named one by one rather than caught by a rule</b>, because each of these has a different
-    /// reason and a reader deciding whether the omission matters needs the reason rather than the
-    /// category. All four are parts of the list, which the window itself shows and
-    /// <c>tools/gui-probe/screens.ps1</c> photographs.
-    /// </summary>
-    private static string? WhyNot(string target) => target switch
-    {
-        nameof(DataGrid) => "the list itself. It is on every screenshot of this window",
-        nameof(DataGridRow) => "only exists inside the list, and a row on its own has no columns",
-        nameof(DataGridCell) => "only exists inside a row, which only exists inside the list",
-        nameof(ToolTip) => "only appears over something. Rest the pointer on a sample above",
-
-        // A focus ring. It has no control of its own - it is drawn AROUND whichever control has
-        // the keyboard, which is why this screen asks the reader to press Tab rather than
-        // pretending to show one.
-        "IFrameworkInputElement" => "a focus ring. Press Tab on this sheet and watch it appear",
-
-        // A style with no target type at all. Not seen in this product on 2026-09-10, and left
-        // here rather than left to throw: a style that targets nothing is a style nothing can
-        // wear, and the sheet should say that rather than fall over.
-        "-" => "a style with no target type, so nothing can wear it",
-
-        _ => null
-    };
-
-    /// <summary>
-    /// A control of the given type, wearing the given style.
-    ///
-    /// <b>A table rather than reflection</b> - see the note at the top of this file about
-    /// <c>LayeringGuards</c>. Twelve entries cover fifty two styles, and a target type that is not
-    /// here is a red test rather than a missing row.
-    /// </summary>
-    private static Sample Make(string target, Style style, string text, bool enabled)
-    {
-        // AN INLINE RATHER THAN AN ELEMENT, since 2026-09-15, when the notice line got a link in
-        // it. A Hyperlink cannot stand on a sheet by itself - it lives inside text - so the sample
-        // is a TextBlock wearing nothing of its own, holding the one styled link. Disabled goes on
-        // the TextBlock, and the link inherits it, which is how the product disables it too.
-        if (target == nameof(System.Windows.Documents.Hyperlink))
-        {
-            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(text)) { Style = style };
-
-            return Sample.Of(new TextBlock(link) { TextWrapping = TextWrapping.Wrap, IsEnabled = enabled });
-        }
-
-        FrameworkElement? element = target switch
-        {
-            nameof(TextBlock) => new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap },
-            nameof(Button) => new Button { Content = text },
-            nameof(ToggleButton) => new ToggleButton { Content = text },
-            nameof(CheckBox) => new CheckBox { Content = text },
-            nameof(TextBox) => new TextBox { Text = text },
-            nameof(MenuItem) => new MenuItem { Header = text },
-            nameof(DataGridColumnHeader) => new DataGridColumnHeader { Content = text },
-
-            // Added 2026-09-10 because the guard asked for it, on the catalogue's own sample box.
-            // That is the mechanism working on the day it was written: a style over a control type
-            // this table did not know reddened the build rather than printing a row saying nothing
-            // could build it.
-            nameof(ContentControl) => new ContentControl { Content = text },
-            nameof(Border) => new Border { Child = new TextBlock { Text = text } },
-
-            // The list under the search box, 2026-09-15 - the guard asked, as it did for the box
-            // above. Two rows of the sample text, so that the list's own scrolling and the item's
-            // states are both something to look at rather than one line.
-            nameof(ListBox) => new ListBox { ItemsSource = new[] { text, text } },
-            nameof(ListBoxItem) => new ListBoxItem { Content = text },
-            nameof(Ellipse) => new Ellipse(),
-            nameof(Path) => new Path(),
-            nameof(Thumb) => new Thumb(),
-            nameof(ScrollBar) => new ScrollBar(),
-            _ => null
-        };
-
-        if (element is null)
-        {
-            return Sample.None($"nothing here knows how to build a {target} to look at");
-        }
-
-        element.Style = style;
-
-        // Asked of the element rather than of the type, because IsEnabled on something that draws
-        // no disabled state is a promise this screen would be making on the style's behalf.
-        if (!enabled)
-        {
-            if (element is not Control)
-            {
-                return Sample.None(NoSuchState);
-            }
-
-            element.IsEnabled = false;
-        }
-
-        // MEASURED, BECAUSE AN EMPTY CELL IS A CLAIM ABOUT THE PRODUCT. Some styles describe how a
-        // shape looks and leave WHAT it is to wherever it is used - FilterDisclosure is a Path
-        // whose geometry comes from the control template around it, so on its own it is nothing at
-        // all. The first version put those on the sheet as blank cells, which reads as a component
-        // that draws nothing rather than as one that cannot stand alone.
-        //
-        // Asked of WPF rather than of the style: measuring is what the layout pass does anyway,
-        // and a setter chain walked by hand would be this file guessing at BasedOn.
-        try
-        {
-            element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-
-            if (element.DesiredSize.Width <= 0 || element.DesiredSize.Height <= 0)
-            {
-                return Sample.None("nothing on its own - its shape or size comes from where it is used");
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            // A control that will not measure outside a tree is still worth showing: the sheet
-            // puts it in a real window, where the layout pass will measure it properly. Swallowed
-            // deliberately and narrowly - this is a question being asked early, not work.
-        }
-
-        return Sample.Of(element);
+            Make(name, style, Short, enabled: true, limits),
+            Make(name, style, Short, enabled: false, limits),
+            Wrong(name, style, limits),
+            Chosen(name, style, limits),
+            Make(name, style, Extreme(key), enabled: true, limits));
     }
 }

@@ -18,7 +18,7 @@
         it, and an exception is where drift starts.
 
         WHAT IS DELIBERATELY NOT HERE: colour. The sheet is drawn out of SurfacePanel,
-        SurfaceRowLine and SurfacePanelEdge, which the window already declares in Colours.xaml.
+        SurfaceRowLine and SurfacePanelEdge, which the window already declares in Surfaces.xaml.
         A developer screen with a palette of its own would be a second palette to keep in step.
     -->
 
@@ -51,6 +51,32 @@
         answer - a component given more text than it has room for is clipped in the product too.
     -->
     <system:Double x:Key="HeightCatalogueSample">96</system:Double>
+
+    <!--
+        THE TALLER CEILING, for a sample that does not fit under the one above - since 2026-09-16,
+        when the plan sheet turned out to be drawn as two faint edges: its own margin pushed every
+        pixel of its content past 96 and the clip took the rest. A sample whose measured height is
+        over the row ceiling is given this one instead, and the sheet's model decides which, so a
+        component that grows moves itself to the taller row without an edit here. Views in their
+        four states (docs/PROJEKT-KATALOG-20260916.md, section 3.3) are always this tall.
+    -->
+    <system:Double x:Key="HeightCatalogueTall">320</system:Double>
+
+    <!--
+        HOW WIDE A VIEW IS DRAWN ON THE SHEET. A view fills its window in the product, and on a
+        sheet measured to content it would ask for the whole screen - so a view sample is given the
+        width the window itself is allowed to shrink to, which is the narrowest the product ever
+        draws it.
+    -->
+    <system:Double x:Key="WidthCatalogueView">640</system:Double>
+
+    <!--
+        The height the catalogue window opens at. Its WIDTH is not a number here at all: the window
+        sizes itself to the columns above (SizeToContent), which is what keeps the last column from
+        being cut by the window's edge - the fault the sheet shipped with from 2026-09-10 to
+        2026-09-16, when the sum of the columns had grown past a width written into the window.
+    -->
+    <system:Double x:Key="HeightCatalogueWindow">900</system:Double>
 
     <!-- Room around a sample so that two of them side by side are not read as one control. -->
     <Thickness x:Key="PadCatalogueSample">10,8,10,8</Thickness>
@@ -107,6 +133,14 @@
             <DataTrigger Binding="{Binding Element}" Value="{x:Null}">
                 <Setter Property="Visibility" Value="Collapsed" />
             </DataTrigger>
+
+            <!--
+                THE TALLER CEILING FOR A SAMPLE THAT MEASURED PAST THE ROW ONE - decided by the
+                sheet's model, which measured it, rather than by a list of tall components here.
+            -->
+            <DataTrigger Binding="{Binding Tall}" Value="True">
+                <Setter Property="MaxHeight" Value="{StaticResource HeightCatalogueTall}" />
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 
@@ -154,11 +188,14 @@
         SharedSizeGroup, so the sheet reads as one table rather than as a stack of little ones -
         the same mechanism DetailsView.xaml uses for its label column.
 
-        FOUR COLUMNS AND NOT FIVE. There is no "focused" column, and leaving it out is the
-        deliberate half of this design: nothing here can give a control the keyboard, so a column
-        headed "focused" would be showing something else and calling it focus. Focus is looked at
-        by pressing Tab on this screen, which is also what makes the ring in Chips.xaml and
-        Controls.xaml visible at all.
+        FIVE STATE COLUMNS AND NOT SEVEN. There is no "focused" column and no "hover" column,
+        and leaving them out is the deliberate half of this design - the owner's decision of
+        2026-09-16, the one exception to GUI rule 4: nothing here can give a control the keyboard
+        or put the pointer over it, and a column built by forcing a style's trigger setters would
+        show what OUR style says and not what the library's template does underneath, which is a
+        picture that can differ from the real hover. Both are looked at by pressing Tab and moving
+        the pointer on this screen, which is also what makes the ring in Chips.xaml and
+        Controls.xaml visible at all. The fifth column, "chosen", arrived 2026-09-16.
     -->
     <DataTemplate x:Key="CatalogueEntry">
         <Border Style="{StaticResource CatalogueRow}">
@@ -168,6 +205,7 @@
                     <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueNormal" />
                     <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueDisabled" />
                     <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueWrong" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueChosen" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
@@ -188,7 +226,14 @@
                 -->
                 <ContentPresenter Grid.Column="3" Width="{StaticResource WidthCatalogueState}"
                                   Content="{Binding Wrong}" ContentTemplate="{StaticResource CatalogueCell}" />
-                <ContentPresenter Grid.Column="4" Width="{StaticResource WidthCatalogueExtreme}"
+                <!--
+                    THE CHOSEN STATE, A FIFTH COLUMN SINCE 2026-09-16. Built by the sheet's model out
+                    of the triggers a style or its template carries on IsChecked and IsSelected, so a
+                    component that learns to be chosen appears here without an edit to this file.
+                -->
+                <ContentPresenter Grid.Column="4" Width="{StaticResource WidthCatalogueState}"
+                                  Content="{Binding Chosen}" ContentTemplate="{StaticResource CatalogueCell}" />
+                <ContentPresenter Grid.Column="5" Width="{StaticResource WidthCatalogueExtreme}"
                                   HorizontalAlignment="Left"
                                   Content="{Binding Extreme}" ContentTemplate="{StaticResource CatalogueCell}" />
             </Grid>
@@ -208,6 +253,7 @@
                 <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueNormal" />
                 <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueDisabled" />
                 <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueWrong" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueChosen" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -226,20 +272,83 @@
                        Text="{Binding WhenWrong}" Style="{StaticResource SubduedText}"
                        Margin="{StaticResource PadCatalogueSample}" />
 
-            <TextBlock Grid.Column="4" Text="{Binding TooMuch}" Style="{StaticResource SubduedText}"
+            <TextBlock Grid.Column="4" Width="{StaticResource WidthCatalogueState}"
+                       Text="{Binding WhenChosen}" Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+
+            <TextBlock Grid.Column="5" Text="{Binding TooMuch}" Style="{StaticResource SubduedText}"
                        Margin="{StaticResource PadCatalogueSample}" />
         </Grid>
     </DataTemplate>
 
-    <!-- ONE THEME FILE, AND EVERY COMPONENT IT DECLARES. -->
+    <!--
+        ONE STATE OF A VIEW, WITH ITS NAME ABOVE IT - the unit of the stacked layout. A label and
+        a cell, and the cell is the same CatalogueCell every other sample sits in.
+    -->
+    <DataTemplate x:Key="CatalogueLabelled">
+        <StackPanel>
+            <TextBlock Text="{Binding Heading}"
+                       Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+            <ContentPresenter Content="{Binding Sample}" ContentTemplate="{StaticResource CatalogueCell}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!--
+        ONE VIEW, ITS STATES ONE UNDER THE NEXT - since 2026-09-16, when the views joined the
+        sheet. A view is as wide as the narrowest window the product draws it in, and five of
+        those abreast would be wider than any screen this project has measured on, so the states
+        of a view are stacked and each carries its own heading. The states come from the model as
+        a LIST (Entry.Stacked), and the list is drawn by one template rather than five copies of a
+        block - GUI rule 8, which counts three copies as one too many.
+    -->
+    <DataTemplate x:Key="CatalogueViewEntry">
+        <Border Style="{StaticResource CatalogueRow}">
+            <StackPanel>
+                <StackPanel Width="{StaticResource WidthCatalogueName}" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding Key}" Style="{StaticResource FixedText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Target}" Style="{StaticResource SubduedText}" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Stacked}"
+                              ItemTemplate="{StaticResource CatalogueLabelled}"
+                              Focusable="False" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!--
+        ONE THEME FILE, AND EVERY COMPONENT IT DECLARES - or the views, stacked. Which of the two
+        row templates a group is drawn with is the group's own word (IsStacked), read here by a
+        trigger, and a stacked group hides the column headings its rows carry themselves.
+    -->
     <DataTemplate x:Key="CatalogueGroup">
         <Border Style="{StaticResource CatalogueGroupCard}">
             <StackPanel>
-                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource CatalogueHeadings}" />
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource CatalogueHeadings}">
+                    <ContentPresenter.Style>
+                        <Style TargetType="ContentPresenter">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsStacked}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentPresenter.Style>
+                </ContentPresenter>
 
-                <ItemsControl ItemsSource="{Binding Entries}"
-                              ItemTemplate="{StaticResource CatalogueEntry}"
-                              Focusable="False" />
+                <ItemsControl ItemsSource="{Binding Entries}" Focusable="False">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="ItemTemplate" Value="{StaticResource CatalogueEntry}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsStacked}" Value="True">
+                                    <Setter Property="ItemTemplate" Value="{StaticResource CatalogueViewEntry}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                </ItemsControl>
             </StackPanel>
         </Border>
     </DataTemplate>

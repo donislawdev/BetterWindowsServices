@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui;
@@ -116,6 +117,35 @@ public partial class PlanView : UserControl
     /// several picked rows prints one line each, and anything else - the focused item, the panel's
     /// DataContext - is a way of copying a command that is not the one under the finger.
     /// </summary>
+    /// <summary>
+    /// The wheel over anything in the body scrolls the BODY. The owner's remark of 2026-09-16 over
+    /// a sheet of twenty commands: "the scroll stops working" - each command sits in a viewer of
+    /// its own that scrolls sideways, and a ScrollViewer marks every wheel event handled whether
+    /// or not it has anywhere to go, so with boxes under the pointer the body never heard it.
+    ///
+    /// <b>Taken in the tunnel and raised again on the body</b>, because nothing in the theme file
+    /// could say otherwise: the framework's switch for it is not settable from markup, and a quiet
+    /// viewer of our own cannot be named from a theme (`docs/10` trap 10). The preview tunnels
+    /// from the window down and reaches the body before the command's viewer, and a wheel raised
+    /// on the body goes to the body's own scrolling first. A raised event is the bubbling one
+    /// alone - the input system pairs preview with bubble, RaiseEvent does not - so it cannot
+    /// come back through here.
+    /// </summary>
+    private void WheelOverTheBody(object sender, MouseWheelEventArgs e)
+    {
+        if (e.Handled)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        Body.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+        {
+            RoutedEvent = UIElement.MouseWheelEvent,
+            Source = Body
+        });
+    }
+
     private void CopyCommandRequested(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is not Button pressed || pressed.Tag is not string command)
@@ -152,7 +182,16 @@ public partial class PlanView : UserControl
     /// </summary>
     private void SaySoFor(Button pressed)
     {
-        var settled = TryFindResource("gui.plan.copy");
+        // THE WORD IT HAD, NOT A FIXED KEY, since 2026-09-16: the button over a whole section says
+        // "Copy all" and the one beside a line says "Copy", and both come here.
+        var settled = pressed.Content;
+
+        // AND THE WIDTH IT HAD. The style floors the width at the wider of the two short words, and
+        // "Copy all" is wider than "Copied" - so without this the button would shrink under the
+        // pointer when its word changed, which is GUI rule 3 broken by a press. Frozen at what it
+        // measured rather than at a token per button, because the next copy button would need a
+        // token of its own and the rule is one for all of them.
+        pressed.MinWidth = Math.Max(pressed.MinWidth, pressed.ActualWidth);
         pressed.Content = TryFindResource("gui.plan.copied");
 
         var clock = new System.Windows.Threading.DispatcherTimer

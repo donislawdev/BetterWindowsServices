@@ -14,7 +14,19 @@ namespace Bws.Gui.ViewModels;
 /// <param name="Meaning">What that means, in the reader's language. Empty when nothing has a sentence for it.</param>
 /// <param name="Replaces">The range of the box's text it stands in for.</param>
 /// <param name="Written">What goes into that range.</param>
-public sealed record Suggestion(string Word, string Meaning, Range Replaces, string Written);
+public sealed record Suggestion(string Word, string Meaning, Range Replaces, string Written, bool IsQuestion = false)
+{
+    /// <summary>
+    /// What the row leads with: the sentence for a question, the word for a completion. A person
+    /// completing a word is looking for the word they started; a person who has typed nothing is
+    /// looking for something to read, and the syntax teaches itself in the second column. The
+    /// owner's fifth remark of 2026-09-16, decision D1 of the packet.
+    /// </summary>
+    public string Lead => IsQuestion ? Meaning : Word;
+
+    /// <summary>What follows the lead - the other of the two.</summary>
+    public string Trail => IsQuestion ? Word : Meaning;
+}
 
 /// <summary>
 /// The list under the search box - whether the keyboard is in the box, what is offered, whether
@@ -40,17 +52,27 @@ public sealed record Suggestion(string Word, string Meaning, Range Replaces, str
 public sealed class Suggesting : Observable
 {
     private readonly Func<IReadOnlyList<FilterChip>> _chips;
-    private readonly IReadOnlyList<QueryExample> _examples;
+    private readonly Func<IReadOnlyList<QueryExample>> _examples;
 
     private IReadOnlyList<Suggestion> _offered = [];
     private Suggestion? _chosen;
     private bool _keyboardHere;
+    private bool _questions;
+
+    // Constants rather than literals in the expression below, because TextKeyGuards knows the
+    // shapes a key is used in and a literal inside a conditional is not one of them.
+    private const string QuestionsCaption = "gui.suggest.caption.questions";
+    private const string WordsCaption = "gui.suggest.caption.words";
 
     /// <summary>
     /// The chips are read rather than copied, because their labels are read in whatever language
     /// the machine is set to and a copy would be a second list of the same words.
+    ///
+    /// <b>The examples are read the same way, since 2026-09-16, because they follow the scope</b> -
+    /// backlog 358. A list copied at construction would offer the account example on Drivers for
+    /// as long as the window stayed open, which is exactly the tooltip that row found.
     /// </summary>
-    public Suggesting(Func<IReadOnlyList<FilterChip>> chips, IReadOnlyList<QueryExample> examples)
+    public Suggesting(Func<IReadOnlyList<FilterChip>> chips, Func<IReadOnlyList<QueryExample>> examples)
     {
         _chips = chips;
         _examples = examples;
@@ -88,6 +110,51 @@ public sealed class Suggesting : Observable
     public string Keys => Texts.Of("gui.suggest.keys");
 
     /// <summary>
+    /// What kind of list is open, said over it: the questions on an empty box, or what can go where
+    /// the caret is. Empty while nothing is open. Five rows of syntax with no sentence about what
+    /// they were was half of "unintuitive" - the owner's fifth remark of 2026-09-16.
+    /// </summary>
+    public string Caption => !IsOpen
+        ? string.Empty
+        : Texts.Of(_questions ? QuestionsCaption : WordsCaption);
+
+    /// <summary>
+    /// What a screen reader is told about the chosen row - its word, its sentence when it has
+    /// one, and where it stands in the list. Empty when there is no list or no choice.
+    ///
+    /// <b>Backlog 361. The keyboard stays in the box while the list is open, which is the whole
+    /// design - and a screen reader announces what has the keyboard.</b> So a person arrowing
+    /// through the rows heard nothing, while every probe found the rows perfectly named in the
+    /// tree. Measured on 2026-09-16 with a listener subscribed as a reader would be: no focus
+    /// event ever names a row, and the one thing that arrives is a selection event from the row's
+    /// own peer - which does not exist yet when the list opens, so the first choice is silent
+    /// even there. The window raises a notification carrying this sentence instead, on the box
+    /// that has the keyboard - the mechanism Windows documents for exactly this, and the one that
+    /// needs no element to be visible. Composed here rather than in the window so that the words
+    /// have a test without one.
+    ///
+    /// <b>The position is part of it</b>, because "2 of 21" is how a person without the screen
+    /// knows the list is a list and how far along it they are - what a sighted person reads from
+    /// the highlight moving.
+    /// </summary>
+    public string Spoken
+    {
+        get
+        {
+            if (_chosen is null || !IsOpen)
+            {
+                return string.Empty;
+            }
+
+            var position = IndexOf(_chosen) + 1;
+
+            return string.IsNullOrEmpty(_chosen.Meaning)
+                ? Texts.Of("gui.suggest.spoken.bare", _chosen.Word, position, _offered.Count)
+                : Texts.Of("gui.suggest.spoken", _chosen.Word, _chosen.Meaning, position, _offered.Count);
+        }
+    }
+
+    /// <summary>
     /// The box has, or has not, the keyboard - said quietly, without offering anything. The
     /// window's start and the return after Alt+Tab, where WPF restores focus on its own.
     /// </summary>
@@ -103,8 +170,9 @@ public sealed class Suggesting : Observable
 
     /// <summary>
     /// A PERSON came to the box - a click, Tab, Ctrl+F. The keyboard is here, and an empty box
-    /// offers the six questions to start from. Decision 2 of the design: examples on arrival at
-    /// an empty box, fields from the first letter or on Down.
+    /// offers the questions to start from - the ones that fit the list on screen, backlog 358.
+    /// Decision 2 of the design: examples on arrival at an empty box, fields from the first
+    /// letter or on Down.
     ///
     /// A box with text in it is left as it is. A click into a box the list is already open
     /// under moves the caret first, and closing the list here would take away what
@@ -116,6 +184,7 @@ public sealed class Suggesting : Observable
 
         if (string.IsNullOrWhiteSpace(text))
         {
+            _questions = true;
             Offer(Examples(text ?? string.Empty));
         }
     }
@@ -137,6 +206,7 @@ public sealed class Suggesting : Observable
             return;
         }
 
+        _questions = false;
         Offer(Rows(QueryCompletions.WhileTyping(text, caret)));
     }
 
@@ -152,7 +222,8 @@ public sealed class Suggesting : Observable
             return false;
         }
 
-        Offer(string.IsNullOrWhiteSpace(text)
+        _questions = string.IsNullOrWhiteSpace(text);
+        Offer(_questions
             ? Examples(text ?? string.Empty)
             : Rows(QueryCompletions.OnRequest(text, caret)));
 
@@ -195,6 +266,7 @@ public sealed class Suggesting : Observable
         Offered = [];
         Chosen = null;
         Raise(nameof(IsOpen));
+        Raise(nameof(Caption));
 
         return true;
     }
@@ -241,6 +313,7 @@ public sealed class Suggesting : Observable
         var kept = _chosen?.Word;
 
         Offered = rows;
+        Raise(nameof(Caption));
         Chosen = rows.FirstOrDefault(row => string.Equals(row.Word, kept, StringComparison.Ordinal)) ?? rows[0];
 
         if (!wasOpen)
@@ -262,9 +335,9 @@ public sealed class Suggesting : Observable
         return -1;
     }
 
-    /// <summary>The six questions, each replacing the whole of an empty box.</summary>
+    /// <summary>The questions that fit the list on screen, each replacing the whole of an empty box.</summary>
     private IReadOnlyList<Suggestion> Examples(string text) =>
-        [.. _examples.Select(example => new Suggestion(example.Query, example.Label, 0..text.Length, example.Query))];
+        [.. _examples().Select(example => new Suggestion(example.Query, example.Label, 0..text.Length, example.Query, IsQuestion: true))];
 
     private IReadOnlyList<Suggestion> Rows(IReadOnlyList<QueryCompletion> completions) =>
         [.. completions.Select(completion => new Suggestion(

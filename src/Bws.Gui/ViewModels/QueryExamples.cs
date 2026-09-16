@@ -21,11 +21,13 @@ namespace Bws.Gui.ViewModels;
 public sealed class QueryExample
 {
     private readonly string _labelKey;
+    private readonly IReadOnlyCollection<EntryScope> _scopes;
 
-    internal QueryExample(string labelKey, string query)
+    internal QueryExample(string labelKey, string query, params EntryScope[] scopes)
     {
         _labelKey = labelKey;
         Query = query;
+        _scopes = scopes;
     }
 
     /// <summary>What the question is, in the language of whoever is reading it.</summary>
@@ -33,6 +35,19 @@ public sealed class QueryExample
 
     /// <summary>The query it writes into the box - shown as the tooltip, so it is read before it is used.</summary>
     public string Query { get; }
+
+    /// <summary>
+    /// Whether this question makes sense of the list somebody is standing on.
+    ///
+    /// <b>Declared per example rather than worked out, because what makes an example senseless is
+    /// not one rule.</b> <c>account:LocalSystem</c> can never select a driver - a driver has no
+    /// account, the manager reads nothing there on 461 of 464 on this machine - and that is a fact
+    /// about the field. <c>!type:driver</c> selects nothing on Drivers and EVERYTHING on Services,
+    /// and the second is as useless as the first: an example that lights up the whole list teaches
+    /// no operator and answers no question. Backlog 358 found three of the six selecting nothing on
+    /// Drivers, in a tooltip nobody pointed at.
+    /// </summary>
+    public bool Fits(EntryScope scope) => _scopes.Contains(scope);
 }
 
 internal static class QueryExamples
@@ -51,16 +66,39 @@ internal static class QueryExamples
     /// <b>Nothing here needs a reading the window does not do.</b> A signature or memory example
     /// would compose a query the list cannot answer, which is the one thing an example must not
     /// do - `signed:` and `memory:` are second phase and the window has no second phase yet.
+    ///
+    /// <b>Each one names the scopes it is shown on, and the reasons were measured on 2026-09-16
+    /// rather than reasoned</b> - `bws list --query` on this machine, 336 services and 464 drivers.
+    /// Drivers keep three: they have a start type and a status (two auto-start drivers were not
+    /// running), a disabled one can still be loaded, and a driver's file can be missing (one was).
+    /// They lose the account, the trigger - fields the manager does not read for a driver - and the
+    /// example whose whole point is to leave them out. Services lose only that last one, which
+    /// there selects the entire list.
     /// </summary>
     internal static IReadOnlyList<QueryExample> All { get; } =
     [
-        new QueryExample("gui.example.shouldBeRunning", "start:auto !status:running"),
-        new QueryExample("gui.example.servicesOnly", "!type:driver"),
-        new QueryExample("gui.example.disabledButRunning", "start:disabled status:running"),
-        new QueryExample("gui.example.asLocalSystem", "account:LocalSystem"),
-        new QueryExample("gui.example.missingFile", "file:missing"),
-        new QueryExample("gui.example.waitingOnTrigger", "trigger:any status:stopped")
+        new QueryExample("gui.example.shouldBeRunning", "start:auto !status:running", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
+        new QueryExample("gui.example.servicesOnly", "!type:driver", EntryScope.Everything),
+        new QueryExample("gui.example.disabledButRunning", "start:disabled status:running", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
+        new QueryExample("gui.example.asLocalSystem", "account:LocalSystem", EntryScope.Services, EntryScope.Everything),
+        new QueryExample("gui.example.missingFile", "file:missing", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
+        new QueryExample("gui.example.waitingOnTrigger", "trigger:any status:stopped", EntryScope.Services, EntryScope.Everything)
     ];
+
+    /// <summary>
+    /// The questions that fit one list, in the same order. Cut once per scope rather than on
+    /// every read, because the tooltip and the list under the box both ask on every visit.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<EntryScope, IReadOnlyList<QueryExample>> ByScope =
+        Enum.GetValues<EntryScope>().ToDictionary(
+            scope => scope,
+            scope => (IReadOnlyList<QueryExample>)[.. All.Where(example => example.Fits(scope))]);
+
+    /// <summary>
+    /// The questions shown on one list - the tooltip and the list under the box read this same
+    /// cut, so the two never disagree about what somebody can start from.
+    /// </summary>
+    internal static IReadOnlyList<QueryExample> For(EntryScope scope) => ByScope[scope];
 
     /// <summary>
     /// What the search box says when somebody points at it - owner's decision, 2026-08-13, and it

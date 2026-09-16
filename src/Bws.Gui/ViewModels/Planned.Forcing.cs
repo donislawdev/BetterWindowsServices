@@ -139,10 +139,42 @@ public sealed partial class Planned
         Showing
         && _run is null
         && _plan is { } plan
-        && plan.Plans.Any(one => one.Warnings.Any(warning =>
-            warning.Kind is PlanWarningKind.TerminationTakesWithIt
-                or PlanWarningKind.CriticalService
-                or PlanWarningKind.CriticalStartType));
+        && plan.Warnings.Any(Heavy);
+
+    /// <summary>
+    /// Whether a warning is one of the three that make the ask heavy - the list that used to be
+    /// written inside <see cref="NeedsTyping"/> and is read by <see cref="Danger"/> as well since
+    /// 2026-09-16, so the box and the sentence over it can never disagree about which warnings
+    /// they are about. Still a decision each time a kind is added, exactly as the paragraph above
+    /// says.
+    /// </summary>
+    private static bool Heavy(PlanWarning warning) =>
+        warning.Kind is PlanWarningKind.TerminationTakesWithIt
+            or PlanWarningKind.CriticalService
+            or PlanWarningKind.CriticalStartType;
+
+    /// <summary>
+    /// Why the name has to be typed, in the words of the warnings that made it so - one sentence
+    /// per line - and nothing at all on a plan that asks for no name.
+    ///
+    /// <b>The owner's remark of 2026-09-16, over a stop of PlugPlay: the sentence saying the
+    /// machine would go down stood in "Worth knowing", in the scrolling half of the sheet, in the
+    /// same white as "it will be back after the next restart" - and the box under it said only
+    /// "Type PlugPlay to confirm". A person typing the name did not know what they were agreeing
+    /// to.</b> So the heavy sentences stand in the FOOTER, over the box, in the danger style - the
+    /// footer is the one part of the sheet that never scrolls, which is the argument PlanFooter.xaml
+    /// already makes for the box itself - and they leave "Worth knowing", because the same red
+    /// block in two places on one sheet would read as two problems.
+    ///
+    /// <b>One string rather than a list</b>, so the footer binds one TextBlock the way it binds
+    /// <see cref="TypeToConfirm"/>, and the tree keeps one node for a reader to meet.
+    /// </summary>
+    public string Danger => !NeedsTyping || _plan is not { } plan
+        ? string.Empty
+        : string.Join(Environment.NewLine, plan.Warnings.Where(Heavy).Select(PlanWords.Describe));
+
+    /// <summary>Whether there is a reason for the ask to show - true exactly when the box is.</summary>
+    public bool HasDanger => Danger.Length > 0;
 
     /// <summary>
     /// The name that has to be typed, which is the manager's own rather than the one on the title.

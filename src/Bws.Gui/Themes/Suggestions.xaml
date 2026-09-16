@@ -15,8 +15,8 @@
         brushes through their triggers - the same shape as trap 6 in `docs/10`. Every family this
         product invents owns its template since 2026-09-01, and this is one.
 
-        ORDER IS LOAD BEARING: SuggestionRow names FixedText and SubduedText from Text.xaml through
-        StaticResource, so this file merges after that one. It merges after Menus.xaml in App.xaml,
+        ORDER IS LOAD BEARING: the row's styles are BasedOn FixedText and BodySubduedText from
+        Text.xaml through StaticResource, so this file merges after that one. It merges after Menus.xaml in App.xaml,
         beside the other floating surface, and nothing below it names anything declared here.
     -->
 
@@ -33,31 +33,69 @@
     </Style>
 
     <!--
-        ONE ROW: the word as it is typed, in the fixed face because it is syntax, and beside it
-        what the word means, subdued because it is prose. A DataTemplate rather than the row drawn
+        WHAT LEADS AND WHAT FOLLOWS, 2026-09-16. A completion leads with the word, because the
+        person is looking for the thing they started typing. A question - one of the examples on an
+        empty box - leads with the sentence, because the person has not typed anything and does not
+        know the language yet: the sentence is what they can read, and the syntax follows it and
+        teaches itself. The row model says which is which (Lead and Trail) and these two styles
+        swap the face to match, so syntax is always in the fixed face and a sentence always in the
+        reading face, whichever column it stands in. ONE SIZE FOR BOTH: the owner's photograph had
+        a white 13 word with a grey 12 sentence glued to it, and the two sizes in one line were
+        half of "looks terrible". The other half was the glue - MarginSuggestionTrail.
+    -->
+    <Style x:Key="SuggestionLeadText" TargetType="TextBlock" BasedOn="{StaticResource FixedText}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsQuestion}" Value="True">
+                <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SuggestionTrailText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsQuestion}" Value="True">
+                <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        ONE ROW: what leads and what follows it - the two styles above say which is in which face.
+        A DataTemplate rather than the row drawn
         inside the item's ControlTemplate, and `docs/10` trap 26 is the reason: a TextBlock in a
         DataTemplate keeps its node in the automation tree, a TextBlock in a ControlTemplate does
         not - so a reader from outside gets the meaning as well as the word.
 
-        The word column is shared across rows so the meanings line up down the list; the meaning
-        is trimmed rather than wrapped because a row that grows taller moves the rows under the
+        The lead column is shared across rows so the trails line up down the list; the trail is
+        trimmed rather than wrapped because a row that grows taller moves the rows under the
         pointer.
     -->
     <DataTemplate x:Key="SuggestionRow">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" SharedSizeGroup="SuggestionWord" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="SuggestionLead" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Word}" Style="{StaticResource FixedText}" />
+            <TextBlock Grid.Column="0" Text="{Binding Lead}" Style="{StaticResource SuggestionLeadText}" />
             <TextBlock Grid.Column="1"
-                       Text="{Binding Meaning}"
-                       Style="{StaticResource SubduedText}"
-                       Margin="{StaticResource MarginAfterNumber}"
+                       Text="{Binding Trail}"
+                       Style="{StaticResource SuggestionTrailText}"
+                       Margin="{StaticResource MarginSuggestionTrail}"
                        VerticalAlignment="Center"
                        TextTrimming="CharacterEllipsis" />
         </Grid>
     </DataTemplate>
+
+    <!--
+        THE KEYS UNDER THE LIST STAND IN A FOOT OF THEIR OWN, 2026-09-16: a rule above them, the
+        same one the plan sheet draws between its body and its footer, so the sentence about the
+        keys reads as furniture and not as one more row.
+    -->
+    <Style x:Key="SuggestionFoot" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderFooterRule}" />
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+    </Style>
 
     <!--
         THE LIST ITSELF, capped at the same height as the column picker's menu - one decision, "a
@@ -83,9 +121,15 @@
     </Style>
 
     <!--
-        ONE ITEM: hover in the hover surface, the chosen one in the selected surface - the same two
-        brushes a row of the list wears for the same two states, so the meaning of a colour does
-        not change between the list and the list under the box. Not focusable, or the first click
+        ONE ITEM: hover in the hover surface FOR THE PANEL, the chosen one in the selected surface.
+        Hover was the window's brush until 2026-09-16, and on this surface that brush reads 1.30 -
+        under the floor of 1.5, and exactly the value the floor was chosen to refuse - so the rows
+        did not answer the pointer and did not look like anything one could click. The argument is
+        beside SurfaceHoverOnPanel. The selected brush is the one the list's row wears, so a chosen
+        thing has one colour in the window: it reads 2.36 here against the 3.0 a state answers to on
+        the window, and a fill alone cannot do better on this surface - a fill 3.0 from #343434 is
+        too light for white text at 4.5. Measured, written down, and a decision rather than a fix.
+        Not focusable, or the first click
         in the popup would take the keyboard out of the box and close the popup under the pointer.
         The name for automation is the WORD, so a probe reads what a person would type.
 
@@ -109,7 +153,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHover}" />
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceSelected}" />

@@ -78,6 +78,7 @@
                 <ResourceDictionary Source="Themes/Spacing.xaml" />
                 <ResourceDictionary Source="Themes/Type.xaml" />
                 <ResourceDictionary Source="Themes/Colours.xaml" />
+                <ResourceDictionary Source="Themes/Surfaces.xaml" />
                 <ResourceDictionary Source="Themes/Columns.xaml" />
                 <ResourceDictionary Source="Themes/Text.xaml" />
                 <ResourceDictionary Source="Themes/Overview.xaml" />
@@ -110,6 +111,13 @@
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />
+
+                <!--
+                    AFTER Marks.xaml, whose three mark styles it extends by StaticResource, and
+                    before the catalogue for the reason the catalogue gives. The panel about one
+                    entry, 2026-09-16 - its head says why it is a file of its own.
+                -->
+                <ResourceDictionary Source="Themes/Details.xaml" />
 
                 <!--
                     LAST, AND THE POSITION IS THE ONLY THING ABOUT IT THAT MATTERS. The component

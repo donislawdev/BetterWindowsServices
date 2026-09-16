@@ -105,7 +105,7 @@
     <!--
         THE ONE THING ON A SCREEN THAT MOST WANTS PRESSING - 2026-09-01 evening, owner's decision
         after the palette study, and the colour's own argument is beside SurfacePrimaryAction in
-        Colours.xaml. What belongs here is why this is a TEMPLATE rather than three setters.
+        Surfaces.xaml. What belongs here is why this is a TEMPLATE rather than three setters.
 
         BECAUSE THREE SETTERS WERE TRIED AND THE OWNER SAW THEM FAIL. The button off the first
         screen wore the accent as a local value on Background - and went DARK under the pointer,
@@ -205,7 +205,7 @@
         "you cannot act", and a red OUTLINE says "here is the way out of that sentence". Give the
         elevate button a red fill too and the three collapse into one - a status line where the
         sentence saying nothing can be done and the button that fixes it are the same colour, side
-        by side. The numbers are beside SurfaceDestructiveAction in Colours.xaml.
+        by side. The numbers are beside SurfaceDestructiveAction in Surfaces.xaml.
     -->
     <Style x:Key="DestructiveAction" TargetType="Button" BasedOn="{StaticResource PrimaryAction}">
         <Setter Property="Template">

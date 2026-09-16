@@ -134,8 +134,9 @@ public sealed partial class MainViewModel : Observable
         _filters = new FilterBar(() => _queryText, text => QueryText = text);
 
         // After the chips, because it reads their labels for the sentence beside a value - the
-        // same word somebody sees in the row above the list, in the same language.
-        Suggesting = new Suggesting(() => _filters.Chips, QueryExamples.All);
+        // same word somebody sees in the row above the list, in the same language. The examples
+        // are read through the scope for the same reason, one file over.
+        Suggesting = new Suggesting(() => _filters.Chips, () => Examples);
 
         _scoping = new Scoping(() => _index.Ordered);
 
@@ -263,12 +264,6 @@ public sealed partial class MainViewModel : Observable
 
     /// <inheritdoc cref="FilterBar.Groups"/>
     public IReadOnlyList<FilterGroup> FilterGroups => _filters.Groups;
-
-    /// <summary>Questions somebody can start from, each one a query they can then edit.</summary>
-    public IReadOnlyList<QueryExample> Examples => QueryExamples.All;
-
-    /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
-    public string SearchTip => QueryExamples.Tip(Examples);
 
     /// <summary>
     /// The list under the search box - what can be written where the caret stands, and the six

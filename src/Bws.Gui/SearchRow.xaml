@@ -53,7 +53,8 @@
 
                 THE TOOLTIP IS THE ONLY PLACE THE QUERY LANGUAGE IS EXPLAINED, so it carries
                 what can be typed, the one piece of syntax nobody guesses - a regular expression
-                between slashes - and six questions to start from. Bound on the BOX rather than
+                between slashes - and the questions to start from that fit the list on screen
+                (backlog 358: three of the six selected nothing on Drivers). Bound on the BOX rather than
                 inside the tooltip: a tooltip hangs off a Popup, which is not in the visual tree,
                 and what a Popup inherits is a question this window has already paid to learn.
             -->
@@ -89,8 +90,9 @@
 
             <!--
                 THE LIST UNDER THE FIELD - point 9 of `docs/11` 2.14, backlog 15. What can be
-                written where the caret stands, offered as somebody types, and six questions to
-                start from when somebody arrives at an empty box. The language was explained in
+                written where the caret stands, offered as somebody types, and the questions to
+                start from - the ones the list on screen can answer - when somebody arrives at an
+                empty box. The language was explained in
                 the tooltip alone until today, and a person who does not know what goes in a box
                 CLICKS it rather than pointing.
 
@@ -126,15 +128,28 @@
                         Width="{Binding ActualWidth, ElementName=QueryBox}">
                     <DockPanel>
                         <!--
+                            WHAT THIS LIST IS, SAID OVER IT, 2026-09-16: "Questions to start from"
+                            over the examples on an empty box, "What can go here" over completions.
+                            Five rows of syntax with no sentence about what they were was half of
+                            the owner's "unintuitive" - the caption is that sentence.
+                        -->
+                        <TextBlock DockPanel.Dock="Top"
+                                   AutomationProperties.AutomationId="suggestCaption"
+                                   Text="{Binding Suggesting.Caption}"
+                                   Style="{StaticResource SubduedText}"
+                                   Margin="{StaticResource PadCell}" />
+                        <!--
                             THE KEYS, WRITTEN WHERE THEY ARE USED. A sentence in the tooltip would
                             repeat the mistake point 9 corrects - explaining a thing in a place
                             nobody looks. Under the list is the one place somebody is looking
-                            while the keys matter.
+                            while the keys matter. In a foot of their own since 2026-09-16, with
+                            the rule the plan sheet draws over its footer, so they do not read as
+                            one more row.
                         -->
-                        <TextBlock DockPanel.Dock="Bottom"
-                                   Text="{Binding Suggesting.Keys}"
-                                   Style="{StaticResource SubduedText}"
-                                   Margin="{StaticResource PadCell}" />
+                        <Border DockPanel.Dock="Bottom" Style="{StaticResource SuggestionFoot}">
+                            <TextBlock Text="{Binding Suggesting.Keys}"
+                                       Style="{StaticResource SubduedText}" />
+                        </Border>
                         <ListBox x:Name="SuggestionList"
                                  AutomationProperties.AutomationId="Suggestions"
                                  Style="{StaticResource SuggestionList}"

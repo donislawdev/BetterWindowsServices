@@ -77,6 +77,13 @@
     -->
     <Thickness x:Key="MarginAfterNumber">0,0,8,0</Thickness>
 
+    <!--
+        THE GAP BETWEEN WHAT LEADS A SUGGESTION ROW AND WHAT FOLLOWS IT, 2026-09-16. There was none:
+        the row borrowed MarginAfterNumber, which is 8 on the RIGHT of the sentence, so on the
+        owner's photograph "status:running" and "Switched off and running anyway" read as one word.
+    -->
+    <Thickness x:Key="MarginSuggestionTrail">16,0,0,0</Thickness>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
 
@@ -181,4 +188,20 @@
     <!-- Between a card's number and its words, and above each block that follows the cards. -->
     <Thickness x:Key="MarginTileLabel">0,2,0,0</Thickness>
     <Thickness x:Key="MarginTileParts">0,14,0,0</Thickness>
+
+    <!--
+        UNDER EACH LINE OF THE DETAILS PANEL. Until 2026-09-16 the lines stood on one another with
+        no air at all - twenty-eight device pixels per line at 150%, the pitch of a list that is
+        scanned - and this panel is a form that is read. Six points, which is less than a row of
+        the list and more than nothing, so a wrapped path still reads as one line of the form.
+    -->
+    <Thickness x:Key="MarginDetailLine">0,0,0,6</Thickness>
+
+    <!--
+        Around a mark in the details panel: the eight to the right that every mark in the list
+        carries (MarginAfterShape), and five above so an eight-point mark sits on the first line of
+        a value that may wrap to several - centred on the whole block it would float beside the
+        third line of a path.
+    -->
+    <Thickness x:Key="MarginDetailMark">0,5,8,0</Thickness>
 </ResourceDictionary>

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
@@ -390,6 +392,49 @@ public sealed class PlanViewGuards
 
             Collect(child, into);
         }
+    }
+
+    /// <summary>
+    /// "Copy all" stands over the commands when there are several, carries every one of them one
+    /// per line, and is not there over a single command - the owner's request of 2026-09-16.
+    ///
+    /// <b>The Tag rather than the clipboard</b>, because the press travels the same road as the
+    /// button beside each line - CopyCommandRequested reads whichever Tag was pressed - and that
+    /// road already has a guard. What is new is what the Tag holds and when the button is there.
+    /// </summary>
+    [Fact]
+    public async Task Copy_all_stands_over_several_commands_with_all_of_them_on_it_and_not_over_one()
+    {
+        var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        var (shown, carried, lines) = WpfHost.On(() => (
+            window.PlanPanel.CopyAllButton.Visibility,
+            window.PlanPanel.CopyAllButton.Tag as string,
+            window.PlanPanel.CommandLines));
+
+        Assert.True(lines.Count > 1, "the fixture picks two rows, so the plan should print two commands");
+        Assert.Equal(Visibility.Visible, shown);
+        Assert.Equal(string.Join(Environment.NewLine, lines), carried);
+
+        // ONE ROW, ONE COMMAND, NO BUTTON - beside a single "Copy" a "Copy all" is two buttons for
+        // one thing.
+        WpfHost.On(() =>
+        {
+            window.Entries.SelectedItems.Clear();
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
+        });
+
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        Assert.Single(WpfHost.On(() => window.PlanPanel.CommandLines));
+        Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.PlanPanel.CopyAllButton.Visibility));
+
+        WpfHost.On(window.Close);
     }
 
     /// <summary>WCAG 2.2 relative luminance, the same arithmetic ContrastGuards uses.</summary>

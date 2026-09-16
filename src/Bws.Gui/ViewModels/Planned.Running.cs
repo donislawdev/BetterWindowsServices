@@ -51,8 +51,28 @@ public sealed partial class Planned
     public string Progress
     {
         get => _progress;
-        private set => Set(ref _progress, value);
+        private set
+        {
+            if (Set(ref _progress, value))
+            {
+                Raise(nameof(HasProgress));
+            }
+        }
     }
+
+    /// <summary>
+    /// Whether there is a step to report at all - what puts the line on the sheet and takes it
+    /// off again.
+    ///
+    /// <b>The line shares its grid cell with the box of seconds, and until 2026-09-16 it stood
+    /// there empty, on top, at all times.</b> A TextBlock takes the pointer over the whole of its
+    /// rectangle whether or not it has any text, so an empty sentence stretched across the column
+    /// was catching every click meant for the box under it - the owner could not type a number of
+    /// seconds into a start or restart plan, and nothing in the markup or the model was wrong.
+    /// Measured by tools/gui-probe/plan-keys.ps1 and held by WaitingBoxGuards. The line goes when
+    /// it has nothing to say, which is the rule the box of seconds already follows (backlog 203).
+    /// </summary>
+    public bool HasProgress => _progress.Length > 0;
 
     /// <summary>
     /// A run has begun.

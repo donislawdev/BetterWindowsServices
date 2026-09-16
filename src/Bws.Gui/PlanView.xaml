@@ -178,7 +178,13 @@
                     BorderBrush="{StaticResource SurfacePanelEdge}"
                     BorderThickness="{StaticResource BorderFooterRule}"
                     Padding="{StaticResource PaddingFooter}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
+            <!--
+                THE WHEEL IS TAKEN IN THE TUNNEL, since 2026-09-16, because a command's own viewer
+                below would otherwise keep it - the argument is beside that viewer in PlanLines.xaml.
+            -->
+            <ScrollViewer x:Name="Body"
+                          PreviewMouseWheel="WheelOverTheBody"
+                          VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <!--
@@ -194,7 +200,7 @@
                         INSIDE the rule with the steps, so the two are one object rather than a
                         label pointing at a box. The block carries MarginSection now.
                     -->
-                    <Border Style="{StaticResource PlanBlock}">
+                    <Border Style="{StaticResource PanelBlock}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource gui.plan.steps}"
                                        Margin="{StaticResource MarginBelowSearch}"
@@ -264,11 +270,33 @@
                                       ItemTemplate="{StaticResource PlanFailureTemplate}" />
                     </StackPanel>
 
+                    <!--
+                        THE HEADING SHARES ITS LINE WITH "COPY ALL" SINCE 2026-09-16, here and over
+                        the commands below, and the press is caught on the SECTION rather than on
+                        the list: the button beside each line and the one over all of them bubble
+                        to one handler, which reads the text off whichever Tag was pressed. The
+                        button goes when there is one line - see Planned.HasSeveralCommands.
+                    -->
                     <StackPanel x:Name="WayBackSection"
+                                Button.Click="CopyCommandRequested"
                                 Visibility="{Binding HasWayBack, Converter={StaticResource WhenTrue}}">
-                        <TextBlock Text="{DynamicResource gui.plan.wayBack}"
-                                   Margin="{StaticResource MarginSection}"
-                                   Style="{StaticResource SectionHeadingText}" />
+                        <DockPanel Margin="{StaticResource MarginSection}">
+                            <!-- The ghost box: same margin, edge and padding as a line's box, so this
+                                 button ends where the lines' buttons end. Argument in PlanLines.xaml. -->
+                            <Border DockPanel.Dock="Right" Style="{StaticResource PlanCommandGhost}">
+                                <Button Style="{StaticResource PlanCopyAllButton}"
+                                        AutomationProperties.AutomationId="planCopyAllWayBack"
+                                        AutomationProperties.Name="{DynamicResource gui.plan.copyAll}"
+                                        Content="{DynamicResource gui.plan.copyAll}"
+                                        ToolTip="{DynamicResource gui.plan.copyAll.hint}"
+                                        Visibility="{Binding HasSeveralWayBack, Converter={StaticResource WhenTrue}}"
+                                        Tag="{Binding AllWayBack}" />
+                            </Border>
+
+                            <TextBlock Text="{DynamicResource gui.plan.wayBack}"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource SectionHeadingText}" />
+                        </DockPanel>
 
                         <ItemsControl x:Name="WayBackList"
                                       AutomationProperties.AutomationId="planWayBack"
@@ -290,14 +318,27 @@
                         first.
                     -->
                     <StackPanel x:Name="CommandSection"
+                                Button.Click="CopyCommandRequested"
                                 Visibility="{Binding HasCommands, Converter={StaticResource WhenTrue}}">
-                        <TextBlock Text="{DynamicResource gui.plan.commands}"
-                                   Margin="{StaticResource MarginSection}"
-                                   Style="{StaticResource SectionHeadingText}" />
+                        <DockPanel Margin="{StaticResource MarginSection}">
+                            <Border DockPanel.Dock="Right" Style="{StaticResource PlanCommandGhost}">
+                                <Button x:Name="CopyAllButton"
+                                        Style="{StaticResource PlanCopyAllButton}"
+                                        AutomationProperties.AutomationId="planCopyAll"
+                                        AutomationProperties.Name="{DynamicResource gui.plan.copyAll}"
+                                        Content="{DynamicResource gui.plan.copyAll}"
+                                        ToolTip="{DynamicResource gui.plan.copyAll.hint}"
+                                        Visibility="{Binding HasSeveralCommands, Converter={StaticResource WhenTrue}}"
+                                        Tag="{Binding AllCommands}" />
+                            </Border>
+
+                            <TextBlock Text="{DynamicResource gui.plan.commands}"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource SectionHeadingText}" />
+                        </DockPanel>
 
                         <ItemsControl x:Name="CommandList"
                                       AutomationProperties.AutomationId="planCommands"
-                                      Button.Click="CopyCommandRequested"
                                       ItemsSource="{Binding Commands}"
                                       ItemTemplate="{StaticResource PlanCommandTemplate}" />
                     </StackPanel>

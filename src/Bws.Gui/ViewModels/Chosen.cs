@@ -141,8 +141,26 @@ public sealed class Chosen : Observable
 
         Showing = true;
 
+        // AFTER Showing, so a view that scrolls itself to the top on this has a panel to scroll.
+        // Raised here and nowhere else: a refresh of the followed row rebuilds the sections and
+        // leaves the scroll where it was, because a person reading a description does not want
+        // it snatched back to the top once a second - GUI rule 3. What does want the top is a
+        // DIFFERENT entry, and this is the only road one arrives by.
+        Opened?.Invoke(this, EventArgs.Empty);
+
         return true;
     }
+
+    /// <summary>
+    /// The panel has just been opened on an entry - the same one again, or another.
+    ///
+    /// <b>An event rather than a property the view watches, because the thing that changed is
+    /// not a value.</b> Opening the panel on the entry it already shows changes no property at
+    /// all, and it still means "start reading from the top". Found on the owner's own capture of
+    /// 2026-09-16: a panel opened on a new entry with its first lines above the fold, because the
+    /// scroll position survived the swap of sections underneath it.
+    /// </summary>
+    internal event EventHandler? Opened;
 
     /// <summary>
     /// Closes the panel, and says whether there was one to close.
@@ -254,7 +272,11 @@ public sealed class Chosen : Observable
 
         ShownName = row.ServiceName;
         ShownLabel = row.DisplayName;
-        Sections = Details.Of(row.Entry);
+
+        // Shown rather than Of: the two names above are the panel's head, and Of would repeat
+        // them as the first two lines of the first section - which it did from 2026-08-13 to
+        // 2026-09-16. A copy still takes Of, because a copy has no head.
+        Sections = Details.Shown(row.Entry);
 
         Raise(nameof(ShownName));
         Raise(nameof(ShownLabel));

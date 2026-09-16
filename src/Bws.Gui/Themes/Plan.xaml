@@ -80,9 +80,13 @@
                     </Border>
 
                     <ControlTemplate.Triggers>
+                        <!--
+                            THE PANEL'S HOVER SINCE 2026-09-16: the window's read 1.30 on this sheet,
+                            so pointing at the close mark showed nothing. Argument beside the brush.
+                        -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Face" Property="Background"
-                                    Value="{StaticResource SurfaceHover}" />
+                                    Value="{StaticResource SurfaceHoverOnPanel}" />
                             <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
                         </Trigger>
 
@@ -98,6 +102,14 @@
 
     <!--
         A BLOCK WITH A LINE DOWN ITS LEFT SIDE, WHICH IS THE ONE NEW IDEA IN THE PANEL'S REDESIGN.
+
+        NAMED PanelBlock SINCE 2026-09-16, PlanBlock BEFORE, because a second panel took it that day:
+        the details panel draws each of its four sections as this block (Themes/Details.xaml,
+        docs/PROJEKT-SZCZEGOLY-20260916.md). A style called Plan-something inside the panel about one
+        entry would be a name read literally by whoever comes next, and GUI rule 5 wants a change to
+        the block to be a change in one place - which it only is while both screens name the same
+        style. It still lives in this file because this file is merged before Details.xaml and the
+        plan sheet was its first home.
 
         WHAT WAS WRONG. Every section of the panel was a heading with sentences under it and nothing
         else - six of them in a column, told apart only by their words. The owner's capture shows the
@@ -124,7 +136,7 @@
         of the panel and the footer was 44. PadCell keeps the eight points of left air the rule
         needs and spends four above and below instead of twelve.
     -->
-    <Style x:Key="PlanBlock" TargetType="Border">
+    <Style x:Key="PanelBlock" TargetType="Border">
         <Setter Property="BorderBrush" Value="{StaticResource SurfaceChipEdge}" />
         <Setter Property="BorderThickness" Value="{StaticResource BorderPanelEdge}" />
         <Setter Property="Padding" Value="{StaticResource PadCell}" />
@@ -137,12 +149,19 @@
         footer already draws is what separates it from the body.
     -->
     <!--
-        THE RULE WENT FROM WARNING TO REFUSED ON 2026-09-02, ON THE OWNER'S WORDS. The only sentence
-        this block ever holds is the one saying this session has no administrator rights - Planned
-        writes nothing else into Blocked - and amber says "something might go wrong" where the truth
-        is "nothing here can be done at all". The rule and the words inside it now agree.
+        THE RULE WENT FROM WARNING TO REFUSED ON 2026-09-02, ON THE OWNER'S WORDS. The sentence
+        this block was made for says this session has no administrator rights - Planned writes
+        nothing else into Blocked - and amber says "something might go wrong" where the truth is
+        "nothing here can be done at all". The rule and the words inside it agree.
+
+        TWO KINDS OF SENTENCE SINCE 2026-09-16, ONE LOOK. The footer also stands the reason for a
+        heavy confirmation in this block - the machine would go down, or the process ends more than
+        the entry named. "Nothing can be done" and "this can be done and takes the machine with it"
+        are both "stop and read this", and a third block in the same red would be a second name
+        for one look (ADR-23). What tells the two apart is the text: ProblemText explains a grey
+        button, DangerText warns over a live one.
     -->
-    <Style x:Key="PlanBlockRefused" TargetType="Border" BasedOn="{StaticResource PlanBlock}">
+    <Style x:Key="PanelBlockRefused" TargetType="Border" BasedOn="{StaticResource PanelBlock}">
         <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
         <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
     </Style>
@@ -252,16 +271,35 @@
         same property a test reads - so what stands between a person and a run is checkable
         without a window, which is the decision the typed name took first.
 
-        THE FRAMEWORK'S OWN ERROR ADORNER IS SWITCHED OFF, because it is a one-pixel border in the
-        colour red rather than in ours, drawn in the adorner layer over whatever this style draws.
-        Two edges in two reds around one box would be the look of two products.
+        THE FRAMEWORK'S ERROR ADORNER IS OURS, NOT OFF - 2026-09-16, the owner's remark that the
+        wrong box had a red edge on three sides and none along the bottom. Their template, read
+        with `tools/wpfui-probe probe template DefaultTextBoxStyle`: ContentBorder draws the four
+        edges in the BorderBrush this style sets, and a second Border named AccentBorder draws its
+        own one-pixel line along the bottom in ControlStrokeColorDefaultBrush, ON TOP - two pixels
+        when focused, in their accent. A style trigger cannot reach a named part of somebody
+        else's template, so the bottom edge was theirs whatever this style said. The adorner layer
+        is the one place above their template: the error template below draws our red on all four
+        sides there, over the AccentBorder, with their own corner radius. Until that day it was
+        switched off for being a red not ours - it is ours now, and the BorderBrush setter stays for
+        the three sides a render without an adorner layer can still see.
 
         WHETHER THE COLOUR REACHES A PIXEL IS MEASURED, NOT ASSUMED - a property set on a control
         whose template belongs to somebody else has failed to arrive three times in this project.
         WaitingBoxGuards renders the footer and counts this red inside the box's own rectangle.
     -->
     <Style x:Key="WaitingBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-        <Setter Property="Validation.ErrorTemplate" Value="{x:Null}" />
+        <Setter Property="Validation.ErrorTemplate">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{StaticResource MeaningRejected}"
+                            BorderThickness="{StaticResource BorderAllSides}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            SnapsToDevicePixels="True">
+                        <AdornedElementPlaceholder />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
 
         <Style.Triggers>
             <Trigger Property="Validation.HasError" Value="True">

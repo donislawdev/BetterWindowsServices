@@ -22,15 +22,17 @@ public sealed class SuggestingTests
     private static IEnumerable<string> Words(Suggesting suggesting) => suggesting.Offered.Select(row => row.Word);
 
     [Fact]
-    public void A_person_arriving_at_an_empty_box_is_offered_the_six_questions()
+    public void A_person_arriving_at_an_empty_box_is_offered_the_questions_that_fit_the_list()
     {
         var suggesting = Fresh();
 
         suggesting.Arrived(string.Empty, 0);
 
+        // The questions for the list the window opens on - five of the six since backlog 358,
+        // because "services only" asked of the services list selects the whole of it.
         Assert.True(suggesting.IsOpen);
-        Assert.Equal(QueryExamples.All.Select(example => example.Query), Words(suggesting));
-        Assert.Equal(QueryExamples.All.Select(example => example.Label), suggesting.Offered.Select(row => row.Meaning));
+        Assert.Equal(QueryExamples.For(Scopes.Opening).Select(example => example.Query), Words(suggesting));
+        Assert.Equal(QueryExamples.For(Scopes.Opening).Select(example => example.Label), suggesting.Offered.Select(row => row.Meaning));
         Assert.Equal(suggesting.Offered[0], suggesting.Chosen);
 
         // Each one replaces the whole of the box, which is nothing.
@@ -157,7 +159,7 @@ public sealed class SuggestingTests
 
         // The questions on an empty box, as arriving does.
         Assert.True(suggesting.Ask(string.Empty, 0, 0));
-        Assert.Equal(QueryExamples.All.Select(example => example.Query), Words(suggesting));
+        Assert.Equal(QueryExamples.For(Scopes.Opening).Select(example => example.Query), Words(suggesting));
 
         suggesting.Close();
 
@@ -318,7 +320,7 @@ public sealed class SuggestingTests
         suggesting.Arrived(string.Empty, 0);
 
         Assert.Equal(0, announced);
-        Assert.Equal(QueryExamples.All[1].Query, suggesting.Chosen!.Word);
+        Assert.Equal(QueryExamples.For(Scopes.Opening)[1].Query, suggesting.Chosen!.Word);
     }
 
     [Fact]
@@ -374,7 +376,7 @@ public sealed class SuggestingTests
         // one is built here to hold the rule.
         var excluding = new Suggesting(
             () => [new FilterChip("gui.filter.stopped", "type", "driver", negated: true, () => string.Empty, _ => { })],
-            QueryExamples.All);
+            () => QueryExamples.All);
 
         excluding.Keyboard(present: true);
         excluding.Follow("type:dri", 8, 0);
@@ -388,4 +390,11 @@ public sealed class SuggestingTests
         Assert.Equal(Texts.Of("gui.suggest.keys"), Fresh().Keys);
         Assert.DoesNotContain("gui.", Fresh().Keys, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// What a screen reader is told about the chosen row - backlog 361. The keyboard never leaves
+    /// the box, so nothing in the list is announced on its own, and the window raises a
+    /// notification carrying this sentence instead. The sentence is composed here, where it has a
+    /// test without a window.
+    /// </summary>
 }

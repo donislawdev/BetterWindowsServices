@@ -46,7 +46,11 @@ public sealed class ColumnFamilyGuards
     [Fact]
     public void Every_column_fed_by_the_second_phase_declares_the_family_that_feeds_it()
     {
-        var unknown = Bws.Gui.Texts.Of("gui.cell.unknown");
+        // THE WORD FOR A CELL NOBODY HAS ASKED THE MACHINE FOR - "not read" since 2026-09-16, the
+        // glossary's word, where it was "unknown" before. This test finds the second phase by
+        // that word, so it changed in the same edit as the word: left on the old one it would
+        // have found no unread cell at all and passed over nothing.
+        var unknown = Bws.Gui.Texts.Of("gui.cell.notRead");
 
         // The first phase complete and the second phase untouched, which is the state every row is
         // in the moment a listing arrives and before anybody has asked for anything.
@@ -114,5 +118,43 @@ public sealed class ColumnFamilyGuards
             + "on every row for ever, and one declaring more than it needs pays for a pass nobody "
             + "can see the result of - see Column.Needs:"
             + Environment.NewLine + string.Join(Environment.NewLine, wrong));
+    }
+
+    /// <summary>
+    /// Every column that needs a family says how its reading went, and says it truthfully.
+    ///
+    /// <b>The details panel is the reader</b>, since 2026-09-16: over one entry it draws a value
+    /// nobody has asked for as a state rather than as an answer, and the only way it can tell the
+    /// two apart is <see cref="Column.Outcome"/>. A column needing a family without it would draw
+    /// "not read" in white, as if the machine had said so - the fault the outcome exists to stop,
+    /// one column at a time and silently.
+    ///
+    /// <b>Asked, not only declared.</b> An outcome answering Present over an entry whose second
+    /// phase is untouched would be a declaration that says the right thing and does the wrong one.
+    /// </summary>
+    [Fact]
+    public void Every_column_fed_by_the_second_phase_says_how_its_reading_went()
+    {
+        var bare = Rows.Entry("Spooler");
+
+        var silent = Columns.All
+            .Where(column => column.Needs != ExtraRead.None && column.Outcome is null)
+            .Select(column => column.Id)
+            .ToList();
+
+        Assert.True(
+            silent.Count == 0,
+            "These columns need a family and cannot say whether it was read, so the details panel "
+            + "would draw their 'not read' as an answer: " + string.Join(", ", silent));
+
+        var lying = Columns.All
+            .Where(column => column.Outcome is not null && column.Outcome(bare) != ReadOutcome.NotRead)
+            .Select(column => column.Id)
+            .ToList();
+
+        Assert.True(
+            lying.Count == 0,
+            "These columns say their reading went some other way than NotRead over an entry whose "
+            + "second phase nobody has asked for: " + string.Join(", ", lying));
     }
 }

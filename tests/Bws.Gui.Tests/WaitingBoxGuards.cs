@@ -1,6 +1,8 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Bws.Core.Planning;
@@ -115,6 +117,72 @@ public sealed class WaitingBoxGuards
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// A click on the box of seconds lands ON the box of seconds - asked of the visual tree with
+    /// the framework's own hit test, at the centre of the box, on a laid-out sheet.
+    ///
+    /// <b>Found 2026-09-16 by the owner, who could not type into the box on a start or restart
+    /// plan, and measured by tools/gui-probe/plan-keys.ps1: a click left the keyboard on the close
+    /// button and every key after it changed nothing.</b> The progress line shares the box's grid
+    /// cell, is declared after it and so lies over it, and a TextBlock takes the pointer over the
+    /// whole of its rectangle whether or not it has any text - so an EMPTY sentence, stretched
+    /// across the column, was catching every click meant for the box. Nothing in the markup looks
+    /// wrong, the model answers every question correctly, and the box cannot be typed into.
+    ///
+    /// <b>The hit test rather than a focus call</b>, because a window built here is never shown and
+    /// Focus() answers false about everything in one - `docs/10` trap 19 - while hit testing only
+    /// needs layout. What is asserted is the geometry the click meets, which is the half that was
+    /// wrong.
+    /// </summary>
+    [Fact]
+    public async Task The_pointer_lands_on_the_box_of_seconds_and_not_on_something_lying_over_it()
+    {
+        var window = await Ready();
+
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        var (hit, box) = WpfHost.On(() =>
+        {
+            window.PlanPanel.Measure(new Size(1000, 800));
+            window.PlanPanel.Arrange(new Rect(0, 0, 1000, 800));
+            window.PlanPanel.UpdateLayout();
+
+            var target = window.PlanPanel.Footer.WaitingBox;
+            var centre = target.TranslatePoint(new Point(target.ActualWidth / 2, target.ActualHeight / 2), window.PlanPanel);
+            var result = VisualTreeHelper.HitTest(window.PlanPanel, centre);
+
+            return (Describe(result?.VisualHit), IsInside(result?.VisualHit, target));
+        });
+
+        Assert.True(
+            box,
+            $"a click at the centre of the box of seconds lands on {hit}, not on the box - something "
+            + "is lying over it in the footer, and nothing typed there can reach it");
+
+        WpfHost.On(window.Close);
+    }
+
+    private static bool IsInside(DependencyObject? hit, DependencyObject target)
+    {
+        for (var at = hit; at is not null; at = VisualTreeHelper.GetParent(at))
+        {
+            if (ReferenceEquals(at, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string Describe(DependencyObject? hit) => hit switch
+    {
+        null => "nothing at all",
+        FrameworkElement element when !string.IsNullOrEmpty(element.Name) => $"{element.GetType().Name} '{element.Name}'",
+        _ => hit.GetType().Name
+    };
+
     private static (double Height, string Problem) FooterMeasured(Bws.Gui.MainWindow window) =>
         WpfHost.On(() =>
         {
@@ -133,6 +201,93 @@ public sealed class WaitingBoxGuards
     /// the owner of this project reads screens rather than code - and the wrong state of this box
     /// cannot be photographed from a probe without typing into a live window.
     /// </summary>
+    /// <summary>
+    /// The wrong box's edge is the style's own error template, on all four sides.
+    ///
+    /// <b>The owner's remark of 2026-09-16:</b> the box was red on three sides and open along the
+    /// bottom. The library's TextBox template draws a second border of its own along the bottom,
+    /// on top of the one the style colours, so the style's red never reached that edge. The edge
+    /// is the style's error template now, drawn in the adorner layer over both - and the footer
+    /// carries a layer of its own, because a window never shown in this host has none.
+    ///
+    /// <b>What this test can see and what it cannot, measured rather than assumed.</b> It sees
+    /// that the footer has a layer, that the framework attached the adorner to the wrong box, and
+    /// what the template draws. It cannot see a pixel of it: a validation adorner takes its
+    /// Visibility from the adorned element's IsVisible (dotnet/wpf, TemplatedAdorner.NeedsUpdate),
+    /// and IsVisible is false for everything in a window without a presentation source - four
+    /// versions of this test rendered the sheet and read a collapsed 0x0 adorner out of their own
+    /// failure message. The pixel half of the claim is a photograph of a shown window, and the
+    /// owner's screen at 150 per cent is where the open edge was seen in the first place.
+    /// </summary>
+    [Fact]
+    public async Task The_wrong_edge_is_the_error_template_on_all_four_sides()
+    {
+        var window = await Ready();
+        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
+
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
+        WpfHost.Settled();
+
+        // LAID OUT BEFORE THE ERROR IS RAISED. An adorner is attached when the error fires, only
+        // if a layer exists at that moment, and otherwise waits for Loaded - which never comes to
+        // an element of a window that is never shown.
+        WpfHost.On(() => LayOut(window.PlanPanel));
+        WpfHost.On(() => panel.WaitingText = "abc");
+        WpfHost.Settled();
+
+        var (hasLayer, attached, hasTemplate) = WpfHost.On(() =>
+        {
+            var box = window.PlanPanel.Footer.WaitingBox;
+            var layer = AdornerLayer.GetAdornerLayer(box);
+            var adorners = layer?.GetAdorners(box) ?? [];
+
+            return (layer is not null, adorners.Length > 0, Validation.GetErrorTemplate(box) is not null);
+        });
+
+        Assert.True(hasLayer, "the box has no adorner layer over it - the footer's own AdornerDecorator is gone, so the error template has nowhere to be drawn");
+        Assert.True(hasTemplate, "the box has no error template - null draws nothing, which is the three-sided edge the owner photographed");
+        Assert.True(attached, "the box is wrong and has a layer over it, and the framework attached no adorner to it - the error template never reached the layer");
+
+        // The four sides, in the problem colour, around the box - read from the markup, because
+        // the template refuses to be instantiated outside a control.
+        Assert.Equal("BorderAllSides in MeaningRejected around AdornedElementPlaceholder", TheEdge());
+
+        WpfHost.On(window.Close);
+    }
+
+    private static void LayOut(UIElement element)
+    {
+        element.Measure(new Size(1000, 800));
+        element.Arrange(new Rect(0, 0, 1000, 800));
+        element.UpdateLayout();
+    }
+
+    /// <summary>
+    /// What the error template draws, read from the markup of the style - because the template
+    /// cannot be instantiated here: AdornedElementPlaceholder refuses to exist outside a template
+    /// being applied, which is one more thing four versions of this test found out by doing it.
+    /// The shape every theme guard in this project reads is the shape read here.
+    /// </summary>
+    private static string TheEdge()
+    {
+        var theme = File.ReadAllText(Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Plan.xaml"));
+        var style = theme.IndexOf("<Style x:Key=\"WaitingBox\"", StringComparison.Ordinal);
+        var setter = style < 0 ? -1 : theme.IndexOf("<Setter Property=\"Validation.ErrorTemplate\">", style, StringComparison.Ordinal);
+        var close = setter < 0 ? -1 : theme.IndexOf("</Setter>", setter, StringComparison.Ordinal);
+
+        if (close < 0)
+        {
+            return "no error template on WaitingBox - null draws nothing, and the framework's own would draw a red not ours";
+        }
+
+        var template = theme[setter..close];
+        var thickness = Regex.Match(template, @"BorderThickness=""\{StaticResource (\w+)\}""", RegexOptions.None, TimeSpan.FromSeconds(5));
+        var brush = Regex.Match(template, @"BorderBrush=""\{StaticResource (\w+)\}""", RegexOptions.None, TimeSpan.FromSeconds(5));
+        var wraps = template.Contains("<AdornedElementPlaceholder", StringComparison.Ordinal);
+
+        return $"{(thickness.Success ? thickness.Groups[1].Value : "no thickness")} in {(brush.Success ? brush.Groups[1].Value : "no brush")} around {(wraps ? "AdornedElementPlaceholder" : "nothing")}";
+    }
+
     private static int RedInsideTheBox(Bws.Gui.MainWindow window)
     {
         var (shot, left, top, right, bottom, wrong) = WpfHost.On(() =>

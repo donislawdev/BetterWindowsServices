@@ -307,4 +307,56 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+
+    <!--
+        THE BUTTON THAT FOLDS THE FILTERS AWAY - a two-state control that does not want a checked
+        LOOK, dressed here since 2026-09-16. It stood as a style inside FilterRow.xaml until that
+        day, which GUI rule 1 forbids and which is where the fault below could hide.
+
+        WHY IT HAD NO HOVER AND NO PRESS, READ OFF THE LIBRARY'S OWN TEMPLATE (tools/wpfui-probe
+        probe template DefaultToggleButtonStyle) RATHER THAN GUESSED. Their hover and pressed
+        triggers set Background ON THE CONTROL - no TargetName - and a trigger in a STYLE outranks a
+        trigger in a TEMPLATE. The one trigger this style carried, IsChecked=True painting the
+        unchecked brushes so that open filters would not wear the accent, therefore beat both of
+        theirs for as long as the filters were open, which is how the window opens. Measured by
+        gui-probe/reach.ps1 before this file changed: Filters 0.0% under the pointer, Show every
+        instance 98.9%, Columns 86.5%. Columns escapes because DefaultButtonStyle aims its triggers
+        at ContentBorder by name, which no setter of ours touches.
+
+        SO THE STATES ARE WRITTEN HERE, IN THEIR OWN BRUSHES, AND THE ORDER IS THE BEHAVIOUR: a
+        later trigger in the same style wins over an earlier one for the same property, so hover
+        stands after checked and pressed after hover. ChipGuards reads this order off the file,
+        because nothing else can see it - the build is green in either order and the catalogue
+        draws neither hover nor pressed (the owner's exception to GUI rule 4).
+
+        WHAT IS NOT FOUGHT OVER: their checked trigger sets Foreground on the ContentPresenter by
+        name, which a setter on the control cannot reach. The word is drawn in their
+        ToggleButtonForegroundChecked while checked, white in the dark theme, and taking it back
+        would be trap 16 of docs/10 in a new shape. Show every instance keeps the library's look
+        unchanged, because there the checked state MEANS on.
+    -->
+    <Style x:Key="QuietToggle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ToggleButtonBackground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForeground}" />
+            </Trigger>
+
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ToggleButtonBackgroundPointerOver}" />
+            </Trigger>
+
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ToggleButtonBackgroundPressed}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ToggleButtonBorderBrushPressed}" />
+            </Trigger>
+
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource ToggleButtonBackgroundDisabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource ToggleButtonBorderBrushDisabled}" />
+                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForegroundDisabled}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

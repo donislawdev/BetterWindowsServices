@@ -78,6 +78,32 @@ public sealed partial class Planned
     public bool HasWayBack => WayBack.Count > 0;
 
     /// <summary>
+    /// Whether the commands are worth a button that takes all of them at once - the owner's
+    /// request of 2026-09-16, made over a sheet with five of them and five buttons that each took
+    /// one.
+    ///
+    /// <b>More than one, not at least one.</b> Over a single command "Copy all" beside "Copy" is
+    /// two buttons for one thing, and the second would be the one somebody wonders about.
+    /// </summary>
+    public bool HasSeveralCommands => Commands.Count > 1;
+
+    /// <summary>The same question about the way back.</summary>
+    public bool HasSeveralWayBack => WayBack.Count > 1;
+
+    /// <summary>
+    /// Every command, one per line, as the clipboard should hold them.
+    ///
+    /// <b>The platform's line ending rather than a bare newline</b>, because what this is for is
+    /// pasting into a Windows terminal, which runs the lines one after another - and the join is
+    /// done here rather than in the view, which holds layout and bindings and nothing else (GUI
+    /// rule 11).
+    /// </summary>
+    public string AllCommands => string.Join(Environment.NewLine, Commands);
+
+    /// <summary>The whole way back, one command per line.</summary>
+    public string AllWayBack => string.Join(Environment.NewLine, WayBack);
+
+    /// <summary>
     /// That every section may have appeared or gone.
     ///
     /// One call rather than six lines wherever the plan or the run changes, because a section that
@@ -112,6 +138,10 @@ public sealed partial class Planned
         Raise(nameof(TypeTheName));
         Raise(nameof(TypeToConfirm));
 
+        // And the reason for the box, which appears and goes with it.
+        Raise(nameof(Danger));
+        Raise(nameof(HasDanger));
+
         // AND THE WAITING ROW, FOR THE SAME REASON AND WITH THE SAME COST WHEN IT IS FORGOTTEN -
         // which it was, for the length of one build on 2026-09-09. The binding was written, the
         // markup was right, the property answered correctly when asked - and nothing asked, so the
@@ -130,5 +160,11 @@ public sealed partial class Planned
         Raise(nameof(HasProblems));
         Raise(nameof(HasFailures));
         Raise(nameof(HasWayBack));
+
+        // The button over each list of commands, and what it carries - both follow the lists.
+        Raise(nameof(HasSeveralCommands));
+        Raise(nameof(AllCommands));
+        Raise(nameof(HasSeveralWayBack));
+        Raise(nameof(AllWayBack));
     }
 }

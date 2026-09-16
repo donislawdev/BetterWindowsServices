@@ -148,8 +148,8 @@ public partial class MainWindow
                 // text still has it - one key press away, unselected by typing nothing.
                 //
                 // AND A PERSON HAS ARRIVED, which the list under the box wants to know: an empty
-                // box offers its six questions, a box with text in it - selected, so nothing to
-                // complete - offers nothing. Said here rather than left to the focus event, because
+                // box offers the questions that fit the list on screen, a box with text in it -
+                // selected, so nothing to complete - offers nothing. Said here rather than left to the focus event, because
                 // a box that already had the keyboard gets no focus event from this.
                 //
                 // NOT ON THE OVERVIEW SCREEN, where the row holding the box is collapsed: a popup

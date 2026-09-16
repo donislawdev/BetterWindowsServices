@@ -41,7 +41,16 @@
             BorderThickness="{StaticResource BorderFooterRule}"
             Padding="{StaticResource PaddingFooter}"
             Margin="{StaticResource MarginAboveStatus}">
-
+        <!--
+            AN ADORNER LAYER OF THE FOOTER'S OWN, 2026-09-16. The wrong box's edge is the error
+            template of its style, and an error template is drawn in the nearest adorner layer
+            above the box. The window has one, in its template - and a test host never applies a
+            window's template, so a render of the sheet alone, which is how WaitingBoxGuards looks
+            at it, would show three red sides and the library's own line along the bottom, which
+            is the picture the owner sent. With the layer here the edge is the footer's to draw
+            and to render: on screen the nearest layer wins and nothing looks different.
+        -->
+        <AdornerDecorator>
         <StackPanel>
             <!--
                 WHY IT CANNOT BE CARRIED OUT, MOVED DOWN HERE ON 2026-09-01 FROM THE TOP OF THE
@@ -61,7 +70,7 @@
                 three guards read that exact property to say whether the window admits it
                 cannot act.
             -->
-            <Border Style="{StaticResource PlanBlockRefused}"
+            <Border Style="{StaticResource PanelBlockRefused}"
                     Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}">
                 <TextBlock x:Name="PlanBlocked"
                            AutomationProperties.AutomationId="planBlocked"
@@ -91,6 +100,31 @@
             -->
             <StackPanel x:Name="ConfirmSection"
                         Visibility="{Binding NeedsTyping, Converter={StaticResource WhenTrue}}">
+                <!--
+                    WHY THE NAME HAS TO BE TYPED, OVER THE BOX IT HAS TO BE TYPED INTO, since
+                    2026-09-16. The sentence saying the machine would go down used to stand in
+                    "Worth knowing" - in the half of the sheet that scrolls, in plain white beside
+                    "it will be back after the next restart" - and the label under it said only
+                    "Type PlugPlay to confirm". The owner's words: the person does not know what
+                    they are confirming. The argument at the head of this file for putting the box
+                    in the footer - a confirmation somebody can skip past is not one - is the
+                    argument for its reason standing here too, and it leaves "Worth knowing" rather
+                    than being said twice.
+
+                    THE BLOCK IS THE REFUSED ONE, NOT A THIRD. Its red rule has meant "stop and read
+                    this" since 2026-09-02, and a block of its own in the same red would be a second
+                    name for one look. The text style is the one place this sheet weighs a sentence:
+                    DangerText, in Text.xaml, with the measurement beside it.
+                -->
+                <Border Style="{StaticResource PanelBlockRefused}"
+                        Visibility="{Binding HasDanger, Converter={StaticResource WhenTrue}}">
+                    <TextBlock x:Name="PlanDanger"
+                               AutomationProperties.AutomationId="planDanger"
+                               Text="{Binding Danger}"
+                               TextWrapping="Wrap"
+                               Style="{StaticResource DangerText}" />
+                </Border>
+
                 <TextBlock AutomationProperties.AutomationId="planConfirmLabel"
                            Text="{Binding TypeToConfirm}"
                            TextWrapping="Wrap"
@@ -198,12 +232,24 @@
                            TextWrapping="Wrap"
                            Style="{StaticResource ProblemText}" />
 
+                <!--
+                    IT SHARES ITS CELL WITH THE BOX OF SECONDS AND IS DECLARED AFTER IT, SO IT LIES
+                    ON TOP - and until 2026-09-16 it lay there at all times, empty. A TextBlock takes
+                    the pointer over the whole of its rectangle, text or no text, so this line,
+                    stretched across the column, caught every click meant for the box under it: the
+                    owner could not type into the box on a start or restart plan, and the keyboard
+                    stayed on the close button. Measured by tools/gui-probe/plan-keys.ps1, settled by
+                    a hit test in WaitingBoxGuards. It goes when it has nothing to say - the rule the
+                    row beside it already follows - which is a repair of the cause rather than of the
+                    symptom (IsHitTestVisible would leave an invisible element on top of a control).
+                -->
                 <TextBlock Grid.Column="0"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"
                            Text="{Binding Progress}"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center"
+                           Visibility="{Binding HasProgress, Converter={StaticResource WhenTrue}}"
                            Style="{StaticResource SubduedText}" />
 
                 <Button Grid.Column="1"
@@ -253,5 +299,6 @@
                         Click="CarryOutRequested" />
             </Grid>
         </StackPanel>
+        </AdornerDecorator>
     </Border>
 </UserControl>

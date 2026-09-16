@@ -7,7 +7,9 @@
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
-        Height="900" Width="1400"
+        SizeToContent="Width"
+        Height="{StaticResource HeightCatalogueWindow}"
+        MaxWidth="{x:Static SystemParameters.PrimaryScreenWidth}"
         MinHeight="{StaticResource HeightWindowLeast}" MinWidth="{StaticResource WidthWindowLeast}"
         FocusManager.FocusedElement="{Binding ElementName=SheetScroll}">
 
@@ -31,6 +33,14 @@
         catalogue rendering its samples differently from the window that ships would be a
         catalogue of something else. docs/10 records what turning one of them off cost: 80,5 per
         cent of text pixels picked up colour fringing.
+
+        THE WIDTH IS NOT A NUMBER, SINCE 2026-09-16. It was 1400, and the columns of the sheet
+        summed to about 1560 by then - so the last column, the one holding more text than fits,
+        was cut by the window's edge and the sheet showed how a WINDOW clips a component rather
+        than how the component clips its own text. The window now sizes itself to the columns
+        (their widths are tokens in Themes/Catalogue.xaml), stops at the screen, and past that the
+        sheet scrolls sideways rather than cutting anything - GUI rule 14, a layout worked out
+        rather than measured.
     -->
 
     <Grid Grid.IsSharedSizeScope="True">
@@ -52,7 +62,15 @@
                 BorderThickness="{StaticResource BorderFooterRule}"
                 Padding="{StaticResource PaddingPanel}">
 
-            <StackPanel>
+            <!--
+                AS WIDE AS THE SHEET AND NOT ONE PIXEL MORE. A window sized to its content measures
+                this header with infinite width, and a wrapping note of three hundred characters
+                answers with its whole single line - which is what set the window's width on the
+                first build of 2026-09-16, seven hundred pixels past the columns. The note is held
+                to the sheet's own width, read off the sheet rather than written as a number.
+            -->
+            <StackPanel MaxWidth="{Binding ActualWidth, ElementName=Sheet}"
+                        HorizontalAlignment="Left">
                 <TextBlock Text="{Binding Heading}" Style="{StaticResource HeadingText}" />
 
                 <TextBlock x:Name="CountedText"
@@ -79,7 +97,7 @@
                       x:Name="SheetScroll"
                       Focusable="True"
                       VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalScrollBarVisibility="Auto"
                       Padding="{StaticResource PaddingPanel}">
 
             <ItemsControl x:Name="Sheet"

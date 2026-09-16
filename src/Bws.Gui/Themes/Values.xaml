@@ -290,4 +290,31 @@
         a row of cards do not want the same measure. Three cards here are about 340 each.
     -->
     <system:Double x:Key="WidthOverviewFindings">1080</system:Double>
+
+    <!--
+        THE PANEL ABOUT ONE ENTRY, and this number stood in DetailsView.xaml from 2026-08-13 until
+        2026-09-16 with a paragraph explaining that it had nowhere to live: this file was on the
+        markup ceiling the day the panel was built. It has room now, so the one deviation that
+        paragraph confessed to is closed. Fixed rather than shared with the content, for the reason
+        the panel gives at its head: a description of 1251 characters would make a panel as wide as
+        the screen, and the list is what the window is for.
+    -->
+    <system:Double x:Key="WidthDetailsPanel">380</system:Double>
+
+    <!--
+        TWO LINES OF THE PANEL'S TITLE, AND NOT THREE. The display name wraps under this and ends
+        in an ellipsis, so the forty-five character Polish name of the Bluetooth user service is
+        read whole where one line cut it after four words, and a name of three lines does not push
+        the sections off the screen. It is a FUNCTION OF TextSizeHeading - two lines at that size, with the face's own
+        leading - written as a number because a ceiling cannot be computed in markup without a
+        converter, and TypeScaleGuards holds it between two and three times that size so it cannot
+        drift from the size it was made for.
+
+        FIFTY-SIX AND NOT FORTY-EIGHT, MEASURED. Two lines of Segoe UI at eighteen are 2 x 1.33 x 18
+        = 47.9 points, and a ceiling of exactly 48 trimmed the title on its FIRST line on the
+        2026-09-16 photograph - the second line did not fit by a fraction of a point and WPF,
+        given both wrapping and trimming, trims the last line that fits. Eight points of slack;
+        three lines would be 72 and still do not fit.
+    -->
+    <system:Double x:Key="HeightDetailTitle">56</system:Double>
 </ResourceDictionary>

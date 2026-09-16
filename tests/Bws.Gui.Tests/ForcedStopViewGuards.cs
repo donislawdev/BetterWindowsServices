@@ -141,6 +141,36 @@ public sealed class ForcedStopViewGuards
     }
 
     /// <summary>
+    /// The reason the name has to be typed stands in the footer over the box, in the danger
+    /// style, and has left "Worth knowing" - the owner's remark of 2026-09-16 over a stop of
+    /// PlugPlay: the sentence saying the machine would go down was white, in the scrolling half,
+    /// beside the mild warnings, and the box under it said only "type the name".
+    ///
+    /// <b>Both halves are asserted, because either alone would pass on a sheet that says it
+    /// twice</b>: the sentence is over the box, and it is nowhere in the warnings list.
+    /// </summary>
+    [Fact]
+    public async Task The_reason_for_the_name_stands_over_the_box_in_the_danger_style_and_nowhere_else()
+    {
+        var window = await ForcedSheet();
+
+        var (shown, said, danger, warnings, style) = WpfHost.On(() => (
+            window.PlanPanel.Footer.PlanDanger.Visibility,
+            window.PlanPanel.Footer.PlanDanger.Text,
+            Sheeted(window).Danger,
+            Sheeted(window).Warnings,
+            window.PlanPanel.Footer.PlanDanger.Style));
+
+        Assert.Equal(Visibility.Visible, shown);
+        Assert.NotEqual(string.Empty, danger);
+        Assert.Equal(danger, said);
+        Assert.Same(WpfHost.Resources["DangerText"], style);
+        Assert.DoesNotContain(warnings, warning => danger.Contains(warning, StringComparison.Ordinal));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
     /// The button on that sheet names the process, which is what pressing it does.
     /// </summary>
     [Fact]
