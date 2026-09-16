@@ -104,8 +104,19 @@
     <!--
         HOW SMALL THIS WINDOW MAY BE MADE - backlog 278, both numbers measured. At 1000 by 800 the
         plan panel cut its own PRIMARY ACTION in half: its rows are Auto, Auto, star, Auto, and a
-        Grid whose Auto rows want more than there is clips from the BOTTOM. 640 is where the seven
-        actions stop being cut. The rejected alternative is in `docs/11` part 3.10.
+        Grid whose Auto rows want more than there is clips from the BOTTOM. The rejected
+        alternative is in `docs/11` part 3.10.
+
+        THE WIDTH WAS 640 FOR SEVEN ACTIONS AND IS 900 FOR NINE, since 2026-09-16 - backlog 374,
+        the two forcing verbs. Read off ActionBarGuards at the old floor rather than added up: the
+        ninth button ends 822,67 from the left and the bar ends 29,33 short of the window, so 852 is
+        where nine stop being cut, and 900 leaves them the six per cent of slack the seven had at
+        640 (they ended at 571 against a bar ending at 611). The slack is not decoration - every
+        word on these buttons comes out of a language file, and a longer one somewhere else pushes
+        the last button off the window with nothing to say so. The owner's screen at 150 per cent
+        is 1280 points wide, so the floor can still be met. WrapPanel was the rejected answer, for
+        the reason 3.10 gives: it would change the bar at the sizes people use to rescue a size in
+        which the list has two columns.
 
         THE HEIGHT WAS 600 FOR ONE BUILD AND THE PHOTOGRAPH RAISED IT. The arithmetic forgot the
         block the steps now sit in, which spends 30 on its own margin and padding - so the button
@@ -113,7 +124,7 @@
         picture: heading plus one step plus that chrome is 91, so 600 was 38 short.
     -->
     <system:Double x:Key="HeightWindowLeast">640</system:Double>
-    <system:Double x:Key="WidthWindowLeast">640</system:Double>
+    <system:Double x:Key="WidthWindowLeast">900</system:Double>
 
     <!--
         The mark for an entry running against its start type - backlog 165. A triangle rather than a

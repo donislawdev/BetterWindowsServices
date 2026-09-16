@@ -52,6 +52,55 @@ public sealed class PlanDocumentGuards
         Assert.Equal("earlierStepFailed", document.GetProperty("skippedBecause").GetString());
     }
 
+    /// <summary>
+    /// The document over a forced stop whose polite step gave up and whose kill arrived says
+    /// <c>completed: true</c>, because the entry is where the plan wanted it.
+    ///
+    /// <b>The command line's half of a core repair, 2026-09-16.</b> Exit code 3 is decided by the
+    /// same flag one line away from this field, so a script reading the document and a script
+    /// reading the code were both told the run had not finished - measured on the throwaway machine
+    /// before the repair, <c>completed: false</c> and exit code 3 over an entry in Stopped. The exit
+    /// code itself is proved by running the tool there, which is the only place a stop can hang;
+    /// this holds the field the same run writes.
+    /// </summary>
+    [Fact]
+    public void A_forced_stop_whose_kill_arrived_is_written_as_completed()
+    {
+        var asked = Held("Spooler", Reading<int>.Present(4812));
+
+        var ended = new StepResult
+        {
+            Step = new PlanStep(
+                "Spooler", "Spooler", StepOperation.Terminate, StepReason.Escalation, ProcessId: 4812),
+            Outcome = StepOutcome.Succeeded,
+            SkippedBecause = null,
+            Status = EntryStatus.Stopped,
+            ProcessId = Reading<int>.Present(4812),
+            ErrorCode = 0,
+            Error = null,
+            Milliseconds = 260
+        };
+
+        var run = RunOf(asked) with
+        {
+            Plan = RunOf(asked).Plan with
+            {
+                Action = new ServiceAction(ActionKind.ForceStop, "Spooler"),
+                Steps = [asked.Step, ended.Step]
+            },
+            Results = [asked, ended]
+        };
+
+        var document = JsonDocument.Parse(PlanJson.Render(run)).RootElement;
+
+        Assert.True(document.GetProperty("completed").GetBoolean());
+
+        // AND THE POLITE STEP IS STILL WRITTEN AS THE STEP THAT GAVE UP. The verdict changed, the
+        // record of what happened did not - a document that tidied the timeout away would hide the
+        // one line that says why a process was ended.
+        Assert.Equal("timedOut", document.GetProperty("results")[0].GetProperty("outcome").GetString());
+    }
+
     private static JsonElement Rendered(StepResult result) =>
         JsonDocument.Parse(PlanJson.Render(RunOf(result))).RootElement
             .GetProperty("results")[0];

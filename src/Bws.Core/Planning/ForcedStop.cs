@@ -148,10 +148,12 @@ internal static class ForcedStop
     /// way - and asking costs one step in a preview that already names them.
     ///
     /// <b>The entry somebody asked about gets a polite step only if it has not already had one.</b>
-    /// From the window this plan is built after a stop that gave up, so the entry is sitting in a
-    /// pending state with a request already in flight. A second one would send the same thing again
-    /// and then wait the whole ceiling for it - a minute of somebody's life spent on an answered
-    /// question.
+    /// From the window's offer under a failure this plan is built after a stop that gave up, so the
+    /// entry is sitting in a pending state with a request already in flight. A second one would send
+    /// the same thing again and then wait the whole ceiling for it - a minute of somebody's life
+    /// spent on an answered question. Asked for outright - `bws kill`, or the window's own Force
+    /// stop since 2026-09-16 - the entry has been asked nothing yet, and the polite step is the
+    /// first step of the plan.
     ///
     /// <b>The last step is the only one in this product that asks nobody.</b> It carries the process
     /// number so the preview can name it and so the run can check it has not moved.

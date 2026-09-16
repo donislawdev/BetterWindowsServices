@@ -205,10 +205,13 @@ public sealed partial class Planned
     /// <b>A PLAN ASKING ABOUT MORE THAN ONE ENTRY CAN NEVER BE CONFIRMED, and that is a refusal
     /// rather than an oversight.</b> There is no single name to type for a plan that would end
     /// several processes, so accepting one name would be somebody agreeing to the first entry and
-    /// getting all of them. It is unreachable today - the window opens a forcing sheet from one
-    /// failure and the command line takes one name, which section 15.6 of the analysis records as
-    /// deliberate - so this is what happens if that ever stops being true: the button stays dead
-    /// and the tooltip says what is missing. **A hole that refuses beats a hole that agrees.**
+    /// getting all of them. It is unreachable today, and since 2026-09-16 by a refusal rather than
+    /// by the absence of a door: the offer under a failure carries one name, the command line takes
+    /// one name, and the window's own Force stop and Force restart refuse a selection standing for
+    /// more than one entry before any plan is built - MainWindow.Preview, with section 15.6 of the
+    /// analysis as the reason. This is what happens if all of that ever stops being true: the
+    /// button stays dead and the tooltip says what is missing. **A hole that refuses beats a hole
+    /// that agrees.**
     public bool Confirmed =>
         !NeedsTyping
         || (TypeTheName.Length > 0

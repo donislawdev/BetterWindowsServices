@@ -180,8 +180,8 @@ public partial class MainWindow : Window
         // TOLD WHEN A PERSON CHANGES THE SELECTION, rather than binding to it. A binding into a
         // list that reconciles itself once a second is another party in the middle of `A10`, and
         // SelectedItem bound two way is what broke the window journey on 2026-08-18. This fires on
-        // the change and says one number.
-        Entries.SelectionChanged += (_, _) => Actions.Picked(Entries.SelectedItems.Count);
+        // the change and says one number - entries, not rows, and PickedEntries says why.
+        Entries.SelectionChanged += (_, _) => Actions.Picked(PickedEntries());
 
         // THE MENU ON A ROW, from a list rather than from the markup since 2026-09-15 - the
         // markup was on the size ratchet's ceiling. RowMenu says what is on it and why in that

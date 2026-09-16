@@ -15,6 +15,15 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **"Force stop..." and "Force restart..." in the window.** The action bar over the list and
+  the menu on a row both offer the plan `bws kill` builds: ask the entry to stop, and end the
+  process behind it only if that does not work - both steps in the preview before anything
+  happens, the second marked as the one standing behind the first. Force restart brings back
+  everything that went down, the entries that merely shared the process included. Until now the
+  window offered this only under a stop that had already failed, after the whole wait. Both take
+  one entry at a time and say so on the button when more are picked. The smallest the window can
+  be made grew from 640 to 900 so that the bar of nine still fits.
+
 - **"Copy all" over the commands of a plan.** A plan over several entries prints one command
   per entry, each with its own Copy, and there was no way to take them all at once. When there
   are several, a "Copy all" stands over the list - and over the commands that put things back -
@@ -124,6 +133,13 @@ Nothing has been released yet. Everything below is what the tool does today.
   other people can read is one they can read all of that in.
 
 ### Fixed
+
+- **A forced stop whose polite step gave up and whose kill worked no longer reports failure.**
+  The sheet said "the entry is not where you asked" and the command line returned exit code 3
+  over an entry standing exactly where every step wanted it, because the verdict counted steps
+  rather than entries. It counts entries now - what the last step for each entry saw - so the
+  same run reads "done", exits 0, and `--json` says `completed: true`. The line saying the polite
+  step gave up stays, because it did, and it is what tells you why the process was ended.
 
 - **The box of seconds on a plan takes what you type.** On a start or a restart plan, nothing
   typed into "Wait up to ... seconds" arrived: an empty progress sentence lay over the box and

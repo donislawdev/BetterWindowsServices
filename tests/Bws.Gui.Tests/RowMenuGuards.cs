@@ -61,7 +61,9 @@ public sealed class RowMenuGuards
                 "-",
                 "gui.menu.previewStop",
                 "gui.menu.previewStart",
-                "gui.menu.previewRestart"
+                "gui.menu.previewRestart",
+                "gui.menu.previewForceStop",
+                "gui.menu.previewForceRestart"
             ],
             shape);
 
@@ -190,6 +192,66 @@ public sealed class RowMenuGuards
 
         Assert.False(WpfHost.On(() => model.Planned.Showing));
         Assert.True(WpfHost.On(() => model.Chosen.Showing));
+    }
+
+    /// <summary>
+    /// The two forcing items ask for their own kind, over one row - and over two, the item does
+    /// nothing and the status line says why.
+    ///
+    /// <b>The items are pressed through what a press calls</b>, because the shape test above proves
+    /// the words are there and nothing about what stands behind them. An item wearing the forcing
+    /// key and wired to the ordinary stop would pass that test and open the wrong plan.
+    ///
+    /// <b>The refusal over two is asserted here as well as on the bar</b>, since this is the
+    /// entrance that has no button to grey: `docs/ANALIZA-FORCE` 15.6 keeps a forced stop over
+    /// several entries unreachable, and a menu item that opened one anyway would be the hole the
+    /// bar closed, reopened one right click away.
+    /// </summary>
+    [Fact]
+    public async Task The_forcing_items_open_their_own_plan_over_one_row_and_refuse_over_two()
+    {
+        var window = await PlanFixture.Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        var entries = WpfHost.On(() => window.Entries.ContextMenu!.Items
+            .OfType<MenuItem>()
+            .Select(item => (RowMenuEntry)item.DataContext)
+            .ToList());
+
+        var forceStop = entries.Single(entry => entry.LabelKey == "gui.menu.previewForceStop");
+        var forceRestart = entries.Single(entry => entry.LabelKey == "gui.menu.previewForceRestart");
+
+        // Ready leaves two rows picked: the item does nothing, and says so where the window says
+        // everything an item could not do.
+        await WpfHost.On(forceStop.Act);
+        WpfHost.Settled();
+
+        Assert.False(WpfHost.On(() => model.Planned.Showing));
+        Assert.Contains(
+            Texts.Of("gui.action.force.onlyOne"),
+            WpfHost.On(() => model.Says.Problem),
+            StringComparison.Ordinal);
+
+        WpfHost.On(() =>
+        {
+            window.Entries.UnselectAll();
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
+        });
+        WpfHost.Settled();
+
+        await WpfHost.On(forceStop.Act);
+        WpfHost.Until(
+            () => model.Planned.Plan?.Action.Kind == Bws.Core.Planning.ActionKind.ForceStop,
+            "the sheet opened with the forced stop the item asked for");
+
+        await WpfHost.On(forceRestart.Act);
+        WpfHost.Until(
+            () => model.Planned.Plan?.Action.Kind == Bws.Core.Planning.ActionKind.ForceRestart,
+            "the sheet came back with the forced restart the item asked for");
+
+        Assert.Equal(["Spooler"], WpfHost.On(() => model.Planned.Plan!.Action.ServiceNames));
+
+        WpfHost.On(window.Close);
     }
 
     /// <summary>

@@ -62,8 +62,15 @@ internal static class ForcedStopFixture
     }
 
     /// <summary>
-    /// A window sitting on a sheet that would end a process, reached the only way there is - a
-    /// stop that gave up, and the offer under it.
+    /// A window sitting on a sheet that would end a process, reached through the offer - a stop
+    /// that gave up, and the way out under it.
+    ///
+    /// <b>The only way there was until 2026-09-16, and still the way these guards care about.</b>
+    /// The action bar and the row menu open the same sheet outright since that day (backlog 374,
+    /// ActionBarGuards and RowMenuGuards hold that door), and what is asserted about the sheet
+    /// itself - the box, the focus, the button - is the same whichever door it came in by. This
+    /// fixture keeps the door that carries a reason across, because that is the one with more to
+    /// get wrong.
     /// </summary>
     internal static async Task<Bws.Gui.MainWindow> ForcedSheet()
     {

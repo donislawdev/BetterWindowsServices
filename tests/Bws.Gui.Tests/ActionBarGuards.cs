@@ -293,7 +293,9 @@ public sealed class ActionBarGuards
     [
         WpfHost.On(() => window.Actions.Stop),
         WpfHost.On(() => window.Actions.Start),
-        WpfHost.On(() => window.Actions.Restart)
+        WpfHost.On(() => window.Actions.Restart),
+        WpfHost.On(() => window.Actions.ForceStop),
+        WpfHost.On(() => window.Actions.ForceRestart)
     ];
 
     /// <summary>
@@ -352,14 +354,15 @@ public sealed class ActionBarGuards
         });
 
         // NOT VACUOUS: a walk that found nothing would have no widest button and no way to fail.
-        // Seven is what this build has, and asking for the exact number is deliberate - a button
-        // quietly disappearing from this bar is worth a red run of its own.
-        Assert.Equal(7, buttons);
+        // Nine is what this build has - seven until 2026-09-16, when the two forcing verbs arrived
+        // and the floor was raised to fit them - and asking for the exact number is deliberate: a
+        // button quietly disappearing from this bar is worth a red run of its own.
+        Assert.Equal(9, buttons);
 
         Assert.True(
             worst <= edge,
             $"The action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so it is "
-            + "standing outside the bar, where it can be neither read nor clicked. These seven sit "
+            + "standing outside the bar, where it can be neither read nor clicked. These nine sit "
             + "on one line and cannot wrap, so the answer is a decision about the bar rather than a "
             + "shorter word.");
 

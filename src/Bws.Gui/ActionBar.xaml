@@ -55,6 +55,60 @@
                 Click="RestartAsked" />
 
         <!--
+            THE TWO VERBS THAT CAN END A PROCESS, arriving 2026-09-16 - backlog 374, the owner's
+            decision, and the second on the owner's word that a window with the verb has the whole
+            verb. Until this line the window offered them only under a stop or a restart that had
+            already failed, so an administrator who KNEW the entry was hung had to ask politely,
+            wait the whole ceiling, and then be offered what they came for.
+
+            THE SAME PLAN AS `bws kill NAME` AND AS THE OFFER: a polite stop first, and the process
+            ended only if that does not arrive - both steps in the preview, the second marked as the
+            one standing behind the first. Three dots like the three above them: each opens a plan
+            and nothing else, and what changes the machine is still the one button at the foot of
+            the sheet, which by then can name the process by number.
+
+            LAST OF THE MOVEMENT VERBS RATHER THAN NEXT TO STOP, and that is the order the analysis
+            argues: the road to forcing runs through the ordinary stop, and a bar that put Stop and
+            Force stop side by side would read as a pair to choose between. Before the startup type
+            because that one changes configuration rather than moving anything - the line the bar
+            already draws between its verbs.
+
+            ONE ENTRY AT A TIME, and the reason is written at length in `docs/ANALIZA-FORCE` 15.6:
+            two entries sharing one process would be two plans ending the same process, which the
+            bulk plan tells apart by service name and cannot see. Live only when the selection
+            stands for exactly one entry - a folded per-user family stands for many - and the
+            reason a button is off is on the button, like every other refusal in this bar. The
+            refusal itself lives in the window's Preview, where the row menu arrives too.
+
+            ORDINARY BUTTONS RATHER THAN THE RED OUTLINE THE OFFER WEARS, and that is a decision
+            rather than an omission. On the sheet the red outline answers a red sentence - it is the
+            way out of a failure already on screen. In this bar nothing is red, so a red outline here
+            would make the verbs that can lose data the loudest things above the list, which is the
+            opposite of what a rarely used destructive verb should be. The word carries it, the dots
+            keep the promise, and the sheet it opens says "end the process behind" in its steps -
+            WCAG 1.4.1, `docs/11` 3.1.
+        -->
+        <Button x:Name="ForceStopButton"
+                AutomationProperties.AutomationId="actionForceStop"
+                Content="{DynamicResource gui.action.forceStop}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="ForceStopAsked" />
+
+        <!--
+            THE SAME, AND THEN BRING IT BACK. Apart from the button above for the reason the core
+            keeps ForceRestart apart from ForceStop: what has to be put back is decided when the
+            plan is built, the entries that shared the process included, and a person choosing
+            between the two should see two words rather than a switch.
+        -->
+        <Button x:Name="ForceRestartButton"
+                AutomationProperties.AutomationId="actionForceRestart"
+                Content="{DynamicResource gui.action.forceRestart}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="ForceRestartAsked" />
+
+        <!--
             WHAT THE MANAGER DOES WITH THE ENTRY AT BOOT, arriving 2026-08-25. A menu rather than
             four buttons, for the reason the column picker won the same argument: three more buttons
             in a bar of four is a bar nobody scans, and the theme already dresses a menu.

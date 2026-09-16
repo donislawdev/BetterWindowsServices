@@ -128,6 +128,45 @@ public sealed class CatalogueViewGuards(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The action bar is on the sheet over one entry, over none, and over several - and the third
+    /// is the one state in which it is neither all on nor all off.
+    ///
+    /// <b>Since 2026-09-16, when two of its verbs began to take exactly one entry.</b> GUI rule 4
+    /// asks for every state a component has, and the bar over several is a state a person meets on
+    /// the first Ctrl+A: four verbs live, the two that end a process off with a reason of their own.
+    /// It borrows the "extreme" column because the sheet has no column for it, and this is the guard
+    /// that the borrowed cell really shows that shape rather than a second copy of "over one".
+    /// </summary>
+    [Fact]
+    public async Task The_action_bar_is_shown_over_one_entry_over_none_and_over_several()
+    {
+        var (ready, views) = await Built();
+
+        using (ready)
+        {
+            var bar = views.Entries.Single(entry => entry.Key == nameof(ActionBar));
+
+            WpfHost.On(() =>
+            {
+                var one = (ActionBar)bar.Normal.Element!;
+                var none = (ActionBar)bar.Disabled.Element!;
+                var several = (ActionBar)bar.Extreme.Element!;
+
+                Assert.True(one.Stop.IsEnabled);
+                Assert.True(one.ForceStop.IsEnabled);
+
+                Assert.False(none.Stop.IsEnabled);
+                Assert.False(none.ForceStop.IsEnabled);
+
+                Assert.True(several.Stop.IsEnabled);
+                Assert.False(several.ForceStop.IsEnabled);
+                Assert.False(several.ForceRestart.IsEnabled);
+                Assert.Equal(Texts.Of("gui.action.force.onlyOne"), several.ForceStop.ToolTip as string);
+            });
+        }
+    }
+
+    /// <summary>
     /// The loading samples hold a read each on a gate, and the gate is opened by disposing what
     /// PrepareViewsAsync handed back - the window does it when it closes. A gate that stayed shut
     /// would be a pool thread per sheet that never came back.

@@ -146,11 +146,40 @@ public sealed record PlanRun
     /// <summary>
     /// Every entry ended up where the plan wanted it.
     ///
-    /// Steps that were already there count. Running the same plan twice must not report
-    /// the second run as a failure - a runbook line that goes red for doing nothing is a
-    /// runbook line somebody stops trusting.
+    /// <b>COUNTED BY ENTRY RATHER THAN BY STEP SINCE 2026-09-16, and the sentence above is the reason
+    /// it had to be.</b> A forcing plan puts a polite stop in front of the step that ends the process,
+    /// and the second exists for the case where the first does not arrive. Counted by step, the exact
+    /// shape that plan was built for - polite stop timed out, process ended, entry in Stopped - came
+    /// back "not where you asked" on the sheet and as exit code 3 on the command line, over an entry
+    /// standing where every step wanted it. Predicted from reading, then measured on the throwaway
+    /// machine before a line changed: <c>bws kill</c> against a running entry whose stop hangs gave
+    /// exit code 3 and <c>completed: false</c>. The product had only ever met the one step shape
+    /// before, where the polite step is skipped, so nothing had ever shown the wrong answer.
+    ///
+    /// <b>The last step for each entry and each aim decides.</b> Two steps that want the same thing of
+    /// the same entry - a stop and the kill behind it - are one question with the later answer, and a
+    /// restart's stop and start are two questions that both have to be yes. Steps that were already
+    /// there count. Running the same plan twice must not report the second run as a failure - a
+    /// runbook line that goes red for doing nothing is a runbook line somebody stops trusting.
+    ///
+    /// <b>Only what the runner SAW counts, and that is a limit said out loud rather than hidden.</b> An
+    /// entry that merely shares the process - asked politely, timed out, then taken down when the
+    /// process was ended - has no later step of its own that watched it arrive, so it still reads as
+    /// not arrived. Claiming otherwise would be a claim nobody checked. Reading the neighbours again
+    /// after a terminate is a separate change and a backlog row, not a widening of this one.
     /// </summary>
-    public bool Completed => Results.All(result => result.Arrived);
+    public bool Completed => Results
+        .GroupBy(result => (result.Step.ServiceName, Aim(result.Step.Operation)))
+        .All(same => same.Last().Arrived);
+
+    /// <summary>
+    /// What an operation is trying to make true of its entry, with ending the process folded into
+    /// stopping - the same folding <see cref="PlanRunner"/> does when it decides what a terminate
+    /// waits for, and for the same reason: the manager moves the entry to Stopped either way, and
+    /// the step is finished when the entry says so.
+    /// </summary>
+    private static StepOperation Aim(StepOperation operation) =>
+        operation == StepOperation.Terminate ? StepOperation.Stop : operation;
 
     /// <summary>
     /// What it would take to put every entry back where this run found it.

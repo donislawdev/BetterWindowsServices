@@ -44,6 +44,11 @@
   "gui.action.refresh.hint": "Read the machine again, in full, including the settings a listing does not watch. F5 does the same.",
   "gui.action.export": "Export...",
   "gui.action.export.hint": "Write what the list shows to a comma separated file - the entries that are on screen, the columns you have on, in the order you sorted them.",
+  "gui.action.forceStop": "Force stop...",
+  "gui.action.forceStop.hint": "Show what force stopping the entry you picked would do: ask it to stop, and end its process if that does not work. Nothing is changed until you carry it out.",
+  "gui.action.forceRestart": "Force restart...",
+  "gui.action.forceRestart.hint": "Show what force restarting the entry you picked would do: ask it to stop, end its process if that does not work, and start everything that went down. Nothing is changed until you carry it out.",
+  "gui.action.force.onlyOne": "Force stop and force restart take one entry at a time. Pick one.",
   "gui.action.needsPick": "Pick one or more entries in the list first.",
 
   "gui.columns.button": "Columns",
@@ -197,6 +202,8 @@
   "gui.menu.previewStop": "What stopping would do",
   "gui.menu.previewStart": "What starting would do",
   "gui.menu.previewRestart": "What restarting would do",
+  "gui.menu.previewForceStop": "What force stopping would do",
+  "gui.menu.previewForceRestart": "What force restarting would do",
 
   "gui.plan.doing.stop": "stopping",
   "gui.plan.doing.start": "starting",

@@ -215,6 +215,24 @@ public partial class MainWindow
             return false;
         }
 
+        // ONE ENTRY AT A TIME FOR THE ASKS THAT END A PROCESS, refused here rather than built and
+        // shown - and here rather than only on the bar, because the row menu arrives at this same
+        // line. `docs/ANALIZA-FORCE` 15.6: two entries in one process would be two plans ending one
+        // process, and the bulk plan tells overlap apart by service name rather than by process, so
+        // the preview would show two endings where the run does one - the one thing a preview may
+        // never do. The bar greys its two buttons over such a selection and says why on them; a
+        // menu item has no tooltip, so the reason goes to the status line, rule 8.
+        //
+        // The two kinds are named here and in Planned.Forcing, and that is two copies of a list of
+        // two. A third kind that ends a process is the moment this becomes a property on the kind
+        // rather than a third copy.
+        if (kind is ActionKind.ForceStop or ActionKind.ForceRestart && names.Count > 1)
+        {
+            _model.Says.CouldNotDo(Texts.Of("gui.action.force.onlyOne"));
+
+            return false;
+        }
+
         // Mutually exclusive with the details panel, for the reason at OpenDetails above. Done
         // before the waiting rather than after it, so the window answers the press at once even
         // though the plan behind it takes a moment.
@@ -351,6 +369,16 @@ public partial class MainWindow
     /// moving the switch is a pass, so a row can never be standing for something different from
     /// what the person pressing the button is looking at.
     /// </summary>
+    /// <summary>
+    /// How many entries the picked rows stand for, which is what the action bar is told.
+    ///
+    /// <b>Entries and not rows, since 2026-09-16, counted by the same method that builds every
+    /// plan</b> - so a folded family of twenty-four reads as twenty-four to the bar exactly as it
+    /// reads to the plan. Two of the bar's buttons take one entry and no more, and a bar told "one
+    /// row" over a family would offer a plan over the whole of it.
+    /// </summary>
+    private int PickedEntries() => Everything(Entries.SelectedItems.OfType<EntryRow>().ToList()).Count;
+
     private static List<string> Everything(List<EntryRow> picked)
     {
         var names = new List<string>(picked.Count);

@@ -73,7 +73,7 @@ internal static class RowMenu
 {
     /// <summary>
     /// What the menu offers, in the order it is offered: the one thing Enter does, then the four
-    /// copies, then the three previews.
+    /// copies, then the five previews.
     ///
     /// <b>"Show details" first, because it is the item the default gesture stands for.</b> Windows
     /// puts the action a double click performs at the top of a list's menu, and this menu's double
@@ -105,7 +105,15 @@ internal static class RowMenu
         [
             new RowMenuEntry("gui.menu.previewStop", null, () => window.Preview(ActionKind.Stop)),
             new RowMenuEntry("gui.menu.previewStart", null, () => window.Preview(ActionKind.Start)),
-            new RowMenuEntry("gui.menu.previewRestart", null, () => window.Preview(ActionKind.Restart))
+            new RowMenuEntry("gui.menu.previewRestart", null, () => window.Preview(ActionKind.Restart)),
+
+            // THE TWO PREVIEWS THAT CAN END A PROCESS, 2026-09-16 - backlog 374, the same order
+            // as the action bar. The same question as the three above them, about the plan
+            // `bws kill` builds. They stay live over any selection, because an item has no
+            // tooltip to carry a reason - the refusal for more than one entry lives in Preview
+            // and reaches the status line, which is how every item here reports doing nothing.
+            new RowMenuEntry("gui.menu.previewForceStop", null, () => window.Preview(ActionKind.ForceStop)),
+            new RowMenuEntry("gui.menu.previewForceRestart", null, () => window.Preview(ActionKind.ForceRestart))
         ]
     ];
 

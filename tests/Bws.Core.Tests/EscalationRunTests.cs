@@ -89,6 +89,38 @@ public sealed class EscalationRunTests
         Assert.Empty(control.Ended);
     }
 
+    /// <summary>
+    /// A run whose escalation arrived is a run that worked - the entry is where every step wanted it.
+    ///
+    /// <b>Found by reading on 2026-09-16 and measured on the throwaway machine before a line changed:
+    /// exit code 3 and "the entry is not where you asked" over an entry standing in Stopped.</b>
+    /// <c>Completed</c> counted STEPS, and the polite stop in front of the kill had timed out - which
+    /// is the exact situation the plan carries the kill for. Until that day the product had only
+    /// ever met the one step shape, where the entry was already in StopPending and the polite step
+    /// was skipped, so the wrong answer had never been on any screen.
+    ///
+    /// <b>The polite step still reads as timed out</b>, because it did, and the sentence about it is
+    /// what tells somebody why the process was ended. What changes is the verdict over the run.
+    /// </summary>
+    [Fact]
+    public void A_run_whose_escalation_arrived_is_a_run_that_worked()
+    {
+        var control = new FakeScmControl()
+            .At("Spooler", EntryStatus.Running)
+            .RunningIn("Spooler", Held)
+            .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, Held));
+
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+
+        Assert.Equal(StepOutcome.TimedOut, run.Results[0].Outcome);
+        Assert.Equal(StepOutcome.Succeeded, run.Results[1].Outcome);
+
+        Assert.True(
+            run.Completed,
+            "The process was ended and the entry reached Stopped, which is where both steps wanted it "
+            + "- a run counted incomplete here is the verdict reading the polite step and not the entry.");
+    }
+
     [Fact]
     public void A_process_that_survives_being_ended_is_reported_as_a_step_that_ran_out_of_time()
     {
@@ -106,6 +138,10 @@ public sealed class EscalationRunTests
 
         Assert.Equal(Held, Assert.Single(control.Ended));
         Assert.Equal(StepOutcome.TimedOut, run.Results[1].Outcome);
+
+        // The even claim beside the test above: with the last step for the entry not arrived, the
+        // verdict is what it always was. Counting by entry is not counting more generously.
+        Assert.False(run.Completed);
     }
 
     /// <summary>
