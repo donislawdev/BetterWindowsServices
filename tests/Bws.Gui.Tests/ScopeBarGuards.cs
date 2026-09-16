@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
 
@@ -71,5 +73,70 @@ public sealed class ScopeBarGuards
         Assert.True(onChecked);
 
         WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Every position draws its count beside its label, and its NAME in the automation tree is
+    /// still the label alone - point 8(c) of `docs/11` 2.14, both halves. The count is in the
+    /// template rather than in the content for exactly the second half: three probes find a
+    /// position by the name "Services", and content that became a panel would have taken that
+    /// name away, as the Filters toggle's comment records it once did.
+    ///
+    /// <b>Read off a laid-out window</b>, because a template draws nothing until a layout pass
+    /// runs and the number is a binding - which is the kind of thing this project has found dead
+    /// with every test green.
+    /// </summary>
+    [Fact]
+    public async Task Every_position_draws_its_count_and_keeps_its_name()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Stopped("BITS"), Rows.Driver("disk")),
+            new SteppedClock());
+
+        await model.LoadAsync();
+
+        var window = WpfHost.Window(model);
+
+        var positions = WpfHost.On(() =>
+        {
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+            window.UpdateLayout();
+
+            return Descendants(window.Scope)
+                .OfType<RadioButton>()
+                .Select(position => (
+                    Name: System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(position)!.GetName(),
+                    Drawn: Descendants(position).OfType<TextBlock>().Select(text => text.Text).ToArray(),
+                    Choice: (ScopeChoice)position.DataContext))
+                .ToArray();
+        });
+
+        Assert.Equal(3, positions.Length);
+
+        foreach (var (name, drawn, choice) in positions)
+        {
+            Assert.Equal(WpfHost.On(() => choice.Label), name);
+            Assert.Contains(WpfHost.On(() => choice.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)), drawn);
+        }
+
+        WpfHost.On(window.Close);
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var at = 0; at < VisualTreeHelper.GetChildrenCount(root); at++)
+        {
+            var child = VisualTreeHelper.GetChild(root, at);
+
+            yield return child;
+
+            foreach (var under in Descendants(child))
+            {
+                yield return under;
+            }
+        }
     }
 }

@@ -133,13 +133,17 @@ public sealed partial class MainViewModel : Observable
         // showing the answer to the previous question.
         _filters = new FilterBar(() => _queryText, text => QueryText = text);
 
+        // After the chips, because it reads their labels for the sentence beside a value - the
+        // same word somebody sees in the row above the list, in the same language.
+        Suggesting = new Suggesting(() => _filters.Chips, QueryExamples.All);
+
         _scoping = new Scoping(() => _index.Ordered);
 
         // Reading the state and writing the PROPERTY, for the same reason the chips do it one line
         // above: the setter is what reapplies the query, lets go of the selection and tells the
         // list. Writing the scope directly would move the switch and leave the window showing the
         // other list.
-        ScopePositions = Scopes.Positions(() => _scoping.Current, scope => Scope = scope);
+        ScopePositions = Scopes.Positions(() => _scoping.Current, scope => Scope = scope, _scoping.CountOf);
     }
 
     /// <summary>
@@ -265,6 +269,12 @@ public sealed partial class MainViewModel : Observable
 
     /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
     public string SearchTip => QueryExamples.Tip(Examples);
+
+    /// <summary>
+    /// The list under the search box - what can be written where the caret stands, and the six
+    /// questions when the box is empty. Point 9 of `docs/11` 2.14; the rules are its own.
+    /// </summary>
+    public Suggesting Suggesting { get; }
 
 
     /// <summary>
@@ -439,34 +449,6 @@ public sealed partial class MainViewModel : Observable
         // The controls read the query again, all of them - see FilterBar.Rethink for why every
         // one rather than the one that was clicked.
         _filters.Rethink();
-    }
-
-    /// <summary>
-    /// Cuts the listing down to the scope, and keeps the result.
-    ///
-    /// <b>By asking the query language rather than by testing a type here.</b> What counts as a
-    /// driver is decided once, in the language, and `docs/07` records that <c>type:driver</c>
-    /// covers both kinds deliberately because Windows has two and no word for both. A check on
-    /// <see cref="Bws.Core.EntryType"/> written here would be a second answer to that, in the
-    /// window, drifting from the first in silence - see <see cref="Scopes"/>.
-    ///
-    /// <b>Everything skips the narrowing entirely rather than running an empty query over 812
-    /// rows</b>, which is the one case where the answer is known without asking.
-    /// </summary>
-    /// <summary>
-    /// What the readings call when the machine has been asked again.
-    ///
-    /// <b>The scope is recut here and NOT in <see cref="Apply"/>, and the split is the whole reason
-    /// this method exists.</b> Apply runs on every keystroke against a 50 ms budget, and the scope
-    /// cannot change while somebody types - so recutting it there would pay for a second pass over
-    /// 812 entries per character, on exactly the path that was measured and fixed on 2026-08-19.
-    /// It CAN change here, because an entry that arrived or left changes what the scope holds, and
-    /// a list that skipped this would go on showing a service the machine no longer has.
-    /// </summary>
-    private void Reread()
-    {
-        _scoping.Recut();
-        Apply();
     }
 
     /// <summary>

@@ -102,7 +102,12 @@
          "Not per-user" and the heading "Per-user role" is longer than any of the three. -->
     <DataGridLength x:Key="ColumnPerUserRole">130</DataGridLength>
 
-    <DataGridLength x:Key="ColumnAgainstStartType">175</DataGridLength>
+    <!-- Sized to the heading as well, and the heading grew a syllable on 2026-09-15 when the window
+         went to the dictionary's word. MEASURED: "Against its startup type" is 148 wide at the header
+         size and weight. ESTIMATED, not photographed: the header's own padding and the sort arrow
+         beside a sorted heading come to about 40 more, which puts the sorted heading past 175 and
+         into an ellipsis. So 200, with the room a heading needs to keep its last word. -->
+    <DataGridLength x:Key="ColumnAgainstStartType">200</DataGridLength>
 
     <!-- The other direction of the same disagreement - backlog 170. -->
     <DataGridLength x:Key="ColumnRunsWhileDisabled">175</DataGridLength>

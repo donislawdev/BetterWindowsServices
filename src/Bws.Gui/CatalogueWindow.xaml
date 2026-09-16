@@ -1,0 +1,94 @@
+<Window x:Class="Bws.Gui.CatalogueWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Heading}"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        Height="900" Width="1400"
+        MinHeight="{StaticResource HeightWindowLeast}" MinWidth="{StaticResource WidthWindowLeast}"
+        FocusManager.FocusedElement="{Binding ElementName=SheetScroll}">
+
+    <!--
+        EVERY COMPONENT THIS WINDOW IS BUILT OUT OF, ON ONE SHEET. Rule 4 of the owner's GUI rules
+        asks for this screen, and 2026-09-10 is the day it did not exist - checked before building
+        it rather than assumed.
+
+        REACHED ONLY BY A LAUNCH ARGUMENT, and it ships in every configuration. Compiling it out
+        of Release would mean the sheet could only ever be photographed from a Debug build, and
+        this project has already paid for that exact confusion once: screens.ps1 photographed
+        Debug while somebody had just built Release, and the pictures were correct pictures of a
+        different file.
+
+        THE MARKUP HERE IS A HEADER AND A LIST. Everything about how a component is drawn lives in
+        Themes/Catalogue.xaml, which is where the rest of this window's look lives too - so a
+        person changing how the sheet reads changes one file, and it is not this one.
+
+        THE FOUR ATTRIBUTES ABOVE ARE COPIED FROM MainWindow.xaml ON PURPOSE. Layout rounding,
+        pixel snapping and the two text options decide whether text is drawn with ClearType, and a
+        catalogue rendering its samples differently from the window that ships would be a
+        catalogue of something else. docs/10 records what turning one of them off cost: 80,5 per
+        cent of text pixels picked up colour fringing.
+    -->
+
+    <Grid Grid.IsSharedSizeScope="True">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--
+            WHAT THE SHEET SAYS ABOUT ITSELF, and the middle line is the one that matters: how
+            many components are declared against how many are drawn here. Rule 4 says a catalogue
+            may not leave anything out, and a count printed beside the sheet is how a person
+            checks that without counting rows.
+        -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SurfacePanel}"
+                BorderBrush="{DynamicResource SurfacePanelEdge}"
+                BorderThickness="{StaticResource BorderFooterRule}"
+                Padding="{StaticResource PaddingPanel}">
+
+            <StackPanel>
+                <TextBlock Text="{Binding Heading}" Style="{StaticResource HeadingText}" />
+
+                <TextBlock x:Name="CountedText"
+                           Text="{Binding Counted}"
+                           Style="{StaticResource SubduedText}"
+                           Margin="{StaticResource MarginAboveStatus}" />
+
+                <TextBlock x:Name="NoteText"
+                           Text="{Binding Note}"
+                           Style="{StaticResource SubduedText}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+        </Border>
+
+        <!--
+            FOCUSABLE, AND IT IS THE SCROLL VIEWER RATHER THAN ANYTHING IN IT. Measured 2026-09-10:
+            without this, Page Down on a freshly opened catalogue does NOTHING - the sheet is fifty
+            five rows long, nothing in it takes the keyboard by default, and a scroll viewer only
+            answers keys when it has focus. The window hands it the focus below, so the first key
+            press somebody makes on a long sheet does what they meant.
+        -->
+        <ScrollViewer Grid.Row="1"
+                      x:Name="SheetScroll"
+                      Focusable="True"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="{StaticResource PaddingPanel}">
+
+            <ItemsControl x:Name="Sheet"
+                          ItemsSource="{Binding Groups}"
+                          ItemTemplate="{StaticResource CatalogueGroup}"
+                          Focusable="False" />
+
+        </ScrollViewer>
+
+    </Grid>
+
+</Window>

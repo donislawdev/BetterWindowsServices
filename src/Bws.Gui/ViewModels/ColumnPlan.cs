@@ -82,6 +82,22 @@ internal sealed record ColumnPlan(ColumnLayout Layout, IReadOnlyList<string> Ign
         // exactly like a feature nobody built: the file holds the sort, the window reads the file,
         // and the list comes up unsorted with nothing anywhere saying why. Found 2026-08-25 by the
         // guard that opens a window twice.
-        return new ColumnPlan(new ColumnLayout(kept, layout.Sort), ignored, noneWasShown);
+        //
+        // AN ORDER THE FILE NEVER MENTIONED GETS THE ONE IT WOULD HAVE HAD IF THERE WERE NO FILE,
+        // since 2026-09-15 - the same rule the loop above applies to a column the file never
+        // mentioned. Until then a null here went to the grid as "take every order off", so a
+        // layout written before 2026-09-02 - when a fresh profile started opening sorted - kept
+        // opening the list in the manager's order for as long as it existed, which is alphabetical
+        // by a column that is off by default and looks like no order at all. The owner's own
+        // profile was one of those. Seen on a screenshot, not in any test: every test window read
+        // a fixture that named no order either.
+        //
+        // Only when the file says nothing. An order it does name still wins, whether or not that
+        // column is on - ListSorting.By refuses to apply one by a hidden column and the file keeps
+        // it for the day the column comes back, and that is unchanged.
+        return new ColumnPlan(
+            new ColumnLayout(kept, layout.Sort ?? ColumnLayout.DefaultFor(scope).Sort),
+            ignored,
+            noneWasShown);
     }
 }

@@ -134,7 +134,28 @@ public sealed class TextKeyGuards
         // readable by exactly the same argument as Texts.Of: whoever changes the word can find the
         // place that asks for it by searching for the key, and a key mentioned in a comment still
         // does not match.
-        new(@"TryFindResource\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"TryFindResource\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+        // AN ELEVENTH AND A TWELFTH, 2026-09-15, AND THEY ARE THE EIGHTH AND NINTH SHAPES AGAIN. The
+        // menu on a row left the markup for a list in RowMenu.cs - so its seven DynamicResource
+        // mentions went with it, and the keys reach the loader through an entry's field exactly as
+        // a chip's and a scope position's do. The second pattern reads the KEY beside the label, the
+        // way the ninth reads a scope position's tooltip: written where it is chosen, never derived.
+        new(@"new RowMenuEntry\(\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+        new(
+            @"new RowMenuEntry\(\s*""gui\.[^""]+""\s*,\s*""(gui\.[^""]+)""",
+            RegexOptions.Compiled,
+            TimeSpan.FromSeconds(5)),
+
+        // A THIRTEENTH, 2026-09-15, AND IT IS THE NINTH SHAPE'S LESSON APPLIED BEFORE THE FAULT
+        // RATHER THAN AFTER IT. The list under the search box has a sentence beside every field
+        // name, and the obvious way to find it - Texts.Of("gui.suggest.field." + name) - is
+        // exactly the assembled key the ninth shape was repaired away from: nothing reading the
+        // source could find it, and a field added without a sentence would reach the screen as
+        // its key. So the key is written beside the word in a table, Meanings in Suggesting.cs,
+        // and this reads the second literal of each row the way the ninth and twelfth do. The
+        // first argument is not always a literal - the reserved words are the language's own
+        // constants - which is why the pattern skips to the comma rather than reading it.
+        new(@"new Meaning\(\s*[^,]+,\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
     ];
 
     [Fact]

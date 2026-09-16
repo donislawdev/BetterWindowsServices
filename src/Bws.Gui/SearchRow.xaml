@@ -65,8 +65,13 @@
                 The hint, behind the field and out of the way of the mouse. An empty box
                 teaches nobody that the language exists, and this is the one place it can
                 be shown without spending a line of the window on it.
+
+                BOUND TO THE MODEL RATHER THAN A FIXED KEY SINCE 2026-09-15, point 8(b) of
+                `docs/11` 2.14: it named services AND drivers on a list from which, by its own
+                tooltip, a search never reaches a driver. MainViewModel.SearchHint says what the
+                list somebody is standing on holds.
             -->
-            <TextBlock Text="{DynamicResource gui.search.hint}"
+            <TextBlock Text="{Binding SearchHint}"
                        Margin="{StaticResource PadCell}"
                        VerticalAlignment="Center"
                        IsHitTestVisible="False">
@@ -81,6 +86,67 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
+
+            <!--
+                THE LIST UNDER THE FIELD - point 9 of `docs/11` 2.14, backlog 15. What can be
+                written where the caret stands, offered as somebody types, and six questions to
+                start from when somebody arrives at an empty box. The language was explained in
+                the tooltip alone until today, and a person who does not know what goes in a box
+                CLICKS it rather than pointing.
+
+                A Popup of our own rather than the library's AutoSuggestBox, and the argument is
+                measured rather than preferred: that control filters by the WHOLE text, replaces
+                the whole text on a choice, wraps a TextBox of its own type our style cannot reach,
+                and handles Escape inside a control this window already takes Escape from first.
+                `docs/PROJEKT-PODPOWIEDZI-20260915.md` section 3.
+
+                StaysOpen, and the closing is the window's - on the box losing the keyboard, on
+                Escape, on a choice, on the window moving or losing activation, and when there is
+                nothing left to offer. A popup that closes itself on an outside click takes that
+                click with it, and the click somebody most often makes while the list is open is
+                on the box it hangs off.
+
+                Nothing in here is focusable. The keyboard stays in the box while the list is
+                open, which is what makes typing through the list possible - `docs/10` trap 8 is
+                why every part says so in its own style rather than leaving it to the popup.
+
+                Opaque, with square corners. A transparent popup is a layered window and a
+                layered window loses ClearType - `docs/10` trap 3 - so the rounded corner the
+                library's menus wear would cost the sharpness of every word in the list. Backlog
+                359 carries the question.
+            -->
+            <Popup x:Name="SuggestionPopup"
+                   PlacementTarget="{Binding ElementName=QueryBox}"
+                   Placement="Bottom"
+                   IsOpen="{Binding Suggesting.IsOpen, Mode=OneWay}"
+                   StaysOpen="True"
+                   AllowsTransparency="False"
+                   Focusable="False">
+                <Border Style="{StaticResource SuggestionPanel}"
+                        Width="{Binding ActualWidth, ElementName=QueryBox}">
+                    <DockPanel>
+                        <!--
+                            THE KEYS, WRITTEN WHERE THEY ARE USED. A sentence in the tooltip would
+                            repeat the mistake point 9 corrects - explaining a thing in a place
+                            nobody looks. Under the list is the one place somebody is looking
+                            while the keys matter.
+                        -->
+                        <TextBlock DockPanel.Dock="Bottom"
+                                   Text="{Binding Suggesting.Keys}"
+                                   Style="{StaticResource SubduedText}"
+                                   Margin="{StaticResource PadCell}" />
+                        <ListBox x:Name="SuggestionList"
+                                 AutomationProperties.AutomationId="Suggestions"
+                                 Style="{StaticResource SuggestionList}"
+                                 ItemContainerStyle="{StaticResource SuggestionItem}"
+                                 ItemTemplate="{StaticResource SuggestionRow}"
+                                 ItemsSource="{Binding Suggesting.Offered}"
+                                 SelectedItem="{Binding Suggesting.Chosen, Mode=TwoWay}"
+                                 Grid.IsSharedSizeScope="True"
+                                 VirtualizingPanel.IsVirtualizing="False" />
+                    </DockPanel>
+                </Border>
+            </Popup>
         </Grid>
 
         <!--

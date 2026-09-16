@@ -202,15 +202,19 @@ public sealed class ForcedStopGuards
         Assert.Equal(Bws.Gui.Texts.Of("gui.plan.carryOut.endProcess", 4812), panel.CarryOutLabel);
     }
 
-    /// <summary>And every other plan keeps the words it had.</summary>
+    /// <summary>
+    /// And an ordinary plan names its own act rather than the process - since 2026-09-15, when
+    /// every kind got a label of its own (<see cref="CarryOutLabelGuards"/>). What this holds is
+    /// the boundary: no process number leaks onto a plan that ends nothing.
+    /// </summary>
     [Fact]
-    public void The_button_on_an_ordinary_plan_says_what_it_always_said()
+    public void The_button_on_an_ordinary_plan_names_the_act_and_not_a_process()
     {
         var panel = new Planned { Elevated = true };
 
         panel.Show(Asking(ActionKind.Stop));
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.carryOut"), panel.CarryOutLabel);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.carryOut.stop.one", "Spooler"), panel.CarryOutLabel);
     }
 
     /// <summary>

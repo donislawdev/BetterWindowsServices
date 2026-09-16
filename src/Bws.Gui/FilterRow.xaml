@@ -35,9 +35,11 @@
         markup listing them again would be a second copy that drifts. It also means the row that
         account and signature chips will join is already built.
 
-        WrapPanel, so a narrow window stacks them instead of clipping them. The count line beside
-        the search box is the only thing in this window allowed to be cut, because it carries a
-        message of the system's own length.
+        THE CHIPS OF A GROUP WRAP INSIDE THEIR ROW, and since 2026-09-15 every group has a row of
+        its own - the comment at the ItemsControl below says why. A narrow window folds a group
+        onto more lines instead of clipping it. The count line beside the search box is the only
+        thing in this window allowed to be cut, because it carries a message of the system's own
+        length.
 
         THE TWO AutomationId VALUES BELOW ARE ON THE CONTROLS, NOT ON THE GRID, AND THAT IS A
         MEASURED CORRECTION. An id was put on the Grid first, and automation never saw it: WPF
@@ -135,9 +137,29 @@
             </StackPanel>
         </ToggleButton>
 
+        <!--
+            ONE GROUP PER ROW, WITH THE LABELS IN ONE COLUMN, SINCE 2026-09-15 - point 7 of the
+            review in `docs/11` 2.14, the owner's decision with the price named. The groups used to
+            flow in a WrapPanel, so the fifth label landed in the middle of the fourth row beside
+            the chips of the fourth group - a form whose labels are not a column, which GUI rule 13
+            forbids. A vertical panel (the ItemsControl's default) gives every group its own row
+            and a finite width - `docs/10` trap 18 the right way round - and the shared size scope
+            below is what lines the five labels up: FilterGroupTemplate puts each one in a column
+            named FilterLabel, and a scope on this control makes those five columns one width.
+
+            THE PRICE, SAID BEFORE IT WAS PAID AND MEASURED AFTER: a fifth row of chips. The
+            estimate was 41 pixels, and layout-snapshot.ps1 at 1650 by 1050 device pixels read the
+            column headings moving from y 445 to 492 - 47 device pixels, about 31 logical at this
+            machine's 150 per cent, one row of the list. `docs/11` 2.12 keeps the height of this
+            block as the owner's open question, and the fold button beside it is the answer that
+            already exists. The cheaper repair was rejected as WRONG rather than
+            ugly: moving Trigger-started into the Startup type group would make it read as one of
+            the start types, and chips in one group mean OR where chips across groups mean AND.
+        -->
         <ItemsControl Grid.Column="1"
                       x:Name="ChipRow"
                       AutomationProperties.AutomationId="filterChips"
+                      Grid.IsSharedSizeScope="True"
                       ItemsSource="{Binding FilterGroups}"
                       ItemTemplate="{StaticResource FilterGroupTemplate}">
             <ItemsControl.Style>
@@ -149,11 +171,6 @@
                     </Style.Triggers>
                 </Style>
             </ItemsControl.Style>
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
         </ItemsControl>
 
         <!--

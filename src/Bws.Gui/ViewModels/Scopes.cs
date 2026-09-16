@@ -48,6 +48,7 @@ public sealed class ScopeChoice : Observable
 {
     private readonly Func<EntryScope> _read;
     private readonly Action<EntryScope> _write;
+    private readonly Func<EntryScope, int> _count;
     private readonly string _labelKey;
     private readonly string _hintKey;
 
@@ -56,15 +57,26 @@ public sealed class ScopeChoice : Observable
         string hintKey,
         EntryScope scope,
         Func<EntryScope> read,
-        Action<EntryScope> write)
+        Action<EntryScope> write,
+        Func<EntryScope, int> count)
     {
         _labelKey = labelKey;
         _hintKey = hintKey;
         _read = read;
         _write = write;
+        _count = count;
 
         Scope = scope;
     }
+
+    /// <summary>
+    /// How many entries this position's list holds - the number beside the label since 2026-09-15,
+    /// point 8(c) of `docs/11` 2.14. The size of the list, not what the query found in it: the line
+    /// under the search box says that, and a position saying it too would be two numbers for one
+    /// question. Read through the same seam as the scope itself, so this class still knows nothing
+    /// about a listing.
+    /// </summary>
+    public int Count => _count(Scope);
 
     /// <summary>The scope this position stands for.</summary>
     public EntryScope Scope { get; }
@@ -128,6 +140,10 @@ public sealed class ScopeChoice : Observable
         Raise(nameof(IsOn));
         Raise(nameof(Label));
         Raise(nameof(Hint));
+
+        // The count moves with every reading, and a reading is what calls this too - a position
+        // told only about the scope would keep the number of the machine as it was at start.
+        Raise(nameof(Count));
     }
 }
 
@@ -217,19 +233,20 @@ public static class Scopes
     };
 
     /// <summary>The positions, in the order they are shown.</summary>
-    internal static IReadOnlyList<ScopeChoice> Positions(Func<EntryScope> read, Action<EntryScope> write) =>
+    internal static IReadOnlyList<ScopeChoice> Positions(
+        Func<EntryScope> read, Action<EntryScope> write, Func<EntryScope, int> count) =>
     [
         // SERVICES FIRST BECAUSE IT IS WHERE THE WINDOW OPENS, and the order is the reading order
         // of the two kinds rather than their size. Drivers are the larger half on this machine and
         // standing them first would put the rarer question in front of the common one.
-        new ScopeChoice("gui.scope.services", "gui.scope.services.hint", EntryScope.Services, read, write),
-        new ScopeChoice("gui.scope.drivers", "gui.scope.drivers.hint", EntryScope.Drivers, read, write),
+        new ScopeChoice("gui.scope.services", "gui.scope.services.hint", EntryScope.Services, read, write, count),
+        new ScopeChoice("gui.scope.drivers", "gui.scope.drivers.hint", EntryScope.Drivers, read, write, count),
 
         // EVERYTHING IS KEPT AND IT IS A CAPABILITY RATHER THAN A COURTESY - owner's decision,
         // 2026-08-19. Before the switch, one press of Escape gave back the whole machine, and two
         // scopes would have deleted that: there would be no way left to count what the manager
         // holds, or to see a service beside the driver it depends on, on one screen.
-        new ScopeChoice("gui.scope.all", "gui.scope.all.hint", EntryScope.Everything, read, write)
+        new ScopeChoice("gui.scope.all", "gui.scope.all.hint", EntryScope.Everything, read, write, count)
     ];
 }
 
@@ -299,18 +316,53 @@ internal sealed class Scoping
         var everything = _everything();
         var scoping = Scopes.QueryFor(Current);
 
+        _all = everything.Count;
+
         if (scoping.Length == 0)
         {
             InScope = everything;
 
+            // THE ONE CASE THAT PAYS FOR A SECOND PASS, and it pays once per reading rather than
+            // per keystroke: on Everything nothing was cut, so how many drivers there are has to
+            // be asked separately for the count on the Drivers position.
+            _drivers = Cut(Scopes.QueryFor(EntryScope.Drivers), everything).Count;
+
             return;
         }
 
-        // Finished rather than BeingTyped: this text is ours and complete by construction, so there
-        // is no half-written member to forgive. A complaint here would be a fault in this file
-        // rather than in something somebody typed.
-        var parsed = QueryParser.Parse(scoping, input: QueryInput.Finished);
+        InScope = Cut(scoping, everything);
 
-        InScope = Narrowing.Of(parsed.Query!, everything).Selected;
+        // What was cut says how many drivers there are, from either side of the line: the drivers
+        // list IS the count, and the services list is everything minus it.
+        _drivers = Current == EntryScope.Drivers ? InScope.Count : _all - InScope.Count;
     }
+
+    /// <summary>
+    /// How many entries a scope holds, out of the last reading - the number on each position of
+    /// the switch since 2026-09-15, point 8(c) of `docs/11` 2.14.
+    ///
+    /// <b>The size of the list, not the matches of the query.</b> The line under the search box
+    /// already says how many of the list the query selected, and a tab in every mail client says
+    /// how much is in the folder rather than how much of it the search found. Owner's decision.
+    ///
+    /// <b>Counted through the language rather than through a type test</b>, for the reason
+    /// <see cref="Recut"/> gives: what a driver is has one definition, in `type:driver`.
+    /// </summary>
+    internal int CountOf(EntryScope scope) => scope switch
+    {
+        EntryScope.Everything => _all,
+        EntryScope.Drivers => _drivers,
+        EntryScope.Services => _all - _drivers,
+        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "No count is kept for this scope.")
+    };
+
+    private int _all;
+
+    private int _drivers;
+
+    // Finished rather than BeingTyped: this text is ours and complete by construction, so there
+    // is no half-written member to forgive. A complaint here would be a fault in this file
+    // rather than in something somebody typed.
+    private static IReadOnlyList<EntryRow> Cut(string scoping, IReadOnlyList<EntryRow> everything) =>
+        Narrowing.Of(QueryParser.Parse(scoping, input: QueryInput.Finished).Query!, everything).Selected;
 }

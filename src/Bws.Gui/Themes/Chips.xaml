@@ -205,17 +205,38 @@
         already written works. Nothing else about the group changes and that is checkable rather
         than claimed: at 1650 by 1050 no group is wider than the row, so layout-snapshot.ps1
         reports nothing moved.
+
+        A Grid RATHER THAN THE DockPanel SINCE 2026-09-15, FOR THE LABEL COLUMN - point 7 of the
+        review in `docs/11` 2.14. The groups stack one per row now (FilterRow.xaml says why), and a
+        form's labels line up: the label sits in a column named FilterLabel, whose width is shared
+        across every group under the scope FilterRow.xaml declares, so "State" and "Disagrees with
+        itself" start their chips at the same x. The star column hands the chips what is left, a
+        real number, exactly as the DockPanel did - trap 18 names both as the same cure.
+
+        THE LABEL STAYS CENTRED, AND ONE GROUP PER ROW IS WHAT MAKES THAT RIGHT. Backlog 293 left
+        it centred beside a group wrapped onto three lines, standing by the middle one, and handed
+        the question to the owner's eye. With a row to itself every group fits on one line at the
+        width the window opens with - read off layout-snapshot.ps1 the same day: the six startup
+        type chips ran from x 248 to about 1080 in a window 1650 wide, and the chips' column ends
+        where the two buttons on the right begin, at about 1275 - so the centred label is beside
+        the only line there is. At 1000 wide the widest group wraps to two lines and the label
+        stands between them, which is what it did before and no worse.
     -->
     <DataTemplate x:Key="FilterGroupTemplate">
-        <DockPanel Margin="{StaticResource MarginGroup}">
-            <TextBlock Text="{Binding Label}"
-                       DockPanel.Dock="Left"
+        <Grid Margin="{StaticResource MarginGroup}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="FilterLabel" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Label}"
                        ToolTip="{Binding Hint}"
                        Margin="{StaticResource MarginBetweenControls}"
                        VerticalAlignment="Center"
                        Style="{StaticResource SubduedText}" />
 
-            <ItemsControl ItemsSource="{Binding Chips}">
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding Chips}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel />
@@ -232,7 +253,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-        </DockPanel>
+        </Grid>
     </DataTemplate>
 
     <!--
@@ -260,17 +281,29 @@
         THE FILL FOLLOWS THE BUTTON'S OWN FOREGROUND rather than naming a brush, so the mark can
         never be the one part of the control that does not answer to hover or to being disabled.
     -->
+    <!--
+        ONE SQUARE FOR BOTH TRIANGLES, since 2026-09-15 - point 8(a) of `docs/11` 2.14. A Path is as
+        big as its geometry, so the triangle pointing down was 8 by 5 and the one pointing right
+        was 5 by 8, and the button folded was three pixels narrower than the button open - a step
+        sideways for Columns and Show every instance on every press, GUI rule 3 broken by a glyph.
+        The Path is given the square explicitly (SizeDisclosureMark, and Stretch stays None so the
+        geometry keeps its own coordinates) and each triangle is drawn centred inside it: the one
+        pointing down spans the width and sits one and a half down from the top, the one pointing
+        right spans the height and sits one and a half in from the left.
+    -->
     <Style x:Key="FilterDisclosure" TargetType="Path">
         <Setter Property="Fill"
                 Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
-        <Setter Property="Data" Value="M 0,0 L 8,0 L 4,5 Z" />
+        <Setter Property="Width" Value="{StaticResource SizeDisclosureMark}" />
+        <Setter Property="Height" Value="{StaticResource SizeDisclosureMark}" />
+        <Setter Property="Data" Value="M 0,1.5 L 8,1.5 L 4,6.5 Z" />
 
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
                          Value="False">
-                <Setter Property="Data" Value="M 0,0 L 5,4 L 0,8 Z" />
+                <Setter Property="Data" Value="M 1.5,0 L 6.5,4 L 1.5,8 Z" />
             </DataTrigger>
         </Style.Triggers>
     </Style>

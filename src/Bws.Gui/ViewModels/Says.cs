@@ -21,7 +21,7 @@ namespace Bws.Gui.ViewModels;
 public sealed class Says : Observable
 {
     private string _status = Texts.Of("gui.status.reading");
-    private string _notice = string.Empty;
+
     private string _problem = string.Empty;
     private string _refusal = string.Empty;
     private string _layout = string.Empty;
@@ -61,10 +61,39 @@ public sealed class Says : Observable
     /// <see cref="Problem"/> because these are facts about the answer and that one is a fact
     /// about the question.
     /// </summary>
-    public string Notice
+    public string Notice => _admitted.Notice;
+
+    /// <summary>
+    /// The same line as <see cref="Notice"/>, in the three pieces the view draws it in - the words
+    /// before the link, the link, and the words after. Point 8(d) of `docs/11` 2.14: the sentence
+    /// about folded instances names the switch, and the name is the switch. <see cref="Admitted"/>
+    /// says why these are one record and not four strings.
+    /// </summary>
+    public string NoticeBeforeLink => _admitted.BeforeLink;
+
+    public string NoticeLink => _admitted.Link;
+
+    public string NoticeAfterLink => _admitted.AfterLink;
+
+    /// <summary>Whether the line has a link in it at all - what enables the link, so an empty one is never a Tab stop.</summary>
+    public bool NoticeHasLink => _admitted.HasLink;
+
+    private Admitted _admitted = Admitted.Nothing;
+
+    private void Admit(Admitted admitted)
     {
-        get => _notice;
-        internal set => Set(ref _notice, value);
+        if (admitted == _admitted)
+        {
+            return;
+        }
+
+        _admitted = admitted;
+
+        Raise(nameof(Notice));
+        Raise(nameof(NoticeBeforeLink));
+        Raise(nameof(NoticeLink));
+        Raise(nameof(NoticeAfterLink));
+        Raise(nameof(NoticeHasLink));
     }
 
     /// <summary>
@@ -188,8 +217,8 @@ public sealed class Says : Observable
     internal void AboutTheAnswer(
         ExtraRead needs, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling,
         int folded, bool listOnScreen) =>
-        Notice = Sentences.Admissions(
-            needs, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen);
+        Admit(Sentences.Admissions(
+            needs, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen));
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.

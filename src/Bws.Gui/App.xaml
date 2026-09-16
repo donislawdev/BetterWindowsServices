@@ -37,6 +37,12 @@
         through StaticResource, so it only has to be in before the styles. Backlog 271 named this
         seam the evening before it was needed.
 
+        Spacing.xaml IS THE FIFTH VALUE FILE, since 2026-09-15, and stands right after Values.xaml
+        because that is where its entries stood until that day: every Margin and every Pad, lifted
+        out when the plan sheet needed three widths and Values.xaml had no line for one. Backlog
+        173. It depends on nothing, every style file reaches it through StaticResource, so it too
+        only has to be in before the styles.
+
         Text.xaml IS BEFORE Controls.xaml AND THAT IS THE SAME RULE ONE STEP FURTHER IN, since
         2026-08-25. It holds every TextBlock style, Controls.xaml reaches one of them through
         StaticResource, and a dictionary merged after this one would be a name that does not
@@ -69,6 +75,7 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="Themes/Values.xaml" />
+                <ResourceDictionary Source="Themes/Spacing.xaml" />
                 <ResourceDictionary Source="Themes/Type.xaml" />
                 <ResourceDictionary Source="Themes/Colours.xaml" />
                 <ResourceDictionary Source="Themes/Columns.xaml" />
@@ -83,6 +90,15 @@
                     opening lines. It left Controls.xaml on 2026-09-05 when the size ratchet fired.
                 -->
                 <ResourceDictionary Source="Themes/Menus.xaml" />
+
+                <!--
+                    THE LIST UNDER THE SEARCH BOX, beside the other floating surface. It names
+                    FixedText and SubduedText from Text.xaml through StaticResource, so anywhere
+                    before that file is two names that do not exist yet. Sixteenth file, 2026-09-15,
+                    because Controls.xaml stood forty-eight lines under the ceiling with three
+                    templates to add - point 9 of `docs/11` 2.14.
+                -->
+                <ResourceDictionary Source="Themes/Suggestions.xaml" />
                 <ResourceDictionary Source="Themes/Scroll.xaml" />
                 <!--
                     PlanLines.xaml immediately before Plan.xaml, which is App.xaml's order and is
@@ -94,6 +110,19 @@
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />
+
+                <!--
+                    LAST, AND THE POSITION IS THE ONLY THING ABOUT IT THAT MATTERS. The component
+                    catalogue is drawn out of names declared above it - SubduedText, HeadingText,
+                    SurfacePanel, PaddingPanel - and StaticResource resolves while the file is
+                    read, so anywhere earlier is a set of names that do not exist yet.
+
+                    IT SHIPS IN EVERY CONFIGURATION even though only a launch argument reaches it.
+                    Leaving it out of Release would mean the sheet could only be photographed from
+                    a Debug build, and this project has already spent turns on a picture that was
+                    a correct picture of a different file.
+                -->
+                <ResourceDictionary Source="Themes/Catalogue.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

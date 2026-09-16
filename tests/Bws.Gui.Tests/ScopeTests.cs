@@ -138,6 +138,79 @@ public sealed class ScopeTests
         Assert.Null(model.Chosen.Row);
     }
 
+    /// <summary>
+    /// The hint behind the empty search box names what the box searches - the list somebody is
+    /// standing on. Point 8(b) of `docs/11` 2.14: it said "services and drivers" on a list from
+    /// which, by its own tooltip, a search never reaches a driver.
+    ///
+    /// <b>The notification as well as the value</b>, because the hint is bound and a binding not
+    /// told that the scope moved keeps the sentence of the list before - `docs/08` position 19.
+    /// </summary>
+    [Theory]
+    [InlineData(EntryScope.Services, "gui.search.hint.services")]
+    [InlineData(EntryScope.Drivers, "gui.search.hint.drivers")]
+    [InlineData(EntryScope.Everything, "gui.search.hint.all")]
+    public async Task The_hint_behind_the_box_names_the_list_the_box_searches(EntryScope scope, string key)
+    {
+        var model = await Loaded(Entry("Spooler"), Driver("disk"));
+        var announced = new List<string>();
+
+        model.Scope = scope == EntryScope.Everything ? EntryScope.Services : EntryScope.Everything;
+        model.PropertyChanged += (_, e) => announced.Add(e.PropertyName ?? string.Empty);
+
+        model.Scope = scope;
+
+        Assert.Equal(Bws.Gui.Texts.Of(key), model.SearchHint);
+        Assert.Contains(nameof(MainViewModel.SearchHint), announced);
+    }
+
+    /// <summary>
+    /// Every position of the switch says how many entries its list holds - point 8(c) of
+    /// `docs/11` 2.14 - and the number is the size of the LIST, untouched by the query and by
+    /// which position is on. The line under the box already says what the query found.
+    /// </summary>
+    [Fact]
+    public async Task Every_position_counts_the_list_it_stands_for_whatever_is_typed_or_chosen()
+    {
+        var model = await Loaded(Entry("Spooler"), Stopped("BITS"), Driver("disk"));
+
+        model.QueryText = "status:running";
+        model.Scope = EntryScope.Drivers;
+
+        var counts = model.ScopePositions.ToDictionary(position => position.Scope, position => position.Count);
+
+        Assert.Equal(2, counts[EntryScope.Services]);
+        Assert.Equal(1, counts[EntryScope.Drivers]);
+        Assert.Equal(3, counts[EntryScope.Everything]);
+
+        model.Scope = EntryScope.Services;
+
+        Assert.Equal(counts, model.ScopePositions.ToDictionary(position => position.Scope, position => position.Count));
+    }
+
+    /// <summary>
+    /// And a reading tells the positions their numbers moved - a switch counting the machine as
+    /// it was at start would be wrong after the first refresh, and `docs/08` position 19 says
+    /// nothing goes red when a binding is not told.
+    /// </summary>
+    [Fact]
+    public async Task A_reading_tells_every_position_that_its_count_may_have_moved()
+    {
+        var model = await Loaded(Entry("Spooler"), Driver("disk"));
+        var told = new List<string>();
+
+        foreach (var position in model.ScopePositions)
+        {
+            position.PropertyChanged += (_, e) => told.Add($"{position.Scope}:{e.PropertyName}");
+        }
+
+        await model.LoadAsync();
+
+        foreach (var scope in new[] { EntryScope.Services, EntryScope.Drivers, EntryScope.Everything })
+        {
+            Assert.Contains($"{scope}:{nameof(ScopeChoice.Count)}", told);
+        }
+    }
 
     private static async Task<MainViewModel> Loaded(params ScmEntry[] entries)
     {

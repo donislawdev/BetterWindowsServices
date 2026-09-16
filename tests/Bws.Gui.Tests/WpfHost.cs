@@ -259,6 +259,38 @@ internal static class WpfHost
         return dispatcher!;
     });
 
+    /// <summary>
+    /// The theme files, in App.xaml's order.
+    ///
+    /// <b>A named array since 2026-09-10, and it was a literal inside the merge before that.</b>
+    /// Nothing anywhere compared this list with App.xaml's, so the two could disagree and the only
+    /// symptom would be a test suite building a window subtly unlike the one that ships - a style
+    /// missing here throws at parse time, and a style missing THERE does not throw at all.
+    /// <c>CatalogueGuards</c> compares them now, which is why this had to have a name.
+    /// </summary>
+    internal static readonly string[] ThemeFiles =
+                 [
+                     "Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
+                     "Text.xaml", "Overview.xaml", "Chips.xaml",
+
+                     // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
+                     // bearing: the menu styles extend the implicit MenuItem style found there.
+                     // Suggestions.xaml beside it, after Text.xaml whose names it resolves.
+                     "Controls.xaml", "Menus.xaml", "Suggestions.xaml",
+
+                     // PlanLines.xaml before Plan.xaml, for the same reason and from the same
+                     // list in App.xaml. They were one file until 2026-09-07.
+                     "Scroll.xaml", "PlanLines.xaml", "Plan.xaml",
+
+                     "List.xaml", "Marks.xaml", "Cells.xaml",
+
+                     // LAST, exactly as in App.xaml, and for the ordinary reason: the catalogue's
+                     // own look is drawn out of names declared above it. Arrived 2026-09-10 with
+                     // the component catalogue, and CatalogueGuards checks that this list and
+                     // App.xaml's still say the same thing - nothing did until that day.
+                     "Catalogue.xaml"
+                 ];
+
     private static readonly Lazy<ResourceDictionary> Merged = new(() => On(() =>
     {
         _ = System.IO.Packaging.PackUriHelper.UriSchemePack;
@@ -288,21 +320,7 @@ internal static class WpfHost
         // resolving to nothing.
         var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
 
-        foreach (var name in new[]
-                 {
-                     "Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml",
-                     "Text.xaml", "Overview.xaml", "Chips.xaml",
-
-                     // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
-                     // bearing: the menu styles extend the implicit MenuItem style found there.
-                     "Controls.xaml", "Menus.xaml",
-
-                     // PlanLines.xaml before Plan.xaml, for the same reason and from the same
-                     // list in App.xaml. They were one file until 2026-09-07.
-                     "Scroll.xaml", "PlanLines.xaml", "Plan.xaml",
-
-                     "List.xaml", "Marks.xaml", "Cells.xaml"
-                 })
+        foreach (var name in ThemeFiles)
         {
             using var stream = File.OpenRead(Path.Combine(themes, name));
 
@@ -316,6 +334,7 @@ internal static class WpfHost
 
         return application.Resources;
     }));
+
 
     /// <summary>
     /// Reaches the product's own text loader, which is internal on purpose.

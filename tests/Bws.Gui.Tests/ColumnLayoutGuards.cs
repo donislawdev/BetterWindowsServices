@@ -121,6 +121,39 @@ public sealed class ColumnLayoutGuards
     }
 
     /// <summary>
+    /// A layout that names no order is planned with the order this build opens with, and one that
+    /// names an order keeps it.
+    ///
+    /// <b>The shape of every profile written before 2026-09-02, and of the owner's own.</b> A fresh
+    /// profile has opened sorted by display name since that day - but a file that already held
+    /// columns and no <c>sort</c> line kept planning a null, which the grid reads as "take every
+    /// order off", so the list came up in the manager's order: alphabetical by a column that is off
+    /// by default, which is no order anybody can see. Found on a screenshot on 2026-09-15. No test
+    /// saw it because every test window reads a fixture that names no order either - which is also
+    /// why this asks the PLAN rather than a window: the window guards were green over the fault.
+    ///
+    /// <b>Both halves, because either alone passes for the wrong reason.</b> That a missing order
+    /// becomes the default would be satisfied by a plan that ignored the file's order altogether.
+    /// That a named order survives would be satisfied by the plan this test replaces.
+    /// </summary>
+    [Fact]
+    public void A_layout_that_names_no_order_is_planned_with_the_order_this_build_opens_with()
+    {
+        var columns = new[] { new KeptColumn("status", Shown: true, Width: null) };
+
+        var unsaid = ColumnPlan.Of(new ColumnLayout(columns, Sort: null), EntryScope.Services);
+
+        Assert.Equal(ColumnLayout.DefaultFor(EntryScope.Services).Sort, unsaid.Layout.Sort);
+        Assert.NotNull(unsaid.Layout.Sort);
+
+        var said = ColumnPlan.Of(
+            new ColumnLayout(columns, new KeptSort("status", Descending: true)),
+            EntryScope.Services);
+
+        Assert.Equal(new KeptSort("status", Descending: true), said.Layout.Sort);
+    }
+
+    /// <summary>
     /// The same column twice is one column, and the second mention is named as ignored.
     ///
     /// A hand edited file, or two files merged by somebody's tooling. Left alone it would put one

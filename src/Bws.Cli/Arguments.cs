@@ -1,4 +1,4 @@
-using System.Globalization;
+using Bws.Core.Planning;
 
 namespace Bws.Cli;
 
@@ -38,14 +38,15 @@ internal static class Arguments
     /// Somebody who writes --timeout 30s meant thirty seconds, and giving them sixty because
     /// their spelling was not understood is the kind of quiet substitution that turns up in
     /// a runbook months later.
+    ///
+    /// <b>THE RULE ITSELF LIVES IN THE CORE SINCE 2026-09-15</b> - <see cref="StepCeiling.Seconds"/>,
+    /// invariant culture, digits only, at least one - because the window asks a person for the
+    /// same number in a box, and two readers of one rule agree only for as long as nobody edits
+    /// one of them. What stays here is the terminal's half: which text to hand back as the mistake.
     /// </summary>
     internal static string? Seconds(string value, ref TimeSpan timeout)
     {
-        // Invariant, not the machine's regional settings. A timeout is typed by whoever wrote
-        // the runbook, and a runbook that means sixty on one machine and nothing on another
-        // because of a decimal separator is exactly what rule 3 exists to stop.
-        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
-            || seconds < 1)
+        if (StepCeiling.Seconds(value) is not { } seconds)
         {
             return value;
         }

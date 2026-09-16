@@ -342,7 +342,11 @@ public sealed class PluralGuards
         .. panel.Failures.Select(failure => failure.Text),
         .. panel.Failures.Select(failure => failure.Label),
         .. panel.Commands,
-        .. panel.WayBack
+        .. panel.WayBack,
+
+        // THE BUTTON'S OWN WORD SINCE 2026-09-15, when it started counting entries - "Stop 3
+        // entries" - and so became one more sentence a count could get wrong.
+        panel.CarryOutLabel
     ];
 
     /// <summary>

@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
 
@@ -116,6 +118,50 @@ public sealed class ToolTipGuards
         Assert.Null(tip);
     }
 
+    /// <summary>
+    /// The account cell offers the spelling the machine holds, and only that cell.
+    ///
+    /// <b>A real DataGridCell around the text, laid out, because the window finds the column by
+    /// walking up to one</b> - a TextBlock on its own would answer nothing and a test on that would
+    /// be a test of nothing. The text fits its box on purpose: this tooltip is owed to the
+    /// TRANSLATION, not to the trimming, and a fitting "Local Service" is the case the old rule
+    /// would have refused.
+    ///
+    /// <b>Three cells, one claim each.</b> The account over a system account speaks. The account
+    /// over a virtual account is silent, because the cell already shows the spelling. And the
+    /// display name over the same row is silent, so the answer is the column's and not the row's.
+    /// </summary>
+    [Fact]
+    public void The_account_cell_offers_the_spelling_the_machine_holds_and_no_other_cell_does()
+    {
+        var system = EntryRow.Of(Rows.Entry("Spooler") with
+        {
+            Account = Bws.Core.Reading<string>.Present(@"NT Authority\LocalService")
+        });
+        var virtualAccount = EntryRow.Of(Rows.Entry("McmSvc") with
+        {
+            Account = Bws.Core.Reading<string>.Present(@"NT SERVICE\McmSvc")
+        });
+
+        var spokenCell = ToolTipGuards.LaidInCell("account", system);
+        var silentCell = ToolTipGuards.LaidInCell("account", virtualAccount);
+        var otherCell = ToolTipGuards.LaidInCell("displayName", system);
+
+        // The cell's text is a binding, and a binding resolves a dispatcher turn after the layout
+        // that realised it - `docs/10` trap 20. Read before that turn, every cell says nothing.
+        WpfHost.Settled();
+
+        Assert.Equal("Local Service", WpfHost.On(() => spokenCell.Text));
+
+        var (spoken, silent, other) = WpfHost.On(() =>
+            (CellTips.TipFor(spokenCell), CellTips.TipFor(silentCell), CellTips.TipFor(otherCell)));
+
+        Assert.Equal(Texts.Of("gui.cell.held", @"NT Authority\LocalService"), spoken);
+        Assert.Contains(@"NT Authority\LocalService", spoken, StringComparison.Ordinal);
+        Assert.Null(silent);
+        Assert.Null(other);
+    }
+
     /// <summary>A TextBlock measured and arranged into a box of a known width, as a cell is.</summary>
     private static TextBlock Laid(string text, double width)
     {
@@ -125,6 +171,68 @@ public sealed class ToolTipGuards
         cell.Arrange(new Rect(0, 0, width, cell.DesiredSize.Height));
 
         return cell;
+    }
+
+    /// <summary>
+    /// The text of one named column's cell, in a grid built from the catalogue over one row and
+    /// laid out on a surface wide enough that nothing is trimmed - the shape a realised cell has
+    /// when somebody hovers it.
+    ///
+    /// <b>The product's own columns rather than a DataGridCell built by hand</b>, because a cell's
+    /// Column is read-only outside a grid - the grid alone assigns it - and the window's walk up to
+    /// that column is the thing under test. The surface is a metre wide so every default column
+    /// fits and no cell trims, and the row count realised is asserted: a grid that never built its
+    /// containers would leave nothing to find, which would read exactly like the column holding
+    /// nothing - `docs/10` trap 19.
+    /// </summary>
+    private static TextBlock LaidInCell(string columnId, EntryRow row) => WpfHost.On(() =>
+    {
+        var bar = new ColumnBar();
+        var plan = ColumnPlan.Of(ColumnLayout.DefaultFor(EntryScope.Services), EntryScope.Services);
+
+        bar.Follow(plan);
+
+        var grid = new DataGrid();
+
+        ListColumns.Fill(grid, bar, plan);
+
+        grid.ItemsSource = new List<EntryRow> { row };
+
+        var surface = new Grid { Width = 3000, Height = 200 };
+        surface.Children.Add(grid);
+
+        surface.Measure(new Size(3000, 200));
+        surface.Arrange(new Rect(0, 0, 3000, 200));
+        surface.UpdateLayout();
+
+        var container = grid.ItemContainerGenerator.ContainerFromIndex(0) as DataGridRow;
+
+        Assert.NotNull(container);
+
+        var cell = ToolTipGuards.Beneath(container).OfType<DataGridCell>()
+            .Single(one => one.Column.SortMemberPath == columnId);
+
+        var block = ToolTipGuards.Beneath(cell).OfType<TextBlock>().First();
+
+        Assert.True(block.ActualWidth > 1, "The cell's text was never laid out, so nothing about it is a claim.");
+
+        return block;
+    });
+
+    /// <summary>Every visual under a node, depth first.</summary>
+    private static IEnumerable<DependencyObject> Beneath(DependencyObject node)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
+        {
+            var child = VisualTreeHelper.GetChild(node, index);
+
+            yield return child;
+
+            foreach (var deeper in ToolTipGuards.Beneath(child))
+            {
+                yield return deeper;
+            }
+        }
     }
 
     private static object? Setter(Style style, DependencyProperty property) =>

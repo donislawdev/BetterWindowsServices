@@ -363,6 +363,82 @@ public sealed class FoldingGuards
     }
 
     /// <summary>
+    /// The words "Show every instance" in the sentence under the list are the switch's own words,
+    /// cut out of the line as a link, and the line reads exactly as it did with them in it -
+    /// point 8(d) of `docs/11` 2.14.
+    ///
+    /// <b>One line and three pieces from the same words</b>, which is what <c>Admitted</c> is for:
+    /// a test reading the line, an automation name reading the line and a view drawing the pieces
+    /// must never disagree about a word.
+    /// </summary>
+    [Fact]
+    public async Task The_sentence_about_folded_copies_carries_the_switch_as_a_link_and_reads_as_one_line()
+    {
+        var model = await Looking(Rows.Template("CDPUserSvc"), Rows.Instance("CDPUserSvc_7b537"), Rows.Entry("Spooler"));
+
+        Assert.True(model.Says.NoticeHasLink);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.instances.toggle"), model.Says.NoticeLink);
+        Assert.Equal(model.Says.NoticeBeforeLink + model.Says.NoticeLink + model.Says.NoticeAfterLink, model.Says.Notice);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.status.folded.one", 1), model.Says.NoticeBeforeLink, StringComparison.Ordinal);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.status.folded.one.after"), model.Says.NoticeAfterLink, StringComparison.Ordinal);
+
+        WpfHost.On(() => model.ShowingEveryInstance = true);
+
+        // Nothing folds, so nothing to press: the link is empty, and empty is what keeps it out
+        // of the Tab order.
+        Assert.False(model.Says.NoticeHasLink);
+        Assert.Equal(string.Empty, model.Says.NoticeLink);
+        Assert.DoesNotContain("folded", model.Says.Notice, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// And on the window, pressing the words presses the switch: the copies unfold and the
+    /// sentence goes. The Click is raised on the Hyperlink as WPF raises it, and the handler in
+    /// StatusRow.xaml.cs is what turns it into the model's own property.
+    /// </summary>
+    [Fact]
+    public async Task Pressing_the_words_in_the_sentence_unfolds_the_copies()
+    {
+        var machine = new LiveMachine(Rows.Template("CDPUserSvc"), Rows.Instance("CDPUserSvc_7b537"));
+        var model = new MainViewModel(machine, new SteppedClock()) { Says = new Says { Elevated = true } };
+        var window = WpfHost.Window(model);
+
+        await WpfHost.On(model.LoadAsync);
+        WpfHost.Settled();
+
+        var link = WpfHost.On(() => window.Status.NoticeLinkWords);
+
+        Assert.True(WpfHost.On(() => link.IsEnabled), "the link is switched off while there is something folded to unfold");
+        Assert.Single(model.Rows);
+
+        // NOT VACUOUS: the line really carries the sentence before the press, so an empty line
+        // after it cannot pass for a changed one.
+        Assert.Contains("folded", WpfHost.On(() => Line((TextBlock)link.Parent)), StringComparison.Ordinal);
+
+        WpfHost.On(() => link.RaiseEvent(new RoutedEventArgs(System.Windows.Documents.Hyperlink.ClickEvent, link)));
+        WpfHost.Settled();
+
+        Assert.True(model.ShowingEveryInstance);
+        Assert.Equal(2, model.Rows.Count);
+        Assert.False(WpfHost.On(() => link.IsEnabled), "nothing is folded any more, and an enabled empty link would be a Tab stop that does nothing");
+
+        // THE LINE ON THE WINDOW MOVED TOO - read off the TextBlock the link lives in, because
+        // three runs bound to three properties are three bindings that can each be left behind.
+        //
+        // THROUGH A TextRange AND NOT TextBlock.Text, WHICH IS MEASURED: a TextBlock built from
+        // inlines answers an EMPTY string to Text, so the first version of this assertion passed
+        // on nothing - and the mutation register said so, on the entry that takes one of the
+        // three notifications away. The automation name is the whole line, measured the same day,
+        // which is why the probes reading noticeLine are unaffected.
+        Assert.DoesNotContain("folded", WpfHost.On(() => Line((TextBlock)link.Parent)), StringComparison.Ordinal);
+
+        WpfHost.On(window.Close);
+    }
+
+    private static string Line(TextBlock block) =>
+        new System.Windows.Documents.TextRange(block.ContentStart, block.ContentEnd).Text;
+
+    /// <summary>
     /// A window looking at a machine, with its first reading already done.
     ///
     /// No window is built, deliberately. Everything above except the two plan tests is about what

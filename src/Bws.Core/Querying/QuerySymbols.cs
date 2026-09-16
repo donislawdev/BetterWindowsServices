@@ -124,7 +124,7 @@ internal static class QuerySymbols
     /// </summary>
     internal static FieldSymbols SidTypeSymbols(ScmEntry entry) => entry.SidType.Outcome switch
     {
-        ReadOutcome.Present => FieldSymbols.Of(QueryFields.Normalise(entry.SidType.Value.ToString())),
+        ReadOutcome.Present => FieldSymbols.Of(QuerySpelling.Normalise(entry.SidType.Value.ToString())),
         ReadOutcome.Absent => FieldSymbols.Of(),
         _ => FieldSymbols.Nothing
     };
@@ -138,7 +138,7 @@ internal static class QuerySymbols
     /// </summary>
     internal static FieldSymbols SignatureSymbols(ScmEntry entry) => entry.Signature.Outcome switch
     {
-        ReadOutcome.Present => FieldSymbols.Of(QueryFields.Normalise(entry.Signature.Value!.Status.ToString())),
+        ReadOutcome.Present => FieldSymbols.Of(QuerySpelling.Normalise(entry.Signature.Value!.Status.ToString())),
         ReadOutcome.Absent => FieldSymbols.Of(),
         _ => FieldSymbols.Nothing
     };
@@ -189,7 +189,7 @@ internal static class QuerySymbols
         return FieldSymbols.Of(
         [
             .. entry.Triggers.Value!
-                .SelectMany(trigger => new[] { QueryFields.Normalise(trigger.Kind.ToString()), QueryFields.Normalise(trigger.Action.ToString()) })
+                .SelectMany(trigger => new[] { QuerySpelling.Normalise(trigger.Kind.ToString()), QuerySpelling.Normalise(trigger.Action.ToString()) })
                 .Distinct(StringComparer.Ordinal)
         ]);
     }
@@ -209,7 +209,7 @@ internal static class QuerySymbols
             return FieldSymbols.Nothing;
         }
 
-        var startType = QueryFields.Normalise(entry.StartType.Value.ToString());
+        var startType = QuerySpelling.Normalise(entry.StartType.Value.ToString());
 
         if (entry.StartType.Value != StartType.Automatic)
         {

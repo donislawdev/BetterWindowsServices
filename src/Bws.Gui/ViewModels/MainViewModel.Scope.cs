@@ -54,6 +54,54 @@ public sealed partial class MainViewModel
             }
 
             Raise(nameof(Scope));
+            Raise(nameof(SearchHint));
         }
     }
+
+    /// <summary>
+    /// What the readings call when the machine has been asked again.
+    ///
+    /// <b>The scope is recut here and NOT in <see cref="Apply"/>, and the split is the whole reason
+    /// this method exists.</b> Apply runs on every keystroke against a 50 ms budget, and the scope
+    /// cannot change while somebody types - so recutting it there would pay for a second pass over
+    /// 812 entries per character, on exactly the path that was measured and fixed on 2026-08-19.
+    /// It CAN change here, because an entry that arrived or left changes what the scope holds, and
+    /// a list that skipped this would go on showing a service the machine no longer has.
+    ///
+    /// <b>In this file since 2026-09-15</b>, when MainViewModel.cs stood one line under the ceiling
+    /// and the positions of the switch needed telling here that their counts moved - the counts
+    /// are cut with the scope, so the reading that recuts is the reading that has to say so.
+    /// </summary>
+    private void Reread()
+    {
+        _scoping.Recut();
+
+        foreach (var position in ScopePositions)
+        {
+            position.Rethink();
+        }
+
+        Apply();
+    }
+
+    /// <summary>
+    /// The sentence behind the empty search box, naming what the box searches - which is the list
+    /// somebody is standing on, not the whole machine.
+    ///
+    /// <b>Point 8(b) of the review in `docs/11` 2.14.</b> The hint said "Search services and
+    /// drivers" on every scope, and the window opens on Services - a list from which, its own
+    /// tooltip says, a search never reaches a driver. A hint that names something the box cannot
+    /// find is the first sentence a new person reads and the first one that is not true.
+    ///
+    /// <b>One key per scope, each inside its own Texts.Of</b> - the shape PlanWords takes, for the
+    /// reason written there: a key chosen into a variable is invisible to TextKeyGuards. An unnamed
+    /// scope refuses rather than picking a sentence, as Scopes.QueryFor does one file over.
+    /// </summary>
+    public string SearchHint => Scope switch
+    {
+        EntryScope.Services => Texts.Of("gui.search.hint.services"),
+        EntryScope.Drivers => Texts.Of("gui.search.hint.drivers"),
+        EntryScope.Everything => Texts.Of("gui.search.hint.all"),
+        _ => throw new InvalidOperationException($"No search hint is written for the scope {Scope}.")
+    };
 }

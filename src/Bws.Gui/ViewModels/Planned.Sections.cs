@@ -99,8 +99,9 @@ public sealed partial class Planned
         Raise(nameof(CarryOutTip));
 
         // AND WHAT IT SAYS ON ITS FACE, which changes with the plan rather than with a count -
-        // "End process 1408" on a forcing plan and "Carry this out" on every other. A button whose
-        // label was raised nowhere would keep naming the process of the plan before this one.
+        // "End process 1408" on a forcing plan, "Stop Windows Search" or "Set 3 entries to Manual"
+        // on every other. A button whose label was raised nowhere would keep naming the entry of
+        // the plan before this one.
         Raise(nameof(CarryOutLabel));
 
         // THE CONFIRMATION BOX AND ITS LABEL, WHICH APPEAR AND GO WITH THE PLAN. This is the
@@ -118,6 +119,11 @@ public sealed partial class Planned
         // screenshot rather than in a test, which is `docs/08` position 19 arriving on schedule:
         // a binding that silently keeps a stale answer reddens nothing in this project.
         Raise(nameof(Waits));
+
+        // AND WHAT THE BOX SAYS ABOUT ITSELF, WHICH FOLLOWS Waits: a word left in it by the last
+        // sheet stops being a problem the moment a plan with nothing to wait for hides the box,
+        // and becomes one again when the next plan shows it.
+        RaiseTheProblem();
         Raise(nameof(HasCommands));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));

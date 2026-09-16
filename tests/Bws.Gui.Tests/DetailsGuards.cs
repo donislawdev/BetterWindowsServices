@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -38,23 +39,78 @@ public sealed class DetailsGuards
     }
 
     /// <summary>
-    /// A line says exactly what that column's own cell says, character for character.
+    /// A line says exactly what that column's own cell says, character for character - for every
+    /// column whose cell shows the value as the machine holds it.
     ///
     /// The guard for the one design decision this class rests on. Two paths to one answer are how
     /// a field comes to say "no access" in a cell and nothing at all in the panel.
+    ///
+    /// <b>The column that translates what it shows is the sibling test's subject</b>, since
+    /// 2026-09-15: its line carries the cell's words AND the spelling behind them, and asserting
+    /// equality with the cell here would be asserting that the panel hides the spelling.
     /// </summary>
     [Fact]
     public void A_line_says_exactly_what_that_columns_cell_says()
     {
         var entry = Rows.Entry("Spooler");
         var lines = Details.Of(entry).SelectMany(section => section.Lines).ToList();
+        var plain = Columns.All.Where(column => column.Holds is null).ToList();
 
-        foreach (var column in Columns.All)
+        Assert.True(plain.Count >= Columns.All.Count - 1, "More than one column translates, so this test covers less than it says.");
+
+        foreach (var column in plain)
         {
             var line = lines.First(shown => shown.Label == Texts.Of(column.LabelKey));
 
             Assert.Equal(column.Reads(entry), line.Value);
         }
+    }
+
+    /// <summary>
+    /// The account line carries the name the cell shows and, in brackets, the spelling the machine
+    /// holds - so the panel and a copy give somebody the value <c>account:</c> matches without
+    /// disagreeing with the cell above them.
+    ///
+    /// <b>Literal on both sides</b>, rather than composed through the same call the panel uses,
+    /// because a test built from the language file's format would pass over a format that said
+    /// nothing. The spelling is the mixed-case one 19 services on the owner's machine carry, so
+    /// the bracket shows what was read and not a tidied version of it.
+    /// </summary>
+    [Fact]
+    public void The_account_line_carries_the_name_and_the_spelling_behind_it()
+    {
+        var entry = Rows.Entry("AppIDSvc") with
+        {
+            Account = Reading<string>.Present(@"NT Authority\LocalService")
+        };
+
+        var line = Details.Of(entry)
+            .SelectMany(section => section.Lines)
+            .Single(shown => shown.Label == Texts.Of("gui.column.account"));
+
+        Assert.Equal(@"Local Service (NT Authority\LocalService)", line.Value);
+
+        // And the copy says the same, because it is built from these lines.
+        Assert.Contains(@"Local Service (NT Authority\LocalService)", Details.AsText(entry), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// An account outside the three the window names is a line like any other: the spelling, and
+    /// no bracket repeating it.
+    /// </summary>
+    [Fact]
+    public void An_account_the_window_does_not_name_is_shown_as_held_and_not_bracketed()
+    {
+        var entry = Rows.Entry("McmSvc") with
+        {
+            Account = Reading<string>.Present(@"NT SERVICE\McmSvc")
+        };
+
+        var line = Details.Of(entry)
+            .SelectMany(section => section.Lines)
+            .Single(shown => shown.Label == Texts.Of("gui.column.account"));
+
+        Assert.Equal(@"NT SERVICE\McmSvc", line.Value);
     }
 
     /// <summary>

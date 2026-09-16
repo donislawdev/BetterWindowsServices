@@ -1,0 +1,125 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        THE LIST OF WHAT CAN BE WRITTEN UNDER THE SEARCH BOX, 2026-09-15. A sixteenth theme file
+        rather than more lines in Controls.xaml, which stood at 328 against a ceiling of 376 with
+        three templates and their reasons to add. The seam is the one Menus.xaml took: Controls.xaml
+        calls itself "the field somebody types into, the box somebody ticks, the chip", and a
+        floating list is none of those. Not one value of its own - ADR-23, the same rule as every
+        other file here.
+
+        OWN TEMPLATES RATHER THAN BasedOn THEIRS, measured: WPF UI registers implicit styles for
+        ListBox AND ListBoxItem, and their item template answers hover and selection in their
+        brushes through their triggers - the same shape as trap 6 in `docs/10`. Every family this
+        product invents owns its template since 2026-09-01, and this is one.
+
+        ORDER IS LOAD BEARING: SuggestionRow names FixedText and SubduedText from Text.xaml through
+        StaticResource, so this file merges after that one. It merges after Menus.xaml in App.xaml,
+        beside the other floating surface, and nothing below it names anything declared here.
+    -->
+
+    <!--
+        THE SURFACE THE LIST STANDS ON: the panel colour with the panel edge on all four sides,
+        which is what the details panel and the plan sheet already are. A Border of its own rather
+        than the ListBox's, so the sentence about the keys under the list stands on the same
+        surface without a seam through it.
+    -->
+    <Style x:Key="SuggestionPanel" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+    </Style>
+
+    <!--
+        ONE ROW: the word as it is typed, in the fixed face because it is syntax, and beside it
+        what the word means, subdued because it is prose. A DataTemplate rather than the row drawn
+        inside the item's ControlTemplate, and `docs/10` trap 26 is the reason: a TextBlock in a
+        DataTemplate keeps its node in the automation tree, a TextBlock in a ControlTemplate does
+        not - so a reader from outside gets the meaning as well as the word.
+
+        The word column is shared across rows so the meanings line up down the list; the meaning
+        is trimmed rather than wrapped because a row that grows taller moves the rows under the
+        pointer.
+    -->
+    <DataTemplate x:Key="SuggestionRow">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="SuggestionWord" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding Word}" Style="{StaticResource FixedText}" />
+            <TextBlock Grid.Column="1"
+                       Text="{Binding Meaning}"
+                       Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource MarginAfterNumber}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+    </DataTemplate>
+
+    <!--
+        THE LIST ITSELF, capped at the same height as the column picker's menu - one decision, "a
+        floating list may not be taller than this", written once in HeightMenu rather than twice.
+        Not focusable and not a tab stop, and the style says so rather than relying on the popup: a
+        ListBox is both by default. No surface of its own - the Border around it carries that.
+    -->
+    <Style x:Key="SuggestionList" TargetType="ListBox">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="MaxHeight" Value="{StaticResource HeightMenu}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Focusable="False">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        ONE ITEM: hover in the hover surface, the chosen one in the selected surface - the same two
+        brushes a row of the list wears for the same two states, so the meaning of a colour does
+        not change between the list and the list under the box. Not focusable, or the first click
+        in the popup would take the keyboard out of the box and close the popup under the pointer.
+        The name for automation is the WORD, so a probe reads what a person would type.
+
+        Brushes.Transparent on the face is deliberate and is `docs/10` trap 11: a transparent brush
+        takes the pointer and no brush does not, so without it hover would work over the letters
+        only. Selected is declared AFTER hover so that it wins on the one row that is both.
+    -->
+    <Style x:Key="SuggestionItem" TargetType="ListBoxItem">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Word}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Face"
+                            Background="{x:Static media:Brushes.Transparent}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

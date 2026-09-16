@@ -107,7 +107,13 @@ internal static partial class Columns
             // for - the argument in full is at Column.OffAtFirstIn.
             OffAtFirstIn = EntryScope.Drivers,
 
-            Reads = entry => CellFaces.Say(entry.Account, value => value)
+            // THE NAME A PERSON KNOWS, WITH THE SPELLING THE MANAGER HOLDS BEHIND IT, since
+            // 2026-09-15. "NT AUTHORITY\Loca..." was what this column showed for a third of the
+            // services on the owner's machine - the part that gave way was the part that told the
+            // two service accounts apart. SystemAccounts carries the measurement and the reason
+            // the spelling still travels with the cell rather than being replaced.
+            Reads = entry => SystemAccounts.Shown(entry.Account),
+            Holds = entry => SystemAccounts.Held(entry.Account)
         },
         new Column
         {

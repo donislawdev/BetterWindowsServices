@@ -42,7 +42,7 @@
 
         AND IT STOPS COMPETING, WHICH IS THE SECOND HALF. A filled, bordered rectangle carrying a
         word was the heaviest object in the panel after the title, sitting beside it. What closes a
-        panel is furniture rather than an action - the actions here are Carry this out and
+        panel is furniture rather than an action - the actions here are the button naming the act and
         Interrupt - so it wears no fill until a pointer is on it.
 
         THE MARK IS A Path AND NOT A CHARACTER, the same decision as the disclosure in Chips.xaml
@@ -207,5 +207,66 @@
                                   Opacity="0.55" />
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!--
+        THE WORD ON THE BUTTON AT THE FOOT OF THE SHEET, TRIMMED RATHER THAN CUT, since 2026-09-15 -
+        the day the button started naming the entry it acts on. "Stop Windows Search" is short, and
+        the longest display name on this machine is 116 characters of translated Windows - measured
+        2026-09-15, beside WidthCarryOutMost. The view caps the button there, and a capped button
+        with a plain string clips its word at the edge, mid-letter - `docs/11` 3.5 says an ellipsis
+        or nothing. A string reaches a ContentPresenter as a TextBlock nobody can reach, so the
+        trimming has to come in through a template for the content.
+
+        A DataTemplate AND NOT A ControlTemplate, WHICH IS THE WHOLE OF WHY THIS IS SAFE. `docs/10`
+        trap 16 records that a TextBlock put into a ControlTemplate loses its automation node and
+        sixteen texts vanished from the tree the last time this product tried it. Measured
+        2026-09-15 before this was written, on a laid-out button: content through this template
+        keeps exactly what a plain string has - one TextBlock child under the button's peer and the
+        same Name - and MaxWidth on the button reaches the text through it. The button's name is
+        bound explicitly in the view as well, so a probe reading planCarryOut never depends on
+        which of the two mechanisms WPF chooses.
+    -->
+    <DataTemplate x:Key="TrimmedButtonLabel">
+        <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+    </DataTemplate>
+
+    <!--
+        THE BOX OF SECONDS, WEARING THE PROBLEM COLOUR ON ITS EDGE WHILE IT SAYS SOMETHING THAT IS
+        NOT SECONDS - 2026-09-15, point 5 of `docs/11` 2.14. GUI rule 3: a field has an error state,
+        and this is the only field in the window that can be wrong without being empty.
+
+        BasedOn THE IMPLICIT TextBox STYLE, which is `docs/10` trap 4 read the other way: a keyed
+        style with no BasedOn REPLACES the library's template rather than adding to it, and the box
+        would come out as the framework's white field on a dark sheet. The edge colour is
+        MeaningRejected, the same brush as the sentence under the box, because a field and the
+        sentence about it must read as one thing - and it is the one red measured against BOTH the
+        window and the panel, `docs/11` section 8, which is where this box stands.
+
+        THE TRIGGER IS ON Validation.HasError, THE FRAMEWORK'S OWN FLAG, AND NOT ON A PROPERTY OF
+        THE MODEL - for two reasons that point the same way. `docs/10` trap 10: a theme file cannot
+        name a type of its own assembly, so a trigger on "our" boolean was never available here. And
+        the component catalogue: it can put any control into this state generically, by marking the
+        control's binding invalid, where a trigger on a named model property would need a model.
+        The rule itself still lives in the model - Planned answers INotifyDataErrorInfo out of the
+        same property a test reads - so what stands between a person and a run is checkable
+        without a window, which is the decision the typed name took first.
+
+        THE FRAMEWORK'S OWN ERROR ADORNER IS SWITCHED OFF, because it is a one-pixel border in the
+        colour red rather than in ours, drawn in the adorner layer over whatever this style draws.
+        Two edges in two reds around one box would be the look of two products.
+
+        WHETHER THE COLOUR REACHES A PIXEL IS MEASURED, NOT ASSUMED - a property set on a control
+        whose template belongs to somebody else has failed to arrive three times in this project.
+        WaitingBoxGuards renders the footer and counts this red inside the box's own rectangle.
+    -->
+    <Style x:Key="WaitingBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Validation.ErrorTemplate" Value="{x:Null}" />
+
+        <Style.Triggers>
+            <Trigger Property="Validation.HasError" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

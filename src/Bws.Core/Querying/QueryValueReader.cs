@@ -66,7 +66,7 @@ internal static class QueryValueReader
             return new OutcomeValue(ReadOutcome.Denied);
         }
 
-        return QueryFields.Normalise(value.Text) switch
+        return QuerySpelling.Normalise(value.Text) switch
         {
             QueryFields.None => new OutcomeValue(ReadOutcome.Absent),
             QueryFields.Any => new OutcomeValue(ReadOutcome.Present),
@@ -141,11 +141,11 @@ internal static class QueryValueReader
 
     private static IQueryValue? ReadSymbolValue(QueryField field, ScannedText value, List<QueryProblem> problems)
     {
-        var wanted = QueryFields.Normalise(value.Text);
+        var wanted = QuerySpelling.Normalise(value.Text);
 
         foreach (var accepted in field.Values)
         {
-            if (QueryFields.Normalise(accepted.Text) == wanted)
+            if (QuerySpelling.Normalise(accepted.Text) == wanted)
             {
                 return new SymbolValue(accepted.Symbols);
             }

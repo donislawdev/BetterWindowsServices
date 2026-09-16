@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Bws.Gui.ViewModels;
@@ -171,6 +172,139 @@ public sealed class FilterRowGuards
             + "only break between groups.");
 
         WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Every filter group has a row of its own and the five labels stand in one column - point 7
+    /// of the review in `docs/11` 2.14, GUI rule 13: a form is a grid with a column of labels.
+    ///
+    /// <b>What was wrong is on the photograph of 2026-09-15:</b> the groups flowed in a WrapPanel,
+    /// so "About the entry" landed in the middle of the fourth row beside the chips of "Disagrees
+    /// with itself", and the labels were wherever the wrap left them.
+    ///
+    /// <b>Measured at two widths, because the two answer different questions.</b> At the width the
+    /// window opens with, every group fits on one line and the column is the whole point. At the
+    /// narrowest width the widest group wraps inside its row, and the labels have to stay a
+    /// column while the chips beside them fold - which is what the shared size scope buys and a
+    /// per-group Auto column would lose.
+    /// </summary>
+    [Theory]
+    [InlineData("WidthWindowLeast")]
+    [InlineData("WidthWindowOpens")]
+    public void Every_filter_group_has_its_own_row_and_the_labels_stand_in_one_column(string width)
+    {
+        var window = WpfHost.Window();
+
+        var groups = WpfHost.On(() =>
+        {
+            window.Width = width == "WidthWindowOpens" ? window.Width : (double)WpfHost.Resources[width];
+            window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+            window.UpdateLayout();
+
+            var host = window.Filters.Chips;
+            var dress = (Style)WpfHost.Resources["FilterChip"];
+
+            return Enumerable.Range(0, host.Items.Count)
+                .Select(at => (FrameworkElement)host.ItemContainerGenerator.ContainerFromIndex(at))
+                .Select(container =>
+                {
+                    var label = Descendants(container).OfType<TextBlock>().First();
+                    var chips = new List<ToggleButton>();
+                    Collect(container, dress, chips);
+                    var first = chips.OrderBy(chip => chip.TransformToAncestor(window).Transform(new Point()).Y)
+                        .ThenBy(chip => chip.TransformToAncestor(window).Transform(new Point()).X)
+                        .First();
+
+                    var at = container.TransformToAncestor(window).Transform(new Point());
+
+                    return (
+                        Label: label.Text,
+                        LabelX: label.TransformToAncestor(window).Transform(new Point()).X,
+                        FirstChipX: first.TransformToAncestor(window).Transform(new Point()).X,
+                        Top: at.Y,
+                        Bottom: at.Y + container.ActualHeight);
+                })
+                .ToArray();
+        });
+
+        Assert.True(groups.Length >= 4, $"only {groups.Length} filter groups were built, so this proved nothing");
+
+        // ONE COLUMN: every label starts where the first does, and so does every first chip.
+        foreach (var group in groups)
+        {
+            Assert.True(
+                Math.Abs(group.LabelX - groups[0].LabelX) <= 1,
+                $"the label \"{group.Label}\" starts at {group.LabelX} where \"{groups[0].Label}\" starts at {groups[0].LabelX} - the labels are not a column");
+            Assert.True(
+                Math.Abs(group.FirstChipX - groups[0].FirstChipX) <= 1,
+                $"the chips of \"{group.Label}\" start at {group.FirstChipX} where those of \"{groups[0].Label}\" start at {groups[0].FirstChipX} - the label column is not one width");
+        }
+
+        // ONE ROW EACH: no group starts above the bottom of the one before it.
+        for (var at = 1; at < groups.Length; at++)
+        {
+            Assert.True(
+                groups[at].Top >= groups[at - 1].Bottom - 1,
+                $"\"{groups[at].Label}\" starts at {groups[at].Top}, beside \"{groups[at - 1].Label}\" which ends at {groups[at - 1].Bottom} - two groups share a row");
+        }
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// The Filters button is exactly as wide folded as open - point 8(a) of the review in
+    /// `docs/11` 2.14. Its triangle pointed down at 8 by 5 and right at 5 by 8, so the button
+    /// folded was three pixels narrower than open and Columns and Show every instance stepped
+    /// sideways on every press - GUI rule 3, nothing jumps, broken by a glyph.
+    ///
+    /// <b>Measured off a laid-out window rather than off the geometry</b>, because the fix is a
+    /// square the Path is given, and whether the Path honours it is a fact about layout.
+    /// </summary>
+    [Fact]
+    public void The_filters_button_is_as_wide_folded_as_open()
+    {
+        var window = WpfHost.Window();
+
+        var (open, folded) = WpfHost.On(() =>
+        {
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+            window.UpdateLayout();
+
+            var toggle = window.Filters.Switch;
+            var opened = toggle.ActualWidth;
+
+            toggle.IsChecked = false;
+            window.UpdateLayout();
+
+            return (opened, toggle.ActualWidth);
+        });
+
+        Assert.True(open > 40, $"the button measured {open} wide, which is not a laid out button");
+        Assert.Equal(open, folded);
+
+        WpfHost.On(window.Close);
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var at = 0; at < VisualTreeHelper.GetChildrenCount(root); at++)
+        {
+            var child = VisualTreeHelper.GetChild(root, at);
+
+            yield return child;
+
+            foreach (var under in Descendants(child))
+            {
+                yield return under;
+            }
+        }
     }
 
     private static void Collect(DependencyObject from, Style dress, List<ToggleButton> found)

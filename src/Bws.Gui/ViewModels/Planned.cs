@@ -47,8 +47,12 @@ public sealed class PlanLine
 /// worked out in the core, where they are testable without a machine to break. What this adds is
 /// words, and the core deliberately carries none: a warning holds a kind and the facts, because the
 /// same warning reads differently in a window and in a terminal.
+///
+/// <b><see cref="Checked"/> rather than <see cref="Observable"/> since 2026-09-15</b>, because the
+/// box of seconds can be wrong and the binding on it listens for that in the framework's own words -
+/// what it says is in Planned.Waiting.cs.
 /// </summary>
-public sealed partial class Planned : Observable
+public sealed partial class Planned : Checked
 {
     private bool _showing;
     private BulkPlan? _plan;
@@ -98,8 +102,15 @@ public sealed partial class Planned : Observable
     /// does, and <see cref="NeedsTyping"/> is where that scale is decided. It is last in the chain
     /// on purpose: every other clause is about whether this CAN be done, and this one is about
     /// whether somebody has said they mean it.
+    ///
+    /// <b>AND THE BOX OF SECONDS, SINCE 2026-09-15, BEFORE THE NAME AND AFTER EVERYTHING ELSE.</b>
+    /// A run is given the number in that box at the press, so a box reading "abc" and a live button
+    /// would be the screen and the machine disagreeing - `docs/11` calls that the worst bug this
+    /// product can have. It sits before the typed name because it is a "can this be done" clause,
+    /// and after the plan because a plan with nothing to run has no box on it.
     public bool CanCarryOut =>
-        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true } && Confirmed;
+        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
+        && !HasWaitingProblem && Confirmed;
 
     /// <summary>
     /// Whether this session can change anything at all.
@@ -144,6 +155,12 @@ public sealed partial class Planned : Observable
         : Busy ? Texts.Of("gui.plan.blocked.running")
         : _run is not null ? Texts.Of("gui.plan.blocked.alreadyDone")
         : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
+
+        // THE SIXTH WAY, SINCE 2026-09-15, AND THE SECOND SOMEBODY CAN CLEAR FROM WHERE THEY
+        // STAND: the box of seconds says something that is not seconds. The sentence under the
+        // box already says so, and this repeats it on the button because the button is where a
+        // person resting on grey looks first.
+        : HasWaitingProblem ? Texts.Of("gui.plan.blocked.notSeconds")
 
         // THE FIFTH WAY THIS BUTTON GOES QUIET, AND IT IS THE ONLY ONE SOMEBODY CAN CLEAR FROM
         // WHERE THEY ARE STANDING. The other four are facts about the session, the run or the

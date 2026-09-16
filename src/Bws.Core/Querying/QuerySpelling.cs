@@ -25,6 +25,34 @@ namespace Bws.Core.Querying;
 internal static class QuerySpelling
 {
     /// <summary>
+    /// One spelling, one form. Case is folded because Windows treats service names that way,
+    /// and the separators go because a two-word value has three plausible spellings and
+    /// making a person guess which one we chose is a poor use of their time.
+    ///
+    /// <b>Here since 2026-09-15, and in <see cref="QueryFields"/> before that.</b> The size ratchet
+    /// asked when the reserved words became a list there, and this is the seam the paragraph above
+    /// already names: a question about strings that reads nothing. Every field name, alias, value
+    /// and typed word goes through this before it is compared with anything.
+    /// </summary>
+    internal static string Normalise(string text)
+    {
+        Span<char> folded = text.Length <= 64 ? stackalloc char[text.Length] : new char[text.Length];
+        var length = 0;
+
+        foreach (var character in text)
+        {
+            if (character is '-' or '_')
+            {
+                continue;
+            }
+
+            folded[length++] = char.ToLowerInvariant(character);
+        }
+
+        return new string(folded[..length]);
+    }
+
+    /// <summary>
     /// The closest accepted spelling, when one is close enough to be worth offering. Too
     /// generous a threshold turns a helpful hint into a confusing one, so a suggestion has
     /// to be nearer than half the word.
@@ -36,7 +64,7 @@ internal static class QuerySpelling
 
         foreach (var candidate in alternatives)
         {
-            var distance = Distance(wanted, QueryFields.Normalise(candidate));
+            var distance = Distance(wanted, Normalise(candidate));
 
             if (distance < bestDistance)
             {

@@ -4,8 +4,9 @@
                     xmlns:windows="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <!--
-        The scale this product is built on - how big a gap is, how big a letter is, what shape a
-        mark is. Not one colour, not one column width, and not one style.
+        The scale this product is built on - how big a thing is, how thick a line is, what shape a
+        mark is. Not one colour, not one column width, not one gap, not one letter, and not one
+        style.
 
         ADR-23. Everything else refers to these by name, and a guard in the architecture
         tests fails the build on a value written into a view. The reason is not tidiness:
@@ -34,43 +35,42 @@
         column widths - and each answers a question somebody arrives with on its own. Colours.xaml
         answers "what colour" and Columns.xaml answers "how wide is that column".
 
+        THE FOURTH AND FIFTH CUTS TOOK THE LETTERS AND THEN THE GAPS, AND BOTH TIMES THIS FILE
+        STOOD EXACTLY ON THE CEILING. Type.xaml on 2026-09-01, predicted by backlog 271 an hour
+        before it was needed - "how big is that letter". Spacing.xaml on 2026-09-15, backlog 173,
+        when the plan sheet needed three widths at once and there was no line to put one on -
+        "how much air is around it". Twenty-one entries went, every Margin and every Pad, each with
+        its comment. What stays is what the first sentence says: sizes, line thicknesses and shapes.
+
         THE VALUE FILES ARE MERGED BEFORE THE STYLES FILES AND THAT IS LOAD BEARING. The styles
         reach these keys through StaticResource, which is resolved WHILE THE FILE IS BEING READ -
         so the order in App.xaml is WPF UI's dictionaries, then the value files, then Controls,
         then List, then Cells. None of them loads on its own.
 
         The base look comes from WPF UI in dark mode (ADR-24), so what lives here is only
-        what is ours: the spacing scale, the type sizes, and the shapes a mark is drawn in.
+        what is ours: the sizes, the widths a box may reach, and the shapes a mark is drawn in.
     -->
 
     <!--
-        A SPACING SCALE OF FOUR STEPS STOOD HERE UNTIL 2026-09-02 AND NOTHING HAD EVER USED IT.
-        SpaceTight, SpaceNormal, SpaceWide and SpaceSection - zero references in markup, zero in
-        code. Its own comment said "the guard makes the alternative fail the build", and there was
-        no such guard: every margin in this window is a named Thickness instead, written one at a
-        time. That sentence is the exact shape rule 3 warns about - a "because" nothing checks,
-        read by later sessions as a fact. Backlog 294 keeps the intent, which was a good one.
+        A size of nothing, named so that a view saying "no height here" says it the same way every
+        other value is said. The gravestone of the spacing scale that stood beside it is in
+        Spacing.xaml, with the rest of the gaps, since 2026-09-15.
     -->
     <system:Double x:Key="SizeNone">0</system:Double>
 
-    <Thickness x:Key="PadCell">8,4,8,4</Thickness>
+    <!-- The mark a meaningful cell wears. The gap between it and its word is MarginAfterShape, in Spacing.xaml. -->
+    <system:Double x:Key="ShapeMark">8</system:Double>
 
     <!--
-        The list cell, and it is deliberately not PadCell.
-
-        Measured on screen 2026-08-02: WPF UI's cell template honours TemplateBinding Padding
-        and the built-in one did not, so the same 8,4,8,4 that was invisible before the
-        migration became 6.6 logical pixels of row height after it - 29 rows on screen fell to
-        22. The owner chose to keep this list's density, so the vertical half goes to nothing
-        and row height is decided by the line height alone.
+        THE BOX THE DISCLOSURE TRIANGLE ON THE FILTERS BUTTON IS DRAWN IN, since 2026-09-15 - point
+        8(a) of `docs/11` 2.14. The two triangles were 8 by 5 and 5 by 8, so the button was three
+        pixels narrower folded than open and everything to its right stepped sideways on every
+        press. Both geometries sit centred in one square of this size now, so the button keeps one
+        width whichever way it points. The same number as ShapeMark and NOT the same name: a cell's
+        mark and a button's mark are two things that happen to be eight today, and one name for
+        both would grow the dots in every row the day somebody wanted a larger triangle.
     -->
-    <Thickness x:Key="PadListCell">8,0,8,0</Thickness>
-    <Thickness x:Key="PadPanel">16</Thickness>
-    <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
-    <Thickness x:Key="MarginNone">0</Thickness>
-
-    <!-- The mark a meaningful cell wears, and the gap between it and its word. -->
-    <system:Double x:Key="ShapeMark">8</system:Double>
+    <system:Double x:Key="SizeDisclosureMark">8</system:Double>
     <system:Double x:Key="ShapeOutline">1.5</system:Double>
 
     <!--
@@ -89,23 +89,6 @@
         be seen at all.
     -->
     <DoubleCollection x:Key="ShapeUnreadableOutline">2,2</DoubleCollection>
-    <Thickness x:Key="MarginAfterShape">0,0,8,0</Thickness>
-
-    <!--
-        THE GAP BETWEEN A NUMBER AND THE WORDS IT COUNTS, AND IT WAS MISSING UNTIL 2026-09-01.
-        The overview - the first screen anybody sees - read "113services running", "1set to start
-        automatically and did not come up", "0orphans". Every line of it.
-
-        WHY IT WAS MISSING IS WORTH MORE THAN THE VALUE. The label carried MarginBetweenControls,
-        which is 0,0,8,0 - a gap on its RIGHT, where nothing stands - so it pushed away from what
-        came after it and left nothing between itself and the number in front. A margin named for
-        what it separates rather than for which side it is on reads as though it does both.
-
-        FOUND BY LOOKING AT THE SCREEN. Backlog 192's package asked for the first run screen to be
-        seen by an eye rather than counted by automation, and this is what the eye was for: every
-        guard in this project passed over it, because a missing space is not a missing element.
-    -->
-    <Thickness x:Key="MarginAfterNumber">0,0,8,0</Thickness>
 
     <!-- A gravestone, cut 2026-09-02 from twenty-three lines of history attached to no value.
          The fact worth keeping: **WPF has no TextBlock.MaxLines**, so a line cap has to be a
@@ -197,50 +180,6 @@
     -->
     <GridLength x:Key="ColumnOverviewNumber">64</GridLength>
 
-    <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
-    <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
-
-    <!--
-        Between one filter chip and the next, and it is the only new appearance value the whole
-        clickable-filter slice needed.
-
-        Right and bottom rather than all four sides, because the chips wrap: a gap on the leading
-        edge would push the first chip of every line away from the search box above it, and the
-        eye reads that as an indent rather than as spacing. The bottom half is what keeps two
-        wrapped lines apart.
-    -->
-    <Thickness x:Key="MarginChip">0,0,8,4</Thickness>
-
-    <!--
-        WHAT MAKES A CHIP LOOK LIKE A CHIP AND NOT LIKE A BUTTON - 2026-09-01, and the case for it
-        is a measurement rather than taste. Read off the automation tree with the window at
-        1650x1050: a filter chip was 47 pixels tall and an action button beside it was 48. Two
-        controls that do completely different things - one writes a token into the query, the other
-        opens a plan that can stop a service - were drawn as the same rounded rectangle at the same
-        height with the same text size. `docs/11` complaint 14 is exactly this fault one control
-        over, and its rule is the one being followed here: when the look carries the wrong MEANING,
-        the repair is a whole visual family rather than a different shade of the old one.
-
-        THREE SIGNALS RATHER THAN ONE, because any single one of them is arguable and three
-        together are not: the corner becomes a pill, the height drops by about a fifth, and the
-        text drops to the body size. A person does not have to notice any of them to stop confusing
-        the two rows.
-
-        AND IT PAYS FOR ITSELF IN THE ONE CURRENCY THIS WINDOW IS SHORT OF. Measured the same run:
-        517 of 1050 pixels stand above the first row of data, and the four rows of chips are 206 of
-        those. This takes about 36 back, which is a row of services - small, and in the right
-        direction, which is more than the previous three attempts at this screen managed.
-    -->
-    <Thickness x:Key="PadChip">12,3,12,3</Thickness>
-
-    <!--
-        Inside the one button this product draws itself. It WAS 14,6 so the box would land on the
-        library button's 48 device pixels, and the owner asked on 2026-09-01 for the elevate button
-        to be smaller. Matching the neighbours' box was buying nothing here: a primary action is
-        told apart by its fill, and this one never stands beside them anyway.
-    -->
-    <Thickness x:Key="PadButton">10,4,10,4</Thickness>
-
     <!--
         THE SCROLLBAR: ONE TARGET, TWO PAINTS, A RADIUS AND A FLOOR. The bar is what the pointer
         hits and the thumb is what gets drawn inside it, and keeping those two apart is the whole
@@ -266,14 +205,6 @@
     <CornerRadius x:Key="CornerChip">14</CornerRadius>
 
     <!--
-        Grouping, in the filter row and in the column picker. The gap between facets is wider than
-        the gap between chips on purpose - that difference is the only thing on screen saying where
-        one question ends. The picker's ceiling is what makes it scroll instead of running off the
-        bottom of a short screen and losing its last items silently.
-    -->
-    <Thickness x:Key="MarginGroup">0,0,20,0</Thickness>
-
-    <!--
         THE LINE UNDER THE SCOPE POSITION SOMEBODY IS ON, 2026-08-19. Three rather than one, because
         one pixel at 150% scaling is a hairline that reads as an artefact rather than as a mark -
         and this is the only thing on screen saying which of the two lists is showing.
@@ -286,61 +217,58 @@
     -->
     <system:Double x:Key="HeightScopeUnderline">3</system:Double>
 
-    <!--
-        THE GAP ABOVE A SECTION HEADING, 2026-08-19, and it exists because MarginGroup has NO
-        VERTICAL COMPONENT AT ALL - it is 0,0,20,0, a right margin. Every heading in the plan
-        panel used it and every one of them therefore sat flush against the sentence above,
-        which is what the owner saw as one wall of text with no hierarchy.
-
-        Bottom is small on purpose: a heading belongs to what is under it, so the space above it
-        has to be larger than the space below or the eye groups it with the wrong block.
-    -->
-    <Thickness x:Key="MarginSection">0,18,0,4</Thickness>
-
-    <!--
-        Inside the plan panel, between its edge and its text. Without it the first character sits
-        on the line separating the panel from the list, which is what made the two read as one
-        surface however the fill was chosen.
-    -->
-    <Thickness x:Key="PaddingPanel">14,12,14,12</Thickness>
-
     <!-- The panel's one edge, on the side the list is. -->
     <Thickness x:Key="BorderPanelEdge">1,0,0,0</Thickness>
 
-    <!-- The rule above the panel's footer, so the button reads as part of the panel. -->
+    <!-- The rule above the panel's footer, so the button reads as part of the panel. The gap under it is PaddingFooter, in Spacing.xaml. -->
     <Thickness x:Key="BorderFooterRule">0,1,0,0</Thickness>
 
-    <!-- Between that rule and the button under it. -->
-    <Thickness x:Key="PaddingFooter">0,10,0,0</Thickness>
     <!-- The ceiling on a menu, with a scrollbar under it. Why it stopped deciding the column picker: ColumnGroup. -->
     <system:Double x:Key="HeightMenu">420</system:Double>
-
-    <!--
-        THE MACHINE OVERVIEW AS THREE CARDS RATHER THAN SIX LINES, 2026-09-01. Why the composition
-        changed instead of the colours is at the head of OverviewView.xaml, beside the screen it is
-        about - these are the steps that drawing needs and the three that are not reused say why.
-    -->
-    <!--
-        EIGHT DOWN EACH SIDE RATHER THAN SIXTEEN, FROM 2026-09-01 EVENING, and the other eight
-        moved onto the buttons inside. The card looks identical - a line still starts sixteen from
-        its edge - and what changes is that the hover surface of a question now has air around the
-        words instead of ending on the first letter. Photographed: the pointer lit a panel whose
-        left boundary ran through the "1".
-    -->
-    <Thickness x:Key="PadTile">8,14,8,16</Thickness>
 
     <!--
         BOXES WITH ALL FOUR EDGES, which is why neither is BorderPanelEdge - that one is 1,0,0,0,
         a seam rather than a thing. BorderAllSides is shared by the card and the plan sheet on
         purpose: one point is one point, and a second name for the same number is a second place to
         change it. Four for a card because WPF UI rounds its surfaces at four, eight for the sheet
-        because it floats over a dimmed window rather than sitting in a row. The sheet's margin is
-        also its height limit - centred inside it, it cannot outgrow the window. `docs/11` 3.12.
+        because it floats over a dimmed window rather than sitting in a row. The sheet's margin -
+        MarginPlanSheet, in Spacing.xaml - is also its height limit: centred inside it, it cannot
+        outgrow the window. `docs/11` 3.12.
     -->
     <Thickness x:Key="BorderAllSides">1</Thickness>
     <CornerRadius x:Key="CornerTile">4</CornerRadius>
     <CornerRadius x:Key="CornerPlanSheet">8</CornerRadius>
-    <Thickness x:Key="MarginPlanSheet">40</Thickness>
+
+    <!--
+        HOW WIDE THE PLAN SHEET IS. It stood in PlanView.xaml as a raw 560 from the day the sheet
+        became a layer over the window, 2026-09-02, and came here on 2026-09-15 with the two values
+        below it - the same family as backlog 352, a dimension written where no guard reads it.
+        Wide enough for a heading naming an entry on two lines rather than three, and for the
+        footer to hold the waiting box and the button that names the act on one row.
+    -->
+    <system:Double x:Key="WidthPlanSheet">560</system:Double>
+
+    <!--
+        THE BOX THAT TAKES A NUMBER OF SECONDS, backlog 352. Four digits and a little air: a
+        timeout typed here is a number somebody already knows - thirty, ninety, three hundred - and
+        the box is sized for the number rather than for the largest one an int could hold, which
+        would be a field as wide as the sentence it sits in.
+    -->
+    <system:Double x:Key="WidthWaitingBox">56</system:Double>
+
+    <!--
+        THE MOST THE BUTTON AT THE FOOT OF A PLAN MAY GROW, since 2026-09-15, when it started naming
+        the entry it acts on - "Stop Windows Search" rather than "Carry this out". A display name is
+        translated and unbounded: "Windows Management Instrumentation" is one this machine has, and
+        a button fitting its word would push the waiting box off the same row. So the button stops
+        here and the name is trimmed with an ellipsis - `docs/11` 3.5 - while the heading two blocks
+        up carries the whole of it. Roughly forty characters at the body size, and that is an
+        estimate. What is measured, 2026-09-15 on this machine, 313 services: the longest internal
+        name is 41 characters, and 79 of the 313 display names are over 40, the longest 116 - so on
+        a Polish Windows the ellipsis is what a quarter of the list gets, not a corner case, and the
+        heading is where the whole name lives.
+    -->
+    <system:Double x:Key="WidthCarryOutMost">300</system:Double>
 
     <!--
         A FLOOR UNDER THE COPY BUTTON RATHER THAN LETTING IT FIT ITS WORD. That word becomes
@@ -348,17 +276,6 @@
         it sideways - backlog 146 in a second place, where the search field moved the window.
     -->
     <system:Double x:Key="WidthCopyButton">78</system:Double>
-
-    <!--
-        Between one card and the next. On the RIGHT ONLY, which leaves twelve points hanging off the
-        last card of the row - accepted rather than answered with a negative margin on the row, which
-        would be a value nothing on screen explains and a second thing to get wrong.
-    -->
-    <Thickness x:Key="MarginTile">0,0,12,0</Thickness>
-
-    <!-- Between a card's number and its words, and above each block that follows the cards. -->
-    <Thickness x:Key="MarginTileLabel">0,2,0,0</Thickness>
-    <Thickness x:Key="MarginTileParts">0,14,0,0</Thickness>
 
     <!--
         The column a qualification's own number is right aligned in. Narrower than

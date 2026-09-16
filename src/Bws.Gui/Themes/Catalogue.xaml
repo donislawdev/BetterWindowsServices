@@ -1,0 +1,247 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        THE LOOK OF THE COMPONENT CATALOGUE, and it has a file of its own for a reason that is
+        measured rather than stylistic.
+
+        Values.xaml stands at 376 lines against a markup ceiling of 376, and so does Colours.xaml,
+        and so does MainWindow.xaml - measured 2026-09-10 by tools/margin.ps1, which is the tool
+        that first said THREE files are on that ceiling rather than one. Backlog 173 is the open
+        decision about it. So a screen that needs four numbers of its own cannot put them where
+        every other number lives, and the honest answer is a file rather than a raw value in a
+        view, which rule 1 of the GUI rules forbids outright.
+
+        EVERY KEY HERE IS A COMPONENT THE CATALOGUE ITSELF WILL SHOW, which is not a curiosity: a
+        catalogue that could not draw its own furniture would be a catalogue with an exception in
+        it, and an exception is where drift starts.
+
+        WHAT IS DELIBERATELY NOT HERE: colour. The sheet is drawn out of SurfacePanel,
+        SurfaceRowLine and SurfacePanelEdge, which the window already declares in Colours.xaml.
+        A developer screen with a palette of its own would be a second palette to keep in step.
+    -->
+
+    <!--
+        The width of the column that holds a component's key. Wide enough for the longest one
+        this product has - OverviewQualificationNumberText, 31 characters - because a key cut in
+        half is a key nobody can search for.
+    -->
+    <system:Double x:Key="WidthCatalogueName">260</system:Double>
+
+    <!--
+        THE STATE COLUMNS ARE FIXED RATHER THAN SHARED OUT OF WHAT IS LEFT, and the first version
+        was not. With star columns a sample sat two hundred pixels away from its own name, because
+        a left aligned control in a wide column is a control with a wide margin - and the eye has
+        to travel that gap on every one of fifty five rows.
+    -->
+    <system:Double x:Key="WidthCatalogueState">260</system:Double>
+
+    <!--
+        WIDE ENOUGH TO WRAP, NARROW ENOUGH TO STAY A COLUMN. The extremes cell holds a line long
+        enough to run past any column in the product, so this width is what decides where it wraps.
+    -->
+    <system:Double x:Key="WidthCatalogueExtreme">420</system:Double>
+
+    <!--
+        A CEILING ON A ROW, and it is the difference between a sheet and a scroll. The first
+        version had none: OverviewNumberText is drawn at display size, so its long sample wrapped
+        to four lines of forty point text and made one row three hundred pixels tall. A sample
+        that overflows this is CLIPPED rather than allowed to push, which is also the honest
+        answer - a component given more text than it has room for is clipped in the product too.
+    -->
+    <system:Double x:Key="HeightCatalogueSample">96</system:Double>
+
+    <!-- Room around a sample so that two of them side by side are not read as one control. -->
+    <Thickness x:Key="PadCatalogueSample">10,8,10,8</Thickness>
+
+    <!-- The gap between one group of components and the next. -->
+    <Thickness x:Key="MarginCatalogueGroup">0,0,0,28</Thickness>
+
+    <!--
+        A row on the sheet: a line under it and room to breathe. The line is SurfaceRowLine, the
+        same brush the list draws between entries, so the sheet and the product agree about what
+        a separator looks like.
+    -->
+    <Style x:Key="CatalogueRow" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceRowLine}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderFooterRule}" />
+        <Setter Property="Padding" Value="{StaticResource PadCatalogueSample}" />
+    </Style>
+
+    <!--
+        The box one sample sits in. Left aligned rather than stretched, because a stretched button
+        is a button of a size the product never draws, and the point of this screen is to show
+        what ships.
+    -->
+    <Style x:Key="CatalogueSampleBox" TargetType="ContentControl">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+
+        <!--
+            TOP RATHER THAN CENTRE. On a row whose extremes cell wraps to three lines, a centred
+            sample floats away from the name that labels it, and the two stop reading as one row.
+        -->
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="MaxHeight" Value="{StaticResource HeightCatalogueSample}" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="Margin" Value="{StaticResource PadCatalogueSample}" />
+
+        <!--
+            FOCUSABLE IS FALSE ON THE BOX AND NOT ON WHAT IS INSIDE IT. The samples are real
+            controls and a person walking this screen with Tab is exactly how the focus state
+            gets looked at - trap docs/10 15 and 16 both live in that walk. What must not take a
+            stop is the wrapper, which would put an invisible stop in front of every sample.
+        -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+
+        <!--
+            OUT OF THE WAY WHEN THERE IS NOTHING IN IT, and this trigger spent one build in the
+            wrong place. It sat in a ContentControl.Resources block inside the cell template,
+            where an implicit style reaches the CHILDREN of a control and never the control
+            itself - so it could not fire, and nothing said so, because a ContentControl holding
+            nothing draws nothing either way. A dead trigger that looks alive is worse than no
+            trigger: the next person reads it as the mechanism.
+        -->
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Element}" Value="{x:Null}">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The card a group of components sits on. The same panel surface the plan uses, so the
+        sheet is drawn out of the product rather than beside it.
+    -->
+    <Style x:Key="CatalogueGroupCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CornerTile}" />
+        <Setter Property="Padding" Value="{StaticResource PaddingPanel}" />
+        <Setter Property="Margin" Value="{StaticResource MarginCatalogueGroup}" />
+    </Style>
+
+    <!--
+        ONE CELL OF THE SHEET: a sample, or the reason there is none, never both and never
+        neither. The two triggers are the whole mechanism and they hang off the empty string
+        rather than off null, which is why Catalogue.Sample carries an empty Instead where it has
+        an element - the same shape EmptyState.xaml uses two files away.
+    -->
+    <DataTemplate x:Key="CatalogueCell">
+        <Grid>
+            <ContentControl Content="{Binding Element}" Style="{StaticResource CatalogueSampleBox}" />
+
+            <TextBlock Text="{Binding Instead}"
+                       TextWrapping="Wrap"
+                       Margin="{StaticResource PadCatalogueSample}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Instead}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+    </DataTemplate>
+
+    <!--
+        ONE COMPONENT, ACROSS ITS ARRANGEMENTS. The name column is shared across every group with
+        SharedSizeGroup, so the sheet reads as one table rather than as a stack of little ones -
+        the same mechanism DetailsView.xaml uses for its label column.
+
+        FOUR COLUMNS AND NOT FIVE. There is no "focused" column, and leaving it out is the
+        deliberate half of this design: nothing here can give a control the keyboard, so a column
+        headed "focused" would be showing something else and calling it focus. Focus is looked at
+        by pressing Tab on this screen, which is also what makes the ring in Chips.xaml and
+        Controls.xaml visible at all.
+    -->
+    <DataTemplate x:Key="CatalogueEntry">
+        <Border Style="{StaticResource CatalogueRow}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueName" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueNormal" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueDisabled" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueWrong" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Width="{StaticResource WidthCatalogueName}">
+                    <TextBlock Text="{Binding Key}" Style="{StaticResource FixedText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Target}" Style="{StaticResource SubduedText}" />
+                </StackPanel>
+
+                <ContentPresenter Grid.Column="1" Width="{StaticResource WidthCatalogueState}"
+                                  Content="{Binding Normal}" ContentTemplate="{StaticResource CatalogueCell}" />
+                <ContentPresenter Grid.Column="2" Width="{StaticResource WidthCatalogueState}"
+                                  Content="{Binding Disabled}" ContentTemplate="{StaticResource CatalogueCell}" />
+                <!--
+                    THE WRONG STATE, A FOURTH COLUMN SINCE 2026-09-15, when the box of seconds
+                    became the first component that can be wrong. Built by the sheet's model out of
+                    the style's own trigger on Validation.HasError, so a component that learns to be
+                    wrong appears here without an edit to this file.
+                -->
+                <ContentPresenter Grid.Column="3" Width="{StaticResource WidthCatalogueState}"
+                                  Content="{Binding Wrong}" ContentTemplate="{StaticResource CatalogueCell}" />
+                <ContentPresenter Grid.Column="4" Width="{StaticResource WidthCatalogueExtreme}"
+                                  HorizontalAlignment="Left"
+                                  Content="{Binding Extreme}" ContentTemplate="{StaticResource CatalogueCell}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!--
+        THE FOUR COLUMN NAMES, ONCE PER GROUP RATHER THAN ONCE PER SHEET. A heading at the very
+        top scrolls away after the first file, and then every column below it is unlabelled - which
+        on a sheet whose whole point is comparing arrangements is the one thing that must not
+        happen.
+    -->
+    <DataTemplate x:Key="CatalogueHeadings">
+        <Grid Margin="{StaticResource PadCatalogueSample}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueName" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueNormal" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueDisabled" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="CatalogueWrong" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Width="{StaticResource WidthCatalogueName}"
+                       Text="{Binding Name}" Style="{StaticResource SectionHeadingText}" />
+
+            <TextBlock Grid.Column="1" Width="{StaticResource WidthCatalogueState}"
+                       Text="{Binding Normally}" Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+
+            <TextBlock Grid.Column="2" Width="{StaticResource WidthCatalogueState}"
+                       Text="{Binding Off}" Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+
+            <TextBlock Grid.Column="3" Width="{StaticResource WidthCatalogueState}"
+                       Text="{Binding WhenWrong}" Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+
+            <TextBlock Grid.Column="4" Text="{Binding TooMuch}" Style="{StaticResource SubduedText}"
+                       Margin="{StaticResource PadCatalogueSample}" />
+        </Grid>
+    </DataTemplate>
+
+    <!-- ONE THEME FILE, AND EVERY COMPONENT IT DECLARES. -->
+    <DataTemplate x:Key="CatalogueGroup">
+        <Border Style="{StaticResource CatalogueGroupCard}">
+            <StackPanel>
+                <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource CatalogueHeadings}" />
+
+                <ItemsControl ItemsSource="{Binding Entries}"
+                              ItemTemplate="{StaticResource CatalogueEntry}"
+                              Focusable="False" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+</ResourceDictionary>

@@ -240,7 +240,8 @@
                   SelectionUnit="FullRow"
                   SelectionMode="Extended"
                   PreviewMouseRightButtonDown="PointAtRowBeforeMenu"
-                  ContextMenuOpening="OfferTheMenuOnlyOnARow">
+                  ContextMenuOpening="OfferTheMenuOnlyOnARow"
+                  MouseDoubleClick="OpenDetailsOnDoubleClick">
 
             <!--
                 MORE THAN ONE ROW SINCE 2026-08-18, packet 2 of `S7`. `C2` asks for Shift and Ctrl
@@ -254,50 +255,18 @@
                 One consequence lives in the code behind rather than here, and it is the one that
                 would otherwise be a silent wrong answer: a right click on a row OUTSIDE the
                 selection has to replace it, because setting a row selected only ever adds.
+
+                THE MENU ON A ROW IS NOT HERE SINCE 2026-09-15. It is a list in RowMenu.cs, built
+                in the constructor - the arrangement the heading menu has had since 2026-09-05 -
+                because this file stood on the size ratchet's ceiling and the menu needed two lines
+                it did not have. It still hangs on the grid rather than on the row style: the grid
+                is an ancestor of whatever cell has focus, so the menu key opens it without a
+                second copy for the keyboard. And it is still read only, like the list - every item
+                that names a change opens a plan and nothing else, rule 1 of the project notes.
+
+                A DOUBLE CLICK OPENS THE PANEL ABOUT THE ROW, the same day. Enter did that alone
+                until then, and nothing on screen said so.
             -->
-
-            <!--
-                READ ONLY, LIKE THE LIST. Everything that changes a service goes through a plan,
-                so a menu item that stopped one from here would be an operation without a plan -
-                rule 1 of the project notes, and not a temporary shortcut either. Those arrive
-                with the screen that can show a plan.
-
-                It hangs on the grid rather than on the row style, and that is the difference
-                between a menu and a menu that works: a ContextMenu in a resource dictionary has
-                nowhere to put a handler. The grid is also an ancestor of whatever cell has focus,
-                so the menu key opens it without a second copy for the keyboard.
-            -->
-            <DataGrid.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="{DynamicResource gui.menu.copyName}" Click="CopyServiceName" />
-                    <MenuItem Header="{DynamicResource gui.menu.copyDisplayName}" Click="CopyDisplayName" />
-                    <MenuItem Header="{DynamicResource gui.menu.copyDescription}" Click="CopyDescription" />
-
-                    <!--
-                        THE WHOLE ENTRY, AND IT IS WHAT Ctrl+C DOES TOO - owner's request,
-                        2026-08-13. Everything the catalogue knows rather than the columns that
-                        happen to be on, because somebody copying an entry into a ticket wants what
-                        there is to know and the twelve columns that are off by default are exactly
-                        the ones too long to have kept on screen.
-                    -->
-                    <MenuItem Header="{DynamicResource gui.menu.copyAll}" Click="CopyEverything" />
-
-                    <Separator />
-
-                    <!--
-                        WORDED AS QUESTIONS RATHER THAN AS VERBS, AND THEY STAYED THAT WAY WHEN THE
-                        RUNNER ARRIVED ON 2026-08-19. These still open a plan and nothing else, so an
-                        item called "Stop" would still be a lie to somebody's hand - what changed is
-                        that the plan now has a button under it. Items that acted straight from here
-                        would be a second road to a write, and the one thing `docs/11` 9.2 refuses is
-                        asking about an effect nobody has been shown.
-                    -->
-                    <MenuItem Header="{DynamicResource gui.menu.previewStop}" Click="PreviewStop" />
-                    <MenuItem Header="{DynamicResource gui.menu.previewStart}" Click="PreviewStart" />
-                    <MenuItem Header="{DynamicResource gui.menu.previewRestart}" Click="PreviewRestart" />
-                </ContextMenu>
-            </DataGrid.ContextMenu>
-
         </DataGrid>
 
         <!--

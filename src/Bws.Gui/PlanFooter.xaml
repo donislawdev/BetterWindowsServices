@@ -104,12 +104,25 @@
                          Text="{Binding Typed, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
 
+            <!--
+                TWO ROWS SINCE 2026-09-15: the controls, and under them the one sentence the box of
+                seconds can say about itself. THE SECOND ROW IS ALWAYS THERE, empty or not - an empty
+                TextBlock keeps the height of one line, measured at 16 for the small size - because
+                this row holds the button somebody is aiming at. A sentence that appeared only when
+                needed would push nothing (it is below the button) but would grow the sheet, and a
+                centred sheet growing moves everything in it by half a line. GUI rule 3: nothing on
+                this sheet may jump under a hand.
+            -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
                 <!--
                     HOW LONG ONE STEP MAY BE WATCHED FOR, WHICH THE WINDOW HAD NO WAY OF SAYING UNTIL
@@ -126,15 +139,26 @@
                     A PLAIN TEXTBOX RATHER THAN A NUMBER BOX WITH ARROWS. What somebody types here is a
                     number they already know - the service they have learnt is slow - rather than one
                     they arrive at by nudging, and the arrows would be two more Tab stops between the
-                    plan and the button that carries it out. The model refuses anything that is not a
-                    whole number of seconds, which is the terminal's own rule rather than a new one.
+                    plan and the button that carries it out.
+
+                    IT HOLDS TEXT, NOT A NUMBER, SINCE 2026-09-15 - point 5 of the review in `docs/11`
+                    2.14. Bound to an int, the box let WPF do the reading and WPF reads in silence:
+                    a word was a conversion error nobody saw, zero was refused by a setter that said
+                    nothing, and the run used sixty under a box reading "abc". The model reads the
+                    text with the terminal's own rule and says under the box when it is not a number
+                    of seconds - WaitingBox is the style that colours the edge while it says so, and
+                    the button greys with the same reason on it.
 
                     UpdateSourceTrigger for the same reason the confirmation box has it: without it the
                     number would be typed and the run would still use the old one until somebody
                     clicked elsewhere, which is a disagreement between the screen and the machine.
+
+                    THE WIDTH IS A NAME SINCE 2026-09-15 and was a raw 56 here - backlog 352, GUI
+                    rule 12. The number did not move, only where it lives.
                 -->
                 <StackPanel x:Name="WaitingSection"
                             Grid.Column="0"
+                            Grid.Row="0"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             ToolTip="{DynamicResource gui.plan.waiting.hint}"
@@ -146,15 +170,33 @@
                     <TextBox x:Name="WaitingBox"
                              AutomationProperties.AutomationId="planWaiting"
                              AutomationProperties.Name="{DynamicResource gui.plan.waiting.label}"
-                             Width="56"
+                             Style="{StaticResource WaitingBox}"
+                             Width="{StaticResource WidthWaitingBox}"
                              Margin="{StaticResource MarginBetweenControls}"
                              TextAlignment="Right"
-                             Text="{Binding Waiting, UpdateSourceTrigger=PropertyChanged}" />
+                             Text="{Binding WaitingText, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock Text="{DynamicResource gui.plan.waiting.unit}"
                                VerticalAlignment="Center"
                                Style="{StaticResource SubduedText}" />
                 </StackPanel>
+
+                <!--
+                    WHAT IS WRONG WITH THE BOX, UNDER THE ROW IT IS IN. Empty almost always, and
+                    ALWAYS PRESENT - the row it sits in is reserved, see the head of this grid. In
+                    the problem colour, the same one the box's edge wears, so the sentence and the
+                    field read as one thing. Spans every column because it is a sentence rather than
+                    a control, and a sentence wrapping inside the first column would be a tall
+                    narrow paragraph beside two buttons.
+                -->
+                <TextBlock Grid.Column="0"
+                           Grid.ColumnSpan="3"
+                           Grid.Row="1"
+                           x:Name="WaitingProblemLine"
+                           AutomationProperties.AutomationId="planWaitingProblem"
+                           Text="{Binding WaitingProblem}"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource ProblemText}" />
 
                 <TextBlock Grid.Column="0"
                            x:Name="PlanProgress"
@@ -183,15 +225,28 @@
                     fifth arrived with the box above it and is the only one somebody can clear
                     from where they are standing.
 
-                    ITS CONTENT IS BOUND TOO, SINCE 2026-09-07. On a plan that ends a process the
-                    button names the process - the owner's decision, and the argument is that
-                    "Carry this out" describes a plan where the press ends something.
+                    ITS CONTENT IS BOUND TOO, SINCE 2026-09-07, AND SINCE 2026-09-15 IT NAMES THE
+                    ACT ON EVERY PLAN. "End process 4812" was the owner's decision of 2026-09-07
+                    for a forcing plan, with an argument that was already general - "Carry this
+                    out" describes a plan where the press does something - and the review of
+                    2026-09-15 (`docs/11` 2.14, point 4) applied it to the rest: "Stop Windows
+                    Search", "Restart 3 entries", "Set Spooler to Disabled".
+
+                    A NAME IS UNBOUNDED AND THIS ROW IS NOT. The button stops growing at
+                    WidthCarryOutMost and its word is trimmed with an ellipsis through
+                    TrimmedButtonLabel, so the longest display name on a Polish Windows cannot push
+                    the waiting box off the row - the heading above carries the whole name. The
+                    automation name is bound as well as the content, so a probe reading this button
+                    gets the label whichever way WPF derives a name for templated content.
                 -->
                 <Button Grid.Column="2"
                         x:Name="CarryOutButton"
                         Style="{StaticResource DestructiveAction}"
                         AutomationProperties.AutomationId="planCarryOut"
+                        AutomationProperties.Name="{Binding CarryOutLabel}"
                         Content="{Binding CarryOutLabel}"
+                        ContentTemplate="{StaticResource TrimmedButtonLabel}"
+                        MaxWidth="{StaticResource WidthCarryOutMost}"
                         ToolTip="{Binding CarryOutTip}"
                         ToolTipService.ShowOnDisabled="True"
                         IsEnabled="{Binding CanCarryOut}"

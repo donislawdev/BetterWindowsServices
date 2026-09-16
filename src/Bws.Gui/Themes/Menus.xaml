@@ -128,4 +128,23 @@
     <Style x:Key="ColumnResetItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
         <Setter Property="Header" Value="{Binding Label}" />
     </Style>
+
+    <!--
+        THE THIRD MENU, 2026-09-15: THE ONE ON A ROW, which until that day was written out in
+        MainWindow.xaml with a Click on every item. It is a list in RowMenu.cs now - the markup stood
+        on the size ratchet's ceiling and "Show details" needed two lines - and every item wears
+        this, reading its words off the entry it carries as data.
+
+        THE KEY BESIDE THE LABEL IS THE WHOLE POINT OF THE NEW ITEM. Enter has opened the panel about
+        an entry since 2026-08-13 and nothing on screen said so, which `docs/03` part 5 calls a hole
+        in discoverability. InputGestureText is where a menu writes its key, the library's template
+        draws it - WpfUiContractGuards asks - and it is TEXT rather than a KeyGesture on purpose,
+        because the press itself is decided in Shortcuts.cs and a gesture declared here too would be
+        the same key in two places. Items with no key bind an empty string, which the template draws
+        as nothing.
+    -->
+    <Style x:Key="RowMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="InputGestureText" Value="{Binding Gesture}" />
+    </Style>
 </ResourceDictionary>

@@ -62,11 +62,14 @@ public sealed class CopyingAndPanelGuards
     /// <summary>
     /// The four menu items the owner asked for, each copying what its own label promises.
     ///
-    /// <b>The count is asserted first so that a reorder reddens here rather than silently making
-    /// every claim below about a different item.</b> They are reached by position because the
-    /// headers come from the language file through DynamicResource - matching on the words would
-    /// be a test that stops working the day a second language file appears, which is the trap this
-    /// product has been caught by four times in its markup.
+    /// <b>Reached by the KEY of their label since 2026-09-15, when the menu became a list.</b>
+    /// Until then they were reached by position - the first four - because the headers came from
+    /// the language file through DynamicResource and matching on words would stop working the day
+    /// a second language file appeared. An item built from an entry carries that entry as its data,
+    /// key and all, so each promise below is matched to the item that names it and a reorder can no
+    /// longer make a claim about the wrong item silently. The day this changed, "Show details" took
+    /// the first place and the old version of this test would have asked the details item to copy a
+    /// name.
     /// </summary>
     [Fact]
     public async Task The_context_menu_copies_what_each_item_promises()
@@ -77,47 +80,45 @@ public sealed class CopyingAndPanelGuards
         Choose(window);
         WpfHost.Settled();
 
-        var all = WpfHost.On(() => window.Entries.ContextMenu!.Items.OfType<MenuItem>().ToList());
-
-        // THE COPY BLOCK RATHER THAN THE WHOLE MENU, SINCE THE MENU GREW IN PACKET 2. It now also
-        // holds three items that open a plan, and they copy nothing - a count over everything reddened
-        // here the day they arrived, which is the guard working rather than a nuisance.
-        //
-        // The first four, in the order they are declared, because the promises below are matched to
-        // them by position and that is the whole claim: item three copies what item three says.
-        Assert.True(all.Count >= 4, $"The menu has {all.Count} items, so there is no copy block to check.");
-
-        var items = all.Take(4).ToList();
-
-        var promises = new[]
+        var promises = new (string Key, string? Wanted)[]
         {
             // ASKED OF THE SELECTION RATHER THAN OF THE PANEL SINCE 2026-08-18. A copy is about the
             // rows somebody picked, which is a different set from the one entry the panel shows, and
             // the four menu items promise the first of those.
-            WpfHost.On(() => Copying.Name(Picked(window))),
-            WpfHost.On(() => Copying.DisplayName(Picked(window))),
-            WpfHost.On(() => Copying.Description(Picked(window))),
-            WpfHost.On(() => Copying.Everything(Picked(window)))
+            ("gui.menu.copyName", WpfHost.On(() => Copying.Name(Picked(window)))),
+            ("gui.menu.copyDisplayName", WpfHost.On(() => Copying.DisplayName(Picked(window)))),
+            ("gui.menu.copyDescription", WpfHost.On(() => Copying.Description(Picked(window)))),
+            ("gui.menu.copyAll", WpfHost.On(() => Copying.Everything(Picked(window))))
         };
 
-        for (var index = 0; index < items.Count; index++)
+        foreach (var (key, wanted) in promises)
         {
-            var wanted = promises[index];
-
             if (string.IsNullOrWhiteSpace(wanted))
             {
                 continue;
             }
 
-            var at = index;
+            var item = MenuItemFor(window, key);
 
-            await TheClipboard.Copies(model, wanted, $"menu item {at}", () =>
+            await TheClipboard.Copies(model, wanted, key, () =>
             {
-                WpfHost.On(() => items[at].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
+                WpfHost.On(() => item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
 
                 return Task.CompletedTask;
             });
         }
+    }
+
+    /// <summary>The item of the row menu whose entry carries this label key, and it has to be there.</summary>
+    internal static MenuItem MenuItemFor(MainWindow window, string labelKey)
+    {
+        var item = WpfHost.On(() => window.Entries.ContextMenu!.Items
+            .OfType<MenuItem>()
+            .FirstOrDefault(one => one.DataContext is RowMenuEntry entry && entry.LabelKey == labelKey));
+
+        Assert.True(item is not null, $"The row menu has no item for {labelKey}, so there is nothing to press.");
+
+        return item!;
     }
 
     /// <summary>

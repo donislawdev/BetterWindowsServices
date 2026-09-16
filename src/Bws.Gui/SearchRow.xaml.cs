@@ -28,4 +28,13 @@ public partial class SearchRow : UserControl
     /// row knows nothing about readings.
     /// </summary>
     internal TextBox Box => QueryBox;
+
+    /// <summary>
+    /// The list under the field, so the window can take a click on one of its rows.
+    ///
+    /// Exposed for the reason <see cref="Box"/> is: which row a click means and what gets written
+    /// is decided beside Enter, Down and Escape in the window, and this row knows nothing about
+    /// either the keys or the language.
+    /// </summary>
+    internal ListBox List => SuggestionList;
 }

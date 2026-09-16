@@ -279,32 +279,6 @@ public sealed partial class Planned
     /// somebody the first failed would be a claim about something nobody saw, which is the
     /// distinction <see cref="StepOutcome"/> draws and this carries onto a screen.
     /// </summary>
-    /// <summary>
-    /// What the button says it will do, which on a forcing plan is not "carry this out".
-    ///
-    /// <b>The owner's decision of 2026-09-06, and the argument is one sentence: pressing it ends a
-    /// process, and "Carry this out" is a label that describes a plan rather than an act.</b> The
-    /// number is the one already standing in the steps above, so a person presses a button naming
-    /// the thing they just read. <i>Force stop</i> stays as the heading and as the word on the
-    /// offer, where there is not yet a number to name.
-    ///
-    /// <b>Exactly one step that ends a process, or the ordinary label.</b> A plan with two of them
-    /// cannot be reached in this slice - the window opens a forcing sheet from one failure and the
-    /// command line takes one name - and naming one of two processes on the button would be the
-    /// preview and the button disagreeing about what is about to happen. Refusing to name either
-    /// is the honest answer to a shape nothing can produce yet.
-    /// </summary>
-    public string CarryOutLabel => _plan is not { } plan
-        ? Texts.Of("gui.plan.carryOut")
-        : plan.Plans
-            .SelectMany(one => one.Steps)
-            .Where(step => step.Operation == StepOperation.Terminate && step.ProcessId is not null)
-            .Select(step => step.ProcessId!.Value)
-            .Distinct()
-            .ToList() is [var ending]
-            ? Texts.Of("gui.plan.carryOut.endProcess", ending)
-            : Texts.Of("gui.plan.carryOut");
-
     private static string Because(PlanRun run, StepResult result) =>
         result.Outcome == StepOutcome.TimedOut
             ? Texts.Of("gui.plan.because.timedOut", (int)run.Ceiling.TotalSeconds)

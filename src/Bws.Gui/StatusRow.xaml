@@ -58,10 +58,28 @@
                 A sentence no instrument can see is a sentence only a person staring at the
                 window can check, which is the fifth time this window has paid for that lesson.
             -->
+            <!--
+                THREE RUNS RATHER THAN ONE Text, SINCE 2026-09-15 - point 8(d) of `docs/11` 2.14.
+                The sentence about folded instances NAMED the switch ("Show every instance lists
+                them on their own") and now the name IS the switch: the words in the middle are a
+                link that presses it. The line stays one string in the model - Says.Notice is the
+                three pieces joined - so the trigger below, the tests and the automation name
+                all read what they always read. The pieces are written WITHOUT whitespace between
+                the tags on purpose: XAML folds the space between inline elements into one real
+                space, which would have put an indent in front of a line whose first piece is
+                empty. The spacing is in the pieces themselves, cut by Sentences.
+
+                THE LINK IS SWITCHED OFF WHEN IT IS EMPTY, or an invisible Hyperlink would be a
+                Tab stop that does nothing - trap 8 of `docs/10`, one element down. Its colour is
+                the line's own, so a red line has a red link: the comment above about colouring
+                the whole line applies to every word in it.
+            -->
             <TextBlock Grid.Column="0"
                        AutomationProperties.AutomationId="noticeLine"
-                       Text="{Binding Says.Notice}"
-                       TextWrapping="Wrap">
+                       TextWrapping="Wrap"><Run Text="{Binding Says.NoticeBeforeLink, Mode=OneWay}" /><Hyperlink x:Name="FoldLink" AutomationProperties.AutomationId="noticeLink"
+                                                                                                          Style="{StaticResource NoticeLink}"
+                                                                                                          IsEnabled="{Binding Says.NoticeHasLink}"
+                                                                                                          Click="ShowEveryInstance"><Run Text="{Binding Says.NoticeLink, Mode=OneWay}" /></Hyperlink><Run Text="{Binding Says.NoticeAfterLink, Mode=OneWay}" />
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
                         <Style.Triggers>

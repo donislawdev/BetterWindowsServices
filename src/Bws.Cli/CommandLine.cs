@@ -170,7 +170,7 @@ internal sealed partial record CommandLine
     /// is given the time it asks for, and this only stops a plan sitting on a terminal
     /// forever when the entry never finishes what it keeps saying it is doing.
     /// </summary>
-    internal TimeSpan Timeout { get; private init; } = TimeSpan.FromSeconds(60);
+    internal TimeSpan Timeout { get; private init; } = StepCeiling.Default;
 
     /// <summary>What was given to --timeout that could not be read as seconds. Null when fine.</summary>
     internal string? BadTimeout { get; private init; }

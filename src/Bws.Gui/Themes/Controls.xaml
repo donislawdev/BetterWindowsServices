@@ -117,7 +117,7 @@
         THE COST IS THE SAME AS THE CHIP'S AND SO IS THE ANSWER: hover, pressed, disabled and focus
         are this file's job, all four are below, and ButtonGuards holds them.
 
-        DISABLED MATTERS MORE HERE THAN ANYWHERE ELSE IN THIS WINDOW. "Carry this out" is disabled
+        DISABLED MATTERS MORE HERE THAN ANYWHERE ELSE IN THIS WINDOW. The button at the foot of a plan is disabled
         exactly when the session cannot carry anything out, which is the moment somebody most needs
         to be told - so it gives up the fill entirely rather than dimming it. An accent that is
         merely a bit darker reads as a button that is still waiting to be pressed.

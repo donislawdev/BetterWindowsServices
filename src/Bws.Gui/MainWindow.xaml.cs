@@ -183,6 +183,11 @@ public partial class MainWindow : Window
         // the change and says one number.
         Entries.SelectionChanged += (_, _) => Actions.Picked(Entries.SelectedItems.Count);
 
+        // THE MENU ON A ROW, from a list rather than from the markup since 2026-09-15 - the
+        // markup was on the size ratchet's ceiling. RowMenu says what is on it and why in that
+        // order. The style is the theme's, like every other menu item this window builds in code.
+        Entries.ContextMenu = RowMenu.Build(RowMenu.GroupsFor(this), (Style)FindResource("RowMenuItem"));
+
         // THE EXAMPLES MENU AND ITS BUTTON WENT ON 2026-08-13, owner's decision, and there is
         // nothing to wire in their place: the six questions are in the search box's tooltip now,
         // composed as one string in QueryExamples.cs. A tooltip bound on the box needs no handler,
@@ -216,6 +221,10 @@ public partial class MainWindow : Window
         // about the WINDOW, and SearchRow knows nothing about readings. The whole argument,
         // including the bug the first version of this shipped, is at AfterTyping.
         Search.Box.TextChanged += QueryTyped;
+
+        // The list under the same box, wired from here for the same reason - the keys it answers
+        // to are decided beside every other shortcut of this window. MainWindow.Suggesting.cs.
+        WatchTheBoxForSuggestions();
 
         // After the window is up, not before. Reading the manager takes about half a second
         // over 810 entries, and doing it in the constructor means the window appears already

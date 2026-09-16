@@ -49,11 +49,16 @@ internal static class Shortcuts
             return Shortcut.None;
         }
 
+        // DOWN AND UP MEAN THE LIST UNDER THE SEARCH BOX, since 2026-09-15 - and only there, which
+        // is the window's half to decide, the same way Enter means the details only from the grid.
+        // From anywhere else they are the arrows every control already has an opinion about.
         return key switch
         {
             Key.F5 => Shortcut.Refresh,
             Key.Escape => Shortcut.Back,
             Key.Enter => Shortcut.OpenDetails,
+            Key.Down => Shortcut.NextSuggestion,
+            Key.Up => Shortcut.PreviousSuggestion,
             _ => Shortcut.None
         };
     }
@@ -127,5 +132,23 @@ internal enum Shortcut
     /// The same thing is in the menu under the right button, because a keystroke nobody was told
     /// about is a feature nobody has.
     /// </summary>
-    CopyRow
+    CopyRow,
+
+    /// <summary>
+    /// The next row of the list under the search box - or the list itself, when it is closed.
+    /// Point 9 of `docs/11` 2.14, decision 4 of its design: Down on a closed list opens it.
+    /// </summary>
+    NextSuggestion,
+
+    /// <summary>The previous row of the list under the search box. Nothing when it is closed.</summary>
+    PreviousSuggestion,
+
+    /// <summary>
+    /// Write the chosen row of the list under the search box into the box.
+    ///
+    /// <b>Never produced by <see cref="Shortcuts.For"/></b>, because the key it belongs to is
+    /// Enter, and Enter from the grid means the details - which of the two a press means depends
+    /// on where the keyboard is and whether the list is open, and both are the window's to know.
+    /// </summary>
+    TakeSuggestion
 }

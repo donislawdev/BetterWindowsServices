@@ -57,7 +57,7 @@ internal static class Sentences
     /// Whether the list is the thing in the middle of the window. False while the machine overview
     /// has it, which REPLACES the list rather than sitting over it - so there are no rows at all.
     /// </param>
-    internal static string Admissions(
+    internal static Admitted Admissions(
         ExtraRead needs, bool held, int unreadable, int tooCostly, bool elevated,
         ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
@@ -155,22 +155,67 @@ internal static class Sentences
         // NOT THE ELEVATION SENTENCE ABOVE, and the line between them is what each is a fact
         // about. Elevation is a fact about the MACHINE - it is why the numbers ON THIS SCREEN are
         // short too - and backlog 16 put it first deliberately. This one is a fact about rows.
-        if (folded > 0 && listOnScreen)
-        {
-            notes.Add(folded == 1
-                ? Texts.Of("gui.status.folded.one", folded)
-                : Texts.Of("gui.status.folded.many", folded));
-        }
+        // THE ONE NOTE WITH A LINK IN IT, SINCE 2026-09-15 - point 8(d) of `docs/11` 2.14. The
+        // sentence used to NAME the switch ("Show every instance lists them on their own") and
+        // now the name is the switch: whoever reads the sentence can press the words. The line
+        // stays ONE string for everything that reads it as one - the tests, the automation tree,
+        // the count of what was said - and is handed out in three pieces for the view, cut from
+        // the same words, so the two cannot drift. The link's words are the switch's own key, so
+        // the sentence and the button can never call it two things.
+        var fold = Folded(folded, listOnScreen);
 
         // Never silent about holding still. A list that quietly stopped matching its own query
         // while somebody leant on it would be the same silence rule 8 forbids, arriving from
         // the one direction where it looks like politeness.
-        if (held)
+        var afterwards = held ? Texts.Of("gui.status.holding") : string.Empty;
+
+        if (fold.Link.Length == 0)
         {
-            notes.Add(Texts.Of("gui.status.holding"));
+            return new Admitted(string.Join(" ", notes.Append(afterwards).Where(note => note.Length > 0)), string.Empty, string.Empty);
         }
 
-        return string.Join(" ", notes);
+        return new Admitted(
+            string.Join(" ", notes.Append(fold.Head)) + " ",
+            fold.Link,
+            " " + string.Join(" ", new[] { fold.Tail, afterwards }.Where(note => note.Length > 0)));
     }
 
+    /// <summary>
+    /// The folded sentence in its three pieces, or three empty strings when nothing is folded or
+    /// no list is on screen. Written out twice rather than picked into a variable - TextKeyGuards,
+    /// as at the head of <see cref="Admissions"/>.
+    /// </summary>
+    private static (string Head, string Link, string Tail) Folded(int folded, bool listOnScreen) =>
+        folded > 0 && listOnScreen
+            ? (
+                folded == 1
+                    ? Texts.Of("gui.status.folded.one", folded)
+                    : Texts.Of("gui.status.folded.many", folded),
+                Texts.Of("gui.instances.toggle"),
+                folded == 1
+                    ? Texts.Of("gui.status.folded.one.after")
+                    : Texts.Of("gui.status.folded.many.after"))
+            : (string.Empty, string.Empty, string.Empty);
+}
+
+/// <summary>
+/// What the window admits about an answer, as one line and as the three pieces the view draws it
+/// in - the words before the link, the link, and the words after it.
+///
+/// <b>One record rather than a string and three properties beside it</b>, because the line and its
+/// pieces are the same words and a reader of either must get the other for free. <see cref="Notice"/>
+/// is the pieces joined, never a fourth string.
+/// </summary>
+/// <param name="BeforeLink">Every note up to and including the first half of the folded sentence, or the whole line when nothing folds.</param>
+/// <param name="Link">The words that press the switch - empty when nothing folds, and then nothing is drawn as a link.</param>
+/// <param name="AfterLink">The second half of the folded sentence and whatever note follows it.</param>
+internal sealed record Admitted(string BeforeLink, string Link, string AfterLink)
+{
+    internal static readonly Admitted Nothing = new(string.Empty, string.Empty, string.Empty);
+
+    /// <summary>The whole line, exactly as a TextBlock drawing the three pieces would read it back.</summary>
+    public string Notice => BeforeLink + Link + AfterLink;
+
+    /// <summary>Whether there is anything to press - what enables the link, so an empty one is never a Tab stop.</summary>
+    public bool HasLink => Link.Length > 0;
 }

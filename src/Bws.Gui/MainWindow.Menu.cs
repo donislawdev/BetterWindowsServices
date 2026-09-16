@@ -16,11 +16,13 @@ namespace Bws.Gui;
 /// is about one thing a person does to a set of rows, and it grew by half when the menu learned to
 /// open a plan.
 ///
-/// <b>A partial class rather than a separate type, and the reason is the markup.</b> Every item here
-/// is wired by a Click attribute in MainWindow.xaml, which the compiler resolves against the window's
-/// own class. The alternative is AddHandler in the constructor - this window already does that twice
-/// for menus opened under a button - and it would trade a file boundary for seven lookups by name,
-/// which is more mechanism rather than less.
+/// <b>A partial class rather than a separate type, and the reason CHANGED on 2026-09-15.</b> Until
+/// then every item was wired by a Click attribute in MainWindow.xaml, which the compiler resolves
+/// against the window's own class - and that was the argument for a partial. The items are a list in
+/// <see cref="RowMenu"/> now, built in code in the constructor, because the markup stood on the size
+/// ratchet's ceiling and "Show details" needed two lines it did not have. What keeps this a partial
+/// is what the items DO: every one of them reads the grid's selection, and the selection is the
+/// window's to read.
 ///
 /// <b>What is deliberately NOT here:</b> which rows are picked, which is read from the grid at the
 /// moment somebody asks and never kept, and what a copy or a plan SAYS, which is decided in the view
@@ -31,6 +33,18 @@ public partial class MainWindow
     /// <summary>Whether the last right click landed on a row. Read by the menu, set by the click.</summary>
     private bool _pointedAtARow;
 
+    /// <summary>
+    /// The row the last right click landed on, for the one item that acts on ONE row.
+    ///
+    /// <b>Kept between the click and the item, and that is the exception to "never kept" said out
+    /// loud.</b> The copies and the previews read the selection, and a right click inside a
+    /// selection of five keeps all five - correctly, that is what the selection is for. "Show
+    /// details" shows one entry, and the one somebody pointed at is the only honest answer: the
+    /// grid's SelectedItem is the anchor of the selection, which may be any of the five. Cleared
+    /// on the keyboard route, where there is no pointer and the focused row is the selected row.
+    /// </summary>
+    private EntryRow? _pointedAt;
+
 
     /// <summary>
     /// Puts the pointer's own row under the menu before the menu opens.
@@ -39,19 +53,17 @@ public partial class MainWindow
     /// clicking one row and getting another row's name - which is a wrong answer delivered
     /// confidently, the worst kind this product can give.
     ///
-    /// <c>ContainerFromElement</c> rather than a hand written walk up the visual tree, and that
-    /// is not only shorter: the thing under a pointer can be a content element rather than a
-    /// visual one, and <c>VisualTreeHelper.GetParent</c> throws on those.
+    /// Which row that is comes from <see cref="RowUnder"/>, which a double click asks as well -
+    /// one answer to "what is under the pointer" rather than two that could disagree.
     /// </summary>
     private void PointAtRowBeforeMenu(object sender, MouseButtonEventArgs e)
     {
-        var row = e.OriginalSource is DependencyObject source
-            ? ItemsControl.ContainerFromElement(Entries, source) as DataGridRow
-            : null;
+        var entry = RowUnder(e.OriginalSource);
 
-        _pointedAtARow = row is not null;
+        _pointedAtARow = entry is not null;
+        _pointedAt = entry;
 
-        if (row?.Item is EntryRow entry)
+        if (entry is not null)
         {
             PointAt(entry);
         }
@@ -110,7 +122,16 @@ public partial class MainWindow
     /// </summary>
     private void OfferTheMenuOnlyOnARow(object sender, ContextMenuEventArgs e)
     {
-        if (e.CursorLeft < 0 || _pointedAtARow)
+        if (e.CursorLeft < 0)
+        {
+            // The keyboard opened it, so no row was pointed at - and a row pointed at by a right
+            // click some time ago must not be the one "Show details" acts on now.
+            _pointedAt = null;
+
+            return;
+        }
+
+        if (_pointedAtARow)
         {
             return;
         }
@@ -131,22 +152,17 @@ public partial class MainWindow
     /// </summary>
     internal bool OpenColumns() => Filters.OpenColumns();
 
-    private void CopyServiceName(object sender, RoutedEventArgs e) => Copy(Copying.Name);
-
-    private void CopyDisplayName(object sender, RoutedEventArgs e) => Copy(Copying.DisplayName);
-
-    private void CopyDescription(object sender, RoutedEventArgs e) => Copy(Copying.Description);
-
-    private void CopyEverything(object sender, RoutedEventArgs e) => Copy(Copying.Everything);
-
-    private async void PreviewStop(object sender, RoutedEventArgs e) =>
-        await Preview(ActionKind.Stop).ConfigureAwait(true);
-
-    private async void PreviewStart(object sender, RoutedEventArgs e) =>
-        await Preview(ActionKind.Start).ConfigureAwait(true);
-
-    private async void PreviewRestart(object sender, RoutedEventArgs e) =>
-        await Preview(ActionKind.Restart).ConfigureAwait(true);
+    /// <summary>
+    /// Shows everything about the row the menu was opened on - the pointed one when a right
+    /// click opened it, the selected one when the menu key did.
+    ///
+    /// <b>The one item of the row menu that acts on one row rather than on the selection</b>, and
+    /// the reason the pointed row is kept at all - see <see cref="_pointedAt"/>. How the panel
+    /// opens, and what it puts away first, is <see cref="OpenDetailsOf"/>, which Enter and a
+    /// double click share.
+    /// </summary>
+    internal bool OpenDetailsOfPointed() =>
+        (_pointedAt ?? Entries.SelectedItem as EntryRow) is { } entry && OpenDetailsOf(entry);
 
     /// <summary>
     /// Which preview was asked for most recently, so an older one cannot land on top of it.
@@ -374,7 +390,7 @@ public partial class MainWindow
     /// over a list with nothing chosen has to be handed back rather than swallowed - the same rule
     /// every other shortcut in this window follows, and the reason it returns a value at all.
     /// </summary>
-    private bool Copy(Func<IReadOnlyList<EntryRow>, string?> field)
+    internal bool Copy(Func<IReadOnlyList<EntryRow>, string?> field)
     {
         // EVERY ROW THAT IS PICKED, SINCE THE GRID STARTED TAKING MORE THAN ONE. A menu opened over
         // five highlighted rows and acting on one of them is the same confidently wrong answer that

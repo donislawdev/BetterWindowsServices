@@ -115,7 +115,7 @@ public sealed class Query
             return false;
         }
 
-        var spelling = QueryFields.Normalise(value);
+        var spelling = QuerySpelling.Normalise(value);
 
         foreach (var term in _terms)
         {
@@ -126,7 +126,7 @@ public sealed class Query
 
             foreach (var written in term.Written)
             {
-                if (QueryFields.Normalise(written) == spelling)
+                if (QuerySpelling.Normalise(written) == spelling)
                 {
                     return true;
                 }

@@ -135,6 +135,24 @@ internal sealed record Column
     public required Func<ScmEntry, string> Reads { get; init; }
 
     /// <summary>
+    /// What the machine holds behind what the cell says, when the cell says something else -
+    /// nothing for every column whose cell shows the value as held.
+    ///
+    /// <b>Only the account column has one, since 2026-09-15.</b> Its cell shows "Local Service"
+    /// where the manager holds <c>NT AUTHORITY\LocalService</c>, and the spelling is not a detail
+    /// a person can do without: it is what <c>account:</c> matches in the box above the list and
+    /// what <c>sc qc</c> prints beside it. So the cell's tooltip says it, and the details panel
+    /// and a copy carry it in brackets after the shown name - <see cref="Details"/> composes that,
+    /// and nothing else reads this.
+    ///
+    /// <b>Nothing rather than the value when the two are the same</b>, so a tooltip built on this
+    /// does not repeat a cell that already tells the whole truth. The status column translates too
+    /// - "Running" for a number - and deliberately has none of this: nobody types the number, and a
+    /// tooltip saying "4" under "Running" would be noise.
+    /// </summary>
+    public Func<ScmEntry, string?>? Holds { get; init; }
+
+    /// <summary>
     /// The family of the second phase of `ADR-13` this cell reads, when it reads one at all.
     ///
     /// <b>SHOWING A COLUMN IS A WAY OF ASKING, AND UNTIL 2026-09-05 IT WAS NOT.</b> The window

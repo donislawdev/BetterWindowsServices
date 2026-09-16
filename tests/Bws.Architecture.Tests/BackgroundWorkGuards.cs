@@ -47,14 +47,15 @@ public sealed class BackgroundWorkGuards
             "made about a file the code no longer lives in - and the second assertion below is " +
             "what says so out loud rather than allowing it quietly.",
 
-        ["MainWindow.Menu.cs"] =
-            "The three menu items that open a preview, added 2026-09-03 with backlog 301. WPF " +
-            "wires a Click handler in markup to a method returning nothing, so these three have " +
-            "no task to hand back either - and they had nothing to await until the plan behind " +
-            "them moved off the window's thread. An async void is the right shape here rather " +
-            "than a dropped task: a throw out of one reaches the dispatcher, where Mishaps says " +
-            "what happened and keeps the window, while a task nobody holds carries its failure " +
-            "away in silence.",
+        // MainWindow.Menu.cs stood here from 2026-09-03 to 2026-09-15, for the three menu items
+        // that open a preview: WPF wired their Click in markup to a method returning nothing, so
+        // they were async void, and the reason was that a throw out of one reaches the dispatcher
+        // where Mishaps keeps the window, while a task nobody holds carries its failure away in
+        // silence. The menu is a list in RowMenu.cs now and each item's Click is an async lambda
+        // wired in code - the same shape the constructor already uses for the action bar, and one
+        // this guard does not see, because it matches DECLARATIONS. That blind spot is older than
+        // this change and is said here rather than widened around: the lambdas await work that
+        // reports its own failures into the window, exactly as the handlers did.
 
         ["MainWindow.Carrying.cs"] =
             "OnClosing, which the framework also declares as returning nothing. It has to await " +

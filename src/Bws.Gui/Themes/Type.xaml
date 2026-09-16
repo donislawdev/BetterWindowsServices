@@ -10,12 +10,13 @@
         the seam was already found - this one. The next change to that file hit the ceiling within
         the hour, which is a ratchet doing exactly what SizeCeilings says a ratchet is for.
 
-        WHY THIS IS THE HONEST CUT AND NOT THE CONVENIENT ONE. The other three value files each
-        answer one question a person arrives with: Colours.xaml answers "what colour", Columns.xaml
-        answers "how wide is that column", and Values.xaml answers "how big is that gap and what
-        shape is that mark". Type was the one subject left inside the last of those that nobody would
-        look for under the word "values" - and it is the block every appearance argument in this
-        product ends up citing, because two floors from Microsoft's guidance live in it.
+        WHY THIS IS THE HONEST CUT AND NOT THE CONVENIENT ONE. The other value files each answer
+        one question a person arrives with: Colours.xaml answers "what colour", Columns.xaml
+        answers "how wide is that column", Values.xaml answers "how big is that thing and what
+        shape is that mark", and since 2026-09-15 Spacing.xaml answers "how much air is around
+        it". Type was the one subject left inside Values.xaml that nobody would look for under the
+        word "values" - and it is the block every appearance argument in this product ends up
+        citing, because two floors from Microsoft's guidance live in it.
 
         THE TWO FLOORS ARE THE WHOLE REASON THIS BLOCK IS ARGUED RATHER THAN LISTED: 12 for plain
         text and 14 for semibold, because a heavier stroke at a small size fills its own counters in.

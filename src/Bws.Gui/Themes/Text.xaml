@@ -98,6 +98,18 @@
     </Style>
 
     <!--
+        THE NUMBER BESIDE A SCOPE POSITION - "Services 336" - since 2026-09-15, point 8(c) of
+        `docs/11` 2.14. Subdued and small like the text above, and with its weight SAID: the
+        position's template hands its own weight down to everything inside it, and the position
+        somebody is on is semibold, so without this line the number would thicken with the label.
+        The number is a fact about the list, not the state of the switch, and it stays quiet
+        whichever position is on.
+    -->
+    <Style x:Key="ScopeCountText" TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+    </Style>
+
+    <!--
         A HEADING INSIDE A PANEL, WHICH IS NOT THE SAME THING AS THE PANEL'S OWN TITLE. Added
         2026-08-19, after the owner looked at the plan panel and could not find where to start
         reading: five headings and the title were all TextSizeHeading, so nothing was the top of
@@ -249,6 +261,27 @@
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeSmall}" />
         <Setter Property="Foreground" Value="{StaticResource MeaningWarning}" />
+    </Style>
+
+    <!--
+        A LINK INSIDE THE NOTICE LINE, since 2026-09-15 - point 8(d) of `docs/11` 2.14, the words
+        "Show every instance" pressing the switch they name.
+
+        THE COLOUR IS THE LINE'S OWN, READ OFF THE TextBlock AROUND IT, and that is a decision
+        rather than a shortcut. The line is amber, and red for the whole of it while the session
+        has no administrator rights - StatusRow.xaml argues that one; a link in a third colour would
+        be a third meaning on a line that already carries two, and blue on amber is a contrast
+        nobody has measured. What says "this can be pressed" is the underline and the hand, which
+        is the one signal that does not depend on colour at all - `docs/11` section 8.
+
+        WRITTEN OUT RATHER THAN BasedOn THE FRAMEWORK'S, which is the same reason ScopePosition
+        gives: the default Hyperlink style paints its own blue and its own hover, and inheriting a
+        look to hide every part of it would be a worse lie than saying what is wanted.
+    -->
+    <Style x:Key="NoticeLink" TargetType="Hyperlink">
+        <Setter Property="Foreground"
+                Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TextBlock}}" />
+        <Setter Property="TextDecorations" Value="Underline" />
     </Style>
 
     <Style x:Key="ProblemText" TargetType="TextBlock">

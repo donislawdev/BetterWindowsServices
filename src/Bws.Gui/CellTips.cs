@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui;
 
@@ -116,8 +117,56 @@ internal static class CellTips
     /// cannot be: <c>ToolTipEventArgs</c> has no public constructor, so no test can raise the event
     /// that reaches it. Splitting the judgement out leaves the untestable part down to one
     /// assignment and one Handled.
+    ///
+    /// <b>A SECOND REASON TO SPEAK, SINCE 2026-09-15: THE CELL TRANSLATED WHAT IT SHOWS.</b> The
+    /// account cell says "Local Service" over a value the manager holds as
+    /// <c>NT AUTHORITY\LocalService</c>, and that spelling is what <c>account:</c> in the box above
+    /// matches - so a person who reads the cell and types it gets an empty list unless something
+    /// tells them. The column says what it holds (<see cref="Column.Holds"/>), and it comes first:
+    /// a short name never gives way, and a name that did would still owe its spelling more than its
+    /// own tail.
     /// </summary>
-    internal static string? TipFor(TextBlock cell) => CellTips.Trimmed(cell) ? cell.Text : null;
+    internal static string? TipFor(TextBlock cell)
+    {
+        if (CellTips.HeldBehind(cell) is { } held)
+        {
+            return Texts.Of("gui.cell.held", held);
+        }
+
+        return CellTips.Trimmed(cell) ? cell.Text : null;
+    }
+
+    /// <summary>
+    /// What the machine holds behind this cell's text, or nothing when the text is that already.
+    ///
+    /// <b>The column is found by walking up to the cell that owns this text</b>, and the row is the
+    /// text's own data context - both are known only at the moment of asking, which is the same
+    /// moment recycling makes safe: whatever row this TextBlock served a scroll ago, the one it
+    /// serves now is the one under the pointer.
+    ///
+    /// Visual parents only, and that is safe because everything between a TextBlock and its
+    /// DataGridCell is a visual - the walk that throws on a content element is the one
+    /// <c>PointAtRowBeforeMenu</c> avoids, going the other way from an arbitrary source.
+    /// </summary>
+    private static string? HeldBehind(TextBlock cell)
+    {
+        if (cell.DataContext is not EntryRow row)
+        {
+            return null;
+        }
+
+        DependencyObject? host = cell;
+
+        while (host is not null and not DataGridCell)
+        {
+            host = VisualTreeHelper.GetParent(host);
+        }
+
+        return host is DataGridCell { Column.SortMemberPath: { } id }
+            && Columns.Of(id)?.Holds is { } holds
+            ? holds(row.Entry)
+            : null;
+    }
 
     /// <summary>
     /// Whether the text wants more room than it was given.

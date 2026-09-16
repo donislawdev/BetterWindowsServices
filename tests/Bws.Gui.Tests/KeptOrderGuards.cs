@@ -141,6 +141,79 @@ public sealed class KeptOrderGuards : IDisposable
     }
 
     /// <summary>
+    /// A file that remembers columns and no order opens the list in the order this build opens
+    /// with, heading marked.
+    ///
+    /// <b>The window half of the claim <c>ColumnLayoutGuards</c> makes about the plan</b>, and it
+    /// exists because the plan test alone would be satisfied by a window that never handed the
+    /// plan's order to the grid. This is the profile the owner's own screenshot came from on
+    /// 2026-09-15: columns saved before 2026-09-02, no <c>sort</c> line, list in the manager's
+    /// order with no heading marked. It sits in this class rather than beside the sibling that
+    /// clicks a heading, because it is about an order a file does NOT hold - and because the other
+    /// class was six lines under the size ratchet.
+    ///
+    /// <b>Written with a sort of its own on the OTHER two scopes</b>, so a window that applied
+    /// the wrong scope's order would mark a different heading and fail rather than pass by luck.
+    /// </summary>
+    [Fact]
+    public async Task A_file_that_remembers_columns_and_no_order_opens_sorted_by_display_name()
+    {
+        _ = WpfHost.Resources;
+
+        var file = Fresh();
+
+        Assert.Null(file.Write(ColumnLayouts.Default with
+        {
+            Services = new ColumnLayout(
+                [.. ColumnLayout.DefaultFor(EntryScope.Services).Columns],
+                Sort: null),
+            Drivers = ColumnLayout.DefaultFor(EntryScope.Drivers) with
+            {
+                Sort = new KeptSort("status", Descending: true)
+            },
+            Everything = ColumnLayout.DefaultFor(EntryScope.Everything) with
+            {
+                Sort = new KeptSort("status", Descending: true)
+            },
+            OverviewSeen = true
+        }));
+
+        Assert.DoesNotContain(
+            "\"sort\"",
+            await File.ReadAllTextAsync(file.Where),
+            StringComparison.Ordinal);
+
+        // A small machine of its own, handed over BEFORE the window, for the reason WpfHost gives:
+        // a model assigned afterwards leaves every handler talking to the one the window built.
+        // Bravo before Alpha on purpose - the manager's order is the one the list must leave.
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Bravo"), Rows.Entry("Alpha")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        var window = WpfHost.On(() => new MainWindow(file, model));
+
+        WpfHost.On(() => window.Entries.ItemsSource = model.Rows);
+        WpfHost.Settled();
+
+        WpfHost.On(window.SortAsKept);
+        WpfHost.Settled();
+
+        var heading = WpfHost.On(() => window.Entries.Columns.First(column =>
+            string.Equals(column.SortMemberPath, "displayName", StringComparison.Ordinal)));
+
+        Assert.Equal(
+            System.ComponentModel.ListSortDirection.Ascending,
+            WpfHost.On(() => heading.SortDirection));
+
+        Assert.Equal(
+            ["Alpha", "Bravo"],
+            WpfHost.On(() => window.Entries.Items.OfType<EntryRow>().Select(row => row.ServiceName).ToList()));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
     /// A layout somebody arranged: not the defaults, in a different order, and one width dragged.
     ///
     /// Built from the catalogue rather than from a list written out here, so that a column joining

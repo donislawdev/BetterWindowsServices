@@ -28,22 +28,138 @@ public sealed class WaitingGuards
         Assert.Equal(60, new Planned().Waiting);
 
     /// <summary>
-    /// <b>The terminal's rule rather than a new one</b>: <c>Arguments.Seconds</c> refuses anything
-    /// that is not a whole number of seconds, at least one. Two interfaces disagreeing about what a
-    /// timeout may be is a difference nobody meets until a runbook is being carried from one to the
-    /// other.
+    /// <b>The terminal's rule rather than a new one, and since 2026-09-15 the SAME function</b>:
+    /// <see cref="StepCeiling.Seconds"/> in the core refuses anything that is not a whole number of
+    /// seconds, at least one, for both interfaces. Two interfaces disagreeing about what a timeout
+    /// may be is a difference nobody meets until a runbook is being carried from one to the other.
+    ///
+    /// <b>AND THE REFUSAL IS SAID, WHICH UNTIL THAT DAY IT WAS NOT</b> - point 5 of the review in
+    /// `docs/11` 2.14. The setter kept the old number in silence, a word failed inside the binding
+    /// where nothing could see it, and the button stayed live over a box reading "abc". Now the
+    /// box holds the text, the panel says under it what is wrong, and the button greys with the
+    /// reason on it. Every way the text can be wrong is one case here, because every one of them
+    /// used to be silent in its own way.
     /// </summary>
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-60)]
-    public void Nothing_below_one_second_is_taken(int refused)
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("-60")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("abc")]
+    [InlineData("1.5")]
+    [InlineData("1,5")]
+    [InlineData("30s")]
+    [InlineData("99999999999")]
+    public void Text_that_is_not_a_number_of_seconds_is_said_to_be_wrong_and_greys_the_button(string typed)
     {
-        var panel = new Planned { Waiting = 90 };
+        var panel = new Planned { Elevated = true };
 
-        panel.Waiting = refused;
+        panel.Show(Plan(StepOperation.Stop));
+        Assert.True(panel.CanCarryOut, "the fixture plan has to be runnable before the box can be the reason it is not");
 
-        Assert.Equal(90, panel.Waiting);
+        panel.WaitingText = typed;
+
+        Assert.True(panel.HasWaitingProblem, $"'{typed}' was accepted as a number of seconds");
+        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.waiting.problem"), panel.WaitingProblem);
+        Assert.False(panel.CanCarryOut);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.blocked.notSeconds"), panel.CarryOutTip);
+
+        // THE BINDING HEARS IT TOO, in the framework's own words - which is what colours the
+        // box's edge without the theme naming a property of this assembly.
+        Assert.True(panel.HasErrors);
+        Assert.Equal([panel.WaitingProblem], panel.GetErrors(nameof(Planned.WaitingText)).Cast<string>().ToArray());
+    }
+
+    /// <summary>
+    /// What was typed is kept, wrong or not - `docs/11` section 5: keep the input so it can be
+    /// corrected rather than retyped. A box that snapped back to sixty would be the old silence
+    /// with a different face.
+    /// </summary>
+    [Fact]
+    public void What_was_typed_stays_in_the_box_while_it_is_wrong()
+    {
+        var panel = new Planned { Elevated = true };
+
+        panel.Show(Plan(StepOperation.Stop));
+        panel.WaitingText = "abc";
+
+        Assert.Equal("abc", panel.WaitingText);
+    }
+
+    /// <summary>
+    /// A number with air around it is the one leniency, and it is the window's own rather than
+    /// the rule's: a box is typed into and a runbook is not.
+    /// </summary>
+    [Theory]
+    [InlineData("90", 90)]
+    [InlineData(" 90 ", 90)]
+    [InlineData("1", 1)]
+    [InlineData("3600", 3600)]
+    public void A_whole_number_of_seconds_is_taken_and_the_button_comes_back(string typed, int seconds)
+    {
+        var panel = new Planned { Elevated = true };
+
+        panel.Show(Plan(StepOperation.Stop));
+        panel.WaitingText = "abc";
+        Assert.False(panel.CanCarryOut);
+
+        panel.WaitingText = typed;
+
+        Assert.False(panel.HasWaitingProblem);
+        Assert.Equal(string.Empty, panel.WaitingProblem);
+        Assert.Equal(seconds, panel.Waiting);
+        Assert.True(panel.CanCarryOut);
+        Assert.False(panel.HasErrors);
+    }
+
+    /// <summary>
+    /// A start type plan hides the box, so a word left in it by the last sheet cannot grey the
+    /// button of a plan that has nothing to wait for - the sentence would be about a control
+    /// nobody can see. And the problem comes back with the next plan that shows the box.
+    /// </summary>
+    [Fact]
+    public void A_wrong_box_that_is_hidden_blocks_nothing_and_returns_when_shown_again()
+    {
+        var panel = new Planned { Elevated = true };
+
+        panel.Show(Plan(StepOperation.Stop));
+        panel.WaitingText = "abc";
+        Assert.True(panel.HasWaitingProblem);
+
+        panel.Show(Plan(StepOperation.SetStartType));
+
+        Assert.False(panel.Waits);
+        Assert.False(panel.HasWaitingProblem);
+        Assert.True(panel.CanCarryOut);
+
+        panel.Show(Plan(StepOperation.Stop));
+
+        Assert.True(panel.HasWaitingProblem);
+        Assert.False(panel.CanCarryOut);
+    }
+
+    /// <summary>
+    /// <b>THE NOTIFICATION, NOT THE VALUE - and this is the guard that was missing since 2026-09-09.</b>
+    /// <c>A_run_takes_the_box_off_the_screen</c> below reads <c>Waits</c> after <c>Starting</c>
+    /// and it went false, correctly. But Busy announces only itself, so the binding on the box's
+    /// visibility was never told to look again, and the value that was right never reached the
+    /// screen - `docs/08` position 19 in this panel. Found 2026-09-15 while the box was being
+    /// rewritten, by reading Starting rather than by any test.
+    /// </summary>
+    [Fact]
+    public void Starting_a_run_announces_that_the_box_is_going_so_the_screen_hears_it()
+    {
+        var panel = new Planned { Elevated = true };
+        var announced = new List<string>();
+
+        panel.Show(Plan(StepOperation.Stop));
+        panel.PropertyChanged += (_, e) => announced.Add(e.PropertyName ?? string.Empty);
+
+        panel.Starting();
+
+        Assert.Contains(nameof(Planned.Waits), announced);
+        Assert.Contains(nameof(Planned.HasWaitingProblem), announced);
     }
 
     /// <summary>A plan that moves a service has something to wait for, so the box is offered.</summary>
@@ -175,11 +291,36 @@ public sealed class WaitingGuards
 
         Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
 
-        WpfHost.On(() => panel.Waiting = 90);
+        WpfHost.On(() => panel.WaitingText = "90");
 
         await WpfHost.On(() => window.CarryOut());
 
         Assert.Equal(TimeSpan.FromSeconds(90), given);
+    }
+
+    /// <summary>
+    /// And a box that is wrong stops the press at the seam - the run is never asked, so no number
+    /// stood in for the one somebody meant. The other half of the guard above.
+    /// </summary>
+    [Fact]
+    public async Task A_wrong_box_stops_the_press_before_any_run_is_given_a_number()
+    {
+        var asked = false;
+
+        var window = await PlanFixture.Ready(carriedOutBy: (plan, _, _, _) =>
+        {
+            asked = true;
+            return Task.FromResult(new BulkRun { Plan = plan, Runs = [] });
+        });
+
+        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
+
+        Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
+
+        WpfHost.On(() => panel.WaitingText = "abc");
+
+        Assert.False(await WpfHost.On(() => window.CarryOut()));
+        Assert.False(asked, "the run was started with a number the box does not hold");
     }
 
     // -- fixtures --------------------------------------------------------------------------

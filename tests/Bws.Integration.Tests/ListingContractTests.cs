@@ -233,7 +233,9 @@ public sealed class ListingContractTests
     /// </summary>
     private static IReadOnlyList<string>? DependentsBySc(string name)
     {
-        var names = CommandLineTool.ServiceControl("enumdepend", name).StandardOutput
+        var run = CommandLineTool.ServiceControl("enumdepend", name);
+
+        var names = run.StandardOutput
             .Split('\n')
             .Select(line => line.TrimEnd('\r'))
             .Where(line => line.TrimStart().StartsWith("SERVICE_NAME:", StringComparison.OrdinalIgnoreCase))
@@ -241,9 +243,25 @@ public sealed class ListingContractTests
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Three is where sc stops, so three or more is an answer it may have cut short and this
-        // says so with null rather than with a short list somebody would compare.
-        return names.Count >= 3 ? null : names;
+        // ASKED OF THE EXIT CODE RATHER THAN COUNTED, AND THE COUNT IS WHAT BROKE THIS TEST.
+        //
+        // It said "three is where sc stops, so three or more may have been cut short" - measured
+        // on 2026-08-01 and true that day. On 2026-09-10 this test went red on a green tree with
+        // sc answering TWO names for RpcSs and DcomLaunch, so the skip never fired and our two
+        // hundred names were compared against sc's two.
+        //
+        // WHY TWO AND NOT THREE: sc.exe fills a fixed buffer and stops when the next name will
+        // not fit, so how many it manages depends on how LONG the names are. One of them that
+        // day was printworkflowusersvc_10d26ae - a per user service whose suffix is the logon
+        // session, so it is a different length on a different day. The number three was never a
+        // property of sc, it was a property of that afternoon's service names.
+        //
+        // ERROR_MORE_DATA is 234 and sc returns it exactly when it had more to say. Checked
+        // against the product the same day: our answer and sc's agree for all 46 services that
+        // have dependents at all, so the fault here was never in what the product reads.
+        const int ErrorMoreData = 234;
+
+        return run.ExitCode == ErrorMoreData ? null : names;
     }
 
     [Fact]

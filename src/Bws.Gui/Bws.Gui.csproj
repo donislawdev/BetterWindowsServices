@@ -132,4 +132,33 @@
     <ApplicationIcon>..\bws.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!--
+    THE MARKUP COMPILER IS MADE TO START FROM NOTHING ON EVERY BUILD, and this is the end of trap
+    22 in docs/10 rather than a workaround for it.
+
+    WHAT HAPPENED, MEASURED 2026-09-15 SIX TIMES RATHER THAN REASONED ABOUT ONCE. The markup
+    compiler writes GeneratedInternalTypeHelper.g.cs into obj on every build. After a CLEAN build
+    it is seven bytes - empty. After an INCREMENTAL build that follows a change to any .xaml file
+    - MainWindow.xaml and Themes/Colours.xaml were both tried - it is 2960 bytes and carries a
+    call to System.Activator.CreateInstance, which LayeringGuards.No_shipped_assembly_runs_anything
+    then reports about an assembly that names nothing of the kind in its own sources. A change to
+    a .cs file alone leaves the helper as it was. The cache of the previous markup compile is what
+    decides: with obj/Bws.Gui_MarkupCompile.cache and .lref deleted first, the same touched .xaml
+    and the same incremental build produce the seven bytes again. Six builds, every one measured
+    at the file, and the earlier sessions that cleaned obj to make the guard green were doing
+    exactly this by a larger hand.
+
+    WHY THE COMPILER DOES THAT IS NOT ESTABLISHED and this comment does not claim it - what is
+    established is the trigger and the remedy, and both are enough to act on.
+
+    WHAT IT COSTS: a full markup compile on every build instead of an incremental one, which on
+    twenty-nine .xaml files is a difference too small to see beside the build itself - the builds
+    with and without this both took two to three seconds on this machine. What it buys: a guard
+    that goes red for the code and never for the state of a directory, on every tool that builds
+    this project, without any of them having to know.
+  -->
+  <Target Name="StartTheMarkupCompileFromNothing" BeforeTargets="MarkupCompilePass1">
+    <Delete Files="$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.cache;$(IntermediateOutputPath)$(AssemblyName)_MarkupCompile.lref" />
+  </Target>
+
 </Project>

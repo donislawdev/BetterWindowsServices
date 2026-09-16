@@ -92,6 +92,31 @@ public sealed class WpfUiContractGuards
     }
 
     /// <summary>
+    /// The library's menu item draws the key beside its label.
+    ///
+    /// <b>The row menu has relied on it since 2026-09-15</b>: "Show details" carries
+    /// <c>InputGestureText</c> so that Enter is written where the person can see it - `docs/03`
+    /// part 5, a shortcut nobody can find is a hole in discoverability. A template that dropped the
+    /// gesture would leave the item looking finished and the key unannounced, with nothing in the
+    /// build to say so. Asked of the library's own template, serialised, rather than of a menu on
+    /// screen: this is a fact about what their dictionary hands over, not about a layout.
+    /// </summary>
+    [Fact]
+    public void The_library_menu_item_template_draws_the_gesture_text()
+    {
+        var xaml = WpfHost.On(() =>
+        {
+            var style = (Style?)WpfHost.Resources[typeof(System.Windows.Controls.MenuItem)];
+
+            Assert.NotNull(style);
+
+            return System.Windows.Markup.XamlWriter.Save(style);
+        });
+
+        Assert.Contains("InputGestureText", xaml, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Names our XAML refers to and does not define. Whatever is left after subtracting our own
     /// declarations comes from underneath us, which today means WPF UI.
     /// </summary>

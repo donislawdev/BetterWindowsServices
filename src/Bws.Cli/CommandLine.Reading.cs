@@ -1,4 +1,5 @@
 using System.Globalization;
+using Bws.Core.Planning;
 
 namespace Bws.Cli;
 
@@ -53,7 +54,7 @@ internal sealed partial record CommandLine
         string? note = null;
         string? badSubcommand = null;
         string? badTimeout = null;
-        var timeout = TimeSpan.FromSeconds(60);
+        var timeout = StepCeiling.Default;
         var rejected = new List<string>();
         var extra = new List<string>();
         var incomplete = new List<string>();

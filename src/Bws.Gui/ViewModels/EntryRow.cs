@@ -57,7 +57,7 @@ public sealed class EntryRow : Observable
         _startShape = CellFaces.StartShape(entry, qualifies);
         _againstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
         _startType = CellFaces.StartLabel(entry, qualifies);
-        _account = Describe(entry.Account, value => value);
+        _account = SystemAccounts.Shown(entry.Account);
     }
 
     /// <summary>
@@ -304,7 +304,7 @@ public sealed class EntryRow : Observable
         var moved = _entry.Status != entry.Status
             || !SameProcess(_entry.ProcessId, entry.ProcessId)
             || CellFaces.StartLabel(entry, qualifies) != _startType
-            || Describe(entry.Account, value => value) != _account
+            || SystemAccounts.Shown(entry.Account) != _account
             || _entry.DisplayName != entry.DisplayName;
 
         _entry = entry;
@@ -315,7 +315,7 @@ public sealed class EntryRow : Observable
         AgainstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
 
         _startType = CellFaces.StartLabel(entry, qualifies);
-        _account = Describe(entry.Account, value => value);
+        _account = SystemAccounts.Shown(entry.Account);
 
         // UNCONDITIONAL, AND THAT IS NOT LAZINESS - IT IS THE ONLY HONEST ANSWER HERE. The five
         // comparisons above decide whether the row MOVED, which is a question about what a person
@@ -351,15 +351,8 @@ public sealed class EntryRow : Observable
     private static bool SameProcess(Reading<int> left, Reading<int> right) =>
         left.Outcome == right.Outcome && left.Value == right.Value;
 
-    /// <summary>
-    /// A reading as text. Four states, and the whole of the reasoning is in
-    /// <see cref="CellFaces.Say"/>, which is where this moved on 2026-08-11.
-    ///
-    /// One caller is left - the account, compared to decide whether the row moved. The
-    /// process identifier used to be the other, and formatting it went with it: a private
-    /// helper nothing points at survives every build and every test, which is how a dead
-    /// method sat in the core for a day earlier the same week.
-    /// </summary>
-    private static string Describe<T>(Reading<T> reading, Func<T, string> text) =>
-        CellFaces.Say(reading, text);
+    // A Describe helper stood here until 2026-09-15, wrapping CellFaces.Say for the one caller
+    // left - the account. The account now goes through SystemAccounts.Shown, which is Say with
+    // the known names in front of it, so the helper had no caller and went the way its own
+    // comment said a dead helper should: out, rather than surviving every build unread.
 }

@@ -67,8 +67,12 @@
             1000 by 800 the sheet once ran past the window and cut the main button in half. The
             confirmation box grows the footer, so the height of this is the number that had to be
             measured rather than estimated - see the guard that reads it.
+
+            THE WIDTH IS A NAME SINCE 2026-09-15 and was a raw 560 here for a fortnight - the same
+            family as backlog 352, a dimension written where no guard reads it. The number did not
+            move, only where it lives.
         -->
-        <Border x:Name="Sheet" Style="{StaticResource PlanSheet}" Width="560">
+        <Border x:Name="Sheet" Style="{StaticResource PlanSheet}" Width="{StaticResource WidthPlanSheet}">
 
         <Grid>
             <Grid.RowDefinitions>

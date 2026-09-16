@@ -218,4 +218,248 @@ public sealed class KeyboardTests
 
         WpfHost.On(window.Close);
     }
+
+    // ---------------------------------------------------------------------------------------
+    // The list under the search box - point 9 of `docs/11` 2.14, backlog 15, 2026-09-15. The
+    // keys are decided in three places and each is asked here: what a key MEANS (Shortcuts),
+    // where it means it (Wanted, with the focus facts handed in), and what it DOES (Act).
+    // ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Down_and_Up_mean_the_list_under_the_box() =>
+        Assert.Equal(
+            [Shortcut.NextSuggestion, Shortcut.PreviousSuggestion],
+            [Shortcuts.For(Key.Down, ModifierKeys.None), Shortcuts.For(Key.Up, ModifierKeys.None)]);
+
+    /// <summary>
+    /// Where a press means what. The focus facts are arguments, because a window these tests
+    /// build is never shown and so never has a keyboard in it - which is exactly why this table
+    /// had to be reachable without one.
+    /// </summary>
+    [Fact]
+    public void Down_belongs_to_the_list_under_the_box_from_the_box_and_to_the_grid_from_the_grid()
+    {
+        var window = WpfHost.Window();
+
+        Assert.Equal(Shortcut.NextSuggestion, Wanted(window, Key.Down, inTheBox: true, inTheGrid: false));
+        Assert.Equal(Shortcut.PreviousSuggestion, Wanted(window, Key.Up, inTheBox: true, inTheGrid: false));
+
+        // The grid's own arrows, untouched - and nobody's from anywhere else.
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Down, inTheBox: false, inTheGrid: true));
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Up, inTheBox: false, inTheGrid: true));
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Down, inTheBox: false, inTheGrid: false));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Enter in the box takes the chosen row while the list is open and is nobody's while it is
+    /// closed - decision 8 of the design, which is what Enter in the box was before the list
+    /// existed. From the grid it is the details, as it has been since backlog 59.
+    /// </summary>
+    [Fact]
+    public void Enter_in_the_box_takes_a_row_only_while_the_list_is_open()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Enter, inTheBox: true, inTheGrid: false));
+
+        WpfHost.On(() =>
+        {
+            model.Suggesting.Keyboard(present: true);
+            model.Suggesting.Ask("sta", 3, 0);
+        });
+
+        Assert.Equal(Shortcut.TakeSuggestion, Wanted(window, Key.Enter, inTheBox: true, inTheGrid: false));
+        Assert.Equal(Shortcut.OpenDetails, Wanted(window, Key.Enter, inTheBox: false, inTheGrid: true));
+
+        // Ctrl+C in the box is the box's own copy, as it was.
+        Assert.Equal(Shortcut.None, WpfHost.On(() => window.Wanted(Key.C, ModifierKeys.Control, inTheBox: true, inTheGrid: false)));
+
+        WpfHost.On(window.Close);
+    }
+
+    [Fact]
+    public void Down_on_a_closed_list_opens_it_and_moves_through_it_once_open()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, "sta", 3);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.Equal(["status", "start"], model.Suggesting.Offered.Select(row => row.Word));
+        Assert.Equal("status", model.Suggesting.Chosen!.Word);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.Equal("start", model.Suggesting.Chosen!.Word);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.PreviousSuggestion, out _)));
+        Assert.Equal("status", model.Suggesting.Chosen!.Word);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Up on a closed list, Enter on a closed list and Down where nothing fits are handed back,
+    /// because a press claimed by something that did nothing is a press that stops working for
+    /// whatever needed it next - the box, here.
+    /// </summary>
+    [Fact]
+    public void A_press_on_the_list_that_does_nothing_is_handed_back()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, "foo:", 4);
+
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.PreviousSuggestion, out _)));
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.TakeSuggestion, out _)));
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.Equal("foo:", WpfHost.On(() => window.Search.Box.Text));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Decision 13: the row is written THROUGH THE SELECTION, so Ctrl+Z takes it back - and the
+    /// caret lands after what was written, where the values of the field are offered at once.
+    ///
+    /// <b>WHAT THIS DOES NOT ASSERT, measured 2026-09-16: that Undo takes it back.</b> A TextBox in
+    /// this host records no undo unit at all - a plain box given "abc", then "def" through its
+    /// selection, answers false to Undo() - so the undo half of decision 13 is the live window's
+    /// question, in section 6 of the design, and what is held here is the shape that makes it
+    /// possible: the range replaced through the selection, the rest of the line untouched, the
+    /// selection collapsed after what was written.
+    /// </summary>
+    [Fact]
+    public void Enter_writes_the_chosen_row_through_the_selection_and_puts_the_caret_after_it()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, "spool sta", 9);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.Equal("start", model.Suggesting.Chosen!.Word);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.TakeSuggestion, out _)));
+
+        Assert.Equal("spool start:", WpfHost.On(() => window.Search.Box.Text));
+        Assert.Equal(12, WpfHost.On(() => window.Search.Box.CaretIndex));
+        Assert.Equal(0, WpfHost.On(() => window.Search.Box.SelectionLength));
+
+        // Followed at once by what can go after the colon - eight start types and three words.
+        Assert.True(model.Suggesting.IsOpen);
+        Assert.Equal(11, model.Suggesting.Offered.Count);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Escape closes the list and only the list - the text somebody is still typing stays - and
+    /// the next Escape does what Escape did before the list existed.
+    /// </summary>
+    [Fact]
+    public void Escape_closes_the_list_first_and_leaves_the_query_alone()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, "sta", 3);
+
+        // THE MODEL HAS TO HOLD THE TEXT BEFORE THE FIRST ESCAPE, or the order cannot be told
+        // apart: the binding waits 400 ms, and a chain with the query first would find nothing
+        // to clear, fall through to the list, and pass. The mutation registry found that version.
+        WpfHost.Until(() => model.QueryText == "sta", "the query text reached the model");
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.NextSuggestion, out _)));
+        Assert.True(model.Suggesting.IsOpen);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
+        Assert.False(model.Suggesting.IsOpen);
+        Assert.Equal("sta", WpfHost.On(() => window.Search.Box.Text));
+        Assert.Equal("sta", model.QueryText);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
+        Assert.Equal(string.Empty, model.QueryText);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Ctrl+F is an arrival: an empty box offers its six questions, a box with text in it -
+    /// selected whole, so nothing to complete - offers nothing.
+    /// </summary>
+    [Fact]
+    public void Control_F_on_an_empty_box_offers_the_six_questions_and_on_a_full_one_nothing()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
+        Assert.Equal(QueryExamples.All.Count, model.Suggesting.Offered.Count);
+
+        WpfHost.On(() => model.Suggesting.Close());
+        WpfHost.On(() => window.Search.Box.Text = "spool");
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
+        Assert.False(model.Suggesting.IsOpen);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// On the overview screen the row holding the box is collapsed, and a popup hung off a
+    /// collapsed target opens somewhere on the screen with nothing under it - and nothing would
+    /// close it but Escape, because the box never had the keyboard to lose. Found by reading the
+    /// diff as a stranger (`docs/12` step 7), not by a test.
+    /// </summary>
+    [Fact]
+    public void Control_F_on_the_overview_screen_opens_no_list()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() => model.ShowingOverview = true);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
+        Assert.False(model.Suggesting.IsOpen);
+
+        WpfHost.On(() => model.ShowingOverview = false);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.FocusQuery, out _)));
+        Assert.True(model.Suggesting.IsOpen);
+
+        WpfHost.On(window.Close);
+    }
+
+    private static Shortcut Wanted(MainWindow window, Key key, bool inTheBox, bool inTheGrid) =>
+        WpfHost.On(() => window.Wanted(key, ModifierKeys.None, inTheBox, inTheGrid));
+
+    /// <summary>
+    /// What the box holds after somebody typed it, with the keyboard in the box.
+    ///
+    /// <b>SETTLED FIRST, AND THAT LINE COST AN HOUR ON 2026-09-16.</b> The box's Text binding
+    /// attaches LAZILY - queued to the data-bind engine at DataBind priority when the window is
+    /// built - and an Invoke from the test thread runs at Send, ahead of that queue. So text set
+    /// into a freshly built window was overwritten a moment later by the binding attaching and
+    /// transferring the model's empty query into the box: the list then held the six examples
+    /// rather than the fields, and only sometimes. Found from a stack trace on TextChanged
+    /// (BindingExpression.AttachToContext under DataBindEngine.Run), not by reasoning. A shown
+    /// window has drained that queue long before anybody types; this host never shows one.
+    /// </summary>
+    private static void Typed(MainWindow window, string text, int caret)
+    {
+        WpfHost.Settled();
+
+        WpfHost.On(() =>
+        {
+            window.Search.Box.Text = text;
+            window.Search.Box.CaretIndex = caret;
+            ((MainViewModel)window.DataContext).Suggesting.Keyboard(present: true);
+        });
+    }
 }

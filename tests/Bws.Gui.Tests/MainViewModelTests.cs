@@ -69,7 +69,9 @@ public sealed class MainViewModelTests
 
         var cells = model.Rows.ToDictionary(row => row.ServiceName, row => row["account"], StringComparer.Ordinal);
 
-        Assert.Equal("LocalSystem", cells["Present"]);
+        // The name rather than the spelling since 2026-09-15 - SystemAccounts - and still the
+        // claim this test makes: a value that IS there shows as one.
+        Assert.Equal("Local System", cells["Present"]);
         Assert.Equal(string.Empty, cells["Absent"]);
 
         // The two that are not values say so in words, and they do not say the same words.
@@ -340,7 +342,9 @@ public sealed class MainViewModelTests
 
         var arrived = model.Rows.Single(row => row.ServiceName == "Fresh");
 
-        Assert.Equal("NT AUTHORITY\\LocalService", arrived["account"]);
+        // The name the cell shows for that spelling since 2026-09-15 - the claim here is that the
+        // full reading brought the account at all, and "unknown" would fail it just the same.
+        Assert.Equal("Local Service", arrived["account"]);
         Assert.Equal("Automatic", arrived["startType"]);
 
         // And the rows that were already there are the same objects afterwards. A full reading
@@ -650,7 +654,7 @@ public sealed class MainViewModelTests
                      "gui.column.processId", "gui.status.reading", "gui.status.read.many",
                      "gui.status.matched.many", "gui.status.failed", "gui.status.partial.many",
                      "gui.status.tooCostly.many", "gui.status.holding", "gui.cell.unknown",
-                     "gui.cell.noAccess", "gui.search.hint",
+                     "gui.cell.noAccess", "gui.search.hint.services", "gui.search.hint.drivers", "gui.search.hint.all",
                      "gui.filter.group.state", "gui.filter.group.start", "gui.filter.group.about",
                      "gui.filter.hint.adds", "gui.filter.hint.narrows", "gui.query.unreadSignatures",
                      "gui.query.unreadMemory", "gui.query.unknownField", "gui.query.unknownValue",

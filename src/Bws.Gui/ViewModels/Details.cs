@@ -24,11 +24,13 @@ public sealed class DetailLine
     public string Label => Texts.Of(_labelKey);
 
     /// <summary>
-    /// What this entry says in it, in exactly the words the column's own cell would use.
+    /// What this entry says in it: the words the column's own cell uses, followed - for the one
+    /// column that translates what it shows - by what the machine holds, in brackets.
     ///
     /// <b>Read through the same catalogue the grid reads</b>, so a field cannot say one thing in a
     /// cell and another in the panel. Two paths to one answer drift the first time either is
-    /// touched, and nothing in a green build would notice.
+    /// touched, and nothing in a green build would notice. <see cref="Details"/> composes the
+    /// bracketed half, and says why.
     /// </summary>
     public string Value { get; }
 
@@ -107,7 +109,7 @@ internal static class Details
                 .Where(column => Columns.GroupOf(column.Id) == heading)
                 .Select(column => new DetailLine(
                     column.LabelKey,
-                    column.Reads(entry),
+                    Said(column, entry),
                     column.Face == ColumnFace.Fixed))
                 .ToList();
 
@@ -115,6 +117,29 @@ internal static class Details
         }
 
         return sections;
+    }
+
+    /// <summary>
+    /// What one line says: the cell's own words, and after them - in brackets - what the machine
+    /// holds when the cell translated it.
+    ///
+    /// <b>Both, rather than the spelling alone, since 2026-09-15.</b> This panel and a copy are
+    /// where somebody goes for the exact value: the account as <c>account:</c> matches it and as
+    /// <c>sc qc</c> prints it. A panel showing only "Local Service" would send them to the cell's
+    /// tooltip for that, and a panel showing only the spelling would disagree with the cell above
+    /// it - the two-catalogues fault the summary of this class refuses. Composed here, in the one
+    /// place the fields are decided, so the panel and the clipboard cannot drift.
+    ///
+    /// The shape of the brackets is the language file's, not this file's - a translation may
+    /// bracket differently.
+    /// </summary>
+    private static string Said(Column column, ScmEntry entry)
+    {
+        var shown = column.Reads(entry);
+
+        return column.Holds?.Invoke(entry) is { } held
+            ? Texts.Of("gui.details.held", shown, held)
+            : shown;
     }
 
     /// <summary>

@@ -99,9 +99,18 @@ public sealed class AppearanceGuards
     /// nobody would look for under the word "values". It is also the block every appearance argument
     /// in this product ends up citing, because both of Microsoft's readability floors live in it -
     /// 12 plain and 14 semibold, held by TypeScaleGuards.
+    ///
+    /// <b>AND THE FIFTH, ON 2026-09-15, WHICH IS THE SAME FILE HITTING THE SAME CEILING FOR THE
+    /// FOURTH TIME.</b> Values.xaml stood exactly on 376 and the plan sheet needed three widths at
+    /// once - the box that takes a number of seconds (backlog 352), the sheet itself, and a ceiling
+    /// on a button that now names the entry it acts on. Backlog 173 had the seam counted in
+    /// advance: twenty-five Thickness entries, of which twenty-one are margins and paddings.
+    /// <b>Spacing.xaml answers "how much air is around it"</b>, and the four Thickness entries that
+    /// stayed behind are the ones that fail that question - a border thickness and a focus ring
+    /// thickness say how thick a LINE is, which is what Values.xaml still answers.
     /// </summary>
     private static readonly string[] ValueFiles =
-        ["Values.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml"];
+        ["Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Columns.xaml"];
 
     /// <summary>
     /// The halves that hold styles and no value of their own.
@@ -142,7 +151,13 @@ public sealed class AppearanceGuards
             // one day. ADDED HERE IN THE SAME EDIT AS THE SPLIT, because a styles file this pool
             // does not name is a styles file no rule in this class applies to, and nothing
             // anywhere would say so.
-            "Controls.xaml", "Menus.xaml",
+            //
+            // Suggestions.xaml, 2026-09-15, took the same seam BEFORE the ratchet fired rather
+            // than after: Controls.xaml stood forty-eight lines under its ceiling and the list
+            // under the search box needed three templates. It passes the test every entry here
+            // has had to pass - the name says what is in it, a floating list of what can be
+            // typed, and the file opens by claiming exactly that.
+            "Controls.xaml", "Menus.xaml", "Suggestions.xaml",
 
             // PlanLines.xaml left Plan.xaml on 2026-09-07 when the markup ratchet fired on THAT
             // one - a failure that can be escalated needed a template of its own. Added here in

@@ -50,6 +50,18 @@ public static class QueryFields
     public static IReadOnlyList<string> Names { get; } = [.. All.Select(field => field.Name)];
 
     /// <summary>
+    /// The three words every field accepts, in the order they are offered to a person.
+    ///
+    /// <b>One list rather than three constants, since 2026-09-15, because a consumer lining the
+    /// three up for itself is a copy of a frozen contract.</b> <see cref="ValuesOf"/> keeps them
+    /// out of every field's own list on purpose - drawn under all nine enumerations they would look
+    /// as if each field owned them - so anything offering "what can follow this colon" reads the
+    /// field's spellings and then this. The completion list under the search box is the first such
+    /// consumer, and a completion in PowerShell (`E1`) would be the second.
+    /// </summary>
+    public static IReadOnlyList<string> ReservedWords { get; } = [Any, None, Unreadable];
+
+    /// <summary>
     /// The values a field accepts, as somebody would write them - empty for a field that takes
     /// text, a number or a size rather than a set of words.
     ///
@@ -78,7 +90,7 @@ public static class QueryFields
     {
         // Refused rather than answered with an empty list, and the difference matters here: an
         // unknown NAME is an ordinary answer and gets one, but no name at all is a caller fault,
-        // and Normalise below would meet it as a null reference three frames down.
+        // and QuerySpelling.Normalise would meet it as a null reference three frames down.
         ArgumentNullException.ThrowIfNull(field);
 
         return Find(field) is { } found ? [.. found.Values.Select(value => value.Text)] : [];
@@ -88,30 +100,12 @@ public static class QueryFields
 
     /// <summary>The field for a spelling, or null when nobody knows it.</summary>
     internal static QueryField? Find(string name) =>
-        ByName.GetValueOrDefault(Normalise(name));
+        ByName.GetValueOrDefault(QuerySpelling.Normalise(name));
 
-    /// <summary>
-    /// One spelling, one form. Case is folded because Windows treats service names that way,
-    /// and the separators go because a two-word value has three plausible spellings and
-    /// making a person guess which one we chose is a poor use of their time.
-    /// </summary>
-    internal static string Normalise(string text)
-    {
-        Span<char> folded = text.Length <= 64 ? stackalloc char[text.Length] : new char[text.Length];
-        var length = 0;
-
-        foreach (var character in text)
-        {
-            if (character is '-' or '_')
-            {
-                continue;
-            }
-
-            folded[length++] = char.ToLowerInvariant(character);
-        }
-
-        return new string(folded[..length]);
-    }
+    // Normalise - one spelling, one form - lived here until 2026-09-15 and is QuerySpelling's now.
+    // The size ratchet asked when ReservedWords arrived, and the seam is the one that file already
+    // claims: it answers questions about two strings and reads nothing, which is exactly what
+    // folding a spelling is. The table below is what this file is for.
 
     // Long because it is a table, not because it is tangled: one entry per field, each a
     // declaration with no branching in it. Splitting it would put the language's field list in
@@ -154,7 +148,7 @@ public static class QueryFields
             Name = "type",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
-            SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.EntryType.ToString())),
+            SymbolsOf = entry => FieldSymbols.Of(QuerySpelling.Normalise(entry.EntryType.ToString())),
             Values = QueryValueNames.Type
         },
 
@@ -170,7 +164,7 @@ public static class QueryFields
             Name = "peruser",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
-            SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.PerUserRole.ToString())),
+            SymbolsOf = entry => FieldSymbols.Of(QuerySpelling.Normalise(entry.PerUserRole.ToString())),
             Values = QueryValueNames.PerUser
         },
 
@@ -179,7 +173,7 @@ public static class QueryFields
             Name = "status",
             Kind = QueryFieldKind.Enumeration,
             OutcomeOf = _ => ReadOutcome.Present,
-            SymbolsOf = entry => FieldSymbols.Of(Normalise(entry.Status.ToString())),
+            SymbolsOf = entry => FieldSymbols.Of(QuerySpelling.Normalise(entry.Status.ToString())),
             Values = QueryValueNames.Status
         },
 
@@ -468,11 +462,11 @@ public static class QueryFields
 
         foreach (var field in All)
         {
-            index[Normalise(field.Name)] = field;
+            index[QuerySpelling.Normalise(field.Name)] = field;
 
             foreach (var alias in field.Aliases)
             {
-                index[Normalise(alias)] = field;
+                index[QuerySpelling.Normalise(alias)] = field;
             }
         }
 

@@ -74,6 +74,13 @@ public sealed partial class Planned
         Raise(nameof(CarryOutTip));
         Raise(nameof(CanCarryOut));
         Raise(nameof(Notice));
+
+        // AND THE BOX OF SECONDS GOES WITH IT, AND UNTIL 2026-09-15 NOTHING SAID SO. Waits reads
+        // Busy, but Busy announces only itself, so the binding that hides the box during a run was
+        // never told to look again - the value was right and the screen was not, which is `docs/08`
+        // position 19 in this panel. The guard for it asks about the NOTIFICATION, not the value.
+        Raise(nameof(Waits));
+        RaiseTheProblem();
     }
 
     /// <summary>

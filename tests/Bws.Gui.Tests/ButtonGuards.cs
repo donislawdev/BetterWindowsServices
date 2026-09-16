@@ -66,7 +66,7 @@ public sealed class ButtonGuards
     /// When it cannot be pressed it gives up the fill entirely rather than dimming it.
     ///
     /// <b>This is the state that matters most in this window and it is not a style preference.</b>
-    /// "Carry this out" is disabled exactly when the session cannot carry anything out, which is
+    /// The button at the foot of a plan is disabled exactly when the session cannot carry anything out, which is
     /// the moment somebody most needs telling - and an accent merely a shade darker reads as a
     /// button still waiting to be pressed.
     /// </summary>

@@ -55,31 +55,50 @@ public partial class MainWindow
         // because awaiting an already finished task never yields. The one branch that awaits
         // anything did not, and the next asynchronous branch anybody adds would have inherited the
         // fault without a word - which is why this is about the shape rather than about F5.
-        e.Handled = Act(Wanted(e.Key, e.KeyboardDevice.Modifiers), out var work);
+        e.Handled = Act(
+            Wanted(e.Key, e.KeyboardDevice.Modifiers, Search.Box.IsKeyboardFocused, Entries.IsKeyboardFocusWithin),
+            out var work);
 
         await work.ConfigureAwait(true);
     }
 
     /// <summary>
-    /// What a press means here, which is what it means anywhere except for the one key that
-    /// belongs to the list.
+    /// What a press means here, which is what it means anywhere except for the keys that belong
+    /// to one of the two lists.
     ///
     /// <b>The focus question is asked here rather than in <see cref="Shortcuts"/>, on purpose.</b>
     /// That class says it is deliberately ignorant of state, and where the keyboard is happens to
     /// be the one piece of state only a window can answer - the same split, and the same reason,
-    /// as the letter that jumps to an entry.
+    /// as the letter that jumps to an entry. <b>It arrives as two arguments rather than being read
+    /// here</b>, since 2026-09-15, so that this table can be checked: a window these tests build
+    /// is never shown, and a window never shown has no keyboard focus to read.
     ///
     /// <b>Enter belongs to the list.</b> A preview handler sees the press before the query box
     /// does, so taking it unconditionally would mean somebody finishing a query gets a panel about
     /// whatever row happened to be selected - which is a window answering a question nobody asked.
+    ///
+    /// <b>And in the box, Enter belongs to the list UNDER the box while that list is open</b> - and
+    /// to nobody while it is closed, which is what it was before the list existed (decision 8 of
+    /// the design). Down and Up belong to that list from the box and to the grid from the grid.
     /// </summary>
-    private Shortcut Wanted(Key key, ModifierKeys modifiers)
+    internal Shortcut Wanted(Key key, ModifierKeys modifiers, bool inTheBox, bool inTheGrid)
     {
         var wanted = Shortcuts.For(key, modifiers);
 
-        var theListPress = wanted is Shortcut.OpenDetails or Shortcut.CopyRow;
+        if (inTheBox)
+        {
+            return wanted switch
+            {
+                Shortcut.OpenDetails => _model.Suggesting.IsOpen ? Shortcut.TakeSuggestion : Shortcut.None,
+                Shortcut.CopyRow => Shortcut.None,
+                _ => wanted
+            };
+        }
 
-        return theListPress && !Entries.IsKeyboardFocusWithin ? Shortcut.None : wanted;
+        var theListPress = wanted is Shortcut.OpenDetails or Shortcut.CopyRow;
+        var theBoxPress = wanted is Shortcut.NextSuggestion or Shortcut.PreviousSuggestion;
+
+        return (theListPress && !inTheGrid) || theBoxPress ? Shortcut.None : wanted;
     }
 
     /// <summary>
@@ -127,23 +146,43 @@ public partial class MainWindow
                 // Selected, not just focused. Ctrl+F in every other program starts a new search
                 // rather than appending to the last one, and a person who wanted to keep the old
                 // text still has it - one key press away, unselected by typing nothing.
+                //
+                // AND A PERSON HAS ARRIVED, which the list under the box wants to know: an empty
+                // box offers its six questions, a box with text in it - selected, so nothing to
+                // complete - offers nothing. Said here rather than left to the focus event, because
+                // a box that already had the keyboard gets no focus event from this.
+                //
+                // NOT ON THE OVERVIEW SCREEN, where the row holding the box is collapsed: a popup
+                // hung off a collapsed target opens somewhere on the screen with nothing under it,
+                // and nothing would close it but Escape - the box never had the keyboard to lose.
+                // Asked of the model rather than of the box's visibility, because a window these
+                // tests build is never shown and answers false about the visibility of everything.
                 Search.Box.Focus();
                 Search.Box.SelectAll();
 
+                if (!_model.ShowingOverview)
+                {
+                    _model.Suggesting.Arrived(Search.Box.Text, Search.Box.CaretIndex);
+                }
+
                 return true;
+
+            case Shortcut.NextSuggestion:
+            case Shortcut.PreviousSuggestion:
+            case Shortcut.TakeSuggestion:
+                // The list under the search box, in its own file - MainWindow.Suggesting.cs - with
+                // the events that open and close it. One line here, because this method counts its
+                // comments against the analyser's ceiling and the three branches have reasons.
+                return Suggest(shortcut);
 
             case Shortcut.OpenDetails:
                 // The grid's own selection rather than the model's, because the model is only told
                 // at the moment somebody asks for something - see Copy, and the repair its comment
                 // describes. This is that moment.
-                _model.Chosen.Row = Entries.SelectedItem as EntryRow;
-
-                // The two panels share a column, so opening one puts the other away. Arranged here
-                // rather than by either of them, because neither has any business knowing the other
-                // exists - the window is what owns the layout they compete for.
-                _model.Planned.Hide();
-
-                return _model.Chosen.Show();
+                //
+                // THE SAME ROAD A DOUBLE CLICK AND THE MENU TAKE, since 2026-09-15 - what it puts
+                // away first, and why, is at OpenDetailsOf.
+                return Entries.SelectedItem is EntryRow chosen && OpenDetailsOf(chosen);
 
             case Shortcut.CopyRow:
                 // The same thing the menu's last item does, because two ways to one answer that
@@ -160,7 +199,12 @@ public partial class MainWindow
                 // be open at a time, so which comes first cannot change what happens - it is written
                 // in this order because a plan is the more recent thing somebody opened, and if the
                 // two ever could overlap that is the one they would mean.
-                return _model.Planned.Hide() || _model.Chosen.Hide() || _model.ClearQuery();
+                //
+                // THE LIST UNDER THE SEARCH BOX GOES FIRST OF ALL, since 2026-09-15: it is the
+                // innermost thing there is to back out of, and it is open only while the keyboard
+                // is in the box - so the press that closes it is the press somebody makes with a
+                // query they are still typing, which is the one Escape must not take away.
+                return _model.Suggesting.Close() || _model.Planned.Hide() || _model.Chosen.Hide() || _model.ClearQuery();
 
             default:
                 return false;

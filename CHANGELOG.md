@@ -15,6 +15,57 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **The search box offers what you can type, under the box, as you type.** Click into the
+  empty box and six questions to start from appear - *Set to start and not running*, *The file it
+  runs is not there* - each one a query you can pick and then edit. Type the first letters of a
+  field and the fields that begin with them appear, each with a sentence saying what it asks
+  about, and the four that take seconds say so. Type the colon and every value the field accepts
+  appears, with the words the filter chips use beside the ones that have a chip. Down opens the
+  list or moves down it, Up moves back, Enter writes the chosen row into the box, Escape closes
+  the list and only the list, and Ctrl+Z takes back a row you did not mean. A click on a row
+  writes it too. The box's own tooltip is unchanged - this is the same language, offered where
+  you are already looking.
+
+- **Each list on the switch above the search box says how big it is** - *Services 336*,
+  *Drivers 463*, *All 799* - the size of the list, whatever you have typed. The line beside the
+  box still says how many of it your query found.
+
+- **The words *Show every instance* in the sentence under the list are a link.** The sentence
+  about folded per-user copies used to name the switch and leave you to find it above the list.
+  The words now press it.
+
+- **The button at the foot of a plan names what it does.** *Stop Windows Search*, *Restart 3
+  entries*, *Set Print Spooler to Disabled*, *Force stop WSearch* - rather than *Carry this out*
+  on every plan. A plan that ends a process still says *End process 4812*, as it has since that
+  plan existed. A long display name is trimmed with an ellipsis on the button - the heading above
+  carries all of it.
+
+- **The box that says how long to wait for a step tells you when it cannot use what you typed.**
+  Type a word, a fraction, zero or nothing and the box's edge turns the problem colour, a sentence
+  under it says *Type a whole number of seconds, at least 1*, and the button stays off with the
+  same reason on it until the box holds a number. It used to accept the typing in silence and run
+  with sixty. The rule is the terminal's own for `--timeout`, and there is no upper limit in
+  either - a service you know takes ten minutes gets ten minutes.
+
+- **Double-click a row to see everything about it, or pick *Show details* from its menu.** The
+  details panel used to open from Enter alone, and nothing on screen said so. The menu item
+  writes *Enter* beside itself, so the key is where you can find it.
+  - The panel is about the row you pointed at - right-click the third of five selected rows and
+    *Show details* shows the third, while the copy items still act on all five.
+  - Double-clicking a column heading still fits the column and opens nothing.
+
+- **The account column says Local System, Local Service and Network Service**, the way services.msc
+  does, instead of `LocalSystem` and `NT AUTHORITY\LocalService` cut off where the column ends.
+  - Windows holds the same account in several spellings - `localSystem` beside `LocalSystem`,
+    `NT Authority\` beside `NT AUTHORITY\` - and the list used to show and sort them as different
+    accounts. They are one account now.
+  - **The spelling is still there.** Hover the cell and the tooltip says it, the details panel and
+    *Copy everything* put it in brackets after the name, and `account:` in the search box matches
+    the spelling, as it always did. Every other account - a domain account, a virtual `NT SERVICE\`
+    one - shows exactly as Windows holds it.
+  - **Export writes what the list shows.** The CSV carries the name, the JSON from `bws list --json`
+    carries the spelling.
+
 - **The preview says when a plan would take down something the machine needs.** Seven entries -
   the two halves of RPC, the account manager, key isolation, the session manager and plug and play
   - are named on the sheet before you press anything: *PlugPlay is one this machine does not work
@@ -48,6 +99,12 @@ Nothing has been released yet. Everything below is what the tool does today.
   other people can read is one they can read all of that in.
 
 ### Fixed
+
+- **A saved layout without a sort no longer opens the list in the manager's order.** If your
+  profile was written before the list started opening sorted, it opened in the order Windows
+  hands services over - alphabetical by the internal name, which the list does not show, so it
+  looked like no order at all. Such a profile now opens sorted by display name with the arrow on
+  the heading, exactly like a fresh one. A sort you chose yourself still wins.
 
 - **The window publishes as one file.** A self-contained single-file publish used to leave
   `Bws.Gui.exe` beside five native libraries belonging to Windows Presentation Foundation, about
@@ -590,6 +647,24 @@ Nothing has been released yet. Everything below is what the tool does today.
     be told apart from a local disk without contacting it, so those are still followed.
 
 ### Changed
+
+- **The filter groups are a form now: one group per row, the labels in one column.** The groups
+  used to flow one after another, so the last label landed in the middle of a row beside somebody
+  else's chips. It costs one more row of chips above the list - the *Filters* button folds them
+  away, as before.
+
+- **The *Filters* button keeps one width whichever way its triangle points**, so *Columns* and
+  *Show every instance* no longer step sideways when you press it.
+
+- **The hint in the empty search box names the list you are on** - *Search services* on the
+  Services list, *Search drivers* on Drivers, both on All - instead of promising drivers on a list
+  that has none.
+
+- **The window says *Startup type*, the way services.msc does.** The column heading said *Start*,
+  the filter group *Start type* and the button *Start type...* - three names for one thing, and
+  *Start* beside the *Start...* button meant something else. The heading, the filter group, the
+  button (*Set startup type...*) and every sentence on the plan sheet now use one word. The
+  terminal keeps saying *start type* beside its `start-type` verb, on purpose.
 
 - **The snapshot format is version 4.** Snapshots now carry what depends on each entry. A file
   written by an older build is refused by name rather than half-read, so take a fresh snapshot of

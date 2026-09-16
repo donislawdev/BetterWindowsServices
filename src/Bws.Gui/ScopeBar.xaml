@@ -125,13 +125,40 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <ContentPresenter Grid.Row="0"
-                                                  Margin="{StaticResource PadCell}"
-                                                  VerticalAlignment="Center"
-                                                  TextElement.Foreground="{TemplateBinding Foreground}"
-                                                  TextElement.FontFamily="{TemplateBinding FontFamily}"
-                                                  TextElement.FontSize="{TemplateBinding FontSize}"
-                                                  TextElement.FontWeight="{TemplateBinding FontWeight}" />
+                                <!--
+                                    THE COUNT BESIDE THE LABEL, SINCE 2026-09-15 - point 8(c) of
+                                    `docs/11` 2.14, the owner's decision with the design shown
+                                    first. IN THE TEMPLATE AND NOT IN THE CONTENT, for three
+                                    reasons that point the same way: the content stays a string,
+                                    so the position's automation name stays "Services" and the
+                                    three probes that find positions by that name keep finding
+                                    them; the label is drawn exactly as it was, by the same
+                                    presenter; and a TextBlock in a template gets no node of its
+                                    own in the automation tree - `docs/10` trap 16, read from the
+                                    side where it helps - so the tree keeps one node per position.
+
+                                    THE NUMBER IS THE SIZE OF THE LIST, not what the query found
+                                    in it, and it is always quiet: small and subdued whichever
+                                    position is on, where the label beside it brightens and
+                                    thickens. A horizontal StackPanel is safe here for the reason
+                                    trap 18 records about this file - a word and a number, nothing
+                                    that has to wrap.
+                                -->
+                                <StackPanel Grid.Row="0"
+                                            Orientation="Horizontal"
+                                            Margin="{StaticResource PadCell}"
+                                            VerticalAlignment="Center">
+                                    <ContentPresenter Margin="{StaticResource MarginBetweenControls}"
+                                                      VerticalAlignment="Center"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}"
+                                                      TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                                      TextElement.FontSize="{TemplateBinding FontSize}"
+                                                      TextElement.FontWeight="{TemplateBinding FontWeight}" />
+
+                                    <TextBlock Text="{Binding Count}"
+                                               Style="{StaticResource ScopeCountText}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
 
                                 <!--
                                     Always here and only sometimes coloured, for the same reason the

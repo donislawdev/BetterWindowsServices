@@ -142,7 +142,7 @@ public sealed class OverviewGuards
             Rows.Stopped("Orphaned") with { BinaryOnDisk = Reading<bool>.Present(false) });
 
         var orphans = model.Overview.Single(line => line.Label.Contains("orphans", StringComparison.Ordinal));
-        var gone = model.Overview.Single(line => line.Label.Contains("whatever their start type", StringComparison.Ordinal));
+        var gone = model.Overview.Single(line => line.Label.Contains("whatever their startup type", StringComparison.Ordinal));
 
         Assert.Equal(1, orphans.Count);
         Assert.Equal(2, gone.Count);

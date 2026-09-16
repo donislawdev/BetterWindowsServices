@@ -24,16 +24,11 @@ namespace Bws.Gui;
 /// </summary>
 internal static class Carrying
 {
-    /// <summary>
-    /// The longest any ONE step is watched for.
-    ///
-    /// <b>The command line's own default, deliberately rather than a number picked for a window.</b>
-    /// `--timeout` defaults to sixty seconds, and two interfaces waiting different lengths for the
-    /// same service would make "it worked from the terminal" a true sentence about the same machine
-    /// and the same entry. It is a cap on our watching rather than a deadline - the entry's own wait
-    /// hint usually decides first, which is written out at PlanRunner.
-    /// </summary>
-    internal static readonly TimeSpan Ceiling = TimeSpan.FromSeconds(60);
+    // THE LONGEST ANY ONE STEP IS WATCHED FOR IS NO LONGER A NUMBER OF THIS WINDOW'S OWN. A sixty
+    // stood here from 2026-08-18 to 2026-09-15, copied from the command line so that "it worked
+    // from the terminal" could never be a true sentence about the same entry - and a copy agrees
+    // only until one side is edited. Both interfaces read StepCeiling.Default in the core now, and
+    // the box on the plan sheet reads the same rule for what a person types (Planned.Waiting).
 
     /// <summary>
     /// Carries a whole selection out, off the thread the window draws on.
