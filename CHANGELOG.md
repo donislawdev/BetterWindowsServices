@@ -41,7 +41,7 @@ Nothing has been released yet. Everything below is what the tool does today.
   writes it too. The box's own tooltip is unchanged - this is the same language, offered where
   you are already looking.
 
-- **`Bws.Gui.exe --catalogue` now shows every part of the window, not only its styles.** The
+- **`BetterWindowsServices.exe --catalogue` now shows every part of the window, not only its styles.** The
   hidden sheet that lists the window's components gained the templates the rows and cells are
   drawn with, and every view of the window - the search row, the filters, the details panel, the
   plan, the list - each in its states: with data, empty, when the machine refused, while still
@@ -202,7 +202,7 @@ Nothing has been released yet. Everything below is what the tool does today.
   the heading, exactly like a fresh one. A sort you chose yourself still wins.
 
 - **The window publishes as one file.** A self-contained single-file publish used to leave
-  `Bws.Gui.exe` beside five native libraries belonging to Windows Presentation Foundation, about
+  the window's executable beside five native libraries belonging to Windows Presentation Foundation, about
   eight megabytes of them - so copying just the executable to another machine copied a program that
   was missing part of itself. Measured: it costs nothing noticeable at start-up, including on the
   first run of a new version, which is the run that unpacks them.
@@ -742,6 +742,12 @@ Nothing has been released yet. Everything below is what the tool does today.
     be told apart from a local disk without contacting it, so those are still followed.
 
 ### Changed
+
+- **The executables are named after what you type and what you see: `bws.exe` and
+  `BetterWindowsServices.exe`.** The usage text has said `bws list` from the first day, and the
+  file used to be called `Bws.Cli.exe` - every example was one rename away from working. The window
+  is `BetterWindowsServices.exe`, which is what Explorer, Task Manager and the download show. Both
+  are one self-contained file each, as before.
 
 - **The filter groups are a form now: one group per row, the labels in one column.** The groups
   used to flow one after another, so the last label landed in the middle of a row beside somebody

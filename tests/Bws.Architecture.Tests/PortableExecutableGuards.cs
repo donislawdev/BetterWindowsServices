@@ -7,7 +7,7 @@ namespace Bws.Architecture.Tests;
 ///
 /// <b>IT DID NOT, FROM THE DAY THE WINDOW EXISTED UNTIL 2026-09-09, AND EVERY BUILD WAS GREEN
 /// THROUGHOUT.</b> <c>PublishSingleFile</c> was passed, the publish succeeded, and it wrote
-/// <c>Bws.Gui.exe</c> beside five native halves of WPF - D3DCompiler, wpfgfx, PresentationNative,
+/// the window's executable beside five native halves of WPF - D3DCompiler, wpfgfx, PresentationNative,
 /// PenImc and the C runtime, about eight megabytes. The single-file bundler leaves native
 /// libraries out unless told otherwise, because they have to be loaded from a path on disk.
 ///

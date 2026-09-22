@@ -22,6 +22,26 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
+  <!--
+    THE FILE ON DISK IS bws.exe, AND THE PROJECT STAYS Bws.Cli. Two different names for two
+    different things, and until 2026-09-22 the file borrowed the project's.
+
+    The usage text has said `bws list`, `bws snapshot create` from the first day, every example in
+    the README says it, and the person typing it at a server console is the one the name is for -
+    a file called Bws.Cli.exe made every one of those lines a lie the reader had to correct by hand.
+    The project name is what the tree, the namespaces, the test project and the coverage floor are
+    organised around, and none of that is seen by a user.
+
+    What this does NOT change, said because each was checked rather than assumed: the root
+    namespace stays Bws.Cli (it follows the project name, not this property), the embedded resource
+    keeps its explicit LogicalName below, and the integration tests look for the file by THIS name
+    - tests/Bws.Integration.Tests/CommandLineTool.cs. The architecture guards read the assembly name
+    out of this file rather than carrying a copy of it.
+  -->
+  <PropertyGroup>
+    <AssemblyName>bws</AssemblyName>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       User-facing text is embedded, not shipped next to the executable. One less way for

@@ -18,15 +18,25 @@ internal sealed class AssemblyFacts
 {
     private AssemblyFacts(
         string path,
+        string name,
         IReadOnlySet<string> assemblyReferences,
         IReadOnlySet<string> typeReferences)
     {
         Path = path;
+        Name = name;
         AssemblyReferences = assemblyReferences;
         TypeReferences = typeReferences;
     }
 
     internal string Path { get; }
+
+    /// <summary>
+    /// The simple name this assembly carries in its own metadata - what another assembly's
+    /// reference to it would be called. Since 2026-09-22 that is not the project name for the
+    /// two that ship as executables, and a guard asserting "never references X" needs the X
+    /// that could actually appear.
+    /// </summary>
+    internal string Name { get; }
 
     /// <summary>Simple names, without version or public key.</summary>
     internal IReadOnlySet<string> AssemblyReferences { get; }
@@ -39,6 +49,8 @@ internal sealed class AssemblyFacts
         using var file = File.OpenRead(path);
         using var portableExecutable = new PEReader(file);
         var metadata = portableExecutable.GetMetadataReader();
+
+        var ownName = metadata.GetString(metadata.GetAssemblyDefinition().Name);
 
         var assemblies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var handle in metadata.AssemblyReferences)
@@ -56,7 +68,7 @@ internal sealed class AssemblyFacts
             types.Add(string.IsNullOrEmpty(declaringNamespace) ? name : $"{declaringNamespace}.{name}");
         }
 
-        return new AssemblyFacts(path, assemblies, types);
+        return new AssemblyFacts(path, ownName, assemblies, types);
     }
 
     internal static AssemblyFacts Of(string projectName) => Read(GuardedAssemblies.PathOf(projectName));

@@ -60,7 +60,14 @@
   <PropertyGroup>
     <Product>Better Windows Services</Product>
     <Company>Better Windows Services</Company>
-    <Copyright>Copyright (C) 2026 Better Windows Services contributors</Copyright>
+    <!--
+      The holder is the owner's name, as in README.md and in the licence sections of the owner's
+      other public projects - decided 2026-09-22, when this line said "Better Windows Services
+      contributors" and README said the name, and one of the two had to follow the other. The
+      same line is repeated in cli.en.json under cli.version, because the version text is a
+      translation key and cannot read this file.
+    -->
+    <Copyright>Copyright (C) 2026 DonislawDev</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <Description>Service management for Windows administrators: search, bulk operations, audit and drift.</Description>
   </PropertyGroup>

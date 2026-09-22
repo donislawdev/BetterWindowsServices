@@ -146,7 +146,11 @@ public sealed class PublicSurfaceGuards
             + "two languages",
 
         ["tests/Bws.Integration.Tests/SnapshotContractTests.cs"] =
-            "an accented word written to a file on purpose, to prove the encoding survives"
+            "an accented word written to a file on purpose, to prove the encoding survives",
+
+        ["README.md"] =
+            "one star character on the line asking for a star, the same line the owner's other "
+            + "public repositories carry - the rest of the file is plain ASCII on purpose"
     };
 
     [Fact]

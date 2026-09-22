@@ -113,7 +113,7 @@ internal static class CommandLineTool
     /// The tool these tests are about.
     ///
     /// <b>The build this test project was itself built in, not the newest one on disk.</b> Until
-    /// 2026-08-03 this took whatever <c>Bws.Cli.exe</c> had the latest timestamp anywhere under
+    /// 2026-08-03 this took whatever executable had the latest timestamp anywhere under
     /// <c>bin</c>, which meant a Release run could be measuring a Debug binary, or the other way
     /// round, purely because of what had been built last. Nothing would have said so - both
     /// answer every one of these tests the same way until the day one of them does not.
@@ -134,15 +134,17 @@ internal static class CommandLineTool
 
         var built = System.IO.Path.Combine(root, "src", "Bws.Cli", "bin", configuration);
 
+        // bws.exe, not Bws.Cli.exe: the project is called after its place in the tree and the
+        // file after what a user types - Bws.Cli.csproj sets the AssemblyName and says why.
         var executable = Directory.Exists(built)
             ? Directory
-                .EnumerateFiles(built, "Bws.Cli.exe", SearchOption.AllDirectories)
+                .EnumerateFiles(built, "bws.exe", SearchOption.AllDirectories)
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault()
             : null;
 
         return executable ?? throw new InvalidOperationException(
-            $"Bws.Cli.exe was not found under '{built}'. These tests run the real tool, and it has " +
+            $"bws.exe was not found under '{built}'. These tests run the real tool, and it has " +
             $"to be the {configuration} build, because that is the one they were compiled beside. " +
             "Build the solution in this configuration before running them.");
     }

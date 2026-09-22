@@ -23,20 +23,46 @@ public sealed class LayeringGuards
         "System.Xaml"
     ];
 
+    // THE NAMES ASSERTED AGAINST ARE THE ASSEMBLIES' OWN, NOT THE PROJECTS'. Since 2026-09-22
+    // Bws.Cli builds bws.dll and Bws.Gui builds BetterWindowsServices.dll, so a reference from the
+    // core to the window would be called "BetterWindowsServices" - and DoesNotContain("Bws.Gui")
+    // would stay green while the rule it guards was broken. The name comes from the project file
+    // through GuardedAssemblies, and the theory below proves it is the one the compiled file carries.
+    private static string Cli => GuardedAssemblies.AssemblyNameOf("Bws.Cli");
+    private static string Gui => GuardedAssemblies.AssemblyNameOf("Bws.Gui");
+
     [Fact]
     public void The_core_never_references_a_presentation_project()
     {
         var core = AssemblyFacts.Of("Bws.Core");
 
-        Assert.DoesNotContain("Bws.Cli", core.AssemblyReferences);
-        Assert.DoesNotContain("Bws.Gui", core.AssemblyReferences);
+        Assert.DoesNotContain(Cli, core.AssemblyReferences);
+        Assert.DoesNotContain(Gui, core.AssemblyReferences);
     }
 
     [Fact]
     public void The_cli_and_the_gui_never_reference_each_other()
     {
-        Assert.DoesNotContain("Bws.Gui", AssemblyFacts.Of("Bws.Cli").AssemblyReferences);
-        Assert.DoesNotContain("Bws.Cli", AssemblyFacts.Of("Bws.Gui").AssemblyReferences);
+        Assert.DoesNotContain(Gui, AssemblyFacts.Of("Bws.Cli").AssemblyReferences);
+        Assert.DoesNotContain(Cli, AssemblyFacts.Of("Bws.Gui").AssemblyReferences);
+    }
+
+    /// <summary>
+    /// The two guards above assert that a name is absent, and an absent name is the easiest thing
+    /// in the world to assert: a name nothing could ever carry is absent everywhere. This ties the
+    /// name read from the project file to the name written into the compiled assembly, so that a
+    /// renamed project, a mistyped AssemblyName or a stale build turns this red instead of
+    /// quietly making the other two vacuous.
+    /// </summary>
+    [Theory]
+    [InlineData("Bws.Core")]
+    [InlineData("Bws.Cli")]
+    [InlineData("Bws.Gui")]
+    public void The_name_a_guard_asks_about_is_the_name_the_assembly_carries(string project)
+    {
+        var facts = AssemblyFacts.Of(project);
+
+        Assert.Equal(GuardedAssemblies.AssemblyNameOf(project), facts.Name);
     }
 
     [Fact]

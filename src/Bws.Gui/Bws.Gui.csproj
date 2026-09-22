@@ -48,10 +48,31 @@
   </PropertyGroup>
 
   <!--
+    THE FILE ON DISK IS BetterWindowsServices.exe, AND THE PROJECT STAYS Bws.Gui - the same split
+    Bws.Cli.csproj makes for bws.exe, and made on the same day, 2026-09-22, for the same reason:
+    the file is what a user sees in Explorer, in Task Manager and in the download, and "Bws.Gui"
+    said nothing to that person. The command line is the short name because it is typed; the
+    window is the product's name because it is looked at.
+
+    Checked rather than assumed before this line went in: the root namespace stays Bws.Gui, so
+    x:Class and every using are untouched; the resource below keeps its explicit LogicalName; the
+    theme dictionaries are referenced by relative URI and resolve inside whatever this assembly is
+    called; and nothing in src/ writes a pack URI with the assembly name in it. The three probes
+    under tools/gui-probe that DO write one (columns, row-cost, why) were changed with this.
+
+    The process name follows the file name. Every probe that asks Get-Process whether a window is
+    already open asks for this name now - one left asking for the old one would never see the
+    window and would silently start a second.
+  -->
+  <PropertyGroup>
+    <AssemblyName>BetterWindowsServices</AssemblyName>
+  </PropertyGroup>
+
+  <!--
     ONE FILE, AND UNTIL 2026-09-09 PublishSingleFile PRODUCED SIX.
 
     MEASURED RATHER THAN REASONED ABOUT, by the pre-release audit of that day: publishing this
-    project self-contained and single-file left Bws.Gui.exe beside D3DCompiler_47_cor3.dll,
+    project self-contained and single-file left the window's executable beside D3DCompiler_47_cor3.dll,
     wpfgfx_cor3.dll, PresentationNative_cor3.dll, PenImc_cor3.dll and vcruntime140_cor3.dll -
     about eight megabytes of WPF's own native halves. The single-file bundler leaves native
     libraries out by default because they have to be loaded from a path on disk, and nothing in
@@ -60,8 +81,8 @@
 
     WHY THAT IS A PRODUCT PROBLEM AND NOT A PACKAGING PREFERENCE. Phase 1 of the specification
     promises a portable executable, and PreferencesFile describes the person it is for as "the
-    admin who copies the executable to the twentieth server". Copying Bws.Gui.exe alone is
-    exactly what that person does.
+    admin who copies the executable to the twentieth server". Copying BetterWindowsServices.exe
+    alone is exactly what that person does.
 
     WHAT IT COSTS, MEASURED RATHER THAN REASONED ABOUT - AND THE PREDICTION WAS WRONG. The
     runtime extracts the native halves into the temporary directory on the first launch of a
