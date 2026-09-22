@@ -41,6 +41,42 @@
   </PropertyGroup>
 
   <!--
+    A package with a published advisory stops the restore rather than warning inside it.
+
+    THESE THREE LINES CHANGE NOTHING TODAY, AND THAT IS THE POINT OF WRITING THEM. Measured on
+    2026-09-22 by asking MSBuild rather than by recalling the documentation: on this SDK the
+    effective values for Bws.Core, Bws.Gui and Bws.Core.Tests were already true, all and low.
+    They are the SDK's defaults, which means they are somebody else's decision, they moved once
+    already - the mode was direct-only before .NET 9 - and they will move again without a line
+    in any changelog of ours.
+
+    WHAT IT IS WORTH, measured the same day with a throwaway project rather than assumed,
+    because the mechanism is not obvious. NuGet reports an advisory as NU1901 to NU1904, which
+    are restore WARNINGS. TreatWarningsAsErrors above covers NU codes, so:
+
+        with it:     error NU1903 ... restore exits 1
+        without it:  warning NU1903 ... restore exits 0
+
+    So this repository has had a blocking supply chain gate on every push since the day warnings
+    became errors, and nobody had written it down. tools/supply-chain/audit-blocks.ps1 runs that
+    experiment again on demand, and SupplyChainGuards holds the three settings here.
+
+    Audit needs a source that publishes vulnerability data. nuget.org does. A build pointed at a
+    feed that does not gets NU1905, which TreatWarningsAsErrors also turns into an error - loud,
+    rather than an audit that quietly checked nothing. That is rule 8 of CLAUDE.md applied to the
+    build: silence is the one outcome that is not allowed.
+
+    `all` rather than `direct` matters more here than it looks. Seven of this project's packages
+    are direct and the resolved graph behind them is an order of magnitude larger, which is
+    where an advisory is actually likely to sit.
+  -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <!--
     Identity of the product. One place, so the name never drifts between the executable,
     the package metadata and the About window (ADR-12a).
   -->

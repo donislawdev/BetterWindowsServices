@@ -354,7 +354,15 @@ public sealed class PublicSurfaceGuards
         // because the site speaks Polish as well as English and every Polish word a visitor
         // reads lives in a fragment; the test above therefore skips this pair by extension
         // rather than by a permission per file.
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css" }
+        //
+        // *.py and *.txt joined it later the same day, with the supply chain gates, and for the
+        // same reason as .html did: two Python scripts went into .github/scripts and would have
+        // been the only published files in this repository that no sweep read. They hold paths,
+        // measurements and the names of other repositories, which is exactly the material a
+        // home directory or an address wanders into. .txt brings in the two NativeMethods.txt
+        // lists that CsWin32 reads and the pinned scanner version - all three already ASCII,
+        // checked when they were added here.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)

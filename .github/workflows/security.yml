@@ -1,0 +1,149 @@
+# Two gates that read source and metadata, and neither of them needs anything built.
+#
+# THAT IS WHY THEY ARE HERE AND NOT IN build.yml. That workflow restores, builds and runs five
+# test projects on a Windows runner, and it takes minutes. These two read text. Putting them in
+# the same job would make a licence question wait for a compiler, and a check that answers late
+# is a check people stop reading before it speaks.
+#
+# Both run on Linux for the same reason: the scanner is at home there, and nothing here touches
+# a binary, a window or a service control manager. This is the ONE workflow in this repository
+# that is not about Windows.
+#
+# THE VERDICT IS NOT THE TOOL'S EXIT CODE, in either job, and that is the whole design rather
+# than a preference. Both scripts read the machine-readable report and decide, and both treat a
+# report they cannot read as a failure. The measurements are at the top of each script and they
+# are not stylistic: a semgrep whose core failed has been seen to exit ZERO and write 23 bytes
+# that are not JSON, and a semgrep pointed at a config that does not exist has been seen to exit
+# ZERO and write a valid report saying nothing was found. Every signal a caller would normally
+# trust says the code is clean.
+#
+# WHAT THIS WORKFLOW DOES NOT ASK, so that a green pair of checks is not read as more than it
+# is. It does not ask whether a package already in the tree has a published advisory. That
+# question is answered by `dotnet restore` on every push and every pull request, because
+# Directory.Build.props states NuGetAudit, NuGetAuditMode and NuGetAuditLevel and
+# TreatWarningsAsErrors turns the resulting NU1901 to NU1904 into errors - measured 2026-09-22
+# with a throwaway project, restore exits 1. SupplyChainGuards holds those settings in place and
+# tools/supply-chain/audit-blocks.ps1 reproduces the measurement.
+name: Security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read only, and nothing here asks for more. The dependency review action can post a summary
+# comment onto the pull request, which would need `pull-requests: write` - that is deliberately
+# not granted. A failing gate already says everything the comment would: the check goes red and
+# the log names the dependency. A write scope kept for a convenience is a write scope a later
+# job inherits.
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Nothing here pushes, and a token left in the local git config is a token the next
+          # step inherits. The scanner reads this tree, including this file.
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - name: The scanner, pinned
+        # The version lives in the requirements file rather than on this line, and the reason is
+        # written there: a version written into a workflow step is watched by nothing, because
+        # Dependabot reads manifests and `uses:` lines and not shell commands.
+        run: pip install -r .github/requirements-semgrep.txt
+
+      - name: Scan
+        # No account and no token. p/default is fetched anonymously from the registry, used
+        # here, and never copied into this repository, because the Semgrep Rules License allows
+        # the first and forbids the second. `--oss-only` keeps it to the open source engine so
+        # that nothing here ever waits on a login.
+        #
+        # No --error and no --severity. The scan reports and the gate decides - `--severity`
+        # knows INFO, WARNING and ERROR only, while registry rules also carry HIGH and CRITICAL,
+        # so a gate built on that flag ignores exactly the severities it was asked to block.
+        #
+        # Metrics off. This program sends nothing anywhere by ADR-19, and a scanner reporting on
+        # this source would be that promise broken in the one place nobody looks.
+        #
+        # The exit code is inspected rather than trusted: measured on other repositories of this
+        # owner's, a failing scan exits zero. Anything above 1 is still treated as a hard failure
+        # in case a later version starts using those codes for something real.
+        run: |
+          set +e
+          semgrep scan --config p/default --metrics=off --oss-only --json --output semgrep.json
+          code=$?
+          set -e
+          echo "semgrep exit code: $code"
+          if [ "$code" -gt 1 ]; then exit "$code"; fi
+
+      - name: Verdict
+        # Blocks on ERROR, HIGH and CRITICAL, on a scan error, on a report that cannot be read
+        # and on a report that read no files. A healthy run of this repository reads about three
+        # hundred files and the count is printed every time.
+        run: python .github/scripts/semgrep_gate.py semgrep.json
+
+  dependency-review:
+    name: Dependency review
+    # The data behind both steps is a comparison of two commits of a pull request, so there is
+    # nothing to ask on a push to the branch itself. It is declared on `push` anyway, and skips:
+    # a check that is visibly skipped is a check somebody can see exists, and a workflow whose
+    # two halves answer different events is easier to read as one file than as two.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The vulnerability half, which this action does well.
+      #
+      # `fail-on-severity: low` because this tool runs as an administrator on somebody's
+      # production machine and stops their services. There is no severity of dependency problem
+      # that is beneath asking a question about here.
+      #
+      # `comment-summary-in-pr: never` is also its default today, and it is written out anyway:
+      # a default is somebody else's decision, and this one is ours. Nothing this job learns is
+      # posted onto the pull request - it is in the log, and a red check is the message.
+      - name: Dependencies with a known vulnerability
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          comment-summary-in-pr: never
+          fail-on-severity: low
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      # The licence half, which the action documents that it will not do: it reports a licence it
+      # could not determine and passes anyway. For a GPL-3.0 project that ships two executables,
+      # "we could not tell" is the one answer nobody can act on, so it blocks here. What may be
+      # distributed is read out of the decision in docs/02 rather than invented in the script.
+      #
+      # `gh` is preinstalled on the runner and uses the job token. The gate exits 2 when it
+      # cannot read the answer, so a refusal from the endpoint fails the run instead of looking
+      # like an empty list of problems.
+      - name: Licences of what this pull request adds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh api "repos/$REPO/dependency-graph/compare/$BASE...$HEAD" > deps.json
+          python .github/scripts/dependency_gate.py deps.json
