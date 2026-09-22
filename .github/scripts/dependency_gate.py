@@ -56,6 +56,15 @@ ALLOWED = frozenset({
     "MIT", "MIT-0", "MPL-2.0", "Unlicense", "Zlib",
     "LGPL-2.1-only", "LGPL-2.1-or-later", "LGPL-3.0-only", "LGPL-3.0-or-later",
     "GPL-3.0-only", "GPL-3.0-or-later",
+
+    # The last two are for an ecosystem this repository grew on the day the list was written
+    # and which it did not have when the list was first copied: .github/dependabot.yml now
+    # watches a pip requirements file, so a Python package can reach a pull request here.
+    # Without these two, a dependency under either would be reported as DENIED rather than
+    # unknown - a false alarm, which is the one failure that teaches people to bypass a gate.
+    # Both are compatible with GPL-3.0 and both are on the equivalent list in this owner's
+    # Python project.
+    "PSF-2.0", "Python-2.0",
 })
 
 # Packages whose licence GitHub cannot resolve and which a person has already

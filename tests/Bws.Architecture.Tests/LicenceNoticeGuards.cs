@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Bws.Architecture.Tests;
@@ -77,6 +78,21 @@ public sealed class LicenceNoticeGuards
                     missing.Add($"  {package}, referenced by {project}");
                 }
             }
+
+            // AND THE ONES NOBODY ASKED FOR, which until 2026-09-22 this test did not demand.
+            //
+            // It read project files only, so a package arriving as somebody else's dependency
+            // and travelling in the build output was never required to have a notice.
+            // WPF-UI.Abstractions is exactly that - it comes through WPF-UI, it ships, and it is
+            // in the notices because a person put it there rather than because anything asked.
+            // The licence does not care which half of the graph a library came from.
+            foreach (var package in ShippingAssetsOf(project))
+            {
+                if (!text.Contains(package, StringComparison.OrdinalIgnoreCase))
+                {
+                    missing.Add($"  {package}, which {project} does not reference but does carry");
+                }
+            }
         }
 
         Assert.True(
@@ -125,6 +141,186 @@ public sealed class LicenceNoticeGuards
             + "Either they came back out and the entry should go, or the name drifted:"
             + Environment.NewLine + string.Join(Environment.NewLine, named.Select(name => "  " + name)));
     }
+
+    /// <summary>
+    /// Every package that puts a real assembly into this project's output, whether it was asked
+    /// for or not.
+    ///
+    /// <b>"A real assembly" is doing all the work in that sentence, and getting it wrong is how
+    /// this ends up crying about nothing.</b> Measured 2026-09-22 while writing it: a naive read
+    /// of the resolved graph reports four packages with no notice, and ALL FOUR are false.
+    /// <c>Bws.Core</c> is ours. <c>Microsoft.Windows.SDK.Win32Docs</c>,
+    /// <c>Microsoft.Windows.SDK.Win32Metadata</c> and <c>Microsoft.Windows.WDK.Win32Metadata</c>
+    /// are what CsWin32 reads at build time to generate the interop, and they ship nothing at
+    /// all - the first of them carries a runtime entry that is the empty placeholder
+    /// <c>lib/netstandard2.0/_._</c>, which reads like an assembly and is not one.
+    ///
+    /// <b>Checked against a real publish rather than trusted.</b> Publishing Bws.Gui
+    /// framework-dependent put exactly four assemblies beside ours: <c>Wpf.Ui.dll</c>,
+    /// <c>Wpf.Ui.Abstractions.dll</c>, <c>Microsoft.Windows.SDK.NET.dll</c> and
+    /// <c>WinRT.Runtime.dll</c>. The first two are the packages this method returns. The last
+    /// two come from the Windows Desktop targeting pack rather than from any PackageReference,
+    /// so they are in no assets graph and this method cannot see them - they have their own
+    /// sections in the notices file, written by a person, and that is the arrangement.
+    ///
+    /// Absent before a restore, and an empty answer then, which makes this check blinder rather
+    /// than louder. These tests run after a build, so it is present.
+    /// </summary>
+    private static IEnumerable<string> ShippingAssetsOf(string project)
+    {
+        var assets = Path.Combine(SourceTree.Root(), "src", project, "obj", "project.assets.json");
+
+        if (!File.Exists(assets))
+        {
+            return [];
+        }
+
+        // Parsed rather than pattern-matched, and that is not a preference. The entry for a
+        // package that ships is "Name/1.2.3": { "type": "package", "runtime": { "lib/x/y.dll":
+        // {} } }, a placeholder is the same shape with "_._" as its only key, and a project
+        // reference says "type": "project". Three distinctions inside nested objects is where a
+        // regular expression starts agreeing with itself, and the file is JSON either way.
+        using var document = JsonDocument.Parse(File.ReadAllText(assets));
+
+        if (!document.RootElement.TryGetProperty("targets", out var targets))
+        {
+            return [];
+        }
+
+        var shipping = new List<string>();
+
+        foreach (var framework in targets.EnumerateObject())
+        {
+            foreach (var entry in framework.Value.EnumerateObject())
+            {
+                if (!entry.Value.TryGetProperty("type", out var type)
+                    || type.GetString() != "package"
+                    || !entry.Value.TryGetProperty("runtime", out var runtime))
+                {
+                    continue;
+                }
+
+                // ENDS WITH, not equals, and that distinction cost a red run. The placeholder
+                // is written as a PATH - "lib/netstandard2.0/_._" - so comparing the whole key
+                // against "_._" matched nothing and three build-time metadata packages were
+                // reported as shipping. They carry no assembly at all; the entry exists to say
+                // so, which is exactly what "_._" means in this file.
+                var carriesAnAssembly = runtime
+                    .EnumerateObject()
+                    .Any(asset => !asset.Name.EndsWith("_._", StringComparison.Ordinal));
+
+                if (carriesAnAssembly)
+                {
+                    shipping.Add(entry.Name.Split('/')[0]);
+                }
+            }
+        }
+
+        return shipping.Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void No_file_here_carries_somebody_elses_licence_header()
+    {
+        // THE ROUTE NEITHER OTHER LAYER CAN SEE, and it is the one that actually gets GPL
+        // projects into trouble. A dependency is declared, resolved, graphed and reviewed - the
+        // licence gate on a pull request reads every one a change adds. A file PASTED into src/
+        // is none of those things. It is a new source file, it compiles, every test stays green,
+        // and the obligation it carries is invisible to everything in this repository.
+        //
+        // What this looks for is the marks such a file arrives with. Somebody copying a class
+        // out of another project almost always brings the header, because deleting it is a
+        // deliberate act and keeping it is the default.
+        //
+        // WHAT IT CANNOT DO, said plainly so a green run is not read as more than it is. A
+        // snippet pasted WITHOUT its header is invisible here, and that is the majority of the
+        // risk rather than a corner of it - somebody lifting twenty lines off a forum brings no
+        // notice with them. This raises the floor from nothing to something; it is not a
+        // provenance check, and there is no cheap one.
+        //
+        // Measured before it was switched on: 468 files, zero hits on all five marks.
+        var found = new List<string>();
+        var read = 0;
+
+        foreach (var file in OurOwnSource())
+        {
+            var text = File.ReadAllText(file);
+            read++;
+
+            foreach (var (name, pattern) in SomebodyElsesHeader)
+            {
+                if (Regex.IsMatch(text, pattern, RegexOptions.None, Sources.Ceiling))
+                {
+                    found.Add($"  {name} in {Path.GetRelativePath(SourceTree.Root(), file).Replace('\\', '/')}");
+                }
+            }
+        }
+
+        // A sweep that read nothing finds nothing and reports it in the same green as a sweep
+        // that read everything.
+        Assert.True(
+            read > 100,
+            $"This guard read {read} files and this repository has hundreds. It is looking in "
+            + "the wrong place, so its green result means nothing.");
+
+        Assert.True(
+            found.Count == 0,
+            "These files carry a licence header that is not ours. If code was copied in, that "
+            + "is a licence question before it is a code question: read the terms, decide "
+            + "whether GPL-3.0 can carry them, keep the notice where the licence requires it, "
+            + "and write the decision into THIRD-PARTY-NOTICES.md. If the match is a false "
+            + "alarm, narrow the pattern rather than deleting the check:"
+            + Environment.NewLine + string.Join(Environment.NewLine, found));
+    }
+
+    /// <summary>
+    /// Every source file this project wrote itself, which is all of them today.
+    ///
+    /// <b>Except this one, and the exception is the same trap PublicSurfaceGuards names about
+    /// itself.</b> A guard that looks for a shape has to contain that shape, so this file holds
+    /// the MIT permission sentence and the SPDX marker as literals - and on its first run it
+    /// reported ITSELF, twice. One file by name rather than a pattern: anything broader would
+    /// be a way to quieten the check by moving code into whatever the exclusion covers.
+    /// </summary>
+    private static IEnumerable<string> OurOwnSource() =>
+        new[] { "src", "site", "tests" }
+            .SelectMany(folder => new[] { "*.cs", "*.xaml", "*.css", "*.js", "*.html" }
+                .SelectMany(pattern => Directory.EnumerateFiles(
+                    Path.Combine(SourceTree.Root(), folder), pattern, SearchOption.AllDirectories)))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(path => !string.Equals(
+                Path.GetFileName(path), "LicenceNoticeGuards.cs", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Marks that somebody else's code carries when it is copied rather than referenced.
+    ///
+    /// Narrow on purpose, and every one of these has been checked to find nothing in this tree
+    /// today - which is what makes them worth keeping, the same argument PublicSurfaceGuards
+    /// makes about its own list of shapes.
+    /// </summary>
+    private static readonly (string Name, string Pattern)[] SomebodyElsesHeader =
+    [
+        // The one that travels with almost every copied file, and the one the MIT licence
+        // itself requires to be kept.
+        //
+        // The sign is written \xA9 - a REGEX escape passed through the verbatim string, not a
+        // C# one - so this file stays plain ASCII. Writing the character itself here cost a red
+        // run while this was being written: PublicSurfaceGuards holds every published file to
+        // ASCII, and it caught it. Two guards, working.
+        ("a copyright line", @"(?i)copyright\s*(\(c\)|\xA9)"),
+
+        // The machine-readable form, which a modern file carries instead of a paragraph.
+        ("an SPDX identifier", "SPDX-License-Identifier"),
+
+        // The two paragraph headers that name a licence outright.
+        ("the MIT permission notice", "Permission is hereby granted, free of charge"),
+        ("an Apache notice", "Licensed under the Apache License"),
+
+        // Microsoft's own header, which is what a file lifted out of the .NET or WPF
+        // repositories looks like - the single most likely source of a paste in this project.
+        ("a .NET Foundation header", @"Licensed to the \.NET Foundation")
+    ];
 
     private static IEnumerable<string> PackagesOf(string project) =>
         PackagesIn(Path.Combine(SourceTree.Root(), "src", project, project + ".csproj"))

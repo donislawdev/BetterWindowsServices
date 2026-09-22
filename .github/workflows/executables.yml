@@ -93,14 +93,27 @@ jobs:
 
       # The input is turned into the flag once, here, rather than repeated on both publish
       # lines. Two copies of a condition is one copy that will eventually say something else.
+      #
+      # THROUGH env: RATHER THAN INTERPOLATED INTO THE SCRIPT, and that is not style. The
+      # semgrep gate added in this same pull request blocked the first version of this file on
+      # `yaml.github-actions.security.run-shell-injection`: a `${{ ... }}` expanded inside a
+      # `run:` block is pasted into the script before the shell sees it, so a context value
+      # carrying a quote or a semicolon becomes code. Neither of these two can today - one is a
+      # choice input with two options, the other is a commit hash - but the rule is about the
+      # shape rather than about today's values, and the shape is one edit away from taking
+      # something a stranger controls. Passed as environment variables, the shell reads them as
+      # data and nothing is ever pasted.
       - name: What was asked for
         id: asked
         shell: pwsh
+        env:
+          FLAVOUR: ${{ inputs.flavour }}
+          COMMIT: ${{ github.sha }}
         run: |
-          $selfContained = if ('${{ inputs.flavour }}' -eq 'self-contained') { 'true' } else { 'false' }
+          $selfContained = if ($env:FLAVOUR -eq 'self-contained') { 'true' } else { 'false' }
           "self-contained=$selfContained" >> $env:GITHUB_OUTPUT
-          "short=$('${{ github.sha }}'.Substring(0, 7))" >> $env:GITHUB_OUTPUT
-          Write-Host "flavour: ${{ inputs.flavour }} (self-contained=$selfContained)"
+          "short=$($env:COMMIT.Substring(0, 7))" >> $env:GITHUB_OUTPUT
+          Write-Host "flavour: $env:FLAVOUR (self-contained=$selfContained)"
 
       # Restore happens here rather than inside the publishes, and that is not tidiness. This is
       # where NuGet audits the packages, and Directory.Build.props turns an advisory into an
@@ -109,11 +122,21 @@ jobs:
       - name: restore, which is also the audit
         run: dotnet restore BetterWindowsServices.slnx
 
+      # These two carry a value this workflow computed rather than one the `github` context
+      # handed over, so the scanner does not object to them - but they are the same shape as the
+      # step above, and a rule that fires on one and not the other is a poor reason for two
+      # spellings of one idea in one file.
       - name: the command line program
-        run: dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained ${{ steps.asked.outputs.self-contained }} -p:PublishSingleFile=true --no-restore -o publish/cli
+        shell: pwsh
+        env:
+          SELF_CONTAINED: ${{ steps.asked.outputs.self-contained }}
+        run: dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained $env:SELF_CONTAINED -p:PublishSingleFile=true --no-restore -o publish/cli
 
       - name: the window
-        run: dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained ${{ steps.asked.outputs.self-contained }} -p:PublishSingleFile=true --no-restore -o publish/gui
+        shell: pwsh
+        env:
+          SELF_CONTAINED: ${{ steps.asked.outputs.self-contained }}
+        run: dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained $env:SELF_CONTAINED -p:PublishSingleFile=true --no-restore -o publish/gui
 
       # THE EXECUTABLES ONLY. A publish also writes .pdb files beside them - debugging symbols,
       # which nothing needs in order to run. Bws.Gui.csproj already records that whether a
@@ -142,6 +165,9 @@ jobs:
       # is the whole question somebody usually has.
       - name: sums and sizes
         shell: pwsh
+        env:
+          FLAVOUR: ${{ inputs.flavour }}
+          SHORT: ${{ steps.asked.outputs.short }}
         run: |
           $rows = Get-ChildItem staging/*.exe | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -149,7 +175,7 @@ jobs:
           }
           $rows | ForEach-Object { "{0}  {1}" -f $_.Sha256, $_.Name } |
             Set-Content -LiteralPath staging/SHA256SUMS.txt -Encoding ascii
-          "## ${{ inputs.flavour }}, commit ${{ steps.asked.outputs.short }}" >> $env:GITHUB_STEP_SUMMARY
+          "## $env:FLAVOUR, commit $env:SHORT" >> $env:GITHUB_STEP_SUMMARY
           "" >> $env:GITHUB_STEP_SUMMARY
           "| file | bytes | sha256 |" >> $env:GITHUB_STEP_SUMMARY
           "|---|---:|---|" >> $env:GITHUB_STEP_SUMMARY
