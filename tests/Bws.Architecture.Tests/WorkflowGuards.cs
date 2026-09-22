@@ -46,6 +46,24 @@ public sealed class WorkflowGuards
         new("^[0-9a-f]{40}$", RegexOptions.None, Sources.Ceiling);
 
     /// <summary>
+    /// The two ways to name an action that lives in THIS repository, which is already exactly
+    /// as pinned as the commit being built and therefore has nothing to pin.
+    ///
+    /// <b><c>$/</c> was missing until a review pointed at it, and the first reaction here was
+    /// that it had been invented.</b> It has not: the workflow syntax reference calls it the
+    /// self repository reference and presents it as the RECOMMENDED form - "Using an action in
+    /// the same repository as the workflow at the running commit (recommended)", written
+    /// <c>$/path/to/action</c>. Read there on 2026-09-22 rather than recalled, after nearly
+    /// dismissing it. There are no local actions in this repository today, so this branch was
+    /// about to be wrong in a way nothing would have caught until the first one was added - and
+    /// then it would have looked like the guard working.
+    /// </summary>
+    private static readonly string[] InThisRepository = ["./", "$/"];
+
+    private static bool IsLocal(string action) =>
+        InThisRepository.Any(prefix => action.StartsWith(prefix, StringComparison.Ordinal));
+
+    /// <summary>
     /// A `uses:` line, split into what is used and what follows the reference.
     ///
     /// The trailing group is deliberate. A bare SHA says nothing to a person reading the file -
@@ -68,7 +86,7 @@ public sealed class WorkflowGuards
             // A local action is a path into this repository, so it is already exactly as pinned
             // as the commit being built. There are none today; the branch is here so that adding
             // one is not blocked by a guard about somebody else's releases.
-            if (action.StartsWith("./", StringComparison.Ordinal))
+            if (IsLocal(action))
             {
                 continue;
             }
@@ -116,7 +134,7 @@ public sealed class WorkflowGuards
         // v4.5.0" rather than as two rows of noise - and what lets somebody decide whether a
         // bump is routine without leaving the file.
         var silent = Uses()
-            .Where(u => !u.Action.StartsWith("./", StringComparison.Ordinal))
+            .Where(u => !IsLocal(u.Action))
             .Where(u => u.Trailing.TrimStart().StartsWith('#') is false)
             .Select(u => $"  {u.File}:{u.Line}  {u.Action}")
             .ToList();

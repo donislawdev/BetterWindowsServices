@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Decide a run from a Semgrep JSON report.
 
-    semgrep scan --config p/default --metrics=off --oss-only --json --output semgrep.json
+    semgrep scan --config p/default --metrics=off --oss-only --time --json --output semgrep.json
     python .github/scripts/semgrep_gate.py semgrep.json
+
+`--time` is not decoration: without it the report's rule list is empty and the
+rule floor below cannot be applied. The gate says so on its last line rather
+than assuming.
 
 Why this exists rather than `semgrep --severity ERROR --error`
 --------------------------------------------------------------
@@ -44,10 +48,17 @@ nothing, and "the scan was green" must never mean "the scan did not happen".
 Only entries at level "error" count: a clean run of this repository carries four
 entries at level "warn", and none of them is a reason to stop anybody.
 
-A scan that read no files blocks as well, and the number read is printed on
-every run rather than only when it is zero. Zero is the loud case. A collapse
-from three hundred to a handful is the same failure arriving quietly, and only a
-number on every line makes that visible.
+A scan that read too few files blocks as well, and so does one carrying too few
+rules. Both numbers are printed on every run rather than only when they fire.
+
+THAT SENTENCE USED TO PROMISE MORE THAN THE CODE DID, and it is worth leaving
+the correction visible. Until 2026-09-22 it said a collapse from three hundred
+files to a handful is the same failure arriving quietly - and then the code
+refused only ZERO. A review pointed at the gap. A pull request could add a
+`.semgrepignore`, exclude the source tree, leave one harmless file and collect a
+green verdict, which is precisely the quiet failure the paragraph described.
+Prose is guarded by nothing, including prose about guards. The floors are in
+BLOCKING and MINIMUM_FILES below, with the measurements that set them.
 
 What a healthy run of THIS repository looks like
 -------------------------------------------------
@@ -77,6 +88,41 @@ import sys
 
 BLOCKING = ("ERROR", "HIGH", "CRITICAL")
 
+# FLOORS AGAINST COLLAPSE, NOT EQUALITY CHECKS, and the difference is the whole design.
+#
+# Zero was the only number refused here until 2026-09-22, when a review pointed out that the
+# prose above promised more than the code did: it said a collapse from three hundred files to a
+# handful is the same failure arriving quietly, and then nothing looked at the number. A pull
+# request can add a `.semgrepignore`, exclude src/ and site/, leave one harmless file, and
+# collect a green verdict from a scan that checked nothing.
+#
+# WHY A LOW FLOOR RATHER THAN THE MEASURED VALUE. Both numbers move for legitimate reasons, and
+# a gate that goes red for a legitimate reason is a gate people learn to bypass. Measured on
+# this repository:
+#
+#   files   301 (before the Python scripts existed), 306, 309 - it tracks the tree
+#   rules   131, 374, 419 - it tracks WHICH LANGUAGES ARE IN THE TREE, not the ruleset alone.
+#           Two .py files took it from 131 to 374 by pulling in Python's rules.
+#
+# So these refuse a collapse and say nothing about a drift of tens. Raising them is a deliberate
+# act that means measuring again, exactly like the pinned scanner version.
+MINIMUM_FILES = 200
+
+# THIS ONE IS A PARTIAL ANSWER TO SOMETHING THAT CANNOT BE FIXED HERE, and it is worth being
+# honest about which part. `--config p/default` resolves a ruleset from Semgrep's registry at
+# run time, so its contents can change without a commit in this repository - a real gap in a
+# merge gate. It cannot be closed by vendoring the rules: the Semgrep Rules License, read on
+# 2026-09-22, says "This license does not allow you to distribute the rules, or to make them
+# available to others as a service", and this repository is public.
+#
+# What a floor DOES catch is the ruleset collapsing - the registry answering with a fraction of
+# what it used to, which would otherwise look like a clean scan. What it does NOT catch is the
+# ruleset being REPLACED by a different set of the same size. Nothing available here catches
+# that, and pretending otherwise would be worse than the gap.
+#
+# The count needs `--time` on the scan, because the report carries an empty rule list without it.
+MINIMUM_RULES = 50
+
 
 def split(report):
     """(blocking, passing, scan_errors) out of a semgrep JSON report."""
@@ -94,6 +140,19 @@ def scanned_count(report):
     return len((report.get("paths") or {}).get("scanned") or [])
 
 
+def rule_count(report):
+    """How many rules the scan carried, or None when the scan was run without --time.
+
+    None rather than zero, because the two mean opposite things. Without --time
+    the report's rule list is empty for everybody, so zero there would fail every
+    run. With --time, an empty list is a ruleset that resolved to nothing.
+    """
+    time = report.get("time")
+    if not isinstance(time, dict) or "rules" not in time:
+        return None
+    return len(time.get("rules") or [])
+
+
 def describe(result):
     extra = result.get("extra") or {}
     start = result.get("start") or {}
@@ -103,12 +162,24 @@ def describe(result):
         extra.get("severity", "?"), result.get("check_id", "?"), message[:300])
 
 
-def report_lines(blocking, passing, errors, scanned):
+def report_lines(blocking, passing, errors, scanned, rules):
     lines = []
     if scanned == 0:
         lines.append("no files were scanned, so this report says nothing about the code.")
         lines.append("  A wrong or unreachable config produces exactly this: exit zero, a JSON")
         lines.append("  file, and nothing in it. Check the --config argument and the network.")
+    elif scanned < MINIMUM_FILES:
+        lines.append("only %d file(s) were scanned, and this tree has hundreds." % scanned)
+        lines.append("  A .semgrepignore REPLACES semgrep's own default patterns rather than")
+        lines.append("  adding to them, so one file can take most of the tree out of the scan")
+        lines.append("  and leave every other signal looking healthy. Either the exclusions")
+        lines.append("  changed or the scan ran somewhere else.")
+    if rules is not None and rules < MINIMUM_RULES:
+        lines.append("only %d rule(s) were carried, against a floor of %d."
+                     % (rules, MINIMUM_RULES))
+        lines.append("  p/default is fetched from the registry at run time, so this can change")
+        lines.append("  without a commit here. A count this low is the ruleset having collapsed,")
+        lines.append("  not the code having improved.")
     if errors:
         lines.append("scan errors (a rule that could not run is not a rule that passed):")
         lines += ["  %s: %s" % (e.get("type", "?"),
@@ -124,8 +195,10 @@ def report_lines(blocking, passing, errors, scanned):
     if passing:
         lines.append("other findings (reported, not blocking):")
         lines += ["  " + describe(r) for r in passing]
-    lines.append("semgrep: %d blocking, %d other, %d scan error(s), %d file(s) scanned"
-                 % (len(blocking), len(passing), len(errors), scanned))
+    lines.append("semgrep: %d blocking, %d other, %d scan error(s), %d file(s) scanned, %s"
+                 % (len(blocking), len(passing), len(errors), scanned,
+                    "%d rule(s)" % rules if rules is not None
+                    else "rule count unknown (scan ran without --time)"))
     return lines
 
 
@@ -151,9 +224,11 @@ def main(argv=None):
         return 2
     blocking, passing, errors = split(report)
     scanned = scanned_count(report)
-    for line in report_lines(blocking, passing, errors, scanned):
+    rules = rule_count(report)
+    for line in report_lines(blocking, passing, errors, scanned, rules):
         print(line)
-    return 1 if (blocking or errors or scanned == 0) else 0
+    thin = scanned < MINIMUM_FILES or (rules is not None and rules < MINIMUM_RULES)
+    return 1 if (blocking or errors or thin) else 0
 
 
 if __name__ == "__main__":

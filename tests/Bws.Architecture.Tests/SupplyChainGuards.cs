@@ -119,48 +119,101 @@ public sealed class SupplyChainGuards
     {
         // The other direction, and the cheaper way to lose this gate. Nobody will delete the
         // settings above - they are commented and they look deliberate. What somebody will do,
-        // on an afternoon when a bump is inconvenient, is put NU1903 into a NoWarn on one
-        // project. The build stays green, the advisory stays in the product, and the four
-        // settings above still read exactly as they do today.
-        var advisoryCodes = new Regex(@"NU19\d\d", RegexOptions.IgnoreCase, Sources.Ceiling);
-
+        // on an afternoon when a bump is inconvenient, is reach for one of the several
+        // documented ways to make the warning go away on one project. The build stays green,
+        // the advisory stays in the product, and the four settings above still read exactly as
+        // they do today.
         var excuses = BuildFiles()
-            .Select(file => (File: file, Text: File.ReadAllText(file)))
-            .Where(pair => Excusing(pair.Text).Any(advisoryCodes.IsMatch))
-            .Select(pair => "  " + Path.GetRelativePath(SourceTree.Root(), pair.File).Replace('\\', '/'))
+            .SelectMany(file => Excuses(file, File.ReadAllText(file)))
             .Order(StringComparer.Ordinal)
             .ToList();
 
         Assert.True(
             excuses.Count == 0,
-            "An advisory warning is excused in these files. NU1901 to NU1905 are how NuGet "
-            + "reports a package with a published vulnerability and a feed that cannot answer "
-            + "the question at all, and silencing one of them is silencing the gate rather "
-            + "than tidying a build. If a particular advisory really has been read and "
-            + "accepted, that decision belongs in a document and in the backlog, where a "
-            + "person can find it later - not in a NoWarn that looks like housekeeping:"
+            "An advisory is excused in these files. Every entry below is a documented way to "
+            + "make NuGet's audit stop failing this build, and silencing one is silencing the "
+            + "gate rather than tidying a build. If a particular advisory really has been read "
+            + "and accepted, that decision belongs in a document and in the backlog, where a "
+            + "person can find it later - not in a line that looks like housekeeping:"
             + Environment.NewLine + string.Join(Environment.NewLine, excuses));
     }
 
     /// <summary>
-    /// The values of every element that can take a warning code out of the build.
+    /// Every documented way, in a build file, to stop an advisory from failing the build.
     ///
-    /// Three names rather than one, because they are three different ways to the same place:
-    /// NoWarn silences the warning, WarningsNotAsErrors demotes it back from an error, and
-    /// MSBuildWarningsAsMessages is the blunt one that works on anything.
+    /// <b>THREE OF THESE FIVE WERE MISSING UNTIL A REVIEW POINTED AT ONE OF THEM</b>, and the
+    /// review's own suggestion was narrower than what the documentation turned out to say. Read
+    /// on 2026-09-22 from NuGet's own page on auditing packages rather than recalled:
+    ///
+    ///   <c>NuGetAuditSuppress</c> is an ITEM, not a property, and it names one advisory by
+    ///   URL: <c>&lt;NuGetAuditSuppress Include="https://github.com/advisories/GHSA-..." /&gt;</c>.
+    ///   It suppresses that advisory completely, for every package that shares it, and NuGet's
+    ///   own documentation calls it "a last resort". It carries no NU code at all, so the three
+    ///   patterns that were here could never have seen it.
+    ///
+    ///   <c>NuGetAudit</c>, <c>NuGetAuditMode</c> and <c>NuGetAuditLevel</c> can be set in ANY
+    ///   project, and a project's own value wins over the one in Directory.Build.props. So the
+    ///   first test in this class - which reads that one shared file - could stay green while a
+    ///   single csproj carried <c>&lt;NuGetAudit&gt;false&lt;/NuGetAudit&gt;</c> and audited
+    ///   nothing. That hole was nobody's suggestion: it came from reading the documentation
+    ///   that the suggestion cited.
+    ///
+    /// The three warning-code elements now allow attributes, which the earlier patterns did
+    /// not: <c>&lt;NoWarn Condition="..."&gt;NU1903&lt;/NoWarn&gt;</c> went straight past them.
+    ///
+    /// <b>What this still cannot see, and it is worth saying rather than leaving to be found.</b>
+    /// NuGet reads <c>NuGetAudit</c> from an ENVIRONMENT VARIABLE as well, which its
+    /// documentation suggests outright as a way to turn auditing off on a build server. That
+    /// value lives in a workflow file or in a runner's configuration, not in a build file, so
+    /// no amount of reading csproj and props files will find it. Backlog row 409.
     /// </summary>
-    private static IEnumerable<string> Excusing(string text)
+    private static IEnumerable<string> Excuses(string file, string text)
     {
+        var name = Path.GetRelativePath(SourceTree.Root(), file).Replace('\\', '/');
+        var advisoryCodes = new Regex(@"NU19\d\d", RegexOptions.IgnoreCase, Sources.Ceiling);
+
+        // Silencing the warning, demoting it back from an error, or turning it into a message.
+        // `[^>]*` after the element name is what lets an attribute through to the value.
         foreach (var element in new[] { "NoWarn", "WarningsNotAsErrors", "MSBuildWarningsAsMessages" })
         {
             var pattern = new Regex(
-                $"<{element}>(?<value>[^<]*)</{element}>",
+                $"<{element}[^>]*>(?<value>[^<]*)</{element}>",
                 RegexOptions.IgnoreCase,
                 Sources.Ceiling);
 
             foreach (Match match in pattern.Matches(text))
             {
-                yield return match.Groups["value"].Value;
+                if (advisoryCodes.IsMatch(match.Groups["value"].Value))
+                {
+                    yield return $"  {name}: {element} carries an advisory code";
+                }
+            }
+        }
+
+        // Suppressing one advisory by its URL. No NU code appears anywhere on the line.
+        var suppression = new Regex("<NuGetAuditSuppress[\\s>]", RegexOptions.IgnoreCase, Sources.Ceiling);
+
+        if (suppression.IsMatch(text))
+        {
+            yield return $"  {name}: NuGetAuditSuppress, which excuses one advisory outright";
+        }
+
+        // A project overriding what Directory.Build.props states. The shared file is where these
+        // three belong and the only place they are allowed, which is what makes the first test
+        // in this class worth anything.
+        if (!string.Equals(name, Shared, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var property in new[] { "NuGetAudit", "NuGetAuditMode", "NuGetAuditLevel" })
+            {
+                var local = new Regex(
+                    $"<{property}[^>]*>[^<]*</{property}>",
+                    RegexOptions.IgnoreCase,
+                    Sources.Ceiling);
+
+                if (local.IsMatch(text))
+                {
+                    yield return $"  {name}: sets {property} itself, and a project's value wins over {Shared}";
+                }
             }
         }
     }

@@ -116,7 +116,19 @@ def verdict(dependency):
         return "ok", licence
     if licence is None or not str(licence).strip():
         return "unknown", licence
-    if all(part in ALLOWED for part in parts_of(licence)):
+    parts = parts_of(licence)
+    # An expression that is not blank and yields no identifiers is the vacuous
+    # truth this gate exists to refuse. `all()` over an empty list is True, so
+    # without this line a licence of "()" - not null, not empty, and carrying no
+    # identifier at all - comes back "ok" while nothing was ever checked.
+    #
+    # MEASURED RATHER THAN REASONED ABOUT, 2026-09-22, after a review flagged it:
+    # verdict({"license": "()"}) returned "ok", and so did "( )". The REST schema
+    # promises "string or null" and promises nothing about SPDX syntax, so a
+    # malformed value is the API behaving as documented rather than a bug
+    # upstream. It is the same shape as a scan that read no files, and it is
+    # refused for the same reason.
+    if parts and all(part in ALLOWED for part in parts):
         return "ok", licence
     return "denied", licence
 

@@ -83,9 +83,16 @@ jobs:
         # The exit code is inspected rather than trusted: measured on other repositories of this
         # owner's, a failing scan exits zero. Anything above 1 is still treated as a hard failure
         # in case a later version starts using those codes for something real.
+        #
+        # `--time` is load-bearing rather than curiosity. Without it the report's rule list comes
+        # back empty for every run, and the gate cannot tell a ruleset that collapsed from one
+        # that is fine. `p/default` is resolved from the registry at run time, so that is the
+        # only handle this repository has on it - vendoring the rules is forbidden by their
+        # licence, which says in as many words that it does not allow distributing them, and
+        # this repository is public.
         run: |
           set +e
-          semgrep scan --config p/default --metrics=off --oss-only --json --output semgrep.json
+          semgrep scan --config p/default --metrics=off --oss-only --time --json --output semgrep.json
           code=$?
           set -e
           echo "semgrep exit code: $code"
