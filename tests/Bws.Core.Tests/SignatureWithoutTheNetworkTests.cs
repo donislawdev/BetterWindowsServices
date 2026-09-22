@@ -136,15 +136,13 @@ public sealed class SignatureWithoutTheNetworkTests
     [Fact]
     public void No_result_but_zero_is_ever_reported_as_trusted()
     {
-        int[] everyCode =
-        [
-            NoSignature, Expired, UntrustedRoot, NoChain, Revoked, Tampered, Nameless,
-            unchecked((int)0x80070005), 1, -1, int.MinValue, int.MaxValue
-        ];
-
         foreach (var mode in new[] { NetworkPaths.Skip, NetworkPaths.Follow })
         {
-            foreach (var code in everyCode)
+            // Zero is the one result that MAY be Trusted, so it is the one this loop skips.
+            // It is in the shared list because the assertion below it - that a refusal always
+            // carries a sentence - has to walk every shape, including the ones that never
+            // become refusals at all.
+            foreach (var code in EveryCode.Where(c => c != Trusted))
             {
                 var reading = WindowsBinaryInspector.Settle(code, mode, () => "Someone");
 
@@ -161,4 +159,58 @@ public sealed class SignatureWithoutTheNetworkTests
             }
         }
     }
+
+    /// <summary>
+    /// <b>A refusal always says something, whatever number produced it.</b>
+    ///
+    /// Raised by the review of the pull request that introduced this file, and it was right:
+    /// the first version handed <c>string.Empty</c> to the refusal whenever
+    /// <c>Marshal.GetExceptionForHR</c> answered null, which it does for every non-negative
+    /// HRESULT. <c>S_FALSE</c> is 1, it reaches that line, and it was already in the list this
+    /// test walks - the earlier assertion simply did not ask about the sentence.
+    ///
+    /// A refusal with no sentence is exactly the shape rule 8 forbids: it looks like a field
+    /// that was read and came back empty.
+    /// </summary>
+    [Fact]
+    public void Every_refusal_carries_both_the_number_and_a_sentence()
+    {
+        foreach (var code in EveryCode)
+        {
+            var reading = WindowsBinaryInspector.Settle(code, NetworkPaths.Skip, () => "Someone");
+
+            if (reading.Outcome != ReadOutcome.Denied)
+            {
+                continue;
+            }
+
+            // The number, either as it arrived or as Reading unwraps it. A result in the
+            // FACILITY_WIN32 family is deliberately reduced to its Win32 code on the way in -
+            // 0x80070005 becomes 5 - because access denied out of a signature and access denied
+            // out of the manager were two different numbers for one fact, and that has its own
+            // mutation entry. Asserting the raw value here would have quietly re-opened it.
+            var unwrapped = ((uint)code & 0xFFFF0000u) == 0x80070000u
+                ? (int)((uint)code & 0xFFFFu)
+                : code;
+
+            Assert.Equal(unwrapped, reading.ErrorCode);
+
+            Assert.False(
+                string.IsNullOrWhiteSpace(reading.Reason),
+                $"the refusal produced by result 0x{code:X8} carries no sentence at all. The " +
+                "number alone reaches the JSON, and a reader meets a field that was not read " +
+                "and is told nothing about why.");
+        }
+    }
+
+    /// <summary>
+    /// Every shape a verification result can take, including the ones Windows would never
+    /// produce. A policy asserted only over codes somebody expected is a policy with a hole
+    /// the shape of what they did not.
+    /// </summary>
+    private static readonly int[] EveryCode =
+    [
+        Trusted, NoSignature, Expired, UntrustedRoot, NoChain, Revoked, Tampered, Nameless,
+        unchecked((int)0x80070005), 1, -1, int.MinValue, int.MaxValue
+    ];
 }

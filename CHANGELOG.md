@@ -139,8 +139,10 @@ Nothing has been released yet. Everything below is what the tool does today.
   `bws snapshot create` and the window all broke that promise: while checking who signed each
   binary, Windows went out and fetched certificates it did not already hold. Measured three
   runs out of three, with real connections to a certificate distribution point on the public
-  internet. Nothing was sent about your machine, but a connection was made, and on a tool that
-  runs with administrator rights on somebody else's server the promise is the point. It now
+  internet. It uploaded nothing - no list of your services went anywhere - but saying "nothing
+  was sent" would be too generous: a connection carries your address, and **which certificate
+  is asked for says whose software is installed on that machine**. On a tool that runs with
+  administrator rights on somebody else's server, that is the whole point of the promise. It now
   checks signatures against what your machine already has, and `--follow-network` - the switch
   that already decided whether a launch path on somebody else's share may be opened - is what
   lets it reach out again. On the machine this was found on, all 790 signed entries read

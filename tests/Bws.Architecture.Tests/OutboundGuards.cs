@@ -132,12 +132,22 @@ public sealed class OutboundGuards
     {
         var core = AssemblyFacts.Of("Bws.Core");
 
+        // NAMES RATHER THAN A COUNT, and the review of the pull request that brought this file
+        // is why. A count of three passes when the reader finds three modules nobody expected,
+        // which is exactly the state this canary exists to refuse: it would read as a working
+        // scan over a product whose real imports were never seen.
+        string[] mustBeThere = ["ADVAPI32.dll", "KERNEL32.dll", "PSAPI.dll", "WINTRUST.dll"];
+
+        var missing = mustBeThere.Where(module => !core.NativeModules.Contains(module)).ToArray();
+
         Assert.True(
-            core.NativeModules.Count >= 3,
-            $"the module reader found {core.NativeModules.Count} native modules in Bws.Core, " +
-            "which talks to the service control manager, to processes and to WinVerifyTrust. " +
-            "It is reading the wrong thing, and every other assertion in this file is passing " +
-            "for that reason rather than because the product is clean.");
+            missing.Length == 0,
+            $"the module reader did not find [{string.Join(", ", missing)}] in Bws.Core, which " +
+            "talks to the service control manager, to processes and to WinVerifyTrust. It read " +
+            $"[{string.Join(", ", core.NativeModules.OrderBy(m => m, StringComparer.OrdinalIgnoreCase))}]. " +
+            "Either it is reading the wrong thing - and every other assertion in this file is " +
+            "then passing for that reason rather than because the product is clean - or the " +
+            "product genuinely stopped making one of those calls, which is worth the same look.");
     }
 
     /// <summary>
@@ -204,12 +214,26 @@ public sealed class OutboundGuards
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
 
+        // The four measured on 2026-09-22, named rather than counted. A count of four is
+        // satisfied by four libraries nobody expected - and the way this scan would actually
+        // break is by reading ONE output folder instead of both, which loses Wpf.Ui while
+        // still finding four things beside the terminal.
+        string[] mustBeThere =
+        [
+            "Wpf.Ui", "Wpf.Ui.Abstractions", "WinRT.Runtime", "Microsoft.Windows.SDK.NET"
+        ];
+
+        var missing = mustBeThere
+            .Where(name => !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+
         Assert.True(
-            names.Length >= 4,
-            $"the scan read {names.Length} libraries beside the product - [{string.Join(", ", names)}]. " +
-            "Four were measured on 2026-09-22: Wpf.Ui, Wpf.Ui.Abstractions, WinRT.Runtime and " +
-            "Microsoft.Windows.SDK.NET. Reading fewer means it is looking in the wrong folder, " +
-            "and the two assertions above are then passing on an empty set.");
+            missing.Length == 0,
+            $"the scan did not read [{string.Join(", ", missing)}]. It read " +
+            $"[{string.Join(", ", names)}]. Either it is looking in the wrong folder - and the " +
+            "two assertions above are then passing over a set that does not contain what ships " +
+            "- or a dependency left the tree, which wants a look of its own rather than a " +
+            "quietly smaller scan.");
     }
 
     /// <summary>

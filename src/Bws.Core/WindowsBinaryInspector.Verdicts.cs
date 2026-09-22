@@ -85,7 +85,16 @@ public sealed partial class WindowsBinaryInspector
         {
             // The publisher is deliberately not read. It would open the file a second time to
             // decorate an answer we are declining to give, and a refusal carries no value.
-            return Reading<BinarySignature>.Denied(result, Marshal.GetExceptionForHR(result)?.Message ?? string.Empty);
+            //
+            // THE FALLBACK IS NOT DECORATION. Marshal.GetExceptionForHR answers null for any
+            // non-negative HRESULT - S_FALSE is 1 and reaches this line - and the first version
+            // of this method handed an empty string to a refusal when that happened. A refusal
+            // with no sentence is the thing rule 8 forbids wearing the shape of the thing it
+            // requires. ManagerTerms.Describe is what every other refusal in this project uses
+            // and it always says something.
+            return Reading<BinarySignature>.Denied(
+                result,
+                Marshal.GetExceptionForHR(result)?.Message ?? ManagerTerms.Describe(result));
         }
 
         return Reading<BinarySignature>.Present(new BinarySignature(Classify(result), result, publisher()));
