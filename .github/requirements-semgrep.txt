@@ -1,0 +1,34 @@
+# The scanner .github/workflows/security.yml installs, pinned, in a file a bot can read.
+#
+# WHY THE VERSION IS NOT ON THE pip install LINE. A version written into a workflow step is
+# watched by nothing at all: Dependabot reads manifests and `uses:` lines, and it does not read
+# shell commands. A requirements file is an ecosystem it does read, so a new semgrep release
+# arrives here as a pull request instead of ageing in silence. The full account of what that
+# silence cost in another of this owner's repositories is in .github/dependabot.yml, above the
+# pip entry that watches this file.
+#
+# WHY IT IS PINNED AT ALL. An analyser that updates itself changes the verdict of a merge gate
+# without anybody changing the code, which is the one thing a merge gate must not do. A new
+# release turning a green branch red on a commit that touched nothing teaches everybody to
+# ignore the check.
+#
+# THIS EXACT VERSION IS THE ONE THE GATE'S NUMBERS WERE MEASURED WITH. On 2026-09-22, against
+# commit 693bced exported to a clean directory, semgrep 1.177.0 with `--config p/default` ran
+# 131 rules over 301 files and reported zero findings and zero errors at level error. Those
+# numbers are quoted in .github/scripts/semgrep_gate.py, so moving this line means measuring
+# again rather than assuming the report will look the same.
+#
+# 301 OF 516 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
+# tests/, which is 212 of this repository's files. So a healthy run of this tree reads src/,
+# site/, .github/ and the root - about three hundred files - and a collapse to a handful is the
+# shape of a scan that ran somewhere else. The gate prints the number on every run for exactly
+# that reason.
+#
+# Licence, read on 2026-09-22 from this exact version's own metadata rather than recalled. The
+# package index reports `license_expression` as LGPL-2.1-or-later, with the older `license`
+# field null and no licence classifier - which is the modern shape and worth saying, because a
+# reader checking the field that used to hold this would find nothing and could conclude the
+# licence was unstated. It analyses the source tree in CI and is never linked into anything this
+# project ships, so it creates no distribution obligation - see THIRD-PARTY-NOTICES.md for what
+# does.
+semgrep==1.177.0

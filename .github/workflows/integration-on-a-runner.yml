@@ -1,0 +1,79 @@
+# The integration tests, run on a machine nobody in this project has ever looked at.
+#
+# AN INSTRUMENT, NOT A GATE, and this file exists so that the difference is visible rather than
+# argued. Every number in this project's documents is a fact about ONE machine - 810 services,
+# 544 distinct files, sixteen processors - and docs/04 says plainly that a figure without its
+# subject is a claim with no content. These tests compare our answers against that machine's own
+# sc.exe and hold the performance budgets from section 8.1 of the specification. A runner is a
+# different machine: fewer services, different rights, two or four processors where docs/04
+# already records the snapshot budget landing at 99.6% of its promise on two. The answers are
+# worth reading precisely because they will differ.
+#
+# WHY IT IS ITS OWN FILE SINCE 2026-09-22, having lived in build.yml since 2026-08-03.
+#
+# It was a job in that workflow with `if: github.event_name == 'workflow_dispatch'`, which meant
+# it appeared on every pull request and every push as a SKIPPED check. A skipped row is not free:
+# it is a line in the list that always says nothing, and a list with a permanent nothing in it
+# teaches the eye to skim. That is the argument build.yml already makes about a red mark
+# everybody learns to ignore, applied to the quieter version of the same thing.
+#
+# It also could not be run on its own. Dispatching build.yml ran the whole of build.yml - twelve
+# minutes of compiling and five test projects - to reach a job that needs none of it. An
+# instrument somebody reaches for a few times a year was bolted to the gate that runs every time.
+#
+# Measured before the move rather than asserted: ZERO dispatched runs of build.yml in this
+# repository's history. That is a weaker argument than it looks and is written down as the
+# weaker version - continuous integration here executed no steps at all between 2026-09-08 and
+# 2026-09-22 because of an account billing block, backlog row 392, so the job had about five
+# usable weeks rather than seven.
+#
+# HOW TO RUN IT: Actions, this workflow, "Run workflow". Or `gh workflow run
+# integration-on-a-runner.yml`. There is no schedule and no push trigger on purpose - a result
+# nobody asked for, arriving weekly, is a notification people turn off.
+#
+# WHAT TO DO WITH THE ANSWER. Read it, do not gate on it. If a budget fails here it is a fact
+# about a two-processor runner, which is information rather than a defect. If it turns out to be
+# steady across several runs, that is the moment it can graduate into build.yml - with a note
+# saying what was measured before it was trusted, the way every other number here carries one.
+name: integration on a runner
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: what a different machine says about the integration tests
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: build
+        run: dotnet build BetterWindowsServices.slnx -c Release
+
+      # The whole project, not the "runs=anywhere" subset build.yml takes. That filter exists to
+      # keep machine-dependent tests out of the gate, and this workflow is where the
+      # machine-dependent ones are the point.
+      - name: the tests that read a real service control manager
+        run: dotnet test tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj -c Release --no-build --nologo --logger "trx;LogFileName=integration.trx" --results-directory results
+
+      # Always, unlike build.yml, which uploads only on failure. There a green run has nothing
+      # anybody wants. Here the run IS the thing somebody asked for, and a green one carries the
+      # timings that were the reason for dispatching it.
+      - name: what this machine said
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: integration-results
+          path: results
+          retention-days: 30

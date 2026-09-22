@@ -1,0 +1,200 @@
+# Build the two executables and hand them back, on request.
+#
+# WHAT WAS MISSING, because it was not the whole mechanism. build.yml has published bws.exe
+# self-contained and single-file on every push since it was written - the step is called "the
+# single file still publishes" and it exists to catch a publish that quietly stops working. It
+# then throws the file away with the runner. So the build already happened and nothing collected
+# it. This workflow is that one missing step, plus the window's executable, which nothing
+# published anywhere until now.
+#
+# ON REQUEST AND NOTHING ELSE. No push trigger and no schedule, for the reason the integration
+# instrument next door gives: an artifact nobody asked for, produced on every commit, is a
+# quarter of a gigabyte of storage spent so that somebody can ignore it. Actions, this workflow,
+# "Run workflow" - or `gh workflow run executables.yml`.
+#
+# READ THIS BEFORE WONDERING WHY THE BUTTON IS MISSING: "To trigger the workflow_dispatch event,
+# your workflow must be in the default branch." That is GitHub's documentation, read 2026-09-22,
+# and it means this file does nothing at all until it is merged to main. From then on the branch
+# dropdown lets you run it against any branch.
+#
+# WHAT YOU GET: two executables and a file of SHA-256 sums. Nothing else - one file per program,
+# which is what section S9 of the specification promises and what the window has actually
+# produced since 2026-09-09.
+#
+# THE NUMBERS BELOW WERE MEASURED ON 2026-09-22 BY RUNNING THESE EXACT COMMANDS, and two of them
+# had been written here from older figures and were wrong. That is worth leaving visible: a size
+# copied from a comment written two weeks earlier reads exactly like a size somebody checked.
+#
+#   self-contained        bws.exe  98 377 672   window 171 411 007   pair ~270 MB
+#   framework-dependent   bws.exe  25 023 723   window  31 877 671   pair  ~57 MB
+#
+# The older figures, for anyone comparing: 93.5 MB for bws.exe is backlog row 6 and predates
+# this measurement, and 171 289 067 for the window is the number in Bws.Gui.csproj from
+# 2026-09-09. The window has grown about 122 KB since that day.
+#
+# Self-contained is the default and needs no .NET installed anywhere. The window is the larger
+# of the two because it carries WPF's five native libraries inside itself - that is deliberate
+# and the reasoning is in Bws.Gui.csproj. Framework-dependent is about a fifth of the size, not
+# a rounding error as "a fraction" first suggested here, and it will NOT start on a machine
+# without the matching .NET runtime. So it is for trying a change on a development machine,
+# never for the admin copying one file to the twentieth server.
+#
+# Both flavours were published and run on 2026-09-22 before this file was committed, because
+# workflow_dispatch cannot be tested from a branch. `bws.exe --version` answered "bws 0.1.0 /
+# snapshot schema 4" and exited zero in both.
+#
+# THREE THINGS THIS DOES NOT GIVE YOU, said here rather than discovered later:
+#
+#   The download is a ZIP. GitHub wraps every artifact, so the .exe is inside it.
+#
+#   Only you can download it. GitHub's documentation is explicit - "People who are signed into
+#   GitHub and have read access to a repository can download workflow artifacts" - so this is
+#   not a link that can be given to anybody else. A permanent, anonymous download is a RELEASE,
+#   which is backlog row 386 and a different piece of work: a tag, a version the owner decides,
+#   checksums published beside the files, and a decision about signing.
+#
+#   The executables are NOT SIGNED. Windows SmartScreen will warn on the first run of each new
+#   build. On your own machine that is a click. For a stranger it is a wall, and that is one of
+#   the reasons a release is its own decision rather than an upload step.
+name: executables
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavour:
+        description: 'self-contained runs on any Windows and is ~270 MB for the pair. framework-dependent is ~57 MB and needs .NET 10 already installed.'
+        type: choice
+        options:
+          - self-contained
+          - framework-dependent
+        default: self-contained
+
+permissions:
+  contents: read
+
+concurrency:
+  group: executables-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: publish both executables
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+
+      # The input is turned into the flag once, here, rather than repeated on both publish
+      # lines. Two copies of a condition is one copy that will eventually say something else.
+      #
+      # THROUGH env: RATHER THAN INTERPOLATED INTO THE SCRIPT, and that is not style. The
+      # semgrep gate added in this same pull request blocked the first version of this file on
+      # `yaml.github-actions.security.run-shell-injection`: a `${{ ... }}` expanded inside a
+      # `run:` block is pasted into the script before the shell sees it, so a context value
+      # carrying a quote or a semicolon becomes code. Neither of these two can today - one is a
+      # choice input with two options, the other is a commit hash - but the rule is about the
+      # shape rather than about today's values, and the shape is one edit away from taking
+      # something a stranger controls. Passed as environment variables, the shell reads them as
+      # data and nothing is ever pasted.
+      - name: What was asked for
+        id: asked
+        shell: pwsh
+        env:
+          FLAVOUR: ${{ inputs.flavour }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          $selfContained = if ($env:FLAVOUR -eq 'self-contained') { 'true' } else { 'false' }
+          "self-contained=$selfContained" >> $env:GITHUB_OUTPUT
+          "short=$($env:COMMIT.Substring(0, 7))" >> $env:GITHUB_OUTPUT
+          Write-Host "flavour: $env:FLAVOUR (self-contained=$selfContained)"
+
+      # Restore happens here rather than inside the publishes, and that is not tidiness. This is
+      # where NuGet audits the packages, and Directory.Build.props turns an advisory into an
+      # error, so a vulnerable package stops this workflow before it can produce a file anybody
+      # downloads. A build server that hands out executables is exactly where that matters most.
+      - name: restore, which is also the audit
+        run: dotnet restore BetterWindowsServices.slnx
+
+      # These two carry a value this workflow computed rather than one the `github` context
+      # handed over, so the scanner does not object to them - but they are the same shape as the
+      # step above, and a rule that fires on one and not the other is a poor reason for two
+      # spellings of one idea in one file.
+      - name: the command line program
+        shell: pwsh
+        env:
+          SELF_CONTAINED: ${{ steps.asked.outputs.self-contained }}
+        run: dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained $env:SELF_CONTAINED -p:PublishSingleFile=true --no-restore -o publish/cli
+
+      - name: the window
+        shell: pwsh
+        env:
+          SELF_CONTAINED: ${{ steps.asked.outputs.self-contained }}
+        run: dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained $env:SELF_CONTAINED -p:PublishSingleFile=true --no-restore -o publish/gui
+
+      # THE EXECUTABLES ONLY. A publish also writes .pdb files beside them - debugging symbols,
+      # which nothing needs in order to run. Bws.Gui.csproj already records that whether a
+      # release ships them is a packaging question rather than a build one, and this is not the
+      # place that answers it. Anybody who wants them can take them from a build of their own.
+      - name: collect
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path staging -Force | Out-Null
+          Copy-Item publish/cli/bws.exe staging/
+          Copy-Item publish/gui/BetterWindowsServices.exe staging/
+
+      # A FILE THAT EXISTS IS NOT A FILE THAT RUNS, and publishing exits zero either way. The
+      # command line program is asked its version, which is the cheapest question that proves
+      # the bundle unpacks and the runtime starts. The window is NOT run: it would open a
+      # window on a machine nobody is looking at and would not come back.
+      - name: does it actually start
+        shell: pwsh
+        run: |
+          $version = & ./staging/bws.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "bws.exe --version exited $LASTEXITCODE" }
+          Write-Host "bws.exe answered: $version"
+
+      # SHA-256 beside the files, and the same numbers on the run page. The summary matters more
+      # than it looks: it means the sizes and sums can be read without downloading 260 MB, which
+      # is the whole question somebody usually has.
+      - name: sums and sizes
+        shell: pwsh
+        env:
+          FLAVOUR: ${{ inputs.flavour }}
+          SHORT: ${{ steps.asked.outputs.short }}
+        run: |
+          $rows = Get-ChildItem staging/*.exe | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            [pscustomobject]@{ Name = $_.Name; Bytes = $_.Length; Sha256 = $hash }
+          }
+          $rows | ForEach-Object { "{0}  {1}" -f $_.Sha256, $_.Name } |
+            Set-Content -LiteralPath staging/SHA256SUMS.txt -Encoding ascii
+          "## $env:FLAVOUR, commit $env:SHORT" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| file | bytes | sha256 |" >> $env:GITHUB_STEP_SUMMARY
+          "|---|---:|---|" >> $env:GITHUB_STEP_SUMMARY
+          $rows | ForEach-Object { "| ``$($_.Name)`` | $('{0:N0}' -f $_.Bytes) | ``$($_.Sha256)`` |" >> $env:GITHUB_STEP_SUMMARY }
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "These are not signed, so Windows SmartScreen warns on a first run." >> $env:GITHUB_STEP_SUMMARY
+          $rows | Format-Table -AutoSize | Out-String | Write-Host
+
+      # if-no-files-found: error, because the alternative is an artifact card that exists, opens,
+      # and holds nothing - the same shape of quiet failure the gates in this repository spend
+      # their whole length refusing.
+      #
+      # The commit is in the name so that a download found in a folder three weeks later can
+      # still be traced to what built it. Thirty days rather than the default ninety: this is a
+      # quarter of a gigabyte per run and it is meant to be used the day it is asked for.
+      - name: take it away
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bws-${{ inputs.flavour }}-${{ steps.asked.outputs.short }}
+          path: staging
+          if-no-files-found: error
+          retention-days: 30

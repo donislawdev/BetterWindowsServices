@@ -9,7 +9,10 @@ Every licence below was read from the file inside the package on disk, not from 
 package listing. Where a claim is about what is or is not inside a compiled assembly, it was
 checked in the assembly rather than assumed - the one that mattered is noted where it applies.
 
-Last checked against the versions named here on 2026-08-04.
+Last checked against the versions named here on 2026-08-04, except the three Windows SDK
+metadata packages at the end of the build-time table, which were read on 2026-09-22 when they
+were added. **Two dates rather than one, because one would be a claim nobody made:** changing
+the line above to the later date would say the whole file was re-read that day, and it was not.
 
 ---
 
@@ -103,6 +106,24 @@ list should be able to tell at a glance which side of the line each one falls on
 | Microsoft.NET.Test.Sdk 17.14.1 | MIT | Test host |
 | coverlet.collector 6.0.4 | MIT | Coverage collection |
 | CsCheck 4.7.0 | Apache-2.0 | Property-based testing |
+| Microsoft.Windows.SDK.Win32Metadata 70.0.11-preview | Windows SDK licence terms | The machine-readable description of the Win32 API that CsWin32 reads to generate from. Arrives as its dependency rather than being asked for |
+| Microsoft.Windows.WDK.Win32Metadata 0.13.25-experimental | Windows SDK licence terms | The same thing for the driver-facing half of the API |
+| Microsoft.Windows.SDK.Win32Docs 0.1.42-alpha | Windows SDK licence terms | The documentation text CsWin32 copies into the generated declarations, so that hovering a generated method shows what Microsoft says about it |
+
+**The last three rows are not open source and that is worth stating rather than leaving to be
+assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing: two of them
+carry `sdk_license.txt`, which is `MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT WINDOWS SOFTWARE
+DEVELOPMENT KIT (SDK) FOR WINDOWS 10`, and the third points at the same terms through
+<https://aka.ms/WinSDKLicenseURL>. Those terms license the use of the SDK for building software
+for Windows. They do not license redistributing the SDK, and this project does not redistribute
+it: all three contribute build-time inputs only, their package entries carry the empty
+placeholder `_._` where an assembly would be, and a publish of either program puts none of them
+anywhere. The same question for the two files that DO ship is answered in the section above.
+
+**They are here because the gate asked.** `.github/scripts/dependency_gate.py` blocked them on
+2026-09-22, the first time it ever saw this repository's full dependency graph, and nothing in
+this file said which side of the line they fell on. That was a fair question and this table is
+the answer to it.
 
 ---
 

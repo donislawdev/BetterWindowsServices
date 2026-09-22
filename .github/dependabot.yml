@@ -1,0 +1,134 @@
+version: 2
+
+# Keeps what this project depends on from ageing without anybody noticing.
+#
+# WHAT THIS IS NOT. It is not a vulnerability check. That question is asked in three other
+# places and each of them answers something this file cannot:
+#
+#   dotnet restore, on every push and every pull request, refuses to finish when a package in
+#   the graph has a published advisory. Directory.Build.props states the three settings that
+#   make it do so and tests/Bws.Architecture.Tests/SupplyChainGuards.cs holds them there.
+#
+#   .github/workflows/security.yml compares the dependencies a pull request ADDS against
+#   GitHub's advisory database and against a list of licences this project may distribute.
+#
+#   Dependabot's own security updates, which are a separate mechanism from this file and are
+#   NOT delayed by the cooldown below.
+#
+# This file asks the duller question - does a newer version exist at all - which is how a
+# dependency comes to be three years behind while every gate stays green.
+#
+# COOLDOWN, and what it actually changes. Read from the options reference on 2026-09-22 rather
+# than recalled: Dependabot already applies THREE days to version updates even when nothing is
+# configured, so seven here is an extension and not an introduction. It exists because this
+# project has one maintainer, a poisoned release is usually found by somebody else within days,
+# and letting other people meet a version first costs nothing on dependencies nobody is waiting
+# for. The same reference says cooldown applies to version updates only, so a fix for a known
+# vulnerability is not delayed by it.
+#
+# ONE MAINTAINER IS THE REASON FOR THE GROUPING. A pull request per package is how a dependency
+# bot gets muted, and a muted bot is worse than no bot.
+
+updates:
+  # ---- The actions the workflows run -------------------------------------------------
+  #
+  # Every action in .github/workflows is pinned to a full commit SHA, which is precisely the
+  # form that never updates on its own: a SHA does not move. That is the point of pinning and
+  # also its cost, and this entry is what pays the cost - without it a pinned action ages
+  # silently until it is deprecated and a build stops for a reason nobody connected to it.
+  #
+  # Grouped, because an action bump is one decision about the build rather than several.
+  #
+  # `directory: "/"` is what the options reference asks for here specifically: for GitHub
+  # Actions Dependabot searches /.github/workflows from that value, not the root itself.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ---- The NuGet packages -------------------------------------------------------------
+  #
+  # `directories` with globs rather than `directory: "/"`, and that is a decision with two
+  # reasons rather than a style.
+  #
+  #   The root of this repository holds BetterWindowsServices.slnx and no project file. The
+  #   .slnx format is new, and whether Dependabot's NuGet updater reads it is NOT something
+  #   this file should depend on. Pointing at the project directories asks nothing of the
+  #   solution format: each one of them holds a .csproj that has been read by this bot's
+  #   ecosystem for years.
+  #
+  #   The options reference states that globbing and `*` are supported by `directories` and
+  #   not by `directory`, so a new project under src/ or tests/ joins this entry by existing
+  #   rather than by somebody remembering to add a line here.
+  #
+  # `group-by: dependency-name` is the part that matters most here, and it comes from a
+  # measurement on another repository of this owner's rather than from the documentation alone.
+  # Eight packages are declared across nine project files, six of which carry the same four
+  # test packages, so without cross-directory grouping one xunit release is six pull requests.
+  # In that other repository three directories were listed, the limit was five, and all five
+  # pull requests went to ONE of the three - the quota was eaten before the other two were
+  # reached. The limit here is ten for the same reason.
+  #
+  # Minor and patch only in the group. A major bump falls outside it and arrives on its own,
+  # which is intended: WPF-UI is what the window is drawn with, docs/10 carries thirty-one
+  # traps paid for one at a time, and a major version of it is an afternoon of looking at the
+  # window rather than a tick on a green check.
+  #
+  # NOT VERIFIED YET, and written down rather than assumed: whether Meziantou.Analyzer, which
+  # is declared in Directory.Build.props at the root and in no .csproj, is proposed through the
+  # projects that import that file. It should be - Dependabot evaluates a project together with
+  # the props files above it - but nothing here proves it, and the way to find out is to look
+  # at what arrives in the first weeks rather than to argue about it. Backlog row 403.
+  - package-ecosystem: nuget
+    directories:
+      - "/src/*"
+      - "/tests/*"
+      - "/site/*"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      nuget-minor-and-patch:
+        group-by: dependency-name
+        update-types:
+          - minor
+          - patch
+
+  # ---- The scanner that security.yml installs ------------------------------------------
+  #
+  # This entry exists because of a specific way for a check to rot, and the lesson was paid for
+  # in TestingFilesGenerator on 2026-09-01: a tool version written into a workflow step is
+  # watched by NOTHING. Dependabot reads manifests and `uses:` lines. It does not read shell
+  # commands. Thirty pull requests arrived in that repository without one of them being about
+  # the pinned analysers, and nobody had missed a warning, because there was never going to be
+  # one. The bill came due when an analyser turned out to sit on a version that could not read
+  # the current compiler at all.
+  #
+  # So the version of semgrep lives in .github/requirements-semgrep.txt, which is an ecosystem
+  # this bot does read - confirmed on that repository, where a semgrep bump now arrives as a
+  # pull request against that path.
+  - package-ecosystem: pip
+    directory: "/.github"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(ci)"
