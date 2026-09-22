@@ -1,7 +1,16 @@
 namespace Bws.Core;
 
 /// <summary>
-/// Whether this tool may look at a file that lives on another machine.
+/// Whether this tool may reach off this machine at all.
+///
+/// <b>THE NAME OF THIS TYPE IS NARROWER THAN WHAT IT NOW DECIDES, AND THAT IS SAID HERE RATHER
+/// THAN QUIETLY LIVED WITH.</b> Since 2026-09-22 it also decides whether Windows may go and
+/// fetch a certificate while verifying a signature - measured that day, reading signatures
+/// opened HTTP connections to certificates.intel.com on a listing nobody had told to use the
+/// network. Both are the same decision for whoever runs this: one promise, one control, and
+/// a second switch would have meant finding two of them before the tool was actually quiet.
+/// Renaming the type is a sweep of its own and is a backlog row rather than a change made on
+/// the way past.
 ///
 /// It exists because of a measurement rather than a principle. A service can register a
 /// launch path on a share, and asking whether that file is there is an ordinary
