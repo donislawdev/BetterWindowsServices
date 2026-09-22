@@ -1,4 +1,4 @@
-# Better Windows Services - search your services, preview every change, and see what drifted since yesterday
+# Better Windows Services - a services.msc replacement with search, dry runs, and a diff of what changed since yesterday
 
 [![CI](https://github.com/donislawdev/BetterWindowsServices/actions/workflows/build.yml/badge.svg)](https://github.com/donislawdev/BetterWindowsServices/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/donislawdev/BetterWindowsServices?sort=semver)](https://github.com/donislawdev/BetterWindowsServices/releases/latest)
@@ -7,63 +7,32 @@
 ![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D6)
 [![Website](https://img.shields.io/badge/website-betterwindowsservices.donislawdev.com-e4573f)](https://betterwindowsservices.donislawdev.com/)
 
-**Better Windows Services** is a replacement for `services.msc` for people who administer Windows
-machines - a window and a command line over the same engine. Ask the machine a question instead of
-scrolling eight hundred rows: `start:auto !status:running` is *what should be up and is not*, and
-it works in the search box and in `bws list --query`. See exactly what stopping a service would take
-down with it **before you press anything**, because every change is a plan first and the preview is
-what runs. And the part `services.msc` has never had: **freeze every service on the machine into a
-file, and later ask what has changed since** - configuration reported apart from running state,
-because a service that started since yesterday is not drift, and a start type that changed by
-itself is.
+**Better Windows Services** is `services.msc` rebuilt for people who administer Windows machines -
+a window and a command line over one engine. Ask the machine a question instead of scrolling eight
+hundred rows. See what a change will do **before you press anything**. And the part `services.msc`
+never had: **freeze every service into a file, and a week later ask what changed.**
 
 ⭐ **If it found the service that was not supposed to be running, leave a star.** That is how the
 next administrator finds out it exists.
 
 **What it can do**
 
-- **Ask instead of scroll** - one query language in the window and on the command line.
-  `file:missing` finds services whose binary is gone, `signed:no` the ones Windows does not trust,
-  `mismatch:running` the ones that run while disabled. The search box offers the fields and values
-  as you type, and every filter button writes the query it stands for into the box, so you can
-  read it and edit it.
-- **See what a change will do before it does it** - stop, start, restart, force stop and start
-  type all build a plan: the steps in order, what comes down with them, and a warning when the
-  plan would take down something the machine needs. What the preview shows is what the execution
-  does, on the command line with `--dry-run` and in the window before *Carry this out*.
-- **Freeze the machine into a file, and ask later what changed** - `bws snapshot create` writes
-  every service with its configuration, account, privileges, security descriptor, launch path, file
-  hash and signer. `bws snapshot diff` compares two files, or one file against the machine as it is
-  now, and says what changed in configuration apart from what merely started or stopped.
-- **Stop a service that will not stop** - force stop asks politely first and ends the process only
-  if that does not work. The preview names the process and every other service living in it,
-  because ending a process takes all of them, and force restart brings them all back.
-- **Know what breaks before you stop it** - which services are required by the one you are about
-  to stop, asked of Windows rather than worked out from what everything declares, so services
-  grouped by a load order name are counted too.
-- **Open on a summary, not on the list** - the window starts with what the machine looks like:
-  how much is running, what was set to start automatically and did not, and what points at a file
-  that is no longer there. Every number is a query you can click.
-- **See what `services.msc` hides** - triggers, required privileges, service SID type, security
-  descriptor, who signed the binary and whether Windows trusts it, the process and its memory, the
-  description - as columns you choose, and as fields you can search on.
-- **Fold the per-user noise** - the per-session copies of per-user services sit under the template
-  they came from, because a list where a quarter of the rows are session copies is a list nobody
-  reads.
-- **Say when it could not read something** - a field nobody could read is reported as not read,
-  never as empty. A snapshot taken without administrator rights says so inside the file. A
-  comparison lists the entries it could not fully compare instead of calling them unchanged.
-- **Fit into scripts and monitoring** - `--json` on every command, an exit code for every ending,
-  and `snapshot diff --exit-code` ends with 5 when anything differs.
-- **Work without a mouse, and with a screen reader** - everything in the window is reachable from
-  the keyboard, and the suggestions under the search box are announced as you move through them.
-- **Never reach the network** - no telemetry, no update check, no crash reporting, no account. The
-  one place it can touch a network at all is a launch path on another machine's share, and that is
-  off unless you pass `--follow-network`.
-- **Come as one file each, with no installer** - copy the executable to a server over Remote
-  Desktop and run it. Nothing to install, nothing written to the registry, and no administrator
-  rights needed to look.
-- **Cost nothing** - GPL-3.0.
+- **Ask, instead of scroll** - `start:auto !status:running` is *what should be up and is not*. One
+  language, in the search box and in `bws list --query`, with the fields offered as you type.
+- **Show the plan before anything happens** - every stop, start, restart and start type change is
+  previewed with the services it takes down with it, and the preview is what runs.
+- **Tell you what drifted** - `bws snapshot create` freezes the machine into a file, and
+  `bws snapshot diff` says what changed since, configuration apart from what merely started or stopped.
+- **Stop a service that will not stop** - it asks politely first and ends the process only if that
+  fails, naming every other service that lives in it.
+- **Show what `services.msc` hides** - who signed the binary and whether Windows trusts it, triggers,
+  privileges, the security descriptor, the process and its memory. As columns, and as things to search on.
+- **Say when it could not read something** - a field it could not read is reported as not read, never
+  shown as empty. A snapshot taken without administrator rights says so inside the file.
+- **Fit into scripts** - `--json` on every command, an exit code for every ending, and `5` when a diff
+  finds drift.
+- **Run from one file, offline** - no installer, no .NET to install, and it never talks to the
+  internet. Reading needs no administrator rights. GPL-3.0.
 
 <!-- TODO(owner): record this one. The window opened on a machine, a number on the opening screen
      clicked, the query it wrote into the search box edited, a row right-clicked, "What stopping
@@ -88,37 +57,33 @@ Grab the latest build from the
 | `BetterWindowsServices-win-x64.zip` | The window, one self-contained executable - no .NET to install |
 | `bws-cli-win-x64.zip` | The command line, one self-contained executable, for scripts and CI |
 
-Unzip anywhere and run `BetterWindowsServices.exe`, or `bws.exe` from a terminal. There is no
-installer, nothing is written to the registry, and no administrator rights are needed to read.
-Changing anything - stopping, starting, a start type - needs an elevated session, and both halves
-say so rather than fail quietly: the window offers *Restart as admin*, and `bws` says at
-the top of its output that it is not one.
+Windows 10 1809 or Windows Server 2019 and later, 64-bit. Unzip anywhere and run
+`BetterWindowsServices.exe`, or `bws.exe` from a terminal. No installer, nothing written to the
+registry, and no administrator rights needed to look. Changing anything needs an elevated session,
+and both halves say so instead of failing quietly - the window offers *Restart as admin*.
 
 The executables carry an Authenticode signature, so Windows names the publisher instead of warning
 about an unknown one.
 
-> **Early release.** Both halves do everything listed on this page, and an automated suite runs on
-> every commit. What is not there yet is listed under [Honest limits](#honest-limits) rather than
-> left for you to discover - most of it is the second half of the audit story: a stock Windows
-> baseline, a change journal, and restoring from a snapshot.
+> **Early release.** Both halves do everything on this page, and an automated suite runs on every
+> commit. What is not there yet is under [Honest limits](#honest-limits) - most of it is the second
+> half of the audit story: a stock Windows baseline, a change journal, and restoring from a snapshot.
 
-**One thing to know first:** nothing in this tool changes anything without showing the plan. If a
-preview and an execution ever differ, that is the worst bug this product can have, and it is the
-one to report.
+**One promise to hold it to:** nothing changes without showing the plan first, and the preview is
+what runs. A preview that differs from what then happened is the worst bug this tool can have -
+report it.
 
 ---
 
 ## Two minutes with it
 
 **In the window:** start `BetterWindowsServices.exe`. It opens on a few numbers about this
-machine - services running, set to start automatically and did not come up, and pointing at a
-file that is gone. Click one and its question lands in the search box as a query you can read and
-edit. Type into the box and it offers the fields, then the values, as you go. Pick a row and the
-details panel shows everything known about it. Right-click a row, choose *What stopping would do*,
-and the plan appears: the steps, the services it would take down with it, the warning if one of
-them is something the machine needs, and the command line that asks for the same thing. *Carry
-this out* runs exactly that plan, and afterwards the panel says what did not work and how to get
-back.
+machine - what is running, what should have started and did not, what points at a file that is
+gone. Click one and its question lands in the search box as a query you can edit. Right-click a
+row, choose *What stopping would do*, and the plan appears: the steps, what comes down with them,
+a warning if one of them is something the machine needs, and the `bws` line that asks for the same
+thing. *Carry this out* runs exactly that plan, and afterwards the panel says what did not work and
+how to get back.
 
 <!-- TODO(owner): a still of the window with a plan open. The plan panel on the right, a few rows
      picked on the left, the warning line visible. -->
@@ -255,25 +220,24 @@ Every operation that writes builds a plan first, and the same plan serves five p
 preview, the cascade of dependent services, the refusal before you press anything, the command
 line that asks for the same thing, and the way back afterwards.
 
-- **The preview is the execution.** `--dry-run` prints the steps, in order, with the reason each
-  one is there - *asked for*, or *would break otherwise*. Without `--dry-run` those same steps run
-  in that same order. There is no second code path for the real thing.
-- **What comes down with it is in the plan.** `--dependents` on the command line, and always in the
-  window, the services that would break are listed as steps of their own, and a plan that would
-  take down something the machine needs says so in its warnings.
-- **A refusal comes before the button.** A service that cannot be stopped - a driver, a service the
-  manager will not accept a stop for, a process the system protects - is refused when the plan is
-  built, with the reason, not after a wait. The window greys the button and says why beside it.
-- **Force stop is two steps, and the second is conditional.** `bws kill` asks the service to stop
-  and ends its process only if that does not work, so a service that stops on its own is never
-  ended. The preview names the process by number and every other service living in it, because
-  ending a process takes all of them. `--restart` brings them back. `--force` skips the polite
-  step, and the preview shows one step instead of two so the difference is visible before anything
-  happens.
-- **Afterwards, the way back.** A report ends with what did not work and with the commands that put
-  things back where they were - and the window offers *Copy all* over them.
-- **A start type change moves nothing.** It changes what the manager will do at the next boot and
-  leaves the service running or stopped as it was, and the report says so.
+- **The preview is the execution.** `--dry-run` prints the steps in order, each with its reason -
+  *asked for*, or *would break otherwise*. Without `--dry-run` those same steps run in that same
+  order. There is no second code path for the real thing.
+- **What comes down with it is in the plan.** The services that would break are steps of their own
+  (`--dependents` on the command line, always in the window), and a plan that would take down
+  something the machine needs says so in its warnings.
+- **A refusal comes before the button.** A driver, a service the manager will not accept a stop for,
+  a process the system protects - refused when the plan is built, with the reason, not after a wait.
+  The window greys the button and says why beside it.
+- **Force stop is two steps, and the second is conditional.** `bws kill` asks the service to stop and
+  ends its process only if that does not work. The preview names the process and every other service
+  living in it, because ending a process takes all of them. `--restart` brings them back, `--force`
+  skips the polite step - and the preview shows one step instead of two, so the difference is visible
+  before anything happens.
+- **Afterwards, the way back.** A report ends with what did not work and the commands that put things
+  back - and the window offers *Copy all* over them.
+- **A start type change moves nothing.** It changes what happens at the next boot, leaves the service
+  as it was, and the report says so.
 
 The window and the command line are two clients of one engine. The plan the window shows is the
 plan `bws` would print, and the window prints the `bws` line beside it so you can take it to a
@@ -527,13 +491,11 @@ Yes to both. GPL-3.0, no strings attached. A snapshot you take is your file.
 
 ### Will it break my server?
 
-Not by itself. Nothing is changed without a plan you have seen, drivers are refused, a plan that
-would take down something the machine needs says so, and a service that starts automatically is
-back after the next restart - the warning tells you that too. What it cannot protect you from is
+Not by itself. Nothing is changed without a plan you have seen, drivers are refused, and a plan
+that would take down something the machine needs says so. What it cannot protect you from is
 carrying out a plan you did not read. The list of services the machine needs is a starter list of
-seven - the two halves of RPC, the account manager, key isolation, the session manager and plug
-and play - and it says so in the code. Remote Desktop is not on it, so over a remote session, read
-the plan.
+seven - the two halves of RPC, the account manager, key isolation, the session manager and plug and
+play - and Remote Desktop is not on it, so over a remote session, read the plan.
 
 ### Is this a Microsoft product?
 
