@@ -74,6 +74,32 @@
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
     <NuGetAuditLevel>low</NuGetAuditLevel>
+
+    <!--
+      RESTORING these projects on Linux is allowed. BUILDING them there still is not, and the
+      two are different questions - this property only answers the first.
+
+      Why it is needed at all, in a product that is Windows-only by ADR-1. GitHub's automatic
+      dependency submission runs on a LINUX runner, finds every .csproj in the tree and restores
+      it, and that is how the dependency graph learns the resolved package tree rather than the
+      seven names written in our project files. Without this line the SDK refuses at the first
+      project with NETSDK1100 - "To build a project targeting Windows on this operating system,
+      set the EnableWindowsTargeting property to true" - and the whole submission fails.
+
+      MEASURED RATHER THAN SUSPECTED, 2026-09-22, and it is the reason this line exists. The
+      feature was already switched on for this repository and had NEVER succeeded: one run in
+      its whole history, failing on Bws.Core and Bws.Site with exactly that error. So the
+      dependency graph held 13 entries - the direct packages GitHub parses out of the csproj
+      files - while the resolved tree behind them is an order of magnitude larger. Nothing
+      reported this. A submission that never ran looks identical to a project with no
+      transitive dependencies.
+
+      What it does NOT weaken. It permits the restore to download Windows reference packs on a
+      non-Windows host. It does not change the target framework, it does not make anything
+      build or run off Windows, and the platform analyser still holds every call in Bws.Core to
+      the supported floor. On Windows this property does nothing at all.
+    -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <!--
