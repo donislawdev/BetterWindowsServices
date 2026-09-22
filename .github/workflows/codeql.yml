@@ -1,0 +1,102 @@
+# Code scanning, moved out of GitHub's default setup and into a file.
+#
+# THE REASON IS CONTROL, NOT COVERAGE, and it is worth being exact about that because the
+# obvious argument for this file is wrong. Default setup here was already running the EXTENDED
+# query suite: `gh api repos/.../code-scanning/default-setup` answered `"query_suite":
+# "extended"`, languages actions and csharp, weekly, threat model remote. So this file does not
+# widen the analysis and nothing here is an upgrade of what is looked for.
+#
+# What it buys instead:
+#
+#   The actions it runs are PINNED. Default setup runs GitHub's own, unpinned, and
+#   WorkflowGuards - the guard added in the same pull request as this file - cannot see a
+#   configuration that lives in a dialog. Every other action in this repository is held to a
+#   commit; this was the one exception, and it was invisible rather than argued.
+#
+#   The configuration is REVIEWABLE. Which suite, which languages, which schedule, which runner
+#   were all settings in a web page that the repository could not state, could not explain and
+#   could not diff. A clone carried no trace of them. Now a change to any of them is a change to
+#   a file, read like the rest of the pipeline.
+#
+#   It travels. docs/02 records that this project is meant to last, and a decision that exists
+#   only inside one account's settings is a decision the next person cannot find.
+#
+# NOTHING MEASURABLE CHANGES WITH THIS MOVE, and that is deliberate. Every dial below is set to
+# what default setup was measured to be doing on 2026-09-22, read from the API and from a
+# running job rather than guessed:
+#
+#   languages     actions and csharp      (from the default setup API)
+#   suite         security-extended       (the API said query_suite: extended)
+#   build-mode    none, for both          (read out of a live job: "build-mode": "none")
+#   schedule      weekly                  (the API said schedule: weekly)
+#   threat model  remote                  (the API said remote, which is also the default, so
+#                                          there is nothing to write here for it)
+#
+# Leaving any of those out would have quietly narrowed the analysis while looking like a pure
+# move from a dialog into a file, which is the one way this change could do harm.
+#
+# TWO DIALS WORTH TRYING LATER, AND NEITHER IS TRIED HERE. The C# job could run on a Windows
+# runner rather than this one, and it could use a real build instead of build-mode none - a
+# build gives the extractor full type resolution, which for C# is documented as more accurate
+# than reading source alone. Both are plausible and neither is measured, so neither belongs in a
+# change whose whole claim is that it changes nothing. The measurement is cheap and obvious when
+# somebody wants it: change one dial, and compare the number of alerts against this run.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Weekly, as default setup ran it. A new query in a CodeQL release can find something in code
+  # nobody has touched since, and no commit-triggered run would ever notice - the same argument
+  # .github/dependabot.yml makes about advisories, applied to queries instead of dependencies.
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyse ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      # Writing results to the Security tab is the whole point of the job. Everything else stays
+      # read-only, like the rest of the pipeline.
+      security-events: write
+      contents: read
+      actions: read
+
+    strategy:
+      # One language failing should not hide the answer for the other.
+      fail-fast: false
+      matrix:
+        language: [actions, csharp]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@c23de5a82f64bb08c6d9f28844551440ca298e76 # v4.38.1
+        with:
+          languages: ${{ matrix.language }}
+          # Nothing is compiled. build.yml already builds this product on a Windows runner on the
+          # same push, and repeating that here would double the slowest job in the pipeline to
+          # produce a database default setup was building without it.
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@c23de5a82f64bb08c6d9f28844551440ca298e76 # v4.38.1
+        with:
+          category: /language:${{ matrix.language }}
