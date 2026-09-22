@@ -1,0 +1,186 @@
+# Phase A of the release ritual: build here, prove it was built here, open an empty draft.
+#
+# The signing key lives on a cryptographic card in a reader and CANNOT be exported - that is the
+# whole value of it, so no GitHub-hosted runner will ever reach it. A self-hosted runner could,
+# and this is a PUBLIC repository, where a self-hosted runner is a machine strangers can aim a
+# pull request at. So the build happens where builds belong and the signature happens where the
+# card is.
+#
+# THIS PHASE PUBLISHES NOTHING. No archive, no checksums, no bill of materials. Those are not the
+# bytes a user will download, and an unsigned executable on a public release page - even for a
+# quarter of an hour - is a file somebody downloads. The draft it opens is empty on purpose.
+#
+# The four phases, and who runs each:
+#   A  this file, on a `v*` tag             build, attest the UNSIGNED build, open a draft, hand
+#                                           the build back as a workflow artifact
+#   B  packaging/sign-release.ps1           on the machine with the card: verify A's attestation,
+#                                           sign, repack, write the documents and the checksums,
+#                                           upload, wait
+#   C  .github/workflows/attest-signed.yml  attest the bill of materials of the SIGNED bytes,
+#                                           never their provenance - a person signed those
+#   D  .github/workflows/verify-release.yml on publish: check the release page as a user does
+#
+# The whole reasoning is ADR-28 in docs/02.
+#
+# READ THIS BEFORE WONDERING WHY THE BUTTON IS MISSING: "To trigger the workflow_dispatch event,
+# your workflow must be in the default branch." That is GitHub's own documentation, and it means
+# the manual half of this file does nothing at all until it is merged to main.
+#
+# The release stays a draft until a person reads it and presses the button.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and attest the unsigned build
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      # Opening the draft. It gets no assets here.
+      contents: write
+      # The three the attestation action needs: an OIDC token for a Sigstore certificate, the
+      # attestation store, and the artifact metadata record.
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # THE TAG REACHES THE SCRIPTS THROUGH THE ENVIRONMENT RATHER THAN THROUGH `${{ }}` INSIDE A
+      # `run:` BLOCK, and that is not style. Template expansion happens BEFORE the shell sees the
+      # script, so a tag is pasted into the source of the script and the quotes around it in this
+      # file protect nothing. Git allows a quote, a backtick and a semicolon in a ref name, so a
+      # tag can close the string it was pasted into and continue as code - in a job holding
+      # `id-token: write` and `attestations: write`. An environment variable is passed by the
+      # runner as a value and is never parsed as part of the script. The semgrep gate in this
+      # repository blocks the other spelling by name.
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # THIS WORKFLOW BUILDS AND PUBLISHES, AND IT DOES NOT TEST. Without this step the only
+      # thing standing between a red commit and a release is somebody's memory of having looked.
+      # Asked by WORKFLOW FILE NAME rather than "are all the checks green": a repository
+      # accumulates checks, some advisory, and "all green" quietly becomes "none of them has said
+      # no yet". This repository requires five checks on main and `build` is the one that runs
+      # the suite.
+      - name: The test workflow must have been green on this exact commit
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $sha = $env:GITHUB_SHA
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/build.yml/runs?head_sha=$sha&per_page=20" --jq '.workflow_runs[] | "\(.conclusion)|\(.status)|\(.html_url)"'
+          if ($LASTEXITCODE -ne 0) { throw "cannot read the build runs for $sha" }
+          $lines = @($runs -split "`n" | Where-Object { $_ })
+          if ($lines.Count -eq 0) {
+            throw "the build workflow never ran on $sha. A tag on a commit nothing has tested is a release nothing checked - push the commit to a branch and let it go through a pull request first."
+          }
+          if (-not ($lines | Where-Object { $_.StartsWith('success|') })) {
+            throw "the build workflow on $sha did not conclude successfully:`n$($lines -join "`n")"
+          }
+          Write-Host "build was green on $sha"
+
+      # The version lives in exactly one file - rule 11 of CLAUDE.md makes moving it the owner's
+      # decision - and a tag is where disagreement costs the most, because every URL and document
+      # name downstream is written from one of the two.
+      - name: The tag and the version file must agree
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $found = Select-String -Path Directory.Build.props -Pattern '<Version>([^<]+)</Version>' | Select-Object -First 1
+          if (-not $found) { throw 'cannot read <Version> from Directory.Build.props' }
+          $version = $found.Matches[0].Groups[1].Value
+          if ($env:TAG -ne "v$version") {
+            throw "the tag is $env:TAG and the product version is $version - one of them was not moved"
+          }
+          Write-Host "tag $env:TAG matches Directory.Build.props"
+
+      # A changelog with everything still under [Unreleased] is a changelog nobody closed, and the
+      # release notes are the one part of a release that cannot be regenerated afterwards.
+      - name: The changelog must be closed for this version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          $lines = Get-Content CHANGELOG.md
+          $headings = @()
+          for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match '^## \[') { $headings += $i } }
+          $unreleased = $headings | Where-Object { $lines[$_] -match '^## \[Unreleased\]' } | Select-Object -First 1
+          if ($null -eq $unreleased) { throw 'CHANGELOG.md has no [Unreleased] section' }
+          $next = $headings | Where-Object { $_ -gt $unreleased } | Select-Object -First 1
+          if ($null -eq $next) { $next = $lines.Count }
+          $body = $lines[($unreleased + 1)..($next - 1)] | Where-Object { $_.Trim() -match '^[-*]' }
+          if ($body) {
+            throw "CHANGELOG.md still has $($body.Count) entries under [Unreleased] - move them under '## [$version] - <date>' before tagging"
+          }
+          if (-not (Select-String -Path CHANGELOG.md -Pattern "^## \[$([regex]::Escape($version))\] - \d{4}-\d{2}-\d{2}" -Quiet)) {
+            throw "CHANGELOG.md has no dated section for $version"
+          }
+          Write-Host "changelog closed for $version"
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # Publishes both halves, checks the pinned third-party bytes, stages the licences beside
+      # each executable, RUNS the command line program out of the staging folder, packs, and
+      # writes a bill of materials that checks the component register against the manifest the
+      # publish produced - in both directions. The restore inside it is also the package audit:
+      # Directory.Build.props turns an advisory into an error, so a vulnerable package stops this
+      # workflow before it can produce a file anybody downloads.
+      - name: Build the packages
+        shell: pwsh
+        run: ./packaging/build-dist.ps1
+
+      # Provenance over the UNSIGNED build, which is what phase B verifies before it touches
+      # anything. The archives change when the executable inside them is signed, so this
+      # attestation describes the artifact handed to the card machine and NOT what a user
+      # downloads. Phase C attests the signed bytes, and deliberately attests only their bill of
+      # materials - a person signed those, on their own machine.
+      - name: Attest how the unsigned build was made
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/BetterWindowsServices-win-x64.zip
+            dist/bws-cli-win-x64.zip
+
+      # Empty on purpose. The assets arrive in phase B, signed.
+      - name: Open the draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          gh release view $env:TAG 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:TAG --draft --title "Better Windows Services $($env:TAG.TrimStart('v'))" --notes "Draft. Built by the Release workflow, signed on the card, assets attached by phase B - see CHANGELOG.md."
+            if ($LASTEXITCODE -ne 0) { throw 'could not create the draft release' }
+            Write-Host "opened draft $env:TAG with no assets"
+          } else {
+            Write-Host "draft $env:TAG already exists"
+          }
+
+      # THE SEAM BETWEEN THE BUILD AND THE CARD. The archives, and the build manifest beside each
+      # one: phase B has to write the bill of materials again over the signed bytes, and the
+      # resolved version of every runtime pack exists only in that manifest. The checksums and the
+      # documents build-dist.ps1 wrote describe UNSIGNED bytes and have no business travelling
+      # any further.
+      - name: Hand the build to the signing step
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unsigned-build-${{ github.ref_name }}
+          path: |
+            dist/*.zip
+            dist/*.deps.json
+          if-no-files-found: error
+          retention-days: 14

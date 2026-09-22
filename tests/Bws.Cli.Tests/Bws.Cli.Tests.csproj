@@ -31,4 +31,18 @@
     <ProjectReference Include="..\..\src\Bws.Cli\Bws.Cli.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      THE FOURTH PROJECT TO LINK THIS FILE RATHER THAN THE FIRST TO REFERENCE A SHARED ONE, and
+      the reasoning is written at the top of tests/SourceTree.cs: a shared test assembly would be
+      a new reference edge, and the edges between these projects are themselves under guard.
+
+      It arrives here for LicenceCommandTests, which has to read packaging/components.json off
+      the disk. Comparing the answer this program gives against the register it was compiled from
+      is the only way to catch the one failure that matters there - an executable confidently
+      listing the OTHER package's components.
+    -->
+    <Compile Include="..\SourceTree.cs" Link="SourceTree.cs" />
+  </ItemGroup>
+
 </Project>

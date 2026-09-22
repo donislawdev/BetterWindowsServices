@@ -65,6 +65,30 @@
     <EmbeddedResource Include="Resources\cli.en.json"
                       LogicalName="Bws.Cli.Resources.cli.en.json"
                       WithCulture="false" />
+
+    <!--
+      THE COMPONENT REGISTER, LINKED FROM packaging/ RATHER THAN COPIED INTO THIS FOLDER.
+
+      packaging/components.json is the one source for three renderings: the SPDX document
+      published beside every archive, the full licence texts in THIRD-PARTY-NOTICES.md, and the
+      licence command inside this executable. A copy here would be a second file to update and a
+      first one to forget, which is exactly how a notices file goes stale, and this repository has
+      the measurement to prove it happens.
+
+      (The component switch cannot be named in this comment: XML forbids two hyphens inside one,
+      and the first version of this block said the whole project file could not be loaded.)
+
+      Embedded rather than shipped beside the program for the same reason as the text above: both
+      halves publish as ONE self-contained file, and an answer about what is inside that file must
+      not depend on a second file being next to it.
+
+      LogicalName spelled out, and the folder in the name is deliberately Resources: the file does
+      not live there, and a resource name derived from its real path would carry `packaging` into
+      the assembly and break the moment the file moved.
+    -->
+    <EmbeddedResource Include="..\..\packaging\components.json"
+                      LogicalName="Bws.Cli.Resources.components.json"
+                      WithCulture="false" />
   </ItemGroup>
 
   <PropertyGroup>

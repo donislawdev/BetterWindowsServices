@@ -166,7 +166,13 @@ public sealed class LicenceNoticeGuards
     /// Absent before a restore, and an empty answer then, which makes this check blinder rather
     /// than louder. These tests run after a build, so it is present.
     /// </summary>
-    private static IEnumerable<string> ShippingAssetsOf(string project)
+    /// <remarks>
+    /// <b>internal rather than private since 2026-09-23</b>, because <c>ComponentRegisterGuards</c>
+    /// asks the same question of the same file and a second implementation of "which packages
+    /// actually ship" would be a second answer. The note above is the whole reason that answer is
+    /// hard to get right: a naive read of the graph reports four packages that ship nothing.
+    /// </remarks>
+    internal static IEnumerable<string> ShippingAssetsOf(string project)
     {
         var assets = Path.Combine(SourceTree.Root(), "src", project, "obj", "project.assets.json");
 

@@ -51,6 +51,26 @@ internal static class Immediate
             return ExitCode.Ok;
         }
 
+        // THE THIRD QUESTION THAT NEEDS NOTHING, AND THE ONE THAT WAITS FOR THE LINE TO BE CLEAN.
+        //
+        // It belongs here for the same reason as the two above: it reads no service manager, no
+        // disk and no network, so making it wait for a machine would be making it wait for
+        // something it never asks. It answers out of a register compiled into this executable.
+        //
+        // <b>NothingWrong is the whole difference, and leaving it out would have been a bug of
+        // exactly the kind the belonging table exists to prevent.</b> Help and version are read
+        // BEFORE what somebody typed is judged, on purpose - a line that went wrong is still a
+        // line whose author may be asking for the help. A verb is not that: `bws license --json`
+        // with the rule above would have printed the notice, exited zero and said nothing about
+        // the switch it ignored. So anything with a complaint against it falls through to
+        // Refusals, which already has the sentence for every one of them.
+        if (options.Kind == CommandKind.License && options.NothingWrong)
+        {
+            Output.Data(Licence.Answer(options.Components));
+
+            return ExitCode.Ok;
+        }
+
         return null;
     }
 }

@@ -51,6 +51,7 @@ internal sealed partial record CommandLine
         var against = string.Empty;
         var exitCode = false;
         var live = false;
+        var components = false;
         string? note = null;
         string? badSubcommand = null;
         string? badTimeout = null;
@@ -208,6 +209,7 @@ internal sealed partial record CommandLine
             if (Arguments.Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
             if (Arguments.Matches(argument, "--restart")) { restart = true; given.Add("--restart"); continue; }
             if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
+            if (Arguments.Matches(argument, "--components")) { components = true; given.Add("--components"); continue; }
             if (Arguments.Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
 
             // Both spellings, because both are what people's fingers do.
@@ -312,6 +314,7 @@ internal sealed partial record CommandLine
             Against = against,
             ExitCodeOnDifference = exitCode,
             Live = live,
+            Components = components,
             Note = note,
             BadSubcommand = badSubcommand,
             BadVerb = badVerb,

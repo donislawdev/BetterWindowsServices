@@ -57,13 +57,45 @@ Grab the latest build from the
 | `BetterWindowsServices-win-x64.zip` | The window, one self-contained executable - no .NET to install |
 | `bws-cli-win-x64.zip` | The command line, one self-contained executable, for scripts and CI |
 
-Windows 10 1809 or Windows Server 2019 and later, 64-bit. Unzip anywhere and run
+Windows 10 1809 or Windows Server 2019 and later, 64-bit. Each archive unzips to a folder holding
+the executable, the licence and the notices for the borrowed code - run
 `BetterWindowsServices.exe`, or `bws.exe` from a terminal. No installer, nothing written to the
 registry, and no administrator rights needed to look. Changing anything needs an elevated session,
 and both halves say so instead of failing quietly - the window offers *Restart as admin*.
 
-The executables carry an Authenticode signature, so Windows names the publisher instead of warning
-about an unknown one.
+The executables carry an Authenticode signature with a timestamp, so Windows names the publisher
+rather than an unknown one. SmartScreen can still warn on a brand new build until enough people
+have run it - that reputation is earned over downloads and is not something a signature buys
+outright.
+
+### Check what you downloaded
+
+Every release publishes, beside each archive: a bill of materials naming everything inside it
+that somebody else wrote, a signed attestation of that document, and one file of SHA-256 sums.
+Run these in the folder you downloaded into. The first two need nothing, the last two need the
+[GitHub CLI](https://cli.github.com/) signed in.
+
+<!-- verify-commands -->
+```powershell
+if (-not ((Get-Content SHA256SUMS) -match (Get-FileHash BetterWindowsServices-win-x64.zip -Algorithm SHA256).Hash.ToLower())) { throw 'BetterWindowsServices-win-x64.zip does not match SHA256SUMS' }
+if (-not ((Get-Content SHA256SUMS) -match (Get-FileHash bws-cli-win-x64.zip -Algorithm SHA256).Hash.ToLower())) { throw 'bws-cli-win-x64.zip does not match SHA256SUMS' }
+gh attestation verify BetterWindowsServices-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle BetterWindowsServices-win-x64.zip.sigstore.json
+gh attestation verify bws-cli-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle bws-cli-win-x64.zip.sigstore.json
+```
+<!-- /verify-commands -->
+
+**`--predicate-type` is not optional and leaving it out looks like a broken release.** The tools
+ask for build provenance by default, and a signed archive deliberately has none: a person signed
+those bytes on their own machine with a card in a reader, and an attestation saying a workflow
+produced them would be a lie. What is attested is what is inside the archive. Without the flag one
+spelling answers "no attestation found" and another returns 404.
+
+These four commands are not decoration: a workflow runs them, out of this file and unchanged, every
+time a release is published. If the command you are about to type has stopped working, that
+workflow is what turns red.
+
+`bws license --components` answers the same question from inside the program, with no internet and
+nothing to download - what it carries, which version, under which licence.
 
 > **Early release.** Both halves do everything on this page, and an automated suite runs on every
 > commit. What is not there yet is under [Honest limits](#honest-limits) - most of it is the second
@@ -407,6 +439,7 @@ bws start-type NAME automatic|manual|disabled [--dry-run] [--json] [--timing]
 bws snapshot create [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]
+bws license [--components]
 bws --help
 bws --version
 ```
@@ -429,6 +462,7 @@ bws --version
 | `--live` | on `snapshot diff`, compare the file against this machine as it is now rather than against a second file |
 | `--note TEXT` | on `snapshot create`, what the snapshot was taken for, kept inside the file |
 | `--full` | on `show`, print the fields that are genuinely empty as well |
+| `--components` | on `license`, turn the notice into every component inside this executable with its version, its licence and where it came from. It reads nothing - no service manager, no disk, no network - so it answers on a machine with no internet |
 
 Data goes to standard output and everything else to standard error, so `bws list --json | jq`
 works and a warning never lands in your JSON.

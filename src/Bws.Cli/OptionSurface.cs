@@ -97,7 +97,28 @@ internal enum CommandKind
     /// specification had already made it - and the OptionSurface.Surface of the command line is a frozen
     /// contract, so that would have been a breaking change bought by accident.
     /// </summary>
-    SnapshotDiff
+    SnapshotDiff,
+
+    /// <summary>
+    /// What this program is licensed under, and what it carries that somebody else wrote.
+    ///
+    /// <b>The one verb here that reads nothing at all</b> - no service manager, no disk, no
+    /// network. It answers out of a register compiled into the executable, which is the whole
+    /// point of it: an administrator on a machine with no internet, holding a 98 MB file they
+    /// are about to run with administrator rights, can ask what is inside it and get an answer
+    /// from the file itself rather than from a web page.
+    ///
+    /// <b>Spelled the American way while this repository writes the noun the British way.</b>
+    /// The guard next door is LicenceNoticeGuards and the field in every bill of materials is
+    /// spelled `license`, as is the flag every other command line tool offers. The command is
+    /// the word a person types, so it follows the tools rather than our prose.
+    ///
+    /// <b>A verb rather than a switch, owner's decision 2026-09-23.</b> The alternative on the
+    /// table was <c>bws --licenses</c> beside --help and --version. Thirty lines of answer under
+    /// a flag reads as an option, and this is a question with two depths - the notice, and the
+    /// full register under --components.
+    /// </summary>
+    License
 }
 
 /// <summary>
@@ -203,7 +224,18 @@ internal static class OptionSurface
         // the manager answers when the configuration is written and there is no state to wait for -
         // so either switch here would be a word that does nothing, which is the silence this table
         // was built to end.
-        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill])
+        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill]),
+
+        // The only verb with anything to say about components, and NOT accepted anywhere else
+        // even though a listing could be imagined to carry one. It turns the notice into the
+        // whole register: every component with its version, its licence and where it came from.
+        //
+        // NOT --json, and that omission is a decision rather than an oversight. The
+        // machine-readable rendering of these exact facts is the SPDX document published beside
+        // every archive, and a second JSON shape for one set of facts is a second public
+        // contract to keep true. Adding it later is additive and breaks nothing; taking it away
+        // would not be.
+        ("--components", [CommandKind.License])
     ];
 
     /// <summary>
@@ -276,8 +308,14 @@ internal static class OptionSurface
     /// somebody is far likelier to have meant - it is three words shorter and it is what people
     /// come to this tool for.
     /// </summary>
+    /// <remarks>
+    /// <b>license is LAST, and the order is doing the same work it does for start-type above.</b>
+    /// A mistyped word equally close to two commands is offered the earlier one, and nothing
+    /// somebody types at three in the morning on a server was meant to be this. It is also the
+    /// only verb here that is read far more often than it is typed.
+    /// </remarks>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot"];
+        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "license"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -319,6 +357,12 @@ internal static class OptionSurface
         CommandKind.SetStartType => "cli.takes.nameAndStartType",
         CommandKind.SnapshotCreate => "cli.takes.oneFile",
         CommandKind.SnapshotDiff => "cli.takes.twoFiles",
+
+        // The only verb here that takes no words at all, so the sentence it feeds says that
+        // rather than naming a shape. Somebody typing `bws license GPL` is asking a question the
+        // verb cannot narrow - the answer is the same either way and pretending otherwise would
+        // be worse than saying so.
+        CommandKind.License => "cli.takes.nothing",
 
         // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
         // in the window: a fifth shape must fail here loudly rather than quietly claim to take one
