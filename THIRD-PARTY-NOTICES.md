@@ -98,6 +98,24 @@ list should be able to tell at a glance which side of the line each one falls on
 | Package | Licence | What it does |
 |---|---|---|
 | Microsoft.Windows.CsWin32 0.3.298 | MIT | Generates the P/Invoke declarations at build time. Marked `PrivateAssets="all"`, so the generator itself does not ship - the code it generates is compiled into ours |
+| Microsoft.Windows.SDK.Win32Metadata 70.0.11-preview | Windows SDK licence terms | The machine-readable description of the Win32 API that CsWin32 reads to generate from. Arrives as its dependency rather than being asked for |
+| Microsoft.Windows.WDK.Win32Metadata 0.13.25-experimental | Windows SDK licence terms | The same thing for the driver-facing half of the API |
+| Microsoft.Windows.SDK.Win32Docs 0.1.42-alpha | Windows SDK licence terms | The documentation text CsWin32 copies into the generated declarations, so that hovering a generated method shows what Microsoft says about it |
+
+**The last three are not open source and that is worth stating rather than leaving to be
+assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing: two of them
+carry `sdk_license.txt`, which is `MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT WINDOWS SOFTWARE
+DEVELOPMENT KIT (SDK) FOR WINDOWS 10`, and the third points at the same terms through
+<https://aka.ms/WinSDKLicenseURL>. Those terms license the use of the SDK for building software
+for Windows. They do not license redistributing the SDK, and this project does not redistribute
+it: all three contribute build-time inputs only, their package entries carry the empty
+placeholder `_._` where an assembly would be, and a publish of either program puts none of them
+anywhere. The same question for the two files that DO ship is answered in the section above.
+
+**They are here because the gate asked.** `.github/scripts/dependency_gate.py` blocked them on
+2026-09-22, the first time it ever saw this repository's full dependency graph, and nothing in
+this file said which side of the line they fell on. That was a fair question and this table is
+the answer to it.
 | Meziantou.Analyzer 3.0.138 | MIT, (c) Gérald Barré | Extra analyser rules |
 | xunit 2.9.3, xunit.runner.visualstudio 3.1.4 | Apache-2.0 | Test framework |
 | Microsoft.NET.Test.Sdk 17.14.1 | MIT | Test host |

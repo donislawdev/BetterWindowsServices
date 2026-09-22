@@ -74,7 +74,41 @@ ALLOWED = frozenset({
 #
 # Empty today, and that is the honest state rather than an oversight: every
 # dependency in this tree reports a licence.
-EXCEPTIONS = {}
+EXCEPTIONS = {
+    # FOUR MICROSOFT PACKAGES THAT HAVE ALWAYS BEEN IN THIS TREE AND WERE INVISIBLE UNTIL
+    # 2026-09-22, when the dependency graph started carrying the resolved tree instead of the
+    # seven names in the project files. They are not new. The gate simply saw them for the
+    # first time, which is the gate working rather than failing.
+    #
+    # Each licence was read from the package on disk that day, not from a listing. The three
+    # metadata packages carry, or point at, the Microsoft Windows SDK licence terms - a licence
+    # to USE the SDK for building software for Windows, which does not permit redistributing
+    # the SDK and does not need to: none of them ships. Measured the same day: their package
+    # entries carry the empty placeholder "_._" where an assembly would be, and a publish of
+    # either program puts none of them anywhere.
+    #
+    # THIRD-PARTY-NOTICES.md carries the same decision in prose, which is where a person
+    # auditing this project will look. These four lines are so that the gate stops asking a
+    # question that has been answered.
+    "Microsoft.Windows.SDK.Win32Metadata":
+        "the Win32 API description CsWin32 generates from, Windows SDK licence terms, build "
+        "time only - no assembly, nothing published",
+    "Microsoft.Windows.WDK.Win32Metadata":
+        "the same for the driver-facing half of the API, same terms, same absence from output",
+    "Microsoft.Windows.SDK.Win32Docs":
+        "the documentation text CsWin32 copies into generated declarations, same terms, build "
+        "time only",
+
+    # This one is different and the difference matters: it DOES put two assemblies into the
+    # build output, and it is the one entry here that carries a distribution question. That
+    # question is answered at length in THIRD-PARTY-NOTICES.md under "Windows SDK projection
+    # for .NET" - including the reading of GPLv3 section 1 on System Libraries and the plain
+    # statement that nobody qualified to give legal advice has been asked. GitHub reports its
+    # licence as LicenseRef-scancode-unknown, which is true and unhelpful.
+    "Microsoft.Windows.SDK.NET.Ref":
+        "the Windows projection reference pack. It ships two assemblies and the notices file "
+        "answers that at length rather than in one line here",
+}
 
 # GitHub reports no licence for an action. Measured here on 2026-09-22 on this
 # repository's own graph: five of five actions came back without one, while
@@ -181,8 +215,17 @@ def report_lines(blocked, passed):
         lines.append("package listing - then record the decision in this file, in ALLOWED or in")
         lines.append("EXCEPTIONS, and add the notice to THIRD-PARTY-NOTICES.md if it ships.")
     if passed:
-        lines.append("allowed (%d): %s" % (
-            len(passed), ", ".join("%s %s (%s)" % (n, v, lic) for _s, n, v, lic, _sc in passed)))
+        # ONE LINE PER PACKAGE, NOT ONE PER MANIFEST ENTRY, and that is not cosmetic. The
+        # endpoint reports a dependency once for every project file that resolves it, so on
+        # 2026-09-22 a healthy run printed 126 entries of which 30 were distinct - xunit nine
+        # times over, in a wall of text several thousand characters wide. This file argues in
+        # four other places that a gate nobody reads is worth nothing; its own output is not
+        # exempt. The count of raw entries is kept beside the distinct one, because the
+        # difference is information rather than noise.
+        distinct = sorted({(n, v, str(lic)) for _s, n, v, lic, _sc in passed})
+        lines.append("allowed: %d package(s) across %d manifest entr(ies)"
+                     % (len(distinct), len(passed)))
+        lines += ["  %s %s (%s)" % row for row in distinct]
     lines.append("dependency gate: %d blocked, %d allowed" % (len(blocked), len(passed)))
     return lines
 
