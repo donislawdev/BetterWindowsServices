@@ -159,6 +159,30 @@ code {
   white-space: nowrap;
 }
 
+/*
+  CODE WOVEN INTO A SENTENCE MAY WRAP. CODE IN A TABLE CELL AND IN A BLOCK MAY NOT.
+
+  `nowrap` above is right for the short things this site sets in code - `services.msc`,
+  `--dry-run`, a service name - and wrong for the long ones, because CSS has no way to say "do
+  not wrap unless you must" and the fallback when it must is to push the page sideways.
+
+  MEASURED 2026-09-22, BEFORE AND AFTER, ON ALL TWENTY TWO PAGES AT TWELVE WIDTHS. At 390 px a
+  list item on /stop-a-windows-service-that-will-not-stop/ carrying a 353 px command pushed the
+  whole page 23 px sideways, and a card on /audit-windows-services/ pushed it 65. The first
+  attempt at this rule put it inside the 36rem query and looked fixed - the same card still
+  pushed the page 56 px at 768, because the card is a grid column and a narrow column is not a
+  narrow window. A width is the wrong thing to condition this on.
+
+  `anywhere` rather than `break-word`, and the difference is the whole point: only `anywhere`
+  lowers the element's MIN-CONTENT width, which is the number a grid column and a flex item
+  measure themselves against. `break-word` wraps the text and leaves the column just as wide.
+
+  Blocks are untouched. <pre> has its own scrollbar and keeps a command on one line, where it
+  can be copied. Table cells are untouched because a cell that can break anywhere lets a table
+  squeeze its columns to nothing rather than scroll.
+*/
+p code, li code, dd code, figcaption code { white-space: normal; overflow-wrap: anywhere; }
+
 /* Code inside a heading takes the heading's size and loses its box - a 15px box in a 50px
    line reads as a mistake, and the face alone says "this is what you type". */
 h1 code, h2 code, h3 code, h4 code {
@@ -253,8 +277,10 @@ img, svg { display: block; max-width: 100%; height: auto; }
 .site-header .wrap {
   display: flex;
   align-items: center;
-  gap: var(--s-5);
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
   min-height: var(--header-height);
+  padding-block: var(--s-2);
 }
 
 .brand {
@@ -269,21 +295,49 @@ img, svg { display: block; max-width: 100%; height: auto; }
 
 .brand img, .brand svg { width: var(--icon); height: var(--icon); }
 
+/*
+  THE NAVIGATION WRAPS. IT USED TO SCROLL SIDEWAYS WITH THE SCROLLBAR SWITCHED OFF, and that is
+  the defect the owner reported on 2026-09-22 as the language tile being cut off.
+
+  Measured on all twenty two pages before it was touched: the header wants 1075 px of content
+  and --page-width less two gutters gives 1072, so it overflowed by 24 px in English and 54 in
+  Polish at the WIDEST the site can be - 114 and 151 at a 1024 window, over 500 on a phone. It
+  was never once fully visible. `overflow-x: auto` made the rest reachable and `scrollbar-width:
+  none` made it invisible, which between them is worse than either alone.
+
+  A row that runs out of space now goes to a second row, which is the one behaviour that cannot
+  hide anything. The language switch is a separate element pinned to the right, so it is on the
+  first row whatever the links do.
+*/
 .site-nav {
-  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-2);
+  /*
+    BASIS ZERO, NOT auto, AND THE DIFFERENCE IS A HEADER TWICE AS TALL. A flex container decides
+    WHERE TO WRAP from the items' base sizes and only then shrinks what is on each line - so with
+    `flex-basis: auto` the nav's own 778 px of links pushed the whole nav onto a second row before
+    anything had a chance to shrink, and the header went from 56 px to 104 at full width with the
+    links still all on one line. Measured 2026-09-22 on the first attempt at this rule.
+
+    From zero it never forces a wrap of the header, grows into whatever the brand and the switch
+    leave, and wraps its own links inside itself when that is not enough. `min-width: 0` is what
+    lets it go below its content at all.
+  */
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.site-nav::-webkit-scrollbar { display: none; }
-
+/*
+  Padding at --s-2 rather than --s-3 across, which is 56 px over seven links and is what buys the
+  header a SINGLE row at full width: the links want 762 px and 774 are left after the brand and
+  the switch. At --s-3 they wanted 778 and lost by four.
+*/
 .site-nav a {
   color: var(--text-2);
   text-decoration: none;
-  padding: var(--s-2) var(--s-3);
+  padding: var(--s-2);
   border-radius: var(--radius);
   white-space: nowrap;
   font-size: var(--fs-1);
@@ -294,9 +348,34 @@ img, svg { display: block; max-width: 100%; height: auto; }
   background: var(--bg-hover);
 }
 
-.site-nav .lang {
+/*
+  The language switch, pinned to the right of the first row. `margin-left: auto` on a flex item
+  pushes it away from the nav when the nav is narrower than the space, and does nothing when it
+  is not - so one rule covers both the wide header and the wrapped one.
+*/
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.lang-switch .lang {
+  color: var(--text-2);
+  text-decoration: none;
+  padding: var(--s-2) var(--s-3);
   border: 1px solid var(--edge);
-  margin-left: var(--s-2);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  font-size: var(--fs-0);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.lang-switch .lang:hover {
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 /* ---- Buttons ---------------------------------------------------------------------- */
@@ -715,8 +794,23 @@ figcaption {
   .hero .wrap { grid-template-columns: 1fr; gap: var(--s-6); }
   .split { grid-template-columns: 1fr; gap: var(--s-6); }
   .band { padding-block: var(--s-7); }
-  .site-header .wrap { flex-wrap: wrap; gap: var(--s-2) var(--s-4); padding-block: var(--s-2); }
-  .site-nav { margin-left: 0; width: 100%; }
+  .site-header .wrap { gap: var(--s-2) var(--s-4); }
+
+  /*
+    The links get their own full row under the brand and the language switch. On a phone that is
+    three rows of them, which is why the header stops being sticky here - a sticky block that
+    tall would eat a third of the screen on every page. It scrolls away instead, and the footer
+    carries the same links at the bottom.
+
+    `order` PUTS THE SWITCH BESIDE THE BRAND rather than under the links, and without it the
+    thing is worse than it was. Source order is brand, nav, switch - so with the nav taking a
+    full row the switch wrapped to a row of its OWN, alone, pushed to the right by its
+    margin-left, sixty pixels of header holding two letters. Seen at 390 px on the first build
+    of this rule. Sending the nav last leaves the switch on the brand's row, which is where a
+    reader looks for it.
+  */
+  .site-nav { width: 100%; flex-basis: 100%; order: 1; }
+  .site-header { position: static; }
 }
 
 @media (max-width: 36rem) {
@@ -726,6 +820,7 @@ figcaption {
   th, td { padding: var(--s-2) var(--s-3); }
   .shot-list th:nth-child(4), .shot-list td:nth-child(4) { display: none; }
   .shot-bar .scope { display: none; }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

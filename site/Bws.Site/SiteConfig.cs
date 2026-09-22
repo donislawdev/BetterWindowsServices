@@ -66,6 +66,70 @@ internal sealed record SocialImage
     public required int Height { get; init; }
 
     public required string Alt { get; init; }
+
+    /// <summary>
+    /// The words drawn ON the card, which this generator never renders and validates anyway.
+    ///
+    /// <b>Why a type for something nothing here draws.</b> The card is drawn by
+    /// <c>tools/site/social-preview.ps1</c>, which is outside git - so its strings live here,
+    /// where somebody reviewing this repository can read them. Declaring them means an unknown
+    /// key in this block is refused like any other, a missing one fails the build, and
+    /// <c>PublicSurfaceGuards</c> holds them to ASCII and to the privacy list along with
+    /// everything else. Leaving them undeclared would have meant the opposite: the one block of
+    /// text nobody proof-reads, unchecked.
+    /// </summary>
+    public required SocialCard Card { get; init; }
+}
+
+/// <summary>
+/// The card a chat client or a social site draws when somebody pastes the site's address.
+/// English only, because Open Graph declares one image for the whole site.
+/// </summary>
+internal sealed record SocialCard
+{
+    /// <summary>The first line of the heading, in plain white.</summary>
+    public required string Headline { get; init; }
+
+    /// <summary>The second line, in the accent colour. Two short lines, not one long one.</summary>
+    public required string HeadlineAccent { get; init; }
+
+    public required string Lede { get; init; }
+
+    public required string[] Chips { get; init; }
+
+    public required string Platform { get; init; }
+
+    public required string Footnote { get; init; }
+
+    public required string Licence { get; init; }
+
+    /// <summary>
+    /// The two panels are built the same way on purpose: a line of what you type, a rule, and the
+    /// table it gives back. So each one carries a command, an optional count beside it, three
+    /// column headings, its rows, and a caption under the panel.
+    /// </summary>
+    public required string Query { get; init; }
+
+    public required string QueryCount { get; init; }
+
+    /// <summary>How many of <see cref="RowsPicked"/> are drawn on the selection colour.</summary>
+    public required int Picked { get; init; }
+
+    /// <summary>Name, status and start type per row - the three columns the card has room for.</summary>
+    public required string[][] RowsPicked { get; init; }
+
+    public required string PanelFilterNote { get; init; }
+
+    public required string DriftCommand { get; init; }
+
+    public required string DriftCount { get; init; }
+
+    /// <summary>The heading over the three columns. The first names the entry the rows are about.</summary>
+    public required string[] DriftColumns { get; init; }
+
+    public required string[][] DriftRows { get; init; }
+
+    public required string Caption { get; init; }
 }
 
 internal sealed record Archives

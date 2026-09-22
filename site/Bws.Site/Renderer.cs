@@ -190,15 +190,51 @@ internal sealed class Renderer
             html.AppendLine(CultureInfo.InvariantCulture, $"<a href=\"{page.Url(language, _site)}\"{here}>{Html.Escape(NavText(page, language))}</a>");
         }
 
-        foreach (var other in _site.Languages.Where(other => other != language))
-        {
-            var target = current.IsNotFound ? Home(other) : current.Url(other, _site);
-            html.AppendLine(CultureInfo.InvariantCulture, $"<a class=\"lang\" href=\"{target}\" lang=\"{other}\" hreflang=\"{other}\">{_words.Get(language, "chrome.language." + other, _problems)}</a>");
-        }
-
         html.AppendLine("</nav>");
+        AppendLanguageSwitch(html, current, language);
         html.AppendLine("</div>");
         html.AppendLine("</header>");
+    }
+
+    /// <summary>
+    /// The language switch, which is OUTSIDE the navigation and that is the whole point of it
+    /// being its own method.
+    ///
+    /// <b>It was the last link inside the nav until 2026-09-22, and it was never once visible.</b>
+    /// Measured on all twenty two pages: the header needed 1075 pixels of content and the page is
+    /// 1120 wide with two 24 pixel gutters, so 1072 - the nav overflowed by 24 pixels in English
+    /// and 54 in Polish at the widest the site ever gets, by 114 and 151 at a 1024 window, and by
+    /// over 500 on a phone. The nav scrolled sideways with <c>scrollbar-width: none</c>, so the
+    /// overflow was reachable and invisible at the same time, and on a phone five of the eight
+    /// links were gone with nothing to say so. The owner reported it as the language tile being
+    /// cut off.
+    ///
+    /// <b>Two letters rather than the language's name, chosen by the owner.</b> It recovers about
+    /// forty pixels and reads as a switch rather than as another menu entry. The full name is
+    /// still there for anyone who needs it: the link carries it as its accessible name, so a
+    /// screen reader says "Polski" and not "P L", and as its tooltip. <c>lang</c> and
+    /// <c>hreflang</c> are unchanged - they are what says the target is in another language.
+    /// </summary>
+    private void AppendLanguageSwitch(StringBuilder html, PageDefinition current, string language)
+    {
+        var others = _site.Languages.Where(other => other != language).ToList();
+        if (others.Count == 0)
+        {
+            return;
+        }
+
+        html.AppendLine(CultureInfo.InvariantCulture, $"<div class=\"lang-switch\" role=\"group\" aria-label=\"{_words.Get(language, "chrome.language", _problems)}\">");
+
+        foreach (var other in others)
+        {
+            var target = current.IsNotFound ? Home(other) : current.Url(other, _site);
+            var full = _words.Get(language, "chrome.language." + other, _problems);
+            var code = _words.Get(language, "chrome.language.short." + other, _problems);
+
+            html.AppendLine(CultureInfo.InvariantCulture, $"<a class=\"lang\" href=\"{target}\" lang=\"{other}\" hreflang=\"{other}\" title=\"{Html.Escape(full)}\" aria-label=\"{Html.Escape(full)}\">{Html.Escape(code)}</a>");
+        }
+
+        html.AppendLine("</div>");
     }
 
     private void AppendFooter(StringBuilder html, string language)

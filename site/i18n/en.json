@@ -3,8 +3,13 @@
 
   "chrome.skip": "Skip to content",
   "chrome.nav": "Site",
+  "chrome.language": "Language",
   "chrome.language.en": "English",
   "chrome.language.pl": "Polski",
+
+  "_language_short": "The two letters on the switch itself. The full name above is what a screen reader says and what the tooltip shows - the code is what fits. A language's own name and its own code, never translated: a Polish reader looking for Polish looks for 'Polski', not for whatever English calls it.",
+  "chrome.language.short.en": "EN",
+  "chrome.language.short.pl": "PL",
 
   "chrome.footer.product": "Product",
   "chrome.footer.guides": "Guides",

@@ -16,7 +16,55 @@
     "path": "/assets/social-preview.png",
     "width": 1280,
     "height": 640,
-    "alt": "Better Windows Services - search your Windows services, preview every change, and see what drifted since yesterday"
+    "alt": "Better Windows Services - search your Windows services, preview every change, and see what drifted since yesterday",
+
+    "_card": "The words on the card itself, drawn by tools/site/social-preview.ps1. They are here rather than in that script for the reason every other string on this site is here: the script is outside git, so a sentence living in it is a sentence nobody reviewing this repository can read. English only - Open Graph declares ONE image for the whole site and this is it.",
+    "_card_fit": "Nothing here is free-form. The generator measures every string against the box it goes in and REFUSES rather than drawing outside it, which is what the old card did - its third line of heading was cut in half and overprinted by the line below, and nobody saw it for a day because a card is only ever seen in somebody else's chat window. Backlog 394.",
+    "card": {
+      "_plain": "EVERY LINE HERE IS READ BY SOMEBODY WHO HAS NEVER HEARD OF THIS PROGRAM, in a chat window, in about two seconds. The first version of this block was written the other way round - it assumed the reader already knew - and the owner's verdict was that the words were strange and hard to follow. 'One question' meant nothing without the query language behind it, 'act on every entry the answer gives you at once' took three readings, and 'a week frozen in a file, and what moved since named for you' was a riddle. Nothing here uses a word the product invented: no plan, no drift, no snapshot without a sentence saying what it is.",
+
+      "headline": "Search your services.",
+      "headline_accent": "Preview every change.",
+      "_lede_number": "IT SAID 'eight hundred services' UNTIL THE OWNER ASKED WHERE THE NUMBER CAME FROM, and there was no answer on the card. A reader cannot tell whether eight hundred is a limit of the program, a claim about their machine, or a typo - and a number nobody can place reads as noise however true it is. Two things were wrong with it at once: it arrived unexplained, and it was a single measurement (811 entries on one Windows 11 Pro) written as if it held everywhere. 'Hundreds' is true of every Windows install, and the panel beside it shows '12 of 811', which is where a reader meets the real number in a place that explains itself.",
+      "lede": "A replacement for services.msc. A Windows machine has hundreds of services - search them by any field, pick as many as you like, and see exactly what a change will do before it happens.",
+      "_chips_order": "The order is the layout. The generator packs them greedily into rows as wide as the left column, so this sequence is what makes three even rows of two rather than two full rows and one stray. The strongest claim still comes first.",
+      "chips": [
+        "search by any field",
+        "change many at once",
+        "preview before it runs",
+        "compare against last week",
+        "never touches the internet",
+        "GUI + CLI"
+      ],
+      "platform": "Windows",
+      "footnote": "portable, no install",
+      "licence": "free and open source, GPL-3.0",
+
+      "_panels": "TWO PANELS BUILT THE SAME WAY, and the sameness is the design. Each one is a line of what you type, a hairline, and the table it gives back - so the pair reads as one idea twice rather than as two unrelated boxes. Nothing is nested: an earlier version put a well inside a panel and a box inside the well, three rounded rectangles deep, and the owner's word for it was ugly.",
+
+      "_panel_filter": "The everyday thing: a question narrows eight hundred rows, the answer is picked in bulk, and one plan covers the lot. Every claim is in the window - SelectionMode is Extended in MainWindow.xaml and the bar over the list operates on the selection.",
+      "query": "start:auto !status:running",
+      "query_count": "12 of 811",
+      "_picked": "How many of the rows below are drawn as picked. The window highlights a picked row rather than ticking a box, so the card does the same.",
+      "picked": 2,
+      "rows_picked": [
+        ["Spooler", "Stopped", "Automatic"],
+        ["WSearch", "Stopped", "Automatic"],
+        ["W32Time", "Stopped", "Automatic"]
+      ],
+      "_panel_filter_note": "It has two jobs and the order matters: translate the query, because a reader who cannot read it sees a panel about nothing, and then say what the blue rows are, because otherwise blue reads as a warning.",
+      "panel_filter_note": "should be running and is not - pick several, change them together",
+
+      "_panel_drift": "The one thing no other tool on this list does. The entry is named in the first column heading rather than in every row - repeating it cost the column more width than it had. The command is the real one: bws snapshot diff takes a file and --live compares it against the machine.",
+      "drift_command": "bws snapshot diff monday.json --live",
+      "drift_count": "1 changed",
+      "drift_columns": ["Spooler", "last Monday", "today"],
+      "drift_rows": [
+        ["status", "Running", "Stopped"],
+        ["start type", "Automatic", "Disabled"]
+      ],
+      "caption": "save the machine to a file, and see what changed a week later"
+    }
   },
 
   "_search_console_token": "Google Search Console verification. Empty means no tag is written at all, which is right for a site nobody has claimed.",

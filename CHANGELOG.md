@@ -743,6 +743,12 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **The program's icon is half again as large inside its own frame.** The bean was drawn small
+  and tilted, so it filled 77 per cent of the icon across and 65 per cent down - it read about a
+  quarter smaller than everything beside it on the taskbar. It now fills about 90 per cent in both
+  directions. Same bean, same green, same drawing: bigger, and turned so that it uses the corners
+  of a square frame instead of leaving two of them empty. The website's tab icon follows it.
+
 - **`bws --version` and `bws --help` name the website.** The version block carries a *Home page*
   line the way other command line tools do, and the usage text ends with where the full
   reference lives: every command, switch and exit code, laid out to be read rather than scrolled.

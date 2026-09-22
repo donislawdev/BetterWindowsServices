@@ -3,8 +3,13 @@
 
   "chrome.skip": "Przejdź do treści",
   "chrome.nav": "Strona",
+  "chrome.language": "Język",
   "chrome.language.en": "English",
   "chrome.language.pl": "Polski",
+
+  "_language_short": "Dwie litery na samym przelaczniku. Pelna nazwa wyzej jest tym, co mowi czytnik ekranu i co pokazuje dymek - kod jest tym, co sie miesci. Nazwa jezyka i jego kod sa zawsze w tym jezyku, nigdy tlumaczone.",
+  "chrome.language.short.en": "EN",
+  "chrome.language.short.pl": "PL",
 
   "chrome.footer.product": "Program",
   "chrome.footer.guides": "Poradniki",
