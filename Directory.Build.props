@@ -146,7 +146,7 @@
     expression somebody typed into a search box.
   -->
   <ItemGroup>
-    <PackageReference Include="Meziantou.Analyzer" Version="3.0.138">
+    <PackageReference Include="Meziantou.Analyzer" Version="3.0.259">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
