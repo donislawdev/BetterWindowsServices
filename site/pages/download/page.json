@@ -1,0 +1,11 @@
+{
+  "_note": "What somebody needs before and after the download: requirements, what is in each archive, building from source.",
+  "id": "download",
+  "order": 10,
+  "nav": true,
+  "footer": "product",
+  "slug": {
+    "en": "download",
+    "pl": "pobieranie"
+  }
+}

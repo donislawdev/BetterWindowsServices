@@ -1,0 +1,76 @@
+<meta name="title" content="Audyt usług Windows - jak udowodnić, co zmieniło się na maszynie">
+<meta name="description" content="Zamroź wszystkie usługi w pliku przy wdrożeniu, a potem co noc pytaj, czy maszyna nadal się zgadza. Dryf, niepodpisane pliki i brakujące binarki, jednym zapytaniem.">
+<meta name="nav" content="Audyt usług i dryf">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Poradnik</span>
+    <h1>Audyt usług Windows</h1>
+    <p class="lede">Audyt to nie lista tego, co jest na maszynie. To różnica między tym, co na niej jest, a tym, co miało być - a standardowy Windows nie zapisuje tej drugiej połowy nigdzie.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trzy pytania i to, co na nie odpowiada</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Co zmieniło się od zbudowania tej maszyny?</h3>
+        <p>Snapshot zrobiony przy wdrożeniu i różnica wobec maszyny dzisiaj w nocy. Konfiguracja jest zgłaszana osobno od tego, co się po prostu uruchomiło albo zatrzymało, więc jeden zmieniony przez kogoś typ uruchomienia nie ginie pod czterdziestoma usługami, które akurat działają.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Czym środowisko testowe różni się od produkcji?</h3>
+        <p>Zrób snapshot na każdej i porównaj oba pliki - gdziekolwiek, bez żadnej z tych maszyn pod ręką. Pliki niosą nazwę maszyny i konto, które je zrobiło.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Co tu jest, czego być nie powinno?</h3>
+        <p>Zapytania znajdujące kształty warte obejrzenia: usługa, której plik zniknął, niepodpisana, działająca mimo wyłączenia, prosząca o prawa debugowania.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Nocny kształt</h2>
+<pre><code><span class="c"># w dniu, w którym maszyna wchodzi do pracy</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># co noc, z zadania harmonogramu</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nic się nie różni
+#   5 - coś się różni, a drift.json mówi co
+#   3 - wykonało się i nie wszystko dało się odczytać, więc odpowiedź jest częściowa</span></code></pre>
+    <p>Kod wyjścia <code>5</code> jest tym, co robi z tego audyt, a nie raport, którego nikt nie czyta: zadanie milczy, dopóki maszyna się nie rozjedzie, a tej nocy, w której się rozjedzie, ktoś zostaje wezwany.</p>
+    <p class="note"><strong>Punkt odniesienia rób z sesji elewowanej.</strong> Bez praw administratora menedżer wymienia mniej wpisów i odmawia częściej. Snapshot zapisuje, czy konto, które go zrobiło, było administratorem, więc porównanie może to powiedzieć, zamiast zgłaszać jako usunięte wpisy, których nikt nie usunął - ale punkt odniesienia bez połowy maszyny nadal jest punktem odniesienia bez połowy maszyny.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ile snapshot jest wart jako dowód</h2>
+    <ul class="points points-ok">
+      <li><strong>To JSON z jednym polem na linię</strong>, więc wchodzi do repozytorium i czyta go <code>git diff</code>. Audytor, który nie ma tego narzędzia, i tak przeczyta plik, a system kontroli wersji odpowiada już na pytanie <em>kiedy</em>.</li>
+      <li><strong>Niesie to, czego przystawka nie pokazywała nigdy:</strong> ścieżkę uruchomienia i argumenty, skrót i podpis pliku, zależności w obie strony, wyzwalacze, wymagane przywileje, typ SID i deskryptor bezpieczeństwa.</li>
+      <li><strong>Mówi, czego nie zdołał odczytać.</strong> Pole, do którego ta sesja nie miała praw, jest zapisane jako nieodczytane - nigdy jako puste - więc późniejsze porównanie może powiedzieć <em>nieporównane</em>, zamiast po cichu uznać je za niezmienione.</li>
+      <li><strong>To opis całej maszyny.</strong> Traktuj plik odpowiednio: zapisuje się z uprawnieniami, które ma już jego katalog, a narzędzie niczego nie zawęża.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Czego to nie daje</h2>
+    <p class="lede">Warto wiedzieć, zanim zbudujesz na tym proces.</p>
+    <ul class="points points-alarm">
+      <li><strong>Nie mówi kto.</strong> Dziennik zdarzeń nie jest jeszcze czytany. Punkt odniesienia i różnica odpowiadają na <em>co</em> się zmieniło i z grubsza kiedy to zauważono, a nie które konto to zrobiło.</li>
+      <li><strong>Nie ma wzorca czystego Windowsa.</strong> <em>Które z nich nie pochodzą z czystej instalacji</em> nie jest liczone, więc punktem odniesienia musi być snapshot, który sam zrobiłeś.</li>
+      <li><strong>Nie ma przywracania.</strong> Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</li>
+      <li><strong>Jedna maszyna naraz.</strong> Zarządzania zdalnego nie ma - odpowiedzią dla floty jest snapshot na maszynę, zbierany tak, jak zbierasz pliki dzisiaj.</li>
+    </ul>
+    <a class="more" href="/pl/snapshoty-i-dryf/">Jak działają snapshoty i różnice</a>
+  </div>
+</section>

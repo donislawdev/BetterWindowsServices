@@ -82,8 +82,8 @@ machine - what is running, what should have started and did not, what points at 
 gone. Click one and its question lands in the search box as a query you can edit. Right-click a
 row, choose *What stopping would do*, and the plan appears: the steps, what comes down with them,
 a warning if one of them is something the machine needs, and the `bws` line that asks for the same
-thing. *Carry this out* runs exactly that plan, and afterwards the panel says what did not work and
-how to get back.
+thing. The button under it is named after what it will do - *Stop Winmgmt* - and runs exactly that
+plan, and afterwards the panel says what did not work and how to get back.
 
 <!-- TODO(owner): a still of the window with a plan open. The plan panel on the right, a few rows
      picked on the left, the warning line visible. -->
@@ -265,7 +265,7 @@ display name, the account and the launch path. A field narrows it:
 | `requiredby` | what breaks if this stops | a service name |
 | `dependson` | what this needs | a service name |
 | `privilege` | a privilege the entry asks for | e.g. `SeDebugPrivilege` |
-| `sidtype`, `sddl`, `pid`, `memory`, `path`, `name`, `display`, `description` | the rest | see `bws --help` |
+| `sidtype`, `sddl`, `pid`, `memory`, `path`, `name`, `display`, `description` | the rest | every field and value is on the [query language page](https://betterwindowsservices.donislawdev.com/query-language/), and a mistyped field name makes `bws` list them all |
 
 Text fields match *contains* by default, `name:=spooler` is exact, `name:spool*` takes wildcards,
 and `name:/^Sql.*/` is a regular expression. `!` negates a term, a comma is *or* inside a field,
@@ -413,6 +413,7 @@ bws --version
 
 | Switch | What it does |
 |---|---|
+| `--query TEXT` | on `list`, narrow the listing with the query language |
 | `--dry-run` | print the plan and change nothing. The plan is the same one an execution runs |
 | `--dependents` | put the services that would break into the plan as steps of their own |
 | `--timeout SECONDS` | how long to wait for one step to reach the state it asked for, sixty unless you say otherwise. Running out is the end of watching, not a failure, and the report says where the entry was left |
@@ -425,6 +426,7 @@ bws --version
 | `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, write over a file that is already there |
 | `--restart` | on `kill`, bring the entry back once the process is gone, with everything that shared it |
 | `--exit-code` | on `snapshot diff`, end with 5 when anything differs |
+| `--live` | on `snapshot diff`, compare the file against this machine as it is now rather than against a second file |
 | `--note TEXT` | on `snapshot create`, what the snapshot was taken for, kept inside the file |
 | `--full` | on `show`, print the fields that are genuinely empty as well |
 

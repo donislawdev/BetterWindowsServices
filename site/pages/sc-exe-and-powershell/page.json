@@ -1,0 +1,11 @@
+{
+  "_note": "Search page: somebody comparing with the tools already on the machine.",
+  "id": "sc-exe-and-powershell",
+  "order": 90,
+  "nav": false,
+  "footer": "guides",
+  "slug": {
+    "en": "sc-exe-and-powershell",
+    "pl": "sc-exe-i-powershell"
+  }
+}

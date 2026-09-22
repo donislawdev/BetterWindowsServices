@@ -1,0 +1,10 @@
+{
+  "_note": "Not found. Written to 404.html rather than a folder, because that is where GitHub Pages looks.",
+  "id": "404",
+  "order": 999,
+  "nav": false,
+  "slug": {
+    "en": "404",
+    "pl": "404"
+  }
+}

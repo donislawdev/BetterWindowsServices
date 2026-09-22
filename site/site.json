@@ -1,0 +1,39 @@
+{
+  "_note": "The facts about the site that are not facts about the program. Everything a page needs from here it takes through a {{token}}, so each of these appears once.",
+
+  "host": "betterwindowsservices.donislawdev.com",
+  "product": "Better Windows Services",
+  "repo": "https://github.com/donislawdev/BetterWindowsServices",
+  "support": "https://donislawdev.com/support/",
+
+  "_languages": "The first is the default and lives at the root. The others live under /{code}/.",
+  "languages": ["en", "pl"],
+
+  "_theme_color": "The window's own background, src/Bws.Gui/Themes - the colour a browser paints its chrome with on a phone.",
+  "theme_color": "#202020",
+
+  "social_image": {
+    "path": "/assets/social-preview.png",
+    "width": 1280,
+    "height": 640,
+    "alt": "Better Windows Services - search your Windows services, preview every change, and see what drifted since yesterday"
+  },
+
+  "_search_console_token": "Google Search Console verification. Empty means no tag is written at all, which is right for a site nobody has claimed.",
+  "search_console_token": "",
+
+  "archives": {
+    "window": "BetterWindowsServices-win-x64.zip",
+    "cli": "bws-cli-win-x64.zip"
+  },
+
+  "_link_hosts": "Every host a link on this site may point at. The site loads nothing from anywhere else and the build refuses an src to any of these; for an href, a host not on this list is a typo in a domain.",
+  "link_hosts": [
+    "betterwindowsservices.donislawdev.com",
+    "github.com",
+    "donislawdev.com",
+    "www.gnu.org",
+    "learn.microsoft.com",
+    "www.w3.org"
+  ]
+}

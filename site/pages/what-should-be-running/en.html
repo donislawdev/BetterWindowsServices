@@ -1,0 +1,85 @@
+<meta name="title" content="Which Windows services should be running on this machine?">
+<meta name="description" content="Nobody can answer that in general, and lists that claim to describe a machine that is not yours. Here is the question that can be answered: what changed.">
+<meta name="nav" content="What should be running">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Which services should be running?</h1>
+    <p class="lede">The honest answer is that nobody can tell you, and every list that claims to is describing a machine that is not yours. What <em>can</em> be answered is narrower and far more useful: what does not add up on this machine, and what is different from when it worked.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Why the general question has no answer</h2>
+    <ul class="points points-alarm">
+      <li><strong>The set differs by Windows edition, version and role.</strong> A domain controller, a laptop and a container host disagree about almost everything, and a list written for one is wrong for the others.</li>
+      <li><strong>Half of what is installed is not from Windows.</strong> Drivers, agents, update services, licence daemons - every one of them was put there by something, and no general list knows which.</li>
+      <li><strong>Most services are meant to be stopped.</strong> A modern Windows starts a fraction of what it registers: the rest wait for a trigger - a device arriving, a port opening, joining a domain - and stopped is their correct state.</li>
+      <li><strong>"Disable these for performance" lists are how machines break.</strong> The service that looks idle is the one something else starts on demand, and the failure shows up a week later somewhere unrelated.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The questions that do have answers</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>What should be up and is not</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows was told to start these and they are not running. On a healthy machine this is a short list - a couple of entries that start late and stop again. Anything else is worth a look.</p>
+      </div>
+      <div class="card">
+        <h3>What is disabled and running anyway</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Configuration and state disagree. Usually somebody disabled it without stopping it, and the next restart will be a surprise.</p>
+      </div>
+      <div class="card">
+        <h3>What points at a file that is gone</h3>
+        <p><code>file:missing</code></p>
+        <p>An uninstall that left the registration behind. Harmless until something tries to start it, and a clue about what used to be on this machine.</p>
+      </div>
+      <div class="card">
+        <h3>What nobody signed</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Not proof of anything by itself, and the right place to start reading. The second term drops the per-user families, which otherwise fill the list with near-duplicates.</p>
+      </div>
+      <div class="card">
+        <h3>What asks for the strongest privileges</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>A privilege that lets a process open any other one. A handful of legitimate services ask for it, and it is worth knowing which on your machine do.</p>
+      </div>
+      <div class="card">
+        <h3>What is waiting for a trigger</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Stopped because nothing has asked for them yet, rather than because something is wrong. Knowing which these are is how the first list stops being alarming.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The one that beats all of them</h2>
+    <p class="lede">Ask the machine itself, when it was working.</p>
+    <p>Take a snapshot the day the machine goes into service. Then <em>should this be running</em> becomes <em>was this running when everything worked</em> - a question about your machine rather than about a machine in an article.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... a week, a patch, or an incident later</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Configuration is reported apart from running state, so the answer is not forty services that happen to be up - it is the start type somebody changed.</p>
+    <a class="more" href="/audit-windows-services/">Auditing a machine for drift</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Before you stop anything</h2>
+    <p>Every stop in this tool shows its plan first: the steps, what comes down with them, and a warning when one of them is something the machine does not work without. The list of those is a starter list of seven - the two halves of RPC, the account manager, key isolation, the session manager and plug and play - and <strong>Remote Desktop is not on it</strong>, so over a remote session, read the plan.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="/query-language/">Every field you can ask about</a>
+    </div>
+  </div>
+</section>

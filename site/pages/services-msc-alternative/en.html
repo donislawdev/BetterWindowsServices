@@ -1,0 +1,96 @@
+<meta name="title" content="A services.msc alternative for Windows administrators">
+<meta name="description" content="services.msc has no search, no filtering and no history. A free open source replacement with a query language, a preview before every change, and a drift diff.">
+<meta name="nav" content="vs services.msc">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>A <code>services.msc</code> alternative</h1>
+    <p class="lede">The Services snap-in has barely changed since Windows 2000. It is still the fastest way to start one service you can already see on screen, and the slowest way to answer any question about a machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What sends people looking</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>No search.</strong> The only navigation is typing a letter to jump to the first display name starting with it. On a machine with eight hundred entries that is scrolling with extra steps.</li>
+        <li><strong>No filtering.</strong> There is no way to ask <em>what is set to start automatically and is not running</em> - the one question that finds a broken machine.</li>
+        <li><strong>One row at a time.</strong> Restarting twelve services is twelve right-clicks and twelve waits.</li>
+        <li><strong>"Stopping..." with no way out</strong> except Task Manager and guessing which <code>svchost</code> to end.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>No history.</strong> Nobody knows who set that start type to Disabled, or when, or whether it was like that last month.</li>
+        <li><strong>Hidden data.</strong> The process, the triggers, the required privileges, the security descriptor, who signed the binary - none of it is in the snap-in, and all of it matters when something is wrong.</li>
+        <li><strong>The columns cannot change.</strong> Name, description, status, start type, log on as. That is the whole list, and none of them can be sorted usefully on a real machine.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The same three tasks, in both</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>You want to</th><th>In <code>services.msc</code></th><th>Here</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Find what should be running and is not</td>
+            <td class="no">Sort by start type, scroll, read every row</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Know what a stop takes down with it</td>
+            <td class="no">A dialog that names dependents after you press Stop</td>
+            <td>A plan before anything happens, with each dependent as a step and a warning when one is something the machine needs</td>
+          </tr>
+          <tr>
+            <td>Know what changed since last week</td>
+            <td class="no">Nothing</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Restart twelve services</td>
+            <td class="no">Twelve right-clicks</td>
+            <td>Select twelve, one plan, one run, one report</td>
+          </tr>
+          <tr>
+            <td>See who signed a service binary</td>
+            <td class="no">Not shown</td>
+            <td>A column, and a thing to search on: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Script any of it</td>
+            <td class="no">Not scriptable</td>
+            <td><code>bws</code>, with <code>--json</code> and an exit code for every ending</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What the snap-in still does better</h2>
+    <p class="lede">Two things, and pretending otherwise would be the kind of claim this project does not make.</p>
+    <ul class="points">
+      <li><strong>It is already on the machine.</strong> Nothing to download, nothing to get past a software policy. On a machine you will touch once, that is the whole argument.</li>
+      <li><strong>It edits recovery actions, the account and the launch path.</strong> This tool reads all three and reports them, and does not change them. Creating, deleting or repointing a service is not here either.</li>
+    </ul>
+    <p>What it cannot do at all is the reason this exists: ask a question, show a plan first, and tell you what drifted.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What this is</h2>
+    <p>{{product}} is free and open source under GPL-3.0, one file per half with no installer, and it never talks to the internet. Reading needs no administrator rights - changing does, and it says so rather than failing quietly.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="/query-language/">See the query language</a>
+    </div>
+  </div>
+</section>

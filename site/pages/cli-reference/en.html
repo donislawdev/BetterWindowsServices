@@ -1,0 +1,107 @@
+<meta name="title" content="Command line reference - every switch and exit code of bws">
+<meta name="description" content="Every command, switch and exit code of the bws command line: list, show, stop, start, restart, kill, start-type and snapshot, with where each flag works.">
+<meta name="nav" content="CLI reference">
+
+<!--
+  The tables on this page are BUILT, not written. The switches come from the parser's own table
+  in src/Bws.Cli/OptionSurface.cs and the codes from src/Bws.Cli/ExitCode.cs, so a switch added
+  to the program appears here, and a sentence about a switch that no longer exists fails the
+  build. What each one MEANS is prose and lives in site/i18n, because prose is translated.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Reference</span>
+    <h1>Command line reference</h1>
+    <p class="lede">Every command, every switch and every exit code of <code>bws</code>, version {{version}}. <code>bws --help</code> is the authoritative one and is longer - this page is the same surface, laid out to be read.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The commands</h2>
+    <p>Eight verbs. <code>snapshot</code> is a noun and takes a word after it.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|manual|disabled [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>A mistyped verb is offered the one you probably meant, and the run ends with code <code>2</code> rather than doing something close to what you asked.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. There is: list, show, stop, start, restart, start-type, kill, snapshot.</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What each verb does</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> and <code>show</code></h3>
+        <p><code>list</code> is the whole machine, narrowed by <code>--query</code>. <code>show</code> is one entry with everything known about it - the signature, the privileges, the security descriptor and the memory, all of them read every time, because over one entry that costs about sixty milliseconds where over the whole machine it costs a second. Fields that are genuinely empty are left out unless you pass <code>--full</code>. A field nobody could read is printed either way, because leaving one out would look like an answer.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> and <code>restart</code></h3>
+        <p>Each builds a plan and carries it out. <code>--dry-run</code> prints the plan and changes nothing, <code>--dependents</code> puts the services that would break into it as steps of their own, and <code>--timeout</code> says how long to wait for one step. Drivers are refused rather than attempted, because stopping a kernel driver is often not reversible without a restart.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - for a service that will not stop</h3>
+        <p>It asks the service to stop and ends the process behind it <em>only if that does not work</em>, so an entry that stops on its own is never ended. Ending a process takes every other service living in that process with it, whether or not they stopped first, and the preview names them and names the process by number. <code>--force</code> skips the polite step and the preview then shows one step instead of two. <code>--restart</code> brings everything back afterwards.</p>
+        <p class="note"><strong>Windows spells this idea differently.</strong> <code>--force</code> on <code>Stop-Service</code> means "even if something depends on it", which is what <code>--dependents</code> does here. That is why this is a verb of its own rather than a switch on <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - a setting, not a move</h3>
+        <p>It says what the manager will do with an entry at the next boot and moves nothing: an entry that is running keeps running, one that is stopped stays stopped. <code>disabled</code> is the one worth pausing over, because it stops the manager starting the entry at all, including on demand for something else that needs it.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> and <code>snapshot diff</code></h3>
+        <p><code>create</code> always reads signatures and hashes, because a snapshot is kept and compared later and one without them would compare against one with them as though the machine had changed. <code>diff</code> says what changed going from the first file to the second, or from a file to this machine with <code>--live</code>. <a href="/snapshots-and-drift/">The snapshot page</a> has the format and the reasoning.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Switches</h2>
+    <p>{{switch_count}} of them. The third column is the verbs each one belongs to - a switch passed to a verb that has no use for it is an error with that list in it, rather than a flag quietly ignored.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Exit codes</h2>
+    <p>{{exit_code_count}} endings, and every one of them is a different thing for a script to do. Data goes to standard output and everything else to standard error, so <code>bws list --json | jq</code> works and a warning never lands in your JSON.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C has three levels, each saying what the next one costs.</strong> The first stops going forward and still puts back what was taken, the second leaves things as they are and still prints the report, the third ends the process. A run stopped by hand ends with <code>4</code> even when every step still arrived.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>In a scheduled task</h2>
+    <p>The shape this tool was built for: freeze the machine when it is known good, then ask every night whether it still is.</p>
+<pre><code><span class="c"># the day the machine goes into service</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># every night, from a scheduled task</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nothing differs
+#   5 - something differs, and drift.json says what
+#   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
+    <p>The window is the other half of the same engine: <code>{{archive_window}}</code> holds it, and <a href="/download/">the download page</a> says what each archive is.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The window's one argument</h2>
+    <p><code>BetterWindowsServices.exe</code> knows one: <code>--catalogue</code> opens a developer's sheet showing every component of the window in every state, and reads nothing from your machine.</p>
+  </div>
+</section>

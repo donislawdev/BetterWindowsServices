@@ -1,0 +1,201 @@
+<meta name="title" content="Better Windows Services - a services.msc replacement with search">
+<meta name="description" content="Free, open source services.msc replacement. Search your services with a query language, preview every change before it runs, and see what drifted since yesterday.">
+<meta name="nav" content="Home">
+
+<!--
+  The front page. Every sentence here has a counterpart in README.md, which was checked against
+  the running program before it was written - the plan, the diff and the query below are real
+  output, not illustrations.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Search your Windows services, preview every change, and <em>see what drifted</em> since yesterday</h1>
+      <p class="lede"><strong>{{product}}</strong> is <code>services.msc</code> rebuilt for people who administer Windows machines - a window and a command line over one engine. Ask the machine a question instead of scrolling eight hundred rows. See what a change will do <strong>before you press anything</strong>. And the part <code>services.msc</code> never had: <strong>freeze every service into a file, and a week later ask what changed.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">See the code on GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Free and open source, GPL-3.0</li>
+        <li>One file, no installer</li>
+        <li>No administrator rights to look</li>
+        <li>Never talks to the internet</li>
+      </ul>
+    </div>
+    <figure>
+      <div class="shot" aria-hidden="true">
+        <div class="shot-bar"><img src="/assets/icon.svg" alt="" width="16" height="16">{{product}}<span class="scope">Services 811 &middot; Drivers &middot; Everything</span></div>
+        <div class="shot-search"><span class="k">management</span><span class="count">3 of 811</span></div>
+        <table class="shot-list">
+          <thead><tr><th>Name</th><th>Display name</th><th>Status</th><th>Startup type</th></tr></thead>
+          <tbody>
+            <tr aria-selected="true"><td>Winmgmt</td><td>Windows Management Instrumentation</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
+            <tr><td>vmms</td><td>Hyper-V Virtual Machine Management</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
+            <tr><td>WinRM</td><td>Windows Remote Management (WS-Management)</td><td><span class="dot dot-stopped"></span>Stopped</td><td><span class="ring ring-manual"></span>Manual</td></tr>
+          </tbody>
+        </table>
+        <div class="shot-plan">
+          <h3>What stopping Winmgmt would do</h3>
+          <ol>
+            <li>stop <span>vmms</span> (would break otherwise)</li>
+            <li>stop <span>Winmgmt</span> (asked for)</li>
+          </ol>
+          <p class="warn">Stopping Winmgmt also stops one other entry: vmms. Winmgmt starts automatically, so it will be back after the next restart.</p>
+          <div class="cmd">bws stop Winmgmt --dependents</div>
+          <div class="buttons"><span>Copy all</span><span class="go">Stop Winmgmt</span></div>
+        </div>
+      </div>
+      <figcaption>A query in the search box, a plan shown before anything happens, and the <code>bws</code> line that asks for exactly the same thing.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Why this exists</span>
+    <h2><code>services.msc</code> has barely changed since Windows 2000</h2>
+    <p class="lede">Administrators spend hours a week in it hitting the same walls.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>No search.</strong> The only navigation is jumping to the first letter of a display name.</li>
+        <li><strong>No filtering.</strong> There is no way to ask <em>show me what is set to start automatically and is not running</em>.</li>
+        <li><strong>One row at a time.</strong> Restarting twelve services is twelve right-clicks and twelve waits.</li>
+        <li><strong>"Stopping..." forever</strong>, with no way out except Task Manager and guessing the process.</li>
+        <li><strong>No history.</strong> Nobody knows who set that start type to Disabled, or when.</li>
+        <li><strong>Hidden data.</strong> The process, the triggers, the privileges, the security descriptor, who signed the binary - all of it needs <code>sc.exe</code> from memory, or the registry.</li>
+        <li><strong>No command line parity.</strong> <code>sc.exe</code> has a syntax from the nineties, and <code>Get-Service</code> does not show the account a service runs as, let alone its description.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>The other tools each fix part of it</h3>
+        <p>Process Hacker and System Informer show a rich list and can force a kill, and have no audit and no command line. <code>sc.exe</code> and <code>PsService</code> can do everything and tell you nothing. PowerShell's <code>*-Service</code> cmdlets are scriptable and shallow.</p>
+        <p>Nobody combines a searchable list, a preview before every change, and a record of what changed over time - and the record is the reason to keep this on a machine after the first afternoon.</p>
+        <a class="more" href="/services-msc-alternative/">The full comparison</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">What it does</span>
+    <h2>A window and a command line over one engine</h2>
+    <div class="grid">
+      <div class="card"><h3>Ask, instead of scroll</h3><p><code>start:auto !status:running</code> is <em>what should be up and is not</em>. One language, in the search box and in <code>bws list --query</code>, with the fields offered as you type.</p></div>
+      <div class="card"><h3>Show the plan before anything happens</h3><p>Every stop, start, restart and start type change is previewed with the services it takes down with it, and the preview is what runs.</p></div>
+      <div class="card"><h3>Tell you what drifted</h3><p><code>bws snapshot create</code> freezes the machine into a file, and <code>bws snapshot diff</code> says what changed since, configuration apart from what merely started or stopped.</p></div>
+      <div class="card"><h3>Stop a service that will not stop</h3><p>It asks politely first and ends the process only if that fails, naming every other service that lives in it.</p></div>
+      <div class="card"><h3>Show what <code>services.msc</code> hides</h3><p>Who signed the binary and whether Windows trusts it, triggers, privileges, the security descriptor, the process and its memory. As columns, and as things to search on.</p></div>
+      <div class="card"><h3>Say when it could not read something</h3><p>A field it could not read is reported as not read, never shown as empty. A snapshot taken without administrator rights says so inside the file.</p></div>
+      <div class="card"><h3>Fit into scripts</h3><p><code>--json</code> on every command, an exit code for every ending, and <code>5</code> when a diff finds drift.</p></div>
+      <div class="card"><h3>Run from one file, offline</h3><p>No installer, no .NET to install, and it never talks to the internet. Reading needs no administrator rights. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">The part services.msc never did</span>
+    <h2>What changed since yesterday</h2>
+    <p class="lede">A snapshot is the whole machine at one moment - every service and driver, with its start type, account, launch path, the hash and the signer of its file, its dependencies, triggers, privileges and security descriptor. It is JSON with one field per line, so it goes into a repository and <code>git diff</code> reads it.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Configuration and running state are reported apart.</strong> Two snapshots taken a day apart differ in what happens to be running and almost none of it is drift - the start type that changed is the line to read.</li>
+        <li><strong>What could not be compared is listed, not hidden.</strong> A field one snapshot never read comes out as <em>not compared</em>, so a diff that says <em>nothing changed</em> means nothing changed in what both sides could see.</li>
+        <li><strong><code>--exit-code</code> ends with <code>5</code> when anything differs</strong>, so a scheduled task can take a snapshot at deployment and page somebody the first night the machine drifts.</li>
+        <li><strong>Two machines, two files.</strong> Take a snapshot on staging and one on production, and diff them anywhere.</li>
+      </ul>
+    </div>
+    <a class="more" href="/snapshots-and-drift/">How snapshots and drift work</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nothing happens without a plan</span>
+    <h2>The preview is the execution</h2>
+    <p class="lede">Every operation that writes builds a plan first, and the same plan is the preview, the cascade of dependent services, the refusal before you press anything, the command line that asks for the same thing, and the way back afterwards.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Run it without <code>--dry-run</code> and those are the steps</strong>, in that order, with the same reasons beside them. There is no second code path for the real thing.</li>
+        <li><strong>What comes down with it is in the plan.</strong> The services that would break are steps of their own, and a plan that would take down something the machine needs says so in its warnings.</li>
+        <li><strong>A refusal comes before the button.</strong> A driver, a service the manager will not accept a stop for, a process the system protects - refused when the plan is built, with the reason. The window greys the button and says why beside it.</li>
+        <li><strong>Force stop is two steps, and the second is conditional.</strong> <code>bws kill</code> asks the service to stop and ends its process only if that does not work, naming every other service living in it.</li>
+      </ul>
+    </div>
+    <a class="more" href="/stop-a-windows-service-that-will-not-stop/">When a service will not stop</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Two minutes with it</span>
+    <h2>From the command line</h2>
+    <p class="lede">The same engine as the window, for scripts, scheduled tasks and CI. Data goes to standard output and everything else to standard error, so <code>bws list --json | jq</code> works and a warning never lands in your JSON.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">what should be up and is not</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">services whose binary is gone</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">unsigned, without the per-session copies</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">everything known about one entry</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">what stopping it would take down</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">what ending its process would take with it</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">what taking it off automatic would do</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">freeze the machine before a change</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">what has changed since, 5 if anything has</span></code></pre>
+    <a class="more" href="/cli-reference/">Every command, switch and exit code</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Honest limits</span>
+    <h2>What is not there yet</h2>
+    <p class="lede">A tool that quietly fails to cover something is worse than one that says what it cannot do. This is an early release - both halves do everything on this page, and an automated suite runs on every commit. The second half of the audit story is still to come.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Snapshots are on the command line only</h3><p>The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</p></div>
+      <div class="card"><h3>No stock Windows baseline</h3><p>The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</p></div>
+      <div class="card"><h3>No change journal, no restore</h3><p>Who changed a start type, and when, is not read from the event log yet. A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</p></div>
+      <div class="card"><h3>Local machine only</h3><p>Remote management is not in this version. To compare two machines, take a snapshot on each and diff the two files. Windows only, 64-bit only.</p></div>
+    </div>
+    <a class="more" href="/faq/">The rest of the limits, and the questions people ask</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Get it</span>
+    <h2>Unzip anywhere and run</h2>
+    <p class="lede">Windows 10 1809 or Windows Server 2019 and later, 64-bit. No installer, nothing written to the registry, and no administrator rights needed to look. Changing anything needs an elevated session, and both halves say so instead of failing quietly - the window offers <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>The window, one self-contained executable - no .NET to install</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>The command line, one self-contained executable, for scripts and CI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The executables carry an Authenticode signature, so Windows names the publisher instead of warning about an unknown one.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="/download/">Requirements and building from source</a>
+    </div>
+  </div>
+</section>

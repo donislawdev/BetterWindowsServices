@@ -4,11 +4,15 @@
     <Project Path="src/Bws.Core/Bws.Core.csproj" />
     <Project Path="src/Bws.Gui/Bws.Gui.csproj" />
   </Folder>
+  <Folder Name="/site/">
+    <Project Path="site/Bws.Site/Bws.Site.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bws.Architecture.Tests/Bws.Architecture.Tests.csproj" />
     <Project Path="tests/Bws.Cli.Tests/Bws.Cli.Tests.csproj" />
     <Project Path="tests/Bws.Core.Tests/Bws.Core.Tests.csproj" />
     <Project Path="tests/Bws.Gui.Tests/Bws.Gui.Tests.csproj" />
     <Project Path="tests/Bws.Integration.Tests/Bws.Integration.Tests.csproj" />
+    <Project Path="tests/Bws.Site.Tests/Bws.Site.Tests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The generator of betterwindowsservices.donislawdev.com.
+
+    IT LIVES UNDER site/ AND NOT UNDER src/, AND THAT IS A DECISION RATHER THAN TIDINESS. Every
+    *.cs under src/ is a shipped file to the architecture guards: Sources.Shipped() enumerates
+    that directory, and ten guards - the output channel, broad catches, the size ratchet and
+    the rest - would hold a website generator to promises made about a service manager. It
+    does not ship, it is never elevated, and it writes HTML to a directory. Under site/ the
+    guards that still apply are the ones about what is readable once the repository is public:
+    PublicSurfaceGuards sweeps *.cs, *.json and *.yml wherever they are.
+
+    IT IS IN GIT, unlike tools/, because the Pages workflow has to run it on a runner that gets
+    a checkout and nothing else. ADR-27 in docs/02 holds the reasoning.
+
+    IT REFERENCES Bws.Core, on purpose. The query language page lists every field and every
+    value spelling, and the only source that cannot drift from the program is the program:
+    QueryFields.Names and QueryFields.ValuesOf are public precisely for "anything that offers
+    them to a person". tools/audit/audit.ps1 reads the same list out of the source text with a
+    regular expression, and once found nothing after the values moved to another file - a bridge
+    that quietly stops finding the code goes green while checking nothing. This one cannot.
+
+    Directory.Build.props at the root applies here as it does everywhere: the Windows target
+    framework, x64, warnings as errors, the analysers and the version. The version is read out
+    of that file as text rather than out of this assembly, so the site says what the product
+    says even when this project is built alone.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Bws.Site</RootNamespace>
+    <AssemblyTitle>Better Windows Services (website generator)</AssemblyTitle>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Bws.Core\Bws.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Bws.Site.Tests" />
+  </ItemGroup>
+
+</Project>

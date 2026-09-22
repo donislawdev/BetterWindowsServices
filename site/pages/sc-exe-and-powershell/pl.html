@@ -1,0 +1,91 @@
+<meta name="title" content="sc.exe i Get-Service wobec narzędzia zbudowanego do audytu">
+<meta name="description" content="sc.exe potrafi wszystko i nie mówi nic. Get-Service jest skryptowalny i płytki. W czym każdy z nich jest nadal lepszy, a gdzie wygrywa język zapytań i plan.">
+<meta name="nav" content="sc.exe i PowerShell">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Poradnik</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> i to</h1>
+    <p class="lede">Oba są już na maszynie i oba zostaną użyteczne. Ta strona jest o tym, gdzie się kończą - i mówi wprost, gdzie nadal są lepszą odpowiedzią.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Gdzie kończy się każdy z nich</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Sięga prawie do wszystkiego, co wie menedżer usług, i nie mówi nic o tym, jak go o to zapytać. Składnia jest z lat dziewięćdziesiątych - <code>sc config X start= auto</code>, gdzie spacja po znaku równości jest obowiązkowa, a jej brak jest cichą porażką w robieniu tego, o co chodziło.</p>
+        <p>Odpowiada o jednym wpisie naraz. Nie ma filtrowania, nie ma wyjścia, które skrypt sparsuje bez pisania własnego parsera, i nie ma podglądu: <code>sc stop</code> albo działa, albo zwraca liczbę.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> i polecenia <code>*-Service</code></h3>
+        <p>Porządne obiekty, potok i płytki widok. <code>Get-Service</code> nie pokazuje konta, na którym działa usługa, i nie pokazuje jej opisu. Typ uruchomienia pojawił się dopiero w PowerShellu 6.</p>
+        <p><code>Stop-Service -Force</code> znaczy „nawet jeśli coś od tego zależy" - zatrzymuje zależne i mówi o tym po fakcie, a nie przed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Te same pytania, trzema drogami</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Pytanie</th><th>Tym, co jest na maszynie</th><th>Tutaj</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Co powinno działać i nie działa</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Które usługi mają niepodpisany plik</td>
+            <td class="no">Przeczytać każdą ścieżkę, rozwiązać ją, wywołać <code>Get-AuthenticodeSignature</code> na każdej - to skrypt, nie komenda</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Co zdjęłoby zatrzymanie tej usługi</td>
+            <td><code>sc enumdepend X</code>, a potem przeczytać listę i zdecydować samemu</td>
+            <td><code>bws stop X --dry-run --dependents</code>, czyli plan, który by się wykonał</td>
+          </tr>
+          <tr>
+            <td>Co zmieniło się od zeszłego tygodnia</td>
+            <td class="no">Nic, chyba że sam napisałeś zbieranie danych</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Wyjście czytelne dla maszyny</td>
+            <td>Obiekty z PowerShella, tekst z <code>sc.exe</code></td>
+            <td><code>--json</code> przy każdej komendzie, na wyjściu standardowym, a ostrzeżenia na wyjściu błędów</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Tam, gdzie ten program nie zgadza się z <code>sc.exe</code> co do usługi, błąd jest tutaj.</strong> Część zestawu testów uruchamia oba na maszynie, na której biegnie, i porównuje je wpis po wpisie - a różnica między nimi jest najbardziej użyteczną rzeczą, jaką można umieścić w zgłoszeniu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kiedy zostać przy tym, co masz</h2>
+    <ul class="points">
+      <li><strong>Jesteś na maszynie, której dotkniesz raz.</strong> Oba są już tam i nic nie musi przechodzić przez politykę.</li>
+      <li><strong>Musisz zmienić konto, ścieżkę uruchomienia albo akcje odzyskiwania.</strong> <code>sc.exe</code> robi wszystkie trzy. Ten program je czyta i pokazuje, a nie zmienia.</li>
+      <li><strong>Musisz utworzyć albo usunąć usługę.</strong> <code>sc create</code> i <code>sc delete</code>. Tutaj tego nie ma, świadomie.</li>
+      <li><strong>Jesteś już w środku potoku PowerShella.</strong> <code>bws list --json</code> wraca jako obiekty przez <code>ConvertFrom-Json</code>, więc dołącza do potoku, zamiast go zastępować.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Razem, a nie zamiast</h2>
+    <p>Narzędzie odpowiadające na <em>co jest nie tak z tą maszyną</em> i narzędzia zmieniające jedno ustawienie to nie to samo narzędzie. Zadaj pytanie tutaj, przeczytaj plan tutaj, a wykonaj czym chcesz - plan drukuje linię wiersza poleceń proszącą o to samo, i ta linia jest po to, żeby ją skopiować.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="/pl/jezyk-zapytan/">Język zapytań</a>
+    </div>
+  </div>
+</section>

@@ -743,6 +743,11 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Changed
 
+- **`bws --version` and `bws --help` name the website.** The version block carries a *Home page*
+  line the way other command line tools do, and the usage text ends with where the full
+  reference lives: every command, switch and exit code, laid out to be read rather than scrolled.
+  The tool still opens no link and no socket - your browser is what connects.
+
 - **The executables are named after what you type and what you see: `bws.exe` and
   `BetterWindowsServices.exe`.** The usage text has said `bws list` from the first day, and the
   file used to be called `Bws.Cli.exe` - every example was one rename away from working. The window

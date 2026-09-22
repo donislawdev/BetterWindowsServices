@@ -1,0 +1,11 @@
+{
+  "_note": "Every command, switch and exit code, built from OptionSurface.cs and ExitCode.cs.",
+  "id": "cli-reference",
+  "order": 40,
+  "nav": true,
+  "footer": "product",
+  "slug": {
+    "en": "cli-reference",
+    "pl": "dokumentacja-cli"
+  }
+}

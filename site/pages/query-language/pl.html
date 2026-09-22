@@ -1,0 +1,80 @@
+<meta name="title" content="Język zapytań - zadaj pytanie usługom Windows">
+<meta name="description" content="Jeden język zapytań w polu wyszukiwania i w bws list --query. Wszystkie pola, wszystkie wartości i pytanie, którego services.msc nie umie zadać: czego nie odczytano.">
+<meta name="nav" content="Język zapytań">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Język zapytań</span>
+    <h1>Zadaj maszynie pytanie</h1>
+    <p class="lede">Jeden język, w polu wyszukiwania okna i w <code>bws list --query</code>. Gołe słowo szuka w nazwie, nazwie wyświetlanej, koncie i ścieżce uruchomienia. Pole zawęża. Pól jest {{field_count}}, a ten sam tekst znaczy to samo w obu połowach programu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sześć zapytań, które odpowiadają na realne pytanie</h2>
+    <div class="grid">
+      <div class="card"><h3>Co powinno chodzić i nie chodzi</h3><p><code>start:auto !status:running</code></p><p>Pierwsze zapytanie, które pisze większość ludzi, i to, na które <code>services.msc</code> nie umie odpowiedzieć w ogóle.</p></div>
+      <div class="card"><h3>Usługi, których plik zniknął</h3><p><code>file:missing</code></p><p>Wpis wskazujący na plik, którego nie ma na dysku. Zwykle odinstalowanie, które zostawiło po sobie rejestrację.</p></div>
+      <div class="card"><h3>Niepodpisane, bez szumu sesji</h3><p><code>signed:no peruser:no</code></p><p>Rodziny per-użytkownik robią kopię na sesję i zapełniają listę prawie-duplikatami. To pyta o resztę.</p></div>
+      <div class="card"><h3>Działa, choć jest wyłączone</h3><p><code>mismatch:running</code></p><p>Konfiguracja i stan się nie zgadzają - wpis, którego menedżer ma nigdy nie uruchamiać, działający mimo to.</p></div>
+      <div class="card"><h3>Cokolwiek prosi o prawa debugowania</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Przywilej, który pozwala procesowi otworzyć dowolny inny. Warto wiedzieć, które usługi o niego proszą.</p></div>
+      <div class="card"><h3>Czego program nie zdołał odczytać</h3><p><code>account:?</code></p><p>Wpisy, na których ta sesja nie odczytała konta. Pytanie, którego <code>services.msc</code> nie umie nawet zadać.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Jak pisze się zapytanie</h2>
+    <div class="split">
+      <div>
+        <h3>Człony</h3>
+        <ul class="prose-list">
+          <li>Człony rozdziela spacja i wszystkie muszą pasować - nie ma słowa <code>and</code>, bo nic innego nie mogłoby to znaczyć.</li>
+          <li><code>!</code> przed członem neguje go: <code>!status:running</code>.</li>
+          <li>Przecinek wewnątrz pola znaczy <em>albo</em>: <code>start:manual,disabled</code>.</li>
+          <li>Cudzysłowy chronią wszystko ze spacjami i dwukropkami: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Jak dopasowuje się tekst</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> pasuje do wszystkiego, co <em>zawiera</em> ten tekst - domyślnie, bo tego ludzie oczekują od pola wyszukiwania.</li>
+          <li><code>name:=spooler</code> to dopasowanie dokładne.</li>
+          <li><code>name:spool*</code> przyjmuje symbole wieloznaczne, <code>*</code> i <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> to wyrażenie regularne.</li>
+          <li>Wielkość liter jest ignorowana, także poza ASCII - polska nazwa wyświetlana pasuje niezależnie od tego, jak ją wpiszesz.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Trzy słowa, które przyjmuje każde pole</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Literówka w wartości jest błędem, nigdy pustym wynikiem.</strong> <code>status:runing</code> odpowiada <em>Did you mean running?</em> i kończy kodem <code>2</code>. Pusta lista wyglądałaby jak odpowiedź, a różnica między „nic nie pasuje" a „źle to wpisałeś" jest różnicą między czystą maszyną a audytem, który niczego nie dowiódł. Zapytanie, które niczego by nie zawęziło, jest w wierszu poleceń odrzucane, żeby skrypt nie zadziałał na całej maszynie przez literówkę.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wszystkie pola</h2>
+    <p>Ta tabela jest zbudowana z samego programu, więc nie może rozjechać się z tym, co narzędzie przyjmuje. Pole bez listy wartości przyjmuje tekst, liczbę albo rozmiar - trzecia kolumna mówi, który z nich.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dwie rzeczy warte wiedzenia</h2>
+    <div class="qa">
+      <div>
+        <h3>Część pól jest droga, a zapytanie o nie włącza ich odczyt</h3>
+        <p>Podpisy trwają na całej maszynie kilka sekund, a pamięć jest pomiarem, a nie ustawieniem, więc żadne z nich nie jest czytane dla zwykłej listy. Zapytanie, które o nie pyta, włącza ten odczyt samo - nie trzeba pamiętać o <code>--signatures</code> obok <code>signed:no</code>. W oknie zapytanie o podpisy mówi, że odpowiedź jest niepełna, dopóki nie dotrą, zamiast pokazywać krótszą listę jak gotowy wynik.</p>
+      </div>
+      <div>
+        <h3>Wynik oceniony na czymś nieodczytanym mówi to wprost</h3>
+        <p>Jeśli wpisy były oceniane po polu, którego ta sesja nie zdołała odczytać, wynik niesie linię mówiącą ile - bo taki wynik może gubić wpisy albo trzymać takie, które do niego nie należą. To ta sama reguła, którą trzyma cały program: nieudany odczyt jest widoczny w odpowiedzi, nigdy połknięty.</p>
+      </div>
+    </div>
+    <a class="more" href="/pl/dokumentacja-cli/">Dokumentacja wiersza poleceń</a>
+  </div>
+</section>

@@ -1,0 +1,11 @@
+{
+  "_note": "Every field and value, built from Bws.Core so it cannot drift. Public part of docs/07 - the syntax, not the history of deciding it.",
+  "id": "query-language",
+  "order": 30,
+  "nav": true,
+  "footer": "product",
+  "slug": {
+    "en": "query-language",
+    "pl": "jezyk-zapytan"
+  }
+}

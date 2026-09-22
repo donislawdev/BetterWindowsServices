@@ -1,0 +1,111 @@
+# Builds the website and publishes it to GitHub Pages.
+#
+# WHAT IT IS FOR: the site is generated from this repository - from site/, and from the program
+# itself for the version, the exit codes, the switches and the query language fields. A site
+# built on somebody's machine and uploaded is a site that drifts from the program the first time
+# it is built on a machine with an older checkout. This builds it where the checkout is the
+# only thing there is.
+#
+# --strict IS THE POINT OF RUNNING IT HERE. The generator collects every problem it finds -
+# an unresolved token, a dead internal link, a page nothing links to, a key missing from one
+# language, a sentence about an exit code the program no longer has, a README table that has
+# fallen behind the code - and --strict turns the list into a failure. Without it the site
+# would publish with {{releases}} printed on a page for a visitor to read.
+#
+# WHAT THIS WORKFLOW CANNOT DO ANYTHING ABOUT, said here rather than discovered: the custom
+# domain has to be set once, by hand, in Settings - Pages. The CNAME file this build writes has
+# to match it, and the step below compares the two and stops rather than publishing a site that
+# would answer on the wrong address. GitHub Pages cannot redirect, so a wrong domain is not a
+# small mistake.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # The site itself, the generator, and the files the generator reads facts out of. A push
+      # that touches none of these cannot change the built site, and rebuilding it would be a
+      # deployment nobody asked for.
+      - 'site/**'
+      - 'README.md'
+      - 'Directory.Build.props'
+      - 'src/Bws.Cli/ExitCode.cs'
+      - 'src/Bws.Cli/OptionSurface.cs'
+      - 'src/Bws.Core/Querying/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a queued one is not cancelled: the last push to main is the
+# one that should be on the air, and cancelling it in favour of an earlier one would leave the
+# site behind the repository.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build the site and check it
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+
+      # Ubuntu rather than Windows, and it is a saving rather than an accident: the generator is
+      # a console program that reads files and writes files. It references Bws.Core for the query
+      # language field list, and that project targets a Windows platform version - which the SDK
+      # accepts as a target on any host, because nothing here runs the Windows-only parts.
+      - name: build the site
+        run: dotnet run --project site/Bws.Site -c Release -- --out _site --strict
+
+      # THE COMPARISON THAT KEEPS THE SITE ON THE AIR. The domain lives in two places that
+      # cannot see each other - site.json, which this build turns into a CNAME file, and the
+      # repository's Pages settings. Publishing a CNAME that disagrees with the setting takes
+      # the site off its address, and the only sign is a visitor's browser failing.
+      - name: the built CNAME matches the configured domain
+        env:
+          CONFIGURED: ${{ vars.PAGES_CUSTOM_DOMAIN }}
+        run: |
+          BUILT=$(cat _site/CNAME)
+          if [ -z "$CONFIGURED" ]; then
+            echo "PAGES_CUSTOM_DOMAIN is not set as a repository variable, so there is nothing to compare."
+            echo "The built site says: $BUILT"
+            echo "Set that variable to the domain in Settings - Pages to turn this into a check."
+          elif [ "$BUILT" != "$CONFIGURED" ]; then
+            echo "The built CNAME is '$BUILT' and the configured domain is '$CONFIGURED'."
+            echo "Publishing this would answer on the wrong address, and Pages cannot redirect."
+            exit 1
+          else
+            echo "CNAME and the configured domain agree: $BUILT"
+          fi
+
+      # Pinned to a commit rather than a tag, like every action in build.yml: a tag can be moved
+      # to point at something else, and a workflow with write access to Pages is not a place to
+      # take that. The versions were read from each repository's own releases on 2026-09-22
+      # rather than remembered - rule 14 of CLAUDE.md, and the first draft of this file had both
+      # of them a major version behind.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

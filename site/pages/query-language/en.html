@@ -1,0 +1,86 @@
+<meta name="title" content="The query language - ask your Windows services a question">
+<meta name="description" content="One query language for the search box and for bws list --query. Every field, every value, and the question services.msc cannot ask: what could not be read.">
+<meta name="nav" content="Query language">
+
+<!--
+  The field table is BUILT from Bws.Core - QueryFields.Names and QueryFields.ValuesOf are public
+  API meant for anything that offers them to a person, so this page cannot name a field the
+  program does not have, or miss one it does. The sentences beside them are in site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">The query language</span>
+    <h1>Ask the machine a question</h1>
+    <p class="lede">One language, in the search box of the window and in <code>bws list --query</code>. A bare word searches the name, the display name, the account and the launch path. A field narrows it. {{field_count}} fields, and the same text means the same thing in both halves of the tool.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Five that answer a real question</h2>
+    <div class="grid">
+      <div class="card"><h3>What should be up and is not</h3><p><code>start:auto !status:running</code></p><p>The first query most people write, and the one <code>services.msc</code> cannot answer at all.</p></div>
+      <div class="card"><h3>Services whose file is gone</h3><p><code>file:missing</code></p><p>An entry pointing at a binary that is not on disk. Usually an uninstall that left the registration behind.</p></div>
+      <div class="card"><h3>Unsigned, without the session noise</h3><p><code>signed:no peruser:no</code></p><p>The per-user families make a copy per session and fill a list with near-duplicates. This asks about the rest.</p></div>
+      <div class="card"><h3>Running although disabled</h3><p><code>mismatch:running</code></p><p>Configuration and state that disagree - an entry the manager is set never to start, running anyway.</p></div>
+      <div class="card"><h3>Anything asking for debug rights</h3><p><code>privilege:SeDebugPrivilege</code></p><p>A privilege that lets a process open any other one. Worth knowing which services ask for it.</p></div>
+      <div class="card"><h3>What the tool could not read</h3><p><code>account:?</code></p><p>The entries where this session could not read the account. A question <code>services.msc</code> cannot even ask.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>How a query is written</h2>
+    <div class="split">
+      <div>
+        <h3>Terms</h3>
+        <ul class="prose-list">
+          <li>Terms are separated by spaces and all of them must match - there is no <code>and</code> keyword because there is nothing else it could mean.</li>
+          <li><code>!</code> in front of a term negates it: <code>!status:running</code>.</li>
+          <li>A comma inside a field is <em>or</em>: <code>start:manual,disabled</code>.</li>
+          <li>Quotes protect anything with spaces or colons: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>How text is matched</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> matches anything <em>containing</em> it - the default, because it is what people expect from a search box.</li>
+          <li><code>name:=spooler</code> is exact.</li>
+          <li><code>name:spool*</code> takes wildcards, <code>*</code> and <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> is a regular expression.</li>
+          <li>Case is ignored, including outside ASCII - a display name in Polish or Greek matches whichever way it is typed.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Three words every field accepts</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>A mistyped value is an error, never an empty result.</strong> <code>status:runing</code> answers <em>Did you mean running?</em> and ends with code <code>2</code>. An empty list would look like an answer, and the difference between "nothing matches" and "you typed it wrong" is the difference between a machine that is clean and an audit that proved nothing. A query that would narrow nothing is refused on the command line too, so a script does not operate on the whole machine because of a typo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Every field</h2>
+    <p>Built from the program itself, so this table cannot drift from what the tool accepts. A field with no list of values takes text, a number or a size - the third column says which.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Two things worth knowing</h2>
+    <div class="qa">
+      <div>
+        <h3>Some fields are expensive, and asking for them turns the reading on</h3>
+        <p>Signatures take several seconds over a whole machine and memory is a measurement rather than a setting, so neither is read for a listing unless asked. A query that mentions one turns that reading on by itself - you do not have to remember <code>--signatures</code> as well as <code>signed:no</code>. In the window, a query about signatures says the answer is incomplete until they arrive, rather than showing a shorter list as though it were the answer.</p>
+      </div>
+      <div>
+        <h3>A result judged on something unreadable says so</h3>
+        <p>If entries were judged on a field this session could not read, the result carries a line saying how many - because such a result may be missing entries, or holding ones that do not belong. That is the same rule the whole tool keeps: an unsuccessful read is visible in the answer, never swallowed.</p>
+      </div>
+    </div>
+    <a class="more" href="/cli-reference/">The command line reference</a>
+  </div>
+</section>

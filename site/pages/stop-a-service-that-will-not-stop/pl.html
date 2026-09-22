@@ -1,0 +1,67 @@
+<meta name="title" content="Usługa Windows zawieszona na Zatrzymywanie - jak ją bezpiecznie ubić">
+<meta name="description" content="Usługa zawieszona na Zatrzymywanie zwykle dzieli proces z innymi. Zobacz z którymi, zanim cokolwiek zakończysz, i podnieś je wszystkie jedną komendą.">
+<meta name="nav" content="Usługa, która nie chce się zatrzymać">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Poradnik</span>
+    <h1>Usługa zawieszona na <em>Zatrzymywanie...</em></h1>
+    <p class="lede">Przystawka pokazuje <em>Zatrzymywanie</em> i nic się nie rusza. Zwykłą odpowiedzią jest Menedżer zadań, zgadywanie, w którym <code>svchost.exe</code> usługa mieszka, i Zakończ zadanie - co kończy każdą inną usługę w tym procesie, nie mówiąc, które to były.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dlaczego tak się dzieje</h2>
+    <ul class="points points-alarm">
+      <li><strong>Usługa nie odpowiada na żądanie zatrzymania.</strong> Windows prosi uprzejmie i czeka. Usługa, która się zawiesiła albo czeka na coś, co nie wróci, nie odpowiada nigdy.</li>
+      <li><strong>Coś, co od niej zależy, nadal działa.</strong> Menedżer odmawia zatrzymania, zamiast zepsuć tamto - a przystawka pokazuje to jako czekanie.</li>
+      <li><strong>Dzieli proces z innymi.</strong> Większość usług Windowsa mieszka we wspólnym <code>svchost.exe</code>. Zakończenie tego procesu kończy je wszystkie, i dokładnie to robi Menedżer zadań, nie wymieniając ich po nazwie.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Popatrz, zanim cokolwiek zakończysz</h2>
+    <p>Zapytaj, co zakończenie zabrałoby ze sobą. Nic się nie dzieje, dopóki nie zdejmiesz <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Podgląd podaje numer procesu, wymienia po nazwie każdą inną usługę w nim żyjącą i pokazuje dwa kroki zamiast jednego: poproś usługę o zatrzymanie i <em>tylko jeśli to nie zadziała</em>, zakończ proces. Usługa, która zatrzymuje się sama, nigdy nie jest ubijana.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> pomija uprzejmy krok</strong> i kończy proces od razu. Zmienia plan, a nie jego wykonanie, więc podgląd pokazuje jeden krok zamiast dwóch i różnicę widać, zanim cokolwiek się stanie.</li>
+        <li><strong><code>--restart</code> podnosi wszystko z powrotem</strong>, gdy proces zniknie - wpis, o który pytałeś, i wszystko, co dzieliło z nim proces. Bez tego maszyna zostaje z tymi usługami zatrzymanymi, a raport mówi, jak je uruchomić.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Odmowa przychodzi przed przyciskiem.</strong> Sterownik, proces chroniony przez system, usługa, dla której menedżer nie przyjmie zatrzymania - odmówione przy budowaniu planu, z podanym powodem, a nie po sześćdziesięciu sekundach czekania.</li>
+        <li><strong>Ostrzeżenie, gdy to ma znaczenie.</strong> Jeśli wpis jest czymś, bez czego maszyna nie działa, plan to mówi - zatrzymanie kładzie maszynę, a nie samą usługę.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Zakończenie procesu to jedyna rzecz, jakiej nikt nie może odmówić w imieniu maszyny.</strong> Dlatego jest osobnym czasownikiem, dlatego podgląd wymienia każdą usługę, którą zabierze, i dlatego uprzejmy krok idzie pierwszy, chyba że powiesz inaczej.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bezpieczniejsza kolejność</h2>
+    <ol class="prose-list">
+      <li><strong>Zobacz, czym to jest.</strong> <code>bws show Spooler</code> - proces, co od tego zależy, od czego to zależy i czy w ogóle przyjmuje żądania zatrzymania.</li>
+      <li><strong>Spróbuj zwykłego zatrzymania, jako planu.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Jeśli odpowiedzią jest odmowa, mówi, który z trzech powodów to jest.</li>
+      <li><strong>Jeśli nie chce się zatrzymać, zobacz, ile kosztuje zakończenie.</strong> <code>bws kill Spooler --dry-run</code>, i przeczytaj listę usług dzielących ten proces.</li>
+      <li><strong>A potem zrób to, z drogą powrotną.</strong> <code>bws kill Spooler --restart</code>. Raport kończy się tym, co nie zadziałało, i komendami, które przywracają rzeczy na miejsce.</li>
+    </ol>
+    <p>Wszystkie cztery działają tak samo w oknie: kliknij wiersz prawym, wybierz <em>What force stopping would do</em>, przeczytaj plan - a przycisk pod nim nazywa to, co zrobi.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dlaczego nie po prostu Menedżer zadań</h2>
+    <p class="lede">Bo odpowiada na inne pytanie. Menedżer zadań zna procesy, a ten problem jest o usługach - i te dwie rzeczy nie odwzorowują się jeden do jednego.</p>
+    <p>Wspólny <code>svchost.exe</code> może trzymać kilkanaście usług. Menedżer zadań zakończy go, nie mówiąc, które to były, żadna nie wróci sama, a nic po fakcie nie powie Ci, co się zatrzymało. EDR, który reaguje na zakończenie procesu <code>svchost.exe</code>, robi swoją robotę - i nie umie odróżnić Twojego kliknięcia od czyjegokolwiek innego.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="/pl/dokumentacja-cli/">Pełna dokumentacja</a>
+    </div>
+  </div>
+</section>

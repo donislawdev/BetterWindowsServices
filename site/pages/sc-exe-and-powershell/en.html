@@ -1,0 +1,91 @@
+<meta name="title" content="sc.exe and Get-Service, compared with a tool built for auditing">
+<meta name="description" content="sc.exe can do everything and tells you nothing. Get-Service is scriptable and shallow. Where each is still best, and where a query language and a plan do better.">
+<meta name="nav" content="sc.exe and PowerShell">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code>, and this</h1>
+    <p class="lede">Both are already on the machine, and both will stay useful. This page is about where they stop - and it says plainly where they are still the better answer.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Where each one stops</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>It can reach almost everything the service control manager knows, and it tells you nothing about how to ask. The syntax is from the nineties - <code>sc config X start= auto</code>, where the space after the equals sign is mandatory and its absence is a silent failure to do what you meant.</p>
+        <p>It answers about one entry at a time. There is no filtering, no output a script can parse without writing a parser, and no preview: <code>sc stop</code> either works or returns a number.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> and the <code>*-Service</code> cmdlets</h3>
+        <p>Proper objects, a pipeline, and a shallow view. <code>Get-Service</code> does not show the account a service runs as, and it does not show its description. The start type arrived only in PowerShell 6.</p>
+        <p><code>Stop-Service -Force</code> means "even if something depends on it" - it stops the dependents, and it tells you afterwards rather than before.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The same questions, three ways</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Question</th><th>With what is on the machine</th><th>Here</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>What should be running and is not</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Which services have an unsigned binary</td>
+            <td class="no">Read each launch path, resolve it, call <code>Get-AuthenticodeSignature</code> on each - a script, not a command</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>What would stopping this take down</td>
+            <td><code>sc enumdepend X</code>, then read the list and decide yourself</td>
+            <td><code>bws stop X --dry-run --dependents</code>, which is the plan that would run</td>
+          </tr>
+          <tr>
+            <td>What changed since last week</td>
+            <td class="no">Nothing, unless you wrote the collector yourself</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Machine-readable output</td>
+            <td>Objects from PowerShell, text from <code>sc.exe</code></td>
+            <td><code>--json</code> on every command, on standard output, with warnings on standard error</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Where this tool disagrees with <code>sc.exe</code> about a service, that is a bug here.</strong> Part of the test suite runs both against the machine it is on and compares them entry by entry, and a difference between the two is the single most useful thing to put in an issue.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>When to keep using what you have</h2>
+    <ul class="points">
+      <li><strong>You are on a machine you will touch once.</strong> Both are already there and nothing has to get past a policy.</li>
+      <li><strong>You need to change the account, the launch path, or recovery actions.</strong> <code>sc.exe</code> does all three. This tool reads them and reports them, and does not change them.</li>
+      <li><strong>You need to create or delete a service.</strong> <code>sc create</code> and <code>sc delete</code>. Not here, on purpose.</li>
+      <li><strong>You are already deep in a PowerShell pipeline.</strong> <code>bws list --json</code> comes back as objects through <code>ConvertFrom-Json</code>, so it joins the pipeline rather than replacing it.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Together, rather than instead</h2>
+    <p>The tool that answers <em>what is wrong with this machine</em> and the tools that change one setting are not the same tool. Ask the question here, read the plan here, and use whatever you like to carry it out - the plan prints the command line that asks for the same thing, and that line is meant to be copied.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="/query-language/">The query language</a>
+    </div>
+  </div>
+</section>

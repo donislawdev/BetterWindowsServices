@@ -1,0 +1,11 @@
+{
+  "_note": "Search page: a service stuck on Stopping, which is how most people arrive.",
+  "id": "stop-a-service-that-will-not-stop",
+  "order": 80,
+  "nav": false,
+  "footer": "guides",
+  "slug": {
+    "en": "stop-a-windows-service-that-will-not-stop",
+    "pl": "usluga-ktora-nie-chce-sie-zatrzymac"
+  }
+}

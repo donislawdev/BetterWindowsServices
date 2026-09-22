@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The generator, referenced rather than run as a process.
+
+      WHY THIS PROJECT EXISTS AT ALL, and it is rule 16 of CLAUDE.md rather than a habit: a tool
+      that reports success while checking nothing is the failure mode this repository has paid
+      for repeatedly - tools/audit/audit.ps1 went green for weeks after the value names moved to
+      another file, because its regular expression found nothing and reported no problems.
+      Every check in this generator is a candidate for exactly that, so each one is tested by
+      being FED SOMETHING BROKEN and asked whether it notices.
+    -->
+    <ProjectReference Include="..\..\site\Bws.Site\Bws.Site.csproj" />
+  </ItemGroup>
+
+</Project>

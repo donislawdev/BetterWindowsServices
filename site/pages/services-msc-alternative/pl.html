@@ -1,0 +1,96 @@
+<meta name="title" content="Alternatywa dla services.msc dla administratorów Windows">
+<meta name="description" content="services.msc nie ma wyszukiwania, filtrowania ani historii. Darmowy, otwarty zamiennik z językiem zapytań, podglądem przed każdą zmianą i różnicą pokazującą dryf.">
+<meta name="nav" content="Zamiast services.msc">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Poradnik</span>
+    <h1>Alternatywa dla <code>services.msc</code></h1>
+    <p class="lede">Przystawka Usługi prawie nie zmieniła się od Windows 2000. Nadal jest najszybszym sposobem, żeby uruchomić jedną usługę, którą już widzisz na ekranie, i najwolniejszym, żeby odpowiedzieć na jakiekolwiek pytanie o maszynę.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co wysyła ludzi na poszukiwania</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Brak wyszukiwania.</strong> Jedyna nawigacja to wpisanie litery, żeby skoczyć do pierwszej nazwy wyświetlanej zaczynającej się od niej. Na maszynie z ośmioma setkami wpisów to przewijanie z dodatkowymi krokami.</li>
+        <li><strong>Brak filtrowania.</strong> Nie da się zapytać <em>co ma startować automatycznie i nie działa</em> - czyli o jedyną rzecz, która znajduje zepsutą maszynę.</li>
+        <li><strong>Jeden wiersz naraz.</strong> Restart dwunastu usług to dwanaście kliknięć prawym i dwanaście czekań.</li>
+        <li><strong>„Zatrzymywanie..." bez wyjścia</strong>, poza Menedżerem zadań i zgadywaniem, który <code>svchost</code> zakończyć.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Brak historii.</strong> Nikt nie wie, kto ustawił ten typ uruchomienia na Wyłączony, kiedy, ani czy w zeszłym miesiącu było tak samo.</li>
+        <li><strong>Ukryte dane.</strong> Proces, wyzwalacze, wymagane przywileje, deskryptor bezpieczeństwa, podpis pliku - nic z tego nie ma w przystawce, a wszystko to ma znaczenie, gdy coś jest nie tak.</li>
+        <li><strong>Kolumn nie da się zmienić.</strong> Nazwa, opis, stan, typ uruchomienia, logowanie jako. To cała lista i żadnej z nich nie da się sensownie posortować na prawdziwej maszynie.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Te same trzy zadania, w obu</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Chcesz</th><th>W <code>services.msc</code></th><th>Tutaj</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Znaleźć to, co powinno działać i nie działa</td>
+            <td class="no">Posortować po typie uruchomienia, przewinąć, przeczytać każdy wiersz</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Wiedzieć, co zatrzymanie zabierze ze sobą</td>
+            <td class="no">Okno wymieniające zależne po naciśnięciu Zatrzymaj</td>
+            <td>Plan przed czymkolwiek, z każdą zależnością jako osobnym krokiem i ostrzeżeniem, gdy któraś jest czymś, bez czego maszyna nie działa</td>
+          </tr>
+          <tr>
+            <td>Wiedzieć, co zmieniło się od zeszłego tygodnia</td>
+            <td class="no">Nic</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Zrestartować dwanaście usług</td>
+            <td class="no">Dwanaście kliknięć prawym</td>
+            <td>Zaznacz dwanaście, jeden plan, jeden przebieg, jeden raport</td>
+          </tr>
+          <tr>
+            <td>Zobaczyć, kto podpisał plik usługi</td>
+            <td class="no">Nie jest pokazywane</td>
+            <td>Kolumna, i rzecz, po której można szukać: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Oskryptować cokolwiek z tego</td>
+            <td class="no">Nie da się</td>
+            <td><code>bws</code>, z <code>--json</code> i kodem wyjścia dla każdego zakończenia</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co przystawka nadal robi lepiej</h2>
+    <p class="lede">Dwie rzeczy, a udawanie, że jest inaczej, byłoby twierdzeniem, jakich ten projekt nie stawia.</p>
+    <ul class="points">
+      <li><strong>Jest już na maszynie.</strong> Nic do pobrania, nic do przepchnięcia przez politykę oprogramowania. Na maszynie, której dotkniesz raz, to jest cały argument.</li>
+      <li><strong>Edytuje akcje odzyskiwania, konto i ścieżkę uruchomienia.</strong> Ten program czyta wszystkie trzy i je pokazuje, a nie zmienia. Tworzenia, usuwania i przestawiania usługi też tu nie ma.</li>
+    </ul>
+    <p>Czego przystawka nie potrafi wcale, to powód istnienia tego programu: zadać pytanie, pokazać plan przed zmianą i powiedzieć, co się rozjechało.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Czym to jest</h2>
+    <p>{{product}} jest darmowy i otwarty na licencji GPL-3.0, jeden plik na połowę, bez instalatora, i nigdy nie łączy się z siecią. Do czytania nie trzeba praw administratora - do zmieniania trzeba, i program mówi to wprost, zamiast po cichu zawieść. Interfejs jest po angielsku.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="/pl/jezyk-zapytan/">Zobacz język zapytań</a>
+    </div>
+  </div>
+</section>

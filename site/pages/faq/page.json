@@ -1,0 +1,12 @@
+{
+  "_note": "The questions README answers, plus the limits. Marked up as questions so a search engine can show one.",
+  "id": "faq",
+  "order": 50,
+  "nav": true,
+  "footer": "product",
+  "schema": "faq",
+  "slug": {
+    "en": "faq",
+    "pl": "faq"
+  }
+}

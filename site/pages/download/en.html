@@ -1,0 +1,82 @@
+<meta name="title" content="Download Better Windows Services for Windows - free, no installer">
+<meta name="description" content="Two self-contained executables, no installer and no .NET to install. Windows 10 1809 and Windows Server 2019 or later, 64-bit. Free and open source under GPL-3.0.">
+<meta name="nav" content="Download">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Download</span>
+    <h1>Unzip anywhere and run</h1>
+    <p class="lede">Version {{version}}. No installer, nothing written to the registry, and no administrator rights needed to look. Free and open source under GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">All releases</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What is in the release</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>The window: <code>BetterWindowsServices.exe</code>, one self-contained executable with its own .NET runtime inside</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>The command line: <code>bws.exe</code>, one self-contained executable, for scripts, scheduled tasks and CI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Take one or both - they are two clients of the same engine and neither needs the other. On a server, the command line is the smaller of the two and does everything the window does.</p>
+    <p>The executables carry an Authenticode signature, so Windows names the publisher instead of warning about an unknown one.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Requirements</h2>
+    <ul class="points">
+      <li><strong>Windows 10 version 1809 or later, or Windows Server 2019 or later.</strong> 64-bit only - a 32-bit process reads redirected paths and registry keys, which would quietly produce wrong answers.</li>
+      <li><strong>Nothing to install.</strong> Both executables carry their own .NET runtime.</li>
+      <li><strong>Administrator rights to change anything.</strong> Reading, searching, snapshots and diffs work without, with fewer entries visible and the tool saying so at the top rather than pretending the list is the whole machine.</li>
+    </ul>
+    <p>The window keeps one file of its own - the layout you left the list in - under <code>%APPDATA%\BetterWindowsServices</code>. A snapshot goes where you tell <code>bws snapshot create</code> to put it, and into the current directory when you do not.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus and EDR</h2>
+    <p class="lede">This tool does what an administrator does with services, and some of that is what security software watches for.</p>
+    <p>It stops and starts services, it can end the process behind one, and it reads every service's security descriptor and required privileges. An EDR that flags a process ending <code>svchost.exe</code> is doing its job, and a forced stop here can look exactly like that.</p>
+    <p>What it does <strong>not</strong> do, so you can check the claim: it injects nothing into any process, it packs or obfuscates nothing, it installs nothing and leaves nothing running, and it opens no network connection. It is open source under GPL-3.0 and you can build both executables yourself.</p>
+    <p>If your policy needs an exclusion, exclude the two executables by file rather than a folder. The one thing worth treating with the same care as the tool itself is a snapshot file: it describes the whole machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Building from source</h2>
+    <p>.NET 10 SDK, on Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Some tests read the real service control manager of the machine they run on and compare what this tool says against what <code>sc.exe</code> says. They are read-only. The single-file executables the releases carry are these two publishes, each one file with the runtime inside:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>They land as <code>bws.exe</code> and <code>BetterWindowsServices.exe</code> under each project's <code>bin/Release/.../win-x64/publish/</code>. The <code>.pdb</code> files beside them are debugging symbols, and nothing needs them to run.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What it costs to run</h2>
+    <p class="lede">Measured on one machine with 810 services. Your figures will differ - the number of services, the disk and the processor all move them.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>About a quarter of a second</h3><p>for <code>bws list</code> to read the whole machine.</p></div>
+      <div class="card"><h3>About eight tenths of a second</h3><p>from starting the window to the list being on screen.</p></div>
+      <div class="card"><h3>About 100 MB</h3><p>for the window - half of it the Windows user interface framework, before any of this tool's own code runs.</p></div>
+      <div class="card"><h3>About 16 MB</h3><p>for the command line over the same machine.</p></div>
+    </div>
+  </div>
+</section>

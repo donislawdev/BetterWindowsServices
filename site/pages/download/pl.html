@@ -1,0 +1,83 @@
+<meta name="title" content="Pobierz Better Windows Services na Windows - za darmo, bez instalatora">
+<meta name="description" content="Dwa samodzielne pliki wykonywalne, bez instalatora i bez instalowania .NET-a. Windows 10 1809 i Windows Server 2019 lub nowsze, 64 bity. Darmowe i otwarte, GPL-3.0.">
+<meta name="nav" content="Pobieranie">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Pobieranie</span>
+    <h1>Rozpakuj gdziekolwiek i uruchom</h1>
+    <p class="lede">Wersja {{version}}. Bez instalatora, bez pisania do rejestru i bez praw administratora do samego patrzenia. Darmowe i otwarte na licencji GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Wszystkie wydania</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co jest w wydaniu</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Plik</th><th>Co to jest</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Okno: <code>BetterWindowsServices.exe</code>, jeden samodzielny plik wykonywalny z własnym środowiskiem .NET w środku</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Wiersz poleceń: <code>bws.exe</code>, jeden samodzielny plik wykonywalny, do skryptów, zadań harmonogramu i CI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Weź jeden albo oba - to dwaj klienci tego samego silnika i żaden nie potrzebuje drugiego. Na serwerze wiersz poleceń jest mniejszy z tych dwóch i robi wszystko, co okno.</p>
+    <p>Pliki wykonywalne noszą podpis Authenticode, więc Windows podaje wydawcę zamiast ostrzegać przed nieznanym.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wymagania</h2>
+    <ul class="points">
+      <li><strong>Windows 10 w wersji 1809 lub nowszy, albo Windows Server 2019 lub nowszy.</strong> Tylko 64 bity - proces 32-bitowy czyta przekierowane ścieżki i klucze rejestru, co po cichu dawałoby złe odpowiedzi.</li>
+      <li><strong>Nic do instalowania.</strong> Oba pliki wykonywalne niosą własne środowisko .NET.</li>
+      <li><strong>Prawa administratora do zmieniania czegokolwiek.</strong> Czytanie, szukanie, snapshoty i porównania działają bez nich, z mniejszą liczbą widocznych wpisów - a program mówi to na górze, zamiast udawać, że lista jest całą maszyną.</li>
+    </ul>
+    <p>Okno trzyma jeden własny plik - układ, w jakim zostawiłeś listę - pod <code>%APPDATA%\BetterWindowsServices</code>. Snapshot ląduje tam, gdzie każesz <code>bws snapshot create</code>, a bez wskazania w katalogu bieżącym.</p>
+    <p class="note"><strong>Program mówi po angielsku</strong>, i to nie jest ostateczne: okno czyta plik językowy <code>languages\gui.&lt;kod&gt;.json</code> położony obok siebie, wybierany według języka systemu, bez żadnego przełącznika. Tłumaczenie jest więc wkładem, który da się dodać bez przebudowy - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> mówi jak.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antywirus i EDR</h2>
+    <p class="lede">Ten program robi to, co administrator robi z usługami, a część tego jest tym, czego pilnuje oprogramowanie ochronne.</p>
+    <p>Zatrzymuje i uruchamia usługi, potrafi zakończyć stojący za usługą proces i czyta deskryptor bezpieczeństwa oraz wymagane przywileje każdej z nich. EDR, który reaguje na zakończenie procesu <code>svchost.exe</code>, robi swoją robotę - a wymuszone zatrzymanie wygląda tu dokładnie tak.</p>
+    <p>Czego <strong>nie</strong> robi, żebyś mógł to sprawdzić: nie wstrzykuje niczego do żadnego procesu, niczego nie pakuje ani nie zaciemnia, nic nie instaluje i nic po sobie nie zostawia, i nie otwiera żadnego połączenia sieciowego. Jest otwarty na licencji GPL-3.0 i oba pliki wykonywalne możesz zbudować sam.</p>
+    <p>Jeśli Twoja polityka wymaga wyjątku, wyklucz te dwa pliki wykonywalne, a nie folder. Jedyna rzecz warta takiej samej ostrożności co sam program to plik snapshotu: opisuje całą maszynę.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Budowanie ze źródeł</h2>
+    <p>.NET 10 SDK, na Windowsie.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Część testów czyta prawdziwy menedżer usług maszyny, na której biegnie, i porównuje to, co mówi ten program, z tym, co mówi <code>sc.exe</code>. Są tylko do odczytu. Jednoplikowe pliki wykonywalne z wydania to te dwie publikacje, każda jeden plik ze środowiskiem w środku:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Lądują jako <code>bws.exe</code> i <code>BetterWindowsServices.exe</code> pod <code>bin/Release/.../win-x64/publish/</code> każdego projektu. Pliki <code>.pdb</code> obok nich to symbole do debugowania i nic ich nie potrzebuje do działania.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ile kosztuje uruchomienie</h2>
+    <p class="lede">Zmierzone na jednej maszynie z 810 usługami. Twoje liczby będą inne - liczba usług, dysk i procesor przesuwają każdą z nich.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Około jednej czwartej sekundy</h3><p>zajmuje <code>bws list</code> odczytanie całej maszyny.</p></div>
+      <div class="card"><h3>Około ośmiu dziesiątych sekundy</h3><p>od uruchomienia okna do listy na ekranie.</p></div>
+      <div class="card"><h3>Około 100 MB</h3><p>bierze okno - połowa tego to biblioteka interfejsu Windowsa, zanim ruszy jakikolwiek własny kod tego programu.</p></div>
+      <div class="card"><h3>Około 16 MB</h3><p>bierze wiersz poleceń na tej samej maszynie.</p></div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,67 @@
+<meta name="title" content="A Windows service stuck on Stopping - how to end it safely">
+<meta name="description" content="A service stuck on Stopping usually shares its process with others. See which ones before you end anything, and bring them all back afterwards with one command.">
+<meta name="nav" content="A service stuck on Stopping">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>A service stuck on <em>Stopping...</em></h1>
+    <p class="lede">The snap-in shows <em>Stopping</em> and never moves. The usual answer is Task Manager, a guess at which <code>svchost.exe</code> it lives in, and End task - which ends every other service in that process too, without telling you which ones they were.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Why it happens</h2>
+    <ul class="points points-alarm">
+      <li><strong>The service is not answering the stop request.</strong> Windows asks it politely and waits. A service that has hung, or is waiting on something that will not come back, never answers.</li>
+      <li><strong>Something that depends on it is still running.</strong> The manager refuses the stop rather than breaking the other one, and the snap-in shows that as a wait.</li>
+      <li><strong>It shares its process with others.</strong> Most Windows services live inside a shared <code>svchost.exe</code>. Ending that process ends all of them, which is exactly what Task Manager does without naming them.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Look before you end anything</h2>
+    <p>Ask what ending it would take with it. Nothing happens until you drop <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>The preview names the process by number, names every other service living in it, and shows two steps rather than one: ask the service to stop, and <em>only if that does not work</em>, end the process. A service that stops on its own is never ended.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> skips the polite step</strong> and ends the process straight away. It changes the plan rather than the running of it, so the preview shows one step instead of two and the difference is visible before anything happens.</li>
+        <li><strong><code>--restart</code> brings everything back</strong> once the process is gone - the entry you asked about and everything that shared its process. Without it, the machine is left with those services stopped, and the report says how to start them again.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>The refusal comes before the button.</strong> A driver, a process the system protects, a service the manager will not accept a stop for - refused when the plan is built, with the reason, rather than after a sixty second wait.</li>
+        <li><strong>A warning when it matters.</strong> If the entry is one the machine does not work without, the plan says so - stopping it takes the machine down, not just the service.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Ending a process is the one thing this tool does that nobody can refuse on the machine's behalf.</strong> That is why it is a verb of its own, why the preview names every service it takes with it, and why the polite step comes first unless you say otherwise.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The safer order</h2>
+    <ol class="prose-list">
+      <li><strong>See what it is.</strong> <code>bws show Spooler</code> - the process, what depends on it, what it depends on, and whether it is accepting stop requests at all.</li>
+      <li><strong>Try the ordinary stop, as a plan.</strong> <code>bws stop Spooler --dry-run --dependents</code>. If the answer is a refusal, it says which of the three reasons it is.</li>
+      <li><strong>If it will not stop, look at what ending it costs.</strong> <code>bws kill Spooler --dry-run</code>, and read the list of services sharing that process.</li>
+      <li><strong>Then do it, with a way back.</strong> <code>bws kill Spooler --restart</code>. The report ends with what did not work and the commands that put things back.</li>
+    </ol>
+    <p>All four work the same way in the window: right-click a row, choose <em>What force stopping would do</em>, read the plan, and the button under it is named after what it will do.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Why not just use Task Manager</h2>
+    <p class="lede">Because it answers a different question. Task Manager knows about processes and this problem is about services, and the two do not line up one to one.</p>
+    <p>A shared <code>svchost.exe</code> can hold a dozen services. Task Manager will end it without saying which twelve, none of them come back on their own, and nothing afterwards tells you what stopped. An EDR that flags a process ending <code>svchost.exe</code> is doing its job, and it cannot tell your click from anything else's.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Download for Windows</a>
+      <a class="btn btn-secondary" href="/cli-reference/">The full reference</a>
+    </div>
+  </div>
+</section>

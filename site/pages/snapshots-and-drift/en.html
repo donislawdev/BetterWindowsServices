@@ -1,0 +1,76 @@
+<meta name="title" content="Snapshots and drift - what changed on this machine since yesterday">
+<meta name="description" content="Freeze every Windows service into a JSON file, then ask what changed. Configuration is reported apart from running state, and exit code 5 can page somebody.">
+<meta name="nav" content="Snapshots and drift">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">The part services.msc never did</span>
+    <h1>Snapshots and drift</h1>
+    <p class="lede">Every other tool tells you what a machine looks like now. The question an administrator actually has is <em>what is different from when it worked</em> - and nothing on a stock Windows answers it.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What a snapshot holds</h2>
+    <p>The whole machine at one moment: every service and driver, with its start type, account, launch path and arguments, the hash and the signer of the file it runs, its dependencies and what depends on it, its triggers, its required privileges, its SID type and its security descriptor - plus the name of the machine, the account that took it, and <strong>whether that account was an administrator</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>It is JSON with one field per line. That is deliberate: it means a snapshot goes into a repository and <code>git diff</code> reads it, so the tool's own comparison is not the only way to look at one.</p>
+    <p class="note"><strong>File it like what it is.</strong> A snapshot describes the whole machine, down to every launch path and security descriptor. It is written with whatever permissions its directory already has, and the tool narrows nothing - so a directory other people can read is one they can read all of that in.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Then ask what is different</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Configuration and running state are reported apart.</strong> Two snapshots taken a day apart differ in what happens to be running, and almost none of that is drift. Mixed together, the one line that matters - a start type somebody changed - is buried under forty that do not.</li>
+        <li><strong>What could not be compared is listed, not hidden.</strong> A field one of the two snapshots never read, because that session had no rights to it, comes out as <em>not compared</em> under its entry, and the summary counts those entries. So a diff that says <em>nothing changed</em> means nothing changed in what both sides could see.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>An elevated snapshot against an unelevated one would lie</strong>, reporting entries as removed that nobody removed. Each file records whether the account that took it was an administrator, and the comparison says so.</li>
+        <li><strong>Two files, not just a file and this machine.</strong> Take one on staging and one on production and diff them anywhere - the answer to <em>why does staging differ</em> does not need either machine present.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The exit code is the point</h2>
+    <p><code>--exit-code</code> ends with <code>5</code> when anything differs. Not a failure - drift is what this tool is for finding, and finding it is not a failure - which is why it has a number of its own rather than borrowing the one that means something went wrong.</p>
+<pre><code><span class="c"># the day the machine goes into service</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># every night, from a scheduled task</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nothing differs
+#   5 - something differs, and drift.json says what
+#   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
+    <p>That is the whole mechanism: a baseline taken when the machine was known good, and a question asked every night. The first night it answers <code>5</code>, somebody finds out on the first night rather than on the morning something breaks.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What this does not do yet</h2>
+    <p class="lede">The second half of the audit story is not built, and saying so is cheaper than somebody discovering it.</p>
+    <ul class="points points-alarm">
+      <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare them.</li>
+      <li><strong>No change journal.</strong> <em>Who</em> changed a start type, and when, is not read from the event log. A snapshot at deployment and a diff against the machine answer <em>what</em> changed, which is most of the question.</li>
+      <li><strong>No stock Windows baseline.</strong> <em>How many of these are not from a clean install</em> is not counted yet, and the opening screen says so rather than showing a number it cannot stand behind.</li>
+      <li><strong>No restore.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
+    </ul>
+    <a class="more" href="/audit-windows-services/">Using this for an audit</a>
+  </div>
+</section>

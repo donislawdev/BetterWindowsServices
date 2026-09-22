@@ -1,0 +1,76 @@
+<meta name="title" content="Auditing Windows services - proving what changed on a machine">
+<meta name="description" content="Freeze every service into a file at deployment, then ask every night whether the machine still matches. Drift, unsigned binaries and missing files, in one query.">
+<meta name="nav" content="Auditing services for drift">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Auditing Windows services</h1>
+    <p class="lede">An audit is not a list of what is on the machine. It is the difference between what is on the machine and what was supposed to be - and nothing on a stock Windows records the second half.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Three questions, and what answers them</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>What changed since this machine was built?</h3>
+        <p>A snapshot taken at deployment, and a diff against the machine tonight. Configuration is reported apart from what merely started or stopped, so the one start type somebody changed is not buried under forty services that happen to be running.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Why does staging differ from production?</h3>
+        <p>Take a snapshot on each and diff the two files - anywhere, without either machine present. The files carry the machine name and the account that took them.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>What is on here that should not be?</h3>
+        <p>Queries that find the shapes worth looking at: a service whose binary is gone, one that is not signed, one running although it is disabled, one asking for debug rights.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>The nightly shape</h2>
+<pre><code><span class="c"># the day the machine goes into service</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># every night, from a scheduled task</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nothing differs
+#   5 - something differs, and drift.json says what
+#   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
+    <p>Exit code <code>5</code> is what makes this an audit rather than a report nobody reads: the task is silent until the machine drifts, and the night it does, somebody is paged.</p>
+    <p class="note"><strong>Take the baseline from an elevated session.</strong> Without administrator rights the manager lists fewer entries and refuses more of what it lists. The snapshot records whether the account that took it was an administrator, so the comparison can say that rather than reporting entries as removed that nobody removed - but a baseline missing half the machine is still a baseline missing half the machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What a snapshot is worth in evidence</h2>
+    <ul class="points points-ok">
+      <li><strong>It is JSON with one field per line</strong>, so it goes into a repository and <code>git diff</code> reads it. An auditor who does not have this tool can still read the file, and a version control system already answers <em>when</em>.</li>
+      <li><strong>It holds what the snap-in never showed:</strong> the launch path and arguments, the hash and signer of the file, the dependencies both ways, the triggers, the required privileges, the SID type and the security descriptor.</li>
+      <li><strong>It says what it could not read.</strong> A field this session had no rights to is recorded as not read - never as empty - so a later comparison can say <em>not compared</em> instead of quietly calling it unchanged.</li>
+      <li><strong>It is a description of the whole machine.</strong> File it accordingly: it is written with whatever permissions its directory already has, and the tool narrows nothing.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>What this does not give you</h2>
+    <p class="lede">Worth knowing before you build a process on it.</p>
+    <ul class="points points-alarm">
+      <li><strong>It does not say who.</strong> The event log is not read yet. A baseline and a diff answer <em>what</em> changed and roughly when it was noticed, not which account did it.</li>
+      <li><strong>There is no stock Windows baseline.</strong> <em>Which of these are not from a clean install</em> is not counted, so the baseline has to be one you took.</li>
+      <li><strong>There is no restore.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
+      <li><strong>One machine at a time.</strong> There is no remote management - the answer for a fleet is a snapshot per machine, collected however you already collect files.</li>
+    </ul>
+    <a class="more" href="/snapshots-and-drift/">How snapshots and diffs work</a>
+  </div>
+</section>

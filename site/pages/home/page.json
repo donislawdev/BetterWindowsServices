@@ -1,0 +1,11 @@
+{
+  "_note": "The front page. Its content comes from README.md, section by section - the same sentences, checked against the program before they were written there.",
+  "id": "home",
+  "order": 0,
+  "nav": true,
+  "schema": "software",
+  "slug": {
+    "en": "",
+    "pl": ""
+  }
+}

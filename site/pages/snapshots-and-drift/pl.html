@@ -1,0 +1,76 @@
+<meta name="title" content="Snapshoty i dryf - co zmieniło się na tej maszynie od wczoraj">
+<meta name="description" content="Zamroź wszystkie usługi Windows w pliku JSON i zapytaj, co się zmieniło. Konfiguracja osobno od stanu, a kod wyjścia 5 pozwala wezwać kogoś w nocy.">
+<meta name="nav" content="Snapshoty i dryf">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Czego services.msc nie robił nigdy</span>
+    <h1>Snapshoty i dryf</h1>
+    <p class="lede">Każde inne narzędzie mówi, jak maszyna wygląda teraz. Pytanie, które administrator ma naprawdę, brzmi <em>czym różni się od chwili, gdy działała</em> - i nic w standardowym Windowsie na to nie odpowiada.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co niesie snapshot</h2>
+    <p>Całą maszynę w jednej chwili: każdą usługę i sterownik, z typem uruchomienia, kontem, ścieżką uruchomienia i argumentami, skrótem i podpisem uruchamianego pliku, zależnościami w obie strony, wyzwalaczami, wymaganymi przywilejami, typem SID i deskryptorem bezpieczeństwa - plus nazwę maszyny, konto, które go zrobiło, i <strong>to, czy tamto konto było administratorem</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>To JSON z jednym polem na linię. Celowo: dzięki temu snapshot wchodzi do repozytorium i czyta go <code>git diff</code>, więc porównanie tym narzędziem nie jest jedynym sposobem, żeby na niego spojrzeć.</p>
+    <p class="note"><strong>Traktuj ten plik tak, jak na to zasługuje.</strong> Snapshot opisuje całą maszynę, aż do każdej ścieżki uruchomienia i deskryptora bezpieczeństwa. Jest zapisywany z uprawnieniami, które ma już jego katalog, a narzędzie niczego nie zawęża - więc katalog czytelny dla innych to katalog, w którym przeczytają to wszystko.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>A potem zapytaj, co jest inaczej</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Konfiguracja i stan są zgłaszane osobno.</strong> Dwa snapshoty z odstępem doby różnią się tym, co akurat działa, i prawie nic z tego nie jest dryfem. Zmieszane razem, jedna linia, która ma znaczenie - zmieniony przez kogoś typ uruchomienia - ginie pod czterdziestoma, które go nie mają.</li>
+        <li><strong>To, czego nie dało się porównać, jest wypisane, a nie ukryte.</strong> Pole, którego jeden z dwóch snapshotów nigdy nie odczytał, bo tamta sesja nie miała do niego praw, wychodzi jako <em>nieporównane</em> pod swoim wpisem, a podsumowanie liczy takie wpisy.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Snapshot elewowany wobec nieelewowanego kłamałby</strong>, zgłaszając jako usunięte wpisy, których nikt nie usunął. Każdy plik zapisuje, czy konto, które go zrobiło, było administratorem, i porównanie to mówi.</li>
+        <li><strong>Dwa pliki, nie tylko plik i ta maszyna.</strong> Zrób jeden na testowej i jeden na produkcyjnej, a potem porównaj gdziekolwiek - odpowiedź na <em>czym różni się środowisko testowe</em> nie potrzebuje żadnej z tych maszyn pod ręką.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kod wyjścia jest tu sednem</h2>
+    <p><code>--exit-code</code> kończy kodem <code>5</code>, gdy cokolwiek się różni. To nie jest porażka - dryf jest tym, czego to narzędzie szuka, a znalezienie go nie jest porażką - i dlatego ma własny numer, zamiast pożyczać ten, który znaczy, że coś poszło źle.</p>
+<pre><code><span class="c"># w dniu, w którym maszyna wchodzi do pracy</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># co noc, z zadania harmonogramu</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nic się nie różni
+#   5 - coś się różni, a drift.json mówi co
+#   3 - wykonało się i nie wszystko dało się odczytać, więc odpowiedź jest częściowa</span></code></pre>
+    <p>To cały mechanizm: punkt odniesienia wzięty, gdy maszyna była dobra, i pytanie zadawane co noc. Pierwszej nocy, w której odpowiedź brzmi <code>5</code>, ktoś się o tym dowiaduje - zamiast rano tego dnia, w którym coś przestanie działać.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Czego to jeszcze nie robi</h2>
+    <p class="lede">Druga połowa historii o audycie nie jest zbudowana, a powiedzenie tego jest tańsze niż odkrycie tego przez kogoś samodzielnie.</p>
+    <ul class="points points-alarm">
+      <li><strong>Snapshoty są tylko w wierszu poleceń.</strong> Okno pokazuje, szuka i zmienia, a snapshotów nie robi ani nie porównuje.</li>
+      <li><strong>Nie ma dziennika zmian.</strong> <em>Kto</em> zmienił typ uruchomienia i kiedy - dziennik zdarzeń nie jest jeszcze czytany. Snapshot przy wdrożeniu i różnica wobec maszyny odpowiadają na <em>co</em> się zmieniło, czyli na większość pytania.</li>
+      <li><strong>Nie ma wzorca czystego Windowsa.</strong> <em>Które z nich nie pochodzą z czystej instalacji</em> nie jest liczone, więc punktem odniesienia musi być snapshot, który sam zrobiłeś.</li>
+      <li><strong>Nie ma przywracania.</strong> Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</li>
+    </ul>
+    <a class="more" href="/pl/audyt-uslug-windows/">Jak użyć tego do audytu</a>
+  </div>
+</section>

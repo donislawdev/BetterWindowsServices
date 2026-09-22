@@ -1,0 +1,195 @@
+<meta name="title" content="Better Windows Services - zamiennik services.msc z wyszukiwaniem">
+<meta name="description" content="Darmowy, otwarty zamiennik services.msc. Przeszukuj usługi językiem zapytań, oglądaj plan każdej zmiany przed jej wykonaniem i sprawdź, co zmieniło się od wczoraj.">
+<meta name="nav" content="Start">
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Przeszukuj usługi Windows, oglądaj plan każdej zmiany i <em>zobacz, co się rozjechało</em> od wczoraj</h1>
+      <p class="lede"><strong>{{product}}</strong> to <code>services.msc</code> zbudowany od nowa dla ludzi, którzy administrują maszynami z Windowsem - okno i wiersz poleceń nad jednym silnikiem. Zadaj maszynie pytanie, zamiast przewijać osiemset wierszy. Zobacz, co zrobi zmiana, <strong>zanim cokolwiek naciśniesz</strong>. I to, czego <code>services.msc</code> nie miał nigdy: <strong>zamroź wszystkie usługi w pliku, a tydzień później zapytaj, co się zmieniło.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Zobacz kod na GitHubie</a>
+      </div>
+      <ul class="trust">
+        <li>Darmowe i otwarte, GPL-3.0</li>
+        <li>Jeden plik, bez instalatora</li>
+        <li>Do czytania bez praw administratora</li>
+        <li>Nigdy nie łączy się z siecią</li>
+      </ul>
+    </div>
+    <figure>
+      <div class="shot" aria-hidden="true">
+        <div class="shot-bar"><img src="/assets/icon.svg" alt="" width="16" height="16">{{product}}<span class="scope">Services 811 &middot; Drivers &middot; Everything</span></div>
+        <div class="shot-search"><span class="k">management</span><span class="count">3 of 811</span></div>
+        <table class="shot-list">
+          <thead><tr><th>Name</th><th>Display name</th><th>Status</th><th>Startup type</th></tr></thead>
+          <tbody>
+            <tr aria-selected="true"><td>Winmgmt</td><td>Windows Management Instrumentation</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
+            <tr><td>vmms</td><td>Hyper-V Virtual Machine Management</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
+            <tr><td>WinRM</td><td>Windows Remote Management (WS-Management)</td><td><span class="dot dot-stopped"></span>Stopped</td><td><span class="ring ring-manual"></span>Manual</td></tr>
+          </tbody>
+        </table>
+        <div class="shot-plan">
+          <h3>What stopping Winmgmt would do</h3>
+          <ol>
+            <li>stop <span>vmms</span> (would break otherwise)</li>
+            <li>stop <span>Winmgmt</span> (asked for)</li>
+          </ol>
+          <p class="warn">Stopping Winmgmt also stops one other entry: vmms. Winmgmt starts automatically, so it will be back after the next restart.</p>
+          <div class="cmd">bws stop Winmgmt --dependents</div>
+          <div class="buttons"><span>Copy all</span><span class="go">Stop Winmgmt</span></div>
+        </div>
+      </div>
+      <figcaption>Zapytanie w polu wyszukiwania, plan pokazany zanim cokolwiek się stanie, i linia <code>bws</code>, która prosi dokładnie o to samo. Program mówi po angielsku - okno czyta plik językowy położony obok, więc tłumaczenie jest możliwe bez przebudowy.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Po co to powstało</span>
+    <h2><code>services.msc</code> prawie nie zmienił się od Windows 2000</h2>
+    <p class="lede">Administratorzy spędzają w nim godziny tygodniowo, uderzając w te same ściany.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Brak wyszukiwania.</strong> Jedyna nawigacja to skok do pierwszej litery nazwy wyświetlanej.</li>
+        <li><strong>Brak filtrowania.</strong> Nie da się zapytać <em>pokaż to, co ma startować automatycznie i nie działa</em>.</li>
+        <li><strong>Jeden wiersz naraz.</strong> Restart dwunastu usług to dwanaście kliknięć prawym i dwanaście czekań.</li>
+        <li><strong>„Zatrzymywanie..." bez końca</strong>, bez wyjścia innego niż Menedżer zadań i zgadywanie procesu.</li>
+        <li><strong>Brak historii.</strong> Nikt nie wie, kto ustawił ten typ uruchomienia na Wyłączony ani kiedy.</li>
+        <li><strong>Ukryte dane.</strong> Proces, wyzwalacze, przywileje, deskryptor bezpieczeństwa, podpis pliku - po wszystko trzeba iść do <code>sc.exe</code> z pamięci albo do rejestru.</li>
+        <li><strong>Brak równorzędnego wiersza poleceń.</strong> <code>sc.exe</code> ma składnię z lat dziewięćdziesiątych, a <code>Get-Service</code> nie pokazuje konta, na którym działa usługa, nie mówiąc o opisie.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Inne narzędzia naprawiają po kawałku</h3>
+        <p>Process Hacker i System Informer pokazują bogatą listę i potrafią ubić proces, i nie mają audytu ani wiersza poleceń. <code>sc.exe</code> i <code>PsService</code> potrafią wszystko i nie mówią nic. Polecenia <code>*-Service</code> w PowerShellu są skryptowalne i płytkie.</p>
+        <p>Nikt nie łączy przeszukiwalnej listy, podglądu przed każdą zmianą i zapisu tego, co zmieniło się w czasie - a to ten zapis jest powodem, żeby zostawić ten program na maszynie po pierwszym popołudniu.</p>
+        <a class="more" href="/pl/alternatywa-dla-services-msc/">Pełne porównanie</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Co robi</span>
+    <h2>Okno i wiersz poleceń nad jednym silnikiem</h2>
+    <div class="grid">
+      <div class="card"><h3>Pytaj, zamiast przewijać</h3><p><code>start:auto !status:running</code> to <em>co powinno chodzić i nie chodzi</em>. Jeden język, w polu wyszukiwania i w <code>bws list --query</code>, z polami podpowiadanymi w trakcie pisania.</p></div>
+      <div class="card"><h3>Plan, zanim cokolwiek się stanie</h3><p>Każde zatrzymanie, uruchomienie, restart i zmiana typu uruchomienia ma podgląd razem z usługami, które pociągnie za sobą - a podgląd jest tym, co się wykona.</p></div>
+      <div class="card"><h3>Powie, co się rozjechało</h3><p><code>bws snapshot create</code> zamraża maszynę w pliku, a <code>bws snapshot diff</code> mówi, co się od tego czasu zmieniło - konfiguracja osobno od tego, co się po prostu uruchomiło albo zatrzymało.</p></div>
+      <div class="card"><h3>Zatrzyma usługę, która nie chce się zatrzymać</h3><p>Najpierw prosi uprzejmie, a proces kończy dopiero wtedy, gdy to nie zadziała - wymieniając po nazwie każdą inną usługę, która w nim mieszka.</p></div>
+      <div class="card"><h3>Pokaże to, co <code>services.msc</code> ukrywa</h3><p>Kto podpisał plik i czy Windows temu ufa, wyzwalacze, przywileje, deskryptor bezpieczeństwa, proces i jego pamięć. Jako kolumny i jako rzeczy, po których można szukać.</p></div>
+      <div class="card"><h3>Powie, czego nie zdołał odczytać</h3><p>Pole, którego nie dało się odczytać, jest zgłoszone jako nieodczytane, nigdy jako puste. Snapshot zrobiony bez praw administratora mówi to w środku pliku.</p></div>
+      <div class="card"><h3>Wejdzie do skryptu</h3><p><code>--json</code> przy każdej komendzie, kod wyjścia dla każdego zakończenia i <code>5</code>, gdy porównanie znajdzie różnice.</p></div>
+      <div class="card"><h3>Jeden plik, bez sieci</h3><p>Bez instalatora, bez instalowania .NET-a i bez łączenia się z internetem. Do czytania nie trzeba praw administratora. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Czego services.msc nie robił nigdy</span>
+    <h2>Co zmieniło się od wczoraj</h2>
+    <p class="lede">Snapshot to cała maszyna w jednej chwili - każda usługa i sterownik, z typem uruchomienia, kontem, ścieżką uruchomienia, skrótem i podpisem pliku, zależnościami, wyzwalaczami, przywilejami i deskryptorem bezpieczeństwa. To JSON z jednym polem na linię, więc wchodzi do repozytorium i czyta go <code>git diff</code>.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Konfiguracja i stan są zgłaszane osobno.</strong> Dwa snapshoty z odstępem doby różnią się tym, co akurat działa, i prawie nic z tego nie jest dryfem - linią do przeczytania jest zmieniony typ uruchomienia.</li>
+        <li><strong>To, czego nie dało się porównać, jest wypisane, a nie ukryte.</strong> Pole, którego jeden ze snapshotów nigdy nie odczytał, wychodzi jako <em>nieporównane</em> - więc różnica mówiąca <em>nic się nie zmieniło</em> znaczy, że nic się nie zmieniło w tym, co obie strony widziały.</li>
+        <li><strong><code>--exit-code</code> kończy kodem <code>5</code></strong>, gdy cokolwiek się różni - więc zadanie harmonogramu może zrobić snapshot przy wdrożeniu i wezwać kogoś pierwszej nocy, w której maszyna się rozjedzie.</li>
+        <li><strong>Dwie maszyny, dwa pliki.</strong> Zrób snapshot na testowej i na produkcyjnej, a potem porównaj je gdziekolwiek.</li>
+      </ul>
+    </div>
+    <a class="more" href="/pl/snapshoty-i-dryf/">Jak działają snapshoty i dryf</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nic nie dzieje się bez planu</span>
+    <h2>Podgląd JEST wykonaniem</h2>
+    <p class="lede">Każda operacja zapisu buduje najpierw plan, a ten sam plan jest podglądem, kaskadą usług zależnych, odmową zanim cokolwiek naciśniesz, linią wiersza poleceń proszącą o to samo i drogą powrotną.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Uruchom bez <code>--dry-run</code> i to są te kroki</strong>, w tej kolejności, z tymi samymi powodami obok. Nie ma drugiej ścieżki kodu dla wersji prawdziwej.</li>
+        <li><strong>To, co spadnie razem z usługą, jest w planie.</strong> Usługi, które przestaną działać, są osobnymi krokami, a plan zdejmujący coś, bez czego maszyna nie działa, mówi to w ostrzeżeniach.</li>
+        <li><strong>Odmowa przychodzi przed przyciskiem.</strong> Sterownik, usługa, dla której menedżer nie przyjmie zatrzymania, proces chroniony przez system - odmówione przy budowaniu planu, z podanym powodem. Okno wygasza przycisk i pisze dlaczego obok.</li>
+        <li><strong>Wymuszone zatrzymanie to dwa kroki, a drugi jest warunkowy.</strong> <code>bws kill</code> prosi usługę o zatrzymanie, a proces kończy tylko wtedy, gdy to nie zadziała - wymieniając każdą inną usługę żyjącą w tym procesie.</li>
+      </ul>
+    </div>
+    <a class="more" href="/pl/usluga-ktora-nie-chce-sie-zatrzymac/">Gdy usługa nie chce się zatrzymać</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Dwie minuty z programem</span>
+    <h2>Z wiersza poleceń</h2>
+    <p class="lede">Ten sam silnik co okno, do skryptów, zadań harmonogramu i CI. Dane idą na wyjście standardowe, a cała reszta na wyjście błędów - więc <code>bws list --json | jq</code> działa, a ostrzeżenie nigdy nie ląduje w Twoim JSON-ie.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">co powinno chodzić i nie chodzi</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">usługi, których plik zniknął</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">niepodpisane, bez kopii per sesja</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">wszystko, co wiadomo o jednym wpisie</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">co zdjęłoby zatrzymanie</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">co zabrałoby zakończenie procesu</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">co da zdjęcie z automatu</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">zamroź maszynę przed zmianą</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co się zmieniło, 5 jeśli cokolwiek</span></code></pre>
+    <a class="more" href="/pl/dokumentacja-cli/">Każda komenda, przełącznik i kod wyjścia</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Uczciwe ograniczenia</span>
+    <h2>Czego jeszcze nie ma</h2>
+    <p class="lede">Narzędzie, które po cichu czegoś nie obsługuje, jest gorsze od takiego, które mówi, czego nie potrafi. To wczesne wydanie - obie połowy robią wszystko, co jest na tej stronie, a zestaw testów biegnie przy każdym commicie. Druga połowa historii o audycie dopiero powstaje.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Snapshoty tylko w wierszu poleceń</h3><p>Okno pokazuje, szuka i zmienia, a snapshotów nie robi ani nie porównuje. Do tego jest <code>bws snapshot</code> obok.</p></div>
+      <div class="card"><h3>Brak wzorca czystego Windowsa</h3><p>Ekran startowy ma miejsce na <em>ile z nich nie pochodzi z czystej instalacji</em> i mówi, że tego jeszcze nie liczy, zamiast pokazywać liczbę, za którą nie może ręczyć.</p></div>
+      <div class="card"><h3>Brak dziennika zmian i przywracania</h3><p>Kto zmienił typ uruchomienia i kiedy - tego jeszcze nie czytamy z dziennika zdarzeń. Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</p></div>
+      <div class="card"><h3>Tylko maszyna lokalna</h3><p>Zarządzania zdalnego w tej wersji nie ma. Żeby porównać dwie maszyny, zrób snapshot na każdej i porównaj pliki. Tylko Windows, tylko 64 bity.</p></div>
+    </div>
+    <a class="more" href="/pl/faq/">Reszta ograniczeń i pytania, które ludzie zadają</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Pobierz</span>
+    <h2>Rozpakuj gdziekolwiek i uruchom</h2>
+    <p class="lede">Windows 10 1809 albo Windows Server 2019 i nowsze, 64 bity. Bez instalatora, bez pisania do rejestru i bez praw administratora do samego patrzenia. Zmiana czegokolwiek wymaga sesji z podniesionymi uprawnieniami, i obie połowy mówią to wprost, zamiast po cichu zawieść - okno proponuje <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Plik</th><th>Co to jest</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Okno, jeden samodzielny plik wykonywalny - bez instalowania .NET-a</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Wiersz poleceń, jeden samodzielny plik wykonywalny, do skryptów i CI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Pliki wykonywalne noszą podpis Authenticode, więc Windows podaje wydawcę zamiast ostrzegać przed nieznanym.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="/pl/pobieranie/">Wymagania i budowanie ze źródeł</a>
+    </div>
+  </div>
+</section>

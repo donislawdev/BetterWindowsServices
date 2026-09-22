@@ -1,0 +1,11 @@
+{
+  "_note": "Search page: the question nobody can answer in general, and what this tool does instead of pretending to.",
+  "id": "what-should-be-running",
+  "order": 100,
+  "nav": false,
+  "footer": "guides",
+  "slug": {
+    "en": "what-windows-services-should-be-running",
+    "pl": "ktore-uslugi-windows-powinny-dzialac"
+  }
+}

@@ -1,0 +1,100 @@
+<meta name="title" content="Dokumentacja wiersza poleceń - przełączniki i kody wyjścia bws">
+<meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type i snapshot, razem z tym, gdzie każda flaga działa.">
+<meta name="nav" content="Dokumentacja CLI">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Dokumentacja</span>
+    <h1>Wiersz poleceń</h1>
+    <p class="lede">Każda komenda, każdy przełącznik i każdy kod wyjścia programu <code>bws</code> w wersji {{version}}. Źródłem prawdy jest <code>bws --help</code> i jest dłuższy - ta strona to ta sama powierzchnia, rozłożona tak, żeby dało się ją czytać. <strong>Program mówi po angielsku</strong>, więc komendy, przełączniki i jego własne komunikaty są tu w oryginale.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Komendy</h2>
+    <p>Osiem czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|manual|disabled [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Literówka w czasowniku dostaje podpowiedź, o który prawdopodobnie chodziło, a przebieg kończy się kodem <code>2</code>, zamiast zrobić coś zbliżonego do tego, o co prosiłeś.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. There is: list, show, stop, start, restart, start-type, kill, snapshot.</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co robi każdy czasownik</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> i <code>show</code></h3>
+        <p><code>list</code> to cała maszyna, zawężona przez <code>--query</code>. <code>show</code> to jeden wpis ze wszystkim, co o nim wiadomo - podpis, przywileje, deskryptor bezpieczeństwa i pamięć, wszystko czytane za każdym razem, bo na jednym wpisie kosztuje to około sześćdziesięciu milisekund, a na całej maszynie sekundę. Pola naprawdę puste są pomijane, chyba że podasz <code>--full</code>. Pole, którego nie dało się odczytać, drukuje się i tak, bo pominięcie go wyglądałoby jak odpowiedź.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> i <code>restart</code></h3>
+        <p>Każdy buduje plan i go wykonuje. <code>--dry-run</code> drukuje plan i nie zmienia niczego, <code>--dependents</code> wstawia do niego usługi, które przestaną działać, jako osobne kroki, a <code>--timeout</code> mówi, jak długo czekać na jeden krok. Sterowniki są odmawiane, a nie próbowane, bo zatrzymanie sterownika jądra często nie jest odwracalne bez restartu.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - dla usługi, która nie chce się zatrzymać</h3>
+        <p>Prosi usługę o zatrzymanie i kończy stojący za nią proces <em>tylko wtedy, gdy to nie zadziała</em>, więc wpis, który zatrzymuje się sam, nigdy nie jest ubijany. Zakończenie procesu zabiera ze sobą każdą inną usługę żyjącą w tym procesie, niezależnie od tego, czy zatrzymała się wcześniej - a podgląd wymienia je po nazwie i podaje numer procesu. <code>--force</code> pomija uprzejmy krok, więc podgląd pokazuje jeden krok zamiast dwóch. <code>--restart</code> podnosi wszystko z powrotem.</p>
+        <p class="note"><strong>Windows nazywa ten pomysł inaczej.</strong> <code>--force</code> w <code>Stop-Service</code> znaczy „nawet jeśli coś od tego zależy", czyli to, co tutaj robi <code>--dependents</code>. Dlatego jest to osobny czasownik, a nie przełącznik przy <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - ustawienie, nie ruch</h3>
+        <p>Mówi, co menedżer zrobi z wpisem przy następnym starcie systemu, i nie przesuwa niczego: wpis działający dalej działa, zatrzymany dalej stoi. Nad <code>disabled</code> warto się zatrzymać, bo to znaczy, że menedżer nie uruchomi wpisu w ogóle - także na żądanie, dla czegoś innego, co go potrzebuje.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> i <code>snapshot diff</code></h3>
+        <p><code>create</code> zawsze czyta podpisy i skróty, bo snapshot jest trzymany i porównywany później, a taki bez nich porównywałby się z takim z nimi tak, jakby maszyna się zmieniła. <code>diff</code> mówi, co się zmieniło w drodze z pierwszego pliku do drugiego, albo z pliku do tej maszyny przy <code>--live</code>. <a href="/pl/snapshoty-i-dryf/">Strona o snapshotach</a> niesie format i uzasadnienie.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Przełączniki</h2>
+    <p>Jest ich {{switch_count}}. Trzecia kolumna to czasowniki, do których każdy należy - przełącznik podany czasownikowi, który nie ma z niego pożytku, jest błędem z tą listą w treści, a nie flagą po cichu zignorowaną.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kody wyjścia</h2>
+    <p>{{exit_code_count}} zakończeń, a każde z nich jest dla skryptu czymś innym. Dane idą na wyjście standardowe, a cała reszta na wyjście błędów, więc <code>bws list --json | jq</code> działa, a ostrzeżenie nigdy nie ląduje w JSON-ie.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C ma trzy poziomy, a każdy mówi, ile kosztuje następny.</strong> Pierwszy przestaje iść naprzód i nadal oddaje to, co zabrał, drugi zostawia rzeczy jak są i nadal drukuje raport, trzeci kończy proces. Przebieg zatrzymany ręcznie kończy się kodem <code>4</code> nawet wtedy, gdy każdy krok i tak dotarł.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>W zadaniu harmonogramu</h2>
+    <p>Kształt, pod który ten program powstał: zamroź maszynę, gdy wiadomo, że jest dobra, a potem co noc pytaj, czy nadal jest.</p>
+<pre><code><span class="c"># w dniu, w którym maszyna wchodzi do pracy</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># co noc, z zadania harmonogramu</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nic się nie różni
+#   5 - coś się różni, a drift.json mówi co
+#   3 - wykonało się i nie wszystko dało się odczytać, więc odpowiedź jest częściowa</span></code></pre>
+    <p>Okno jest drugą połową tego samego silnika: niesie je <code>{{archive_window}}</code>, a <a href="/pl/pobieranie/">strona pobierania</a> mówi, co jest w którym archiwum.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Jedyny argument okna</h2>
+    <p><code>BetterWindowsServices.exe</code> zna jeden: <code>--catalogue</code> otwiera arkusz dla programisty, pokazujący każdy komponent okna w każdym stanie, i nie czyta niczego z Twojej maszyny.</p>
+  </div>
+</section>

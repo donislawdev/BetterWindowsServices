@@ -1,0 +1,91 @@
+<meta name="title" content="Questions about Better Windows Services, and its honest limits">
+<meta name="description" content="Does it need the internet? Administrator rights? Will it break my server? What it does, what it does not do yet, and what it refuses to do by design.">
+<meta name="nav" content="FAQ">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Questions</span>
+    <h1>Questions, and the limits</h1>
+    <p class="lede">A tool that quietly fails to cover something is worse than one that says what it cannot do. The limits are on this page too, in three groups: not built yet, by design, and what Windows does that this tool reports as it is.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>How is this different from <code>sc.exe</code>, <code>Get-Service</code> or <code>services.msc</code>?</h3>
+        <p><code>sc query</code> and <code>Get-Service</code> tell you what is running. <code>services.msc</code> lets you change it, one row at a time, with no way to ask a question and no record afterwards. This tool asks the question (<code>start:auto !status:running</code>), shows you the plan before it acts, and keeps a snapshot you can diff a week later. Where it disagrees with <code>sc.exe</code> about a service, that is a bug - part of the test suite runs both and compares them entry by entry. <a href="/sc-exe-and-powershell/">The longer comparison is here.</a></p>
+      </div>
+      <div>
+        <h3>Does it need the internet?</h3>
+        <p>Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The one time it can touch a network at all is when a service's launch path points at another machine's share and you pass <code>--follow-network</code> to let it look there - off by default, and the help says why.</p>
+      </div>
+      <div>
+        <h3>Does it need administrator rights?</h3>
+        <p>To look, no. To change, yes. Without them the manager shows fewer entries and refuses more, and both halves say so at the top rather than pretending the list is the whole machine. The window offers <em>Restart as admin</em>. It never elevates itself.</p>
+      </div>
+      <div>
+        <h3>Is it free? Can I use it at work?</h3>
+        <p>Yes to both. GPL-3.0, no strings attached. A snapshot you take is your file.</p>
+      </div>
+      <div>
+        <h3>Will it break my server?</h3>
+        <p>Not by itself. Nothing is changed without a plan you have seen, drivers are refused, and a plan that would take down something the machine needs says so. What it cannot protect you from is carrying out a plan you did not read. The list of services the machine needs is a starter list of seven - the two halves of RPC, the account manager, key isolation, the session manager and plug and play - and <strong>Remote Desktop is not on it</strong>, so over a remote session, read the plan.</p>
+      </div>
+      <div>
+        <h3>Is this a Microsoft product?</h3>
+        <p>No. {{product}} is an independent open source project and is not affiliated with, endorsed by or sponsored by Microsoft. Windows is a trademark of the Microsoft group of companies.</p>
+      </div>
+      <div>
+        <h3>Why is the window dark when my Windows is light?</h3>
+        <p>It is dark and it stays dark whatever Windows is set to, including a high contrast theme. That is checked rather than assumed - it keeps its own colours and stays readable, and it does not follow that setting.</p>
+      </div>
+      <div>
+        <h3>What about the second half - who changed it, and putting it back?</h3>
+        <p>Not yet, and it is the next thing. A change journal read from the event log, a stock Windows baseline per build, and restoring configuration from a snapshot with a dry run and a checkbox per item are the plan. Until then a snapshot at deployment and a diff against the machine answer <em>what</em> changed, which is most of the question.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Honest limits</span>
+    <h2>Not built yet</h2>
+    <p class="lede">Most of this is the second half of the audit story.</p>
+    <ul class="points points-alarm">
+      <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</li>
+      <li><strong>No stock Windows baseline.</strong> The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</li>
+      <li><strong>No change journal.</strong> Who changed a start type, and when, is not read from the event log yet.</li>
+      <li><strong>No restore from a snapshot.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
+      <li><strong>No creating, deleting or repointing a service.</strong> The launch path is read and reported, and it is not edited.</li>
+      <li><strong>No recovery actions.</strong> Not read, not shown, not searchable.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>By design</h2>
+    <ul class="points">
+      <li><strong>Local machine only.</strong> Remote management is not in this version. To compare two machines, take a snapshot on each and diff the two files.</li>
+      <li><strong>Windows only, 64-bit only</strong>, Windows 10 1809 or Windows Server 2019 and later.</li>
+      <li><strong>Operations on drivers are refused rather than attempted</strong>, because stopping a kernel driver is often not reversible without a restart.</li>
+      <li><strong>The tool does not raise its own privileges.</strong> When the manager refuses, it says so and ends with exit code <code>3</code>. The window offers to restart itself as administrator, and does nothing else about it.</li>
+      <li><strong>Certificate revocation is not checked.</strong> It would need to reach the network, and this tool never does.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Things Windows does that this tool reports as they are</h2>
+    <ul class="points">
+      <li><strong>A service hosted inside <code>svchost</code></strong> has a launch path naming the host, so <em>the file is there</em> and <em>who signed it</em> both say less than they do for a service with a process of its own.</li>
+      <li><strong>A file with both its own signature and a Windows catalogue entry</strong> can name two different signers. The publisher shown is the one inside the file - the one that stays the same when the file is looked at on another machine - and it can differ from what PowerShell reports.</li>
+      <li><strong>Without administrator rights the manager lists fewer entries and refuses more of what it lists.</strong> Both halves say so at the top, and a snapshot records it, because comparing an elevated snapshot against one taken without rights would otherwise report entries as removed that nobody removed.</li>
+    </ul>
+    <p class="note"><strong>Found a problem, or a service this tool reports differently from <code>sc.exe</code>?</strong> The <a href="{{issues}}">issue tracker</a> is open, and a diff between the two is the most useful thing you can paste into it.</p>
+  </div>
+</section>

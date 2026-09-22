@@ -1,0 +1,95 @@
+<meta name="title" content="Pytania o Better Windows Services i uczciwa lista ograniczeń">
+<meta name="description" content="Czy potrzebuje internetu? Praw administratora? Czy zepsuje mi serwer? Co robi, czego jeszcze nie robi i czego świadomie nie będzie robić.">
+<meta name="nav" content="FAQ">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Pytania</span>
+    <h1>Pytania i ograniczenia</h1>
+    <p class="lede">Narzędzie, które po cichu czegoś nie obsługuje, jest gorsze od takiego, które mówi, czego nie potrafi. Ograniczenia są na tej stronie też, w trzech grupach: jeszcze nie zbudowane, świadomie, i to, co robi Windows, a ten program zgłasza jak jest.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Czym to się różni od <code>sc.exe</code>, <code>Get-Service</code> albo <code>services.msc</code>?</h3>
+        <p><code>sc query</code> i <code>Get-Service</code> mówią, co działa. <code>services.msc</code> pozwala to zmienić, po jednym wierszu, bez możliwości zadania pytania i bez śladu po fakcie. Ten program zadaje pytanie (<code>start:auto !status:running</code>), pokazuje plan zanim zadziała, i trzyma snapshot, który można porównać tydzień później. Tam, gdzie nie zgadza się z <code>sc.exe</code> co do usługi, to jest błąd - część zestawu testów uruchamia oba i porównuje je wpis po wpisie. <a href="/pl/sc-exe-i-powershell/">Dłuższe porównanie jest tutaj.</a></p>
+      </div>
+      <div>
+        <h3>Czy potrzebuje internetu?</h3>
+        <p>Nigdy. Zero telemetrii, zero sprawdzania aktualizacji, zero raportowania awarii, zero konta, zero klienta czegokolwiek. Jedyny moment, w którym może w ogóle dotknąć sieci, to ścieżka uruchomienia usługi wskazująca na udział innej maszyny i przełącznik <code>--follow-network</code>, którym na to pozwalasz - domyślnie wyłączony, a pomoc mówi dlaczego.</p>
+      </div>
+      <div>
+        <h3>Czy potrzebuje praw administratora?</h3>
+        <p>Do patrzenia nie. Do zmieniania tak. Bez nich menedżer pokazuje mniej wpisów i odmawia częściej, i obie połowy mówią to na górze, zamiast udawać, że lista jest całą maszyną. Okno proponuje <em>Restart as admin</em>. Nigdy nie podnosi sobie uprawnień samo.</p>
+      </div>
+      <div>
+        <h3>Czy jest darmowy? Czy mogę go używać w pracy?</h3>
+        <p>Tak na oba. GPL-3.0, bez haczyków. Snapshot, który zrobisz, jest Twoim plikiem.</p>
+      </div>
+      <div>
+        <h3>Czy zepsuje mi serwer?</h3>
+        <p>Sam z siebie nie. Nic nie zmienia się bez planu, który widziałeś, sterowniki są odmawiane, a plan zdejmujący coś, bez czego maszyna nie działa, mówi to. Przed czym nie może Cię ochronić, to wykonanie planu, którego nie przeczytałeś. Lista usług, bez których maszyna nie działa, to lista startowa siedmiu pozycji - dwie połowy RPC, menedżer kont, izolacja kluczy, menedżer sesji i plug and play - a <strong>Pulpitu zdalnego na niej nie ma</strong>, więc przez sesję zdalną przeczytaj plan.</p>
+      </div>
+      <div>
+        <h3>Czy to produkt Microsoftu?</h3>
+        <p>Nie. {{product}} jest niezależnym projektem otwartoźródłowym, niepowiązanym z Microsoftem, niewspieranym ani niesponsorowanym przez Microsoft. Windows jest znakiem towarowym grupy spółek Microsoft.</p>
+      </div>
+      <div>
+        <h3>Czy program jest po polsku?</h3>
+        <p>Nie - program mówi po angielsku, i ta strona jest w obu językach właśnie dlatego. Okno czyta plik językowy <code>languages\gui.&lt;kod&gt;.json</code> położony obok pliku wykonywalnego i wybiera go według języka systemu, bez przełącznika, więc tłumaczenie jest wkładem, który da się dodać bez przebudowy programu. Nazwy usług, które widzisz na liście, są tym, co mówi Twój Windows - to znaczy po polsku na polskim Windowsie.</p>
+      </div>
+      <div>
+        <h3>Dlaczego okno jest ciemne, gdy mój Windows jest jasny?</h3>
+        <p>Jest ciemne i takie zostaje, niezależnie od ustawienia Windowsa, łącznie z motywem o wysokim kontraście. To jest sprawdzone, a nie założone - okno trzyma własne kolory, pozostaje czytelne i za tym ustawieniem nie idzie.</p>
+      </div>
+      <div>
+        <h3>A druga połowa - kto to zmienił i jak to cofnąć?</h3>
+        <p>Jeszcze nie, i to jest następna rzecz. Dziennik zmian czytany z dziennika zdarzeń, wzorzec czystego Windowsa na wydanie i przywracanie konfiguracji ze snapshotu z podglądem i polem wyboru przy każdej pozycji - to jest plan. Do tego czasu snapshot przy wdrożeniu i różnica wobec maszyny odpowiadają na <em>co</em> się zmieniło, czyli na większość pytania.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Uczciwe ograniczenia</span>
+    <h2>Jeszcze nie zbudowane</h2>
+    <p class="lede">Większość tego to druga połowa historii o audycie.</p>
+    <ul class="points points-alarm">
+      <li><strong>Snapshoty są tylko w wierszu poleceń.</strong> Okno pokazuje, szuka i zmienia, a snapshotów nie robi ani nie porównuje. Do tego jest <code>bws snapshot</code> obok.</li>
+      <li><strong>Brak wzorca czystego Windowsa.</strong> Ekran startowy ma miejsce na <em>ile z nich nie pochodzi z czystej instalacji</em> i mówi, że tego jeszcze nie liczy, zamiast pokazywać liczbę, za którą nie może ręczyć.</li>
+      <li><strong>Brak dziennika zmian.</strong> Kto zmienił typ uruchomienia i kiedy - tego jeszcze nie czytamy z dziennika zdarzeń.</li>
+      <li><strong>Brak przywracania ze snapshotu.</strong> Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</li>
+      <li><strong>Brak tworzenia, usuwania i przestawiania usługi.</strong> Ścieżka uruchomienia jest czytana i pokazywana, i nie jest edytowana.</li>
+      <li><strong>Brak akcji odzyskiwania.</strong> Nieczytane, niepokazywane, nieprzeszukiwalne.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Świadomie</h2>
+    <ul class="points">
+      <li><strong>Tylko maszyna lokalna.</strong> Zarządzania zdalnego w tej wersji nie ma. Żeby porównać dwie maszyny, zrób snapshot na każdej i porównaj pliki.</li>
+      <li><strong>Tylko Windows, tylko 64 bity</strong>, Windows 10 1809 albo Windows Server 2019 i nowsze.</li>
+      <li><strong>Operacje na sterownikach są odmawiane, a nie próbowane</strong>, bo zatrzymanie sterownika jądra często nie jest odwracalne bez restartu.</li>
+      <li><strong>Program nie podnosi sobie uprawnień.</strong> Gdy menedżer odmawia, mówi to i kończy kodem <code>3</code>. Okno proponuje restart jako administrator i nie robi z tym nic więcej.</li>
+      <li><strong>Unieważnienie certyfikatu nie jest sprawdzane.</strong> Wymagałoby to sięgnięcia do sieci, a ten program nie sięga nigdy.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>To, co robi Windows, a ten program zgłasza jak jest</h2>
+    <ul class="points">
+      <li><strong>Usługa mieszkająca w <code>svchost</code></strong> ma ścieżkę uruchomienia wskazującą na hosta, więc <em>czy plik jest</em> i <em>kto go podpisał</em> mówią mniej niż przy usłudze z własnym procesem.</li>
+      <li><strong>Plik z własnym podpisem i wpisem w katalogu Windowsa</strong> może wskazywać dwóch różnych podpisujących. Pokazywany jest ten ze środka pliku - ten, który zostaje taki sam, gdy spojrzeć na plik na innej maszynie - i może różnić się od tego, co zgłasza PowerShell.</li>
+      <li><strong>Bez praw administratora menedżer wymienia mniej wpisów i odmawia częściej.</strong> Obie połowy mówią to na górze, a snapshot to zapisuje, bo porównanie snapshotu elewowanego z takim bez praw zgłaszałoby jako usunięte wpisy, których nikt nie usunął.</li>
+    </ul>
+    <p class="note"><strong>Znalazłeś błąd albo usługę, którą ten program pokazuje inaczej niż <code>sc.exe</code>?</strong> <a href="{{issues}}">Zgłoszenia</a> są otwarte, a różnica między jednym a drugim jest najbardziej użyteczną rzeczą, jaką można tam wkleić.</p>
+  </div>
+</section>

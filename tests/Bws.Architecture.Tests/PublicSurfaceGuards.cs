@@ -150,7 +150,14 @@ public sealed class PublicSurfaceGuards
 
         ["README.md"] =
             "one star character on the line asking for a star, the same line the owner's other "
-            + "public repositories carry - the rest of the file is plain ASCII on purpose"
+            + "public repositories carry - the rest of the file is plain ASCII on purpose",
+
+        ["site/i18n/pl.json"] =
+            "the website's Polish chrome and the sentences beside its generated tables. The "
+            + "site speaks two languages by the owner's decision, and this is the ONE JSON file "
+            + "that holds words a visitor reads - everything else a visitor reads is in a .html "
+            + "fragment, which this sweep does not cover. Putting the Polish in page.json files "
+            + "instead would be a dozen more permissions on this list"
     };
 
     [Fact]
@@ -161,6 +168,18 @@ public sealed class PublicSurfaceGuards
 
         foreach (var file in Published())
         {
+            // The website's own pages are the exception, and by extension rather than by name.
+            // The site is published in Polish as well as English on the owner's decision, so
+            // every one of its fragments holds another alphabet on purpose - a permission per
+            // file would be two dozen entries saying the same sentence, and a list that long
+            // stops being read. The private-name sweep below still covers them, and that is
+            // the check these files actually need.
+            if (file.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             // Letters, not bytes. This reads the file as text, so what is being asked is
             // whether anybody wrote something in another alphabet - not how it is encoded.
             if (!File.ReadAllText(file).Any(character => character > 127))
@@ -328,7 +347,14 @@ public sealed class PublicSurfaceGuards
     {
         var root = SourceTree.Root();
 
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx" }
+        // *.html and *.css joined the list on 2026-09-22, when the website arrived in this
+        // repository. They are the most public files here - a visitor reads them without
+        // cloning anything - and until they were added, the ONE sweep that matters for them
+        // was not running: the private-name check. They are deliberately NOT held to ASCII,
+        // because the site speaks Polish as well as English and every Polish word a visitor
+        // reads lives in a fragment; the test above therefore skips this pair by extension
+        // rather than by a permission per file.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)

@@ -1,0 +1,11 @@
+{
+  "_note": "Search page: somebody looking for a replacement for the snap-in.",
+  "id": "services-msc-alternative",
+  "order": 60,
+  "nav": true,
+  "footer": "guides",
+  "slug": {
+    "en": "services-msc-alternative",
+    "pl": "alternatywa-dla-services-msc"
+  }
+}

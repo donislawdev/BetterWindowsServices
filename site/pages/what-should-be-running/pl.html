@@ -1,0 +1,85 @@
+<meta name="title" content="Które usługi Windows powinny działać na tej maszynie?">
+<meta name="description" content="Nikt nie odpowie na to ogólnie, a listy twierdzące inaczej opisują cudzą maszynę. Oto pytanie, na które da się odpowiedzieć: co się zmieniło i co się nie zgadza.">
+<meta name="nav" content="Co powinno działać">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Poradnik</span>
+    <h1>Które usługi powinny działać?</h1>
+    <p class="lede">Uczciwa odpowiedź brzmi: nikt Ci tego nie powie, a każda lista twierdząca inaczej opisuje maszynę, która nie jest Twoja. Odpowiedzieć <em>da się</em> na coś węższego i znacznie bardziej użytecznego: co na tej maszynie się nie zgadza i czym różni się od chwili, gdy działała.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dlaczego ogólne pytanie nie ma odpowiedzi</h2>
+    <ul class="points points-alarm">
+      <li><strong>Zestaw różni się edycją, wersją i rolą Windowsa.</strong> Kontroler domeny, laptop i host kontenerów nie zgadzają się prawie w niczym, a lista napisana dla jednego jest zła dla pozostałych.</li>
+      <li><strong>Połowa tego, co jest zainstalowane, nie pochodzi z Windowsa.</strong> Sterowniki, agenci, usługi aktualizacji, demony licencji - każde z nich coś tam położyło, i żadna ogólna lista nie wie co.</li>
+      <li><strong>Większość usług ma stać zatrzymana.</strong> Współczesny Windows uruchamia ułamek tego, co rejestruje: reszta czeka na wyzwalacz - podłączone urządzenie, otwarty port, dołączenie do domeny - a zatrzymanie jest ich poprawnym stanem.</li>
+      <li><strong>Listy „wyłącz to dla wydajności" to sposób, w jaki psują się maszyny.</strong> Usługa, która wygląda na bezczynną, jest tą, którą coś innego uruchamia na żądanie, a awaria wychodzi tydzień później w niepowiązanym miejscu.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pytania, które odpowiedź mają</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Co powinno chodzić i nie chodzi</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows dostał polecenie, żeby je uruchamiać, i nie działają. Na zdrowej maszynie to krótka lista - kilka wpisów, które startują z opóźnieniem i zatrzymują się z powrotem. Wszystko poza tym warto obejrzeć.</p>
+      </div>
+      <div class="card">
+        <h3>Co jest wyłączone i działa mimo to</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Konfiguracja i stan się nie zgadzają. Zwykle ktoś wyłączył usługę, nie zatrzymując jej, i następny restart będzie niespodzianką.</p>
+      </div>
+      <div class="card">
+        <h3>Co wskazuje na plik, którego nie ma</h3>
+        <p><code>file:missing</code></p>
+        <p>Odinstalowanie, które zostawiło po sobie rejestrację. Nieszkodliwe, dopóki coś nie spróbuje tego uruchomić, i wskazówka, co kiedyś na tej maszynie było.</p>
+      </div>
+      <div class="card">
+        <h3>Czego nikt nie podpisał</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Samo w sobie nie jest dowodem niczego, i jest dobrym miejscem na początek czytania. Drugi człon odrzuca rodziny per-użytkownik, które inaczej zapełniają listę prawie-duplikatami.</p>
+      </div>
+      <div class="card">
+        <h3>Co prosi o najmocniejsze przywileje</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Przywilej, który pozwala procesowi otworzyć dowolny inny. Garść uprawnionych usług o niego prosi i warto wiedzieć, które na Twojej maszynie.</p>
+      </div>
+      <div class="card">
+        <h3>Co czeka na wyzwalacz</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Zatrzymane dlatego, że nic ich jeszcze nie poprosiło, a nie dlatego, że coś jest nie tak. Wiedza o tym, które to są, jest sposobem, w jaki pierwsza lista przestaje być alarmująca.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>To, które bije wszystkie pozostałe</h2>
+    <p class="lede">Zapytaj samą maszynę, z czasu, gdy działała.</p>
+    <p>Zrób snapshot w dniu, w którym maszyna wchodzi do pracy. Wtedy <em>czy to powinno działać</em> zamienia się w <em>czy to działało, gdy wszystko było w porządku</em> - czyli w pytanie o Twoją maszynę, a nie o maszynę z artykułu.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... tydzień, łatka albo awaria później</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Konfiguracja jest zgłaszana osobno od stanu, więc odpowiedzią nie jest czterdzieści usług, które akurat chodzą - tylko typ uruchomienia, który ktoś zmienił.</p>
+    <a class="more" href="/pl/audyt-uslug-windows/">Audyt maszyny pod kątem dryfu</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Zanim cokolwiek zatrzymasz</h2>
+    <p>Każde zatrzymanie w tym programie pokazuje najpierw swój plan: kroki, to, co spadnie razem z nimi, i ostrzeżenie, gdy któryś dotyczy czegoś, bez czego maszyna nie działa. Lista takich usług to lista startowa siedmiu pozycji - dwie połowy RPC, menedżer kont, izolacja kluczy, menedżer sesji i plug and play - a <strong>Pulpitu zdalnego na niej nie ma</strong>, więc przez sesję zdalną przeczytaj plan.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
+      <a class="btn btn-secondary" href="/pl/jezyk-zapytan/">Wszystkie pola, o które można pytać</a>
+    </div>
+  </div>
+</section>

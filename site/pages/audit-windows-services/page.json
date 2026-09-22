@@ -1,0 +1,11 @@
+{
+  "_note": "Search page: somebody who has to prove what changed on a machine.",
+  "id": "audit-windows-services",
+  "order": 70,
+  "nav": false,
+  "footer": "guides",
+  "slug": {
+    "en": "audit-windows-services",
+    "pl": "audyt-uslug-windows"
+  }
+}

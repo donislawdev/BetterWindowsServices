@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Better Windows Services">
+  <!-- The bean: the program icon, src/bws.ico, written as a vector by tools/icon/bean-svg.ps1
+       from the same numbers tools/icon/bean.ps1 rasterises it from. Do not edit by hand - rerun the script. -->
+  <defs>
+    <radialGradient id="sheen">
+      <stop offset="0" stop-color="#7AB27F" stop-opacity="0.412"/>
+      <stop offset="1" stop-color="#7AB27F" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="body">
+      <g transform="translate(24 24) scale(0.801) rotate(-32) translate(-0.097 -7.437)">
+        <path d="M 11.727 6.235 A 15 10 0 0 1 -11.727 6.235" fill="none" stroke="#FFFFFF" stroke-width="17.678" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(24 24) scale(0.801) rotate(-32) translate(-0.097 -7.437)">
+    <path id="outline" d="M 11.727 6.235 A 15 10 0 0 1 -11.727 6.235" fill="none" stroke="#19411D" stroke-width="24.322" stroke-linecap="round"/>
+    <path id="fill" d="M 11.727 6.235 A 15 10 0 0 1 -11.727 6.235" fill="none" stroke="#368B3D" stroke-width="17.678" stroke-linecap="round"/>
+  </g>
+  <ellipse id="light" cx="19.44" cy="20.2" rx="7.6" ry="5.472" fill="url(#sheen)" mask="url(#body)"/>
+  <g mask="url(#body)">
+    <g transform="translate(24 24) scale(0.801) rotate(-32) translate(-0.097 -7.437)">
+      <path id="hilum" d="M 8.724 1.835 A 15 10 0 0 1 -8.724 1.835" fill="none" stroke="#19411D" stroke-width="1.993" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
