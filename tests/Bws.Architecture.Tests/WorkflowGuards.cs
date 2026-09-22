@@ -70,6 +70,9 @@ public sealed class WorkflowGuards
     /// skipped before the pinning check ever looked at them, so the guard was quietly admitting
     /// exactly the shapes it should have been the one to complain about.
     /// </summary>
+    private static bool ClaimsToBeLocal(string action) =>
+        InThisRepository.Any(prefix => action.StartsWith(prefix, StringComparison.Ordinal));
+
     private static bool IsLocal(string action) =>
         InThisRepository.Any(prefix =>
             action.StartsWith(prefix, StringComparison.Ordinal)
@@ -101,6 +104,20 @@ public sealed class WorkflowGuards
             // one is not blocked by a guard about somebody else's releases.
             if (IsLocal(action))
             {
+                continue;
+            }
+
+            // A MALFORMED LOCAL REFERENCE IS REPORTED RATHER THAN MEASURED AGAINST THE WRONG
+            // RULE, and the previous shape of this file got that wrong in a way that is worth
+            // leaving written down. Tightening IsLocal in the last round made
+            // "$/.github/actions/x@<40 hex>" fall THROUGH to the pin check - where the SHA
+            // matched, and the guard reported success on a reference GitHub will not accept at
+            // all. A fix that moves a bad input into a check that happens to like it is not a
+            // fix. Reported here, in its own words.
+            if (ClaimsToBeLocal(action))
+            {
+                loose.Add($"  {file}:{line}  {action}  (a reference into this repository cannot carry a ref, "
+                    + "and cannot be the prefix on its own)");
                 continue;
             }
 
@@ -147,7 +164,10 @@ public sealed class WorkflowGuards
         // v4.5.0" rather than as two rows of noise - and what lets somebody decide whether a
         // bump is routine without leaving the file.
         var silent = Uses()
-            .Where(u => !IsLocal(u.Action))
+            // ClaimsToBeLocal rather than IsLocal, so a malformed "$/..." is not asked for a
+            // version comment as well. The test above already reports it, once, in the words
+            // that describe what is actually wrong with it.
+            .Where(u => !ClaimsToBeLocal(u.Action))
             .Where(u => u.Trailing.TrimStart().StartsWith('#') is false)
             .Select(u => $"  {u.File}:{u.Line}  {u.Action}")
             .ToList();

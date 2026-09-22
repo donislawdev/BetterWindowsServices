@@ -88,15 +88,29 @@ public sealed class SupplyChainGuards
                 RegexOptions.IgnoreCase,
                 Sources.Ceiling);
 
-            var match = element.Match(text);
+            var matches = element.Matches(text);
 
-            if (!match.Success)
+            if (matches.Count == 0)
             {
                 missing.Add($"  {property} is not stated at all, so its value is the SDK's");
                 continue;
             }
 
-            var stated = match.Groups["value"].Value.Trim();
+            // EXACTLY ONE, and this test read only the first match until a second review asked
+            // what a second one would do. MSBuild takes the LAST definition of a property, so a
+            // <NuGetAudit>false</NuGetAudit> added further down this file would become the
+            // effective value while this test, reading the first, still saw "true". The
+            // override scan below cannot catch it either, because it deliberately exempts this
+            // file - which is the whole point of that exemption and also its blind spot. The
+            // file itself already says individual projects must not repeat these settings; this
+            // extends the same rule to the file that holds them.
+            if (matches.Count > 1)
+            {
+                missing.Add($"  {property} is stated {matches.Count} times, and MSBuild takes the LAST one");
+                continue;
+            }
+
+            var stated = matches[0].Groups["value"].Value.Trim();
 
             if (!string.Equals(stated, value, StringComparison.OrdinalIgnoreCase))
             {

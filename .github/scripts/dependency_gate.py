@@ -68,12 +68,17 @@ ALLOWED = frozenset({
 })
 
 # Packages whose licence GitHub cannot resolve and which a person has already
-# looked at. A name here is a decision with a reason written beside it, not a
+# looked at. An entry here is a decision with a reason written beside it, not a
 # way to make a red build green - and it names one package, never a pattern and
 # never a whole ecosystem.
 #
-# Empty today, and that is the honest state rather than an oversight: every
-# dependency in this tree reports a licence.
+# KEYED BY (ECOSYSTEM, NAME), NOT BY NAME, and the second review that asked for it was right
+# with a measurement behind it. `added()` filters out actions and nothing else, so a pip
+# package is handed to verdict() exactly like a NuGet one - and verdict() answered on the name
+# alone, BEFORE it looked at the licence. Measured 2026-09-22 before the change: a pip package
+# called Microsoft.Windows.SDK.NET.Ref carrying GPL-2.0-only came back "ok", inheriting a
+# decision made about a different package on a different registry. A name is not an identity
+# across ecosystems, and a licence exception is the last place to pretend otherwise.
 EXCEPTIONS = {
     # FOUR MICROSOFT PACKAGES THAT HAVE ALWAYS BEEN IN THIS TREE AND WERE INVISIBLE UNTIL
     # 2026-09-22, when the dependency graph started carrying the resolved tree instead of the
@@ -90,12 +95,12 @@ EXCEPTIONS = {
     # THIRD-PARTY-NOTICES.md carries the same decision in prose, which is where a person
     # auditing this project will look. These four lines are so that the gate stops asking a
     # question that has been answered.
-    "Microsoft.Windows.SDK.Win32Metadata":
+    ("nuget", "Microsoft.Windows.SDK.Win32Metadata"):
         "the Win32 API description CsWin32 generates from, Windows SDK licence terms, build "
         "time only - no assembly, nothing published",
-    "Microsoft.Windows.WDK.Win32Metadata":
+    ("nuget", "Microsoft.Windows.WDK.Win32Metadata"):
         "the same for the driver-facing half of the API, same terms, same absence from output",
-    "Microsoft.Windows.SDK.Win32Docs":
+    ("nuget", "Microsoft.Windows.SDK.Win32Docs"):
         "the documentation text CsWin32 copies into generated declarations, same terms, build "
         "time only",
 
@@ -105,7 +110,7 @@ EXCEPTIONS = {
     # for .NET" - including the reading of GPLv3 section 1 on System Libraries and the plain
     # statement that nobody qualified to give legal advice has been asked. GitHub reports its
     # licence as LicenseRef-scancode-unknown, which is true and unhelpful.
-    "Microsoft.Windows.SDK.NET.Ref":
+    ("nuget", "Microsoft.Windows.SDK.NET.Ref"):
         "the Windows projection reference pack. It ships two assemblies and the notices file "
         "answers that at length rather than in one line here",
 }
@@ -164,7 +169,8 @@ def verdict(dependency):
     """("ok" | "unknown" | "denied", licence) for one added dependency."""
     licence = dependency.get("license")
     name = str(dependency.get("name", "?"))
-    if name in EXCEPTIONS:
+    ecosystem = str(dependency.get("ecosystem", "")).lower()
+    if (ecosystem, name) in EXCEPTIONS:
         return "ok", licence
     if licence is None or not str(licence).strip():
         return "unknown", licence

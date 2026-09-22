@@ -170,10 +170,18 @@ public sealed class LicenceNoticeGuards
     {
         var assets = Path.Combine(SourceTree.Root(), "src", project, "obj", "project.assets.json");
 
-        if (!File.Exists(assets))
-        {
-            return [];
-        }
+        // FAILS CLOSED, and the first version of this did not. It returned an empty sequence
+        // when the file was missing, with a comment saying that made the check "blinder rather
+        // than louder" - which is the polite way of describing a guard that passes because it
+        // read nothing. Every other sweep in this repository refuses that, and a second review
+        // asked why this one did not. Restore writes this file before any build, so its absence
+        // means the tests are being run somewhere nobody intended, and saying so is cheaper than
+        // a green run that proves nothing.
+        Assert.True(
+            File.Exists(assets),
+            $"There is no '{assets}'. Restore writes it, so these guards are running against a "
+            + "tree that was never restored - and without it this check cannot see which packages "
+            + "ship, so it would pass by reading nothing.");
 
         // Parsed rather than pattern-matched, and that is not a preference. The entry for a
         // package that ships is "Name/1.2.3": { "type": "package", "runtime": { "lib/x/y.dll":
@@ -182,10 +190,11 @@ public sealed class LicenceNoticeGuards
         // regular expression starts agreeing with itself, and the file is JSON either way.
         using var document = JsonDocument.Parse(File.ReadAllText(assets));
 
-        if (!document.RootElement.TryGetProperty("targets", out var targets))
-        {
-            return [];
-        }
+        Assert.True(
+            document.RootElement.TryGetProperty("targets", out var targets),
+            $"'{assets}' has no 'targets' section, so nothing here can tell which packages ship. "
+            + "Either the file is truncated or NuGet changed its shape, and both are reasons to "
+            + "stop rather than to pass.");
 
         var shipping = new List<string>();
 
@@ -193,21 +202,30 @@ public sealed class LicenceNoticeGuards
         {
             foreach (var entry in framework.Value.EnumerateObject())
             {
-                if (!entry.Value.TryGetProperty("type", out var type)
-                    || type.GetString() != "package"
-                    || !entry.Value.TryGetProperty("runtime", out var runtime))
+                if (!entry.Value.TryGetProperty("type", out var type) || type.GetString() != "package")
                 {
                     continue;
                 }
 
-                // ENDS WITH, not equals, and that distinction cost a red run. The placeholder
-                // is written as a PATH - "lib/netstandard2.0/_._" - so comparing the whole key
-                // against "_._" matched nothing and three build-time metadata packages were
-                // reported as shipping. They carry no assembly at all; the entry exists to say
-                // so, which is exactly what "_._" means in this file.
-                var carriesAnAssembly = runtime
-                    .EnumerateObject()
-                    .Any(asset => !asset.Name.EndsWith("_._", StringComparison.Ordinal));
+                // THREE SECTIONS, NOT ONE, and the first version read only the first of them.
+                // `runtime` is where a plain managed assembly lands, `native` is where an
+                // unmanaged one does, and `runtimeTargets` is where a package that carries a
+                // different binary per architecture puts them. All three reach the published
+                // program, so all three create the obligation this test is about. A second
+                // review pointed at the omission; checked the same day against this tree, no
+                // package here uses the other two today, so adding them changes nothing now and
+                // is the difference between a guard that works and one that happens to.
+                var carriesAnAssembly = new[] { "runtime", "native", "runtimeTargets" }
+                    .Where(section => entry.Value.TryGetProperty(section, out _))
+                    .Select(section => entry.Value.GetProperty(section))
+                    // ENDS WITH, not equals, and that distinction cost a red run. The
+                    // placeholder is written as a PATH - "lib/netstandard2.0/_._" - so comparing
+                    // the whole key against "_._" matched nothing and three build-time metadata
+                    // packages were reported as shipping. They carry no assembly at all; the
+                    // entry exists to say so, which is exactly what "_._" means in this file.
+                    .Any(section => section
+                        .EnumerateObject()
+                        .Any(asset => !asset.Name.EndsWith("_._", StringComparison.Ordinal)));
 
                 if (carriesAnAssembly)
                 {
