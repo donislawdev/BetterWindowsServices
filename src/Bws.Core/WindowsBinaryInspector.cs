@@ -118,8 +118,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             {
                 // Read rather than remembered. This file is asked about once in a run, so a
                 // cache would be a way to be wrong later and never a way to be quicker.
-                return Reading<BinarySignature>.Present(
-                    new BinarySignature(Classify(embedded), embedded, ReadPublisher(file)));
+                return Settle(embedded, networkPaths, () => ReadPublisher(file));
             }
 
             return ThroughCatalogue(file);
@@ -226,7 +225,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     /// second leaks for the life of the process, which on a run touching several hundred
     /// files is not a rounding error.
     /// </summary>
-    private static unsafe int Verify(string file)
+    private unsafe int Verify(string file)
     {
         fixed (char* path = file)
         {
@@ -379,8 +378,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
                 // The signer of a catalogue-signed file is whoever signed the catalogue. That
                 // is the same answer Explorer gives, and reading it from the catalogue file
                 // keeps four more functions out of the interop list.
-                return Reading<BinarySignature>.Present(
-                    new BinarySignature(Classify(result), result, CataloguePublisher(cataloguePath)));
+                return Settle(result, networkPaths, () => CataloguePublisher(cataloguePath));
             }
         }
         finally
@@ -393,7 +391,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     }
 
     /// <summary>The parts of the request that never differ, whichever way the file is signed.</summary>
-    private static unsafe WINTRUST_DATA Request(WINTRUST_DATA_UNION_CHOICE choice) => new()
+    private unsafe WINTRUST_DATA Request(WINTRUST_DATA_UNION_CHOICE choice) => new()
     {
         cbStruct = (uint)sizeof(WINTRUST_DATA),
 
@@ -403,11 +401,33 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         // Revocation checking is deliberately off. It reaches the network, which ADR-19
         // forbids outright, and it would make the answer depend on whether a certificate
         // authority happens to be reachable from this machine right now.
+        //
+        // THAT SENTENCE WAS TRUE AND INCOMPLETE FOR THIRTEEN MONTHS, AND THE LINE BELOW IS
+        // WHAT IT WAS MISSING. Turning revocation off does not stop the chain engine going
+        // out to FETCH a certificate it does not hold. Measured 2026-09-22, three runs out of
+        // three, by tools/outbound-probe/outbound.ps1: `bws list --signatures` loads
+        // WINHTTP.dll, WS2_32.dll and DNSAPI.dll and opens HTTP connections to
+        // certificates.intel.com. Plain `bws list` does none of it, so signature reading is
+        // the whole of the difference. THREE GUARDS AND EVERY REVIEW OF THIS FILE HAD PASSED
+        // OVER IT, because none of them can see a module the chain engine loads at run time.
         fdwRevocationChecks = WINTRUST_DATA_REVOCATION_CHECKS.WTD_REVOKE_NONE,
 
         dwUnionChoice = choice,
         dwStateAction = WINTRUST_DATA_STATE_ACTION.WTD_STATEACTION_VERIFY,
-        dwProvFlags = WINTRUST_DATA_PROVIDER_FLAGS.WTD_SAFER_FLAG
+
+        // WTD_CACHE_ONLY_URL_RETRIEVAL confines the chain engine to what this machine already
+        // holds. It is on unless the caller has asked for the network, which is the same
+        // switch that decides whether a launch path on somebody else's share may be opened -
+        // one promise, one control, and nobody gets more network than they had before.
+        //
+        // Measured on this machine with the certificate URL cache and the DNS cache both
+        // cleared: 797 entries, 790 Trusted, 3 NotSigned and 790 publishers WITH the flag and
+        // WITHOUT it, identical. So the fetch that was happening changed no answer here. It
+        // is still a fetch, and it still went to a third party.
+        dwProvFlags = networkPaths == NetworkPaths.Follow
+            ? WINTRUST_DATA_PROVIDER_FLAGS.WTD_SAFER_FLAG
+            : WINTRUST_DATA_PROVIDER_FLAGS.WTD_SAFER_FLAG
+              | WINTRUST_DATA_PROVIDER_FLAGS.WTD_CACHE_ONLY_URL_RETRIEVAL
     };
 
     private static unsafe int Ask(ref WINTRUST_DATA data)
@@ -424,27 +444,4 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             return result;
         }
     }
-
-    /// <summary>
-    /// The system's number, given a name.
-    ///
-    /// Only the results that have a distinct meaning for somebody looking at a service list
-    /// are named. Everything else stays <see cref="SignatureStatus.Unknown"/> and keeps its
-    /// number, because a value folded into a near-enough neighbour is worse than one that
-    /// admits it has no name: the trigger kinds already taught that the unnamed case can
-    /// turn out to be the second most common one on the machine.
-    ///
-    /// Only Trusted and NotSigned have been observed on a real machine. The rest are mapped
-    /// from documented results and are <b>NOT OBSERVED</b>.
-    /// </summary>
-    private static SignatureStatus Classify(int result) => result switch
-    {
-        0 => SignatureStatus.Trusted,
-        NoSignature => SignatureStatus.NotSigned,
-        unchecked((int)0x800B0109) => SignatureStatus.UntrustedRoot,
-        unchecked((int)0x800B0101) => SignatureStatus.Expired,
-        unchecked((int)0x800B010C) => SignatureStatus.Revoked,
-        unchecked((int)0x80096010) => SignatureStatus.Tampered,
-        _ => SignatureStatus.Unknown
-    };
 }
