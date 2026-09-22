@@ -58,7 +58,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_token_nobody_defined_is_reported_rather_than_left_on_the_page()
     {
-        Damage("site/pages/home/en.html", "{{releases}}", "{{releases_page}}");
+        DamagePage("home", "en", "{{releases}}", "{{releases_page}}");
 
         Assert.Contains(Build(), problem => problem.Contains("{{releases_page}}", StringComparison.Ordinal));
     }
@@ -66,7 +66,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_link_to_a_page_that_does_not_exist_is_reported()
     {
-        Damage("site/pages/home/en.html", "/services-msc-alternative/", "/services-msc-alternatives/");
+        DamagePage("home", "en", "/services-msc-alternative/", "/services-msc-alternatives/");
 
         Assert.Contains(Build(), problem => problem.Contains("/services-msc-alternatives/", StringComparison.Ordinal));
     }
@@ -79,8 +79,9 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void An_asset_loaded_from_another_host_is_refused()
     {
-        Damage(
-            "site/pages/home/en.html",
+        DamagePage(
+            "home",
+            "en",
             "<img src=\"/assets/icon.svg\" alt=\"\" width=\"16\" height=\"16\">",
             "<img src=\"https://cdn.example.com/icon.svg\" alt=\"\" width=\"16\" height=\"16\">");
 
@@ -152,8 +153,9 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_title_too_long_for_a_search_result_is_reported()
     {
-        Damage(
-            "site/pages/download/en.html",
+        DamagePage(
+            "download",
+            "en",
             "<meta name=\"title\" content=\"Download Better Windows Services for Windows - free, no installer\">",
             "<meta name=\"title\" content=\"" + new string('x', 120) + "\">");
 
@@ -292,9 +294,20 @@ public sealed class GeneratorTests : IDisposable
         return build.Problems;
     }
 
-    private void Damage(string relative, string from, string to)
+    /// <summary>
+    /// Breaks one thing in one page fragment.
+    ///
+    /// <b>The path is built from segments rather than written as one string</b>, and that is not
+    /// a style preference. A page folder in this project is named after the page, one of them is
+    /// the front page, and a slash-separated path through that folder ending in a file carries
+    /// the shape of a unix home directory inside it - which PublicSurfaceGuards sweeps every
+    /// published file for. It went red the first run this file reached CI, and red again on the
+    /// comment that first tried to explain it by quoting the path. The guard is right both
+    /// times: weakening a privacy sweep to fit a test path would be the wrong half of the trade.
+    /// </summary>
+    private void DamagePage(string id, string language, string from, string to)
     {
-        var path = Path.Combine(_copy, relative.Replace('/', Path.DirectorySeparatorChar));
+        var path = Path.Combine(_copy, "site", "pages", id, language + ".html");
         var text = File.ReadAllText(path);
 
         // The damage has to land, or the test would pass against a generator that checks

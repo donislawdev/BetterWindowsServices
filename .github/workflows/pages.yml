@@ -51,7 +51,7 @@ concurrency:
 jobs:
   build:
     name: build the site and check it
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -60,10 +60,20 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Ubuntu rather than Windows, and it is a saving rather than an accident: the generator is
-      # a console program that reads files and writes files. It references Bws.Core for the query
-      # language field list, and that project targets a Windows platform version - which the SDK
-      # accepts as a target on any host, because nothing here runs the Windows-only parts.
+      # WINDOWS RATHER THAN UBUNTU, AND THE FIRST VERSION OF THIS FILE SAID OTHERWISE.
+      #
+      # It ran on ubuntu-latest with a comment claiming the SDK accepts a Windows target on any
+      # host "because nothing here runs the Windows-only parts". That was a claim with no
+      # measurement behind it, and the first run on a real runner refused it outright:
+      #
+      #   error NETSDK1100: To build a project targeting Windows on this operating system,
+      #   set the EnableWindowsTargeting property to true.
+      #
+      # The generator references Bws.Core for the query language field list, and Bws.Core targets
+      # net10.0-windows. EnableWindowsTargeting would make it build on Linux by pulling the
+      # Windows targeting packs - and it would mean adding a property to the PRODUCT's build to
+      # suit the website's runner, which is the wrong way round. A Windows runner costs minutes
+      # and changes nothing about the thing being shipped.
       - name: build the site
         run: dotnet run --project site/Bws.Site -c Release -- --out _site --strict
 
@@ -71,22 +81,27 @@ jobs:
       # cannot see each other - site.json, which this build turns into a CNAME file, and the
       # repository's Pages settings. Publishing a CNAME that disagrees with the setting takes
       # the site off its address, and the only sign is a visitor's browser failing.
+      # PowerShell, because the job runs on Windows now. GitHub's default shell on a Windows
+      # runner is pwsh, and the bash version of this step would have been a second thing to
+      # notice after the runner changed.
       - name: the built CNAME matches the configured domain
         env:
           CONFIGURED: ${{ vars.PAGES_CUSTOM_DOMAIN }}
         run: |
-          BUILT=$(cat _site/CNAME)
-          if [ -z "$CONFIGURED" ]; then
-            echo "PAGES_CUSTOM_DOMAIN is not set as a repository variable, so there is nothing to compare."
-            echo "The built site says: $BUILT"
-            echo "Set that variable to the domain in Settings - Pages to turn this into a check."
-          elif [ "$BUILT" != "$CONFIGURED" ]; then
-            echo "The built CNAME is '$BUILT' and the configured domain is '$CONFIGURED'."
-            echo "Publishing this would answer on the wrong address, and Pages cannot redirect."
+          $built = (Get-Content _site/CNAME -Raw).Trim()
+          if ([string]::IsNullOrWhiteSpace($env:CONFIGURED)) {
+            Write-Host "PAGES_CUSTOM_DOMAIN is not set as a repository variable, so there is nothing to compare."
+            Write-Host "The built site says: $built"
+            Write-Host "Set that variable to the domain in Settings - Pages to turn this into a check."
+          }
+          elseif ($built -ne $env:CONFIGURED.Trim()) {
+            Write-Host "The built CNAME is '$built' and the configured domain is '$($env:CONFIGURED)'."
+            Write-Host "Publishing this would answer on the wrong address, and Pages cannot redirect."
             exit 1
-          else
-            echo "CNAME and the configured domain agree: $BUILT"
-          fi
+          }
+          else {
+            Write-Host "CNAME and the configured domain agree: $built"
+          }
 
       # Pinned to a commit rather than a tag, like every action in build.yml: a tag can be moved
       # to point at something else, and a workflow with write access to Pages is not a place to
