@@ -112,9 +112,18 @@ def parts_of(expression):
 
     The compound this repository already has is an AND: Microsoft.Windows.CsWin32
     reports "Apache-2.0 AND MIT", and both halves are on the list.
+
+    EMPTY TERMS ARE KEPT RATHER THAN DROPPED, and that one character of
+    difference is the whole of a second review finding. This used to end with
+    `if p.strip("() ")`, which threw away the terms that carry no identifier -
+    so "MIT OR ()" came back as ["MIT"] and passed, with half the expression
+    silently discarded. Measured 2026-09-22 before the change: "MIT OR ()",
+    "MIT AND ()" and "() OR MIT" all returned "ok". Kept, an empty term is not
+    in ALLOWED and the expression is refused, which is the right answer for
+    something that is not a licence expression at all.
     """
     flat = str(expression).replace(" AND ", " OR ")
-    return [p.strip("() ") for p in flat.split(" OR ") if p.strip("() ")]
+    return [p.strip("() ") for p in flat.split(" OR ")]
 
 
 def verdict(dependency):
@@ -137,6 +146,11 @@ def verdict(dependency):
     # malformed value is the API behaving as documented rather than a bug
     # upstream. It is the same shape as a scan that read no files, and it is
     # refused for the same reason.
+    #
+    # `parts` cannot be empty any more now that parts_of keeps empty terms - a
+    # split always yields at least one - so this first condition is belt and
+    # braces. It stays because it was load-bearing an hour ago and the thing it
+    # guards against is one edit away from coming back.
     if parts and all(part in ALLOWED for part in parts):
         return "ok", licence
     return "denied", licence

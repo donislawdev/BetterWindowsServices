@@ -60,8 +60,21 @@ public sealed class WorkflowGuards
     /// </summary>
     private static readonly string[] InThisRepository = ["./", "$/"];
 
+    /// <summary>
+    /// A reference into this repository, and a WELL FORMED one.
+    ///
+    /// <b>The prefix alone was not enough, which a second review pointed out.</b> Matching on
+    /// the first two characters accepted a bare <c>$/</c> with no path after it, and accepted
+    /// <c>$/.github/actions/x@v1</c> - a self reference carrying a ref, which is meaningless
+    /// because the self reference IS the commit being built. Both are nonsense, and both were
+    /// skipped before the pinning check ever looked at them, so the guard was quietly admitting
+    /// exactly the shapes it should have been the one to complain about.
+    /// </summary>
     private static bool IsLocal(string action) =>
-        InThisRepository.Any(prefix => action.StartsWith(prefix, StringComparison.Ordinal));
+        InThisRepository.Any(prefix =>
+            action.StartsWith(prefix, StringComparison.Ordinal)
+            && action.Length > prefix.Length
+            && !action.Contains('@', StringComparison.Ordinal));
 
     /// <summary>
     /// A `uses:` line, split into what is used and what follows the reference.

@@ -183,9 +183,26 @@ public sealed class SupplyChainGuards
 
             foreach (Match match in pattern.Matches(text))
             {
-                if (advisoryCodes.IsMatch(match.Groups["value"].Value))
+                var value = match.Groups["value"].Value;
+
+                if (advisoryCodes.IsMatch(value))
                 {
                     yield return $"  {name}: {element} carries an advisory code";
+                }
+
+                // AND THE VERSION THIS CANNOT READ THROUGH, which a second review pointed at.
+                // MSBuild expands properties and items before any of this matters, so
+                // <NoWarn>$(AuditWarnings)</NoWarn> silences NU1903 whenever some other line
+                // defines AuditWarnings as NU1903 - and a scan for the literal code sees
+                // nothing at all. Evaluating MSBuild here is not an option in a unit test, so
+                // the indirection itself is refused: in a repository that has never needed one,
+                // a property reference inside a warning-control element is either a mistake or
+                // the exact thing this guard exists to stop.
+                if (value.Contains("$(", StringComparison.Ordinal)
+                    || value.Contains("@(", StringComparison.Ordinal))
+                {
+                    yield return $"  {name}: {element} is built from an MSBuild expression, so what it "
+                        + "silences cannot be read from this file";
                 }
             }
         }
@@ -201,9 +218,16 @@ public sealed class SupplyChainGuards
         // A project overriding what Directory.Build.props states. The shared file is where these
         // three belong and the only place they are allowed, which is what makes the first test
         // in this class worth anything.
+        // TreatWarningsAsErrors is on this list and was missing from it until a second review
+        // asked why. The class summary says in as many words that these four settings are ONE
+        // GATE and that removing any of them leaves a build that looks identical and checks
+        // nothing - and then the override check covered three of the four. A project setting
+        // <TreatWarningsAsErrors>false</TreatWarningsAsErrors> leaves NU1901 to NU1904 as
+        // warnings, restore exits zero, and both tests in this class stay green. That is the
+        // same prose-ahead-of-code gap the semgrep gate had, in the file that argues against it.
         if (!string.Equals(name, Shared, StringComparison.OrdinalIgnoreCase))
         {
-            foreach (var property in new[] { "NuGetAudit", "NuGetAuditMode", "NuGetAuditLevel" })
+            foreach (var property in new[] { "NuGetAudit", "NuGetAuditMode", "NuGetAuditLevel", "TreatWarningsAsErrors" })
             {
                 var local = new Regex(
                     $"<{property}[^>]*>[^<]*</{property}>",
