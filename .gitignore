@@ -73,3 +73,11 @@ tools/
 
 # The developer changelog. 
 CHANGELOG-DEV.md
+
+# Python bytecode. Nothing here runs Python as part of the product - the two files that
+# exist are gates CI runs from a checkout - but importing one of them locally to test it
+# writes a cache directory beside it, and on 2026-09-22 one of those .pyc files was
+# committed without anybody noticing. Machine-specific bytes in a public repository, from
+# a language this project does not ship.
+__pycache__/
+*.pyc
