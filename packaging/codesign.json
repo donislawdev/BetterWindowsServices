@@ -7,7 +7,9 @@
 
   "//renewal": "A RENEWAL IS A DIFFERENT CERTIFICATE, not the same one with a later date. When the card's certificate is renewed, this fingerprint has to move with it or the next release refuses to sign - and the script says so out loud from 90 days before expiry, so the refusal is never a surprise in the middle of a release with the card already in the reader.",
 
-  "//where-this-came-from": "Copied on 2026-09-23 from the owner's other project, ChronoMock, on the owner's statement that the same card signs both products. IT HAS NOT BEEN CHECKED AGAINST THE CARD FROM THIS REPOSITORY. Before the first release, run `pwsh -File packaging/sign-release.ps1 -ListCertificates` with the reader plugged in and confirm the line reading THIS IS THE PINNED ONE. If it is a different certificate, nothing is signed with the wrong one - the script refuses - but the first release is the wrong moment to find out.",
+  "//where-this-came-from": "Copied on 2026-09-23 from the owner's other project, ChronoMock, on the owner's statement that the same certificate signs both products - and CHECKED the same day rather than left as a claim. `pwsh -File packaging/sign-release.ps1 -ListCertificates` found exactly one code-signing certificate in the store on the owner's machine, it answered THIS IS THE PINNED ONE, it reported a usable private key, and it had 331 days of validity left. That is the whole of what was verified: the fingerprint below matches a certificate this machine can reach.",
+
+  "//what-that-check-did-NOT-prove": "That signing works. Nobody has signed anything with it from this repository - `signtool` reaches the card and waits for a PIN, so the first real proof is the first release, with a person at the machine. Run the ritual on a pre-release tag first if that matters.",
 
   "schema": "bws.codesign/1",
 

@@ -251,12 +251,20 @@ foreach ($component in $mine) {
             })
     }
 
-    # A pinned file carries its own checksum into the document. Only the binaries nobody else
-    # signs have one - see the note in the register.
+    # A pinned file is stated in the COMMENT, and never in `checksums`, which is where the first
+    # version of this put it. In SPDX a package's `checksums` is the hash of the PACKAGE FILE -
+    # for a component that arrives from NuGet that is the .nupkg - so a hash of one DLL inside it
+    # is a false statement that anybody checking the entry against the package would catch, and
+    # phase C would have attested it. Found by the review of PR #5.
+    #
+    # NOT moved into an SPDX `File` element either, which is the other repair the review offered.
+    # A File wants a SHA1 beside the SHA256 in SPDX 2.x, this register carries only the SHA256,
+    # and inventing a second hash to satisfy a schema would be a worse answer than a sentence. The
+    # pin is enforced by ComponentRegisterGuards and again by build-dist.ps1 before packing - the
+    # document records it, it does not police it.
     if ($component.PSObject.Properties.Name -contains 'files') {
-        $entry.checksums = @($component.files | ForEach-Object {
-                [ordered]@{ algorithm = 'SHA256'; checksumValue = $_.sha256 }
-            })
+        $pinned = ($component.files | ForEach-Object { "$($_.path) sha256 $($_.sha256)" }) -join '; '
+        $entry.comment = "This build pins the bytes of: $pinned"
     }
 
     $packages.Add($entry)

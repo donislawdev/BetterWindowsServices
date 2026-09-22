@@ -231,6 +231,32 @@ if ($ListCertificates) {
 if (-not $Tag) { throw 'sign-release: give the tag, e.g. ./packaging/sign-release.ps1 v0.1.0' }
 if (-not $IsWindows) { throw 'sign-release: the card lives on Windows, run this there' }
 
+# THE CHECKOUT HAS TO BE THE TAGGED COMMIT, and this is not tidiness - it is the difference
+# between a document that describes the archive and one that describes whatever main looks like
+# today. The archive comes from the TAG. Everything this script writes over it comes from the
+# WORKING TREE: sbom.ps1 reads the version out of Directory.Build.props and the components out of
+# packaging/components.json, and the signing list above is read from that same register. If main
+# has moved since the tag - a version bump, a licence corrected, a component added - the document
+# states the wrong version, the wrong download URL or the wrong licences for bytes that do not
+# have them, and phase C attests exactly that. The check against deps.json cannot see any of it.
+# Found by the review of PR #5.
+$tagged = (git rev-parse "$Tag^{commit}" 2>$null)
+if ($LASTEXITCODE -ne 0 -or -not $tagged) {
+    throw "sign-release: this checkout does not know the tag $Tag. Fetch it: git fetch --tags"
+}
+$head = (git rev-parse 'HEAD^{commit}')
+if ($tagged.Trim() -ne $head.Trim()) {
+    throw ("sign-release: the working tree is not at $Tag.`n" +
+        "  $Tag is $($tagged.Trim())`n  HEAD is  $($head.Trim())`n" +
+        "Everything written over the archive - the bill of materials, the version, the signing`n" +
+        "list - is read from THIS checkout, while the archive comes from the tag. Check out the`n" +
+        "tag first: git checkout $Tag")
+}
+if (git status --porcelain) {
+    throw ("sign-release: the working tree has uncommitted changes, and the documents written " +
+        'over the signed archive are read from it. Commit, stash or clean them first.')
+}
+
 # THE LOCAL IS NOT CALLED 'work', AND THAT IS NOT STYLE. PowerShell ignores case in variable
 # names, so a local spelled that way and the parameter $Work above would be ONE variable, and
 # assigning to it here would quietly overwrite the parameter. Trap 1 of docs/14, caught by
@@ -241,15 +267,38 @@ New-Item -ItemType Directory -Path $workspace -Force | Out-Null
 Write-Host "working in $workspace"
 
 Write-Host "`n[1/8] fetching the build this tag produced"
-Invoke-Step @('gh', 'run', 'download', '--repo', $repo, '--name', "unsigned-build-$Tag", '--dir', $workspace) | Out-Null
+# The generic "gh failed with exit 1" is true and unhelpful at the one step where somebody is
+# most likely to be standing here for the first time. gh's own line is printed above it, and
+# this says what to do about the two ways it fails.
+try {
+    Invoke-Step @('gh', 'run', 'download', '--repo', $repo, '--name', "unsigned-build-$Tag", '--dir', $workspace) | Out-Null
+}
+catch {
+    throw ("sign-release: there is no build artefact called 'unsigned-build-$Tag'.`n" +
+        "  Either phase A has not run for this tag - push the tag, or check the Release workflow -`n" +
+        "  or it has expired. Phase A keeps it for 14 days, and re-running the workflow on the tag`n" +
+        "  produces it again. Nothing has been signed.")
+}
 $archives = @(Get-ChildItem -LiteralPath $workspace -Filter *.zip -File)
 if ($archives.Count -ne $OURS.Count) {
     throw "sign-release: expected $($OURS.Count) archives in the artefact, got $($archives.Name -join ', ')"
 }
 
 Write-Host "`n[2/8] verifying what the workflow says it built"
+# --repo ALONE IS NOT ENOUGH, and the gap is the whole reason this step exists. It proves only
+# that SOME workflow in this repository attested these bytes. release.yml also answers
+# workflow_dispatch, and a dispatch from a BRANCH skips every tag-only check in it while still
+# uploading an artefact called unsigned-build-<ref name> - so a branch named like the tag would
+# produce an artefact that reaches the card. Naming the workflow and the source ref closes it:
+# the attestation has to come from release.yml, running on refs/tags/<this tag>.
+#
+# Every flag below was read out of `gh attestation verify --help` on gh 2.101.0 rather than
+# taken on trust. Found by the review of PR #5.
 foreach ($archive in $archives) {
-    Invoke-Step @('gh', 'attestation', 'verify', $archive.FullName, '--repo', $repo) | Out-Null
+    Invoke-Step @('gh', 'attestation', 'verify', $archive.FullName, '--repo', $repo,
+        '--signer-workflow', "$repo/.github/workflows/release.yml",
+        '--source-ref', "refs/tags/$Tag",
+        '--deny-self-hosted-runners') | Out-Null
 }
 
 Write-Host "`n[3/8] unpacking"
@@ -383,6 +432,22 @@ $shipped += $sums
 Write-Host "  SHA256SUMS over $($shipped.Count - 1) files"
 
 Write-Host "`n[7/8] handing it back to the workflow"
+
+# THE OLD ATTESTATION BUNDLES GO FIRST, AND WITHOUT THIS A RE-RUN PRINTS PASS OVER A LIE.
+# Step 8 waits for phase C by counting `.sigstore.json` assets on the draft. On a second run of
+# this script the bundles from the FIRST run are still there, so that count is already satisfied
+# the moment the wait starts: the loop breaks immediately, this script reports the draft
+# complete, and the bundles on it describe the digests of the archives that were replaced a
+# minute ago. Phase D then fails the README's own --bundle command - after publication, which is
+# the one moment nobody wants to find out. Taking them off first makes the count mean what step 8
+# reads it as meaning. Found by the review of PR #5.
+$stale = @($OURS.Keys | ForEach-Object { "$_.sigstore.json" })
+$onDraft = @((gh release view $Tag --repo $repo --json assets 2>$null | ConvertFrom-Json).assets | ForEach-Object { $_.name })
+foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
+    Write-Host "  removing the previous attestation bundle $bundle"
+    Invoke-Step @('gh', 'release', 'delete-asset', $Tag, $bundle, '--repo', $repo, '--yes') | Out-Null
+}
+
 Invoke-Step (@('gh', 'release', 'upload', $Tag) + $shipped + @('--repo', $repo, '--clobber')) | Out-Null
 $digests = $archives | ForEach-Object { "$($_.Name)=$(Get-Sha256 $_.FullName)" }
 Invoke-Step @('gh', 'workflow', 'run', $attestWorkflow, '--repo', $repo,

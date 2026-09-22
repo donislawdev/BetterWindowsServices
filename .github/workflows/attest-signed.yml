@@ -88,6 +88,20 @@ jobs:
           done
           [ "$fail" -eq 0 ] || exit 1
 
+          # AND EVERY ARCHIVE HAS TO BE NAMED IN THE INPUT, which the loop above cannot say.
+          # It walks what DIGESTS carries, so a dispatch with an empty value, a value that is
+          # only commas, or one that names a single archive passes it without checking the
+          # others - and the steps below then attest archives nobody cross-checked. This is a
+          # workflow_dispatch input, so the value is typed by a person on a bad day rather than
+          # always produced by phase B. Found by the review of PR #5.
+          for zip in assets/*.zip; do
+            name=$(basename "$zip")
+            case ",$DIGESTS," in
+              *",$name="*) ;;
+              *) echo "::error::no digest was passed for $name, so nothing cross-checked it"; exit 1 ;;
+            esac
+          done
+
       - name: Attest the bill of materials for the window package
         id: gui
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0

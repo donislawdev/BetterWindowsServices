@@ -72,13 +72,18 @@ outright.
 
 Every release publishes, beside each archive: a bill of materials naming everything inside it
 that somebody else wrote, a signed attestation of that document, and one file of SHA-256 sums.
-Run these in the folder you downloaded into. The first two need nothing, the last two need the
-[GitHub CLI](https://cli.github.com/) signed in.
+Run these in the folder you downloaded into. The first two need nothing at all. The last two need
+the [GitHub CLI](https://cli.github.com/), and because the `.sigstore.json` beside each archive is
+passed to `--bundle`, they check it against what GitHub signed rather than by asking GitHub.
+
+The first two match a whole line - the digest **and** the file name it is written against - rather
+than looking for the digest anywhere in the file. A sums file that lists your digest under somebody
+else's name would otherwise pass.
 
 <!-- verify-commands -->
 ```powershell
-if (-not ((Get-Content SHA256SUMS) -match (Get-FileHash BetterWindowsServices-win-x64.zip -Algorithm SHA256).Hash.ToLower())) { throw 'BetterWindowsServices-win-x64.zip does not match SHA256SUMS' }
-if (-not ((Get-Content SHA256SUMS) -match (Get-FileHash bws-cli-win-x64.zip -Algorithm SHA256).Hash.ToLower())) { throw 'bws-cli-win-x64.zip does not match SHA256SUMS' }
+if (-not ((Get-Content SHA256SUMS) -match ('^' + (Get-FileHash BetterWindowsServices-win-x64.zip -Algorithm SHA256).Hash.ToLower() + '\s+\*?BetterWindowsServices-win-x64\.zip$'))) { throw 'BetterWindowsServices-win-x64.zip does not match SHA256SUMS' }
+if (-not ((Get-Content SHA256SUMS) -match ('^' + (Get-FileHash bws-cli-win-x64.zip -Algorithm SHA256).Hash.ToLower() + '\s+\*?bws-cli-win-x64\.zip$'))) { throw 'bws-cli-win-x64.zip does not match SHA256SUMS' }
 gh attestation verify BetterWindowsServices-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle BetterWindowsServices-win-x64.zip.sigstore.json
 gh attestation verify bws-cli-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle bws-cli-win-x64.zip.sigstore.json
 ```
