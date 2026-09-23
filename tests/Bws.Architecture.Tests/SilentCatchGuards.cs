@@ -50,6 +50,10 @@ public sealed class SilentCatchGuards
         ["src/Bws.Gui/PreferencesFile.cs"] = 2,
         ["src/Bws.Gui/Texts.cs"] = 4,
         ["src/Bws.Gui/ViewModels/Catalogue.Samples.cs"] = 3,
+
+        // 2026-09-23, UX-GUI-004 (c): a hand-over that is not JSON becomes "refused", and the
+        // window says so in the status line - the failure reaches the person, not the exception.
+        ["src/Bws.Gui/ViewModels/HandOver.cs"] = 1,
     };
 
     [Fact]

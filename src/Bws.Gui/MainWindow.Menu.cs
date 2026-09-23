@@ -276,6 +276,9 @@ public partial class MainWindow
 
         if (shown)
         {
+            // The question behind the open sheet, for a restart as administrator to ask again.
+            _asked = (kind, to);
+
             PlanPanel.TakeTheKeyboard();
         }
 
@@ -342,6 +345,8 @@ public partial class MainWindow
 
         if (shown)
         {
+            _asked = (offer.Kind, null);
+
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it
             // with nothing to say where focus is would be an instruction nobody gave.

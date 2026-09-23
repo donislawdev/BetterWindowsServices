@@ -334,6 +334,21 @@ public sealed class Says : Observable
         Raise(nameof(Problem));
     }
 
+    /// <summary>
+    /// What a window restarted with administrator rights could not bring back from the one it
+    /// replaced - UX-GUI-004 (c). News from before the first look, so it stands where the layout note
+    /// does and goes when that one goes.
+    ///
+    /// <b>Added to the layout note rather than written over it</b>: both are said at startup, and the
+    /// one written second would otherwise silence the first - rule 8, in the one line meant for it.
+    /// </summary>
+    internal void AboutTheHandOver(string sentence)
+    {
+        _layout = _layout.Length == 0 ? sentence : _layout + " " + sentence;
+
+        Raise(nameof(Problem));
+    }
+
     /// <summary>Puts away what the last action could not do, because the person asked for something else.</summary>
     internal void Moved()
     {

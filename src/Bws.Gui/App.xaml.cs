@@ -1,4 +1,5 @@
 using System.Windows;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui;
 
@@ -21,19 +22,31 @@ public partial class App : Application
         // the argument, including why no markup names it and why it therefore has to be told to.
         CellTips.Arm();
 
+        HandedOver = HandOver.Read(e.Args);
+
         ShowTheCatalogueInstead(e);
     }
 
-    /// <summary>The one argument this window understands.</summary>
+    /// <summary>
+    /// What the window this one was restarted from handed over, if anything - read here because the
+    /// arguments are, and taken by the main window after its first reading. UX-GUI-004 (c).
+    /// </summary>
+    internal (HandOver? Carried, bool Refused) HandedOver { get; private set; }
+
+    /// <summary>
+    /// The argument that opens the catalogue. Since 2026-09-23 there is a second one,
+    /// <see cref="HandOver.Argument"/>, and it is not an interface either - it is how a window
+    /// without rights hands its screen to its own replacement.
+    /// </summary>
     private const string CatalogueAsked = "--catalogue";
 
     /// <summary>
     /// Opens the component catalogue instead of the window, when asked.
     ///
     /// <b>Rule 4 of the owner's GUI rules asks for a hidden view showing every component in every
-    /// state, and offers a launch argument as the way in.</b> This is that argument, and it is the
-    /// only one this program takes - the command line tool is a separate executable and is where
-    /// arguments belong.
+    /// state, and offers a launch argument as the way in.</b> This is that argument. It was the only
+    /// one until 2026-09-23 - the command line tool is a separate executable and is where arguments
+    /// a person types belong - and the second, the hand-over, is written by this program for itself.
     ///
     /// <b>StartupUri is POINTED SOMEWHERE ELSE rather than cleared, and the first version of this
     /// cleared it.</b> WPF creates the window named there after OnStartup returns, so the catalogue

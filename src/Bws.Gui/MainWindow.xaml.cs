@@ -244,18 +244,7 @@ public partial class MainWindow : Window
         // over 810 entries, and doing it in the constructor means the window appears already
         // late - the specification asks for a useful list inside a second, and part of that
         // second is spent showing that something is happening.
-        Loaded += async (_, _) =>
-        {
-            await _model.LoadAsync().ConfigureAwait(true);
-
-            // AFTER THE FIRST READING AND NOT BEFORE IT. The order somebody left the list in is
-            // handed to the view that holds the rows, and until this line has run there are no
-            // rows and no view - so an order applied while the columns were being built would be
-            // dropped without a word.
-            SortAsKept();
-
-            _timer.Start();
-        };
+        Loaded += async (_, _) => await FirstLook().ConfigureAwait(true);
 
         // Nothing to refresh when nobody can see it. A window minimised for an afternoon has
         // no business asking the manager anything, and the first tick after it comes back
@@ -410,7 +399,7 @@ public partial class MainWindow : Window
     /// </remarks>
     private void RestartAsAdministrator(object sender, RoutedEventArgs e)
     {
-        if (Elevation.Restart() is { } trouble)
+        if (Elevation.Restart(HandOverNow().Encode()) is { } trouble)
         {
             _model.Says.CouldNotDo(trouble);
             return;

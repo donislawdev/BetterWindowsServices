@@ -176,6 +176,13 @@ Nothing has been released yet. Everything below is what the tool does today.
   Until now the only such button was at the bottom of the window, behind the plan, where it
   could not be clicked while the plan was open.
 
+- **Restarting as administrator no longer starts you from nothing.** The new window opens on
+  the same list, with the same search, the same entries picked and the same plan open - worked
+  out again from the machine as it is now. Nothing is carried out on its own: you still press
+  the button, and a forced stop still asks you to type the name. If some of the entries you had
+  picked are no longer there, or you had picked too many to carry across, the window says so at
+  the bottom.
+
 - **A plan that can do nothing opens on the reason, not on an empty list of steps.** When every
   entry in a plan was left out, the plan showed an empty *In this order* section first. It also
   showed a red sentence saying a restart as administrator would carry it out, which it would
