@@ -442,7 +442,14 @@ Write-Host "`n[7/8] handing it back to the workflow"
 # the one moment nobody wants to find out. Taking them off first makes the count mean what step 8
 # reads it as meaning. Found by the review of PR #5.
 $stale = @($OURS.Keys | ForEach-Object { "$_.sigstore.json" })
-$onDraft = @((gh release view $Tag --repo $repo --json assets 2>$null | ConvertFrom-Json).assets | ForEach-Object { $_.name })
+# One field, so no comma to be split - but the exit code is read for the same reason as in the
+# wait loop below: a read that failed and a draft with no assets look identical from here, and
+# the difference decides whether a stale bundle is left behind.
+$draft = gh release view $Tag --repo $repo --json assets 2>$null | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $draft) {
+    throw "sign-release: cannot read the draft release $Tag. Phase A opens it - check that it ran for this tag."
+}
+$onDraft = @($draft.assets | ForEach-Object { $_.name })
 foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
     Write-Host "  removing the previous attestation bundle $bundle"
     Invoke-Step @('gh', 'release', 'delete-asset', $Tag, $bundle, '--repo', $repo, '--yes') | Out-Null
@@ -462,9 +469,18 @@ $signedDigests = @{}
 foreach ($archive in $archives) { $signedDigests[$archive.Name] = Get-Sha256 $archive.FullName }
 $names = @()
 while ($true) {
-    $view = gh release view $Tag --repo $repo --json assets, isDraft 2>$null | ConvertFrom-Json
-    $names = @()
-    if ($view) { $names = @($view.assets | ForEach-Object { $_.name }) }
+    # QUOTED, AND MEASURED RATHER THAN STYLED. In PowerShell argument mode a space ends a token,
+    # so `--json assets, isDraft` reaches gh as TWO arguments and it answers "accepts at most 1
+    # arg(s), received 2" with exit 1 - checked against a real release on gh 2.101.0. With
+    # 2>$null and no exit check, that failure was SILENT: $view came back empty, the loop below
+    # saw no assets, and this script would have sat here until the timeout and then blamed
+    # phase C. Rule 8 of CLAUDE.md, in a comma. Found by the review of PR #5.
+    $view = gh release view $Tag --repo $repo --json 'assets,isDraft' 2>$null | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0 -or -not $view) {
+        throw ("sign-release: cannot read the release $Tag while waiting for phase C. Nothing has " +
+            'been published, and the assets that were uploaded are still on the draft.')
+    }
+    $names = @($view.assets | ForEach-Object { $_.name })
     $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
     $bundles = @($names | Where-Object { $_.EndsWith('.sigstore.json') })
     if (-not $missing -and $bundles.Count -ge $archives.Count) { break }
@@ -492,7 +508,11 @@ foreach ($name in $signedDigests.Keys) {
             "  signed:    $($signedDigests[$name])`n  published: $published")
     }
 }
-if (-not (gh release view $Tag --repo $repo --json isDraft | ConvertFrom-Json).isDraft) {
+$state = gh release view $Tag --repo $repo --json isDraft | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $state) {
+    throw "sign-release: cannot read whether $Tag is still a draft, so this cannot say that it is."
+}
+if (-not $state.isDraft) {
     throw "sign-release: $Tag is NOT a draft any more - it is already public"
 }
 

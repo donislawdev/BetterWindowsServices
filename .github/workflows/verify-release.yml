@@ -150,13 +150,20 @@ jobs:
       - name: For a full release, latest must point here
         shell: pwsh
         run: |
-          $release = gh release view $env:TAG --repo $env:REPO --json isPrerelease, isDraft | ConvertFrom-Json
+          # THE FIELD LIST IS QUOTED, AND THE UNQUOTED FORM DID NOT WORK. In PowerShell argument
+          # mode a space ends a token, so `--json isPrerelease, isDraft` reaches gh as two
+          # arguments and it answers "accepts at most 1 arg(s), received 2" with exit 1 -
+          # measured against a real release on gh 2.101.0. Nothing read that exit code, so both
+          # checks below were being skipped rather than failing. Found by the review of PR #5.
+          $release = gh release view $env:TAG --repo $env:REPO --json 'isPrerelease,isDraft' | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $release) { throw "cannot read the state of $env:TAG, so this step cannot say anything about it" }
           if ($release.isDraft) { throw "$env:TAG is still a draft, so it publishes nothing" }
           if ($release.isPrerelease) {
             Write-Host "$env:TAG is a pre-release, so latest is not expected to point at it"
             exit 0
           }
           $latest = gh release view --repo $env:REPO --json tagName | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $latest) { throw 'cannot read which release is latest, so this step cannot say that it is this one' }
           if ($latest.tagName -ne $env:TAG) {
             throw "latest points at $($latest.tagName) and this release is $env:TAG - the download button offers the other one"
           }
