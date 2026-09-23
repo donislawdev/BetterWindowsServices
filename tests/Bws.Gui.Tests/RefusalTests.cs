@@ -74,14 +74,16 @@ public sealed class RefusalTests
     }
 
     /// <summary>
-    /// A refusal wins over a query's complaint while both are true.
+    /// A refusal and a query's complaint are both said while both are true, each in its own place.
     ///
-    /// One line, two things wanting it, and the tie is broken by which one the person can act on
-    /// next - the query is in front of them and can be read back from the box, while what just
-    /// failed has no other trace at all.
+    /// <b>Until 2026-09-23 this test said the refusal WON</b> - one line at the foot of the window,
+    /// two things wanting it, and the query's complaint went unsaid while a copy's refusal stood.
+    /// UX-GUI-002 of the audit that day moved the complaint under the box it is about, so there is no
+    /// tie left to break: the refusal stays at the foot of the window and the complaint stands under
+    /// the box, and neither hides the other.
     /// </summary>
     [Fact]
-    public async Task A_refusal_is_louder_than_a_query_that_will_not_parse()
+    public async Task A_refusal_and_a_query_that_will_not_parse_are_both_said()
     {
         var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
 
@@ -89,13 +91,14 @@ public sealed class RefusalTests
 
         model.QueryText = "start:nonsense";
 
-        Assert.NotEqual(string.Empty, model.Says.Problem);
+        var aboutTheQuery = model.Says.QueryProblem;
 
-        var aboutTheQuery = model.Says.Problem;
+        Assert.NotEqual(string.Empty, aboutTheQuery);
+        Assert.Equal(string.Empty, model.Says.Problem);
 
         model.Says.CouldNotDo("The clipboard is in use.");
 
-        Assert.NotEqual(aboutTheQuery, model.Says.Problem);
         Assert.Contains("clipboard", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(aboutTheQuery, model.Says.QueryProblem);
     }
 }

@@ -146,6 +146,41 @@ public sealed class EmptyStateTests
         Assert.DoesNotContain("everything again", model.Says.ListWayOut, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// WHEN SOME ENTRIES COULD NOT BE JUDGED, THE MIDDLE SAYS "NOTHING THAT COULD BE READ" - the
+    /// remainder of UX-GUI-001, 2026-09-23.
+    ///
+    /// <b>The qualification stood under the list while the middle said, in the voice of a finding,
+    /// that nothing matched.</b> Signatures are not read for a listing, so <c>signed:no</c> judges
+    /// every entry on something nobody read - and "Nothing in this list matches" is a claim about
+    /// entries nobody looked at. The same face and the same way out, and a sentence that is true.
+    /// </summary>
+    [Fact]
+    public async Task Nothing_that_could_be_read_matches_when_some_entries_could_not_be_judged()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("disk")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "signed:no";
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(ListFace.NothingMatched, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedReadableHere"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedHereWayOut"), model.Says.ListWayOut);
+
+        model.Scope = EntryScope.Everything;
+
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedReadable"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedWayOut"), model.Says.ListWayOut);
+
+        // And back to the plain sentence as soon as every entry could be judged.
+        model.QueryText = "name:NoSuchServiceAnywhere";
+
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatched"), model.Says.ListMessage);
+    }
+
     [Fact]
     public async Task A_query_that_matches_nothing_says_so_and_offers_the_way_back()
     {

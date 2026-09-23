@@ -378,7 +378,14 @@ public sealed class FoldingGuards
 
         Assert.True(model.Says.NoticeHasLink);
         Assert.Equal(Bws.Gui.Texts.Of("gui.instances.toggle"), model.Says.NoticeLink);
-        Assert.Equal(model.Says.NoticeBeforeLink + model.Says.NoticeLink + model.Says.NoticeAfterLink, model.Says.Notice);
+
+        // The line under the list is its pieces joined, and the whole admission ends with it -
+        // since 2026-09-23 the reservations stand under the box, so they sit between the rights
+        // and these pieces in Notice and nowhere in the line.
+        var footing = model.Says.NoticeBeforeLink + model.Says.NoticeLink + model.Says.NoticeAfterLink;
+
+        Assert.Equal(model.Says.NoticeRights + footing, model.Says.NoticeLine);
+        Assert.EndsWith(footing, model.Says.Notice, StringComparison.Ordinal);
         Assert.Contains(Bws.Gui.Texts.Of("gui.status.folded.one", 1), model.Says.NoticeBeforeLink, StringComparison.Ordinal);
         Assert.Contains(Bws.Gui.Texts.Of("gui.status.folded.one.after"), model.Says.NoticeAfterLink, StringComparison.Ordinal);
 

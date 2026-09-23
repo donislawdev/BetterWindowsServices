@@ -79,8 +79,14 @@ internal readonly record struct ListState
     /// window that answered "nothing matched" after the manager refused to open would be blaming
     /// the person for the machine.
     /// </summary>
+    /// <param name="partial">
+    /// Whether some entries could not be judged - refused, or never read. The query engine counts
+    /// both as one number, and either way "nothing matches" would be a claim about entries nobody
+    /// could look at.
+    /// </param>
     public static ListState Of(
-        bool firstLook, bool failed, int shown, int everything, int inScope, EntryScope scope, bool askedElsewhere)
+        bool firstLook, bool failed, int shown, int everything, int inScope, EntryScope scope, bool askedElsewhere,
+        bool partial)
     {
         if (shown > 0)
         {
@@ -156,13 +162,43 @@ internal readonly record struct ListState
                     Texts.Of("gui.empty.askedElsewhereWayOut"));
         }
 
-        // NOTHING MATCHED - and since 2026-08-19 it matters WHERE, because "everything" is now one
-        // of three lists. The way out said "press Esc and see everything again" until that day and
-        // it stopped being true the moment hiding drivers stopped living in the box: Escape empties
-        // the question and leaves the list alone.
-        //
-        // Two calls rather than one with a choice inside, which is TextKeyGuards' own precedent -
-        // a key travelling as anything but a literal at the call is invisible to it.
+        return NothingMatched(scope, partial);
+    }
+
+    /// <summary>
+    /// NOTHING MATCHED - and since 2026-08-19 it matters WHERE, because "everything" is now one of
+    /// three lists. The way out said "press Esc and see everything again" until that day and it
+    /// stopped being true the moment hiding drivers stopped living in the box: Escape empties the
+    /// question and leaves the list alone.
+    ///
+    /// Two calls rather than one with a choice inside, which is TextKeyGuards' own precedent - a key
+    /// travelling as anything but a literal at the call is invisible to it.
+    ///
+    /// <b>AND "NOTHING THAT COULD BE READ" WHEN SOME ENTRIES COULD NOT BE JUDGED - the remainder of
+    /// UX-GUI-001, 2026-09-23.</b> The line about entries judged on something unreadable stood under
+    /// the list while the middle of the window said, in the voice of a finding, that nothing
+    /// matched. Measured on a session without rights: status:running memory:>100MB with 104 running
+    /// services refusing their memory. The middle now says the same thing the qualification says, in
+    /// the one sentence a person reads first. The way out is unchanged.
+    ///
+    /// <b>Its own method since that day</b>, because the shape guard counted <see cref="Of"/> among
+    /// the methods standing near the ceiling of length once the second pair of sentences arrived.
+    /// </summary>
+    private static ListState NothingMatched(EntryScope scope, bool partial)
+    {
+        if (partial)
+        {
+            return scope == EntryScope.Everything
+                ? Say(
+                    ListFace.NothingMatched,
+                    Texts.Of("gui.empty.nothingMatchedReadable"),
+                    Texts.Of("gui.empty.nothingMatchedWayOut"))
+                : Say(
+                    ListFace.NothingMatched,
+                    Texts.Of("gui.empty.nothingMatchedReadableHere"),
+                    Texts.Of("gui.empty.nothingMatchedHereWayOut"));
+        }
+
         return scope == EntryScope.Everything
             ? Say(
                 ListFace.NothingMatched,
