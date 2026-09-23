@@ -73,7 +73,7 @@
             beside a single word.
 
             TWO ROWS, AND THE SECOND IS EMPTY ON EVERY LINE BUT ONE. The prose trigger moves the value
-            into it; without the row declared, Grid.Row="1" would be quietly clamped to the last row
+            into it - without the row declared, Grid.Row="1" would be quietly clamped to the last row
             that exists - which is the first - and the description would stay beside its label in
             three columns, exactly where it was, with nothing anywhere saying the trigger did nothing.
         -->

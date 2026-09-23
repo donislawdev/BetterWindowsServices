@@ -119,9 +119,6 @@ public partial class ActionBar : UserControl
     internal Button Refresh => RefreshButton;
 
     /// <inheritdoc cref="Stop"/>
-    internal Button Export => ExportButton;
-
-    /// <inheritdoc cref="Stop"/>
     internal Button StartType => StartTypeButton;
 
     /// <inheritdoc cref="Stop"/>

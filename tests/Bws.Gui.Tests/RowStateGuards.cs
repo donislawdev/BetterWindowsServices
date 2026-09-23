@@ -1,9 +1,7 @@
 // Explicit, because UseWPF swaps the implicit using set and takes System.IO out of it.
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Bws.Gui.ViewModels;

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -38,6 +39,18 @@ internal static class CodeShape
     /// test naming the file instead of a measure that quietly counts it wrong.
     /// </summary>
     internal static CSharpParseOptions Language { get; } = new(LanguageVersion.Latest);
+
+    private static readonly ConcurrentDictionary<string, Lazy<SyntaxTree>> Trees = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The syntax tree of one file, parsed once per run for every guard that reads it.
+    ///
+    /// Shared since 2026-09-23, when three more readers of the same 410 files arrived beside the
+    /// shape guards - dead code, silent catches and prose. Each parsing on its own would have been
+    /// four parses where one does, and four places to parse with different options.
+    /// </summary>
+    internal static SyntaxTree TreeOf(string path) =>
+        Trees.GetOrAdd(path, key => new Lazy<SyntaxTree>(() => CSharpSyntaxTree.ParseText(File.ReadAllText(key), Language, key))).Value;
 
     private static readonly Lazy<ShapeReport> ShippedReport = new(() => ShapeReport.Of(Sources.Shipped()));
     private static readonly Lazy<ShapeReport> TestingReport = new(() => ShapeReport.Of(Sources.Testing()));
@@ -174,7 +187,7 @@ internal sealed class ShapeReport
         foreach (var path in paths.OrderBy(path => path, StringComparer.Ordinal))
         {
             var name = CodeShape.NameOf(path);
-            var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(path), CodeShape.Language, path);
+            var tree = CodeShape.TreeOf(path);
             var root = tree.GetRoot();
             var errors = tree.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
 

@@ -18,12 +18,9 @@ namespace Bws.Gui.ViewModels;
 /// </summary>
 internal static class Sentences
 {
-    /// <summary>
-    /// The member the drivers checkbox writes into the query, spelled once. It lives here
-    /// rather than in the view model because the two methods below are the only code that
-    /// looks for it in somebody typed text.
-    /// </summary>
-    // HideDrivers STOOD HERE UNTIL 2026-08-11 AND WENT WITH THE TWO METHODS THAT USED IT.
+    // HideDrivers STOOD HERE UNTIL 2026-08-11 AND WENT WITH THE TWO METHODS THAT USED IT. Its
+    // summary stayed behind, attached to nothing and describing "the two methods below" as if they
+    // were still there, until the documentation file made the compiler read it on 2026-09-23.
     // WithHiddenDrivers and WithoutHiddenDrivers edited the query text by hand, the second one
     // only at the end of the line, and both were replaced by QueryMembers in the core - where the
     // scanner already lives and where a member can be found wherever somebody put it. The words

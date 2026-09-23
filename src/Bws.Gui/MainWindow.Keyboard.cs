@@ -162,7 +162,7 @@ public partial class MainWindow
 
                 if (!_model.ShowingOverview)
                 {
-                    _model.Suggesting.Arrived(Search.Box.Text, Search.Box.CaretIndex);
+                    _model.Suggesting.Arrived(Search.Box.Text);
                 }
 
                 return true;

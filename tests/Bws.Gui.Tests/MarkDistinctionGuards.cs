@@ -164,7 +164,7 @@ public sealed class MarkDistinctionGuards
     /// <b>Backlog 166, and the two guards above were green through the whole life of it.</b> The
     /// start type's mark was <c>BasedOn</c> the status mark, so it inherited every one of that
     /// style's triggers - and those read <c>StatusShape</c>, the run state. An entry that was
-    /// running hit the "running" trigger, which sets Fill and Stroke; the start column's own
+    /// running hit the "running" trigger, which sets Fill and Stroke - the start column's own
     /// "disabled" trigger then set Stroke and left the Fill where it was. So a service that was
     /// running while set to Disabled wore a GREEN FILLED DOT in the column about its next start -
     /// a column saying something confident and false about the present. Measured on the pixel:

@@ -29,18 +29,16 @@ namespace Bws.Gui;
 /// `Cells.xaml` already states: a tooltip is there because text that gives way has to be gettable.
 /// A tooltip over a fully visible "Stopped" repeats what is already on screen and covers the row
 /// under it.
+///
+/// <b>THE SINGLE SPACE IN THE CellText STYLE IS WHAT ARMS ALL OF THIS</b>, and it is never seen by
+/// anybody. The service ignores an element whose ToolTip is null, so there has to be something
+/// there before the opening event can fire and put the real text in - a single space rather than an
+/// empty string, because an empty one is treated as absent. The value lives in Cells.xaml, where
+/// the style is. Until 2026-09-23 a constant here held a second copy of it that nothing read, which
+/// is how this paragraph came to sit on a line of code the window never used.
 /// </summary>
 internal static class CellTips
 {
-    /// <summary>
-    /// Enough of a value for ToolTipService to arm itself, and never seen by anybody.
-    ///
-    /// The service ignores an element whose ToolTip is null, so there has to be something there
-    /// before the opening event can fire and put the real text in. A single space rather than an
-    /// empty string, because an empty one is treated as absent.
-    /// </summary>
-    private const string Placeholder = " ";
-
     /// <summary>
     /// How much wider than its box the text has to want to be before this counts as trimmed.
     ///

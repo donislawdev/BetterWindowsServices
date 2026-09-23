@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Core.Querying;

@@ -124,7 +124,7 @@ public sealed class QueryCompletionTests
     [Fact]
     public void A_letter_contained_in_the_middle_of_a_value_does_not_match_it()
     {
-        // startPending contains an r and is not offered under status:r; manual and disabled
+        // startPending contains an r and is not offered under status:r - manual and disabled
         // contain an a and are not offered under start:a.
         Assert.DoesNotContain("startPending", Typing("status:r"));
         Assert.DoesNotContain("manual", Typing("start:a"));

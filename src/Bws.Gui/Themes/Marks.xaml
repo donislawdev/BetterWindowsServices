@@ -42,7 +42,7 @@
 
         Until today `StartMark` was BasedOn `StatusMark`, which meant it inherited every one of
         that style's triggers - and those read `StatusShape`, the RUN STATE. A running entry hit
-        the "running" trigger, which sets Fill and Stroke; the start column's own "disabled"
+        the "running" trigger, which sets Fill and Stroke - the start column's own "disabled"
         trigger then set Stroke and left the Fill alone. So an entry that was running and
         disabled wore a GREEN FILLED DOT in the column about its next start. Measured on the
         pixel before the repair: #6CCB5F, the same green as the status dot two columns left.
@@ -73,7 +73,7 @@
         channel and always present.
 
         The trigger compares against a CODE from the view model, never against the word. The
-        word is translated; the code is not, and a trigger matching on "Running" would quietly
+        word is translated - the code is not, and a trigger matching on "Running" would quietly
         stop matching the day a second language file appears - the row would just lose its
         colour, with nothing anywhere saying why. This project has had four of those.
     -->

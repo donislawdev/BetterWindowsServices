@@ -266,7 +266,6 @@ public sealed class ColumnLayoutGuards
 
         Assert.Null(read.Layouts);
         Assert.NotNull(read.Unreadable);
-        Assert.True(read.WorthSaying);
     }
 
     /// <summary>
@@ -288,8 +287,13 @@ public sealed class ColumnLayoutGuards
         // fixture asserting silence has to be silent for the reason it names.
         var read = ColumnLayouts.Read("""{ "columns": [], "schemaVersion": 4 }""");
 
+        // The three facts KeptColumns speaks about, asked one by one - the way the window asks
+        // them. A single summary of the three stood here until 2026-09-23, read by nothing but
+        // these tests, so a test on it could pass while the window stopped saying anything.
         Assert.NotNull(read.Layouts);
-        Assert.False(read.WorthSaying);
+        Assert.Null(read.Unreadable);
+        Assert.Null(read.OtherSchemaVersion);
+        Assert.Null(read.CarriedForwardFrom);
 
         var plan = ColumnPlan.Of(read.Layouts.Services, EntryScope.Services);
 
@@ -345,7 +349,6 @@ public sealed class ColumnLayoutGuards
         Assert.Null(read.Unreadable);
         Assert.Null(read.OtherSchemaVersion);
         Assert.Equal(1, read.CarriedForwardFrom);
-        Assert.True(read.WorthSaying);
 
         // The widths they dragged, exactly where they left them.
         Assert.Equal(

@@ -1,4 +1,3 @@
-using System.Windows;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 using static Bws.Gui.Tests.PlanFixture;

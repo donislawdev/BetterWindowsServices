@@ -412,10 +412,4 @@ public sealed class PlanBuilderTests
 
         Assert.Equal(1, catalog.Reads);
     }
-
-    // -- fixtures --------------------------------------------------------------------------
-
-    /// <summary>
-    /// The chain as the manager describes it, transitive sets included, in the order given.
-    /// </summary>
 }

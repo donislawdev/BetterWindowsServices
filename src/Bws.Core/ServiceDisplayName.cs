@@ -79,7 +79,7 @@ public static class ServiceDisplayName
             return displayName;
         }
 
-        // The documented form is @[path\]file,-id[;comment], and the comment is the half a person
+        // The documented form is `@[path\]file,-id[;comment]`, and the comment is the half a person
         // was meant to read. Tcpip6 carries "Microsoft IPv6 Protocol Driver" there, which is the
         // right answer and is better than anything this code could invent. The FIRST semicolon
         // ends the indirection - anything after it belongs to the comment, semicolons included.

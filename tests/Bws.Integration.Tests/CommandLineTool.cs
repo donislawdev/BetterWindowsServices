@@ -94,7 +94,7 @@ internal static class CommandLineTool
             ?? throw new InvalidOperationException($"Could not start '{executable}'.");
 
         // BOTH CHANNELS AT ONCE, and reading them one after the other is a deadlock waiting for
-        // a noisy run. A pipe holds a few kilobytes; once the error channel fills, the child
+        // a noisy run. A pipe holds a few kilobytes - once the error channel fills, the child
         // blocks writing to it, and a parent sitting in ReadToEnd on the data channel never gets
         // to the line that would drain it. Neither side can move, and a test that hangs reports
         // nothing at all - which this project has already paid for once, choosing a regex engine.

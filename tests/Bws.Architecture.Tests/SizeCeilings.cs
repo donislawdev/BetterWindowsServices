@@ -53,10 +53,13 @@ internal static class SizeCeilings
     internal const int MarkupFilesNearLongest = 5;
 
     /// <summary>
-    /// 407 lines of code, Gui.Tests/MainViewModelTests.cs. Held to the same rule as the product on
+    /// 406 lines of code, Gui.Tests/MainViewModelTests.cs. Held to the same rule as the product on
     /// purpose: a test file nobody can read is a test file nobody checks.
+    ///
+    /// 407 until 2026-09-23, when the unused-member rule switched on that day found a forwarder
+    /// at the bottom of the file that no test called.
     /// </summary>
-    internal const int LongestTestFile = 407;
+    internal const int LongestTestFile = 406;
 
     /// <summary>
     /// Four at 285 or more: MainViewModelTests, Fakes/Specimens, QueryMatchingTests, CatalogueGuards.

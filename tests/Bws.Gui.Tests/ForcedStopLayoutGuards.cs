@@ -6,7 +6,6 @@ using System.Windows.Media.Imaging;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 using static Bws.Gui.Tests.ForcedStopFixture;
-using static Bws.Gui.Tests.PlanFixture;
 
 namespace Bws.Gui.Tests;
 

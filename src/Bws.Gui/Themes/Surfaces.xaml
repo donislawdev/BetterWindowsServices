@@ -163,7 +163,7 @@
         there rather than to any coercion. Naming it coercion made the whole family look
         unfixable, when the real answer was to stop borrowing the template - see ListRow.
 
-        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component;
+        1.25 IS OUR FLOOR AND NOT WCAG'S. SC 1.4.11 covers states needed to IDENTIFY a component -
         a separator identifies nothing, it only has to be seen between two rows. #333333 measures
         1.30 against the window, and deliberately stays under hover at 1.70 so that pointing at a
         row still reads as the stronger signal.
@@ -178,7 +178,7 @@
 
         1.4 IS OURS AND IT IS THE LOWEST FLOOR IN THIS FILE ON PURPOSE. At rest this thumb answers
         one question - where am I in the list - for somebody who is not currently reaching for it.
-        It identifies no component and it competes with nothing, so SC 1.4.11 does not reach it; it
+        It identifies no component and it competes with nothing, so SC 1.4.11 does not reach it - it
         only has to stay ABOVE the line between two rows, which sits at 1.25 and carries less. The
         moment the pointer enters the bar the awake colour takes over at 3.79, which does clear
         1.4.11 - so the state somebody can actually act on is the state that answers to the standard.

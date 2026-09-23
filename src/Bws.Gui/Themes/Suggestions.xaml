@@ -66,7 +66,7 @@
         DataTemplate keeps its node in the automation tree, a TextBlock in a ControlTemplate does
         not - so a reader from outside gets the meaning as well as the word.
 
-        The lead column is shared across rows so the trails line up down the list; the trail is
+        The lead column is shared across rows so the trails line up down the list - the trail is
         trimmed rather than wrapped because a row that grows taller moves the rows under the
         pointer.
     -->

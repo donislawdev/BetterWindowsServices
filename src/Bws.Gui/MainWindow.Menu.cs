@@ -220,7 +220,7 @@ public partial class MainWindow
         // line. `docs/ANALIZA-FORCE` 15.6: two entries in one process would be two plans ending one
         // process, and the bulk plan tells overlap apart by service name rather than by process, so
         // the preview would show two endings where the run does one - the one thing a preview may
-        // never do. The bar greys its two buttons over such a selection and says why on them; a
+        // never do. The bar greys its two buttons over such a selection and says why on them - a
         // menu item has no tooltip, so the reason goes to the status line, rule 8.
         //
         // The two kinds are named here and in Planned.Forcing, and that is two copies of a list of
@@ -342,8 +342,8 @@ public partial class MainWindow
     /// <summary>
     /// Every entry the picked rows stand for, which for a folded row is a whole per-user family.
     ///
-    /// <b>THE HALF OF `A11` THE SPECIFICATION WARNS ABOUT IN ITS OWN WORDS</b> - "inaczej admin
-    /// kliknie stop na jednym wierszu i zatrzyma cztery uslugi, nie wiedzac o tym". A row standing
+    /// <b>THE HALF OF `A11` THE SPECIFICATION WARNS ABOUT IN ITS OWN WORDS</b>, translated - "or
+    /// else an administrator clicks stop on one row and stops four services without knowing it". A row standing
     /// for four session copies has to put all four into the plan, or the preview is shorter than
     /// the run and `ADR-11` has produced the one thing it exists to prevent.
     ///

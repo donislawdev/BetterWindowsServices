@@ -22,7 +22,7 @@ public sealed class DetailLine
         Outcome = outcome;
 
         // A word carries a state that a blank cannot. In a column of eight hundred a blank cell
-        // means "genuinely nothing" and reads that way; beside a label on a panel about ONE entry
+        // means "genuinely nothing" and reads that way - beside a label on a panel about ONE entry
         // it reads as "did not load" - backlog 367, found by the component catalogue the first day
         // it drew this panel over a driver. `docs/06` part 3: never a blank standing in for an
         // answer.
@@ -66,7 +66,7 @@ public sealed class DetailLine
     /// string, the enum is internal to this assembly, and a translated word would stop matching
     /// the day a second language file appeared. The fixed face is the same decision
     /// <see cref="ColumnFace.Fixed"/> makes in the list and for the same reason out of `docs/03`
-    /// part 4; prose is the one field written for a person, drawn under its label at full width
+    /// part 4 - prose is the one field written for a person, drawn under its label at full width
     /// rather than in a column beside it.
     /// </summary>
     public string Wears { get; }
@@ -185,7 +185,7 @@ internal static class Details
                 .ToList();
 
             // ONE SENTENCE UNDER A SECTION WHOSE LINES NOBODY HAS ASKED FOR YET, saying what would
-            // read them. "Not read" six times is the truth and an idle one; the note is the half
+            // read them. "Not read" six times is the truth and an idle one - the note is the half
             // that tells somebody what to do about it. The section's note has existed since
             // 2026-08-13 for exactly this kind of sentence and carried none until today.
             var note = lines.Any(line => line.Outcome == ReadOutcome.NotRead)

@@ -1,6 +1,5 @@
 // Explicit, because UseWPF swaps the implicit using set and takes what this needs out of it.
 using System.Windows;
-using Bws.Core;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;

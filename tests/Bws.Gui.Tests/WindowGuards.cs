@@ -107,7 +107,7 @@ public sealed class WindowGuards
     ///
     /// <b><see cref="MainWindow.JumpTo"/> was made internal so that it could be checked, and then
     /// was not</b> - found on 2026-08-11 while repairing backlog 161, with the whole method
-    /// uncovered. <c>TypeToFindTests</c> holds the rule about WHICH row a letter picks;
+    /// uncovered. <c>TypeToFindTests</c> holds the rule about WHICH row a letter picks -
     /// what is here is the half only a window has: the grid's own order, the selection actually
     /// moving, and the answer that decides whether the key press is passed on.
     ///
@@ -254,7 +254,7 @@ public sealed class WindowGuards
     /// A column heading gives way with an ellipsis, exactly as every cell has since 2026-08-05.
     ///
     /// <b>Complaint 6 of the eleven, in the one place the fix for it never reached.</b> Cells got
-    /// trimming and a tooltip when the widths were measured; headings did not, because all six of
+    /// trimming and a tooltip when the widths were measured - headings did not, because all six of
     /// them were short and there was nothing to see. S6d2 brought headings like "Against its start
     /// type" and "Required privileges" over columns that shrink to a 90 unit floor, and the real
     /// window was photographed reading "Required priv" - cut in the middle of a word, which

@@ -18,7 +18,7 @@ public sealed record Suggestion(string Word, string Meaning, Range Replaces, str
 {
     /// <summary>
     /// What the row leads with: the sentence for a question, the word for a completion. A person
-    /// completing a word is looking for the word they started; a person who has typed nothing is
+    /// completing a word is looking for the word they started - a person who has typed nothing is
     /// looking for something to read, and the syntax teaches itself in the second column. The
     /// owner's fifth remark of 2026-09-16, decision D1 of the packet.
     /// </summary>
@@ -178,7 +178,7 @@ public sealed class Suggesting : Observable
     /// under moves the caret first, and closing the list here would take away what
     /// <see cref="Follow"/> has just offered for the new caret.
     /// </summary>
-    public void Arrived(string? text, int caret)
+    public void Arrived(string? text)
     {
         _keyboardHere = true;
 

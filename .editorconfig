@@ -116,6 +116,34 @@ dotnet_diagnostic.MA0051.severity = none
 dotnet_diagnostic.MA0009.severity = warning
 dotnet_diagnostic.MA0011.severity = warning
 
+# ---------------------------------------------------------------------------------------
+# Code nothing uses, 2026-09-23, the owner's decision. Measured before choosing, on a copy of the
+# tree built with these raised: one unused private constant, one field written and never read, one
+# parameter nobody reads, and one unused helper in the tests - every one of them building cleanly
+# until then, because none of these rules reaches warning severity by default.
+#
+# The PRIVATE half only. A public or internal member nothing calls is held by DeadCodeGuards in
+# tests/Bws.Architecture.Tests, because no analyser can see across the assemblies and the markup.
+# CA1823 was measured too and is NOT here: it reported the same two fields as IDE0051 and IDE0052
+# and nothing else, and two rules on one finding redden twice for one edit.
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+
+# A using directive nothing needs. 72 of them on the day, 15 in the product. The compiler only
+# reports this during a build when it writes a documentation file, which is why
+# Directory.Build.props turns that on - and turning it on made the compiler read every XML comment
+# in the tree, which found nine references to things that no longer exist. Those stay errors.
+dotnet_diagnostic.IDE0005.severity = warning
+
+# Two of the documentation rules the file brings with it, switched off by name. CS1591 asks for a
+# comment on every public member, which is a different decision from the one taken here. CS1573
+# asks for every parameter to be described once one is, and 88 record parameters would have had a
+# sentence written only to satisfy it. The rules that find broken references, malformed XML and a
+# comment on nothing stay on.
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.CS1573.severity = none
+
 [tests/**.cs]
 # The one rule above that does not apply here rather than being inconvenient. CA2007 is
 # about which context an await comes back on, and the test runner has none - so writing

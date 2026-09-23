@@ -1,11 +1,7 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Bws.Core;
 using Bws.Gui.ViewModels;
-using Xunit;
 
 namespace Bws.Gui.Tests;
 

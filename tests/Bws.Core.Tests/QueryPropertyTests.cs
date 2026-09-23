@@ -1,5 +1,3 @@
-using Bws.Core.Querying;
-
 namespace Bws.Core.Tests;
 
 /// <summary>

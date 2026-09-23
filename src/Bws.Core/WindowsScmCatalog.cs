@@ -1,10 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Security.AccessControl;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.Security;
-using Windows.Win32.Storage.FileSystem;
 using Windows.Win32.System.Services;
 
 namespace Bws.Core;
@@ -199,7 +196,7 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
         var probeError = Marshal.GetLastWin32Error();
 
         // ASKED THROUGH THE RETURN VALUE SINCE 2026-08-26, AND THROUGH THE ERROR CODE ALONE BEFORE
-        // THAT. The enumeration below carries the argument in full; the short version is that
+        // THAT. The enumeration below carries the argument in full - the short version is that
         // Windows does not clear the last error on success, so a call with nothing to hand over can
         // leave whatever the previous call in this thread put there - and a check reading only the
         // number turned an ordinary service with no dependents into a refusal.

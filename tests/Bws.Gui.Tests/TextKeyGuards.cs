@@ -41,7 +41,7 @@ public sealed class TextKeyGuards
     ///
     /// <b>What it therefore does not catch, said rather than left to be found:</b> a key
     /// travelling as a variable rather than sitting inside the call. When this guard was first run
-    /// it reported the six keys of <see cref="ListState"/>, across its four calls to Say - written
+    /// it reported the six keys of <see cref="Bws.Gui.ViewModels.ListState"/>, across its four calls to Say - written
     /// an hour earlier, in this same session, by the same hand that had just written "every call
     /// passes a literal" into this comment. The keys were moved into their calls rather than the
     /// pattern being widened, because a key visible where it is chosen is better for a reader too.

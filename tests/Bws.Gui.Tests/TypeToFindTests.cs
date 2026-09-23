@@ -1,4 +1,3 @@
-using Bws.Gui;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;

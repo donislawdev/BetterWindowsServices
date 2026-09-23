@@ -78,6 +78,12 @@ public sealed class AnalyzerRuleGuards
         "[*.cs] dotnet_diagnostic.MA0051.severity = none",
         "[*.cs] dotnet_diagnostic.MA0009.severity = warning",
         "[*.cs] dotnet_diagnostic.MA0011.severity = warning",
+        "[*.cs] dotnet_diagnostic.IDE0051.severity = warning",
+        "[*.cs] dotnet_diagnostic.IDE0052.severity = warning",
+        "[*.cs] dotnet_diagnostic.IDE0060.severity = warning",
+        "[*.cs] dotnet_diagnostic.IDE0005.severity = warning",
+        "[*.cs] dotnet_diagnostic.CS1591.severity = none",
+        "[*.cs] dotnet_diagnostic.CS1573.severity = none",
         "[tests/**.cs] dotnet_diagnostic.CA2007.severity = none",
     ];
 
@@ -111,7 +117,30 @@ public sealed class AnalyzerRuleGuards
         "RunAnalyzers", "RunAnalyzersDuringBuild", "EnableNETAnalyzers", "AnalysisLevel", "AnalysisMode",
         "CodeAnalysisRuleSet", "WarningLevel", "EnforceCodeStyleInBuild",
         "CodeAnalysisTreatWarningsAsErrors", "GlobalAnalyzerConfigFiles", "EditorConfigFiles",
+        "PublishDocumentationFile", "PublishReferencesDocumentationFiles",
     ];
+
+    /// <summary>
+    /// What <see cref="Shared"/> has to say, each with what goes quiet the day it stops saying it.
+    /// These are the switches above that one file sets for all of them, and no other file may.
+    ///
+    /// <b>The two publish lines joined on 2026-09-23</b>, with the documentation file IDE0005 needs:
+    /// the file was measured going out with the release the moment it existed, which nobody decided,
+    /// and nothing but this would notice it doing so again.
+    ///
+    /// <b>The documentation file itself is NOT here, and the first draft of this summary said it had
+    /// to be.</b> It claimed a project switching the file off would switch IDE0005 off with it,
+    /// without a word. The mutation run that day tried exactly that and the build refused -
+    /// <c>error EnableGenerateDocumentationFile</c>, the SDK's own - so the SDK already says the
+    /// word, louder than a test, and a second guard on the same edit would only redden twice.
+    /// </summary>
+    private static readonly Dictionary<string, string> SharedMustSay = new(StringComparer.Ordinal)
+    {
+        ["<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>"] = "the style rules in .editorconfig stop failing the build",
+        ["<PublishDocumentationFile>false</PublishDocumentationFile>"] = "each executable's documentation file goes out with the release",
+        ["<PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>"] =
+            "Bws.Core.xml goes out with the release beside both executables",
+    };
 
     /// <summary>
     /// A setting and a section header, exactly as the compiler's own parser reads them - Roslyn's
@@ -177,10 +206,9 @@ public sealed class AnalyzerRuleGuards
         var problems = Sources.BuildFiles().SelectMany(file => Weakenings(file, File.ReadAllText(file))).ToList();
 
         var shared = File.ReadAllText(Path.Combine(SourceTree.Root(), Shared));
-        if (!Contains(shared, "<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>"))
-        {
-            problems.Add($"  {Shared} no longer sets EnforceCodeStyleInBuild, so the style rules in .editorconfig stop failing the build");
-        }
+        problems.AddRange(SharedMustSay
+            .Where(said => !Contains(shared, said.Key))
+            .Select(said => $"  {Shared} no longer says {said.Key}, so {said.Value}"));
 
         if (!Contains(shared, "<PackageReference Include=\"Meziantou.Analyzer\""))
         {
@@ -245,7 +273,7 @@ public sealed class AnalyzerRuleGuards
     private static IEnumerable<string> Weakenings(string file, string text)
     {
         var name = CodeShape.NameOf(file);
-        foreach (var property in Switches.Where(property => !(property == "EnforceCodeStyleInBuild" && name == Shared)))
+        foreach (var property in Switches.Where(property => !(name == Shared && SharedMustSay.Keys.Any(said => said.StartsWith($"<{property}>", StringComparison.Ordinal)))))
         {
             if (Regex.IsMatch(text, $"<{property}\\w*[\\s>]", RegexOptions.IgnoreCase, Sources.Ceiling))
             {

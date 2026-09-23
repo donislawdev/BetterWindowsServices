@@ -145,7 +145,7 @@ public sealed class KeptColumnGuards : IDisposable
     /// Turn a column off, close the window, open it again - it is still off.
     ///
     /// <b>This is the promise `docs/04` writes for this slice, end to end, through the real
-    /// window.</b> Everything else in these two classes checks one link of it; this one checks that
+    /// window.</b> Everything else in these two classes checks one link of it - this one checks that
     /// the links are joined, which is the failure this product has met most often - a mechanism
     /// that works in every part and is wired to nothing.
     ///

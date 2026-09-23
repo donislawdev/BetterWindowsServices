@@ -149,7 +149,7 @@ public sealed record ScmEntry
     /// five runs with the first discarded: <b>236-259 ms over 313 services, 784 dependents found,
     /// nothing refused</b>. That is the size of the whole listing again - 423-500 ms over 810
     /// entries - so paying it on every F5 for a column that is off by default is exactly the trade
-    /// `ADR-13` refuses. It is read when somebody asks, and <see cref="ExtraRead.RequiredBy"/> is
+    /// `ADR-13` refuses. It is read when somebody asks, and <see cref="Querying.ExtraRead.RequiredBy"/> is
     /// how they ask.
     ///
     /// <b>ASKED OF THE MANAGER RATHER THAN INVERTED FROM THE DECLARATIONS, and that is not
@@ -366,14 +366,6 @@ public sealed record ScmEntry
     /// </summary>
     public required Reading<ProcessMemory> Memory { get; init; }
 
-    /// <summary>
-    /// True for a name in <see cref="DependsOn"/> that names a load order group rather
-    /// than a service. Stopping one member of a group does not necessarily break anything
-    /// that depends on the group, so the two cannot be treated alike when planning.
-    /// </summary>
-    public static bool IsGroup(string dependency) =>
-        dependency.StartsWith('+');
-
     public bool IsDriver => EntryType is EntryType.KernelDriver or EntryType.FileSystemDriver;
 
     /// <summary>
@@ -402,7 +394,7 @@ public sealed record ScmEntry
     /// decision - backlog 170, 2026-08-18.</b> One boolean answering two opposite questions destroys
     /// the part of the answer somebody needs in order to act: a true would stop saying WHICH of the
     /// two situations they have, and the remedies are opposite. A stopped automatic entry gets
-    /// started or investigated; this one is a decision about whether to stop it or to re-enable it.
+    /// started or investigated - this one is a decision about whether to stop it or to re-enable it.
     /// The same discipline the four states of a <see cref="Reading{T}"/> already keep.
     ///
     /// <b>What it means on a real machine, because it is not a corner case.</b> The manager could

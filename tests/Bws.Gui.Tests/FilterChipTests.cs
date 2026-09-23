@@ -46,7 +46,7 @@ public sealed class FilterChipTests
     /// A group that adds up and a group that narrows do not say the same sentence.
     ///
     /// <b>The claim on screen has to differ where the behaviour differs, or the labels are
-    /// decoration.</b> Two chips in the state group show both; two chips in the last group narrow
+    /// decoration.</b> Two chips in the state group show both - two chips in the last group narrow
     /// each other, because they are different fields. A single hint over both would be true for one
     /// of them and false for the other - which is how a window teaches somebody the wrong rule and
     /// then behaves correctly.

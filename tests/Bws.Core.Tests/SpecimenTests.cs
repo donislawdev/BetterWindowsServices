@@ -123,15 +123,16 @@ public sealed class SpecimenTests
         // The one case that cannot be treated as a service name. Without a specimen, a
         // cascade that resolves "+NetBIOSGroup" as a service would look right in every
         // test and be wrong on the one machine that has one.
+        //
+        // The manager marks a group with a leading plus. That test is written out here rather
+        // than asked of the product, because the product has no question for it: nothing that
+        // plans reads DependsOn, and ScmEntry.IsGroup went on 2026-09-23 with these tests as its
+        // only callers.
         var withGroup = Specimens.All.Single(entry =>
-            entry.DependsOn.IsPresent && entry.DependsOn.Value!.Any(ScmEntry.IsGroup));
+            entry.DependsOn.IsPresent && entry.DependsOn.Value!.Any(name => name.StartsWith('+')));
 
         Assert.Equal("RemoteAccess", withGroup.ServiceName);
         Assert.Contains("+NetBIOSGroup", withGroup.DependsOn.Value!);
-
-        // And the ordinary services in the same list are not mistaken for groups.
-        Assert.False(ScmEntry.IsGroup("RpcSS"));
-        Assert.True(ScmEntry.IsGroup("+NetBIOSGroup"));
     }
 
     [Fact]

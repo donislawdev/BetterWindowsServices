@@ -117,7 +117,7 @@ internal static class TheClipboard
             // A THIRD VERDICT RATHER THAN A PASS OR A FAILURE, and this project already has the
             // shape: window-journey answers `held` and adverse.ps1 answers `inert`, both meaning
             // THIS RUN MEASURED NOTHING. Passing here would be a guard reporting success for work
-            // it never watched; failing would blame the window for another process holding the
+            // it never watched - failing would blame the window for another process holding the
             // clipboard. Skipped shows up in the run's own count, so it cannot go quiet.
             //
             // Silence is still a failure and still gets here first - Landed asserts on it before
@@ -152,7 +152,7 @@ internal static class TheClipboard
             // all - which made the three attempts one attempt with extra steps. Whatever holds the
             // clipboard holds it for a moment: Visual Studio and Docker Desktop were both up on the
             // machine where this was measured, and either can own it while a build is running.
-            // WPF already retries the WRITE ten times at a hundred milliseconds; nothing retried
+            // WPF already retries the WRITE ten times at a hundred milliseconds - nothing retried
             // the READ, and this is that.
             await Task.Delay(Breath).ConfigureAwait(true);
         }

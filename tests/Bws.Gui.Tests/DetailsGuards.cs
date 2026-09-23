@@ -237,7 +237,7 @@ public sealed class DetailsGuards
     /// Nothing is drawn as a word, not as a blank - backlog 367, found by the component catalogue
     /// the first day it drew this panel over a driver: "Account" and "PID" with nothing after them,
     /// which on a panel about one entry reads as "did not load". The cell's own words stay in
-    /// Value, blank included, so the guard holding a line to its cell keeps holding; what is DRAWN
+    /// Value, blank included, so the guard holding a line to its cell keeps holding - what is DRAWN
     /// is Shown, and it carries the word.
     /// </summary>
     [Fact]

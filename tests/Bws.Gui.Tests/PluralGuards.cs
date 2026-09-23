@@ -97,7 +97,7 @@ public sealed class PluralGuards
     ///
     /// <b>The same repair the core got on 2026-08-25, in the four places the window had it</b> - and
     /// one of those four was the title of the plan panel, which said "What restarting X would do"
-    /// over a step that set a start type. A probe on a live window caught that one; nothing here
+    /// over a step that set a start type. A probe on a live window caught that one - nothing here
     /// did, so these two lines exist to make the refusals themselves executed rather than written.
     /// </summary>
     [Fact]

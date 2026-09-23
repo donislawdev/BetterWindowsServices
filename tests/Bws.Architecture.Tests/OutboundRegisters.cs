@@ -1,7 +1,5 @@
 // Explicit for the same reason SourceTree.cs says so at the top of itself: these guards read
 // files off disk, and the implicit using set is not something to depend on across projects.
-using System.IO;
-
 namespace Bws.Architecture.Tests;
 
 /// <summary>

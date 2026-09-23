@@ -131,7 +131,7 @@ internal static class QueryScanner
     /// The same scan, and where each member sat in the text it came from.
     ///
     /// <b>The spans are here rather than on <see cref="ScannedText"/>, and that is the whole
-    /// design decision.</b> A ScannedText is also produced by <see cref="ScannedText.Slice"/>
+    /// design decision.</b> A ScannedText is also produced by <see cref="ScannedText.Slice(int, int)"/>
     /// when a member is cut at its colon or split on its commas, and those pieces have no
     /// position in the original query - only in their parent. A Start property on the record
     /// would be right for members and quietly wrong for every slice, which is a worse thing to

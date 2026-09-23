@@ -1,6 +1,4 @@
-using System.Collections.ObjectModel;
 using Bws.Core;
-using Bws.Core.Planning;
 using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
@@ -267,7 +265,7 @@ public sealed partial class MainViewModel : Observable
 
     /// <summary>
     /// The list under the search box - what can be written where the caret stands, and the six
-    /// questions when the box is empty. Point 9 of `docs/11` 2.14; the rules are its own.
+    /// questions when the box is empty. Point 9 of `docs/11` 2.14 - the rules are its own.
     /// </summary>
     public Suggesting Suggesting { get; }
 

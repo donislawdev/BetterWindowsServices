@@ -63,14 +63,4 @@ public enum SignatureStatus
 /// as well when the file is signed but the signer could not be read back - those two are
 /// told apart by <see cref="Status"/>.
 /// </param>
-public sealed record BinarySignature(SignatureStatus Status, int ResultCode, string? Publisher)
-{
-    /// <summary>
-    /// Whether the system trusts this file.
-    ///
-    /// Deliberately not "is it signed". An expired or untrusted signature is a signature,
-    /// and answering "yes it is signed" about one would be true and useless. What somebody
-    /// asking wants to know is whether Windows would run it without complaining.
-    /// </summary>
-    public bool IsTrusted => Status == SignatureStatus.Trusted;
-}
+public sealed record BinarySignature(SignatureStatus Status, int ResultCode, string? Publisher);

@@ -9,7 +9,7 @@ namespace Bws.Gui.Tests;
 /// The layout as a file on a disk, which is where the failures nobody plans for live.
 ///
 /// <b>Split from <see cref="ColumnLayoutGuards"/> on 2026-08-13 and the seam is the product's
-/// own.</b> That class is about what a layout means; this one is about a real path, a real profile
+/// own.</b> That class is about what a layout means - this one is about a real path, a real profile
 /// and the four ways a real file refuses: it is not there, something else is holding it open, it
 /// cannot be moved out of the way, and there is nowhere to put it. None of those is exotic on the
 /// machines this tool is for - a roaming profile is synchronised, and backup and antivirus both
@@ -35,7 +35,9 @@ public sealed class PreferencesFileGuards : IDisposable
         var reading = Fresh().Read();
 
         Assert.Null(reading.Layouts);
-        Assert.False(reading.WorthSaying);
+        Assert.Null(reading.Unreadable);
+        Assert.Null(reading.OtherSchemaVersion);
+        Assert.Null(reading.CarriedForwardFrom);
         Assert.Equal(
             ColumnLayout.DefaultFor(EntryScope.Services).Columns,
             ColumnPlan.Of(reading.Layouts?.Services, EntryScope.Services).Layout.Columns);
@@ -317,7 +319,7 @@ public sealed class PreferencesFileGuards : IDisposable
     /// place of a sentence - and this read happens while the window is being constructed.
     ///
     /// <b>The size is set rather than written, which is how this stays a test somebody will run.</b>
-    /// Asking the file system for a length is instant on NTFS; writing two megabytes to disk on
+    /// Asking the file system for a length is instant on NTFS - writing two megabytes to disk on
     /// every run to prove a rule about size would be a test that earns its own line in a report
     /// about slow suites.
     ///

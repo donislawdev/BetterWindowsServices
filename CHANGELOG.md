@@ -194,7 +194,7 @@ Nothing has been released yet. Everything below is what the tool does today.
   pointer and the press now, like every other button.
 
 - **The list under the search box reads as a list.** On an empty box it leads with the
-  question in plain words - *Switched off and running anyway* - and the query follows; while
+  question in plain words - *Switched off and running anyway* - and the query follows - while
   typing, the word leads. A line over the list says what it is, the keys stand in a foot of
   their own under a rule, there is a gap between the word and its sentence where the two ran
   together, both are one size, and a row lights up under the pointer.

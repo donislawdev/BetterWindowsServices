@@ -10,7 +10,7 @@ namespace Bws.Gui.ViewModels;
 /// the box was empty.
 ///
 /// <b>Examples rather than a syntax card, and that is the same bet the chips made.</b> A chip
-/// teaches by writing its member into the box; these teach by writing a whole question into it.
+/// teaches by writing its member into the box - these teach by writing a whole question into it.
 /// Somebody who clicks "Automatic but not running" and reads
 /// <c>start:auto !status:running</c> has learnt the negation operator without being told about it,
 /// and can edit it into the question they actually had.

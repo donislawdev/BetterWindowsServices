@@ -15,10 +15,10 @@ namespace Bws.Core.Planning;
 internal static class PlanSteps
 {
     /// <summary>
-    /// The three argument shape of <see cref="Step"/>, for handing to somebody who builds
+    /// The three argument shape of <see cref="Made"/>, for handing to somebody who builds
     /// steps of their own.
     ///
-    /// <b>A method rather than a method group, because Step carries an optional fourth
+    /// <b>A method rather than a method group, because Made carries an optional fourth
     /// argument and a group with one of those converts to nothing.</b> Named once here rather
     /// than written as a lambda at each of the three call sites.
     /// </summary>

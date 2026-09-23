@@ -3,6 +3,33 @@ using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
 
+/// <summary>
+/// The columns of `A8` - twenty-eight on 2026-09-23. Count <see cref="All"/> rather than this line.
+///
+/// <b>It began as seventeen, and the arithmetic of that day is kept because it says what earns a
+/// column.</b> On 2026-08-11 `ScmEntry` carried 22 fields plus one derived. Four were left out
+/// because only the second phase of `ADR-13` reads them - signature, file version, binary hash and
+/// memory - and the window had no second phase, so a column would have said "nobody looked" on every
+/// row. Two more were qualifiers the start column already carried - the delayed flag and whether the
+/// file is on disk. 23 - 4 - 2 was seventeen, owner's decision.
+///
+/// <b>What changed since, and the entries below carry their dates.</b> The two qualifiers got
+/// columns of their own on 2026-08-17, the four second phase fields came in once the window had that
+/// phase, and five more arrived with later slices - 17 + 2 + 4 + 5 is the twenty-eight above. This
+/// paragraph stated the seventeen as the present until the review of the pull request that moved it
+/// here, 2026-09-23.
+///
+/// <b>Which are on before anybody chooses is each column's own</b> <see cref="Column.ShownAtFirstIn"/>,
+/// per list, and not a number written here.
+///
+/// <b>The order is the order they are offered in</b>, which is what somebody reads down the picker
+/// and what the grid uses before anybody drags anything - with the three lists and the two that are
+/// mostly for an audit at the end.
+///
+/// <b>This comment stood at the end of Column.cs, attached to nothing, from the day the size
+/// ratchet moved this table out of that file until 2026-09-23</b>, when the documentation file
+/// made the compiler read it and it refused a comment on nothing.
+/// </summary>
 internal static partial class Columns
 {
     /// <summary>Every column, in the order they are offered.</summary>
