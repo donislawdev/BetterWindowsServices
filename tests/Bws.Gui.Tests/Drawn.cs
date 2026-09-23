@@ -26,17 +26,24 @@ internal sealed class Drawn
     private readonly RenderTargetBitmap _bitmap;
     private readonly byte[] _pixels;
 
-    private Drawn(FrameworkElement host, RenderTargetBitmap bitmap, byte[] pixels, int width, int height)
+    private Drawn(FrameworkElement host, RenderTargetBitmap bitmap)
     {
         _host = host;
         _bitmap = bitmap;
-        _pixels = pixels;
-        Width = width;
-        Height = height;
+
+        // READ ONCE ON THE INTERFACE THREAD AND KEPT AS PLAIN VALUES. The bitmap belongs to that
+        // thread and throws when any other asks it even for its size - which is what the counting
+        // below would otherwise do on every pixel.
+        (Width, Height, _pixels) = WpfHost.On(() =>
+        {
+            var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
+
+            bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+
+            return (bitmap.PixelWidth, bitmap.PixelHeight, pixels);
+        });
     }
 
-    // Kept as plain numbers rather than read off the bitmap, which belongs to the interface thread
-    // and throws when this thread asks it for its size.
     private int Width { get; }
 
     private int Height { get; }
@@ -60,11 +67,7 @@ internal sealed class Drawn
             return drawn;
         });
 
-        var pixels = new byte[width * height * 4];
-
-        WpfHost.On(() => bitmap.CopyPixels(pixels, width * 4, 0));
-
-        return new Drawn(host, bitmap, pixels, width, height);
+        return new Drawn(host, bitmap);
     }
 
     /// <summary>
