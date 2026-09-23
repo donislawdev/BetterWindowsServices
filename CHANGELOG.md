@@ -169,6 +169,24 @@ Nothing has been released yet. Everything below is what the tool does today.
   quote, or a start that no value has, such as `status:rx`. The command line has no keystrokes,
   so `bws list --query "status:r"` is still refused.
 
+- **The filter buttons beside the search box follow what is in the box, even when it has a
+  mistake in it.** Clicking *Running* and *Manual* and then typing `stat:runing` over them left
+  both buttons lit for a query that was no longer there. They now go dark. And a button whose
+  word is in the box stays lit when another part of the query is wrong - in
+  `status:running pid:abc` the *Running* button is lit, and clicking it no longer writes
+  `status:running` a second time.
+
+- **"Set to start and not running" under the search box asks the same question as the *Should
+  run, is not* button.** It wrote `start:auto !status:running`, which also finds services that
+  are stopped on purpose - per-user templates, and services started by a trigger. On the machine
+  this was measured on that was 7 services against 1. It now writes `mismatch:stopped`, the same
+  as the button, so both give the same answer.
+
+- **An empty list no longer says "nothing matches" about entries it could not look at.** When
+  some entries could not be judged - Windows refused to show a field, or the window does not read
+  it - an empty list now says *Nothing that could be read in this list matches what you asked
+  for*, beside the line that says how many could not be judged.
+
 - **The window no longer answers a question about memory with a confident "nothing matches"
   when it was not allowed to look.** Without administrator rights, Windows refuses to say how
   much memory most service processes hold - on the machine this was found on, 104 of them. A
@@ -805,6 +823,20 @@ Nothing has been released yet. Everything below is what the tool does today.
     be told apart from a local disk without contacting it, so those are still followed.
 
 ### Changed
+
+- **What the window says about your search now stands under the search box.** A mistake in
+  the query is said right under the box, in red, and the box itself gets a red edge - until now
+  the only sign was a line at the very bottom of the window, far from where you were typing. The
+  sentence also says that the list below is still the answer to your last query that could be
+  read, because the list stays as it was while you fix the mistake. When the query is fine, the
+  same line says what its answer could not judge or has not read yet - for example that some
+  entries were judged on a field Windows would not show without administrator rights. The line
+  appears when you start typing and goes when you empty the box.
+
+- **At the bottom of the window, only the sentence about administrator rights is red.** The
+  whole line used to turn red in a session without those rights, including the sentence about
+  folded per-user copies, which has nothing to do with rights. That sentence, and the one about
+  the list holding still under your pointer, are now in the ordinary notice colour.
 
 - **The program's icon is half again as large inside its own frame.** The bean was drawn small
   and tilted, so it filled 77 per cent of the icon across and 65 per cent down - it read about a
