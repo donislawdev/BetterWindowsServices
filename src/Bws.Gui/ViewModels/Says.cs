@@ -147,6 +147,13 @@ public sealed class Says : Observable
     /// (UX-GUI-007). <b>Not only while it has words, because then the list would jump</b> each time a
     /// reading note came and went under somebody's typing. Tied to the box instead, the line appears
     /// with the first character and goes when the box is emptied - a move the person made.
+    ///
+    /// <b>UNLESS IT STILL HAS SOMETHING TO SAY, and that half is rule 8 rather than layout.</b> A
+    /// column on screen asks for a family too (MainViewModel.Asked), so with the box empty a shown
+    /// Memory column still gets a note while the window reads what fills it. The reservations no
+    /// longer stand under the list, so without this half that note would be said nowhere - the
+    /// window reading for seconds with no sentence about it. The review of PR #11 caught the user
+    /// changelog promising only the first half.
     /// </summary>
     public bool AnswerLineShown => _asking || AnswerLine.Length > 0;
 
@@ -275,7 +282,7 @@ public sealed class Says : Observable
     /// worth saying.
     /// </summary>
     /// <remarks>
-    /// It also keeps whether any entry could not be judged, for the middle of an empty list - which
+    /// It also keeps whether any entry could not be judged or checked, for the middle of an empty list - which
     /// is decided in <see cref="AboutTheList"/>, called straight after this and also on its own.
     ///
     /// <b>The narrowed answer rather than its two counts, since 2026-09-23</b> - the shape guard
@@ -286,7 +293,9 @@ public sealed class Says : Observable
         ExtraRead needs, bool held, Narrowed answer, ExtraRead have, bool filling,
         int folded, bool listOnScreen)
     {
-        _partial = answer.Unreadable > 0;
+        // An entry the expression ran out of time on was never checked either, and the line under
+        // the box says so - the review of PR #11 found the middle still saying "nothing matches".
+        _partial = answer.Unreadable > 0 || answer.TooCostly > 0;
 
         Admit(Sentences.Admissions(
             needs, held, answer.Unreadable, answer.TooCostly, Elevated, have, filling, folded, listOnScreen));

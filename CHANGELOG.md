@@ -183,9 +183,10 @@ Nothing has been released yet. Everything below is what the tool does today.
   as the button, so both give the same answer.
 
 - **An empty list no longer says "nothing matches" about entries it could not look at.** When
-  some entries could not be judged - Windows refused to show a field, or the window does not read
-  it - an empty list now says *Nothing that could be read in this list matches what you asked
-  for*, beside the line that says how many could not be judged.
+  some entries could not be judged - Windows refused to show a field, the window does not read
+  it, or a regular expression ran out of time on them - an empty list now says *Nothing that could
+  be checked in this list matches what you asked for*, beside the line that says how many could
+  not be judged and why.
 
 - **The window no longer answers a question about memory with a confident "nothing matches"
   when it was not allowed to look.** Without administrator rights, Windows refuses to say how
@@ -831,7 +832,9 @@ Nothing has been released yet. Everything below is what the tool does today.
   read, because the list stays as it was while you fix the mistake. When the query is fine, the
   same line says what its answer could not judge or has not read yet - for example that some
   entries were judged on a field Windows would not show without administrator rights. The line
-  appears when you start typing and goes when you empty the box.
+  appears when you start typing and goes when you empty the box - unless it still has something
+  to say. A column you turned on, such as Memory, can need a reading of its own, and while the
+  window is doing that reading the line says so even with the box empty.
 
 - **At the bottom of the window, only the sentence about administrator rights is red.** The
   whole line used to turn red in a session without those rights, including the sentence about

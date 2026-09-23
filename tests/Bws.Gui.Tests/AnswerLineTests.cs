@@ -119,6 +119,44 @@ public sealed class AnswerLineTests
     }
 
     /// <summary>
+    /// WITH THE BOX EMPTY THE LINE STILL SPEAKS WHILE IT HAS SOMETHING TO SAY - the half of
+    /// AnswerLineShown the user changelog left out until the review of PR #11.
+    ///
+    /// <b>This half is rule 8, not layout.</b> A shown column asks for its family too, and the
+    /// reservations no longer stand under the list, so a Memory column turned on with nothing typed
+    /// is said here while its pass is out, or nowhere. The pass is held open by a reader that waits,
+    /// so the state is looked at while it is true rather than raced.
+    /// </summary>
+    [Fact]
+    public async Task A_shown_column_still_being_read_is_said_under_an_empty_box()
+    {
+        using var reader = new HeldMemory();
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock(), reader: reader);
+        var columns = new ColumnBar();
+
+        model.ColumnsNeed = () => columns.Needs;
+
+        await model.LoadAsync();
+
+        columns.Choices.Single(choice => choice.Column.Id == "memory").IsShown = true;
+
+        var refresh = model.RefreshAsync();
+
+        Assert.True(reader.Entered.Wait(TimeSpan.FromSeconds(10)), "The memory pass never started, so the rest of this proves nothing.");
+
+        Assert.Equal(string.Empty, model.QueryText);
+        Assert.Equal(Texts.Of("gui.query.readingMemory"), model.Says.AnswerLine);
+        Assert.True(model.Says.AnswerLineShown);
+
+        reader.Release();
+        await refresh;
+
+        // Read, so nothing is left to say, and the room goes back with the words.
+        Assert.Equal(string.Empty, model.Says.AnswerLine);
+        Assert.False(model.Says.AnswerLineShown);
+    }
+
+    /// <summary>
     /// THE BOX IS TOLD IT IS WRONG through the framework's own interface, which is what lights the
     /// red edge - and told it is right again when the mistake goes.
     /// </summary>
@@ -180,5 +218,34 @@ public sealed class AnswerLineTests
         await model.LoadAsync();
 
         return model;
+    }
+
+    /// <summary>A process whose memory is not handed over until the test says so - what keeps the pass out.</summary>
+    private sealed class HeldMemory : Bws.Core.IProcessMemoryReader, IDisposable
+    {
+        private readonly ManualResetEventSlim _gate = new(initialState: false);
+
+        /// <summary>Set once the pass has asked, which is after the window said it was reading.</summary>
+        internal ManualResetEventSlim Entered { get; } = new(initialState: false);
+
+        internal void Release() => _gate.Set();
+
+        public Bws.Core.Reading<Bws.Core.ProcessMemory> Read(int processId)
+        {
+            Entered.Set();
+
+            // Bounded, so a test that forgot to release fails on its own assertions instead of
+            // hanging the run.
+            _gate.Wait(TimeSpan.FromSeconds(10));
+
+            return Bws.Core.Reading<Bws.Core.ProcessMemory>.Present(new Bws.Core.ProcessMemory(1024, 2048, 1));
+        }
+
+        public void Dispose()
+        {
+            _gate.Set();
+            _gate.Dispose();
+            Entered.Dispose();
+        }
     }
 }

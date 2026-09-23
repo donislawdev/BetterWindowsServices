@@ -147,8 +147,9 @@ public sealed class EmptyStateTests
     }
 
     /// <summary>
-    /// WHEN SOME ENTRIES COULD NOT BE JUDGED, THE MIDDLE SAYS "NOTHING THAT COULD BE READ" - the
-    /// remainder of UX-GUI-001, 2026-09-23.
+    /// WHEN SOME ENTRIES COULD NOT BE JUDGED, THE MIDDLE SAYS "NOTHING THAT COULD BE CHECKED" - the
+    /// remainder of UX-GUI-001, 2026-09-23. It said "could be read" until the review of PR #11
+    /// gave the same face to an expression that ran out of time, where the entries were read.
     ///
     /// <b>The qualification stood under the list while the middle said, in the voice of a finding,
     /// that nothing matched.</b> Signatures are not read for a listing, so <c>signed:no</c> judges
@@ -156,7 +157,7 @@ public sealed class EmptyStateTests
     /// entries nobody looked at. The same face and the same way out, and a sentence that is true.
     /// </summary>
     [Fact]
-    public async Task Nothing_that_could_be_read_matches_when_some_entries_could_not_be_judged()
+    public async Task Nothing_that_could_be_checked_matches_when_some_entries_could_not_be_read()
     {
         var model = new MainViewModel(
             new LiveMachine(Rows.Entry("Spooler"), Rows.Driver("disk")), new SteppedClock());
@@ -167,18 +168,44 @@ public sealed class EmptyStateTests
 
         Assert.Empty(model.Rows);
         Assert.Equal(ListFace.NothingMatched, model.Says.Face);
-        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedReadableHere"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedCheckedHere"), model.Says.ListMessage);
         Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedHereWayOut"), model.Says.ListWayOut);
 
         model.Scope = EntryScope.Everything;
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedReadable"), model.Says.ListMessage);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedChecked"), model.Says.ListMessage);
         Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedWayOut"), model.Says.ListWayOut);
 
         // And back to the plain sentence as soon as every entry could be judged.
         model.QueryText = "name:NoSuchServiceAnywhere";
 
         Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatched"), model.Says.ListMessage);
+    }
+
+    /// <summary>
+    /// AND THE SAME WHEN THE EXPRESSION RAN OUT OF TIME ON SOME ENTRIES, because those were never
+    /// checked either - found in the review of PR #11.
+    ///
+    /// <b>The flag asked only about entries judged on something unreadable.</b> So the line under
+    /// the box said the expression ran out of time on an entry, and the middle said, in the voice of
+    /// a finding, that nothing matched. A backreference sends the pattern to the backtracking engine,
+    /// where the time limit is the only net, and on a run of 32 letters this one runs out of time
+    /// every time - QueryMatchingTests holds that half. It cannot turn green by luck: a slower or
+    /// busier machine only runs out of time more surely.
+    /// </summary>
+    [Fact]
+    public async Task Nothing_that_could_be_checked_matches_when_the_expression_ran_out_of_time()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry(new string('a', 32))), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = @"name:/(a+)+\1b/";
+
+        Assert.Empty(model.Rows);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.status.tooCostly.one", 1), model.Says.Reservations, StringComparison.Ordinal);
+        Assert.Equal(ListFace.NothingMatched, model.Says.Face);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.empty.nothingMatchedCheckedHere"), model.Says.ListMessage);
     }
 
     [Fact]
