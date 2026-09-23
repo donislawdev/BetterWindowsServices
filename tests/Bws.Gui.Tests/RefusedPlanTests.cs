@@ -68,6 +68,48 @@ public sealed class RefusedPlanTests
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// THE WAY OUT STANDS BESIDE THE SENTENCE THAT NAMES IT - UX-GUI-004 (a). The only button that
+    /// restarts as administrator was at the foot of the window, under the dimming behind the sheet,
+    /// which eats every click. Nothing here presses it, for the reason ActionBarGuards gives about
+    /// the one at the foot: a press is a UAC prompt and a closed host.
+    /// </summary>
+    [Fact]
+    public async Task The_way_out_stands_beside_the_sentence_about_rights_on_the_sheet()
+    {
+        var window = await PlanFixture.Ready(elevated: false);
+        var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
+        var elevate = WpfHost.On(() => window.PlanPanel.Footer.Elevate);
+
+        WpfHost.On(() => panel.Show(Stopping("Spooler")));
+        WpfHost.Settled();
+
+        // In the very block that holds the sentence, and the block is up.
+        Assert.Same(
+            WpfHost.On(() => System.Windows.LogicalTreeHelper.GetParent(window.PlanPanel.Blocked)),
+            WpfHost.On(() => System.Windows.LogicalTreeHelper.GetParent(elevate)));
+        Assert.Equal(System.Windows.Visibility.Visible, WpfHost.On(() => window.PlanPanel.Blocked.Visibility));
+        Assert.Equal(System.Windows.Visibility.Visible, WpfHost.On(() => elevate.Visibility));
+
+        // The same button as the one at the foot of the window: its words and its look.
+        Assert.Equal(Texts.Of("gui.action.elevate"), WpfHost.On(() => elevate.Content as string));
+        Assert.Same(
+            WpfHost.On(() => window.FindResource("ElevateOffer")),
+            WpfHost.On(() => elevate.Style));
+
+        // And gone with the sentence when there is nothing it could carry out.
+        WpfHost.On(() => panel.Hide());
+        WpfHost.On(() => panel.Show(Refused()));
+        WpfHost.Settled();
+
+        Assert.Equal(
+            System.Windows.Visibility.Collapsed,
+            WpfHost.On(() => ((System.Windows.FrameworkElement)System.Windows.LogicalTreeHelper.GetParent(
+                System.Windows.LogicalTreeHelper.GetParent(elevate))).Visibility));
+
+        WpfHost.On(window.Close);
+    }
+
     private static BulkPlan Stopping(string name) => new()
     {
         Action = new BulkAction(ActionKind.Stop, [name]),

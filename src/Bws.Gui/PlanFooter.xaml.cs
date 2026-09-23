@@ -50,6 +50,12 @@ public partial class PlanFooter : UserControl
     /// <summary>The line saying why this cannot be carried out here.</summary>
     internal TextBlock Blocked => PlanBlocked;
 
+    /// <summary>
+    /// The way out of that line - restarting as administrator - which the window wires to the same
+    /// handler as the button at its foot. Exposed for the wiring and for a guard that never presses it.
+    /// </summary>
+    internal Button Elevate => PlanElevateButton;
+
     /// <summary>Which step is happening, while one is.</summary>
     internal TextBlock Progress => PlanProgress;
 

@@ -119,13 +119,9 @@
 
             <Button Grid.Column="1"
                     x:Name="ElevateButton"
-                    AutomationProperties.AutomationId="elevate"
-                    Content="{DynamicResource gui.action.elevate}"
-                    ToolTip="{DynamicResource gui.action.elevate.hint}"
-                    Margin="{StaticResource MarginBetweenControls}"
-                    VerticalAlignment="Center">
+                    AutomationProperties.AutomationId="elevate">
                 <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource ElevateAction}">
+                    <Style TargetType="Button" BasedOn="{StaticResource ElevateOffer}">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">

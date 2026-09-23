@@ -167,6 +167,10 @@ public partial class MainWindow : Window
         // hold.
         Status.Elevate.Click += RestartAsAdministrator;
 
+        // The same way out on the plan sheet, beside the sentence that names it - the one at the
+        // foot of the window is under the sheet's dimming while a plan is open. UX-GUI-004 (a).
+        PlanPanel.Footer.Elevate.Click += RestartAsAdministrator;
+
         // THE DONATE BUTTON, 2026-09-23, wired here for the reason the line above gives: pressing
         // it hands an address to the shell, which only ExternalLinks.cs may do, and a failure is a
         // sentence for the model this window holds and the row does not. An async lambda, the shape
