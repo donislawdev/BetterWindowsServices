@@ -148,6 +148,20 @@ public static class QueryParser
                 continue;
             }
 
+            // THE START OF A VALUE, IN THE MEMBER SOMEBODY IS TYPING - UX-GUI-011 of the audit of
+            // 2026-09-23. `status:` has been passed over while typed since 2026-08-03, and the
+            // keystroke after it was still a mistake: `status:r` put "status has no value r" on
+            // the screen while the list under the box offered `running` as the next word. So the
+            // same passing over reaches one step further, and only as far as it can be sure
+            // somebody is still typing - see StillBeingTyped for the four conditions.
+            if (input is QueryInput.BeingTyped
+                && StillBeingTyped(query, member, ReferenceEquals(member, members[^1]), problems, before))
+            {
+                problems.RemoveRange(before, problems.Count - before);
+
+                continue;
+            }
+
             // Nothing came of it, and nothing has been said about why. In a window that is
             // somebody mid-word. In a terminal there is no mid-word.
             if (input is QueryInput.Finished && problems.Count == before)
@@ -163,6 +177,46 @@ public static class QueryParser
         return problems.Count > 0
             ? new QueryParseResult(null, problems)
             : new QueryParseResult(new Query(Fold(terms)), problems);
+    }
+
+    /// <summary>
+    /// Whether the one thing wrong with this member is a value somebody has not finished typing.
+    ///
+    /// <b>Four conditions, and each is where the tolerance would start hiding a real mistake.</b>
+    /// The member is the LAST one and nothing follows it, not even a space - a member somebody
+    /// has moved on from is finished. Its only problem is an unknown value. It holds ONE value -
+    /// in <c>status:running,st</c> passing the member over would drop <c>running</c> with it and
+    /// the list would jump to everything. And that value is the start of a value the field
+    /// accepts, compared the way every value is (<see cref="QuerySpelling.Normalise"/>), so
+    /// <c>status:rx</c> is a mistake on the keystroke it is made.
+    ///
+    /// <b>OPEN, MEASURED 2026-09-23: the one-value condition is not what keeps
+    /// <c>status:running,st</c> a mistake.</b> With it replaced by a condition that is always
+    /// false - built and asked by hand - that text is still refused, so something before this
+    /// method already turns that shape away, and it has not been found. The condition stays as
+    /// the stated rule, and the test holding the shape passes either way.
+    /// </summary>
+    private static bool StillBeingTyped(
+        string query, ScannedText member, bool last, List<QueryProblem> problems, int before)
+    {
+        if (!last || char.IsWhiteSpace(query[^1]) || problems.Count - before != 1)
+        {
+            return false;
+        }
+
+        var problem = problems[before];
+
+        if (problem.Kind != QueryProblemKind.UnknownValue
+            || problem.Text.Length == 0
+            || !member.Text.EndsWith(":" + problem.Text, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var typed = QuerySpelling.Normalise(problem.Text);
+
+        return problem.Alternatives.Any(
+            accepted => QuerySpelling.Normalise(accepted).StartsWith(typed, StringComparison.Ordinal));
     }
 
     /// <summary>
