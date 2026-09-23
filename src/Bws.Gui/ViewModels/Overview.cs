@@ -284,8 +284,8 @@ internal static class Overview
     /// cannot produce before Phase 3.
     ///
     /// <b>Naming it is the specification's own answer to its own risk.</b> R3 says the baseline will
-    /// age and asks for "jawne oznaczanie brak baseline'u dla tego builda zamiast cichego pokazywania
-    /// zlych wynikow" - explicit marking rather than quietly showing bad results. A missing baseline
+    /// age and asks, translated, for "explicit marking of a missing baseline for this build instead of
+    /// quietly showing bad results". A missing baseline
     /// and an ageing one are the same problem at different times, and this is the same answer.
     ///
     /// Owner's decision, 2026-08-25: three numbers now, the fourth with `D6`.

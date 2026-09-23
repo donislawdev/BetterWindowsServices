@@ -132,8 +132,8 @@
                                     reasons that point the same way: the content stays a string,
                                     so the position's automation name stays "Services" and the
                                     three probes that find positions by that name keep finding
-                                    them; the label is drawn exactly as it was, by the same
-                                    presenter; and a TextBlock in a template gets no node of its
+                                    them - the label is drawn exactly as it was, by the same
+                                    presenter - and a TextBlock in a template gets no node of its
                                     own in the automation tree - `docs/10` trap 16, read from the
                                     side where it helps - so the tree keeps one node per position.
 

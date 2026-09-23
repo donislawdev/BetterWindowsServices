@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Bws.Core.Querying;
 
 /// <summary>One member of a query, compiled and grouped, ready to be asked about entries.</summary>
@@ -16,7 +14,7 @@ internal sealed record QueryTerm
     /// The values as they were written, before they were compiled into matchers.
     ///
     /// Kept so that something can ask whether a query contains a particular member without
-    /// re-reading the text - see <see cref="Query.Excludes"/>. A compiled value cannot answer
+    /// re-reading the text - see <see cref="Query.Carries"/>. A compiled value cannot answer
     /// that: <c>type:driver</c> becomes two symbols and no longer knows it was spelled with
     /// the word the person clicked.
     /// </summary>

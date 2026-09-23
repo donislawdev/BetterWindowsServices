@@ -9,7 +9,7 @@ namespace Bws.Core.Snapshots;
 ///
 /// `ADR-6` in code: JSON, keys in a deterministic order, one field per line. Every one of
 /// those three is about <c>git diff</c> rather than about JSON. Unordered keys make two
-/// files of an unchanged machine differ on nothing; a single line makes every change look
+/// files of an unchanged machine differ on nothing - a single line makes every change look
 /// like the whole file changed.
 ///
 /// The ordering is done on the tree rather than by declaring properties in the right order,

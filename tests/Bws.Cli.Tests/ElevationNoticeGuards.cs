@@ -1,5 +1,3 @@
-using Bws.Cli;
-
 namespace Bws.Cli.Tests;
 
 /// <summary>

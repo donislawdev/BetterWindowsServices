@@ -218,7 +218,7 @@ public sealed class LicenceNoticeGuards
                 // unmanaged one does, and `runtimeTargets` is where a package that carries a
                 // different binary per architecture puts them. All three reach the published
                 // program, so all three create the obligation this test is about. A second
-                // review pointed at the omission; checked the same day against this tree, no
+                // review pointed at the omission - checked the same day against this tree, no
                 // package here uses the other two today, so adding them changes nothing now and
                 // is the difference between a guard that works and one that happens to.
                 var carriesAnAssembly = new[] { "runtime", "native", "runtimeTargets" }
@@ -227,7 +227,7 @@ public sealed class LicenceNoticeGuards
                     // ENDS WITH, not equals, and that distinction cost a red run. The
                     // placeholder is written as a PATH - "lib/netstandard2.0/_._" - so comparing
                     // the whole key against "_._" matched nothing and three build-time metadata
-                    // packages were reported as shipping. They carry no assembly at all; the
+                    // packages were reported as shipping. They carry no assembly at all - the
                     // entry exists to say so, which is exactly what "_._" means in this file.
                     .Any(section => section
                         .EnumerateObject()
@@ -259,7 +259,7 @@ public sealed class LicenceNoticeGuards
         // WHAT IT CANNOT DO, said plainly so a green run is not read as more than it is. A
         // snippet pasted WITHOUT its header is invisible here, and that is the majority of the
         // risk rather than a corner of it - somebody lifting twenty lines off a forum brings no
-        // notice with them. This raises the floor from nothing to something; it is not a
+        // notice with them. This raises the floor from nothing to something - it is not a
         // provenance check, and there is no cheap one.
         //
         // Measured before it was switched on: 468 files, zero hits on all five marks.

@@ -74,7 +74,7 @@ public sealed class PlanBuilder(
 
         // NOTHING IS IN THE WAY OF A CONFIGURATION CHANGE, and that is not the same sentence as
         // "a start has nothing in the way". A start is unblocked because dependents cannot hold it
-        // down; setting a start type does not move the service at all, so the question does not
+        // down - setting a start type does not move the service at all, so the question does not
         // arise. Both end up with an empty list and they get there for different reasons.
         var blocking = action.Kind is ActionKind.Start or ActionKind.SetStartType
             ? []

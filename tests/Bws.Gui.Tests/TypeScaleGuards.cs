@@ -294,7 +294,7 @@ public sealed class TypeScaleGuards
     /// comment saying what it is a function of, and this holds the number to the function. The
     /// bounds are the face's own leading: Segoe UI sets a line at about 1.33 of its size, so two
     /// lines lie between 2.0 and 3.0 sizes with room for the slack the first photograph asked for
-    /// (48 trimmed the title on its first line; 56 does not).
+    /// (48 trimmed the title on its first line - 56 does not).
     /// </summary>
     [Fact]
     public void The_details_title_ceiling_is_two_lines_of_the_heading_size_and_not_three()

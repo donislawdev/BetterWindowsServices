@@ -324,7 +324,7 @@
         FIFTY-SIX AND NOT FORTY-EIGHT, MEASURED. Two lines of Segoe UI at eighteen are 2 x 1.33 x 18
         = 47.9 points, and a ceiling of exactly 48 trimmed the title on its FIRST line on the
         2026-09-16 photograph - the second line did not fit by a fraction of a point and WPF,
-        given both wrapping and trimming, trims the last line that fits. Eight points of slack;
+        given both wrapping and trimming, trims the last line that fits. Eight points of slack -
         three lines would be 72 and still do not fit.
     -->
     <system:Double x:Key="HeightDetailTitle">56</system:Double>

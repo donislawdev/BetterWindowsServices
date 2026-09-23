@@ -9,7 +9,7 @@ namespace Bws.Gui.ViewModels;
 /// happen to the REST of the model when this state moves.
 ///
 /// <b>IT REPLACES THE LIST RATHER THAN SITTING OVER IT - owner's decision, 2026-08-25.</b> The
-/// specification asks for "nie surowa liste alfabetyczna, tylko krotkie podsumowanie", and a band
+/// specification asks for, translated, "not a raw alphabetical list but a short summary", and a band
 /// above the list is still a list as the first thing on screen. The list is behind it and comes
 /// back the moment anybody asks a question.
 ///

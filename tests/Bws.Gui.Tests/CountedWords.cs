@@ -53,7 +53,7 @@ internal static class CountedWords
     ///
     /// <b>So the nouns are named instead, and the list rots the other way</b> - towards missing a
     /// fault rather than towards shouting about a correct sentence. That trade is deliberate and
-    /// it is not free, which is why <see cref="Every_counted_word_in_the_language_files_is_classified"/>
+    /// it is not free, which is why <see cref="CountedWordGuards.Every_counted_word_in_the_language_files_is_classified"/>
     /// exists directly below: it will not let a new word appear unclassified.
     ///
     /// Measured occurrences after a count, both files, 2026-08-26: entries 22, instances 2,

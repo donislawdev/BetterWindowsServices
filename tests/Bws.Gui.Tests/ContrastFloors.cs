@@ -52,8 +52,8 @@ internal static class ContrastFloors
         // THE THREE THAT ARE DRAWN ON THE PANEL AS WELL AS ON THE WINDOW, 2026-09-16, and the panel
         // is the check that can fail: it is lighter than the window, so light text reads lower on
         // it. Measured through this project's own arithmetic - the subdued grey 6.23 on the window
-        // and 4.76 on the panel, where the details panel's labels have stood since 2026-09-16;
-        // white 16.29 and 12.45; the refusal red 6.39 and 4.88, where the plan footer's danger
+        // and 4.76 on the panel, where the details panel's labels have stood since 2026-09-16 -
+        // white 16.29 and 12.45 - the refusal red 6.39 and 4.88, where the plan footer's danger
         // line stands since the same day. A brush that clears the lighter surface clears the
         // darker one by more, so one entry covers both places it is drawn.
         ["MeaningRejected"] = new(ForText, Against: "SurfacePanel"),

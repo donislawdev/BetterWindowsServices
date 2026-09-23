@@ -1,6 +1,5 @@
 // Explicit for the same reason SourceTree.cs says so at the top of itself: these guards read
 // files off disk, and the implicit using set is not something to depend on across projects.
-using System.IO;
 using System.Text.RegularExpressions;
 
 namespace Bws.Architecture.Tests;
@@ -102,7 +101,7 @@ public sealed class SupplyChainGuards
             // effective value while this test, reading the first, still saw "true". The
             // override scan below cannot catch it either, because it deliberately exempts this
             // file - which is the whole point of that exemption and also its blind spot. The
-            // file itself already says individual projects must not repeat these settings; this
+            // file itself already says individual projects must not repeat these settings - this
             // extends the same rule to the file that holds them.
             if (matches.Count > 1)
             {

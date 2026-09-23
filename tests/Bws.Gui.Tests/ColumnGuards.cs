@@ -1,5 +1,4 @@
 using Bws.Core;
-using Bws.Core.Querying;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;

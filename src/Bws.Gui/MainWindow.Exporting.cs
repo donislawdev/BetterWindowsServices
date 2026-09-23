@@ -112,7 +112,7 @@ public partial class MainWindow
     /// The rows as the list has them, sorted the way somebody sorted them.
     ///
     /// <b>The view rather than the model, and that is the whole point of asking a window.</b> The
-    /// model holds the entries the query left; the order they are read in is a comparer on the view
+    /// model holds the entries the query left - the order they are read in is a comparer on the view
     /// over them, so a file built from the model would be the right rows in the wrong order.
     /// </summary>
     internal IReadOnlyList<EntryRow> InTheOrderOnScreen() =>

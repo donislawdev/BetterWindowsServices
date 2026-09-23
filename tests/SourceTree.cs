@@ -1,9 +1,9 @@
-// Explicit, and it has to be. This file is linked into Bws.Gui.Tests, which sets UseWPF, and
-// that swaps the implicit using set and takes System.IO out of it. Fourth time this project
-// has paid for that line - the two files in that project already carry the same note, and a
-// file shared across projects has to satisfy the strictest of them.
-using System.IO;
-
+// System.IO is written out in full below rather than imported, and it has to be. This file is
+// linked into Bws.Gui.Tests, which sets UseWPF, and that swaps the implicit using set and takes
+// System.IO out of it - so the three other projects it is linked into already have the namespace
+// and call a using directive unnecessary, while the fourth cannot build without one. No using line
+// satisfies all four. Since 2026-09-23 an unnecessary using is an error (IDE0005), which is what
+// turned the directive that stood here for weeks into the full names below.
 namespace Bws.Tests;
 
 /// <summary>
@@ -33,9 +33,9 @@ internal static class SourceTree
 
     internal static string Root()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        var directory = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
 
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, Marker)))
+        while (directory is not null && !System.IO.File.Exists(System.IO.Path.Combine(directory.FullName, Marker)))
         {
             directory = directory.Parent;
         }

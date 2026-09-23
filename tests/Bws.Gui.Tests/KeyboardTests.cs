@@ -1,5 +1,4 @@
 using System.Windows.Input;
-using Bws.Gui;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -449,7 +448,7 @@ public sealed class KeyboardTests
     /// transferring the model's empty query into the box: the list then held the six examples
     /// rather than the fields, and only sometimes. Found from a stack trace on TextChanged
     /// (BindingExpression.AttachToContext under DataBindEngine.Run), not by reasoning. A shown
-    /// window has drained that queue long before anybody types; this host never shows one.
+    /// window has drained that queue long before anybody types - this host never shows one.
     /// </summary>
     private static void Typed(MainWindow window, string text, int caret)
     {

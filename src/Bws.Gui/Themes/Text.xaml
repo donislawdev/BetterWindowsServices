@@ -281,7 +281,7 @@
 
         THE COLOUR IS THE LINE'S OWN, READ OFF THE TextBlock AROUND IT, and that is a decision
         rather than a shortcut. The line is amber, and red for the whole of it while the session
-        has no administrator rights - StatusRow.xaml argues that one; a link in a third colour would
+        has no administrator rights - StatusRow.xaml argues that one - a link in a third colour would
         be a third meaning on a line that already carries two, and blue on amber is a contrast
         nobody has measured. What says "this can be pressed" is the underline and the hand, which
         is the one signal that does not depend on colour at all - `docs/11` section 8.

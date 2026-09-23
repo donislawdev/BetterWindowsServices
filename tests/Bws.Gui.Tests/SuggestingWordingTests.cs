@@ -68,7 +68,7 @@ public sealed class SuggestingWordingTests
     {
         var suggesting = Fresh();
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
 
         // On an empty box the person has typed nothing and is reading, so the sentence comes first
         // and the syntax follows it - decision D1 of the packet of 2026-09-16.
@@ -107,7 +107,7 @@ public sealed class SuggestingWordingTests
 
         Assert.Equal(string.Empty, suggesting.Caption);
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
 
         Assert.Equal("Questions to start from", suggesting.Caption);
         Assert.Equal(1, raised);

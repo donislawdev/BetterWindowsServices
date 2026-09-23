@@ -1,5 +1,3 @@
-using Bws.Core;
-
 namespace Bws.Core.Tests;
 
 /// <summary>
@@ -303,7 +301,7 @@ public sealed class BinaryPathResolverTests
     public void The_second_pass_does_not_open_a_file_on_another_machine_either()
     {
         // The more expensive half of the same rule, and the one with more to lose. The
-        // listing asks the disk a yes-or-no question; this reads the whole file to hash it
+        // listing asks the disk a yes-or-no question - this reads the whole file to hash it
         // and verify its signature, which over a share is a file transfer - on every listing
         // that asks for signatures and on every snapshot.
         //

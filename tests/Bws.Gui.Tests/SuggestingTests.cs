@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Bws.Core.Querying;
 using Bws.Gui.ViewModels;
 
@@ -26,7 +25,7 @@ public sealed class SuggestingTests
     {
         var suggesting = Fresh();
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
 
         // The questions for the list the window opens on - five of the six since backlog 358,
         // because "services only" asked of the services list selects the whole of it.
@@ -44,7 +43,7 @@ public sealed class SuggestingTests
     {
         var suggesting = Fresh();
 
-        suggesting.Arrived("status:running", 14);
+        suggesting.Arrived("status:running");
 
         Assert.False(suggesting.IsOpen);
     }
@@ -59,7 +58,7 @@ public sealed class SuggestingTests
     {
         var suggesting = Fresh();
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
         suggesting.Follow("s", 1, 0);
 
         Assert.Equal(["status", "start", "signed", "sidtype", "sddl"], Words(suggesting));
@@ -103,7 +102,7 @@ public sealed class SuggestingTests
         Assert.False(suggesting.IsOpen);
 
         // And a list that was open closes the moment the keyboard leaves.
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
         Assert.True(suggesting.IsOpen);
 
         suggesting.Left();
@@ -122,7 +121,7 @@ public sealed class SuggestingTests
     {
         var suggesting = Fresh();
 
-        suggesting.Arrived("status:running", 0);
+        suggesting.Arrived("status:running");
         suggesting.Follow("status:running", 0, 14);
 
         Assert.False(suggesting.IsOpen);
@@ -279,7 +278,7 @@ public sealed class SuggestingTests
 
         Assert.False(suggesting.Close());
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
 
         Assert.True(suggesting.Close());
         Assert.False(suggesting.Close());
@@ -295,7 +294,7 @@ public sealed class SuggestingTests
 
         suggesting.PropertyChanged += (_, changed) => announced.Add(changed.PropertyName!);
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
         Assert.Contains(nameof(Suggesting.IsOpen), announced);
 
         announced.Clear();
@@ -313,11 +312,11 @@ public sealed class SuggestingTests
         var suggesting = Fresh();
         var announced = 0;
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
         suggesting.Next();
         suggesting.PropertyChanged += (_, _) => announced++;
 
-        suggesting.Arrived(string.Empty, 0);
+        suggesting.Arrived(string.Empty);
 
         Assert.Equal(0, announced);
         Assert.Equal(QueryExamples.For(Scopes.Opening)[1].Query, suggesting.Chosen!.Word);
@@ -390,11 +389,4 @@ public sealed class SuggestingTests
         Assert.Equal(Texts.Of("gui.suggest.keys"), Fresh().Keys);
         Assert.DoesNotContain("gui.", Fresh().Keys, StringComparison.Ordinal);
     }
-
-    /// <summary>
-    /// What a screen reader is told about the chosen row - backlog 361. The keyboard never leaves
-    /// the box, so nothing in the list is announced on its own, and the window raises a
-    /// notification carrying this sentence instead. The sentence is composed here, where it has a
-    /// test without a window.
-    /// </summary>
 }

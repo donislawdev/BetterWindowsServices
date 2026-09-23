@@ -1,7 +1,5 @@
 // Explicit for the same reason SourceTree.cs says so at the top of itself: this project reads
 // files off disk, and the implicit using set is not something to depend on across projects.
-using System.IO;
-
 namespace Bws.Architecture.Tests;
 
 /// <summary>
@@ -52,7 +50,7 @@ public sealed class IconGuards
     private const string IconPath = "src/bws.ico";
 
     /// <summary>
-    /// Every size the icon is meant to carry. The first five are Microsoft's published floor;
+    /// Every size the icon is meant to carry. The first five are Microsoft's published floor -
     /// 20, 36, 40, 64 and 96 are the exact pixel sizes Windows asks for at 125, 150, 250 and
     /// 400 per cent scaling, so that Windows never has to resize anything itself.
     /// </summary>

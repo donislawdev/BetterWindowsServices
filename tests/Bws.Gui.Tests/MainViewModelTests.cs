@@ -112,7 +112,7 @@ public sealed class MainViewModelTests
         // The sentence "a query with a mistake filters nothing" means the opposite of what it
         // means in a terminal. There it prints nothing, because a terminal writes into pipes.
         // Here the list a person was looking at stays on screen and the mistake is reported
-        // beside it - docs/07, "nie filtruje niczego znaczy co innego w oknie i w terminalu".
+        // beside it - docs/07, translated: "filters nothing means one thing in the window and another in the terminal".
         var model = await Loaded(Entry("Spooler"), Stopped("BITS"));
 
         model.QueryText = "status:running";
@@ -703,8 +703,6 @@ public sealed class MainViewModelTests
     private static ScmEntry Stopped(string name) => Rows.Stopped(name);
 
     private static ScmEntry Driver(string name) => Rows.Driver(name);
-
-    private static ScmEntry FileSystemDriver(string name) => Rows.FileSystemDriver(name);
 
     private static ScmEntry Entry(string name) => Rows.Entry(name);
 }

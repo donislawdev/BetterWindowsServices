@@ -343,7 +343,7 @@ public sealed class PublicSurfaceGuards
     /// project are built from readings taken off real machines, which is exactly where a private
     /// path would arrive without anybody deciding to put one there.
     /// </summary>
-    private static IEnumerable<string> Published()
+    internal static IEnumerable<string> Published()
     {
         var root = SourceTree.Root();
 
@@ -352,7 +352,7 @@ public sealed class PublicSurfaceGuards
         // cloning anything - and until they were added, the ONE sweep that matters for them
         // was not running: the private-name check. They are deliberately NOT held to ASCII,
         // because the site speaks Polish as well as English and every Polish word a visitor
-        // reads lives in a fragment; the test above therefore skips this pair by extension
+        // reads lives in a fragment - the test above therefore skips this pair by extension
         // rather than by a permission per file.
         //
         // *.py and *.txt joined it later the same day, with the supply chain gates, and for the

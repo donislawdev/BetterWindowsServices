@@ -48,7 +48,7 @@ internal static class ListSorting
     /// <summary>
     /// Puts the list in the order a file remembers, or takes every order off it.
     ///
-    /// <b>NOT CALLED FROM <see cref="Fill"/>, AND THAT IS THE WHOLE REASON THIS IS ITS OWN
+    /// <b>NOT CALLED FROM <see cref="ListColumns.Fill"/>, AND THAT IS THE WHOLE REASON THIS IS ITS OWN
     /// METHOD.</b> Fill runs before any row exists - the grid has no ItemsSource yet, so there is
     /// no view to hand a comparer to and the sort would be dropped in silence. It is applied once
     /// the first reading has arrived, and again whenever the scope moves, which is where Reapply

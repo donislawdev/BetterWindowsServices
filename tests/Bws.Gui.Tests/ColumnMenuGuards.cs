@@ -67,7 +67,7 @@ public sealed class ColumnMenuGuards
     /// The status heading offers the states, and ticking one writes it into the box.
     ///
     /// <b>Both halves, because either alone is a control that lies.</b> A menu that offers the
-    /// right words and writes nothing is a dead tick; one that writes without the words being the
+    /// right words and writes nothing is a dead tick - one that writes without the words being the
     /// language's own writes a query the parser then refuses.
     /// </summary>
     [Fact]

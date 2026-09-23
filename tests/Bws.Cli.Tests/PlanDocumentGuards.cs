@@ -60,7 +60,7 @@ public sealed class PlanDocumentGuards
     /// same flag one line away from this field, so a script reading the document and a script
     /// reading the code were both told the run had not finished - measured on the throwaway machine
     /// before the repair, <c>completed: false</c> and exit code 3 over an entry in Stopped. The exit
-    /// code itself is proved by running the tool there, which is the only place a stop can hang;
+    /// code itself is proved by running the tool there, which is the only place a stop can hang -
     /// this holds the field the same run writes.
     /// </summary>
     [Fact]

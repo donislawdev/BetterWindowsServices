@@ -332,7 +332,7 @@ public sealed class AppearanceGuards
     public void The_seams_between_the_theme_files_are_where_all_of_them_say_they_are()
     {
         // EVERY FILE OPENS BY PROMISING THIS AND UNTIL 2026-08-11 NOTHING CHECKED ANY OF THE
-        // SENTENCES. Values.xaml says it holds every appearance value and not one style; the
+        // SENTENCES. Values.xaml says it holds every appearance value and not one style - the
         // styles files say they hold no value of their own. Prose is the one surface in this
         // project with no guard at all, so a claim written at the head of a file is worth exactly
         // one assertion.

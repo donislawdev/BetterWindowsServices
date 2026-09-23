@@ -7,7 +7,7 @@ namespace Bws.Gui.Tests;
 /// The example queries offered beside the search box - `P5`, 2026-08-12.
 ///
 /// <b>An example that does not work teaches the language wrong and blames the person for it.</b>
-/// The syntax used to live in the placeholder, where it vanished at the first keystroke; it lives
+/// The syntax used to live in the placeholder, where it vanished at the first keystroke - it lives
 /// in these now, and the whole bet is that somebody clicks one, reads the query it wrote, and edits
 /// it. That bet fails badly if what appears in the box is refused or answers nothing.
 ///

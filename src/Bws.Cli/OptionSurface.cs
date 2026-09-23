@@ -233,7 +233,7 @@ internal static class OptionSurface
         // NOT --json, and that omission is a decision rather than an oversight. The
         // machine-readable rendering of these exact facts is the SPDX document published beside
         // every archive, and a second JSON shape for one set of facts is a second public
-        // contract to keep true. Adding it later is additive and breaks nothing; taking it away
+        // contract to keep true. Adding it later is additive and breaks nothing - taking it away
         // would not be.
         ("--components", [CommandKind.License])
     ];

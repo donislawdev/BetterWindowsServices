@@ -294,7 +294,7 @@ public sealed partial class Planned
     /// What the offer says on it, with the key inside each call.
     ///
     /// <b>The heading word rather than the button word, on the owner's decision of 2026-09-06.</b>
-    /// The offer says "Force stop" because that is what an administrator is looking for; the button
+    /// The offer says "Force stop" because that is what an administrator is looking for - the button
     /// on the sheet it opens names the process, because by then there is a number to name.
     /// </summary>
     private static string Label(ActionKind kind) => kind == ActionKind.ForceStop
@@ -310,7 +310,7 @@ public sealed partial class Planned
     /// spelled sixty out would keep saying it after somebody moved that pin.
     ///
     /// <b>Two sentences, because giving up and being refused are different things.</b> The manager
-    /// took the first request and we stopped watching; it declined the second outright. Telling
+    /// took the first request and we stopped watching - it declined the second outright. Telling
     /// somebody the first failed would be a claim about something nobody saw, which is the
     /// distinction <see cref="StepOutcome"/> draws and this carries onto a screen.
     /// </summary>

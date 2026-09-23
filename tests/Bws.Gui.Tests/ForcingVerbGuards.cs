@@ -80,7 +80,7 @@ public sealed class ForcingVerbGuards
     /// is built.</b> A bar told the number of ROWS would light the forcing verbs over a family of
     /// twenty-four, and the sheet behind the press would then be a plan over all of them - which is
     /// exactly the plan 15.6 keeps unreachable. Counted by rows, this test passes with the family
-    /// row lit; counted by entries, it is off.
+    /// row lit - counted by entries, it is off.
     /// </summary>
     [Fact]
     public async Task A_folded_family_counts_as_many_entries_to_the_bar()

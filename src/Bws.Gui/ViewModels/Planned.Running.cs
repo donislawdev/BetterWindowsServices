@@ -131,9 +131,9 @@ public sealed partial class Planned
     /// <summary>
     /// Rebuilds the line on screen from the step and how long it has been going.
     ///
-    /// <b>Called from a timer while a run is under way</b> - see <see cref="Watching"/>, which owns
-    /// the timer and nothing else. Split from it so that everything decided here can be checked
-    /// without one.
+    /// <b>Called from a timer while a run is under way</b> - the one <see cref="MainWindow.CarryOut"/>
+    /// starts, because the window owns the timer and this owns nothing but the sentence. Split from
+    /// it so that everything decided here can be checked without one.
     /// </summary>
     internal void Tick() =>
         Progress = _stepBegan is not { } began

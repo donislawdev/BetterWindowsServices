@@ -58,11 +58,11 @@ public partial class MainWindow
             }
             else
             {
-                list.Arrived(box.Text, box.CaretIndex);
+                list.Arrived(box.Text);
             }
         };
 
-        box.PreviewMouseLeftButtonUp += (_, _) => list.Arrived(box.Text, box.CaretIndex);
+        box.PreviewMouseLeftButtonUp += (_, _) => list.Arrived(box.Text);
 
         // The one lock that covers a chip, a tab, the plan sheet, the box's own context menu and
         // the closing of the window: all of them take the keyboard.

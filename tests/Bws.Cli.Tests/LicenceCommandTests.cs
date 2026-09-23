@@ -97,7 +97,7 @@ public sealed class LicenceCommandTests
     public void No_option_belonging_to_another_verb_can_be_swallowed_by_it()
     {
         // Every switch this tool has, asked of this verb. The ones that belong to it are expected
-        // to be taken; every other one has to leave a complaint behind, because Immediate hands
+        // to be taken - every other one has to leave a complaint behind, because Immediate hands
         // the line back to Refusals the moment there is one - and Refusals is where the sentence
         // naming the verbs it DOES work with is written.
         var swallowed = new List<string>();

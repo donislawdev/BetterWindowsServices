@@ -1,8 +1,4 @@
-using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-using Windows.Win32.Security.Cryptography;
 
 namespace Bws.Core;
 

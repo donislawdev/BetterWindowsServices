@@ -177,7 +177,7 @@ public partial class PlanView : UserControl
     /// and is exactly the doubt this removes.
     ///
     /// <b>It is said even when the copy failed, and that is deliberate rather than sloppy.</b> A
-    /// refusal puts a sentence in the status line, which is louder than this and says more; two
+    /// refusal puts a sentence in the status line, which is louder than this and says more - two
     /// reports of one failure in two places would read as two failures.
     /// </summary>
     private void SaySoFor(Button pressed)
@@ -298,7 +298,7 @@ public partial class PlanView : UserControl
     /// whole of what this has to guarantee.
     ///
     /// <b>The close mark rather than a Cancel button, and that is a departure from the drawing
-    /// worth naming.</b> The design's panels put a Cancel in the footer; this sheet has never had
+    /// worth naming.</b> The design's panels put a Cancel in the footer - this sheet has never had
     /// one - it has the mark in the corner and Escape, which do exactly what a Cancel would. Adding
     /// a third button to say a third time what two things already say would have been a new control
     /// in the one row the design was trying to keep from growing.

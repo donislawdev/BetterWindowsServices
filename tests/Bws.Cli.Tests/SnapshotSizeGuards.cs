@@ -1,5 +1,3 @@
-using Bws.Cli;
-
 namespace Bws.Cli.Tests;
 
 /// <summary>
@@ -34,7 +32,7 @@ public sealed class SnapshotSizeGuards : IDisposable
     /// The distinction docs/12 step 5 asks about, standing in for a memory figure no test can see.
     ///
     /// <b>The size is set rather than written, which keeps this a test somebody will run.</b>
-    /// Asking for a length is instant on NTFS; writing sixty five megabytes on every run to prove a
+    /// Asking for a length is instant on NTFS - writing sixty five megabytes on every run to prove a
     /// rule about size would earn its own line in a report about slow suites.
     /// </summary>
     [Fact]

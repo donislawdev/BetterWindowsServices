@@ -234,7 +234,7 @@ public static partial class Catalogue
             // CELL IS THE BAR OVER SEVERAL, since 2026-09-16, and it borrows the "extreme" column
             // because the sheet has no column for it: it is the one state in which the bar is not
             // all on or all off - the four verbs that take any number are live and the two that end
-            // a process are off, each saying so on itself. Not more text than fits; a different
+            // a process are off, each saying so on itself. Not more text than fits - a different
             // shape, and the column that was free.
             Made(nameof(ActionBar),
                 data: Bar(1), empty: Bar(0), extreme: Bar(2)),

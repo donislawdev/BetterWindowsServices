@@ -80,7 +80,7 @@ public sealed class KeptOrderGuards : IDisposable
     /// <summary>
     /// The way back takes somebody's own order off the FILE, and not only off the list on screen.
     ///
-    /// <b>The exception that <see cref="KeptColumns.Harvested"/> is built around, and without this
+    /// <b>The exception that <c>KeptColumns.Harvested</c> is built around, and without this
     /// nothing would notice it going.</b> Every other write puts back the order the file holds
     /// whenever the grid carries none, because a grid carrying none nearly always means the window
     /// has not applied it yet. Here it means the opposite: somebody asked for the list this build
@@ -122,7 +122,7 @@ public sealed class KeptOrderGuards : IDisposable
         // the line that stopped this test being flaky. The rows binding resolves at DataBind
         // priority, so until it has, ListColumns.Reapply has no view to hand a comparer to and the
         // grid comes out of the way back carrying no order at all - measured at seventeen times in
-        // twenty. Nobody can click a menu item that early; Settled says so.
+        // twenty. Nobody can click a menu item that early - Settled says so.
         WpfHost.Settled();
 
         WpfHost.On(window.RestoreColumns);

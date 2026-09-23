@@ -172,7 +172,7 @@ internal static class CellFaces
     /// THIRTY-FIVE DAYS.</b> The glossary had the word all along - `docs/03`, "Nieodczytane / Not
     /// read" - and the cell used the word for a category the machine named and this code cannot,
     /// which is a different sentence: "unknown" says the machine could not tell, "not read" says
-    /// this window has not asked. In a column the difference lasts a second; in the details panel,
+    /// this window has not asked. In a column the difference lasts a second - in the details panel,
     /// which says it six times over an entry somebody is looking at, it lasted until the owner
     /// asked for the panel to be redesigned. The last arm is the fourth state and nothing else:
     /// ReadOutcome has four values and three are named above it.

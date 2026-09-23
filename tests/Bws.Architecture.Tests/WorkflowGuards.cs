@@ -1,6 +1,5 @@
 // Explicit for the same reason SourceTree.cs says so at the top of itself: these guards read
 // files off disk, and the implicit using set is not something to depend on across projects.
-using System.IO;
 using System.Text.RegularExpressions;
 
 namespace Bws.Architecture.Tests;
@@ -100,7 +99,7 @@ public sealed class WorkflowGuards
         foreach (var (file, line, action, _) in Uses())
         {
             // A local action is a path into this repository, so it is already exactly as pinned
-            // as the commit being built. There are none today; the branch is here so that adding
+            // as the commit being built. There are none today - the branch is here so that adding
             // one is not blocked by a guard about somebody else's releases.
             if (IsLocal(action))
             {

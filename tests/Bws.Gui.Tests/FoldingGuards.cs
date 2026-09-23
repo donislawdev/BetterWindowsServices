@@ -13,8 +13,8 @@ namespace Bws.Gui.Tests;
 /// before anything runs.
 ///
 /// <b>THE LAST OF THOSE IS THE ONE WORTH HAVING TESTS FOR, and the specification says why in its
-/// own words</b> - "inaczej admin kliknie stop na jednym wierszu i zatrzyma cztery uslugi, nie
-/// wiedzac o tym". Everything else here is a list looking tidier. That one is a preview shorter
+/// own words</b>, translated - "or else an administrator clicks stop on one row and stops four
+/// services without knowing it". Everything else here is a list looking tidier. That one is a preview shorter
 /// than the run, which is the single failure `ADR-11` exists to prevent.
 ///
 /// <b>The shapes come from a real machine rather than from imagination</b> - measured with

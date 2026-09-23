@@ -1,7 +1,5 @@
 // Explicit for the same reason SourceTree.cs says so at the top of itself: these guards read
 // files off disk, and the implicit using set is not something to depend on across projects.
-using System.IO;
-
 namespace Bws.Architecture.Tests;
 
 /// <summary>
@@ -36,7 +34,7 @@ namespace Bws.Architecture.Tests;
 /// 21 053 ms on an unreachable host against 1.23 ms locally, and which authenticates to
 /// somebody else's share with the elevated token of whoever ran the tool. Both arrived through
 /// <c>System.IO</c>. A register of network names would have caught zero of the two, and the
-/// thing that holds that surface is <see cref="Bws.Core.NetworkPath"/> and its mutation
+/// thing that holds that surface is <c>Bws.Core.NetworkPath</c> and its mutation
 /// entries, not this file. This one locks the surface nobody has breached yet, which is worth
 /// doing and is a smaller claim than "the tool cannot reach the network".
 ///

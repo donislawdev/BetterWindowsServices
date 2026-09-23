@@ -70,7 +70,7 @@
         sentences, so a grey heading is the only grey thing in its block and position finds it.
         Under THESE headings stands a form whose whole left column is grey - a grey heading would
         be the twenty-ninth label. Weight is what a label does not have, so weight is what says
-        "this is a section"; the rule down the block's left side (PanelBlock) says where it ends.
+        "this is a section" - the rule down the block's left side (PanelBlock) says where it ends.
     -->
     <Style x:Key="DetailSectionText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
@@ -99,7 +99,7 @@
 
     <!--
         WHAT A FIELD IS CALLED. TextSubdued at body size - thirteen, not the twelve of SubduedText,
-        because the label and the value beside it differ on COLOUR and nothing else; a second
+        because the label and the value beside it differ on COLOUR and nothing else - a second
         difference in size made the label the smallest and dimmest thing on the panel, which is
         half of what the owner meant by "cannot be seen". BodySubduedText since 2026-09-16, which
         is exactly that, said once in Text.xaml rather than a fourth time here.

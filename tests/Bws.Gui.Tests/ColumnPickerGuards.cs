@@ -83,7 +83,7 @@ public sealed class ColumnPickerGuards
         // FORCED, AND WITHOUT THIS LINE THIS TEST WAS GREEN BECAUSE OF ITS NEIGHBOURS. The selector
         // finds its two styles through the container's resource lookup, which falls back to the
         // application - so with no dictionaries merged it returns null for both and the assertions
-        // below fail. Run on its own, before this line, it failed against a product that works;
+        // below fail. Run on its own, before this line, it failed against a product that works -
         // inside the class it passed, because another test had already merged them. Found on
         // 2026-08-12 when two tests added elsewhere changed the order, which is the same way WpfHost
         // records this arrangement biting once before.

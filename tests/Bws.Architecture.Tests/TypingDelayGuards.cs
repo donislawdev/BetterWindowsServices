@@ -16,7 +16,7 @@ namespace Bws.Architecture.Tests;
 /// timer, and pushing a value into a two way binding makes the binding write the source back to the
 /// target - overwriting characters typed in the meantime. Three keystrokes out of 248 never reached
 /// the box, and the row counts beside them made no sense. Binding.Delay is the framework's own
-/// answer and has none of that; the timer that is left answers the one question a binding cannot,
+/// answer and has none of that - the timer that is left answers the one question a binding cannot,
 /// which is whether somebody is typing right now. Those two only line up while the numbers do.
 ///
 /// <b>Read out of the files rather than out of the code</b>, because the markup number is an

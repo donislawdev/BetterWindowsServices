@@ -153,7 +153,7 @@ public sealed record SnapshotDiff(
     /// serialises every entry twice, which is why paying it on every run is not worth avoiding.
     ///
     /// A null argument is still thrown over, deliberately. A broken document is an ordinary
-    /// thing to run into and gets a sentence; passing nothing at all is a mistake in the code
+    /// thing to run into and gets a sentence - passing nothing at all is a mistake in the code
     /// calling this, and turning that into a return value would hide it.
     /// </summary>
     /// <param name="diff">

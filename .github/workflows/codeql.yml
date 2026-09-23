@@ -11,7 +11,7 @@
 #   The actions it runs are PINNED. Default setup runs GitHub's own, unpinned, and
 #   WorkflowGuards - the guard added in the same pull request as this file - cannot see a
 #   configuration that lives in a dialog. Every other action in this repository is held to a
-#   commit; this was the one exception, and it was invisible rather than argued.
+#   commit - this was the one exception, and it was invisible rather than argued.
 #
 #   The configuration is REVIEWABLE. Which suite, which languages, which schedule, which runner
 #   were all settings in a web page that the repository could not state, could not explain and

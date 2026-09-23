@@ -90,7 +90,7 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     /// </summary>
     internal const int CurrentSchemaVersion = 4;
 
-    /// <summary>The oldest schema this build reads and carries forward. See <see cref="Read"/>.</summary>
+    /// <summary>The oldest schema this build reads and carries forward. See <see cref="ColumnLayouts.Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
 
     /// <summary>
@@ -114,17 +114,6 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
             [.. ViewModels.Columns.All.Select(column =>
                 new KeptColumn(column.Id, column.ShownAtFirstIn(scope), Width: null))],
             Sort: new KeptSort("displayName", Descending: false));
-
-    private static readonly JsonSerializerOptions Shape = new()
-    {
-        WriteIndented = true,
-
-        // Characters as themselves rather than as escapes, for the reason SnapshotJson gives at
-        // length: a file nobody can read in a diff is a file this product had no business writing
-        // as text. Nothing in here is outside ASCII today - every identifier is one of eighteen
-        // English words - so this is the habit rather than a fix, and it costs nothing.
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
 
     /// <summary>
     /// The text that goes in the file.
@@ -436,6 +425,15 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
     private static readonly JsonSerializerOptions Shape = new()
     {
         WriteIndented = true,
+
+        // Characters as themselves rather than as escapes, for the reason SnapshotJson gives at
+        // length: a file nobody can read in a diff is a file this product had no business writing
+        // as text. Nothing in here is outside ASCII today - every identifier is one of eighteen
+        // English words - so this is the habit rather than a fix, and it costs nothing.
+        //
+        // This comment stood on a second copy of these options in ColumnLayout, which nothing
+        // read, until the unread-member rule found it on 2026-09-23. The copy that writes the file
+        // is this one, and it had no comment at all.
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 }
@@ -472,8 +470,4 @@ internal sealed record LayoutReading
     /// something on their disk without saying so.
     /// </summary>
     internal int? CarriedForwardFrom { get; init; }
-
-    /// <summary>Whether the window has to say something about this before anybody asks.</summary>
-    internal bool WorthSaying =>
-        Unreadable is not null || OtherSchemaVersion is not null || CarriedForwardFrom is not null;
 }

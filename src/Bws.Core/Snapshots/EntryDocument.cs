@@ -71,7 +71,6 @@ public sealed record MemoryDocument(long WorkingSet, long Commit, int SharedBy);
 /// has never matched the listing either - <c>start:auto</c> against <c>Automatic</c>. A language
 /// somebody types is allowed to be gentler than a document a program reads.
 ///
-
 /// The interesting part is how an unreadable field is expressed. A value that could not be
 /// read must not look like a value that is simply not there: the first is a fact about our
 /// permissions, the second is a fact about the service, and a snapshot that confuses them
@@ -313,8 +312,8 @@ public sealed record EntryDocument
             // and a substitution would read the same on both sides, so a comparison would report
             // nothing. That is a real property and it lost to a simpler one.
             //
-            // What settled it: docs/03 defines this field as "etykieta dla czlowieka, wylacznie do
-            // pokazania, nigdy jako klucz". A field that exists only in order to be shown should
+            // What settled it: docs/03 defines this field as, translated, "a label for a person, for
+            // showing only, never as a key". A field that exists only in order to be shown should
             // carry what is shown. The other reading treats it as a measurement, which its own
             // definition says it is not - the measurements are serviceName, startType, account and
             // the rest, and every one of those is stored exactly as the manager gave it.

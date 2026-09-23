@@ -343,7 +343,7 @@ internal static class FilterChips
         // beside it.
         //
         // TWO CHIPS RATHER THAN ONE, because the directions are opposites and so are the remedies -
-        // backlog 170. One is a service that ought to be running and is not; the other is switched
+        // backlog 170. One is a service that ought to be running and is not - the other is switched
         // off and running anyway. A single chip saying "something disagrees here" would be shorter
         // and would send somebody to start a service they may need to stop.
         new FilterGroup("gui.filter.group.mismatch",

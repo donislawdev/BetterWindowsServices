@@ -155,7 +155,7 @@ public sealed class EntryRow : Observable
     /// <b>Read by whatever turns a selection into a plan, and that is the whole reason it is kept
     /// rather than being a number.</b> The specification's own warning about `A11` is that
     /// selecting a folded row means acting on everything under it, so the plan has to be able to
-    /// name them - "inaczej admin kliknie stop na jednym wierszu i zatrzyma cztery uslugi".
+    /// name them - translated, "or else an administrator clicks stop on one row and stops four services".
     /// A count would show the badge and leave the plan short, which is the one failure `ADR-11`
     /// exists to prevent.
     /// </summary>
@@ -202,7 +202,7 @@ public sealed class EntryRow : Observable
     /// to a different language. Rule 3 of the project notes, the same one that makes the marks
     /// compare against a code.
     ///
-    /// An identifier nothing knows comes back as itself, which is what <see cref="Texts.Of"/> does
+    /// An identifier nothing knows comes back as itself, which is what <see cref="Texts.Of(string)"/> does
     /// with a key nothing declares and for the same reason: a column that has gone away should
     /// look wrong on screen rather than render as an empty cell, which is the one thing an empty
     /// cell must never mean.

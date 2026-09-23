@@ -79,10 +79,10 @@ public sealed class QueryForTheWindowTests
     [Fact]
     public void A_query_says_whether_it_excludes_a_value()
     {
-        Assert.True(QueryParserTests.Valid("!type:driver").Excludes("type", "driver"));
-        Assert.False(QueryParserTests.Valid("type:driver").Excludes("type", "driver"));
-        Assert.False(QueryParserTests.Valid("").Excludes("type", "driver"));
-        Assert.False(QueryParserTests.Valid("!status:running").Excludes("type", "driver"));
+        Assert.True(QueryParserTests.Valid("!type:driver").Carries("type", "driver", negated: true));
+        Assert.False(QueryParserTests.Valid("type:driver").Carries("type", "driver", negated: true));
+        Assert.False(QueryParserTests.Valid("").Carries("type", "driver", negated: true));
+        Assert.False(QueryParserTests.Valid("!status:running").Carries("type", "driver", negated: true));
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public sealed class QueryForTheWindowTests
         // Asked of a query somebody typed, so it has to accept the spellings the language
         // accepts. A switch that only recognised its own spelling would sit there unchecked
         // beside a box that plainly excludes drivers.
-        Assert.True(QueryParserTests.Valid("!TYPE:Driver").Excludes("type", "driver"));
-        Assert.True(QueryParserTests.Valid("!type:driver").Excludes("TYPE", "DRIVER"));
+        Assert.True(QueryParserTests.Valid("!TYPE:Driver").Carries("type", "driver", negated: true));
+        Assert.True(QueryParserTests.Valid("!type:driver").Carries("TYPE", "DRIVER", negated: true));
     }
 
     [Fact]
@@ -101,14 +101,14 @@ public sealed class QueryForTheWindowTests
         // type:driver compiles to two symbols, and neither of them is the word that was
         // written. Asking about the symbols would answer yes to a question nobody asked, and
         // would make a switch labelled "drivers" respond to an exclusion of one driver kind.
-        Assert.True(QueryParserTests.Valid("!type:kernelDriver").Excludes("type", "kernelDriver"));
-        Assert.False(QueryParserTests.Valid("!type:kernelDriver").Excludes("type", "driver"));
+        Assert.True(QueryParserTests.Valid("!type:kernelDriver").Carries("type", "kernelDriver", negated: true));
+        Assert.False(QueryParserTests.Valid("!type:kernelDriver").Carries("type", "driver", negated: true));
     }
 
     [Fact]
     public void An_exclusion_among_several_values_still_counts()
     {
-        Assert.True(QueryParserTests.Valid("!type:driver,ownProcess").Excludes("type", "driver"));
+        Assert.True(QueryParserTests.Valid("!type:driver,ownProcess").Carries("type", "driver", negated: true));
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class QueryForTheWindowTests
     {
         // Asked with a field name nobody knows, the honest answer is no rather than an
         // exception: this is called from a switch reading whatever is in the box.
-        Assert.False(QueryParserTests.Valid("!type:driver").Excludes("nosuchfield", "driver"));
+        Assert.False(QueryParserTests.Valid("!type:driver").Carries("nosuchfield", "driver", negated: true));
     }
 
     /// <summary>
