@@ -103,8 +103,12 @@ internal static class ShapeCeilings
     /// <summary>63 lines of code, OutboundGuards.The_registers_catch_every_shape_they_exist_to_catch.</summary>
     internal const int LongestTestMethod = 63;
 
-    /// <summary>Eleven at 45 lines of code or more.</summary>
-    internal const int TestMethodsNearLongest = 11;
+    /// <summary>
+    /// Ten at 45 lines of code or more. Eleven until the review of PR #11, when a third copy of the
+    /// pixel counting in the GUI guards made it twelve and went red in CI - the three copies became
+    /// Drawn in Bws.Gui.Tests, and WaitingBoxGuards.RedInsideTheBox left the crowd with them.
+    /// </summary>
+    internal const int TestMethodsNearLongest = 10;
 
     /// <summary>
     /// 13 forks, and it is Naming.MemberOf - part of the reader these guards stand on, written the

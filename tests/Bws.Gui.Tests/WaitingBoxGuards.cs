@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 using static Bws.Gui.Tests.PlanFixture;
@@ -301,63 +300,20 @@ public sealed class WaitingBoxGuards
         return $"{(thickness.Success ? thickness.Groups[1].Value : "no thickness")} in {(brush.Success ? brush.Groups[1].Value : "no brush")} around {(wraps ? "AdornedElementPlaceholder" : "nothing")}";
     }
 
+    /// <summary>
+    /// The sheet drawn at 1000 by 800, the picture left in artifacts/gui under the state the box is
+    /// in, and the problem colour counted inside the box's own rectangle.
+    /// </summary>
     private static int RedInsideTheBox(Bws.Gui.MainWindow window)
     {
-        var (shot, left, top, right, bottom, wrong) = WpfHost.On(() =>
-        {
-            window.PlanPanel.Measure(new Size(1000, 800));
-            window.PlanPanel.Arrange(new Rect(0, 0, 1000, 800));
-            window.PlanPanel.UpdateLayout();
+        var drawn = Drawn.Of(window.PlanPanel, 1000, 800);
+        var box = drawn.Around(window.PlanPanel.Footer.WaitingBox);
+        var wrong = WpfHost.On(() => Validation.GetHasError(window.PlanPanel.Footer.WaitingBox));
 
-            var box = window.PlanPanel.Footer.WaitingBox;
-            var origin = box.TranslatePoint(new Point(0, 0), window.PlanPanel);
+        Assert.True(box.Width > 0 && box.Height > 0, "the box has no rectangle, so it was never laid out");
 
-            var drawn = new RenderTargetBitmap(1000, 800, 96, 96, PixelFormats.Pbgra32);
-            drawn.Render(window.PlanPanel);
+        drawn.Save(wrong ? "plan-footer-wrong-1000x800.png" : "plan-footer-fine-1000x800.png");
 
-            return (
-                drawn,
-                (int)Math.Floor(origin.X),
-                (int)Math.Floor(origin.Y),
-                (int)Math.Ceiling(origin.X + box.ActualWidth),
-                (int)Math.Ceiling(origin.Y + box.ActualHeight),
-                Validation.GetHasError(box));
-        });
-
-        Assert.True(right > left && bottom > top, "the box has no rectangle, so it was never laid out");
-
-        var into = Path.Combine(SourceTree.Root(), "artifacts", "gui");
-        Directory.CreateDirectory(into);
-
-        WpfHost.On(() =>
-        {
-            var png = new PngBitmapEncoder();
-            png.Frames.Add(BitmapFrame.Create(shot));
-
-            using var stream = File.Create(Path.Combine(into, wrong ? "plan-footer-wrong-1000x800.png" : "plan-footer-fine-1000x800.png"));
-            png.Save(stream);
-        });
-
-        var pixels = new byte[1000 * 800 * 4];
-        WpfHost.On(() => shot.CopyPixels(pixels, 1000 * 4, 0));
-
-        var rejected = WpfHost.Declared("MeaningRejected");
-
-        var red = 0;
-
-        for (var y = Math.Max(0, top); y < Math.Min(800, bottom); y++)
-        {
-            for (var x = Math.Max(0, left); x < Math.Min(1000, right); x++)
-            {
-                var at = (y * 1000 + x) * 4;
-
-                if (pixels[at] == rejected.B && pixels[at + 1] == rejected.G && pixels[at + 2] == rejected.R)
-                {
-                    red++;
-                }
-            }
-        }
-
-        return red;
+        return drawn.Count(WpfHost.Declared("MeaningRejected"), box);
     }
 }
