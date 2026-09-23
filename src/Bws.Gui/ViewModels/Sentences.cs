@@ -98,16 +98,26 @@ internal static class Sentences
                 : Texts.Of("gui.query.unreadMemory"));
         }
 
-        // Suppressed when the query asked about something nobody has read, and this is a
-        // choice rather than an oversight. Both cases arrive as one count, and the sentence
-        // below says the machine refused - which for an unread family would turn "nobody
-        // looked" into "you were not allowed", the one distinction this project spends most of
-        // its rules keeping apart. The sentence above already says what happened.
+        // Suppressed while a family the query needs has not been read, and this is a choice
+        // rather than an oversight. Both cases arrive as one count, and the sentence below says
+        // the machine refused - which for an unread family would turn "nobody looked" into "you
+        // were not allowed", the one distinction this project spends most of its rules keeping
+        // apart. The sentence above already says what happened.
+        //
+        // WHILE, NOT WHENEVER, SINCE 2026-09-23 - UX-GUI-001 of the audit that day. The test was
+        // `needs == ExtraRead.None`, which held the sentence back for every query needing a
+        // second phase family INCLUDING AFTER THE PASS HAD RUN, when what is left unread is what
+        // the machine refused. Measured on a window without administrator rights: memory:>100MB
+        // answered "nothing matches" with 103 running services refused - and a shown Memory
+        // column, which sets needs too, silenced the sentence for questions about any other field.
+        // The command line has always said it on any count (Execution.cs), so this is also where
+        // the two interfaces stopped disagreeing about the same answer.
+        //
         // A SINGULAR BESIDE EACH PLURAL, backlog 207, and these two are the pair a person really
         // meets: one entry judged on a field nobody could read is an ordinary answer on a machine
         // where one service refuses its configuration. Written out rather than picking a key into a
         // variable, for the reason given three paragraphs above about TextKeyGuards.
-        if (unreadable > 0 && needs == ExtraRead.None)
+        if (unreadable > 0 && (needs & ~have) == ExtraRead.None)
         {
             notes.Add(unreadable == 1
                 ? Texts.Of("gui.status.partial.one", unreadable)
