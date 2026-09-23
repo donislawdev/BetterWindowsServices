@@ -15,6 +15,13 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **A *Donate* button in the window**, at the right end of the row above the search box. It
+  opens the project's support page in your browser and says so before it is pressed - the tool
+  itself still opens no connection, your browser is what connects. In a window running as
+  administrator the page is handed to the desktop to open, so the browser starts with your own
+  rights rather than the tool's. If the page cannot be opened, the status line says why and
+  gives the address to type in.
+
 - **`bws license`, and `bws license --components`.** What the program is licensed under, that it
   comes with no warranty, where the full text is, and what it carries that somebody else wrote.
   The second form turns that into every component with its version, its licence and where it came

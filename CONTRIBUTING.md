@@ -162,8 +162,9 @@ a declaration:
   command line tool writes to the data channel.
 - **The core writes nothing to the console.** It returns results, and the layer above decides what
   happens to them.
-- **A shipped assembly starts no process**, with one named exception in the window, in one file:
-  restarting itself as administrator.
+- **A shipped assembly starts no process**, with two named exceptions in the window, each in a file
+  of its own: restarting itself as administrator, and handing the support page to the browser -
+  through the desktop, when the window has administrator rights, so that the browser does not.
 - **Every broad `catch`, every `async void`, every native call that drops its answer, and every
   place that does two things at once is on a list with the argument for it beside it** - and the
   list may not name a place that stopped doing it.

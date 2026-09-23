@@ -13,3 +13,9 @@ using System.Windows;
 // nothing outside this assembly consumes them. Opening them to the test project is the
 // alternative to making them public for an audience of one.
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Bws.Gui.Tests")]
+
+// And to the tests that need a real machine, since 2026-09-23, for one question the window's own
+// test project must not ask: whether the desktop's shell answers. That depends on the session the
+// tests run in, and the build server runs Bws.Gui.Tests whole - where Bws.Integration.Tests runs
+// there only what is marked as running anywhere.
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Bws.Integration.Tests")]

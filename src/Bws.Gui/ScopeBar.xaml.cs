@@ -17,4 +17,13 @@ namespace Bws.Gui;
 public partial class ScopeBar : UserControl
 {
     public ScopeBar() => InitializeComponent();
+
+    /// <summary>
+    /// The Donate button at the right end of this row, since 2026-09-23.
+    ///
+    /// <b>Forwarded rather than handled here, the shape StatusRow gives its elevation button</b>:
+    /// pressing it hands an address to the shell, and the window wires the click where the model
+    /// that reports a failure is.
+    /// </summary>
+    internal Button Donate => DonateButton;
 }

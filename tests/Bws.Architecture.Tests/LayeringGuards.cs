@@ -172,8 +172,9 @@ public sealed class LayeringGuards
         // <b>The exception is narrow in three ways rather than one.</b> It is one assembly, not
         // three. Activator and AppDomain stay forbidden here, so the shape that catches a stale
         // generated file in obj still catches it. And
-        // <see cref="Only_one_file_in_the_window_may_start_a_process"/> reads the sources, so the
-        // name may appear in exactly one file and any second one reddens the build.
+        // <see cref="Only_the_named_files_in_the_window_may_start_a_process"/> reads the sources, so
+        // the name may appear in the files it names and any other one reddens the build. There were
+        // one until 2026-09-23 and there are two since - the Donate button, the owner's decision.
         string[] forbidden = string.Equals(projectName, "Bws.Gui", StringComparison.Ordinal)
             ?
             [
@@ -202,7 +203,7 @@ public sealed class LayeringGuards
             "not a reference that arrives while somebody is doing something else.");
     }
     /// <summary>
-    /// A process may be started from one file in the window, and that file is named here.
+    /// Something may be started from two files in the window, and both are named here.
     ///
     /// <b>This is the other half of the exception the theory above describes</b>, and without it
     /// that exception would be an assembly-wide door: anything in the window could reach for
@@ -214,14 +215,26 @@ public sealed class LayeringGuards
     /// stated rather than hidden: a file could reach the same place through a name this does not
     /// look for, exactly as the theory above says about a dependency.
     ///
-    /// <b>The allowed file is spelled out rather than pattern matched</b>, the same shape
+    /// <b>The allowed files are spelled out rather than pattern matched</b>, the same shape
     /// <c>PlanOnlyGuards</c> uses for the two files allowed to build a writer. A list somebody has
     /// to add a line to is a list somebody has to think about.
+    ///
+    /// <b>The second file arrived on 2026-09-23 and brought a third name to look for.</b> The
+    /// Donate button hands its address to the desktop's shell through COM, and that starts a
+    /// browser without the word Process appearing anywhere - so a file asking the shell to execute
+    /// something is counted as starting it, which is what it does.
     /// </summary>
     [Fact]
-    public void Only_one_file_in_the_window_may_start_a_process()
+    public void Only_the_named_files_in_the_window_may_start_a_process()
     {
-        const string Allowed = "Elevation.cs";
+        string[] allowed =
+        [
+            // 2026-08-25: the button that starts this program again with administrator rights.
+            "Elevation.cs",
+
+            // 2026-09-23: the Donate button, one constant address handed to a browser.
+            "ExternalLinks.cs"
+        ];
 
         var window = Path.Combine(SourceTree.Root(), "src", "Bws.Gui");
 
@@ -235,15 +248,18 @@ public sealed class LayeringGuards
             .ToList();
 
         Assert.True(
-            named.Count == 1 && string.Equals(named[0], Allowed, StringComparison.Ordinal),
-            "Starting a process is allowed in " + Allowed + " and nowhere else in this window - "
-            + "the owner decided that on 2026-08-25 for one button, with the reason written at the "
-            + "head of that file. These files name one: "
+            named.SequenceEqual(allowed, StringComparer.Ordinal),
+            "Starting something is allowed in " + string.Join(" and ", allowed) + " and nowhere "
+            + "else in this window - the owner decided each of them for one button, with the reason "
+            + "written at the head of the file. These files name one: "
             + string.Join(", ", named));
     }
 
-    /// <summary>Whether a source file names the two types that start a program.</summary>
+    /// <summary>
+    /// Whether a source file names the two types that start a program, or asks a shell object to.
+    /// </summary>
     private static bool Names(string source) =>
         source.Contains("Process.Start", StringComparison.Ordinal)
-        || source.Contains("ProcessStartInfo", StringComparison.Ordinal);
+        || source.Contains("ProcessStartInfo", StringComparison.Ordinal)
+        || source.Contains(".ShellExecute(", StringComparison.Ordinal);
 }

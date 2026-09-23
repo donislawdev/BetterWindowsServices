@@ -16,7 +16,9 @@ internal static class OutboundRegisters
     /// <summary>
     /// Every native module our own code may bind, and why. Measured 2026-09-22 by reading the
     /// P/Invoke imports out of the built assemblies: four modules in the core, one in the
-    /// window, and none at all in the terminal.
+    /// window, and none at all in the terminal. The window went to six on 2026-09-23 with the
+    /// Donate button - one new module it calls, for the desktop's shell, and four the generator
+    /// declares beside types those interfaces name and nothing calls. Each entry says which it is.
     ///
     /// <b>Adding a line here is the deliberate act.</b> Failing this test is the question being
     /// asked, and the answer belongs in this list rather than in a comment beside the call.
@@ -32,7 +34,9 @@ internal static class OutboundRegisters
             ["KERNEL32.dll"] =
                 "Process handles and what can be asked of them without opening a process for " +
                 "reading: OpenProcess, GetProcessTimes, TerminateProcess, and the handle types " +
-                "underneath all of the above.",
+                "underneath all of the above. The window binds it too since 2026-09-23, for " +
+                "CloseHandle alone, which the generator declares as the release function of a " +
+                "handle type the shell interfaces name - declared and never called.",
 
             ["PSAPI.dll"] =
                 "GetProcessMemoryInfo, which is the one question in this product asked of a " +
@@ -47,9 +51,29 @@ internal static class OutboundRegisters
                 "the runtime probe rather than argued about here.",
 
             ["dwmapi.dll"] =
-                "DwmSetWindowAttribute, and it is the whole of what the window touches in the " +
-                "operating system: telling the window manager that the title bar above this " +
-                "window is a dark one."
+                "DwmSetWindowAttribute: telling the window manager that the title bar above this " +
+                "window is a dark one. It was the whole of what the window touched in the " +
+                "operating system until 2026-09-23.",
+
+            ["OLE32.dll"] =
+                "CoCreateInstance, for one object: the desktop's ShellWindows, a local server run " +
+                "as the interactive user. The Donate button asks it to open one constant address " +
+                "so that the browser starts without this window's administrator rights - " +
+                "ExternalLinks.cs. COM between two processes on this machine, not a network.",
+
+            ["OLEAUT32.dll"] =
+                "SysFreeString, declared by the generator for the BSTR the desktop's ShellExecute " +
+                "takes. The string itself is made and freed through Marshal, so this one is " +
+                "declared and never called.",
+
+            ["USER32.dll"] =
+                "DestroyMenu, declared by the generator as the release function of HMENU, which " +
+                "IShellBrowser names in its signatures. Declared and never called.",
+
+            ["COMCTL32.dll"] =
+                "DestroyPropertySheetPage, declared by the generator as the release function of " +
+                "HPROPSHEETPAGE, which IShellView names in its signatures. Declared and never " +
+                "called."
         };
 
     /// <summary>

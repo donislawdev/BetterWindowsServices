@@ -1,9 +1,34 @@
-// Win32 surface used by the window, and it is one call.
+// Win32 surface used by the window, and it is two things.
 //
 // CsWin32 turns each name below into a P/Invoke at build time, so nothing here becomes a runtime
 // dependency - ADR-2 and ADR-15, the same standing this generator has in Bws.Core.
 //
 // Keeping the list explicit is the point: it is the honest inventory of what the window touches in
-// the operating system, and it belongs under review like any other contract. One name today.
+// the operating system, and it belongs under review like any other contract.
+//
+// The title bar - telling the window manager which colour the frame above this window is.
 DwmSetWindowAttribute
 DWMWINDOWATTRIBUTE
+//
+// The Donate button, since 2026-09-23 - handing one address to the desktop's own shell, so that the
+// browser starts as the person at the desktop rather than with this window's administrator rights.
+// The sequence is the one Microsoft published for exactly that, and ExternalLinks.cs names the source.
+// None of these reaches a network: the desktop shell is a COM server on this machine, run by the
+// interactive user, and the browser it starts is what connects.
+//
+// The generator also declares four release functions it never calls - DestroyMenu, CloseHandle,
+// DestroyPropertySheetPage and SysFreeString - because the shell interfaces name handle types that
+// carry them. OutboundRegisters in the architecture tests says so beside each module.
+ShellWindows
+IShellWindows
+ShellWindowTypeConstants
+ShellWindowFindWindowOptions
+CSIDL_DESKTOP
+IServiceProvider
+SID_STopLevelBrowser
+IShellBrowser
+IShellView
+_SVGIO
+IShellFolderViewDual
+IShellDispatch2
+CoCreateInstance

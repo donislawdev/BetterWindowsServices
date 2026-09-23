@@ -161,10 +161,16 @@ public partial class MainWindow : Window
 
         // THE WAY OUT OF A SESSION WITHOUT RIGHTS, wired here rather than in the row that holds it -
         // 2026-08-25, when the status row moved into its own file. Pressing it starts a second copy
-        // of this program, and Elevation.cs is the only file allowed to name a process at all, held
-        // by a guard that reads the sources. A handler over there would be a second file reaching
-        // for that, reporting its failure through a model that row deliberately does not hold.
+        // of this program, and Elevation.cs is one of the two files allowed to name a process at
+        // all, held by a guard that reads the sources. A handler over there would be another file
+        // reaching for that, reporting its failure through a model that row deliberately does not
+        // hold.
         Status.Elevate.Click += RestartAsAdministrator;
+
+        // THE DONATE BUTTON, 2026-09-23, wired here for the reason the line above gives: pressing
+        // it hands an address to the shell, which only ExternalLinks.cs may do, and a failure is a
+        // sentence for the model this window holds and the row does not.
+        Scope.Donate.Click += OpenSupportPage;
 
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
@@ -384,13 +390,14 @@ public partial class MainWindow : Window
     /// is read rather than assumed.
     ///
     /// <b>Nothing about starting a process is here</b>, and that is not tidiness: Elevation.cs is
-    /// the only file in this product allowed to name one, held by a guard that reads the sources.
+    /// one of the two files in this product allowed to name one, held by a guard that reads the
+    /// sources.
     /// </summary>
     /// <remarks>
     /// <b>Wired in the constructor since 2026-08-25, when the status row moved into its own
     /// file.</b> The markup over there cannot carry the click: pressing this starts a process, and
-    /// <see cref="Elevation"/> is the only file in the product allowed to name one - so the handler
-    /// stays here, where the model that reports its failure is.
+    /// <see cref="Elevation"/> is where that is allowed - so the handler stays here, where the model
+    /// that reports its failure is.
     /// </remarks>
     private void RestartAsAdministrator(object sender, RoutedEventArgs e)
     {
@@ -401,6 +408,21 @@ public partial class MainWindow : Window
         }
 
         Close();
+    }
+
+    /// <summary>
+    /// Hands the support page to a browser, or says in the status line why it did not and where
+    /// the page is.
+    ///
+    /// <b>The window stays as it is either way</b> - nothing about the list, the query or a plan
+    /// depends on a browser opening, so a failure here is a sentence rather than an interruption.
+    /// </summary>
+    private void OpenSupportPage(object sender, RoutedEventArgs e)
+    {
+        if (ExternalLinks.OpenSupport() is { } trouble)
+        {
+            _model.Says.CouldNotDo(trouble);
+        }
     }
 
     private void ListEngaged(object sender, RoutedEventArgs e) => _model.Interacting = true;

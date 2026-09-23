@@ -7,8 +7,10 @@ namespace Bws.Gui;
 /// <summary>
 /// Starting this program again, with the rights this session does not have.
 ///
-/// <b>THE ONLY FILE IN THIS PRODUCT ALLOWED TO NAME A PROCESS, AND THAT IS A DECISION OF THE
-/// OWNER'S RATHER THAN AN ARRANGEMENT OF MINE.</b> <c>LayeringGuards</c> has forbidden
+/// <b>THE FIRST FILE IN THIS PRODUCT ALLOWED TO NAME A PROCESS, AND THAT IS A DECISION OF THE
+/// OWNER'S RATHER THAN AN ARRANGEMENT OF MINE.</b> It was the only one until 2026-09-23, when the
+/// Donate button made <see cref="ExternalLinks"/> the second, by the same kind of decision.
+/// <c>LayeringGuards</c> has forbidden
 /// <c>System.Diagnostics.Process</c> in every shipped assembly since 2026-08-02, with an argument
 /// that is still right: a tool running with administrator rights on somebody else's production
 /// machine, whose whole subject is which programs that machine launches, is the last place a quiet
@@ -17,9 +19,9 @@ namespace Bws.Gui;
 ///
 /// <b>The conversation happened on 2026-08-25 and the exception is deliberately narrow.</b> The
 /// assembly guard still refuses <c>Activator</c> and <c>AppDomain</c> here, and a second guard -
-/// <c>LayeringGuards.Only_one_file_in_the_window_may_start_a_process</c> - reads the sources and
-/// reddens if the name appears anywhere but this file. So the exception has a name, a place and a
-/// test, rather than being a door left open.
+/// <c>LayeringGuards.Only_the_named_files_in_the_window_may_start_a_process</c> - reads the sources
+/// and reddens if the name appears in any file it does not list. So the exception has a name, a
+/// place and a test, rather than being a door left open.
 ///
 /// <b>What it does NOT carry over, said rather than left to be found:</b> the query somebody had
 /// typed, the columns they had turned on, or which list they were looking at. The new session reads
