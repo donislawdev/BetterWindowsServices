@@ -67,4 +67,31 @@ public sealed class QueryExampleTests
                 + "would empty the list and explain it as a limitation rather than as an answer.");
         }
     }
+
+    /// <summary>
+    /// THE QUESTION "SHOULD BE RUNNING AND IS NOT" IS ASKED ONE WAY, WHEREVER IT IS ASKED FROM.
+    ///
+    /// <b>UX-GUI-008 of the audit of 2026-09-23.</b> The example wrote
+    /// <c>start:auto !status:running</c> and the chip beside the box writes <c>mismatch:stopped</c>,
+    /// and on the machine the audit was taken on the first answered 7 services and the second 1 -
+    /// the literal query also catches per-user templates and services a trigger starts, which are
+    /// stopped because that is where they are meant to sit. Somebody asking the same question from
+    /// the box and from the chip got two numbers and no way to guess why.
+    ///
+    /// Asked of the chip rather than of a spelling written here, so that whichever of the two moves
+    /// next, this test says so.
+    /// </summary>
+    [Fact]
+    public void The_question_about_what_should_be_running_is_the_one_the_chip_asks()
+    {
+        var chip = FilterChips.Grouped(() => string.Empty, _ => { })
+            .SelectMany(group => group.Chips)
+            .Single(chip => chip.Label == Texts.Of("gui.filter.shouldRun"));
+
+        var example = Assert.Single(
+            QueryExamples.All,
+            example => example.Label == Texts.Of("gui.example.shouldBeRunning"));
+
+        Assert.Equal(chip.Member, example.Query);
+    }
 }

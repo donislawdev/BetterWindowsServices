@@ -11,9 +11,8 @@ namespace Bws.Gui.ViewModels;
 ///
 /// <b>Examples rather than a syntax card, and that is the same bet the chips made.</b> A chip
 /// teaches by writing its member into the box - these teach by writing a whole question into it.
-/// Somebody who clicks "Automatic but not running" and reads
-/// <c>start:auto !status:running</c> has learnt the negation operator without being told about it,
-/// and can edit it into the question they actually had.
+/// Somebody who clicks "Services only" and reads <c>!type:driver</c> has learnt the negation
+/// operator without being told about it, and can edit it into the question they actually had.
 ///
 /// <b>Every one of these has to parse, and a test says so.</b> An example that selects nothing
 /// teaches the language wrong and blames the person for it.
@@ -60,8 +59,18 @@ internal static class QueryExamples
     /// and `docs/07` behind that. A list long enough to scroll would be a second column picker.
     ///
     /// <b>Chosen for the operator each one teaches, not only for the answer it gives.</b> The
-    /// first carries negation, the second an alias, the third a value that is a group, the fourth
-    /// two members narrowing each other, and the last two the reserved words every field has.
+    /// first carries a field the tool works out rather than reads, the second negation over a value
+    /// that is a group (<c>driver</c> is both kinds of driver), the third two members narrowing each
+    /// other, the fourth a plain value, and the last two the reserved words every field has.
+    ///
+    /// <b>THE FIRST ONE TAUGHT NEGATION UNTIL 2026-09-23 AND GAVE IT UP FOR THE RIGHT ANSWER -
+    /// UX-GUI-008.</b> It wrote <c>start:auto !status:running</c>, and the chip beside the box asks
+    /// the same question as <c>mismatch:stopped</c>. On the machine the audit was taken on the two
+    /// answered 7 services and 1: the literal query also catches per-user templates and services a
+    /// trigger starts, which are stopped because that is where they are meant to sit - the noise
+    /// spec G already refused for the start screen. One question now has one answer wherever it is
+    /// asked from. The price is that negation is taught only by "Services only", which is offered
+    /// on the whole machine and nowhere else.
     ///
     /// <b>Nothing here needs a reading the window does not do.</b> A signature or memory example
     /// would compose a query the list cannot answer, which is the one thing an example must not
@@ -77,7 +86,7 @@ internal static class QueryExamples
     /// </summary>
     internal static IReadOnlyList<QueryExample> All { get; } =
     [
-        new QueryExample("gui.example.shouldBeRunning", "start:auto !status:running", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
+        new QueryExample("gui.example.shouldBeRunning", "mismatch:stopped", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
         new QueryExample("gui.example.servicesOnly", "!type:driver", EntryScope.Everything),
         new QueryExample("gui.example.disabledButRunning", "start:disabled status:running", EntryScope.Services, EntryScope.Drivers, EntryScope.Everything),
         new QueryExample("gui.example.asLocalSystem", "account:LocalSystem", EntryScope.Services, EntryScope.Everything),
