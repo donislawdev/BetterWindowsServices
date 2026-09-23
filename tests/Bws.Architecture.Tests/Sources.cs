@@ -53,16 +53,28 @@ internal static class Sources
     internal static IEnumerable<string> BuildFiles() =>
         new[] { "*.csproj", "*.props", "*.targets" }
             .SelectMany(pattern => Directory.EnumerateFiles(SourceTree.Root(), pattern, SearchOption.AllDirectories))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             // tools/ is outside version control and outside the product, and its probe projects
             // are throwaway. A guard reading them would fail a clone that has no tools directory
             // at all, which is every clone but this one.
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}tools{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+            .Where(path => !Beneath(path, "obj", "bin", "tools"));
 
     private static IEnumerable<string> Under(string folder, string pattern) =>
         Directory
             .EnumerateFiles(Path.Combine(SourceTree.Root(), folder), pattern, SearchOption.AllDirectories)
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+            .Where(path => !Beneath(path, "obj", "bin"));
+
+    /// <summary>
+    /// Whether a file sits in a folder of one of these names, INSIDE the repository.
+    ///
+    /// Asked of the path relative to the root since 2026-09-23, and review found why: the filters
+    /// looked for "\tools\" in the absolute path, so a checkout beneath any folder called tools, obj
+    /// or bin would have had every file filtered out - and a guard reading no files passes, which
+    /// is the sentence at the top of this class.
+    /// </summary>
+    private static bool Beneath(string path, params string[] folders)
+    {
+        var inside = Path.GetRelativePath(SourceTree.Root(), path).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        return inside.Take(inside.Length - 1).Any(segment => folders.Contains(segment, StringComparer.OrdinalIgnoreCase));
+    }
 }

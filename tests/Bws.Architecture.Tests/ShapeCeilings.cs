@@ -147,17 +147,30 @@ internal static class ShapeCeilings
     internal const int FewestUnitsRead = 500;
 
     /// <summary>
-    /// Named exceptions. Each stands far enough above everything else that setting the ceiling on
-    /// it would hold nothing for the other thousand units - so it is taken out by name, with its
-    /// reason, and the guard refuses the entry the day it stops being needed.
+    /// Named exceptions, and the rule that admits one, applied to every entry below: a unit stands
+    /// so far above everything else on an axis that setting the ceiling on it would hold nothing
+    /// for the other thousand units. It is taken out by name, with its reason, and the guard refuses
+    /// the entry the day it stops being needed.
+    ///
+    /// <b>ONE ENTRY DOES NOT MEET THAT RULE ON ITS OWN, AND IT IS SAID RATHER THAN HIDDEN</b> - found by
+    /// review on 2026-09-23, after the reason written here claimed "three times the next method on
+    /// every axis", which was true of length only. CommandLine.Read is one level over the depth
+    /// ceiling, not far over it. It is exempt on depth because it is ALREADY exempt on length and
+    /// branching and backlog 24 will split it as a whole: without the entry the depth ceiling would
+    /// be 5 for everybody, handing a level to the other thousand units to spare one method a
+    /// sentence it is already under. The same reasoning does not reach the entry point, which stands
+    /// ON the depth ceiling rather than over it, and it is not exempt there.
     /// </summary>
     internal static readonly ShapeExemption[] Exemptions =
     [
         new("Bws.Cli.CommandLine.Read", ShippedLength,
-            "221 lines of code, 50 forks, 5 levels - three times the next method on every axis. Backlog 24 has asked for " +
-            "it to be split since 2026-08-02, and the analyser before this said so too. Split, not exempted for ever."),
-        new("Bws.Cli.CommandLine.Read", ShippedBranching, "The same method, the same backlog row."),
-        new("Bws.Cli.CommandLine.Read", ShippedDepth, "The same method, the same backlog row."),
+            "221 lines of code, over three times the length ceiling of 68. Backlog 24 has asked for it to be split since " +
+            "2026-08-02, and the analyser before this said so too. Split, not exempted for ever."),
+        new("Bws.Cli.CommandLine.Read", ShippedBranching,
+            "50 forks, over twice the branching ceiling of 23. The same method, the same backlog row."),
+        new("Bws.Cli.CommandLine.Read", ShippedDepth,
+            "5 levels, ONE over the depth ceiling of 4 - exempt because it is exempt on the two axes above and will be " +
+            "split as a whole, not because it is far over this one. See the summary of this list."),
         new("Bws.Core.Querying.QueryFields.BuildAll", ShippedLength,
             "166 lines of code and no branching: a table, one declaration per field of the query language. Splitting " +
             "it would put the list of fields in several places, which is the drift QueryFields.cs exists to prevent."),

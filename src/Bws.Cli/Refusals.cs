@@ -30,10 +30,10 @@ internal static class Refusals
 
     // Long, and long WITH a list of unrelated mistakes, each three lines and a paragraph - splitting
     // the list would put the order above into two files where nothing holds it. It needed a
-    // suppression while method length was counted in raw lines. Counted in lines of code it is 67,
-    // one under the longest method in the product, so it stands under the shape ceiling with no
-    // exemption, and the next line added here asks for the seam. Backlog 24 is where the wider
-    // question lives.
+    // suppression while method length was counted in raw lines. Counted in lines of code it is one
+    // under the method length ceiling, so it stands under it with no exemption. One more line puts
+    // it ON the ceiling, which is still allowed - the second one crosses it, and that is the line
+    // that asks for the seam. Backlog 24 is where the wider question lives.
     internal static int? Answer(CommandLine options)
     {
         ArgumentNullException.ThrowIfNull(options);

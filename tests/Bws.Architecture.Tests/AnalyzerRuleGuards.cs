@@ -96,28 +96,79 @@ public sealed class AnalyzerRuleGuards
         ["#pragma warning disable SYSLIB0057"] = 1,
     };
 
-    /// <summary>MSBuild properties that turn an analyser off, weaken it, or move a warning out of the gate.</summary>
+    /// <summary>
+    /// MSBuild properties and items that turn an analyser off, weaken it, move a warning out of the
+    /// gate, or load a configuration this guard never reads.
+    ///
+    /// The last three came from review on 2026-09-23, and each is a way round this guard rather than
+    /// round the analyser. <c>CodeAnalysisTreatWarningsAsErrors</c> set to false leaves every CA rule a
+    /// plain warning while <c>TreatWarningsAsErrors</c> still says true. The two items load an analyser
+    /// configuration from a file of ANY name, so the search for a second .editorconfig by name below
+    /// would never see it.
+    /// </summary>
     private static readonly string[] Switches =
     [
         "RunAnalyzers", "RunAnalyzersDuringBuild", "EnableNETAnalyzers", "AnalysisLevel", "AnalysisMode",
         "CodeAnalysisRuleSet", "WarningLevel", "EnforceCodeStyleInBuild",
+        "CodeAnalysisTreatWarningsAsErrors", "GlobalAnalyzerConfigFiles", "EditorConfigFiles",
     ];
+
+    /// <summary>
+    /// A setting and a section header, exactly as the compiler's own parser reads them - Roslyn's
+    /// AnalyzerConfig, read in its source on 2026-09-23 rather than recalled. Both <c>=</c> and <c>:</c>
+    /// separate a key from its value, and a comment starts at the first <c>#</c> or <c>;</c> after it.
+    /// The first draft of this guard split on <c>=</c> alone, so <c>severity: none</c> on a line below
+    /// the recorded one would have overridden it in the build with this test still green.
+    /// </summary>
+    private static readonly Regex Setting = new(@"^\s*([\w\.\-_]+)\s*[=:]\s*(.*?)\s*([#;].*)?$", RegexOptions.None, Sources.Ceiling);
+
+    private static readonly Regex Header = new(@"^\s*\[(([^#;]|\\#|\\;)+)\]\s*([#;].*)?$", RegexOptions.None, Sources.Ceiling);
 
     private const string Shared = "Directory.Build.props";
 
     [Fact]
     public void The_analyser_configuration_is_exactly_what_was_chosen()
     {
-        var found = Settings(File.ReadAllLines(Path.Combine(SourceTree.Root(), ".editorconfig")));
+        var (found, unreadable) = Settings(File.ReadAllLines(Path.Combine(SourceTree.Root(), ".editorconfig")));
         var lost = Recorded.Except(found, StringComparer.Ordinal).ToArray();
         var gained = found.Except(Recorded, StringComparer.Ordinal).ToArray();
 
+        // The same key twice in one section: the later line wins in the build, whatever the first
+        // says. Keys compared the way the compiler compares them, which lowercases every key.
+        var twice = found
+            .GroupBy(setting => setting[..setting.IndexOf(" = ", StringComparison.Ordinal)].ToLowerInvariant(), StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
         Assert.True(
-            lost.Length == 0 && gained.Length == 0,
+            lost.Length == 0 && gained.Length == 0 && twice.Length == 0 && unreadable.Length == 0,
             ".editorconfig no longer says what was chosen for C#. Dropping a rule is a decision - make it here as " +
             "well as there. A new one is free, record it here too, that is what makes it stick." +
             Environment.NewLine + "Gone from .editorconfig:" + Environment.NewLine + string.Join(Environment.NewLine, lost) +
-            Environment.NewLine + "Not recorded here:" + Environment.NewLine + string.Join(Environment.NewLine, gained));
+            Environment.NewLine + "Not recorded here:" + Environment.NewLine + string.Join(Environment.NewLine, gained) +
+            Environment.NewLine + "Set twice, so the later one wins:" + Environment.NewLine + string.Join(Environment.NewLine, twice) +
+            Environment.NewLine + "Lines the compiler ignores without a word:" + Environment.NewLine + string.Join(Environment.NewLine, unreadable));
+    }
+
+    [Fact]
+    public void The_build_file_scan_reads_every_project_in_the_solution()
+    {
+        // The canary for the list above and for SupplyChainGuards, which read the same one. A scan
+        // of build files that finds none passes both, and review found a way it could: a filter on
+        // the absolute path turned a checkout beneath any folder called tools into an empty list.
+        var solution = File.ReadAllText(Path.Combine(SourceTree.Root(), "BetterWindowsServices.slnx"));
+        var projects = Regex.Matches(solution, "Path=\"(?<path>[^\"]+\\.csproj)\"", RegexOptions.None, Sources.Ceiling)
+            .Select(match => match.Groups["path"].Value.Replace('\\', '/'))
+            .ToArray();
+        var read = Sources.BuildFiles().Select(CodeShape.NameOf).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missed = projects.Where(project => !read.Contains(project)).ToArray();
+
+        Assert.True(
+            projects.Length >= 9 && missed.Length == 0 && read.Contains(Shared),
+            $"The build file scan read {read.Count} files and the solution lists {projects.Length} projects. Missing " +
+            $"from the scan: {string.Join(", ", missed)}. {Shared} read: {read.Contains(Shared)}. Every guard reading " +
+            "this list passes on an empty one.");
     }
 
     [Fact]
@@ -163,29 +214,32 @@ public sealed class AnalyzerRuleGuards
 
     /// <summary>
     /// Every setting in .editorconfig as "[section] key = value", with "(top)" for the lines above the
-    /// first section. A trailing comment is dropped, which is how the compiler reads the file too -
-    /// the MA rules turned off here carry theirs inline, and they are off in the build.
+    /// first section, read with the compiler's own two patterns - so a colon separates like an equals
+    /// sign and a trailing comment is dropped. Also every line the compiler would skip in silence:
+    /// neither blank, nor a comment, nor a section, nor a setting.
     /// </summary>
-    internal static string[] Settings(IEnumerable<string> lines)
+    internal static (string[] Settings, string[] Unreadable) Settings(IEnumerable<string> lines)
     {
         var settings = new List<string>();
+        var unreadable = new List<string>();
         var section = "(top)";
         foreach (var raw in lines.Select(line => line.Trim()).Where(line => line.Length > 0 && line[0] is not ('#' or ';')))
         {
-            if (raw.StartsWith('['))
+            if (Header.Match(raw) is { Success: true } header)
             {
-                section = raw;
-                continue;
+                section = $"[{header.Groups[1].Value}]";
             }
-
-            var pair = raw.Split('=', 2);
-            if (pair.Length == 2)
+            else if (Setting.Match(raw) is { Success: true } setting)
             {
-                settings.Add($"{section} {pair[0].Trim()} = {Regex.Replace(pair[1], @"\s[#;].*$", string.Empty, RegexOptions.None, Sources.Ceiling).Trim()}");
+                settings.Add($"{section} {setting.Groups[1].Value} = {setting.Groups[2].Value}");
+            }
+            else
+            {
+                unreadable.Add($"  {section} {raw}");
             }
         }
 
-        return [.. settings];
+        return ([.. settings], [.. unreadable]);
     }
 
     private static IEnumerable<string> Weakenings(string file, string text)

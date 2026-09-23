@@ -12,7 +12,7 @@ namespace Bws.Cli;
 ///
 /// The seam is the same one ScmEntry took the same day: everything beside this is the SHAPE of
 /// what was asked for, and everything here is the reading that produces it. Backlog 24 asks for
-/// a further split - Read is the largest method in the product on every shape axis - and that is
+/// a further split - Read is the longest and the deepest method in the product - and that is
 /// still deferred, because this cut moved a method without touching a line of it.
 /// </summary>
 internal sealed partial record CommandLine
@@ -20,7 +20,8 @@ internal sealed partial record CommandLine
     private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout"];
 
     // Exempted rather than defended: at 221 lines of code, 50 forks and five levels deep this one
-    // really is too long, and every shape ceiling says so. Splitting it is a change to working code
+    // really is too long, and the length, branching and depth ceilings all say so. Splitting it is
+    // a change to working code
     // that no slice asked for, so it is written down as backlog item 24 instead of being done here
     // on the way past. The exemption is named, with this reason, in ShapeCeilings.Exemptions in the
     // architecture tests - and that guard refuses the entry the day this method comes back under

@@ -93,6 +93,21 @@ public sealed class CodeShapeMetricTests
     }
 
     [Fact]
+    public void Every_other_kind_of_decision_forks_once_too()
+    {
+        // The seven the test above left out, found by review on 2026-09-23. Each is in the list of
+        // forks in ShapeMeasures.cs, and the rule this class lives by is that every entry has a
+        // case that must move the number - otherwise deleting it from the list changes nothing here.
+        Assert.Equal(2, Complexity("var x = a ? 1 : 2;"));
+        Assert.Equal(2, Complexity("s ??= \"\";"));
+        Assert.Equal(2, Complexity("var x = n is > 0 and < 5;"));
+        Assert.Equal(2, Complexity("var x = n is 1 or 2;"));
+        Assert.Equal(4, Complexity("switch (o) { case int i: break; case string t when t.Length > 0: break; }"));
+        Assert.Equal(3, Complexity("var x = n switch { > 0 when flag => 1, _ => 0 };"));
+        Assert.Equal(2, Complexity("foreach (var (a, b) in pairs) { }"));
+    }
+
+    [Fact]
     public void A_null_conditional_is_not_a_fork()
     {
         Assert.Equal(1, Complexity("var x = s?.Length;"));
