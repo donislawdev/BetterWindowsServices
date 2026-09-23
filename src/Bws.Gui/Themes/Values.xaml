@@ -79,6 +79,19 @@
         triangle, because a heart drawn in eight reads as a blot beside a word set in fourteen.
     -->
     <system:Double x:Key="SizeSupportMark">10</system:Double>
+
+    <!--
+        THE BOX THE SHIELD ON A WRITE BUTTON IS DRAWN IN, since 2026-09-23 (UX-GUI-004 b). Its own
+        name for the reason above: the heart and the shield are two marks on two kinds of button,
+        and one size for both would move the other the day either changed.
+
+        EIGHT AND NOT TEN, AND THE BAR DECIDED IT, with the owner's choice the same day. Nine
+        buttons stand on one line that cannot wrap, and at the narrowest window they had 48 units
+        to spare. A ten-unit shield with its gap cost 108 across the six write buttons and pushed
+        Overview 60 units outside the bar. Eight units, drawn partly in the button's own left
+        padding (PadButtonWithMark in Spacing.xaml), costs 5 a button - 30 in all.
+    -->
+    <system:Double x:Key="SizeRightsMark">8</system:Double>
     <system:Double x:Key="ShapeOutline">1.5</system:Double>
 
     <!--

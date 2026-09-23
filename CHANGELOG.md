@@ -168,6 +168,14 @@ Nothing has been released yet. Everything below is what the tool does today.
   drivers picked together on the *All* list the buttons work as before, and the plan names each
   driver it leaves out.
 
+- **Without administrator rights, the window says so before you open a plan, and the plan
+  offers the way out.** The six buttons that change something - *Stop*, *Start*, *Restart*,
+  *Force stop*, *Force restart* and *Set startup type* - now wear a small shield, the way
+  Windows marks a button that needs administrator rights, and resting on one says so in words.
+  In the plan, *Restart as admin* now stands right beside the sentence that tells you to use it.
+  Until now the only such button was at the bottom of the window, behind the plan, where it
+  could not be clicked while the plan was open.
+
 - **A plan that can do nothing opens on the reason, not on an empty list of steps.** When every
   entry in a plan was left out, the plan showed an empty *In this order* section first. It also
   showed a red sentence saying a restart as administrator would carry it out, which it would

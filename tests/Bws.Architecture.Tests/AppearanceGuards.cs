@@ -157,7 +157,11 @@ public sealed class AppearanceGuards
             // under the search box needed three templates. It passes the test every entry here
             // has had to pass - the name says what is in it, a floating list of what can be
             // typed, and the file opens by claiming exactly that.
-            "Controls.xaml", "Menus.xaml", "Suggestions.xaml",
+            //
+            // Actions.xaml, 2026-09-23: the write buttons of the action bar and the shield they
+            // wear. Controls.xaml stood two lines under its ceiling. Added here in the same edit as
+            // the file, for the reason every entry here gives.
+            "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml",
 
             // PlanLines.xaml left Plan.xaml on 2026-09-07 when the markup ratchet fired on THAT
             // one - a failure that can be escalated needed a template of its own. Added here in

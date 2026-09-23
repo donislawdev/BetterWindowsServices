@@ -292,8 +292,11 @@ public static partial class Catalogue
             //
             // THE WRONG CELL IS DRIVERS ALONE, since 2026-09-23 - UX-GUI-003. Every button off, each
             // saying the tool does not touch drivers, which is a refusal rather than an empty pick.
+            //
+            // AND THE DATA CELL IS A SESSION WITHOUT RIGHTS, the same day - UX-GUI-004 (b). The six
+            // write buttons wear the shield there, and the extreme cell is the bar without it.
             Made(nameof(ActionBar),
-                data: Bar(1), empty: Bar(0), wrong: Bar(1, onlyDrivers: true), extreme: Bar(2)),
+                data: Bar(1, needsRights: true), empty: Bar(0), wrong: Bar(1, onlyDrivers: true), extreme: Bar(2)),
 
             // The extreme cell is a session without rights: the rights sentence in red at the head
             // of the line, the rest of the line in the notice colour - UX-GUI-009, 2026-09-23.
@@ -393,9 +396,9 @@ public static partial class Catalogue
         return sized.Element is null ? sized : sized with { Tall = true };
     }
 
-    private static ActionBar Bar(int picked, bool onlyDrivers = false)
+    private static ActionBar Bar(int picked, bool onlyDrivers = false, bool needsRights = false)
     {
-        var bar = new ActionBar();
+        var bar = new ActionBar { NeedsRights = needsRights };
 
         bar.Picked(picked, onlyDrivers);
 

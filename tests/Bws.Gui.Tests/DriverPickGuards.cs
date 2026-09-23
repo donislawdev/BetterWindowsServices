@@ -38,7 +38,8 @@ public sealed class DriverPickGuards
         Pick(window, model, "disk", "Spooler");
 
         Assert.True(WpfHost.On(() => window.Actions.Stop.IsEnabled));
-        Assert.Equal(Texts.Of("gui.action.stop.hint"), WpfHost.On(() => window.Actions.Stop.ToolTip as string));
+        // Starts with, because a session without rights adds a sentence about them - RightsMarkGuards.
+        Assert.StartsWith(Texts.Of("gui.action.stop.hint"), WpfHost.On(() => window.Actions.Stop.ToolTip as string), StringComparison.Ordinal);
 
         WpfHost.On(window.Close);
     }

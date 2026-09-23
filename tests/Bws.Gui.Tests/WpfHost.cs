@@ -276,7 +276,9 @@ internal static class WpfHost
                      // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
                      // bearing: the menu styles extend the implicit MenuItem style found there.
                      // Suggestions.xaml beside it, after Text.xaml whose names it resolves.
-                     "Controls.xaml", "Menus.xaml", "Suggestions.xaml",
+                     // Actions.xaml after Menus.xaml, as in App.xaml - it extends the implicit Button
+                     // style the same way. The write buttons and their shield, 2026-09-23.
+                     "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml",
 
                      // PlanLines.xaml before Plan.xaml, for the same reason and from the same
                      // list in App.xaml. They were one file until 2026-09-07.

@@ -33,6 +33,26 @@ public partial class ActionBar : UserControl
         Picked(0, onlyDrivers: false);
     }
 
+    /// <summary>
+    /// Whether carrying out what these buttons ask for needs administrator rights this session does
+    /// not have - UX-GUI-004 (b). The window says so once, from the session's rights, and the six
+    /// write buttons then wear a shield (RightsMark in Actions.xaml) and say it in their tooltips.
+    ///
+    /// <b>Before the plan rather than only under it.</b> A window without rights looked ready to
+    /// act: every button live, every plan built in full, and the one sentence about rights waiting
+    /// under the plan beside a grey button. A dependency property because the shield is decided by
+    /// a trigger in the theme, and a trigger can only watch what tells it when it changes.
+    /// </summary>
+    public bool NeedsRights
+    {
+        get => (bool)GetValue(NeedsRightsProperty);
+        set => SetValue(NeedsRightsProperty, value);
+    }
+
+    /// <summary>The property behind <see cref="NeedsRights"/>.</summary>
+    public static readonly DependencyProperty NeedsRightsProperty =
+        DependencyProperty.Register(nameof(NeedsRights), typeof(bool), typeof(ActionBar), new PropertyMetadata(false));
+
     /// <summary>Somebody asked to see what one of the five would do to the rows they picked.</summary>
     internal event EventHandler<PreviewAsked>? PreviewRequest;
 
@@ -145,11 +165,14 @@ public partial class ActionBar : UserControl
     /// and an empty selection still shares its sentence across the bar so the bar never disagrees
     /// with itself.
     /// </summary>
-    private static void Set(Button button, bool on, string saying)
+    private void Set(Button button, bool on, string saying)
     {
         button.IsEnabled = on;
 
-        button.ToolTip = saying;
+        // The shield in words, on a button that would open a plan this session cannot carry out -
+        // a screen reader gets no node for the shield, and the plan can still be shown. Never on
+        // an off button: its sentence is why it is off, and rights are not that reason.
+        button.ToolTip = on && NeedsRights ? saying + " " + Texts.Of("gui.action.needsRights") : saying;
     }
 
     private void StopAsked(object sender, RoutedEventArgs e) =>

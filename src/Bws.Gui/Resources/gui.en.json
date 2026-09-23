@@ -51,6 +51,7 @@
   "gui.action.force.onlyOne": "Force stop and force restart take one entry at a time. Pick one.",
   "gui.action.needsPick": "Pick one or more entries in the list first.",
   "gui.action.onlyDrivers": "Drivers are listed to be looked at. This tool does not start, stop or change them - pick a service.",
+  "gui.action.needsRights": "Carrying it out needs administrator rights - the plan can still be shown now.",
 
   "gui.columns.button": "Columns",
   "gui.columns.group.basics": "Basics",

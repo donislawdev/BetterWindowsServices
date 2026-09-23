@@ -63,12 +63,14 @@ public sealed class ForcingVerbGuards
         Assert.True(WpfHost.On(() => window.Actions.ForceStop.IsEnabled));
         Assert.True(WpfHost.On(() => window.Actions.ForceRestart.IsEnabled));
 
-        Assert.Equal(
+        Assert.StartsWith(
             Bws.Gui.Texts.Of("gui.action.forceStop.hint"),
-            WpfHost.On(() => window.Actions.ForceStop.ToolTip as string));
-        Assert.Equal(
+            WpfHost.On(() => window.Actions.ForceStop.ToolTip as string),
+            StringComparison.Ordinal);
+        Assert.StartsWith(
             Bws.Gui.Texts.Of("gui.action.forceRestart.hint"),
-            WpfHost.On(() => window.Actions.ForceRestart.ToolTip as string));
+            WpfHost.On(() => window.Actions.ForceRestart.ToolTip as string),
+            StringComparison.Ordinal);
 
         WpfHost.On(window.Close);
     }
