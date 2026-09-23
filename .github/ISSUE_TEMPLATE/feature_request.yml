@@ -31,7 +31,7 @@ body:
         argument. Saying so here saves you writing a proposal that was never going to be
         accepted.
       options:
-        - label: This does not need the tool to reach the network. No telemetry, no update check, no crash reporting and no client of any service - the tool is meant for production servers, and it never leaves the machine it runs on.
+        - label: This does not need the tool to reach the network on its own. No telemetry, no update check, no crash reporting and no client of any service - the tool is meant for production servers. The one exception is `--follow-network`, which lets it look at a launch path on another machine's share when you pass it, and it is off by default.
           required: true
         - label: This does not change anything without a plan. Every change builds a plan that can be previewed, turned into a command line and undone, and the preview is exactly what the execution does. There is no second path for a change, not even a quick one.
           required: true

@@ -169,8 +169,9 @@ public partial class MainWindow : Window
 
         // THE DONATE BUTTON, 2026-09-23, wired here for the reason the line above gives: pressing
         // it hands an address to the shell, which only ExternalLinks.cs may do, and a failure is a
-        // sentence for the model this window holds and the row does not.
-        Scope.Donate.Click += OpenSupportPage;
+        // sentence for the model this window holds and the row does not. An async lambda, the shape
+        // the bar below uses, because the press waits for the shell off this thread.
+        Scope.Donate.Click += async (_, _) => await OpenSupportPage().ConfigureAwait(true);
 
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
@@ -416,10 +417,11 @@ public partial class MainWindow : Window
     ///
     /// <b>The window stays as it is either way</b> - nothing about the list, the query or a plan
     /// depends on a browser opening, so a failure here is a sentence rather than an interruption.
+    /// It keeps answering while the shell is asked, too - ShellHandover says why that is not free.
     /// </summary>
-    private void OpenSupportPage(object sender, RoutedEventArgs e)
+    private async Task OpenSupportPage()
     {
-        if (ExternalLinks.OpenSupport() is { } trouble)
+        if (await ExternalLinks.OpenSupportAsync().ConfigureAwait(true) is { } trouble)
         {
             _model.Says.CouldNotDo(trouble);
         }

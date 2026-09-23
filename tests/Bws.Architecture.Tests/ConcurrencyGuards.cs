@@ -139,7 +139,18 @@ public sealed class ConcurrencyGuards
             "and the views are built over them afterwards on the thread that can build a " +
             "control. The seam between the two is the file's header. What is added here is the " +
             "one read that is started and not awaited, which is the loading sample and is " +
-            "listed as such in BackgroundWorkGuards."
+            "listed as such in BackgroundWorkGuards.",
+
+        ["ShellHandover.cs"] =
+            "The Donate button's call into the shell, off the interface thread, added 2026-09-23 " +
+            "after a review asked why the window waited on another process with no limit. The " +
+            "argument is structural rather than measured: finding the desktop took 22-28 ms here " +
+            "and a hung shell was never reproduced, but nothing bounded it, and the thread that " +
+            "waited was the one that draws. A dedicated thread rather than Task.Run because the " +
+            "shell's objects expect a single threaded apartment and pool threads are not one. " +
+            "Nothing crosses the boundary but the answer, which comes back through an await, and " +
+            "the one field is touched on the interface thread only. ExternalLinksGuards holds the " +
+            "apartment, the bound, one hand-over at a time, and a throw reaching the press."
     };
 
     /// <summary>

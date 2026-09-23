@@ -20,7 +20,9 @@ Nothing has been released yet. Everything below is what the tool does today.
   itself still opens no connection, your browser is what connects. In a window running as
   administrator the page is handed to the desktop to open, so the browser starts with your own
   rights rather than the tool's. If the page cannot be opened, the status line says why and
-  gives the address to type in.
+  gives the address to type in. The window keeps answering while Windows opens the page, and if
+  Windows has not finished after ten seconds the status line says so - the page may still open
+  by itself.
 
 - **`bws license`, and `bws license --components`.** What the program is licensed under, that it
   comes with no warranty, where the full text is, and what it carries that somebody else wrote.

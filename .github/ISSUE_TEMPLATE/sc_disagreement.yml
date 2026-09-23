@@ -62,12 +62,15 @@ body:
       render: shell
     validations:
       required: true
-  - type: input
+  - type: textarea
     id: version
     attributes:
       label: Version
       description: "`bws --version` prints it - paste the first two lines."
-      placeholder: "bws 0.1.0, snapshot schema 4"
+      placeholder: |
+        bws 0.1.0
+        snapshot schema 4
+      render: text
     validations:
       required: true
   - type: input

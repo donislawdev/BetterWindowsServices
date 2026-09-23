@@ -18,7 +18,7 @@ body:
         it was going, usually because the service manager refused, and 5 means a snapshot
         comparison found differences. Report them if you believe the answer itself is
         wrong.
-  - type: input
+  - type: textarea
     id: version
     attributes:
       label: Version
@@ -26,7 +26,10 @@ body:
         `bws --version` prints it - paste the first two lines. For the window, run this
         in PowerShell next to the executable:
         `(Get-Item .\BetterWindowsServices.exe).VersionInfo.ProductVersion`.
-      placeholder: "bws 0.1.0, snapshot schema 4"
+      placeholder: |
+        bws 0.1.0
+        snapshot schema 4
+      render: text
     validations:
       required: true
   - type: dropdown

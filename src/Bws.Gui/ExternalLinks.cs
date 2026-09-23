@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Bws.Core;
 using Windows.Win32;
@@ -64,13 +65,26 @@ internal static class ExternalLinks
     private const int ShowNormally = 1;
 
     /// <summary>
+    /// The one hand-over of the support page, shared by every press so that a second press while
+    /// the shell still has the first joins it. <see cref="ShellHandover"/> says why that matters.
+    /// </summary>
+    private static readonly ShellHandover Supporting = new(
+        () => Open(Support, Session.IsElevated(), Start, HandToDesktop),
+        ShellHandover.Patience,
+        Texts.Of("gui.support.slow", Support));
+
+    /// <summary>
     /// Hands the support page to a browser, or says why it did not.
     ///
     /// <b>Null means it was handed over</b>, the same shape as <see cref="Elevation.Restart"/>, and
     /// for the same reason: a failure here is a sentence a person reads, rule 8, and it carries the
     /// address so that the way out is typing it into a browser by hand.
+    ///
+    /// <b>Awaited, and never on the window's thread, since a review of 2026-09-23.</b> Both ways
+    /// below call into another process, and the window's thread was the one waiting for it. This is
+    /// the only way in from outside this file, so there is no longer a synchronous one to reach for.
     /// </summary>
-    internal static string? OpenSupport() => Open(Support, Session.IsElevated(), Start, HandToDesktop);
+    internal static Task<string?> OpenSupportAsync() => Supporting.Ask();
 
     /// <summary>
     /// Which of the two ways, and what a failure says.
@@ -119,6 +133,7 @@ internal static class ExternalLinks
     /// fails</b> - the shell's process refusing or gone, an interface it does not offer, and a
     /// refusal of access. Anything else would mean the shell breaking its own published contract,
     /// and it reaches the window's own last line in Mishaps, which also says what happened.
+    /// <see cref="Refused"/> says what the three read as.
     /// </summary>
     private static string? HandToDesktop(string address)
     {
@@ -146,17 +161,36 @@ internal static class ExternalLinks
         }
         catch (COMException failure)
         {
-            return failure.Message;
+            return Refused(failure);
         }
         catch (InvalidCastException failure)
         {
-            return failure.Message;
+            return Refused(failure);
         }
         catch (UnauthorizedAccessException failure)
         {
-            return failure.Message;
+            return Refused(failure);
         }
     }
+
+    /// <summary>
+    /// What a refusal by the desktop reads as: a sentence of this window's own, and the number
+    /// Windows gave.
+    ///
+    /// <b>NEVER THE EXCEPTION'S OWN TEXT - a review of 2026-09-23.</b> For two of the likeliest
+    /// refusals the runtime writes that text itself, in English and about itself: "Unexpected
+    /// HRESULT has been returned from a call to a COM component." for a plain failure and "Specified
+    /// cast is not valid." for an interface the desktop does not offer, measured on .NET 10.0.12.
+    /// Both reached the status line. The number is the part that means the same thing in every
+    /// language and can be looked up.
+    ///
+    /// <b>The direct start keeps the system's sentence, and that is not an oversight.</b> A
+    /// Win32Exception always carries the text Windows itself gives for the code, in the language of
+    /// the machine - "no application is associated" is the answer a person can act on - and the
+    /// restart as administrator beside it in Elevation reports its failure the same way.
+    /// </summary>
+    internal static string Refused(Exception failure) =>
+        Texts.Of("gui.support.desktopRefused", failure.HResult.ToString("X8", CultureInfo.InvariantCulture));
 
     /// <summary>
     /// The shell object of the desktop, or null when there is no desktop to ask.
@@ -168,13 +202,12 @@ internal static class ExternalLinks
     {
         // A local server and nothing else, which is what the registration says ShellWindows is.
         // Asking for it any other way could only ever find a copy that is not the desktop's.
-        var created = PInvoke.CoCreateInstance<IShellWindows>(
-            typeof(ShellWindows).GUID, null, CLSCTX.CLSCTX_LOCAL_SERVER, out var windows);
-
-        if (created.Failed)
-        {
-            throw new COMException(Texts.Of("gui.support.noShell"), created.Value);
-        }
+        //
+        // A failure throws what every other call below throws for the same number, so the caller
+        // has one shape to turn into a sentence rather than a sentence of this method's own that
+        // it would have to recognise.
+        PInvoke.CoCreateInstance<IShellWindows>(
+            typeof(ShellWindows).GUID, null, CLSCTX.CLSCTX_LOCAL_SERVER, out var windows).ThrowOnFailure();
 
         object location = (int)PInvoke.CSIDL_DESKTOP;
         object empty = null!;
