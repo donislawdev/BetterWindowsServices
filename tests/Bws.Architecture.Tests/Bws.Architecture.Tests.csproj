@@ -11,6 +11,21 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 
+  <!--
+    The C# parser, for the code shape guards and nothing else - CodeShape.cs says what it measures.
+
+    Pinned to the Roslyn the SDK compiler is: 10.0.401 ships 5.9, and a parser older than the
+    language the build compiles reads new syntax as errors and counts it wrong without a sound.
+    CodeShapeGuards.Every_file_parses_without_a_syntax_error is the canary for exactly that, so
+    moving the SDK forward without moving this line turns red with the file named.
+
+    Test-only by construction: this project is IsPackable=false and nothing here is published.
+    ADR-15 carries the entry the dependency rule asks for.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="Bws.Tests" />

@@ -7,141 +7,108 @@ namespace Bws.Architecture.Tests;
 /// nesting. <b>The method transfers, none of its numbers do</b> - theirs came from their tree,
 /// these come from measuring this one.
 ///
-/// <b>The point is the direction, not the number.</b> Nothing here says 807 lines is a good
-/// length - it says the longest file in this product is 807 lines and is not allowed to become
-/// 808. Adding to the longest file means splitting it first, which is the conversation this
-/// guard exists to force. Numbers below may only ever go down, exactly like the coverage
-/// threshold `ADR-10` describes, and lowering one is the reward for doing the work.
+/// <b>The point is the direction, not the number.</b> Nothing here says a file of three hundred
+/// lines is a good length - it says the longest file in this product is that long and may not
+/// become one line longer. Adding to the longest file means splitting it first, which is the
+/// conversation this guard exists to force. Numbers may only ever go down, and lowering one is the
+/// reward for doing the work.
 ///
-/// <b>Why this is worth less than the other guards, said out loud.</b> Line count is a poor
-/// measure of tangle: a long file of flat, well-named methods is fine and a short one can be
-/// impossible. What it does measure exactly is <b>growth</b>, and growth is what nobody
-/// notices - a file gains thirty lines a slice and is unreadable a year later with no single
-/// change to blame. This was the weakest of four mechanisms proposed on the day and was taken
-/// anyway, on the grounds that not having spaghetti is cheaper than removing it.
+/// <b>LINES OF CODE SINCE 2026-09-23, NOT LINES</b> - owner's decision, with the rest of the shape
+/// guards in <see cref="CodeShapeGuards"/>. Sixty-three per cent of the lines under src/ were
+/// comments and blank lines that day, and this guard's own history recorded sessions shortening a
+/// fresh comment to fit under its number at least three times: ScmEntry.cs stood four lines under
+/// the old ceiling with 67 lines of code in it. A ceiling on raw lines was a ceiling on explaining,
+/// in a project that keeps its reasons beside its code on purpose. Comments are free now, in C#
+/// and in markup alike, and <see cref="CodeShape"/> says exactly what counts.
 ///
-/// False alarm estimate: zero on the day, by construction - the ceilings are today's numbers.
-/// Every failure from here on is something that grew.
+/// <b>EXACT SINCE THE SAME DAY, NOT WITHIN A HUNDRED LINES.</b> The drift test here allowed a
+/// hundred lines of slack, and SizeCeilings.cs recorded at least five times that a ceiling had
+/// been left standing above the file it held - found each time by a mutation run in the full gate,
+/// never by this test. <see cref="The_ceilings_have_not_been_left_behind_by_the_code"/> now asks
+/// for equality, and says the number to set. The slack existed so that deleting a comment would
+/// not demand an edit here - and deleting a comment no longer moves the number at all.
+///
+/// <b>Why this is worth less than the other guards, said out loud.</b> Length is a poor measure
+/// of tangle: a long file of flat, well-named methods is fine and a short one can be impossible.
+/// What it does measure exactly is growth, and growth is what nobody notices. The tangle is what
+/// the method ceilings in <see cref="CodeShapeGuards"/> are for.
 /// </summary>
 public sealed class SizeRatchetGuards
 {
+    private static readonly ShapeAxis ShippedFiles = new(
+        "shipped file length", "lines of code",
+        "SizeCeilings." + nameof(SizeCeilings.LongestShippedFile), SizeCeilings.LongestShippedFile,
+        "SizeCeilings." + nameof(SizeCeilings.ShippedFilesNearLongest), SizeCeilings.ShippedFilesNearLongest,
+        ShapeAxis.Share(SizeCeilings.LongestShippedFile, ShapeCeilings.NearShare),
+        "Split it, or move a piece of it somewhere it belongs",
+        () => Lengths(CodeShape.Shipped.Files));
+
+    private static readonly ShapeAxis MarkupFiles = new(
+        "shipped markup file length", "lines of markup",
+        "SizeCeilings." + nameof(SizeCeilings.LongestShippedMarkupFile), SizeCeilings.LongestShippedMarkupFile,
+        "SizeCeilings." + nameof(SizeCeilings.MarkupFilesNearLongest), SizeCeilings.MarkupFilesNearLongest,
+        ShapeAxis.Share(SizeCeilings.LongestShippedMarkupFile, ShapeCeilings.NearShare),
+        "Markup has no seam a compiler will show you, so the split is a resource dictionary merged in - and " +
+        "neither half of the theme can be loaded on its own, so check the window still draws rather than " +
+        "trusting a green build",
+        () => Lengths(CodeShape.Markup));
+
+    private static readonly ShapeAxis TestFiles = new(
+        "test file length", "lines of code",
+        "SizeCeilings." + nameof(SizeCeilings.LongestTestFile), SizeCeilings.LongestTestFile,
+        "SizeCeilings." + nameof(SizeCeilings.TestFilesNearLongest), SizeCeilings.TestFilesNearLongest,
+        ShapeAxis.Share(SizeCeilings.LongestTestFile, ShapeCeilings.NearShare),
+        "A test nobody can read is a test nobody checks, and this project leans on them harder than most - split it",
+        () => Lengths(CodeShape.Testing.Files));
+
+    /// <summary>The three file axes, for the margin report. Declared after them, so they exist when this is built.</summary>
+    internal static readonly ShapeAxis[] Axes = [ShippedFiles, MarkupFiles, TestFiles];
+
     [Fact]
     public void No_shipped_file_is_longer_than_the_longest_one_was()
     {
-        var offenders = TooLong(Sources.Shipped(), SizeCeilings.LongestShippedFile);
+        var verdict = ShippedFiles.OverVerdict();
 
-        Assert.True(
-            offenders.Length == 0,
-            $"A file grew past {SizeCeilings.LongestShippedFile} lines, which is where the longest one stood " +
-            "when this ceiling was set. Split it, or move a piece of it somewhere it belongs - " +
-            "and then lower the number, because it may only ever go down:" +
-            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+        Assert.True(verdict is null, verdict);
     }
 
     [Fact]
     public void No_shipped_markup_file_is_longer_than_the_longest_one_was()
     {
-        var offenders = TooLong(Sources.ShippedMarkup(), SizeCeilings.LongestShippedMarkupFile);
+        var verdict = MarkupFiles.OverVerdict();
 
-        Assert.True(
-            offenders.Length == 0,
-            $"A markup file grew past {SizeCeilings.LongestShippedMarkupFile} lines, which is where the longest " +
-            "one stood when this ceiling was set. Markup has no seam a compiler will show you, so " +
-            "the split is a resource dictionary merged in - and neither half of the theme can be " +
-            "loaded on its own, so check the window still draws rather than trusting a green build:" +
-            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+        Assert.True(verdict is null, verdict);
     }
 
     [Fact]
     public void No_test_file_is_longer_than_the_longest_one_was()
     {
-        var offenders = TooLong(Sources.Testing(), SizeCeilings.LongestTestFile);
+        var verdict = TestFiles.OverVerdict();
 
-        Assert.True(
-            offenders.Length == 0,
-            $"A test file grew past {SizeCeilings.LongestTestFile} lines. A test nobody can read is a test " +
-            "nobody checks, and this project leans on them harder than most:" +
-            Environment.NewLine + string.Join(Environment.NewLine, offenders));
+        Assert.True(verdict is null, verdict);
     }
 
     [Fact]
     public void Not_more_files_are_long_than_were_long()
     {
-        var shipped = LongOnes(Sources.Shipped());
-        var testing = LongOnes(Sources.Testing());
+        // The second dial, and the one that catches what the first cannot: everything creeping
+        // towards the ceiling at once without any single file crossing it. "Long" is 70% of the
+        // ceiling since 2026-09-23 rather than a fixed five hundred lines, so the band follows its
+        // ceiling down instead of going quiet the day the ceiling passes under it.
+        var verdicts = new[] { ShippedFiles, MarkupFiles, TestFiles }.Select(axis => axis.CrowdVerdict()).OfType<string>().ToArray();
 
-        Assert.True(
-            shipped.Length <= SizeCeilings.ShippedFilesAllowedToBeLong,
-            $"{shipped.Length} shipped files are over {SizeCeilings.Long} lines, against " +
-            $"{SizeCeilings.ShippedFilesAllowedToBeLong} when this was set. Nothing crossed the ceiling - " +
-            "everything moved towards it, which is the shape nobody notices:" +
-            Environment.NewLine + string.Join(Environment.NewLine, shipped));
-
-        Assert.True(
-            testing.Length <= SizeCeilings.TestFilesAllowedToBeLong,
-            $"{testing.Length} test files are over {SizeCeilings.Long} lines, against " +
-            $"{SizeCeilings.TestFilesAllowedToBeLong} when this was set:" +
-            Environment.NewLine + string.Join(Environment.NewLine, testing));
-
-        var markup = LongOnes(Sources.ShippedMarkup());
-
-        Assert.True(
-            markup.Length <= SizeCeilings.ShippedMarkupFilesAllowedToBeLong,
-            $"{markup.Length} markup files are over {SizeCeilings.Long} lines, against " +
-            $"{SizeCeilings.ShippedMarkupFilesAllowedToBeLong} when this was set. There are three markup files " +
-            "in this product, so this is the appearance surface spreading rather than one file " +
-            "growing:" +
-            Environment.NewLine + string.Join(Environment.NewLine, markup));
+        Assert.True(verdicts.Length == 0, string.Join(Environment.NewLine + Environment.NewLine, verdicts));
     }
 
     [Fact]
     public void The_ceilings_have_not_been_left_behind_by_the_code()
     {
-        // A ratchet that is never tightened is a ceiling nobody is under. If the longest file
-        // has shrunk well below the number, the number is no longer measuring anything, and
-        // this says so rather than passing quietly.
-        //
-        // Slack rather than exactness, because a ceiling that has to be edited on every commit
-        // that deletes a comment would teach everybody to edit it without thinking.
-        const int Slack = 100;
+        // A ratchet that is never tightened is a ceiling nobody is under.
+        var verdicts = new[] { ShippedFiles, MarkupFiles, TestFiles }.Select(axis => axis.UnderVerdict()).OfType<string>().ToArray();
 
-        var longestShipped = Longest(Sources.Shipped());
-        var longestTest = Longest(Sources.Testing());
-
-        Assert.True(
-            SizeCeilings.LongestShippedFile - longestShipped <= Slack,
-            $"The longest shipped file is now {longestShipped} lines and the ceiling is still " +
-            $"{SizeCeilings.LongestShippedFile}. Lower it - a ratchet only means something while it is close " +
-            "to what it is holding.");
-
-        Assert.True(
-            SizeCeilings.LongestTestFile - longestTest <= Slack,
-            $"The longest test file is now {longestTest} lines and the ceiling is still " +
-            $"{SizeCeilings.LongestTestFile}. Lower it.");
-
-        var longestMarkup = Longest(Sources.ShippedMarkup());
-
-        Assert.True(
-            SizeCeilings.LongestShippedMarkupFile - longestMarkup <= Slack,
-            $"The longest markup file is now {longestMarkup} lines and the ceiling is still " +
-            $"{SizeCeilings.LongestShippedMarkupFile}. Lower it - and here it matters more than above, because " +
-            "this ceiling was set at a number nobody would choose on purpose.");
+        Assert.True(verdicts.Length == 0, string.Join(Environment.NewLine + Environment.NewLine, verdicts));
     }
 
-    private static string[] TooLong(IEnumerable<string> files, int ceiling) =>
-        [.. files
-            .Select(file => (Name: Path.GetFileName(file), Lines: File.ReadAllLines(file).Length))
-            .Where(file => file.Lines > ceiling)
-            .OrderByDescending(file => file.Lines)
-            .Select(file => $"{file.Name}  {file.Lines} lines")];
-
-    private static string[] LongOnes(IEnumerable<string> files) =>
-        [.. files
-            .Select(file => (Name: Path.GetFileName(file), Lines: File.ReadAllLines(file).Length))
-            .Where(file => file.Lines > SizeCeilings.Long)
-            .OrderByDescending(file => file.Lines)
-            .Select(file => $"{file.Name}  {file.Lines} lines")];
-
-    private static int Longest(IEnumerable<string> files) =>
-        files.Select(file => File.ReadAllLines(file).Length).DefaultIfEmpty(0).Max();
+    private static IEnumerable<ShapeItem> Lengths(IEnumerable<ShapeFile> files) =>
+        files.Select(file => new ShapeItem(file.Name, file.Name, file.CodeLines));
 }

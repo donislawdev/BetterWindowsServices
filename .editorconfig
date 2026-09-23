@@ -75,14 +75,11 @@ dotnet_diagnostic.CA2016.severity = warning
 # ---------------------------------------------------------------------------------------
 # Meziantou.Analyzer, 2026-08-02. Measured before choosing, like the mode above.
 #
-# Turned on with everything reported and then narrowed to three rules. The counts below are
-# what the whole set produced on this tree, halved because a build lists each warning twice.
+# Turned on with everything reported and then narrowed to three rules, and to two since
+# 2026-09-23. The counts below are what the whole set produced on this tree, halved because a
+# build lists each warning twice.
 #
 # KEPT, with what each one is for:
-#   MA0051  method too long. This is the anti-tangle ceiling the file ratchet cannot give -
-#           a file can pass its limit while holding one method nobody can read. Configured
-#           at today's worst rather than at a nice round number, so it ratchets like the
-#           file one: the number may only ever fall.
 #   MA0009  a regular expression with no timeout. Nine hits, all in guards reading our own
 #           files, and NONE in the product - because the query language already compiles
 #           user patterns on the non-backtracking engine with a ceiling. That is the point:
@@ -101,20 +98,23 @@ dotnet_diagnostic.MA0016.severity = none   # a collection abstraction where the 
 dotnet_diagnostic.MA0047.severity = none   # a type outside a namespace: ExitCode sits beside a top level program on purpose
 dotnet_diagnostic.MA0008.severity = none   # struct layout on interop shapes the generator already lays out
 
-dotnet_diagnostic.MA0051.severity = warning
+# MA0051, method too long, was KEPT here from 2026-08-02 to 2026-09-23 at 120 lines, and was right
+# about what it found. It is off because what it counted was wrong for this project, measured
+# before the decision: it counts every line of a method body, comments and blank lines included,
+# and 63% of the lines under src/ are explanation. The constructor of the main window stood at 119
+# of 120 with 43 lines of code in it. It also never saw top-level statements, which left the
+# command line's entry point - the largest unit in the product - outside every ceiling.
+#
+# Method length is held by tests/Bws.Architecture.Tests/CodeShapeGuards.cs now, in lines of code,
+# together with branching, nesting depth, parameter count and the size of a class across its
+# partial files - the owner's decision, 2026-09-23. The two methods this used to suppress by
+# pragma are named exemptions there, with their reasons, and the list may only get shorter.
+# AnalyzerRuleGuards.cs holds every line of this file, so switching any rule here is a decision
+# made in two places.
+dotnet_diagnostic.MA0051.severity = none
+
 dotnet_diagnostic.MA0009.severity = warning
 dotnet_diagnostic.MA0011.severity = warning
-
-# The ratchet dial. Set at the longest method standing today, which is how the file ceilings
-# were set - and like them it may only ever go down.
-MA0051.maximum_lines_per_method = 120
-#
-# Two methods are suppressed at the declaration rather than covered by raising this number,
-# and the difference matters: raising it would hide everything between here and there.
-#   QueryFields.BuildAll  - a table, one declaration per field, no branching. Splitting it
-#                           would put the language's field list in several places.
-#   CommandLine.Read      - 199 lines, and the analyser is right. Written down as backlog
-#                           item 24 rather than refactored on the way past.
 
 [tests/**.cs]
 # The one rule above that does not apply here rather than being inconvenient. CA2007 is
