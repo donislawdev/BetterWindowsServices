@@ -160,6 +160,35 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **Picking only drivers no longer offers to stop, start or change them.** The tool shows
+  drivers and never changes them, but with a driver picked all six buttons - *Stop*, *Start*,
+  *Restart*, *Force stop*, *Force restart* and *Set startup type* - were live, and each opened a
+  plan with nothing in it. They are now off, and resting on one says why. The menu under the
+  right mouse button says the same in the line at the bottom of the window. With services and
+  drivers picked together on the *All* list the buttons work as before, and the plan names each
+  driver it leaves out.
+
+- **Without administrator rights, the window says so before you open a plan, and the plan
+  offers the way out.** The six buttons that change something - *Stop*, *Start*, *Restart*,
+  *Force stop*, *Force restart* and *Set startup type* - now wear a small shield, the way
+  Windows marks a button that needs administrator rights, and resting on one says so in words.
+  In the plan, *Restart as admin* now stands right beside the sentence that tells you to use it.
+  Until now the only such button was at the bottom of the window, behind the plan, where it
+  could not be clicked while the plan was open.
+
+- **Restarting as administrator no longer starts you from nothing.** The new window opens on
+  the same list, with the same search, the same entries picked and the same plan open - worked
+  out again from the machine as it is now. Nothing is carried out on its own: you still press
+  the button, and a forced stop still asks you to type the name. If some of the entries you had
+  picked are no longer there, or you had picked too many to carry across, the window says so at
+  the bottom.
+
+- **A plan that can do nothing opens on the reason, not on an empty list of steps.** When every
+  entry in a plan was left out, the plan showed an empty *In this order* section first. It also
+  showed a red sentence saying a restart as administrator would carry it out, which it would
+  not. The empty section is gone and so is that sentence. Resting on the grey button now says
+  there is nothing here to carry out.
+
 - **The search box no longer calls a value wrong while you are still typing it.** Typing
   `status:running` one key at a time went through `status:r` and `status:ru`, and each of them
   was reported as a mistake while the list under the box was offering `running` as the next word.

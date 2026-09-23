@@ -128,8 +128,17 @@ public sealed partial class Planned : Checked
     ///
     /// Empty when there is nothing in the way, rather than a reassuring sentence - a line saying
     /// everything is fine is a line somebody has to read to learn nothing.
+    ///
+    /// <b>AND EMPTY WHEN THERE IS NOTHING TO CARRY OUT, since 2026-09-23 - UX-GUI-003.</b> It asked
+    /// about the session alone, so a plan made only of refusals said in red that a restart as
+    /// administrator would carry it out. It would have carried out nothing, and the refusals above
+    /// already say why - two reasons for one grey button, the louder of them false. So this sentence
+    /// is now only ever about rights standing between somebody and a plan that could run, which is
+    /// what lets the way out stand beside it in the footer.
     /// </summary>
-    public string Blocked => Showing && !Elevated ? Texts.Of("gui.plan.blocked.notElevated") : string.Empty;
+    public string Blocked => Showing && !Elevated && _plan is { IsRunnable: true }
+        ? Texts.Of("gui.plan.blocked.notElevated")
+        : string.Empty;
 
     /// <summary>
     /// What the button says about itself when somebody rests on it: what it would do, or the first
@@ -145,16 +154,22 @@ public sealed partial class Planned : Checked
     /// can be true at once, and naming a later one while an earlier one also holds would send
     /// somebody to fix the wrong thing. First in the chain, first on screen.
     ///
+    /// <b>ONE EXCEPTION SINCE 2026-09-23, and it is that argument applied rather than broken:</b>
+    /// nothing to run is named before the session's rights. A plan made only of refusals stays grey
+    /// with any rights at all, so "restart as admin" in front of it sent somebody to fix a thing
+    /// that fixes nothing - UX-GUI-003. A run under way or finished always has something to run, so
+    /// moving this clause forward changes no other answer.
+    ///
     /// <b>It reaches the disabled button only because the markup asks it to.</b> WPF stops serving
     /// tooltips for a disabled control unless <c>ToolTipService.ShowOnDisabled</c> says otherwise,
     /// so a reason written here without that attribute is a sentence nobody can ever read.
     /// </summary>
     public string CarryOutTip =>
         !Showing ? Texts.Of("gui.plan.carryOut.hint")
+        : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
         : !Elevated ? Texts.Of("gui.plan.blocked.notElevated")
         : Busy ? Texts.Of("gui.plan.blocked.running")
         : _run is not null ? Texts.Of("gui.plan.blocked.alreadyDone")
-        : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
 
         // THE SIXTH WAY, SINCE 2026-09-15, AND THE SECOND SOMEBODY CAN CLEAR FROM WHERE THEY
         // STAND: the box of seconds says something that is not seconds. The sentence under the

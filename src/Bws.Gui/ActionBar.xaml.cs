@@ -30,8 +30,28 @@ public partial class ActionBar : UserControl
         // NOTHING IS PICKED WHEN A WINDOW OPENS, so the bar starts in the state it will be in for
         // as long as somebody is reading the list rather than acting on it. Without this line the
         // three buttons are live over an empty selection until the first click anywhere.
-        Picked(0);
+        Picked(0, onlyDrivers: false);
     }
+
+    /// <summary>
+    /// Whether carrying out what these buttons ask for needs administrator rights this session does
+    /// not have - UX-GUI-004 (b). The window says so once, from the session's rights, and the six
+    /// write buttons then wear a shield (RightsMark in Actions.xaml) and say it in their tooltips.
+    ///
+    /// <b>Before the plan rather than only under it.</b> A window without rights looked ready to
+    /// act: every button live, every plan built in full, and the one sentence about rights waiting
+    /// under the plan beside a grey button. A dependency property because the shield is decided by
+    /// a trigger in the theme, and a trigger can only watch what tells it when it changes.
+    /// </summary>
+    public bool NeedsRights
+    {
+        get => (bool)GetValue(NeedsRightsProperty);
+        set => SetValue(NeedsRightsProperty, value);
+    }
+
+    /// <summary>The property behind <see cref="NeedsRights"/>.</summary>
+    public static readonly DependencyProperty NeedsRightsProperty =
+        DependencyProperty.Register(nameof(NeedsRights), typeof(bool), typeof(ActionBar), new PropertyMetadata(false));
 
     /// <summary>Somebody asked to see what one of the five would do to the rows they picked.</summary>
     internal event EventHandler<PreviewAsked>? PreviewRequest;
@@ -68,27 +88,39 @@ public partial class ActionBar : UserControl
     /// without saying why is the fault the plan panel had until this same packet. WPF will not
     /// show a tooltip on a disabled control unless the markup says so - the attribute is next to
     /// each button.
+    ///
+    /// <b>DRIVERS ALONE TURN THE BAR OFF, SINCE 2026-09-23 - UX-GUI-003.</b> The core refuses a
+    /// driver every one of these asks (PlanBuilder, before it looks at the kind), and the bar used
+    /// to offer all six over one anyway - measured on a window without rights, each opened a plan
+    /// of nothing. The reason is the tool rather than the selection, so it gets its own sentence:
+    /// "pick one or more entries" would send somebody to pick what they already picked. Drivers
+    /// beside a service leave the bar on, and the plan says what happens to each.
     /// </summary>
-    internal void Picked(int entries)
+    internal void Picked(int entries, bool onlyDrivers)
     {
-        var anything = entries > 0;
+        var anything = entries > 0 && !onlyDrivers;
+        var off = onlyDrivers ? Texts.Of("gui.action.onlyDrivers") : Texts.Of("gui.action.needsPick");
 
         // THE KEYS ARE WRITTEN OUT HERE RATHER THAN PASSED AS ONE, and a guard is what decided
         // that: TextKeyGuards checks that every declared sentence reaches a screen by looking for
         // its key in the source, so a key travelling as a variable is invisible to it and all three
         // of these read as orphans. Sentences.Admissions carries the same note for the same reason.
-        Set(StopButton, anything, Texts.Of("gui.action.stop.hint"));
-        Set(StartButton, anything, Texts.Of("gui.action.start.hint"));
-        Set(RestartButton, anything, Texts.Of("gui.action.restart.hint"));
-        Set(StartTypeButton, anything, Texts.Of("gui.action.startType.hint"));
+        Set(StopButton, anything, anything ? Texts.Of("gui.action.stop.hint") : off);
+        Set(StartButton, anything, anything ? Texts.Of("gui.action.start.hint") : off);
+        Set(RestartButton, anything, anything ? Texts.Of("gui.action.restart.hint") : off);
+        Set(StartTypeButton, anything, anything ? Texts.Of("gui.action.startType.hint") : off);
 
         // ONE ENTRY AND NOT "ANYTHING" - `docs/ANALIZA-FORCE` 15.6, and the paragraph over these
         // two buttons in the markup. Three answers rather than two, because "pick one" over an
         // empty selection and "pick ONE" over five are different instructions. The refusal itself
         // stands in the window's Preview, where the row menu arrives as well - this is the reason
-        // put where a person is looking.
-        SetOne(ForceStopButton, entries, Texts.Of("gui.action.forceStop.hint"));
-        SetOne(ForceRestartButton, entries, Texts.Of("gui.action.forceRestart.hint"));
+        // put where a person is looking. Over drivers alone the driver sentence wins, because
+        // picking one of them would still leave nothing to do.
+        var one = entries == 1 && !onlyDrivers;
+        var many = entries > 1 && !onlyDrivers;
+
+        Set(ForceStopButton, one, one ? Texts.Of("gui.action.forceStop.hint") : many ? Texts.Of("gui.action.force.onlyOne") : off);
+        Set(ForceRestartButton, one, one ? Texts.Of("gui.action.forceRestart.hint") : many ? Texts.Of("gui.action.force.onlyOne") : off);
     }
 
     /// <summary>Whether the buttons are live, for a test that would otherwise have to guess.</summary>
@@ -124,32 +156,23 @@ public partial class ActionBar : UserControl
     /// <inheritdoc cref="Stop"/>
     internal Button OverviewBack => OverviewButton;
 
-    private static void Set(Button button, bool anything, string saying)
-    {
-        button.IsEnabled = anything;
-
-        button.ToolTip = anything ? saying : Texts.Of("gui.action.needsPick");
-    }
-
     /// <summary>
-    /// A button that takes exactly one entry: live at one, and saying which of the two ways it is
-    /// off otherwise.
+    /// Turns a button on or off and puts on it what it would do, or why it will not.
     ///
-    /// <b>The empty selection shares its sentence with the other four buttons</b>, because five
-    /// buttons in one bar giving two different reasons for the same empty list is a bar that
-    /// disagrees with itself. The sentence about one at a time is said where it means something -
-    /// over several.
+    /// <b>One method for all six since 2026-09-23</b>, when the single-entry buttons lost their own
+    /// SetOne. The choice of sentence moved to the caller, where the three reasons for "off" -
+    /// nothing picked, drivers alone, more than one for a forcing ask - are decided side by side,
+    /// and an empty selection still shares its sentence across the bar so the bar never disagrees
+    /// with itself.
     /// </summary>
-    private static void SetOne(Button button, int entries, string saying)
+    private void Set(Button button, bool on, string saying)
     {
-        button.IsEnabled = entries == 1;
+        button.IsEnabled = on;
 
-        button.ToolTip = entries switch
-        {
-            0 => Texts.Of("gui.action.needsPick"),
-            1 => saying,
-            _ => Texts.Of("gui.action.force.onlyOne")
-        };
+        // The shield in words, on a button that would open a plan this session cannot carry out -
+        // a screen reader gets no node for the shield, and the plan can still be shown. Never on
+        // an off button: its sentence is why it is off, and rights are not that reason.
+        button.ToolTip = on && NeedsRights ? saying + " " + Texts.Of("gui.action.needsRights") : saying;
     }
 
     private void StopAsked(object sender, RoutedEventArgs e) =>

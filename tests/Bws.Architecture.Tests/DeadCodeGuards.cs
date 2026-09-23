@@ -57,6 +57,7 @@ public sealed class DeadCodeGuards
         ["Bws.Gui.PlanView.WayBackLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.ProblemsShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.WayBackShown"] = ScreenSeam,
+        ["Bws.Gui.PlanView.StepsShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.CommandsShown"] = ScreenSeam,
         ["Bws.Gui.MainWindow.TakeThisAsARun"] = TimeSeam,
         ["Bws.Gui.ViewModels.Planned.Clock"] = TimeSeam,

@@ -105,7 +105,7 @@
   "cli.run.took.seconds": "{0} s",
 
   "cli.plan.problem.unknownService": "There is no service called {0}.",
-  "cli.plan.problem.notOperable": "{0} is a driver. This tool shows drivers but does not start or stop them.",
+  "cli.plan.problem.notOperable": "{0} is a driver. This tool shows drivers but does not start, stop or change them.",
   "cli.plan.problem.cascadeNotOperable.many": "Stopping {0} would mean stopping these drivers first: {1}. This tool does not start or stop drivers, so there is no plan it can offer.",
   "cli.plan.problem.cascadeNotOperable.one": "Stopping {0} would mean stopping this driver first: {1}. This tool does not start or stop drivers, so there is no plan it can offer.",
   "cli.plan.problem.cannotComeBack.target": "{0} is disabled, so restarting it would stop it and could not start it again. Set it to start automatically or on demand first, or use bws stop if stopping it is what you want.",

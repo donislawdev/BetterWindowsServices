@@ -237,6 +237,11 @@ public sealed class PlanViewGuards
     /// carries on. The price is that the preview carries two lists, and this is the guard that the
     /// second one reaches a window - without it, a selection of two with one refused would look
     /// exactly like a selection of one.
+    ///
+    /// <b>A SERVICE BESIDE THE DRIVER SINCE 2026-09-23, and that is this test finally doing what
+    /// its summary says.</b> It picked the driver alone, which is no longer a plan at all - UX-GUI-003
+    /// refuses a selection of drivers before building anything (DriverPickGuards). What this holds
+    /// was always the mixed case: the refused entry named, and the rest carried on.
     /// </summary>
     [Fact]
     public async Task An_entry_with_no_plan_is_named_on_screen()
@@ -260,6 +265,7 @@ public sealed class PlanViewGuards
         {
             window.Entries.UnselectAll();
             window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "amdkmdag");
+            window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "Spooler"));
         });
 
         WpfHost.Settled();
@@ -270,6 +276,7 @@ public sealed class PlanViewGuards
         var problems = WpfHost.On(() => window.PlanPanel.ProblemLines);
 
         Assert.Contains(problems, line => line.Contains("amdkmdag", StringComparison.Ordinal));
+        Assert.Contains(WpfHost.On(() => window.PlanPanel.StepLines), line => line.Contains("Spooler", StringComparison.Ordinal));
 
         WpfHost.On(window.Close);
     }

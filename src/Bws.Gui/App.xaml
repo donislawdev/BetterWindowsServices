@@ -93,6 +93,13 @@
                 <ResourceDictionary Source="Themes/Menus.xaml" />
 
                 <!--
+                    AFTER Controls.xaml for the reason Menus.xaml gives about MenuItem: the write
+                    buttons of the action bar extend the implicit Button style. 2026-09-23, with the
+                    shield of UX-GUI-004 (b) - the file's head says why it is a file of its own.
+                -->
+                <ResourceDictionary Source="Themes/Actions.xaml" />
+
+                <!--
                     THE LIST UNDER THE SEARCH BOX, beside the other floating surface. It names
                     FixedText and SubduedText from Text.xaml through StaticResource, so anywhere
                     before that file is two names that do not exist yet. Sixteenth file, 2026-09-15,

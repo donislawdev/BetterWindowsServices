@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Bws.Gui.ViewModels;
 
 namespace Bws.Gui;
 
@@ -58,7 +59,12 @@ internal static class Elevation
     /// no to the prompt is an ordinary thing a person does, and a window that closed anyway, or
     /// said nothing at all, would leave them with the same session and no idea why.
     /// </summary>
-    internal static string? Restart()
+    /// <param name="handOver">
+    /// What this window was showing, already encoded - UX-GUI-004 (c). Letters, digits, '-' and '_'
+    /// only, so it needs no quoting on a command line. HandOver says why it is read as hostile on the
+    /// other side.
+    /// </param>
+    internal static string? Restart(string handOver)
     {
         // A process with no path on disk is not a state this program reaches - it is here because
         // the answer is nullable and a silent return of "it worked" would be the worst reading.
@@ -74,7 +80,8 @@ internal static class Elevation
             using var started = Process.Start(new ProcessStartInfo(program)
             {
                 UseShellExecute = true,
-                Verb = "runas"
+                Verb = "runas",
+                Arguments = HandOver.Argument + " " + handOver
             });
 
             return started is null ? Texts.Of("gui.elevate.refused") : null;

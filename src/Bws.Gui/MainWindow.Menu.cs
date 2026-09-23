@@ -207,11 +207,23 @@ public partial class MainWindow
     /// </param>
     internal async Task<bool> Preview(ActionKind kind, StartType? to = null)
     {
-        var picked = Entries.SelectedItems.OfType<EntryRow>().ToList();
+        var picked = PickedRows();
         var names = Everything(picked);
 
         if (names.Count == 0)
         {
+            return false;
+        }
+
+        // DRIVERS ALONE ARE REFUSED HERE RATHER THAN BUILT AND SHOWN, since 2026-09-23 -
+        // UX-GUI-003, and for the reason the forcing asks below give: the row menu keeps its items
+        // live over any selection (RowMenu says why), so this is the one door both it and the bar
+        // come through. The core would refuse every one of them anyway, and the sheet it would open
+        // is a plan of nothing. A menu item has no tooltip, so the reason goes to the status line.
+        if (OnlyDrivers(picked))
+        {
+            _model.Says.CouldNotDo(Texts.Of("gui.action.onlyDrivers"));
+
             return false;
         }
 
@@ -264,6 +276,9 @@ public partial class MainWindow
 
         if (shown)
         {
+            // The question behind the open sheet, for a restart as administrator to ask again.
+            _asked = (kind, to);
+
             PlanPanel.TakeTheKeyboard();
         }
 
@@ -330,6 +345,8 @@ public partial class MainWindow
 
         if (shown)
         {
+            _asked = (offer.Kind, null);
+
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it
             // with nothing to say where focus is would be an instruction nobody gave.
@@ -377,7 +394,17 @@ public partial class MainWindow
     /// reads to the plan. Two of the bar's buttons take one entry and no more, and a bar told "one
     /// row" over a family would offer a plan over the whole of it.
     /// </summary>
-    private int PickedEntries() => Everything(Entries.SelectedItems.OfType<EntryRow>().ToList()).Count;
+    private int PickedEntries() => Everything(PickedRows()).Count;
+
+    private List<EntryRow> PickedRows() => Entries.SelectedItems.OfType<EntryRow>().ToList();
+
+    /// <summary>
+    /// Whether every picked row is a driver - the core's own fact about the entry, not one this
+    /// window works out. A folded row is a per-user family, which is always services, so rows and
+    /// not the names they stand for are enough to ask.
+    /// </summary>
+    private static bool OnlyDrivers(List<EntryRow> picked) =>
+        picked.Count > 0 && picked.All(row => row.Entry.IsDriver);
 
     private static List<string> Everything(List<EntryRow> picked)
     {

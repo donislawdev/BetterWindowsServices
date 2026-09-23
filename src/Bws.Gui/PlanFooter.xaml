@@ -70,14 +70,29 @@
                 three guards read that exact property to say whether the window admits it
                 cannot act.
             -->
+            <!--
+                THE WAY OUT STANDS BESIDE THE SENTENCE, SINCE 2026-09-23 - UX-GUI-004 (a). The
+                sentence said "Restart as admin to carry this out", and the only button that does it
+                was at the foot of the window, under the dimming behind this sheet, which eats every
+                click. The same style, words and handler as that one, so the two cannot drift. It
+                shares the block's visibility because Blocked is now only ever the rights sentence
+                over a plan that could run.
+            -->
             <Border Style="{StaticResource PanelBlockRefused}"
                     Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}">
-                <TextBlock x:Name="PlanBlocked"
-                           AutomationProperties.AutomationId="planBlocked"
-                           Text="{Binding Blocked}"
-                           TextWrapping="Wrap"
-                           Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
-                           Style="{StaticResource ProblemText}" />
+                <DockPanel>
+                    <Button x:Name="PlanElevateButton"
+                            DockPanel.Dock="Right"
+                            AutomationProperties.AutomationId="planElevate"
+                            Style="{StaticResource ElevateOffer}" />
+
+                    <TextBlock x:Name="PlanBlocked"
+                               AutomationProperties.AutomationId="planBlocked"
+                               Text="{Binding Blocked}"
+                               TextWrapping="Wrap"
+                               Visibility="{Binding HasBlocked, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource ProblemText}" />
+                </DockPanel>
             </Border>
 
             <!--

@@ -167,6 +167,14 @@ public partial class MainWindow : Window
         // hold.
         Status.Elevate.Click += RestartAsAdministrator;
 
+        // The same way out on the plan sheet, beside the sentence that names it - the one at the
+        // foot of the window is under the sheet's dimming while a plan is open. UX-GUI-004 (a).
+        PlanPanel.Footer.Elevate.Click += RestartAsAdministrator;
+
+        // And said before any plan, on the buttons that would open one - UX-GUI-004 (b). Once, from
+        // the session's rights, which cannot change while the window is open.
+        Actions.NeedsRights = _model.Says.NotElevated;
+
         // THE DONATE BUTTON, 2026-09-23, wired here for the reason the line above gives: pressing
         // it hands an address to the shell, which only ExternalLinks.cs may do, and a failure is a
         // sentence for the model this window holds and the row does not. An async lambda, the shape
@@ -187,7 +195,7 @@ public partial class MainWindow : Window
         // list that reconciles itself once a second is another party in the middle of `A10`, and
         // SelectedItem bound two way is what broke the window journey on 2026-08-18. This fires on
         // the change and says one number - entries, not rows, and PickedEntries says why.
-        Entries.SelectionChanged += (_, _) => Actions.Picked(PickedEntries());
+        Entries.SelectionChanged += (_, _) => Actions.Picked(PickedEntries(), OnlyDrivers(PickedRows()));
 
         // THE MENU ON A ROW, from a list rather than from the markup since 2026-09-15 - the
         // markup was on the size ratchet's ceiling. RowMenu says what is on it and why in that
@@ -236,18 +244,7 @@ public partial class MainWindow : Window
         // over 810 entries, and doing it in the constructor means the window appears already
         // late - the specification asks for a useful list inside a second, and part of that
         // second is spent showing that something is happening.
-        Loaded += async (_, _) =>
-        {
-            await _model.LoadAsync().ConfigureAwait(true);
-
-            // AFTER THE FIRST READING AND NOT BEFORE IT. The order somebody left the list in is
-            // handed to the view that holds the rows, and until this line has run there are no
-            // rows and no view - so an order applied while the columns were being built would be
-            // dropped without a word.
-            SortAsKept();
-
-            _timer.Start();
-        };
+        Loaded += async (_, _) => await FirstLook().ConfigureAwait(true);
 
         // Nothing to refresh when nobody can see it. A window minimised for an afternoon has
         // no business asking the manager anything, and the first tick after it comes back
@@ -402,7 +399,7 @@ public partial class MainWindow : Window
     /// </remarks>
     private void RestartAsAdministrator(object sender, RoutedEventArgs e)
     {
-        if (Elevation.Restart() is { } trouble)
+        if (Elevation.Restart(HandOverNow().Encode()) is { } trouble)
         {
             _model.Says.CouldNotDo(trouble);
             return;

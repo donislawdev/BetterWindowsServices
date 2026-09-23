@@ -76,9 +76,10 @@ public sealed class ActionBarGuards
         // Ready leaves two rows picked, so this asserts the state the window is really in.
         Assert.True(WpfHost.On(() => window.Actions.Offering));
 
-        Assert.Equal(
+        Assert.StartsWith(
             Bws.Gui.Texts.Of("gui.action.stop.hint"),
-            WpfHost.On(() => window.Actions.Stop.ToolTip as string));
+            WpfHost.On(() => window.Actions.Stop.ToolTip as string),
+            StringComparison.Ordinal);
 
         WpfHost.On(() => window.Entries.UnselectAll());
         WpfHost.Settled();
@@ -327,6 +328,11 @@ public sealed class ActionBarGuards
         {
             window.Width = (double)WpfHost.Resources["WidthWindowLeast"];
             window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
+
+            // THE WIDEST BAR THERE IS, whatever session runs this suite: since 2026-09-23 a session
+            // without rights puts a shield on six of these buttons (UX-GUI-004 b), and a guard that
+            // only measured that on an unelevated machine would pass in CI and fail at the owner's.
+            window.Actions.NeedsRights = true;
             window.WindowStyle = WindowStyle.None;
             window.ShowInTaskbar = false;
             window.Left = -4000;
