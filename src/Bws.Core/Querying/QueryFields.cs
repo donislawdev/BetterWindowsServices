@@ -110,8 +110,9 @@ public static class QueryFields
     // Long because it is a table, not because it is tangled: one entry per field, each a
     // declaration with no branching in it. Splitting it would put the language's field list in
     // several places, which is the thing this file exists to prevent - and the ceiling is
-    // aimed at methods somebody has to hold in their head, which this is not.
-#pragma warning disable MA0051
+    // aimed at methods somebody has to hold in their head, which this is not. It is a named
+    // exemption from the method length ceiling for that reason, in ShapeCeilings.Exemptions in
+    // the architecture tests, and from that one ceiling only.
     private static QueryField[] BuildAll() =>
     [
         new QueryField
@@ -418,8 +419,6 @@ public static class QueryFields
             Values = QueryValueNames.Mismatch
         }
     ];
-
-#pragma warning restore MA0051
 
     /// <summary>
     /// What a bare word searches.

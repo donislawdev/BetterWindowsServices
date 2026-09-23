@@ -28,11 +28,12 @@ internal static class Refusals
     /// </summary>
     /// <returns>The code to end on, or null when nothing about the words is wrong.</returns>
 
-    // Suppressed for the reason the method it came out of suppressed it: this really is long, and
-    // the analyser is right. What it is long WITH is a list of unrelated mistakes, each three lines
-    // and a paragraph, and splitting the list would put the order above into two files where
-    // nothing holds it. Backlog 24 is where the wider question lives.
-#pragma warning disable MA0051
+    // Long, and long WITH a list of unrelated mistakes, each three lines and a paragraph - splitting
+    // the list would put the order above into two files where nothing holds it. It needed a
+    // suppression while method length was counted in raw lines. Counted in lines of code it is 67,
+    // one under the longest method in the product, so it stands under the shape ceiling with no
+    // exemption, and the next line added here asks for the seam. Backlog 24 is where the wider
+    // question lives.
     internal static int? Answer(CommandLine options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -137,7 +138,6 @@ internal static class Refusals
 
         return AboutTheAsk(options);
     }
-#pragma warning restore MA0051
 
     /// <summary>
     /// What is wrong with the words a write verb needs beside it.

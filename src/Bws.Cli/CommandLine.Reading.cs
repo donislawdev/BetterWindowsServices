@@ -12,18 +12,19 @@ namespace Bws.Cli;
 ///
 /// The seam is the same one ScmEntry took the same day: everything beside this is the SHAPE of
 /// what was asked for, and everything here is the reading that produces it. Backlog 24 asks for
-/// a further split - Read is 199 lines and the analyser is right about it - and that is still
-/// deferred, because this cut moved a method without touching a line of it.
+/// a further split - Read is the largest method in the product on every shape axis - and that is
+/// still deferred, because this cut moved a method without touching a line of it.
 /// </summary>
 internal sealed partial record CommandLine
 {
     private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout"];
 
-    // Suppressed rather than defended: at 199 lines this one really is too long, and the
-    // analyser is right. Splitting it is a change to working code that no slice asked for, so
-    // it is written down as backlog item 24 instead of being done here on the way past - and
-    // this comment is the reason the suppression is not a way of forgetting about it.
-#pragma warning disable MA0051
+    // Exempted rather than defended: at 221 lines of code, 50 forks and five levels deep this one
+    // really is too long, and every shape ceiling says so. Splitting it is a change to working code
+    // that no slice asked for, so it is written down as backlog item 24 instead of being done here
+    // on the way past. The exemption is named, with this reason, in ShapeCeilings.Exemptions in the
+    // architecture tests - and that guard refuses the entry the day this method comes back under
+    // the ceilings, so it is not a way of forgetting about it.
     internal static CommandLine Read(string[] arguments)
     {
         var kind = CommandKind.None;
@@ -345,8 +346,6 @@ internal sealed partial record CommandLine
             ]
         };
     }
-
-#pragma warning restore MA0051
 
     /// <summary>
     /// Whether an option was given a value that says nothing, and notes it as missing if so.

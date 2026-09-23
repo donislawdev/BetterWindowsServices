@@ -42,6 +42,24 @@ internal static class Sources
     /// </summary>
     internal static IEnumerable<string> ShippedMarkup() => Under("src", "*.xaml");
 
+    /// <summary>
+    /// Every file that can carry an MSBuild property for this product.
+    ///
+    /// The whole tree rather than src/ alone, and that is deliberate: a test project pulling a
+    /// vulnerable package in, or switching an analyser off, is the same problem wearing a different
+    /// hat, and this repository has six of them against three shipped projects. Moved here from
+    /// SupplyChainGuards on 2026-09-23, when AnalyzerRuleGuards became the second guard reading it.
+    /// </summary>
+    internal static IEnumerable<string> BuildFiles() =>
+        new[] { "*.csproj", "*.props", "*.targets" }
+            .SelectMany(pattern => Directory.EnumerateFiles(SourceTree.Root(), pattern, SearchOption.AllDirectories))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            // tools/ is outside version control and outside the product, and its probe projects
+            // are throwaway. A guard reading them would fail a clone that has no tools directory
+            // at all, which is every clone but this one.
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}tools{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+
     private static IEnumerable<string> Under(string folder, string pattern) =>
         Directory
             .EnumerateFiles(Path.Combine(SourceTree.Root(), folder), pattern, SearchOption.AllDirectories)
