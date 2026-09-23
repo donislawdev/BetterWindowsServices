@@ -126,12 +126,31 @@ public static class QueryMembers
         return left;
     }
 
-    /// <summary>Whether the text already carries this member, on this side.</summary>
+    /// <summary>
+    /// Whether the text already carries this member, on this side.
+    ///
+    /// <b>MEMBER BY MEMBER WHEN THE WHOLE LINE DOES NOT PARSE - UX-GUI-002, 2026-09-23.</b> Until
+    /// then a mistake anywhere in the line meant no member counted, so in
+    /// <c>status:running pid:abc</c> the chip for Running went dark over its own member, and
+    /// clicking it wrote a second copy on the end. The whole line is still asked first, because
+    /// that is the reading that folds repeated fields - and a line that cannot be taken apart at
+    /// all, an unclosed quote, carries nothing, for the reason <see cref="Without"/> gives.
+    /// </summary>
     public static bool Carries(string? text, string field, string value, bool negated)
     {
         var parsed = QueryParser.Parse(text, QueryInput.BeingTyped);
 
-        return parsed.Query?.Carries(field, value, negated) ?? false;
+        if (parsed.IsValid)
+        {
+            return parsed.Query!.Carries(field, value, negated);
+        }
+
+        if (string.IsNullOrEmpty(text) || !QueryScanner.TryScan(text, out _, out var spans, out _))
+        {
+            return false;
+        }
+
+        return spans.Exists(span => Is(text[span], field, value, negated));
     }
 
     /// <summary>How this member is written when a chip puts it there.</summary>

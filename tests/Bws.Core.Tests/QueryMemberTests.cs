@@ -45,6 +45,31 @@ public sealed class QueryMemberTests
     }
 
     /// <summary>
+    /// A MEMBER STANDING IN THE BOX IS CARRIED, EVEN WHEN ANOTHER MEMBER BESIDE IT HAS A MISTAKE -
+    /// UX-GUI-002 of the audit of 2026-09-23.
+    ///
+    /// <b>Until then the whole line had to parse before any member counted.</b> So in
+    /// <c>status:running pid:abc</c> the chip for Running went dark although its member was right
+    /// there, and clicking it wrote a second copy on the end - which then took two clicks to turn
+    /// off. The line is read member by member when the whole of it does not parse, the way
+    /// <see cref="QueryMembers.Without"/> has always read it.
+    /// </summary>
+    [Fact]
+    public void A_member_is_carried_even_when_another_member_has_a_mistake()
+    {
+        const string typed = "status:running pid:abc";
+
+        Assert.True(QueryMembers.Carries(typed, "status", "running", negated: false));
+        Assert.False(QueryMembers.Carries(typed, "status", "stopped", negated: false));
+        Assert.Equal(typed, QueryMembers.With(typed, "status", "running", negated: false));
+
+        // The member with the mistake carries nothing, and neither does a line that cannot be taken
+        // apart at all.
+        Assert.False(QueryMembers.Carries("stat:runing", "status", "running", negated: false));
+        Assert.False(QueryMembers.Carries("status:running \"pid", "status", "running", negated: false));
+    }
+
+    /// <summary>
     /// THE CASE THE DRIVERS SWITCH COULD NEVER DO. Its helper takes the member off the END of
     /// the line, which is right for one control and wrong for the second one somebody clicks -
     /// after that the first member is no longer last and a tail cut can never find it.

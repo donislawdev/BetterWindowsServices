@@ -380,6 +380,11 @@ public sealed partial class MainViewModel : Observable
             // a shorter line.
             Says.AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
 
+            // The chips read the TEXT, so they follow it even though the list does not - UX-GUI-002.
+            // Leaving before this kept Running and Manual lit over `stat:runing`, a query that was
+            // no longer in the box.
+            _filters.Rethink();
+
             return;
         }
 
