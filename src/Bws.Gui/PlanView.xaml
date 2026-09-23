@@ -191,8 +191,13 @@
                         EVERY SECTION TAKES ITS HEADING OFF THE SCREEN WITH IT, since 2026-08-19 and
                         backlog 203. A heading reading "Not included, and why" over nothing states
                         something false, and that is what the owner saw on the first look at this
-                        panel. The steps carry no such switch, because a plan with no steps never
-                        opens this panel at all.
+                        panel.
+
+                        THE STEPS TOO, SINCE 2026-09-23 - UX-GUI-003. This said the steps needed no
+                        switch "because a plan with no steps never opens this panel at all", and that
+                        was never true: Planned.Show opens a plan made only of refusals, and a guard
+                        holds it. So a driver's plan opened on "In this order" over nothing, with the
+                        refusal under it - the reason came second to an empty promise.
                     -->
                     <!--
                         THE ONE BLOCK ON THIS PANEL THAT SAYS WHAT WOULD HAPPEN TO THE MACHINE, and
@@ -200,7 +205,7 @@
                         INSIDE the rule with the steps, so the two are one object rather than a
                         label pointing at a box. The block carries MarginSection now.
                     -->
-                    <Border Style="{StaticResource PanelBlock}">
+                    <Border Style="{StaticResource PlanStepsBlock}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource gui.plan.steps}"
                                        Margin="{StaticResource MarginBelowSearch}"

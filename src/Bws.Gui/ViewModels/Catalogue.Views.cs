@@ -289,8 +289,11 @@ public static partial class Catalogue
             // all on or all off - the four verbs that take any number are live and the two that end
             // a process are off, each saying so on itself. Not more text than fits - a different
             // shape, and the column that was free.
+            //
+            // THE WRONG CELL IS DRIVERS ALONE, since 2026-09-23 - UX-GUI-003. Every button off, each
+            // saying the tool does not touch drivers, which is a refusal rather than an empty pick.
             Made(nameof(ActionBar),
-                data: Bar(1), empty: Bar(0), extreme: Bar(2)),
+                data: Bar(1), empty: Bar(0), wrong: Bar(1, onlyDrivers: true), extreme: Bar(2)),
 
             // The extreme cell is a session without rights: the rights sentence in red at the head
             // of the line, the rest of the line in the notice colour - UX-GUI-009, 2026-09-23.
@@ -390,11 +393,11 @@ public static partial class Catalogue
         return sized.Element is null ? sized : sized with { Tall = true };
     }
 
-    private static ActionBar Bar(int picked)
+    private static ActionBar Bar(int picked, bool onlyDrivers = false)
     {
         var bar = new ActionBar();
 
-        bar.Picked(picked);
+        bar.Picked(picked, onlyDrivers);
 
         return bar;
     }

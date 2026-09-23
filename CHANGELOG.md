@@ -160,6 +160,20 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **Picking only drivers no longer offers to stop, start or change them.** The tool shows
+  drivers and never changes them, but with a driver picked all six buttons - *Stop*, *Start*,
+  *Restart*, *Force stop*, *Force restart* and *Set startup type* - were live, and each opened a
+  plan with nothing in it. They are now off, and resting on one says why. The menu under the
+  right mouse button says the same in the line at the bottom of the window. With services and
+  drivers picked together on the *All* list the buttons work as before, and the plan names each
+  driver it leaves out.
+
+- **A plan that can do nothing opens on the reason, not on an empty list of steps.** When every
+  entry in a plan was left out, the plan showed an empty *In this order* section first. It also
+  showed a red sentence saying a restart as administrator would carry it out, which it would
+  not. The empty section is gone and so is that sentence. Resting on the grey button now says
+  there is nothing here to carry out.
+
 - **The search box no longer calls a value wrong while you are still typing it.** Typing
   `status:running` one key at a time went through `status:r` and `status:ru`, and each of them
   was reported as a mistake while the list under the box was offering `running` as the next word.

@@ -375,6 +375,15 @@ public partial class PlanView : UserControl
     internal bool WayBackShown => WayBackSection.Visibility == Visibility.Visible;
 
     /// <summary>
+    /// Whether the block of steps is on the screen at all - its own Visibility, for the reason
+    /// <see cref="ProblemsShown"/> gives. Reached through the list it holds rather than by a name of
+    /// its own, because the markup stands at its ceiling, and a block that stops holding the list
+    /// answers false - a red guard rather than a quiet one.
+    /// </summary>
+    internal bool StepsShown => StepList.Parent is FrameworkElement { Parent: Border block }
+        && block.Visibility == Visibility.Visible;
+
+    /// <summary>
     /// Whether the command that would ask for the same thing is on the screen. Never after a run.
     ///
     /// The mirror of the line above, and the pair is the point: before a run the panel offers the
