@@ -1,0 +1,111 @@
+name: Bug report
+description: Something in Better Windows Services does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The version, whether the session had
+        administrator rights, and the output the tool printed are the three most useful
+        things you can give us.
+
+        **If the tool and `sc.exe` disagree about a service, use the "Disagreement with
+        sc.exe" template instead.** It asks for exactly the output that settles it.
+
+        **Some answers are not bugs.** Without administrator rights Windows lists fewer
+        services and refuses more of what it lists, and the tool says so at the top of
+        both the window and the command line. Exit code 3 means a step did not get where
+        it was going, usually because the service manager refused, and 5 means a snapshot
+        comparison found differences. Report them if you believe the answer itself is
+        wrong.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        `bws --version` prints it - paste the first two lines. For the window, run this
+        in PowerShell next to the executable:
+        `(Get-Item .\BetterWindowsServices.exe).VersionInfo.ProductVersion`.
+      placeholder: "bws 0.1.0, snapshot schema 4"
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: How were you running it?
+      description: >-
+        The window and the command line are two clients of one engine, so a bug in one
+        is often a bug in both. Which one you saw it in narrows it down.
+      options:
+        - "Window (BetterWindowsServices.exe)"
+        - "Command line (bws.exe)"
+        - "Both"
+    validations:
+      required: true
+  - type: dropdown
+    id: elevated
+    attributes:
+      label: Was it running as administrator?
+      description: >-
+        This changes what Windows hands over, so it splits most reports in half. When it
+        is not, the window says "Running without administrator rights" in its status
+        line and the command line prints a warning before anything else.
+      options:
+        - "Yes, as administrator"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: The command, or the steps
+      description: >-
+        The smallest thing that triggers it. A single `bws` command line is ideal, so
+        paste it rather than describing it. For the window, the query you typed and
+        what you clicked.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: plan
+    attributes:
+      label: If a plan was involved - the preview, and what happened
+      description: >-
+        The preview and the execution are the same plan, so any difference between what
+        `--dry-run` or the plan panel showed and what the run did is the worst bug this
+        product can have. Paste the preview, then say what actually happened.
+      render: shell
+  - type: input
+    id: exit
+    attributes:
+      label: Exit code
+      description: >-
+        `$LASTEXITCODE` in PowerShell, or `echo %ERRORLEVEL%` in cmd, right after the
+        command. The codes are part of this tool's contract, so a wrong one is a bug on
+        its own even when the output looked right.
+      placeholder: "3"
+  - type: textarea
+    id: output
+    attributes:
+      label: What the tool printed
+      description: >-
+        The output with `--json` is the most useful. Before pasting: it names services,
+        accounts, file paths and sometimes other machines, and this issue is public.
+        Read it first and remove anything you would rather not publish.
+      render: shell
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and display language
+      description: >-
+        Output of `winver`, and the display language if it is not English. Display
+        names and account names are translated, and the tool must not depend on either.
+      placeholder: "Windows Server 2022, German"

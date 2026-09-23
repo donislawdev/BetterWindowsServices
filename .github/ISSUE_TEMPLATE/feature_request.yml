@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: The administration task that is awkward today, and on what kind of machine.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed solution
+      description: What you would like the tool to do.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today instead
+      description: >-
+        sc.exe, PowerShell, services.msc, a script of your own - and what it costs you.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      description: >-
+        Three things this project has decided and will not revisit without a new
+        argument. Saying so here saves you writing a proposal that was never going to be
+        accepted.
+      options:
+        - label: This does not need the tool to reach the network. No telemetry, no update check, no crash reporting and no client of any service - the tool is meant for production servers, and it never leaves the machine it runs on.
+          required: true
+        - label: This does not change anything without a plan. Every change builds a plan that can be previewed, turned into a command line and undone, and the preview is exactly what the execution does. There is no second path for a change, not even a quick one.
+          required: true
+        - label: This is about Windows services on the machine the tool runs on. Remote management is not in this version - to compare two machines, take a snapshot on each and compare the two files.
+          required: true
+  - type: checkboxes
+    id: surfaces
+    attributes:
+      label: Both surfaces
+      options:
+        - label: I understand that a capability lives in the engine and appears in both the window and the command line, rather than in one of them.
