@@ -30,6 +30,19 @@ public sealed class DeadCodeScanTests
     }
 
     [Fact]
+    public void A_type_only_a_test_names_is_reported_by_the_scan()
+    {
+        // The same rule as the first test, asked of the whole scan rather than of the pure half: that
+        // one hands Unreached a site already marked as a test, and cannot see whether reading a test
+        // file still marks it so.
+        var found = UnreachedBesideTests(
+            "public static class OnlyTested { public static int Answer() => 42; }",
+            "var answer = OnlyTested.Answer();");
+
+        Assert.Equal(["OnlyTested"], found);
+    }
+
+    [Fact]
     public void A_definition_that_only_names_itself_is_reported()
     {
         var sites = new Dictionary<string, List<int>> { ["Again"] = [0] };
@@ -108,12 +121,14 @@ public sealed class DeadCodeScanTests
     }
 
     /// <summary>The names the scan reports, for one file of types, one of top-level statements and one of markup.</summary>
-    private static string[] Unreached(string types, string program, string markup = "")
-    {
-        var scan = DeadCodeScan.Of([("Program.cs", Parse(program)), ("Types.cs", Parse(types))], [], [markup]);
+    private static string[] Unreached(string types, string program, string markup = "") =>
+        Names(DeadCodeScan.Of([("Program.cs", Parse(program)), ("Types.cs", Parse(types))], [], [markup]));
 
-        return [.. scan.Unreached().Select(definition => definition.Name)];
-    }
+    /// <summary>The names the scan reports, for one file of types and one of test code beside it.</summary>
+    private static string[] UnreachedBesideTests(string types, string tests) =>
+        Names(DeadCodeScan.Of([("Types.cs", Parse(types))], [Parse(tests)], []));
+
+    private static string[] Names(DeadCodeScan scan) => [.. scan.Unreached().Select(definition => definition.Name)];
 
     private static SyntaxNode Parse(string text) => CSharpSyntaxTree.ParseText(text, CodeShape.Language).GetRoot();
 }

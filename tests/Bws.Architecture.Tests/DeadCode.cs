@@ -30,8 +30,15 @@ namespace Bws.Architecture.Tests;
 ///   - A record's positional members. They are data the serialiser reads, which names nothing, and
 ///     the snapshot and JSON contracts are built from them.
 ///   - Anything reached by a string - reflection, a binding path assembled in code.
-///   - Private members, on purpose: IDE0051 and IDE0052 hold those in the build.
+///   - Overrides, explicit interface members, bodyless methods and the names in CalledByContract, as
+///     definitions of their own - something else calls them by their place. Their bodies still count,
+///     credited to the type that holds them.
 ///   - Definitions under tests/, and site/Bws.Site, which is outside src/.
+///
+/// <b>Private members ARE read and followed here like any other</b> - the first version of this list
+/// said the opposite, and the review of the pull request that brought it found the sentence false.
+/// IDE0051 and IDE0052 refuse a dead private member in the build before this runs, so a private
+/// finding here means an analyser was switched off, not that the two overlap by accident.
 ///   - A WPF attached property used only from markup would look dead here, because markup spells it
 ///     Owner.Name and never GetName or NameProperty. The owner's Rust project paid for that. There is
 ///     no attached property in the product today, so the case is named rather than handled.

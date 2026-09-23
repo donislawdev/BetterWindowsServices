@@ -39,14 +39,21 @@ public sealed class ProseGuards
     };
 
     /// <summary>
-    /// Files whose comments may quote Polish, each with the reason. A quotation of DATA is not prose
-    /// written in Polish - the rule is about what this project writes, not what Windows says.
+    /// Files whose comments may quote Polish, each with the quotation itself and the reason. A quotation
+    /// of DATA is not prose written in Polish - the rule is about what this project writes, not what
+    /// Windows says.
+    ///
+    /// <b>The quotation, not the file.</b> The first version excused every comment in the file, so a
+    /// Polish sentence written beside the quotation would have passed - the review of the pull request
+    /// that brought this said so. Only the registered text is taken out of a line now, and the rest of
+    /// that line, and every other line of the file, is read like any other.
     /// </summary>
-    private static readonly Dictionary<string, string> MayQuotePolish = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, Excuse> MayQuotePolish = new(StringComparer.Ordinal)
     {
-        ["src/Bws.Core/Reading.cs"] =
+        ["src/Bws.Core/Reading.cs"] = new(
+            "\"Nie mo\u017cna uruchomi\u0107",
             "Quotes the message a Polish Windows returns for a refusal, beside the English one, to show why the " +
-            "product keeps the error number rather than the sentence. It is the example, not the prose.",
+            "product keeps the error number rather than the sentence. It is the example, not the prose."),
     };
 
     private static readonly Lazy<ProseLine[]> CodeComments = new(() =>
@@ -86,7 +93,7 @@ public sealed class ProseGuards
     public void No_comment_is_written_in_polish()
     {
         var found = CodeComments.Value
-            .Where(line => !MayQuotePolish.ContainsKey(line.File) && PolishIn(line.Text) is not null)
+            .Where(IsPolishProse)
             .Select(line => $"  {line.Where}  {PolishIn(line.Text)}: {line.Text.Trim()}")
             .ToArray();
 
@@ -100,11 +107,15 @@ public sealed class ProseGuards
     [Fact]
     public void The_files_excused_from_the_language_rule_still_quote_polish()
     {
-        // The other direction, so an excuse cannot outlive the quotation it was written for.
-        var quoting = CodeComments.Value.Where(line => PolishIn(line.Text) is not null).Select(line => line.File).ToHashSet(StringComparer.Ordinal);
-        var stale = MayQuotePolish.Keys.Where(file => !quoting.Contains(file)).ToArray();
+        // The other direction, so an excuse cannot outlive the quotation it was written for - and since
+        // the excuse is the quotation itself, the file has to still carry that exact text.
+        var stale = MayQuotePolish
+            .Where(excuse => !CodeComments.Value.Any(line =>
+                line.File == excuse.Key && line.Text.Contains(excuse.Value.Quotation, StringComparison.Ordinal)))
+            .Select(excuse => excuse.Key)
+            .ToArray();
 
-        Assert.True(stale.Length == 0, "These files are excused from the language rule and quote no Polish any more: " + string.Join(", ", stale));
+        Assert.True(stale.Length == 0, "These files are excused for a quotation they no longer carry: " + string.Join(", ", stale));
     }
 
     [Theory]
@@ -137,6 +148,46 @@ public sealed class ProseGuards
     [InlineData("// nothing Polish here at all", null)]
     public void A_polish_word_is_found_only_as_a_whole_word(string line, string? expected) =>
         Assert.Equal(expected, PolishIn(line));
+
+    [Theory]
+    [InlineData("/// reads \"The service cannot be started...\" on one machine and \"Nie mo\u017cna uruchomi\u0107", false)]
+    [InlineData("// to nie jest dobre", true)]
+    [InlineData("/// \"Nie mo\u017cna uruchomi\u0107 nie wiem\" is not the quotation it is excused for", true)]
+    public void Only_the_quotation_a_file_is_excused_for_is_excused(string text, bool reported) =>
+        Assert.Equal(reported, IsPolishProse(new ProseLine("src/Bws.Core/Reading.cs", 1, text)));
+
+    [Fact]
+    public void A_fence_closes_only_on_its_own_marker()
+    {
+        // A four-backtick fence around a three-backtick one, a closing marker that carries text and so
+        // is not one, and a tilde fence. The prose is the three lines numbered below and nothing else.
+        string[] lines =
+        [
+            "Prose one.",
+            "````markdown",
+            "```",
+            "inside; still code",
+            "```",
+            "````",
+            "Prose two.",
+            "~~~",
+            "code; here",
+            "```js",
+            "~~~",
+            "Prose three.",
+        ];
+
+        Assert.Equal([1, 7, 12], Prose.InMarkdown("X.md", lines).Select(line => line.Line));
+    }
+
+    /// <summary>Whether a line of prose holds a Polish word outside the quotation its file is excused for.</summary>
+    private static bool IsPolishProse(ProseLine line) =>
+        PolishIn(MayQuotePolish.TryGetValue(line.File, out var excuse)
+            ? line.Text.Replace(excuse.Quotation, " ", StringComparison.Ordinal)
+            : line.Text) is not null;
+
+    /// <summary>One quotation of Polish a file may carry in its comments, and why.</summary>
+    private sealed record Excuse(string Quotation, string Reason);
 
     /// <summary>The first Polish word a line holds, whole and in any case, or nothing.</summary>
     private static string? PolishIn(string line) =>

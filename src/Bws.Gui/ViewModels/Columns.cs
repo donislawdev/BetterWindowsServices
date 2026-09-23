@@ -4,25 +4,27 @@ using Bws.Core.Querying;
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
-/// The seventeen columns of `A8`, and why exactly these.
+/// The columns of `A8` - twenty-eight on 2026-09-23. Count <see cref="All"/> rather than this line.
 ///
-/// <b>The count is arithmetic rather than taste, and it closes exactly.</b> `ScmEntry` carries 22
-/// fields plus one derived. Four are refused because the second phase of `ADR-13` reads them and
-/// the window has no second phase - signature, file version, binary hash and memory - so a column
-/// for any of them would write "nobody looked" 809 times, which is a promise the window cannot
-/// keep. Backlog 21 brings them back the day that phase exists. Two more are absent because they
-/// are already on screen inside another cell: the delayed flag and whether the file is on disk are
-/// both qualifiers the start type carries, exactly as the command line prints them. 23 - 4 - 2 is
-/// seventeen. Owner's decision, 2026-08-11.
+/// <b>It began as seventeen, and the arithmetic of that day is kept because it says what earns a
+/// column.</b> On 2026-08-11 `ScmEntry` carried 22 fields plus one derived. Four were left out
+/// because only the second phase of `ADR-13` reads them - signature, file version, binary hash and
+/// memory - and the window had no second phase, so a column would have said "nobody looked" on every
+/// row. Two more were qualifiers the start column already carried - the delayed flag and whether the
+/// file is on disk. 23 - 4 - 2 was seventeen, owner's decision.
 ///
-/// <b>Six are on at the start and that is also a decision rather than the status quo.</b> `A8`
-/// names Name, Status, Start, Account, PID and RAM - and RAM belongs to the phase that does not
-/// exist, so the display name keeps its place instead. It carries the text a person recognises,
-/// translated on this machine, which no other column does.
+/// <b>What changed since, and the entries below carry their dates.</b> The two qualifiers got
+/// columns of their own on 2026-08-17, the four second phase fields came in once the window had that
+/// phase, and five more arrived with later slices - 17 + 2 + 4 + 5 is the twenty-eight above. This
+/// paragraph stated the seventeen as the present until the review of the pull request that moved it
+/// here, 2026-09-23.
+///
+/// <b>Which are on before anybody chooses is each column's own</b> <see cref="Column.ShownAtFirstIn"/>,
+/// per list, and not a number written here.
 ///
 /// <b>The order is the order they are offered in</b>, which is what somebody reads down the picker
-/// and what the grid uses before anybody drags anything: the six that are on, then the cheap facts
-/// about what an entry IS, then the three lists, then the two that are mostly for an audit.
+/// and what the grid uses before anybody drags anything - with the three lists and the two that are
+/// mostly for an audit at the end.
 ///
 /// <b>This comment stood at the end of Column.cs, attached to nothing, from the day the size
 /// ratchet moved this table out of that file until 2026-09-23</b>, when the documentation file

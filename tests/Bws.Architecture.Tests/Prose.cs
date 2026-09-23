@@ -41,15 +41,23 @@ internal static class Prose
         MarkupComment.Matches(text).SelectMany(comment =>
             Lines(file, LineAt(text, comment.Index), comment.Value));
 
-    /// <summary>Every line of a Markdown file outside a fence or an indented block.</summary>
+    /// <summary>
+    /// Every line of a Markdown file outside a fence or an indented block.
+    ///
+    /// <b>A fence closes only on its own marker</b> - the same character, at least as long, and nothing
+    /// after it, which is CommonMark's rule. The first version toggled on any line that began with three
+    /// backticks, so the inside of a four-backtick fence around a three-backtick one read as prose, and
+    /// a tilde fence was not a fence at all. The review of the pull request that brought this said so.
+    /// </summary>
     internal static IEnumerable<ProseLine> InMarkdown(string file, string[] lines)
     {
-        var fenced = false;
+        Fence? open = null;
         for (var index = 0; index < lines.Length; index++)
         {
-            var fence = lines[index].TrimStart().StartsWith("```", StringComparison.Ordinal);
-            fenced ^= fence;
-            if (!fence && !fenced && !lines[index].StartsWith("    ", StringComparison.Ordinal))
+            var marker = Fence.On(lines[index]);
+            var prose = open is null && marker is null && !lines[index].StartsWith("    ", StringComparison.Ordinal);
+            open = open is null ? marker : open.ClosedBy(marker) ? null : open;
+            if (prose)
             {
                 yield return new ProseLine(file, index + 1, lines[index]);
             }
@@ -74,4 +82,26 @@ internal static class Prose
             .Select((line, offset) => new ProseLine(file, first + offset, line.TrimEnd('\r')));
 
     private static int LineAt(string text, int index) => 1 + text.AsSpan(0, index).Count('\n');
+}
+
+/// <summary>
+/// One Markdown fence marker: three or more backticks or tildes after at most three spaces.
+/// </summary>
+internal sealed record Fence(char Mark, int Length, bool Bare)
+{
+    /// <summary>The marker a line is, or nothing. A backtick marker may not carry a backtick after it.</summary>
+    internal static Fence? On(string line)
+    {
+        var rest = line.TrimStart(' ');
+        var mark = rest.Length > 0 ? rest[0] : ' ';
+        var length = rest.TakeWhile(character => character == mark).Count();
+        var after = rest[length..];
+
+        return line.Length - rest.Length <= 3 && mark is '`' or '~' && length >= 3 && !(mark == '`' && after.Contains('`', StringComparison.Ordinal))
+            ? new Fence(mark, length, after.Trim().Length == 0)
+            : null;
+    }
+
+    /// <summary>Whether a marker closes this fence: the same character, at least as long, and bare.</summary>
+    internal bool ClosedBy(Fence? marker) => marker is { Bare: true } && marker.Mark == Mark && marker.Length >= Length;
 }

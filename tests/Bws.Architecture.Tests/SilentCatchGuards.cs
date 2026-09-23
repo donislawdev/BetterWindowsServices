@@ -25,7 +25,11 @@ namespace Bws.Architecture.Tests;
 /// </summary>
 public sealed class SilentCatchGuards
 {
-    /// <summary>The floor under the catches read - fifty on the day. It catches a scan that read nothing.</summary>
+    /// <summary>
+    /// The floor under the catches read. It catches a scan that read nothing, so it sits well under the
+    /// fifty measured on the day rather than on them - a floor at the measurement would redden the day
+    /// somebody removes a catch, which is the direction this file asks for.
+    /// </summary>
     private const int FewestCatchesRead = 30;
 
     /// <summary>
@@ -79,6 +83,10 @@ public sealed class SilentCatchGuards
     [InlineData("try { } catch (System.IO.IOException e) { Report(e); }", false)]
     [InlineData("try { } catch (System.IO.IOException) { throw; }", false)]
     [InlineData("try { } catch { throw new System.InvalidOperationException(); }", false)]
+    [InlineData("try { } catch (System.IO.IOException) { System.Action later = () => throw new System.Exception(); }", true)]
+    [InlineData("try { } catch (System.IO.IOException) { void Later() => throw new System.Exception(); }", true)]
+    [InlineData("try { } catch (System.IO.IOException e) { void Show(string e) => Report(e); }", true)]
+    [InlineData("try { } catch (System.IO.IOException e) { Later(() => Report(e)); }", false)]
     public void A_catch_drops_what_it_caught_only_when_it_neither_throws_nor_reads_it(string code, bool drops)
     {
         var clause = CSharpSyntaxTree.ParseText($"class C {{ void M() {{ {code} }} }}", CodeShape.Language)
@@ -88,16 +96,37 @@ public sealed class SilentCatchGuards
     }
 }
 
-/// <summary>What a catch clause does with what it caught, read from the syntax tree.</summary>
+/// <summary>
+/// What a catch clause does with what it caught, read from the syntax tree.
+///
+/// <b>A nested function belongs to itself, not to the catch</b> - the review of the pull request that
+/// brought this found it. A throw inside a lambda or a local function throws when that function runs,
+/// which may be never, so it is not the catch throwing. And a nested function whose parameter has the
+/// caught name reads its own parameter. A lambda that only captures the exception still reads it.
+/// </summary>
 internal static class Catches
 {
     /// <summary>Whether the clause neither throws nor reads the exception in its body.</summary>
     internal static bool Drop(CatchClauseSyntax clause) => !Throws(clause.Block) && !Reads(clause);
 
     private static bool Throws(BlockSyntax body) =>
-        body.DescendantNodes().Any(node => node is ThrowStatementSyntax or ThrowExpressionSyntax);
+        body.DescendantNodes(node => !IsNestedFunction(node))
+            .Any(node => node is ThrowStatementSyntax or ThrowExpressionSyntax);
 
     private static bool Reads(CatchClauseSyntax clause) =>
         clause.Declaration?.Identifier.ValueText is { Length: > 0 } caught
-        && clause.Block.DescendantNodes().OfType<IdentifierNameSyntax>().Any(name => name.Identifier.ValueText == caught);
+        && clause.Block.DescendantNodes(node => !Shadows(node, caught))
+            .OfType<IdentifierNameSyntax>().Any(name => name.Identifier.ValueText == caught);
+
+    private static bool IsNestedFunction(SyntaxNode node) =>
+        node is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax;
+
+    private static bool Shadows(SyntaxNode node, string caught) => node switch
+    {
+        LocalFunctionStatementSyntax local => local.ParameterList.Parameters.Any(parameter => parameter.Identifier.ValueText == caught),
+        SimpleLambdaExpressionSyntax lambda => lambda.Parameter.Identifier.ValueText == caught,
+        ParenthesizedLambdaExpressionSyntax lambda => lambda.ParameterList.Parameters.Any(parameter => parameter.Identifier.ValueText == caught),
+        AnonymousMethodExpressionSyntax method => method.ParameterList?.Parameters.Any(parameter => parameter.Identifier.ValueText == caught) == true,
+        _ => false,
+    };
 }
