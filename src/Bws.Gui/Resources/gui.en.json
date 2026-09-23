@@ -38,7 +38,7 @@
   "gui.action.restart.hint": "Show what restarting the entries you picked would do. Nothing is changed until you carry it out.",
   "gui.action.elevate": "Restart as admin",
   "gui.action.elevate.hint": "Start this tool again with administrator rights. Windows will ask you to confirm. The new window opens where this one is - the same list, search, picked entries and open plan - and carries nothing out on its own.",
-  "gui.handOver.refused": "The window this one was restarted from handed over something it could not have written, so this one starts from the beginning.",
+  "gui.handOver.refused": "What was on screen before the restart could not be carried over, so this window starts as usual. Search and pick the entries again.",
   "gui.handOver.pickedLeftBehind": "You had picked more entries than can be carried across a restart, so pick them again.",
   "gui.handOver.gone.one": "{0} entry you had picked is no longer in the list.",
   "gui.handOver.gone.many": "{0} entries you had picked are no longer in the list.",
