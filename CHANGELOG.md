@@ -160,6 +160,15 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The search box no longer calls a value wrong while you are still typing it.** Typing
+  `status:running` one key at a time went through `status:r` and `status:ru`, and each of them
+  was reported as a mistake while the list under the box was offering `running` as the next word.
+  Now the start of a value the field accepts, in the last part of the box, is passed over the way
+  `status:` already was - the rest of the query still filters, and nothing is filtered on the half
+  word. It becomes a mistake again as soon as you move on from it: a space, a comma, a closing
+  quote, or a start that no value has, such as `status:rx`. The command line has no keystrokes,
+  so `bws list --query "status:r"` is still refused.
+
 - **The window no longer answers a question about memory with a confident "nothing matches"
   when it was not allowed to look.** Without administrator rights, Windows refuses to say how
   much memory most service processes hold - on the machine this was found on, 104 of them. A

@@ -280,13 +280,21 @@ public sealed class QueryParserTests
     /// <summary>
     /// And where the tolerance ends, which is what keeps it from hiding a real mistake: a member
     /// nobody is typing any more, a value that is not the start of anything, a second value after a
-    /// comma, and the command line, which has no keystrokes at all.
+    /// comma, a value somebody has moved on from with a comma, a value closed by a quote, and the
+    /// command line, which has no keystrokes at all.
+    ///
+    /// <b>The closed quote came from a review of PR 10, 2026-09-23.</b> The scanner takes the quotes
+    /// away, so <c>status:"r"</c> reached the tolerance as <c>status:r</c> and was passed over - a
+    /// value somebody finished by closing the quotes around it, dropped as though it were half typed.
     /// </summary>
     [Theory]
     [InlineData("status:r start:manual", QueryInput.BeingTyped)]
     [InlineData("status:runnin ", QueryInput.BeingTyped)]
     [InlineData("status:rx", QueryInput.BeingTyped)]
     [InlineData("status:running,st", QueryInput.BeingTyped)]
+    [InlineData("status:st,", QueryInput.BeingTyped)]
+    [InlineData("status:\"r\"", QueryInput.BeingTyped)]
+    [InlineData("!status:\"runn\"", QueryInput.BeingTyped)]
     [InlineData("status:r", QueryInput.Finished)]
     public void The_start_of_a_value_is_still_a_mistake_everywhere_else(string text, QueryInput input)
     {
