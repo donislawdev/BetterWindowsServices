@@ -1,0 +1,524 @@
+#!/usr/bin/env pwsh
+<#
+.SYNOPSIS
+    Phase B: sign a release build with the card, then hand it back to the workflow.
+
+.DESCRIPTION
+    The signing key lives on a cryptographic card in a reader and cannot be exported - that is
+    the whole value of it, so no GitHub-hosted runner will ever reach it. A self-hosted runner
+    could, and this is a PUBLIC repository, where a self-hosted runner is a machine strangers can
+    aim a pull request at. So the build happens in a workflow and the signature happens here, and
+    this script is the seam between them.
+
+    In order, and what it refuses at each step:
+
+      1. downloads the unsigned build phase A produced for this tag;
+      2. VERIFIES that build's provenance attestation before touching it - signing something you
+         did not check is how a supply chain gets a signature on it;
+      3. signs OUR executables, and only ours, with an RFC 3161 timestamp. Without a timestamp
+         the signature dies when the certificate expires, and this one is valid for a year;
+      4. reads the certificate back OUT of each signed file and refuses to go on unless it hashes
+         to the pin in packaging/codesign.json. A second code-signing certificate on the same
+         machine - a renewal, a test one, one from another project - is exactly this accident;
+      5. repacks both archives, regenerates their bills of materials over the SIGNED bytes, and
+         writes SHA256SUMS over what will actually ship;
+      6. uploads all five to the DRAFT release and asks phase C to attest the signed bytes;
+      7. waits for that and confirms the draft is COMPLETE - a draft missing one file looks
+         almost exactly like a finished one.
+
+    Nothing here publishes. The release stays a draft until a person reads it and presses the
+    button, and pressing it runs phase D, which re-checks the published page the way a user does.
+
+    BE AT THE MACHINE. signtool reaches the card and then waits for its PIN, so this cannot run
+    unattended. Whether the card asks once or once per file depends on the card middleware's own
+    PIN caching, and there are two files here, so watch the first run before assuming.
+
+.PARAMETER Tag
+    The release tag, e.g. v0.1.0.
+
+.PARAMETER ListCertificates
+    Print every code-signing certificate in the store with its subject, fingerprints and expiry,
+    and do nothing else. This is how the pin in packaging/codesign.json is set, and how the
+    holder sees exactly which personal details a signature would make public.
+
+.PARAMETER DryRun
+    Everything except signing, uploading and dispatching.
+
+.PARAMETER Wait
+    How long to wait for phase C to attach its bundles, in seconds.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)] [string] $Tag,
+    [switch] $ListCertificates,
+    [switch] $DryRun,
+    [int] $Wait = 300,
+    [string] $Work
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$root = Split-Path -Parent $PSScriptRoot
+$repo = 'donislawdev/BetterWindowsServices'
+$attestWorkflow = 'attest-signed.yml'
+if (-not $Work) { $Work = Join-Path $root 'build/signing' }
+
+# The Enhanced Key Usage OID for code signing. Matched by OID and never by the friendly name,
+# because the friendly name is LOCALISED: on the Polish Windows this project is developed on, the
+# same certificate reads "Podpisywanie kodu", and a filter written against "Code Signing" reports
+# an empty store. That is rule 3 of CLAUDE.md - identity by immutable identifier - arriving in a
+# place nobody expected it.
+$CODE_SIGNING_OID = '1.3.6.1.5.5.7.3.3'
+
+$WARN_DAYS = 90
+
+$register = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'components.json') | ConvertFrom-Json
+
+# EXACTLY THE BINARIES WE BUILD, per archive, by path inside the zip. Not a glob.
+#
+# Both halves publish as one self-contained file, so this is one path per archive - and that is
+# the whole list, not a shortened one. Everything else inside those executables is Microsoft's
+# and is not a file on disk at all: re-signing somebody else's binary would both destroy their
+# signature and assert that we produced it.
+#
+# Derived from the register rather than written out again, because the register is where the
+# archive layout is decided and ComponentRegisterGuards holds it against what the projects
+# actually build. A second copy here would be a second answer to one question.
+$OURS = @{}
+$PACKAGE_ID = @{}
+foreach ($entry in $register.packages.PSObject.Properties) {
+    $OURS[$entry.Value.zip] = @("$($entry.Value.folder)/$($entry.Value.executable)")
+    $PACKAGE_ID[$entry.Value.zip] = $entry.Name
+}
+
+# What a complete draft carries. A missing one of these is a phase that did not finish.
+$EXPECTED_ASSETS = @($OURS.Keys) + @($OURS.Keys | ForEach-Object { "$_.spdx.json" }) + @('SHA256SUMS')
+
+function Invoke-Step([string[]] $Command) {
+    Write-Host "  `$ $($Command -join ' ')"
+    $output = & $Command[0] @($Command[1..($Command.Length - 1)]) 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $output | ForEach-Object { Write-Host $_ }
+        throw "sign-release: '$($Command[0])' failed with exit $LASTEXITCODE"
+    }
+    return $output
+}
+
+function Get-CodeSigningCertificates {
+    # Wrapped in @() at both levels on purpose. Under Set-StrictMode a certificate carrying no
+    # enhanced key usage at all makes a bare property walk throw rather than return nothing, and
+    # a Windows store holds several of those.
+    Get-ChildItem Cert:\CurrentUser\My, Cert:\LocalMachine\My -ErrorAction SilentlyContinue |
+        Where-Object { @($_.EnhancedKeyUsageList | ForEach-Object { $_.ObjectId }) -contains $CODE_SIGNING_OID }
+}
+
+function Get-CertificateSha256($certificate) {
+    (([System.Security.Cryptography.SHA256]::Create().ComputeHash($certificate.RawData) |
+                ForEach-Object { $_.ToString('x2') }) -join '')
+}
+
+function Find-SignTool {
+    $kits = 'C:\Program Files (x86)\Windows Kits\10\bin'
+    $found = @()
+    if (Test-Path -LiteralPath $kits) {
+        foreach ($version in (Get-ChildItem -LiteralPath $kits -Directory | Sort-Object Name)) {
+            $candidate = Join-Path $version.FullName 'x64\signtool.exe'
+            if (Test-Path -LiteralPath $candidate) { $found += $candidate }
+        }
+    }
+    if (-not $found) {
+        throw ("sign-release: no signtool.exe under $kits - install the Windows SDK " +
+            "('Windows SDK Signing Tools' is enough)")
+    }
+    return $found[-1]
+}
+
+# The certificate expires on a known date, and a script that merely PRINTS that date draws no
+# conclusion from it. The first release after expiry would then fail in the middle of the ritual,
+# at the signing step, with the card already in the reader - the worst moment to learn of a
+# certificate problem. Pure, so `now` is passed in and this can be reasoned about without a card.
+function Get-ExpiryNotice($notAfter, [datetime] $now) {
+    if (-not $notAfter) { return @('  the store reported no expiry date - check the card by hand') }
+    $when = [datetime] $notAfter
+    $days = [int] ($when - $now).TotalDays
+    if ($days -lt 0) {
+        throw ("sign-release: the pinned certificate EXPIRED $(-$days) days ago ($($when.ToString('yyyy-MM-dd'))).`n" +
+            "Signing with it now produces a signature Windows will reject. Renew the certificate, then move`n" +
+            "certificate_sha256 in packaging/codesign.json to the NEW one - a renewal is a different`n" +
+            'certificate, not the same one with a later date.')
+    }
+    if ($days -le $WARN_DAYS) {
+        return @("  WARNING: $days days left on this certificate ($($when.ToString('yyyy-MM-dd'))).",
+            '     Renewing issues a NEW certificate, so certificate_sha256 in packaging/codesign.json',
+            '     has to move with it or the next release refuses to sign at all.')
+    }
+    return @("  $days days left on the certificate")
+}
+
+function Get-Pin {
+    $path = Join-Path $PSScriptRoot 'codesign.json'
+    if (-not (Test-Path -LiteralPath $path)) { throw "sign-release: missing the pin at $path" }
+    $pin = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+    if (-not $pin.certificate_sha256 -or $pin.certificate_sha256 -notmatch '^[0-9a-f]{64}$') {
+        throw ('sign-release: packaging/codesign.json has no usable certificate_sha256. Run this script ' +
+            "with -ListCertificates, find the card's certificate and paste its sha256 there.")
+    }
+    if (-not $pin.timestamp_url) { throw 'sign-release: packaging/codesign.json has no timestamp_url' }
+    return $pin
+}
+
+function Get-Sha256([string] $path) {
+    (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+# Every binary in a directory tree with the state of its Authenticode signature. Used before and
+# after signing: the difference has to be exactly the files we meant to sign, which is what
+# catches a path list that reached further than it should.
+function Get-SignatureStates([string] $directory) {
+    $states = @{}
+    foreach ($file in Get-ChildItem -LiteralPath $directory -Recurse -Include *.exe, *.dll -File) {
+        $relative = $file.FullName.Substring($directory.Length).TrimStart('\', '/') -replace '\\', '/'
+        $states[$relative] = (Get-AuthenticodeSignature -LiteralPath $file.FullName).Status.ToString()
+    }
+    return $states
+}
+
+# ---------------------------------------------------------------------------------------------
+# -ListCertificates: the only mode that touches nothing
+# ---------------------------------------------------------------------------------------------
+
+if ($ListCertificates) {
+    $pinned = $null
+    $path = Join-Path $PSScriptRoot 'codesign.json'
+    if (Test-Path -LiteralPath $path) {
+        $pinned = (Get-Content -Raw -LiteralPath $path | ConvertFrom-Json).certificate_sha256
+    }
+    $certificates = @(Get-CodeSigningCertificates)
+    if (-not $certificates) {
+        Write-Host 'No code-signing certificate in the Windows store.'
+        Write-Host 'Plug in the card reader and check the card middleware can see the card.'
+        Write-Host "Matched by the code-signing OID $CODE_SIGNING_OID rather than by name, because the"
+        Write-Host 'friendly name is localised and a name filter reports an empty store on a localised Windows.'
+        return
+    }
+    Write-Host ''
+    Write-Host 'A certificate issued to an individual carries the holder name, town and province in its'
+    Write-Host 'subject, and every signed file carries that with it. The first signed release makes it'
+    Write-Host 'public and nothing takes it back. Read the subject below before signing anything.'
+    Write-Host ''
+    foreach ($certificate in $certificates) {
+        $sha256 = Get-CertificateSha256 $certificate
+        Write-Host "subject     : $($certificate.Subject)"
+        Write-Host "issuer      : $($certificate.Issuer)"
+        Write-Host "sha1 thumb  : $($certificate.Thumbprint)   (what signtool selects by)"
+        Write-Host "sha256      : $sha256   (what packaging/codesign.json pins)"
+        Write-Host "valid       : $($certificate.NotBefore.ToString('yyyy-MM-dd')) .. $($certificate.NotAfter.ToString('yyyy-MM-dd'))"
+        Get-ExpiryNotice $certificate.NotAfter ([datetime]::Now) | ForEach-Object { Write-Host $_ }
+        Write-Host "private key : $($certificate.HasPrivateKey)"
+        if ($pinned -and $pinned -eq $sha256) { Write-Host '   THIS IS THE PINNED ONE' }
+        elseif ($pinned) { Write-Host '   not the pinned certificate' }
+        else { Write-Host '   nothing is pinned yet - paste the sha256 above into packaging/codesign.json' }
+        Write-Host ''
+    }
+    return
+}
+
+# ---------------------------------------------------------------------------------------------
+# The ritual
+# ---------------------------------------------------------------------------------------------
+
+if (-not $Tag) { throw 'sign-release: give the tag, e.g. ./packaging/sign-release.ps1 v0.1.0' }
+if (-not $IsWindows) { throw 'sign-release: the card lives on Windows, run this there' }
+
+# THE CHECKOUT HAS TO BE THE TAGGED COMMIT, and this is not tidiness - it is the difference
+# between a document that describes the archive and one that describes whatever main looks like
+# today. The archive comes from the TAG. Everything this script writes over it comes from the
+# WORKING TREE: sbom.ps1 reads the version out of Directory.Build.props and the components out of
+# packaging/components.json, and the signing list above is read from that same register. If main
+# has moved since the tag - a version bump, a licence corrected, a component added - the document
+# states the wrong version, the wrong download URL or the wrong licences for bytes that do not
+# have them, and phase C attests exactly that. The check against deps.json cannot see any of it.
+# Found by the review of PR #5.
+$tagged = (git rev-parse "$Tag^{commit}" 2>$null)
+if ($LASTEXITCODE -ne 0 -or -not $tagged) {
+    throw "sign-release: this checkout does not know the tag $Tag. Fetch it: git fetch --tags"
+}
+$head = (git rev-parse 'HEAD^{commit}')
+if ($tagged.Trim() -ne $head.Trim()) {
+    throw ("sign-release: the working tree is not at $Tag.`n" +
+        "  $Tag is $($tagged.Trim())`n  HEAD is  $($head.Trim())`n" +
+        "Everything written over the archive - the bill of materials, the version, the signing`n" +
+        "list - is read from THIS checkout, while the archive comes from the tag. Check out the`n" +
+        "tag first: git checkout $Tag")
+}
+if (git status --porcelain) {
+    throw ("sign-release: the working tree has uncommitted changes, and the documents written " +
+        'over the signed archive are read from it. Commit, stash or clean them first.')
+}
+
+# THE LOCAL IS NOT CALLED 'work', AND THAT IS NOT STYLE. PowerShell ignores case in variable
+# names, so a local spelled that way and the parameter $Work above would be ONE variable, and
+# assigning to it here would quietly overwrite the parameter. Trap 1 of docs/14, caught by
+# tools/lint.ps1 on its first pass over this file.
+$workspace = Join-Path $Work $Tag
+if (Test-Path -LiteralPath $workspace) { Remove-Item -LiteralPath $workspace -Recurse -Force }
+New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+Write-Host "working in $workspace"
+
+Write-Host "`n[1/8] fetching the build this tag produced"
+# The generic "gh failed with exit 1" is true and unhelpful at the one step where somebody is
+# most likely to be standing here for the first time. gh's own line is printed above it, and
+# this says what to do about the two ways it fails.
+try {
+    Invoke-Step @('gh', 'run', 'download', '--repo', $repo, '--name', "unsigned-build-$Tag", '--dir', $workspace) | Out-Null
+}
+catch {
+    throw ("sign-release: there is no build artefact called 'unsigned-build-$Tag'.`n" +
+        "  Either phase A has not run for this tag - push the tag, or check the Release workflow -`n" +
+        "  or it has expired. Phase A keeps it for 14 days, and re-running the workflow on the tag`n" +
+        "  produces it again. Nothing has been signed.")
+}
+$archives = @(Get-ChildItem -LiteralPath $workspace -Filter *.zip -File)
+if ($archives.Count -ne $OURS.Count) {
+    throw "sign-release: expected $($OURS.Count) archives in the artefact, got $($archives.Name -join ', ')"
+}
+
+Write-Host "`n[2/8] verifying what the workflow says it built"
+# --repo ALONE IS NOT ENOUGH, and the gap is the whole reason this step exists. It proves only
+# that SOME workflow in this repository attested these bytes. release.yml also answers
+# workflow_dispatch, and a dispatch from a BRANCH skips every tag-only check in it while still
+# uploading an artefact called unsigned-build-<ref name> - so a branch named like the tag would
+# produce an artefact that reaches the card. Naming the workflow and the source ref closes it:
+# the attestation has to come from release.yml, running on refs/tags/<this tag>.
+#
+# Every flag below was read out of `gh attestation verify --help` on gh 2.101.0 rather than
+# taken on trust. Found by the review of PR #5.
+foreach ($archive in $archives) {
+    Invoke-Step @('gh', 'attestation', 'verify', $archive.FullName, '--repo', $repo,
+        '--signer-workflow', "$repo/.github/workflows/release.yml",
+        '--source-ref', "refs/tags/$Tag",
+        '--deny-self-hosted-runners') | Out-Null
+}
+
+Write-Host "`n[3/8] unpacking"
+$unpacked = @{}
+$before = @{}
+foreach ($archive in $archives) {
+    if (-not $OURS.ContainsKey($archive.Name)) {
+        throw "sign-release: the artefact carries '$($archive.Name)', which this script has no signing list for"
+    }
+    $target = Join-Path $workspace ('unpacked/' + [System.IO.Path]::GetFileNameWithoutExtension($archive.Name))
+    Expand-Archive -LiteralPath $archive.FullName -DestinationPath $target -Force
+    $unpacked[$archive.Name] = $target
+    $before[$archive.Name] = Get-SignatureStates $target
+    foreach ($relative in $OURS[$archive.Name]) {
+        if (-not (Test-Path -LiteralPath (Join-Path $target $relative))) {
+            throw "sign-release: the signing list names '$relative' and $($archive.Name) does not carry it"
+        }
+    }
+    # The build manifest phase A handed over with the archives. Needed to write the bill of
+    # materials again over the signed bytes - see the note in build-dist.ps1.
+    $deps = Join-Path $workspace ($archive.Name + '.deps.json')
+    if (-not (Test-Path -LiteralPath $deps)) {
+        throw ("sign-release: the artefact has no $($archive.Name).deps.json. Phase A uploads it beside the " +
+            'archive precisely so that the document can be written again over the signed bytes.')
+    }
+    Write-Host ("  {0}: {1} binaries, {2} of them ours" -f $archive.Name,
+        $before[$archive.Name].Count, $OURS[$archive.Name].Count)
+}
+
+Write-Host "`n[4/8] signing with the card"
+$pin = Get-Pin
+$certificate = Get-CodeSigningCertificates | Where-Object { (Get-CertificateSha256 $_) -eq $pin.certificate_sha256 } | Select-Object -First 1
+if (-not $certificate) {
+    throw ("sign-release: the pinned certificate ($($pin.certificate_sha256.Substring(0, 16))...) is not in the " +
+        'Windows store. Plug in the card reader and check the middleware sees the card. If the certificate ' +
+        'was renewed, certificate_sha256 in packaging/codesign.json has to move with it - run this script ' +
+        'with -ListCertificates to see what is there.')
+}
+Write-Host "  certificate: $(($certificate.Subject -split ',')[0])"
+Get-ExpiryNotice $certificate.NotAfter ([datetime]::Now) | ForEach-Object { Write-Host $_ }
+$signtool = Find-SignTool
+Write-Host "  signtool: $signtool"
+
+foreach ($archive in $archives) {
+    foreach ($relative in $OURS[$archive.Name]) {
+        $file = Join-Path $unpacked[$archive.Name] $relative
+        if ($DryRun) {
+            Write-Host "  DRY RUN, would sign $relative"
+            continue
+        }
+        Invoke-Step @($signtool, 'sign', '/sha1', $certificate.Thumbprint, '/fd', 'sha256',
+            '/tr', $pin.timestamp_url, '/td', 'sha256', '/q', $file) | Out-Null
+
+        # READ THE CERTIFICATE BACK OUT OF THE SIGNED FILE. A second code-signing certificate on
+        # this machine would sign just as willingly and the release page would look identical.
+        $signature = Get-AuthenticodeSignature -LiteralPath $file
+        if ($signature.Status -ne 'Valid') {
+            throw "sign-release: $relative came back with signature status $($signature.Status). Nothing has been uploaded."
+        }
+        $actual = Get-CertificateSha256 $signature.SignerCertificate
+        if ($actual -ne $pin.certificate_sha256) {
+            throw ("sign-release: $relative was signed by a DIFFERENT certificate.`n" +
+                "  expected $($pin.certificate_sha256)`n  got      $actual`nNothing has been uploaded.")
+        }
+        if (-not $signature.TimeStamperCertificate) {
+            throw ("sign-release: $relative carries no timestamp. Without one the signature dies with the " +
+                'certificate. Nothing has been uploaded.')
+        }
+    }
+    if (-not $DryRun) {
+        # Exactly the files we meant to sign changed state, and nobody else's signature broke.
+        # The comparison list is $OURS VERBATIM rather than a second list derived from the
+        # directory: a check that rebuilds the value it is checking against agrees with its own
+        # arithmetic and with nothing on disk. Note that -DryRun skips this block entirely, so a
+        # dry run cannot prove it.
+        $after = Get-SignatureStates $unpacked[$archive.Name]
+        $changed = @($after.Keys | Where-Object { $after[$_] -ne $before[$archive.Name][$_] })
+        $unexpected = @($changed | Where-Object { @($OURS[$archive.Name]) -notcontains $_ })
+        if ($unexpected) {
+            throw ("sign-release: signing changed files it should not have touched in $($archive.Name): " +
+                ($unexpected -join ', '))
+        }
+        $broken = @($after.Keys | Where-Object { $before[$archive.Name][$_] -eq 'Valid' -and $after[$_] -ne 'Valid' })
+        if ($broken) {
+            throw "sign-release: signing broke somebody else's signature in $($archive.Name): $($broken -join ', ')"
+        }
+        Write-Host ("  {0}: {1} file(s) signed by the pinned certificate, timestamped, nothing else touched" -f
+            $archive.Name, $OURS[$archive.Name].Count)
+    }
+}
+
+if ($DryRun) {
+    Write-Host "`ndry run finished - nothing was signed, uploaded or published"
+    return
+}
+
+Write-Host "`n[5/8] repacking"
+$shipped = @()
+foreach ($archive in $archives) {
+    Remove-Item -LiteralPath $archive.FullName -Force
+    Compress-Archive -Path (Join-Path $unpacked[$archive.Name] '*') -DestinationPath $archive.FullName -Force
+    $shipped += $archive.FullName
+    Write-Host ("  {0}  {1}" -f $archive.Name, (Get-Sha256 $archive.FullName))
+}
+
+Write-Host "`n[6/8] bills of materials over the signed bytes, and the checksums"
+# Regenerated HERE rather than reused from phase A. Each document carries the sha256 of the
+# archive it describes, and repacking after signing changes that hash - a document generated
+# before the signature would describe an archive nobody ships. Phase C then attests these against
+# the signed bytes.
+foreach ($archive in $archives) {
+    # `<archive>.spdx.json`, keeping the `.zip`, and the extension is load-bearing rather than
+    # cosmetic. GitHub sorts a release's assets by file name with no other lever, so keeping the
+    # archive's own name as a prefix puts the shorter one first and a reader meets the download
+    # before the document about it.
+    $sbom = Join-Path $workspace ($archive.Name + '.spdx.json')
+    # NO $LASTEXITCODE CHECK AFTER THIS, and its absence is deliberate. Called with `&` the
+    # script runs in this runspace, so $LASTEXITCODE is whatever the last NATIVE command inside
+    # it happened to set - not the script's own outcome. Every failure in sbom.ps1 is a throw,
+    # and a throw propagates here and stops this script under $ErrorActionPreference = 'Stop'.
+    # A check on $LASTEXITCODE would be a check on somebody else's number. Trap 4 of docs/14,
+    # caught by tools/lint.ps1.
+    & (Join-Path $PSScriptRoot 'sbom.ps1') -PackageId $PACKAGE_ID[$archive.Name] -ZipPath $archive.FullName `
+        -DepsPath (Join-Path $workspace ($archive.Name + '.deps.json')) -OutPath $sbom
+    $shipped += $sbom
+}
+$sums = Join-Path $workspace 'SHA256SUMS'
+$lines = $shipped | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_), (Split-Path -Leaf $_) }
+[System.IO.File]::WriteAllText($sums, ($lines -join "`n") + "`n", (New-Object System.Text.UTF8Encoding($false)))
+$shipped += $sums
+Write-Host "  SHA256SUMS over $($shipped.Count - 1) files"
+
+Write-Host "`n[7/8] handing it back to the workflow"
+
+# THE OLD ATTESTATION BUNDLES GO FIRST, AND WITHOUT THIS A RE-RUN PRINTS PASS OVER A LIE.
+# Step 8 waits for phase C by counting `.sigstore.json` assets on the draft. On a second run of
+# this script the bundles from the FIRST run are still there, so that count is already satisfied
+# the moment the wait starts: the loop breaks immediately, this script reports the draft
+# complete, and the bundles on it describe the digests of the archives that were replaced a
+# minute ago. Phase D then fails the README's own --bundle command - after publication, which is
+# the one moment nobody wants to find out. Taking them off first makes the count mean what step 8
+# reads it as meaning. Found by the review of PR #5.
+$stale = @($OURS.Keys | ForEach-Object { "$_.sigstore.json" })
+# One field, so no comma to be split - but the exit code is read for the same reason as in the
+# wait loop below: a read that failed and a draft with no assets look identical from here, and
+# the difference decides whether a stale bundle is left behind.
+$draft = gh release view $Tag --repo $repo --json assets 2>$null | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $draft) {
+    throw "sign-release: cannot read the draft release $Tag. Phase A opens it - check that it ran for this tag."
+}
+$onDraft = @($draft.assets | ForEach-Object { $_.name })
+foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
+    Write-Host "  removing the previous attestation bundle $bundle"
+    Invoke-Step @('gh', 'release', 'delete-asset', $Tag, $bundle, '--repo', $repo, '--yes') | Out-Null
+}
+
+Invoke-Step (@('gh', 'release', 'upload', $Tag) + $shipped + @('--repo', $repo, '--clobber')) | Out-Null
+$digests = $archives | ForEach-Object { "$($_.Name)=$(Get-Sha256 $_.FullName)" }
+Invoke-Step @('gh', 'workflow', 'run', $attestWorkflow, '--repo', $repo,
+    '-f', "tag=$Tag", '-f', "digests=$($digests -join ',')") | Out-Null
+
+Write-Host "`n[8/8] confirming the draft is complete"
+# This step exists because the script would otherwise end at "dispatched, go look". The upload and
+# the dispatch are two calls, phase C is a third thing, and a half-finished draft looks almost
+# exactly like a finished one.
+$deadline = (Get-Date).AddSeconds([Math]::Max(0, $Wait))
+$signedDigests = @{}
+foreach ($archive in $archives) { $signedDigests[$archive.Name] = Get-Sha256 $archive.FullName }
+$names = @()
+while ($true) {
+    # QUOTED, AND MEASURED RATHER THAN STYLED. In PowerShell argument mode a space ends a token,
+    # so `--json assets, isDraft` reaches gh as TWO arguments and it answers "accepts at most 1
+    # arg(s), received 2" with exit 1 - checked against a real release on gh 2.101.0. With
+    # 2>$null and no exit check, that failure was SILENT: $view came back empty, the loop below
+    # saw no assets, and this script would have sat here until the timeout and then blamed
+    # phase C. Rule 8 of CLAUDE.md, in a comma. Found by the review of PR #5.
+    $view = gh release view $Tag --repo $repo --json 'assets,isDraft' 2>$null | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0 -or -not $view) {
+        throw ("sign-release: cannot read the release $Tag while waiting for phase C. Nothing has " +
+            'been published, and the assets that were uploaded are still on the draft.')
+    }
+    $names = @($view.assets | ForEach-Object { $_.name })
+    $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
+    $bundles = @($names | Where-Object { $_.EndsWith('.sigstore.json') })
+    if (-not $missing -and $bundles.Count -ge $archives.Count) { break }
+    if ((Get-Date) -gt $deadline) {
+        Write-Host "  waited $Wait s and the draft is still incomplete."
+        if ($missing) { Write-Host "  missing: $($missing -join ', ')" }
+        if ($bundles.Count -lt $archives.Count) { Write-Host "  attestation bundles present: $($bundles.Count) of $($archives.Count)" }
+        Write-Host "  assets present: $(($names | Sort-Object) -join ', ')"
+        throw ('sign-release: the draft is NOT complete. Nothing was published, so nothing is broken - but do ' +
+            "not press publish until the missing piece is there. Check the run log of $attestWorkflow. " +
+            'Re-running this script is safe, the upload uses --clobber.')
+    }
+    Start-Sleep -Seconds 5
+}
+
+# The digests are checked against what the RELEASE carries, not against the local files we made -
+# those are the same bytes only if the upload really landed.
+$confirm = Join-Path $workspace 'confirm'
+New-Item -ItemType Directory -Path $confirm -Force | Out-Null
+Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', 'SHA256SUMS', '--dir', $confirm) | Out-Null
+$published = Get-Content -Raw -LiteralPath (Join-Path $confirm 'SHA256SUMS')
+foreach ($name in $signedDigests.Keys) {
+    if ($published -notmatch [regex]::Escape($signedDigests[$name])) {
+        throw ("sign-release: SHA256SUMS on the release does NOT name the digest we signed for $name.`n" +
+            "  signed:    $($signedDigests[$name])`n  published: $published")
+    }
+}
+$state = gh release view $Tag --repo $repo --json isDraft | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $state) {
+    throw "sign-release: cannot read whether $Tag is still a draft, so this cannot say that it is."
+}
+if (-not $state.isDraft) {
+    throw "sign-release: $Tag is NOT a draft any more - it is already public"
+}
+
+Write-Host ''
+foreach ($name in ($names | Sort-Object)) { Write-Host "  asset  $name" }
+Write-Host '  PASS: every expected asset is there, the published checksums name the digests we signed, still a draft'
+Write-Host ''
+Write-Host 'Done. The release is still a DRAFT.'
+Write-Host 'Read it, then publish. Publishing runs phase D, which re-checks the published bytes the way a user would.'

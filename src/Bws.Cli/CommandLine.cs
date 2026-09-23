@@ -234,6 +234,16 @@ internal sealed partial record CommandLine
     internal bool Version { get; private init; }
 
     /// <summary>
+    /// Somebody asked the licence question at its full depth.
+    ///
+    /// Without it the answer is the notice: what this program is under, that it comes with no
+    /// warranty, and the names of what it carries. With it, every component the release ships
+    /// with its version, its licence and where it came from - the same set the SPDX document
+    /// published beside the archive carries, because both are rendered from one register.
+    /// </summary>
+    internal bool Components { get; private init; }
+
+    /// <summary>
     /// A first word that is not a verb.
     ///
     /// Kept apart from <see cref="Rejected"/> for the reason <see cref="BadSubcommand"/> is:
@@ -277,6 +287,33 @@ internal sealed partial record CommandLine
     /// doing nothing is a runbook line that looks like it works and does something else.
     /// </summary>
     internal IReadOnlyList<string> Misplaced { get; private init; } = [];
+
+    /// <summary>
+    /// Whether the reading produced no complaint of any kind.
+    ///
+    /// <b>It exists for one caller and the reason is an ordering trap, not tidiness.</b>
+    /// <see cref="Immediate"/> answers before <c>Refusals</c> does, because help and version are
+    /// questions about the tool rather than about a command - somebody typing <c>--help</c> after
+    /// a line that went wrong wants the help. <c>license</c> is answered in the same place and
+    /// must NOT inherit that: <c>bws license --json</c> would print the notice and swallow the
+    /// switch, which is exactly the silence the belonging table in <see cref="OptionSurface"/>
+    /// was built to end. So it answers only when there is nothing to refuse, and everything else
+    /// falls through to the sentence Refusals already writes.
+    ///
+    /// <b>Every list of complaints on this record, named rather than counted.</b> A list added
+    /// later and forgotten here would make this say yes to a line that has something wrong with
+    /// it - so <c>LicenceCommandTests</c> walks the whole option surface and proves that no
+    /// option belonging to another verb can be swallowed by this one.
+    /// </summary>
+    internal bool NothingWrong =>
+        Rejected.Count == 0
+        && Extra.Count == 0
+        && Misplaced.Count == 0
+        && Incomplete.Count == 0
+        && Repeated.Count == 0
+        && BadVerb is null
+        && BadSubcommand is null
+        && BadTimeout is null;
 
     /// <summary>Which ask this is, when it is one. See <see cref="WriteCommands"/>.</summary>
     internal ActionKind Action => WriteCommands.AskedFor(Kind, Restart);

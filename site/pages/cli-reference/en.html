@@ -29,11 +29,12 @@
 <span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws license</span> [--components]
 <span class="k">bws --help</span>
 <span class="k">bws --version</span></code></pre>
     <p>A mistyped verb is offered the one you probably meant, and the run ends with code <code>2</code> rather than doing something close to what you asked.</p>
 <pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
-There is no command lst. There is: list, show, stop, start, restart, start-type, kill, snapshot.</code></pre>
+There is no command lst. Did you mean list?</code></pre>
   </div>
 </section>
 
@@ -61,6 +62,10 @@ There is no command lst. There is: list, show, stop, start, restart, start-type,
       <div>
         <h3><code>snapshot create</code> and <code>snapshot diff</code></h3>
         <p><code>create</code> always reads signatures and hashes, because a snapshot is kept and compared later and one without them would compare against one with them as though the machine had changed. <code>diff</code> says what changed going from the first file to the second, or from a file to this machine with <code>--live</code>. <a href="/snapshots-and-drift/">The snapshot page</a> has the format and the reasoning.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - what is inside the file you downloaded</h3>
+        <p>It reads nothing at all - no service manager, no disk, no network - and answers out of a register compiled into the executable. <code>--components</code> turns the notice into every component with its version, its licence and where it came from. The same set the bill of materials published beside the download carries, because both are rendered from one register, and the reason it is worth having: the program is one self-contained file, so there is nothing beside it for a scanner to read.</p>
       </div>
     </div>
   </div>

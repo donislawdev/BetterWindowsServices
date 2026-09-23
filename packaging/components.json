@@ -1,0 +1,131 @@
+{
+  "//": "The curated register of everything Better Windows Services ships that somebody else wrote. This file is the SOURCE, not a report: the SPDX document attached to a release is generated FROM it, THIRD-PARTY-NOTICES.md carries the same set with the full licence texts, and `bws license --components` prints it for a user with no internet. One register, three renderings.",
+
+  "//why-not-a-scan": "A scanner run over the built package would be the obvious alternative and is the wrong tool here for a reason particular to this product: BOTH programs publish as a SINGLE self-contained file. Everything below is INSIDE bws.exe and BetterWindowsServices.exe, so there is no Wpf.Ui.dll on disk for a scanner to find, no .deps.json beside the binary, and no package metadata left anywhere in the shipped bytes. A scan of the release would report two executables and nothing else, and would assign a licence to neither. The job of a scan here is to POLICE this register, not to replace it: packaging/build-dist.ps1 checks every entry below against the .deps.json the publish actually produced, in BOTH directions, by name.",
+
+  "//how-versions-are-kept-true": "Two kinds of version live here and the difference is deliberate. A component we REFERENCE carries its version as a literal, because we chose it and a bump has to be noticed - `version`. A component the SDK resolves carries `version_from: build` instead, because its version is whatever .NET the build machine has, and a literal would be a number that is true on one machine and false on the next. The SPDX document is exact either way: it reads the resolved version out of the build manifest. What is never derived from the build is the LIST or the LICENCES.",
+
+  "//version_at_runtime": "What the PROGRAM can state about a version the register does not carry, which is a different question from what the BUILD knows. `dotnet` means: read it from the runtime that is actually running. Measured 2026-09-23 - Environment.Version answered 10.0.12 and the runtime pack the publish resolved was 10.0.12, so the number is exact rather than approximate. It is absent on Microsoft.Windows.SDK.NET.Ref on purpose, and that absence is the measurement: the package is 10.0.17763.57, the file version of the assembly it ships is 10.0.17763.55, and that assembly's own version is 10.0.17763.38. Three plausible numbers, none of them the answer, so the program says where the exact one is written down instead of printing one that looks right.",
+
+  "//measured": "Read on 2026-09-23 from a real `dotnet publish -c Release -r win-x64 --self-contained true` of both projects, and from the packages in the NuGet cache rather than from any listing. The command line package resolves 2 third-party components and the window package 5. Licence facts come from the LICENSE file inside each package: note that wpf-ui's nuspec says `Copyright (C) 2021-2026` while LICENSE.md inside the same package says `2021-2025`. The licence file is what the MIT terms require us to reproduce, so that is the one THIRD-PARTY-NOTICES.md quotes.",
+
+  "schema": "bws.components/1",
+
+  "product": {
+    "name": "Better Windows Services",
+    "supplier": "Person: DonislawDev",
+    "license": "GPL-3.0-or-later",
+    "copyright": "Copyright (C) 2026 DonislawDev",
+    "homepage": "https://betterwindowsservices.donislawdev.com",
+    "source": "https://github.com/donislawdev/BetterWindowsServices"
+  },
+
+  "//packages": "The two things a release publishes, named as README.md already names them. A component belongs to one or both, and each package gets its own SPDX document - a single one describing both would misstate each. `folder` is what the archive unzips to, and it is deliberately NOT versioned: a path that carries the version changes every release, and every check that opens the archive by path would have to learn each one.",
+  "packages": {
+    "gui": {
+      "zip": "BetterWindowsServices-win-x64.zip",
+      "folder": "BetterWindowsServices",
+      "executable": "BetterWindowsServices.exe",
+      "project": "src/Bws.Gui/Bws.Gui.csproj",
+      "description": "The window: one self-contained executable, no .NET to install"
+    },
+    "cli": {
+      "zip": "bws-cli-win-x64.zip",
+      "folder": "bws",
+      "executable": "bws.exe",
+      "project": "src/Bws.Cli/Bws.Cli.csproj",
+      "description": "The command line: one self-contained executable, for scripts and scheduled work"
+    }
+  },
+
+  "//components": "kind is how the thing arrives and how the build manifest names it. `nuget` is a package we reference and appears in .deps.json as `<name>/<version>`. `dotnet-runtime-pack` is part of the self-contained runtime the publish bundles and appears as `runtimepack.<name>/<version>`. license_declared is what the component itself states, license_concluded is the option we take under it - the difference is the whole reason SPDX has two fields, and for every entry here the two agree because none of these offers a choice.",
+  "components": [
+    {
+      "name": "Microsoft.NETCore.App.Runtime.win-x64",
+      "version_from": "build",
+      "version_at_runtime": "dotnet",
+      "kind": "dotnet-runtime-pack",
+      "license_declared": "MIT",
+      "license_concluded": "MIT",
+      "supplier": "Microsoft Corporation",
+      "source": "https://github.com/dotnet/runtime",
+      "notice": "The .NET runtime",
+      "in": ["cli", "gui"],
+      "//": "187 assemblies in the command line package and 186 in the window package, measured 2026-09-23. The difference is not a mistake and is not worth chasing: the two publishes resolve the same runtime pack and trim nothing, and one assembly is claimed by the desktop pack in the window build instead."
+    },
+    {
+      "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+      "version_from": "build",
+      "version_at_runtime": "dotnet",
+      "kind": "dotnet-runtime-pack",
+      "license_declared": "MIT",
+      "license_concluded": "MIT",
+      "supplier": "Microsoft Corporation",
+      "source": "https://github.com/dotnet/wpf",
+      "notice": "The .NET desktop runtime",
+      "in": ["gui"],
+      "//": "53 assemblies, and this is WPF itself. Only the window carries it: the command line targets net10.0-windows for the API surface, not for a user interface, so nothing in it asks for this pack."
+    },
+    {
+      "name": "Microsoft.Windows.SDK.NET.Ref",
+      "version_from": "build",
+      "kind": "dotnet-runtime-pack",
+      "license_declared": "LicenseRef-WindowsSDK",
+      "license_concluded": "LicenseRef-WindowsSDK",
+      "supplier": "Microsoft Corporation",
+      "source": "https://aka.ms/WinSDKLicenseURL",
+      "notice": "Windows SDK projection for .NET",
+      "in": ["cli", "gui"],
+      "//": "Two assemblies, Microsoft.Windows.SDK.NET.dll and WinRT.Runtime.dll, and THEY ARE NOT UNDER AN OPEN SOURCE LICENCE. The package carries no SPDX expression at all - only a licenceUrl pointing at the Windows SDK terms - so this register names it the way SPDX names a licence that is not on its list, with a LicenseRef the generated document defines. THIRD-PARTY-NOTICES.md holds the reasoning about redistribution and says plainly that nobody qualified to give legal advice was asked."
+    },
+    {
+      "name": "WPF-UI",
+      "version": "4.3.0",
+      "kind": "nuget",
+      "license_declared": "MIT",
+      "license_concluded": "MIT",
+      "supplier": "Leszek Pomianowski and WPF UI Contributors",
+      "source": "https://github.com/lepoco/wpfui",
+      "notice": "WPF-UI",
+      "in": ["gui"],
+      "files": [
+        {
+          "path": "Wpf.Ui.dll",
+          "package_path": "lib/net10.0-windows7.0/Wpf.Ui.dll",
+          "sha256": "966176695819e39752211df271a53cee7df91f55a5e20ef9bf61fc7220fcaa1a"
+        }
+      ]
+    },
+    {
+      "name": "WPF-UI.Abstractions",
+      "version": "4.3.0",
+      "kind": "nuget",
+      "license_declared": "MIT",
+      "license_concluded": "MIT",
+      "supplier": "Leszek Pomianowski and WPF UI Contributors",
+      "source": "https://github.com/lepoco/wpfui",
+      "notice": "WPF-UI.Abstractions",
+      "in": ["gui"],
+      "//": "Nobody asked for this one. It arrives as a dependency of WPF-UI and it ships, which is why it is here - the licence does not care which half of the dependency graph a library came from.",
+      "files": [
+        {
+          "path": "Wpf.Ui.Abstractions.dll",
+          "package_path": "lib/net10.0/Wpf.Ui.Abstractions.dll",
+          "sha256": "defcd3554e362ce84be4dbbf98a18308705bf7c16eac5f483532df83cb1f87fe"
+        }
+      ]
+    }
+  ],
+
+  "//files": "Why only these two files carry a pinned hash, said here because the omission elsewhere is a decision rather than an oversight. A `files` entry says: we ship somebody else's binary, and these are the bytes of it. Every OTHER binary in both packages is Microsoft's and carries Microsoft's own Authenticode signature, which is a stronger statement than a hash of ours and is checked by Windows rather than by us. Wpf.Ui.dll and Wpf.Ui.Abstractions.dll are the only shipped binaries their own publisher does not sign, so they are the only ones where a hash in this repository is the only thing standing between the release and a swapped file on the build machine. Measured 2026-09-23: the copy the publish produced is byte for byte the copy in the NuGet package.",
+
+  "//the-cost-of-that-pin": "It is paid every time WPF-UI moves. A Dependabot bump changes the version in Bws.Gui.csproj and these hashes go stale in the same commit, so ComponentRegisterGuards turns red until they are updated. That is the intended shape - loud rather than quiet - and it is the opposite of a guard anchored to a number somebody else manages, which goes green and stops checking. Take the new hashes from the package on disk, not from a web page.",
+
+  "//license-refs": "SPDX identifiers that are not on the SPDX list, defined in every document that uses one. Without this section a document naming LicenseRef-WindowsSDK fails validation, and an SBOM that fails validation is worse than none: it looks like an answer.",
+  "license_refs": {
+    "LicenseRef-WindowsSDK": {
+      "name": "Microsoft Software License Terms - Microsoft Windows Software Development Kit",
+      "url": "https://aka.ms/WinSDKLicenseURL"
+    }
+  }
+}

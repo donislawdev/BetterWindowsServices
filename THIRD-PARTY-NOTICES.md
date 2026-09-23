@@ -88,8 +88,30 @@ question: these two, and nothing else in the build output.
 
 ### The .NET runtime
 
-A self-contained publish bundles the .NET runtime and libraries into the executable. Those are
-MIT licensed, © .NET Foundation and Contributors - <https://github.com/dotnet/runtime>.
+`Microsoft.NETCore.App.Runtime.win-x64` - <https://github.com/dotnet/runtime>
+
+A self-contained publish bundles the .NET runtime and libraries into the executable. MIT
+licensed, © Microsoft Corporation and the .NET Foundation and Contributors. **Counted rather
+than estimated on 2026-09-23**: 187 assemblies inside `bws.exe` and 186 inside
+`BetterWindowsServices.exe`.
+
+### The .NET desktop runtime
+
+`Microsoft.WindowsDesktop.App.Runtime.win-x64` - <https://github.com/dotnet/wpf>
+
+**This is WPF itself, and until 2026-09-23 this file did not name it.** The section above said
+"the .NET runtime and libraries" and that sentence covered, without saying so, the 53 further
+assemblies that draw every window this program opens. MIT licensed, © Microsoft Corporation and
+the .NET Foundation and Contributors. Only `BetterWindowsServices.exe` carries it: the command
+line targets `net10.0-windows` for the Windows API surface, not for a user interface.
+
+### Which version of those two
+
+Whatever .NET built the file, rather than a number written here. The exact version is in the
+SPDX document published beside each archive on the releases page, and `bws license --components`
+prints the one the running program is on. A number in this file would be true on the machine that
+wrote it and false on the next build, which is the failure this file already paid for once with
+`log 0.4.33` in another project of the same owner.
 
 ---
 
@@ -128,6 +150,19 @@ the answer to it.
 ---
 
 ## Keeping this true
+
+**Since 2026-09-23 this file has a machine-readable twin.** `packaging/components.json` is the
+curated register of the same set: name, version, SPDX licence identifier and where each one came
+from. The SPDX document attached to every release is generated from it, `bws license
+--components` prints it from inside the executable for a machine with no internet, and this file
+is the third rendering - the one that carries the legal texts, which neither of the other two
+can. `ComponentRegisterGuards` fails the build when the register names something this file does
+not, in both directions, and when a pinned binary stops hashing to what the register pins.
+
+**Why a register at all, when a scanner could read the release.** Both programs publish as a
+single self-contained file, so everything named above is inside an executable with no package
+metadata left anywhere. A scan of what a user downloads would find two files and assign a licence
+to neither.
 
 `LicenceNoticeGuards` in `tests/Bws.Architecture.Tests` fails the build when a package is
 referenced by a shipped project and is not named in this file. A notice file that quietly stops

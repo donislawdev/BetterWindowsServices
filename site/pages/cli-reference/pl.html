@@ -22,11 +22,12 @@
 <span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws license</span> [--components]
 <span class="k">bws --help</span>
 <span class="k">bws --version</span></code></pre>
     <p>Literówka w czasowniku dostaje podpowiedź, o który prawdopodobnie chodziło, a przebieg kończy się kodem <code>2</code>, zamiast zrobić coś zbliżonego do tego, o co prosiłeś.</p>
 <pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
-There is no command lst. There is: list, show, stop, start, restart, start-type, kill, snapshot.</code></pre>
+There is no command lst. Did you mean list?</code></pre>
   </div>
 </section>
 
@@ -54,6 +55,10 @@ There is no command lst. There is: list, show, stop, start, restart, start-type,
       <div>
         <h3><code>snapshot create</code> i <code>snapshot diff</code></h3>
         <p><code>create</code> zawsze czyta podpisy i skróty, bo snapshot jest trzymany i porównywany później, a taki bez nich porównywałby się z takim z nimi tak, jakby maszyna się zmieniła. <code>diff</code> mówi, co się zmieniło w drodze z pierwszego pliku do drugiego, albo z pliku do tej maszyny przy <code>--live</code>. <a href="/pl/snapshoty-i-dryf/">Strona o snapshotach</a> niesie format i uzasadnienie.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - co jest w środku pobranego pliku</h3>
+        <p>Nie czyta niczego - ani menedżera usług, ani dysku, ani sieci - i odpowiada z rejestru wkompilowanego w plik wykonywalny. <code>--components</code> zamienia notę w pełną listę: każdy składnik z wersją, licencją i adresem źródeł. Ten sam zestaw, który niesie spis składników publikowany obok pobrania, bo oba powstają z jednego rejestru. I stąd jego wartość: program jest jednym plikiem samowystarczalnym, więc obok niego nie ma czego czytać.</p>
       </div>
     </div>
   </div>

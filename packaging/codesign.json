@@ -1,0 +1,20 @@
+{
+  "//": "The code-signing certificate this project's releases are signed with, pinned by fingerprint. Read by packaging/sign-release.ps1 to pick the certificate out of the Windows store, and again AFTER signing to check that the file was signed by THAT certificate and not by another one that happened to be on the machine.",
+
+  "//what-is-not-here": "The certificate's subject. A certificate issued to an individual carries the holder's name, town and province, and every signed file carries those with it - that exposure is the certificate holder's to make and not the repository's. Only the fingerprint belongs here.",
+
+  "//why-two-digests": "signtool selects a certificate by SHA-1 because that is the only selector it takes, and this file pins SHA-256 because that is the digest worth pinning. The script resolves one to the other at signing time, so the two can never drift apart in a config file.",
+
+  "//renewal": "A RENEWAL IS A DIFFERENT CERTIFICATE, not the same one with a later date. When the card's certificate is renewed, this fingerprint has to move with it or the next release refuses to sign - and the script says so out loud from 90 days before expiry, so the refusal is never a surprise in the middle of a release with the card already in the reader.",
+
+  "//where-this-came-from": "Copied on 2026-09-23 from the owner's other project, ChronoMock, on the owner's statement that the same certificate signs both products - and CHECKED the same day rather than left as a claim. `pwsh -File packaging/sign-release.ps1 -ListCertificates` found exactly one code-signing certificate in the store on the owner's machine, it answered THIS IS THE PINNED ONE, it reported a usable private key, and it had 331 days of validity left. That is the whole of what was verified: the fingerprint below matches a certificate this machine can reach.",
+
+  "//what-that-check-did-NOT-prove": "That signing works. Nobody has signed anything with it from this repository - `signtool` reaches the card and waits for a PIN, so the first real proof is the first release, with a person at the machine. Run the ritual on a pre-release tag first if that matters.",
+
+  "schema": "bws.codesign/1",
+
+  "certificate_sha256": "47b79ad3cfa53ef846cad03a59148f8c981d0b1196891e48b8c8d7982b10c148",
+
+  "//timestamp_url": "An RFC 3161 timestamp is not optional. Without it the signature dies when the certificate expires, and an open source code-signing certificate is valid for a year. The authority is the issuing CA's own.",
+  "timestamp_url": "http://time.certum.pl/"
+}

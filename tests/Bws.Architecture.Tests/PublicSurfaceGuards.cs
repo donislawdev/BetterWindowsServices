@@ -369,9 +369,30 @@ public sealed class PublicSurfaceGuards
             .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <remarks>
+    /// <b>dist/ joined obj/ and bin/ on 2026-09-23, and it arrived by turning this guard red.</b>
+    /// packaging/build-dist.ps1 stages LICENSE and THIRD-PARTY-NOTICES.md beside each executable,
+    /// because the licences on the borrowed code require their notices to travel with it - and
+    /// the notices file quotes a copyright sign and a name with an umlaut in it, both of which
+    /// are on the permission list under the file's real path at the repository root. The copy in
+    /// the staging folder is a different path, so it had no permission and was reported as prose
+    /// that wandered in.
+    ///
+    /// The finding was real and was about the guard: a sweep that reads build output reports the
+    /// same file twice and one of the two can never be fixed, because it is written by a script
+    /// every time it runs.
+    ///
+    /// <b>build/ came the same day and from a review rather than from a red run</b>, which is the
+    /// better way round. packaging/sign-release.ps1 unpacks each archive into
+    /// <c>build/signing/&lt;tag&gt;/unpacked/</c>, and that folder holds the same staged copy of
+    /// the notices file plus the documents beside it. The failure was identical and nobody had
+    /// met it yet, because nobody has signed a release from this repository.
+    /// </remarks>
     private static bool NotBuildOutput(string path) =>
         !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-        && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+        && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        && !path.Contains($"{Path.DirectorySeparatorChar}dist{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+        && !path.Contains($"{Path.DirectorySeparatorChar}build{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 
     /// <summary>
     /// The folders kept out of version control on purpose, which is where the private things are

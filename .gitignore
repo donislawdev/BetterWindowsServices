@@ -24,6 +24,17 @@
 artifacts/
 publish/
 
+# What the release ritual writes locally. dist/ is where packaging/build-dist.ps1 puts the two
+# archives, their bills of materials and the sums - about 270 MB of it - and build/signing is
+# where packaging/sign-release.ps1 unpacks and signs. Neither is source, and the archives a user
+# downloads are made by the workflow on a tag rather than here.
+#
+# NOTE FOR ANYONE READING THE RULE BELOW THIS BLOCK: `packages/` is a NuGet rule and does NOT
+# cover `packaging/`, which is source and is committed. Two words one letter apart, doing
+# opposite things.
+dist/
+build/
+
 # Visual Studio / Rider / VS Code
 .vs/
 .idea/

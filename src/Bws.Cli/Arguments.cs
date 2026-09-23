@@ -74,6 +74,11 @@ internal static class Arguments
             // The word taskkill says it replaces, and the word PowerShell aliases Stop-Process
             // to. Somebody reaching for this has typed it before somewhere else.
             "kill" => CommandKind.Kill,
+
+            // The word every other tool puts this under, and the spelling SPDX uses for the
+            // field. This repository writes the noun the British way in its own prose, and the
+            // command follows the tools rather than the prose - see CommandKind.License.
+            "license" => CommandKind.License,
             _ => CommandKind.None
         };
 

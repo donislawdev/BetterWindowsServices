@@ -15,6 +15,23 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Added
 
+- **`bws license`, and `bws license --components`.** What the program is licensed under, that it
+  comes with no warranty, where the full text is, and what it carries that somebody else wrote.
+  The second form turns that into every component with its version, its licence and where it came
+  from. It reads nothing at all - no service manager, no disk, no network - so it answers on a
+  machine with no internet, which is where a file this size usually ends up: one self-contained
+  executable an administrator is about to run with administrator rights, and nothing beside it to
+  read.
+
+- **Every release now publishes what is inside it, and a way to check the download.** Beside each
+  archive: a bill of materials in SPDX 2.3 naming every component with its licence, a signed
+  attestation of that document, and one file of SHA-256 sums. The executables carry an
+  Authenticode signature with a timestamp. The README carries the four commands that check all of
+  this, and a workflow runs those exact commands, unchanged, every time a release is published -
+  so a verification command that stops working turns something red rather than sitting in a
+  document. The three renderings of what is inside - the bill of materials, the notices file and
+  `bws license --components` - come from one register, so they cannot disagree.
+
 - **"Force stop..." and "Force restart..." in the window.** The action bar over the list and
   the menu on a row both offer the plan `bws kill` builds: ask the entry to stop, and end the
   process behind it only if that does not work - both steps in the preview before anything
