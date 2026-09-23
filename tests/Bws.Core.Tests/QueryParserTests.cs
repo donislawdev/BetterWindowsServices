@@ -244,6 +244,65 @@ public sealed class QueryParserTests
         Assert.Equal(QueryProblemKind.EmptyTerm, problem.Kind);
     }
 
+    /// <summary>
+    /// The value half of the same tolerance: the start of a value this field accepts, in the member
+    /// somebody is typing at the end of the box, is not a mistake yet.
+    ///
+    /// <b>UX-GUI-011 of the audit of 2026-09-23.</b> Typing <c>status:running</c> one key at a time
+    /// passed through <c>status:r</c> and <c>status:ru</c>, and each of them put "status has no value
+    /// r" on the screen while the list under the box was offering <c>running</c> as the next word. A
+    /// warning that is wrong on almost every keystroke is the one people learn to skip.
+    /// </summary>
+    [Theory]
+    [InlineData("status:r")]
+    [InlineData("status:RU")]
+    [InlineData("!status:runn")]
+    public void The_start_of_a_value_in_the_member_being_typed_is_not_an_error(string text)
+    {
+        var parsed = QueryParser.Parse(text, input: QueryInput.BeingTyped);
+
+        Assert.True(parsed.IsValid, string.Join(" ", parsed.Problems.Select(problem => problem.Kind + " " + problem.Text)));
+
+        // Passed over, the way status: is - not matched as though it were the whole value.
+        Assert.True(parsed.Query!.IsEmpty);
+    }
+
+    [Fact]
+    public void The_members_before_the_one_being_typed_still_answer()
+    {
+        var parsed = QueryParser.Parse("name:spooler start:dis", input: QueryInput.BeingTyped);
+
+        Assert.True(parsed.IsValid);
+        Assert.True(parsed.Query!.Carries("name", "spooler", negated: false));
+        Assert.False(parsed.Query.Carries("start", "disabled", negated: false));
+    }
+
+    /// <summary>
+    /// And where the tolerance ends, which is what keeps it from hiding a real mistake: a member
+    /// nobody is typing any more, a value that is not the start of anything, a second value after a
+    /// comma, a value somebody has moved on from with a comma, a value closed by a quote, and the
+    /// command line, which has no keystrokes at all.
+    ///
+    /// <b>The closed quote came from a review of PR 10, 2026-09-23.</b> The scanner takes the quotes
+    /// away, so <c>status:"r"</c> reached the tolerance as <c>status:r</c> and was passed over - a
+    /// value somebody finished by closing the quotes around it, dropped as though it were half typed.
+    /// </summary>
+    [Theory]
+    [InlineData("status:r start:manual", QueryInput.BeingTyped)]
+    [InlineData("status:runnin ", QueryInput.BeingTyped)]
+    [InlineData("status:rx", QueryInput.BeingTyped)]
+    [InlineData("status:running,st", QueryInput.BeingTyped)]
+    [InlineData("status:st,", QueryInput.BeingTyped)]
+    [InlineData("status:\"r\"", QueryInput.BeingTyped)]
+    [InlineData("!status:\"runn\"", QueryInput.BeingTyped)]
+    [InlineData("status:r", QueryInput.Finished)]
+    public void The_start_of_a_value_is_still_a_mistake_everywhere_else(string text, QueryInput input)
+    {
+        var problem = Assert.Single(QueryParser.Parse(text, input: input).Problems);
+
+        Assert.Equal(QueryProblemKind.UnknownValue, problem.Kind);
+    }
+
     [Fact]
     public void A_field_with_nothing_after_the_colon_is_ignored_rather_than_matching_nothing()
     {

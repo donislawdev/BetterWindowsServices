@@ -148,6 +148,20 @@ public static class QueryParser
                 continue;
             }
 
+            // THE START OF A VALUE, IN THE MEMBER SOMEBODY IS TYPING - UX-GUI-011 of the audit of
+            // 2026-09-23. `status:` has been passed over while typed since 2026-08-03, and the
+            // keystroke after it was still a mistake: `status:r` put "status has no value r" on
+            // the screen while the list under the box offered `running` as the next word. So the
+            // same passing over reaches one step further, and only as far as it can be sure
+            // somebody is still typing - see StillBeingTyped for the five conditions.
+            if (input is QueryInput.BeingTyped
+                && StillBeingTyped(query, member, ReferenceEquals(member, members[^1]), problems, before))
+            {
+                problems.RemoveRange(before, problems.Count - before);
+
+                continue;
+            }
+
             // Nothing came of it, and nothing has been said about why. In a window that is
             // somebody mid-word. In a terminal there is no mid-word.
             if (input is QueryInput.Finished && problems.Count == before)
@@ -163,6 +177,56 @@ public static class QueryParser
         return problems.Count > 0
             ? new QueryParseResult(null, problems)
             : new QueryParseResult(new Query(Fold(terms)), problems);
+    }
+
+    /// <summary>
+    /// Whether the one thing wrong with this member is a value somebody has not finished typing.
+    ///
+    /// <b>Five conditions, and each is where the tolerance would start hiding a real mistake.</b>
+    /// The member is the LAST one and nothing follows it, not even a space - a member somebody
+    /// has moved on from is finished. The text does not end on a closing quote. Its only problem
+    /// is an unknown value. That value is the whole of what follows the colon. And it is the start
+    /// of a value the field accepts, compared the way every value is
+    /// (<see cref="QuerySpelling.Normalise"/>), so <c>status:rx</c> is a mistake on the keystroke
+    /// it is made.
+    ///
+    /// <b>The closing quote is asked of the raw text because the member cannot answer it.</b> The
+    /// scanner takes the quotes away, so <c>status:"r"</c> arrives here as <c>status:r</c> - and
+    /// until a review of PR 10 on 2026-09-23 it was passed over, although closing the quotes is
+    /// how somebody says a value is finished. An unclosed quote never gets this far, so a final
+    /// quote is a closing one or an escaped one, and an escaped quote leaves a value that is the
+    /// start of nothing.
+    ///
+    /// <b>What the whole-of-the-value condition holds, SETTLED 2026-09-23.</b> It was written for
+    /// <c>status:running,st</c>, and that shape never reaches this method: a member with one value
+    /// that reads is a term, and <see cref="Parse"/> keeps it before asking here, with the problem
+    /// about <c>st</c> still on the list. What the condition does hold is a value somebody moved on
+    /// from with a comma - in <c>status:st,</c> the <c>st</c> is the start of <c>stopped</c>, and
+    /// without the condition the member would be passed over and the list would jump to everything.
+    /// It also keeps <c>status:,st</c> a mistake, which is stricter than it needs to be and costs
+    /// nobody anything.
+    /// </summary>
+    private static bool StillBeingTyped(
+        string query, ScannedText member, bool last, List<QueryProblem> problems, int before)
+    {
+        if (!last || char.IsWhiteSpace(query[^1]) || query[^1] == '"' || problems.Count - before != 1)
+        {
+            return false;
+        }
+
+        var problem = problems[before];
+
+        if (problem.Kind != QueryProblemKind.UnknownValue
+            || problem.Text.Length == 0
+            || !member.Text.EndsWith(":" + problem.Text, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var typed = QuerySpelling.Normalise(problem.Text);
+
+        return problem.Alternatives.Any(
+            accepted => QuerySpelling.Normalise(accepted).StartsWith(typed, StringComparison.Ordinal));
     }
 
     /// <summary>
