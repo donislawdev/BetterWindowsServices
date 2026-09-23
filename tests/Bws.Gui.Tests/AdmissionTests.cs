@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -111,6 +112,134 @@ public sealed class AdmissionTests
     }
 
     /// <summary>
+    /// A refusal the memory pass brought back is still a refusal, and the answer has to say so.
+    ///
+    /// <b>Found by the UX audit of 2026-09-23 on a live window without administrator rights</b>
+    /// (<c>docs/AUDYT-UX-GUI-20260923.md</c>, UX-GUI-001): <c>status:running memory:&gt;100MB</c>
+    /// answered "Nothing in this list matches" while <c>memory:?</c> counted 103 running services
+    /// whose memory the machine refused. The sentence that admits a partial answer was suppressed
+    /// for every query needing a second phase family - including after the pass had run, when an
+    /// unread field is no longer "nobody looked" but "the machine said no". A short list that looks
+    /// complete is the failure rule 8 names, and <c>docs/07</c> calls it the worst there is.
+    /// </summary>
+    [Fact]
+    public async Task A_refusal_the_memory_pass_brought_back_is_admitted_beside_the_answer()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Entry("Audiosrv")),
+            new SteppedClock(),
+            reader: new RefusingMemory())
+        {
+            Says = new Says { Elevated = true }
+        };
+
+        await model.LoadAsync();
+
+        model.QueryText = "memory:>100MB";
+
+        await model.RefreshAsync();
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.status.partial.many", 2), model.Says.Notice);
+    }
+
+    /// <summary>
+    /// The even claim, and without it the one above passes on a window that says this always:
+    /// a pass that read every process leaves nothing to admit.
+    /// </summary>
+    [Fact]
+    public async Task A_memory_pass_that_read_every_process_admits_nothing()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler"), Rows.Entry("Audiosrv")),
+            new SteppedClock(),
+            reader: new AnsweringMemory())
+        {
+            Says = new Says { Elevated = true }
+        };
+
+        await model.LoadAsync();
+
+        model.QueryText = "memory:>100MB";
+
+        await model.RefreshAsync();
+
+        Assert.Empty(model.Rows);
+        Assert.Equal(string.Empty, model.Says.Notice);
+    }
+
+    /// <summary>
+    /// The boundary of the repair: while one family the query needs is still unread, the sentence
+    /// about THAT family speaks alone.
+    ///
+    /// <b>One count carries both states</b> - the query engine counts a refused field and a field
+    /// nobody read as the same "could not judge" - so saying "could not be read" while a family is
+    /// still unread would turn "nobody looked" into a refusal. Here memory is read and refused,
+    /// and signatures are never read because this window has no inspector.
+    /// </summary>
+    [Fact]
+    public async Task A_family_still_unread_keeps_the_refusal_sentence_back()
+    {
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler")),
+            new SteppedClock(),
+            reader: new RefusingMemory())
+        {
+            Says = new Says { Elevated = true }
+        };
+
+        await model.LoadAsync();
+
+        model.QueryText = "memory:>100MB signed:no";
+
+        await model.RefreshAsync();
+
+        // Memory WAS read, or this is the state the test above it already covers and proves
+        // nothing about the boundary.
+        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.query.unreadMemory"), model.Says.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.query.readingMemory"), model.Says.Notice, StringComparison.Ordinal);
+        Assert.Contains(Bws.Gui.Texts.Of("gui.query.unreadSignatures"), model.Says.Notice, StringComparison.Ordinal);
+        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.status.partial.one", 1), model.Says.Notice, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The second face of the same fault: a SHOWN column asks for its family too, so turning on
+    /// Memory used to silence the partial sentence for a question about a different field.
+    ///
+    /// <b>Reconstructed from the code on 2026-09-23 and pinned here rather than left as a claim</b> -
+    /// the user changelog says it, and prose nothing checks is how this project's wrong sentences
+    /// are born. The field is the security descriptor, which a window without administrator rights
+    /// is refused on a handful of entries (five on the machine the audit ran on).
+    /// </summary>
+    [Fact]
+    public async Task A_shown_memory_column_does_not_silence_a_refusal_about_another_field()
+    {
+        var refused = Rows.Entry("Spooler") with
+        {
+            SecurityDescriptor = Reading<string>.Denied(5, "Access is denied.")
+        };
+
+        var model = new MainViewModel(new LiveMachine(refused), new SteppedClock(), reader: new AnsweringMemory())
+        {
+            Says = new Says { Elevated = true }
+        };
+
+        var columns = new ColumnBar();
+
+        model.ColumnsNeed = () => columns.Needs;
+
+        await model.LoadAsync();
+
+        columns.Choices.Single(choice => choice.Column.Id == "memory").IsShown = true;
+
+        model.QueryText = "sddl:A";
+
+        await model.RefreshAsync();
+
+        Assert.Equal(Bws.Gui.Texts.Of("gui.status.partial.one", 1), model.Says.Notice);
+    }
+
+    /// <summary>
     /// The sentence about folding is a fact about ROWS, so it stops being said when there are none.
     ///
     /// <b>Backlog 263, owner's decision 2026-09-01.</b> The machine overview REPLACES the list
@@ -172,5 +301,21 @@ public sealed class AdmissionTests
 
         Assert.Contains("administrator", model.Says.Notice, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("folded", model.Says.Notice, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// What a window without administrator rights gets for most service processes: error 5.
+    /// </summary>
+    private sealed class RefusingMemory : IProcessMemoryReader
+    {
+        public Reading<ProcessMemory> Read(int processId) =>
+            Reading<ProcessMemory>.Denied(5, "Access is denied.");
+    }
+
+    /// <summary>A process that answers, and holds far less than the threshold the tests ask about.</summary>
+    private sealed class AnsweringMemory : IProcessMemoryReader
+    {
+        public Reading<ProcessMemory> Read(int processId) =>
+            Reading<ProcessMemory>.Present(new ProcessMemory(1024, 2048, 1));
     }
 }

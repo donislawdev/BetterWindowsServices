@@ -160,6 +160,15 @@ Nothing has been released yet. Everything below is what the tool does today.
 
 ### Fixed
 
+- **The window no longer answers a question about memory with a confident "nothing matches"
+  when it was not allowed to look.** Without administrator rights, Windows refuses to say how
+  much memory most service processes hold - on the machine this was found on, 104 of them. A
+  search such as `status:running memory:>100MB` came back empty and said nothing about those
+  104, so "no service holds more than 100 MB" read as the answer. The line under the list now
+  says how many entries were judged on something that could not be read, the way it already did
+  for every other field - and the way the command line always did. A shown *Memory* column no
+  longer silences that line for questions about other fields either.
+
 - **Reading signatures no longer contacts anybody. It had been doing so since the beginning.**
   This tool promises it never talks to the internet, and `bws list --signatures`,
   `bws snapshot create` and the window all broke that promise: while checking who signed each
