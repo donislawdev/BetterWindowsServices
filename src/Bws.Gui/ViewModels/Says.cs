@@ -22,11 +22,13 @@ public sealed class Says : Observable
 {
     private string _status = Texts.Of("gui.status.reading");
 
-    private string _problem = string.Empty;
+    private string _queryProblem = string.Empty;
+    private bool _asking;
     private string _refusal = string.Empty;
     private string _layout = string.Empty;
     private bool _incomplete;
     private bool _narrowed;
+    private bool _partial;
     // The state a window is in before it has read anything: the first reading is still out, so the
     // scope facts cannot say anything yet and do not have to - Loading is decided before any of
     // them is looked at.
@@ -37,7 +39,8 @@ public sealed class Says : Observable
         everything: 0,
         inScope: 0,
         scope: Scopes.Opening,
-        askedElsewhere: false);
+        askedElsewhere: false,
+        partial: false);
 
     /// <summary>
     /// The count, beside the box that changes it.
@@ -53,30 +56,42 @@ public sealed class Says : Observable
     }
 
     /// <summary>
-    /// What this result has to admit about itself: entries judged on something nobody could
-    /// read, entries never judged at all, questions about data this window has not read, and
-    /// a list holding still because somebody is using it.
+    /// What this result has to admit about itself: the session's rights, entries judged on
+    /// something nobody could read, entries never judged at all, questions about data this window
+    /// has not read, folded instances, and a list holding still because somebody is using it.
     ///
-    /// Empty when there is nothing to admit, which is the ordinary case. Separate from
-    /// <see cref="Problem"/> because these are facts about the answer and that one is a fact
-    /// about the question.
+    /// Empty when there is nothing to admit, which is the ordinary case. The whole of it in one
+    /// string, in the order it has always been said - the screen draws it in two places since
+    /// 2026-09-23 (<see cref="Admitted"/>), and this is what a test or a reader asks when the
+    /// question is what the window admits rather than where it says it.
     /// </summary>
     public string Notice => _admitted.Notice;
 
     /// <summary>
-    /// The same line as <see cref="Notice"/>, in the three pieces the view draws it in - the words
-    /// before the link, the link, and the words after. Point 8(d) of `docs/11` 2.14: the sentence
-    /// about folded instances names the switch, and the name is the switch. <see cref="Admitted"/>
-    /// says why these are one record and not four strings.
+    /// The line under the list, in the four pieces the view draws it in - the rights sentence, the
+    /// words before the link, the link, and the words after. Point 8(d) of `docs/11` 2.14: the
+    /// sentence about folded instances names the switch, and the name is the switch.
+    /// <see cref="Admitted"/> says why these are one record and not five strings.
     /// </summary>
+    public string NoticeRights => _admitted.RightsPiece;
+
     public string NoticeBeforeLink => _admitted.BeforeLink;
 
     public string NoticeLink => _admitted.Link;
 
     public string NoticeAfterLink => _admitted.AfterLink;
 
+    /// <summary>The line under the list whole - what decides whether it takes any room.</summary>
+    public string NoticeLine => _admitted.Line;
+
     /// <summary>Whether the line has a link in it at all - what enables the link, so an empty one is never a Tab stop.</summary>
     public bool NoticeHasLink => _admitted.HasLink;
+
+    /// <summary>
+    /// What this answer could not judge, has not read yet, or ran out of time on - said under the
+    /// search box since 2026-09-23, because each of them is about the question asked there.
+    /// </summary>
+    public string Reservations => _admitted.Reservations;
 
     private Admitted _admitted = Admitted.Nothing;
 
@@ -90,20 +105,74 @@ public sealed class Says : Observable
         _admitted = admitted;
 
         Raise(nameof(Notice));
+        Raise(nameof(NoticeRights));
         Raise(nameof(NoticeBeforeLink));
         Raise(nameof(NoticeLink));
         Raise(nameof(NoticeAfterLink));
+        Raise(nameof(NoticeLine));
         Raise(nameof(NoticeHasLink));
+        Raise(nameof(Reservations));
+        RaiseTheAnswerLine();
     }
 
     /// <summary>
-    /// What is wrong with what was asked for - a query that will not parse, or something the
-    /// window tried and could not do. Empty while it reads.
+    /// What is wrong with the query in the box, and that the list under it is the previous answer -
+    /// or empty when the query reads.
     ///
-    /// A mistake in a query leaves the list alone - `docs/07` - so this is the only sign that
-    /// the box and the list have stopped agreeing, and it has to be visible.
+    /// <b>Its own sentence since 2026-09-23, under the box - UX-GUI-002 of the audit that day.</b> It
+    /// shared a line with an action's refusal at the foot of the window, about 830 pixels below the
+    /// box, and the box itself carried no mark. A mistake in a query leaves the list alone -
+    /// `docs/07`, and a test holds that decision - so this sentence is the only sign that the box
+    /// and the list have stopped agreeing, and the second half of it says exactly that.
+    /// </summary>
+    public string QueryProblem => _queryProblem;
+
+    /// <summary>
+    /// The line under the search box: what is wrong with the query, or else what the answer to it
+    /// has to admit.
     ///
-    /// <b>An action's refusal wins over a query's, and outlives a tick.</b> Both would otherwise
+    /// <b>One line rather than two, and the mistake wins</b> - a query that does not read has no
+    /// answer of its own to qualify, and the list under it is the previous one.
+    /// </summary>
+    public string AnswerLine => _queryProblem.Length > 0 ? _queryProblem : _admitted.Reservations;
+
+    /// <summary>Whether <see cref="AnswerLine"/> is a mistake - what colours it.</summary>
+    public bool AnswerLineIsProblem => _queryProblem.Length > 0;
+
+    /// <summary>
+    /// Whether the line under the box takes any room: while there is text in the box, or while
+    /// the line has something to say.
+    ///
+    /// <b>Not always, because the window's chrome already takes nearly half its height</b>
+    /// (UX-GUI-007). <b>Not only while it has words, because then the list would jump</b> each time a
+    /// reading note came and went under somebody's typing. Tied to the box instead, the line appears
+    /// with the first character and goes when the box is emptied - a move the person made.
+    ///
+    /// <b>UNLESS IT STILL HAS SOMETHING TO SAY, and that half is rule 8 rather than layout.</b> A
+    /// column on screen asks for a family too (MainViewModel.Asked), so with the box empty a shown
+    /// Memory column still gets a note while the window reads what fills it. The reservations no
+    /// longer stand under the list, so without this half that note would be said nowhere - the
+    /// window reading for seconds with no sentence about it. The review of PR #11 caught the user
+    /// changelog promising only the first half.
+    /// </summary>
+    public bool AnswerLineShown => _asking || AnswerLine.Length > 0;
+
+    private void RaiseTheAnswerLine()
+    {
+        Raise(nameof(AnswerLine));
+        Raise(nameof(AnswerLineIsProblem));
+        Raise(nameof(AnswerLineShown));
+    }
+
+    /// <summary>
+    /// Something the window tried and could not do, or what a kept column layout could not give it.
+    /// Empty while there is neither.
+    ///
+    /// <b>A mistake in the query is NOT here since 2026-09-23</b> - it moved under the box, where
+    /// <see cref="QueryProblem"/> says it. What is left is news about the WINDOW rather than about the
+    /// question, and it stays at the foot of it.
+    ///
+    /// <b>An action's refusal wins over the layout note, and outlives a tick.</b> It would otherwise
     /// be written whenever anything on the machine moves, so a copy that failed would announce
     /// itself and be gone within the second, on a busy machine before anybody read it. It clears
     /// when the person asks for something else.
@@ -112,9 +181,7 @@ public sealed class Says : Observable
     /// Snackbar for it - `docs/10` section 4. This line is where it goes until there is a slice
     /// that puts one in.
     /// </summary>
-    public string Problem => _refusal.Length > 0 ? _refusal
-        : _problem.Length > 0 ? _problem
-        : _layout;
+    public string Problem => _refusal.Length > 0 ? _refusal : _layout;
 
     /// <summary>
     /// Whether the reading admitted to gaps. Shown, never swallowed.
@@ -214,11 +281,25 @@ public sealed class Says : Observable
     /// holding here - so the view model never has to know that elevation is one of the things
     /// worth saying.
     /// </summary>
+    /// <remarks>
+    /// It also keeps whether any entry could not be judged or checked, for the middle of an empty list - which
+    /// is decided in <see cref="AboutTheList"/>, called straight after this and also on its own.
+    ///
+    /// <b>The narrowed answer rather than its two counts, since 2026-09-23</b> - the shape guard
+    /// counted this method among those standing near the ceiling of parameters, and the two counts
+    /// are one fact that already travels as one value.
+    /// </remarks>
     internal void AboutTheAnswer(
-        ExtraRead needs, bool held, int unreadable, int tooCostly, ExtraRead have, bool filling,
-        int folded, bool listOnScreen) =>
+        ExtraRead needs, bool held, Narrowed answer, ExtraRead have, bool filling,
+        int folded, bool listOnScreen)
+    {
+        // An entry the expression ran out of time on was never checked either, and the line under
+        // the box says so - the review of PR #11 found the middle still saying "nothing matches".
+        _partial = answer.Unreadable > 0 || answer.TooCostly > 0;
+
         Admit(Sentences.Admissions(
-            needs, held, unreadable, tooCostly, Elevated, have, filling, folded, listOnScreen));
+            needs, held, answer.Unreadable, answer.TooCostly, Elevated, have, filling, folded, listOnScreen));
+    }
 
     /// <summary>
     /// Something the window tried on the person's behalf and could not do.
@@ -237,9 +318,9 @@ public sealed class Says : Observable
     /// <summary>
     /// What a kept column layout could not give the window, said once at startup.
     ///
-    /// <b>The quietest of the three, and last in the order for that reason.</b> A query problem is
-    /// about what somebody is doing right now and an action's refusal is about what just failed -
-    /// both are newer news than a file read before the window appeared. It outlives the first tick
+    /// <b>The quieter of the two, and second in the order for that reason.</b> An action's refusal is
+    /// about what just failed - newer news than a file read before the window appeared. (A query
+    /// problem stood in this order too until 2026-09-23, and has a line of its own now.) It outlives the first tick
     /// on purpose: the reading finishes in half a second, and a sentence gone by then is a
     /// sentence nobody was given.
     ///
@@ -271,17 +352,36 @@ public sealed class Says : Observable
         Raise(nameof(Problem));
     }
 
-    /// <summary>What is wrong with the query, which may be nothing. Silent while an action's refusal stands.</summary>
-    internal void AboutTheQuery(string problem)
+    /// <summary>
+    /// What is wrong with the query in the box, which may be nothing, and whether the box holds
+    /// anything at all. Answers whether the sentence changed, so the caller can tell the box
+    /// without telling it once a second for nothing.
+    ///
+    /// <b>The second half of the sentence is written here rather than by the caller</b>, because it
+    /// is true of every mistake: the list stays, so it is the previous answer.
+    /// </summary>
+    internal bool AboutTheQuery(string text, string problem)
     {
-        if (_problem == problem)
+        var sentence = problem.Length == 0
+            ? string.Empty
+            : problem + " " + Texts.Of("gui.query.listIsPrevious");
+
+        var asking = text.Length > 0;
+
+        if (_queryProblem == sentence && _asking == asking)
         {
-            return;
+            return false;
         }
 
-        _problem = problem;
+        var changed = _queryProblem != sentence;
 
-        Raise(nameof(Problem));
+        _queryProblem = sentence;
+        _asking = asking;
+
+        Raise(nameof(QueryProblem));
+        RaiseTheAnswerLine();
+
+        return changed;
     }
 
     /// <summary>
@@ -294,7 +394,7 @@ public sealed class Says : Observable
     internal void AboutTheList(
         bool firstLook, bool failed, int shown, int everything, int inScope, EntryScope scope, bool askedElsewhere)
     {
-        var list = ListState.Of(firstLook, failed, shown, everything, inScope, scope, askedElsewhere);
+        var list = ListState.Of(firstLook, failed, shown, everything, inScope, scope, askedElsewhere, _partial);
         var narrowed = shown != everything;
 
         // SAID ONLY WHEN IT MOVED, SINCE 2026-08-13. This runs on every keystroke and on every

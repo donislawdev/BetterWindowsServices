@@ -81,6 +81,20 @@ public static partial class Catalogue
 
         internal MainViewModel WithBulkPlan { get; init; } = null!;
 
+        /// <summary>
+        /// A query with a mistake in it, and one whose answer has to be qualified - the two things
+        /// the line under the search box says, since 2026-09-23 (UX-GUI-002 and 009).
+        /// </summary>
+        internal MainViewModel Mistaken { get; init; } = null!;
+
+        internal MainViewModel Qualified { get; init; } = null!;
+
+        /// <summary>
+        /// A session without administrator rights, whatever session opens the sheet - so the red
+        /// sentence at the foot of the window is on the sheet on an elevated machine as well.
+        /// </summary>
+        internal MainViewModel Unelevated { get; init; } = null!;
+
         /// <summary>Lets the loading samples' reads return. The window calls this when it closes.</summary>
         public void Dispose() => Stalling.Release();
     }
@@ -108,6 +122,7 @@ public static partial class Catalogue
         var planned = Over(new Frozen(Specimens()), clock);
         var plannedInVain = Over(new Frozen(Specimens()), clock);
         var plannedInBulk = Over(new Frozen(Specimens()), clock);
+        var (mistaken, qualified, unelevated) = await PrepareSentencesAsync(clock).ConfigureAwait(false);
 
         // THE LOADING ONE IS STARTED AND NOT AWAITED HERE. Its read waits on the gate until the
         // sheet is done, which is the whole point of it: the model is in the state between asking
@@ -167,8 +182,40 @@ public static partial class Catalogue
             ChoseGone = choseGone,
             WithPlan = planned,
             WithRefusedPlan = plannedInVain,
-            WithBulkPlan = plannedInBulk
+            WithBulkPlan = plannedInBulk,
+            Mistaken = mistaken,
+            Qualified = qualified,
+            Unelevated = unelevated
         };
+    }
+
+    /// <summary>
+    /// The three models the sentences of the window are drawn over, since 2026-09-23: a query with
+    /// a mistake the parser names with its nearest value, a question about signatures - which a
+    /// listing never reads, so every entry is judged on something nobody read - and a session
+    /// without administrator rights, whatever session opens the sheet.
+    ///
+    /// <b>Its own method because the shape guard said so</b>: PrepareViewsAsync stands near the
+    /// ceiling of length, and these three are one subject - what the window says - rather than
+    /// three more states of the list.
+    /// </summary>
+    private static async Task<(MainViewModel Mistaken, MainViewModel Qualified, MainViewModel Unelevated)> PrepareSentencesAsync(IClock clock)
+    {
+        var mistaken = new MainViewModel(new Frozen(Specimens()), clock);
+        var qualified = new MainViewModel(new Frozen(Specimens()), clock);
+        var unelevated = new MainViewModel(new Frozen(Specimens()), clock) { Says = new Says { Elevated = false } };
+
+        foreach (var model in new[] { mistaken, qualified, unelevated })
+        {
+            await model.LoadAsync().ConfigureAwait(false);
+
+            model.Scope = EntryScope.Everything;
+        }
+
+        mistaken.QueryText = "stat:runing";
+        qualified.QueryText = "signed:no";
+
+        return (mistaken, qualified, unelevated);
     }
 
     private static async Task ShowPlanAsync(MainViewModel model, ActionKind kind, params string[] names)
@@ -202,6 +249,12 @@ public static partial class Catalogue
         [
             View(() => new SearchRow(),
                 data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
+
+            // The line under the box, since 2026-09-23 - keyed, because the row's own "wrong" is a
+            // machine that refused, which says nothing under the box. Data is an answer the line
+            // has to qualify, in the notice colour, and wrong is a query it cannot read, in red with
+            // the box's red edge.
+            View(() => new SearchRow(), key: nameof(SearchRow) + " with a line under the box", data: ready.Qualified, wrong: ready.Mistaken),
 
             View(() => new FilterRow(),
                 data: ready.Lit, empty: ready.Empty),
@@ -239,8 +292,10 @@ public static partial class Catalogue
             Made(nameof(ActionBar),
                 data: Bar(1), empty: Bar(0), extreme: Bar(2)),
 
+            // The extreme cell is a session without rights: the rights sentence in red at the head
+            // of the line, the rest of the line in the notice colour - UX-GUI-009, 2026-09-23.
             View(() => new StatusRow(),
-                data: Saying(ready, notice: true), wrong: Saying(ready, notice: false)),
+                data: Saying(ready, notice: true), wrong: Saying(ready, notice: false), extreme: ready.Unelevated),
 
             // The list, built from the same styles and the same column builder the window uses,
             // over the same models - a second grid rather than the window's own, because the

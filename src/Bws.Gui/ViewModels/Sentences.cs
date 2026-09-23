@@ -58,6 +58,13 @@ internal static class Sentences
         ExtraRead needs, bool held, int unreadable, int tooCostly, bool elevated,
         ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
+        // THREE PLACES RATHER THAN ONE LINE, SINCE 2026-09-23 - UX-GUI-009 of the audit that day.
+        // Everything below used to be joined into one line under the list, red for the whole of it
+        // while the session had no rights. It held four kinds of sentence: rights, what this answer
+        // could not judge, the folded instances, and the list holding still. The reservations are
+        // about THIS QUERY, so they now stand under the box that asked it - Admitted says where
+        // each piece is drawn. The pieces are still worked out in this order, which is the order
+        // Admitted.Notice gives them back in.
         var notes = new List<string>();
 
         // FIRST, BECAUSE IT IS A FACT ABOUT THE WHOLE LIST RATHER THAN ABOUT THIS QUERY.
@@ -68,10 +75,7 @@ internal static class Sentences
         // enumerates 807 entries where an elevated session sees 810, and five more refuse their
         // security descriptor. Somebody reading a count has to know that before anything else,
         // because every other sentence here is about a list they think is complete.
-        if (!elevated)
-        {
-            notes.Add(Texts.Of("gui.status.notElevated"));
-        }
+        var rights = elevated ? string.Empty : Texts.Of("gui.status.notElevated");
 
         // THREE ANSWERS RATHER THAN TWO, SINCE 2026-08-18 - backlog 21, the second half of
         // `ADR-13`. "Nobody has looked" and "this is being looked at right now" are not the same
@@ -175,14 +179,17 @@ internal static class Sentences
         // while somebody leant on it would be the same silence rule 8 forbids, arriving from
         // the one direction where it looks like politeness.
         var afterwards = held ? Texts.Of("gui.status.holding") : string.Empty;
+        var reservations = string.Join(" ", notes);
 
         if (fold.Link.Length == 0)
         {
-            return new Admitted(string.Join(" ", notes.Append(afterwards).Where(note => note.Length > 0)), string.Empty, string.Empty);
+            return new Admitted(rights, reservations, afterwards, string.Empty, string.Empty);
         }
 
         return new Admitted(
-            string.Join(" ", notes.Append(fold.Head)) + " ",
+            rights,
+            reservations,
+            fold.Head + " ",
             fold.Link,
             " " + string.Join(" ", new[] { fold.Tail, afterwards }.Where(note => note.Length > 0)));
     }
@@ -206,22 +213,44 @@ internal static class Sentences
 }
 
 /// <summary>
-/// What the window admits about an answer, as one line and as the three pieces the view draws it
-/// in - the words before the link, the link, and the words after it.
+/// What the window admits about an answer, in the pieces the view draws it in, and as one line.
 ///
-/// <b>One record rather than a string and three properties beside it</b>, because the line and its
-/// pieces are the same words and a reader of either must get the other for free. <see cref="Notice"/>
-/// is the pieces joined, never a fourth string.
+/// <b>Two places on screen since 2026-09-23 - UX-GUI-009.</b> The rights sentence and the footing
+/// (folded instances, the list holding still) stand under the list, the rights in red. The
+/// reservations - what this answer could not judge or has not read yet - stand under the search
+/// box, because they are about the question asked there. Until that day all of it was one line
+/// under the list, red from end to end while the session had no rights, so a sentence about folded
+/// copies of a service wore the colour of a refusal.
+///
+/// <b>One record rather than strings beside each other</b>, because the pieces and the whole line are
+/// the same words and a reader of either must get the other for free. <see cref="Notice"/> is the
+/// pieces joined, never another string - it is what the tests, and anybody asking what the window
+/// admits, read.
 /// </summary>
-/// <param name="BeforeLink">Every note up to and including the first half of the folded sentence, or the whole line when nothing folds.</param>
+/// <param name="Rights">The sentence about running without administrator rights, or empty.</param>
+/// <param name="Reservations">What this answer could not judge, has not read, or ran out of time on - every such note, joined.</param>
+/// <param name="BeforeLink">The footing up to and including the first half of the folded sentence, or the whole footing when nothing folds.</param>
 /// <param name="Link">The words that press the switch - empty when nothing folds, and then nothing is drawn as a link.</param>
 /// <param name="AfterLink">The second half of the folded sentence and whatever note follows it.</param>
-internal sealed record Admitted(string BeforeLink, string Link, string AfterLink)
+internal sealed record Admitted(string Rights, string Reservations, string BeforeLink, string Link, string AfterLink)
 {
-    internal static readonly Admitted Nothing = new(string.Empty, string.Empty, string.Empty);
+    internal static readonly Admitted Nothing = new(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
 
-    /// <summary>The whole line, exactly as a TextBlock drawing the three pieces would read it back.</summary>
-    public string Notice => BeforeLink + Link + AfterLink;
+    /// <summary>The footing - folded instances and the list holding still - exactly as the three pieces read back.</summary>
+    public string Footing => BeforeLink + Link + AfterLink;
+
+    /// <summary>
+    /// The rights sentence as the line under the list draws it: with the space that parts it from
+    /// the footing when a footing follows. The spacing is in the pieces rather than in the markup,
+    /// for the reason StatusRow.xaml gives about inline elements.
+    /// </summary>
+    public string RightsPiece => Rights.Length > 0 && Footing.Length > 0 ? Rights + " " : Rights;
+
+    /// <summary>The line under the list, exactly as a TextBlock drawing its pieces would read it back.</summary>
+    public string Line => RightsPiece + Footing;
+
+    /// <summary>Everything admitted, in the order it has always been said: rights, reservations, footing.</summary>
+    public string Notice => string.Join(" ", new[] { Rights, Reservations, Footing }.Where(part => part.Length > 0));
 
     /// <summary>Whether there is anything to press - what enables the link, so an empty one is never a Tab stop.</summary>
     public bool HasLink => Link.Length > 0;

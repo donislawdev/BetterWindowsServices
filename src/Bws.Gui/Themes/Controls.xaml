@@ -64,6 +64,49 @@
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
     </Style>
 
+    <!--
+        A FIELD THAT CAN SAY IT IS WRONG - the search box and the box of seconds on the plan sheet.
+        Named 2026-09-23, when the search box became the second field to need it (UX-GUI-002): GUI
+        rule 7, a second use is a named style. It stood in Plan.xaml as WaitingBox until then, which
+        is now a style on this one.
+
+        BasedOn THE IMPLICIT TextBox STYLE ABOVE, `docs/10` trap 4: a keyed style with no BasedOn
+        replaces the library's template rather than adding to it.
+
+        THE TRIGGER IS ON Validation.HasError, THE FRAMEWORK'S OWN FLAG. `docs/10` trap 10: a theme
+        file cannot name a type of its own assembly, so a trigger on a property of our model was
+        never available here. The rule lives in the model, which answers INotifyDataErrorInfo
+        (Checked) - so what is wrong is checkable without a window.
+
+        THE ERROR ADORNER IS OURS, because the library's template draws its own one-pixel line
+        along the bottom ON TOP of the edge this style colours, and a style cannot reach a named
+        part of somebody else's template (read with `tools/wpfui-probe probe template
+        DefaultTextBoxStyle`, 2026-09-16). The adorner layer is above their template, so the red
+        stands on all four sides - `docs/10` trap 29. The BorderBrush setter stays for a render
+        with no adorner layer. MeaningRejected is the one red measured against both the window and
+        the panel, `docs/11` section 8. Whether it reaches a pixel is measured by WaitingBoxGuards.
+    -->
+    <Style x:Key="ReportingBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Validation.ErrorTemplate">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{StaticResource MeaningRejected}"
+                            BorderThickness="{StaticResource BorderAllSides}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            SnapsToDevicePixels="True">
+                        <AdornedElementPlaceholder />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="Validation.HasError" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />

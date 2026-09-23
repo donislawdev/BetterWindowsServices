@@ -362,6 +362,8 @@
   "gui.empty.nothingMatchedWayOut": "Press Esc to empty the box.",
   "gui.empty.nothingMatchedHere": "Nothing in this list matches what you asked for.",
   "gui.empty.nothingMatchedHereWayOut": "Press Esc to empty the box, or choose All above to search the whole machine.",
+  "gui.empty.nothingMatchedChecked": "Nothing that could be checked on this machine matches what you asked for.",
+  "gui.empty.nothingMatchedCheckedHere": "Nothing that could be checked in this list matches what you asked for.",
   "gui.empty.noDrivers": "This machine has no drivers.",
   "gui.empty.noServices": "This machine has no services.",
   "gui.empty.otherListWayOut": "Choose another list above.",
@@ -376,6 +378,7 @@
   "gui.query.readingSignatures": "This asks about signatures, which are being read now. The answer is incomplete until they arrive.",
   "gui.query.readingMemory": "This asks about memory, which is being read now. The answer is incomplete until it arrives.",
   "gui.query.unreadMemory": "This asks about memory, which is not read for a listing, so no entry can answer it here. Ask the command line with --memory.",
+  "gui.query.listIsPrevious": "The list below still shows the answer to the last query that could be read.",
 
   "gui.query.unknownField": "There is no field called {0}. Fields you can use: {1}.",
   "gui.query.unknownValue": "{1} has no value {0}. It accepts: {2}.",

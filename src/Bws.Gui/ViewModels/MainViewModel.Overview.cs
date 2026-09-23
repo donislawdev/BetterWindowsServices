@@ -18,7 +18,7 @@ namespace Bws.Gui.ViewModels;
 /// in the life of a profile - and the person it is written for is an administrator opening the tool
 /// on their twentieth unknown server, who wants it every time.
 /// </summary>
-public sealed partial class MainViewModel : Observable
+public sealed partial class MainViewModel : Checked
 {
     private bool _showingOverview;
 

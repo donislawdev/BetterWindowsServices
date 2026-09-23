@@ -121,8 +121,9 @@ public sealed class MainViewModelTests
         Assert.Single(model.Rows);
         Assert.Equal("Spooler", model.Rows[0].ServiceName);
 
-        // And the complaint carries the way out, not merely the fact of a mistake.
-        Assert.Contains("running", model.Says.Problem, StringComparison.OrdinalIgnoreCase);
+        // And the complaint carries the way out, not merely the fact of a mistake - under the box
+        // since 2026-09-23, where AnswerLineTests holds what else it says.
+        Assert.Contains("running", model.Says.QueryProblem, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -133,11 +134,11 @@ public sealed class MainViewModelTests
         // is a box people learn to ignore.
         var model = await Loaded(Entry("Spooler"), Stopped("BITS"));
 
-        foreach (var halfway in new[] { "sta", "status", "status:" })
+        foreach (var halfway in new[] { "sta", "status", "status:", "status:r" })
         {
             model.QueryText = halfway;
 
-            Assert.Equal(string.Empty, model.Says.Problem);
+            Assert.Equal(string.Empty, model.Says.QueryProblem);
         }
 
         // The last one selects everything, because a member with nothing after the colon is
@@ -186,7 +187,7 @@ public sealed class MainViewModelTests
         model.QueryText = "/spooler(/";
 
         Assert.Single(model.Rows);
-        Assert.NotEqual(string.Empty, model.Says.Problem);
+        Assert.NotEqual(string.Empty, model.Says.QueryProblem);
     }
 
     [Fact]
@@ -204,7 +205,7 @@ public sealed class MainViewModelTests
         model.QueryText = "signed:no";
 
         Assert.Empty(model.Rows);
-        Assert.Equal(string.Empty, model.Says.Problem);
+        Assert.Equal(string.Empty, model.Says.QueryProblem);
         Assert.Contains(Bws.Gui.Texts.Of("gui.query.unreadSignatures"), model.Says.Notice, StringComparison.Ordinal);
         Assert.DoesNotContain(
             Bws.Gui.Texts.Of("gui.status.partial.many", 2), model.Says.Notice, StringComparison.Ordinal);
@@ -621,12 +622,12 @@ public sealed class MainViewModelTests
         // hold it to - and the window has to have said so.
         if (!parsed.IsValid)
         {
-            Assert.False(string.IsNullOrWhiteSpace(model.Says.Problem), $"A broken query is not reported {after}.");
+            Assert.False(string.IsNullOrWhiteSpace(model.Says.QueryProblem), $"A broken query is not reported {after}.");
 
             return;
         }
 
-        Assert.Equal(string.Empty, model.Says.Problem);
+        Assert.Equal(string.Empty, model.Says.QueryProblem);
 
         // Suspended on purpose while somebody is leaning on the list, and the window says so
         // in words. That is the one place this invariant is allowed to lapse, and it may not

@@ -2,7 +2,6 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 using static Bws.Gui.Tests.ForcedStopFixture;
@@ -132,54 +131,13 @@ public sealed class ForcedStopLayoutGuards
     /// </summary>
     private static int Painted(Bws.Gui.MainWindow window, string named)
     {
-        var shot = WpfHost.On(() =>
-        {
-            window.PlanPanel.Measure(new Size(1000, 800));
-            window.PlanPanel.Arrange(new Rect(0, 0, 1000, 800));
-            window.PlanPanel.UpdateLayout();
-
-            var drawn = new RenderTargetBitmap(1000, 800, 96, 96, PixelFormats.Pbgra32);
-
-            drawn.Render(window.PlanPanel);
-
-            return drawn;
-        });
-
-        var pixels = new byte[1000 * 800 * 4];
-
-        WpfHost.On(() => shot.CopyPixels(pixels, 1000 * 4, 0));
-
-        // #C43C2E, the one fill in this window that means "pressing this changes your machine".
-        var red = 0;
-
-        for (var at = 0; at + 3 < pixels.Length; at += 4)
-        {
-            if (pixels[at] == 0x2E && pixels[at + 1] == 0x3C && pixels[at + 2] == 0xC4)
-            {
-                red++;
-            }
-        }
-
-        var into = Path.Combine(SourceTree.Root(), "artifacts", "gui");
-
-        Directory.CreateDirectory(into);
-
-        var file = Path.Combine(into, named);
-
-        WpfHost.On(() =>
-        {
-            var png = new PngBitmapEncoder();
-
-            png.Frames.Add(BitmapFrame.Create(shot));
-
-            using var stream = File.Create(file);
-
-            png.Save(stream);
-        });
+        var drawn = Drawn.Of(window.PlanPanel, 1000, 800);
+        var file = drawn.Save(named);
 
         Assert.True(new FileInfo(file).Length > 0, file);
 
-        return red;
+        // #C43C2E, the one fill in this window that means "pressing this changes your machine".
+        return drawn.Count(Color.FromRgb(0xC4, 0x3C, 0x2E));
     }
 
     /// <summary>

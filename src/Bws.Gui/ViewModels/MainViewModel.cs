@@ -16,7 +16,7 @@ namespace Bws.Gui.ViewModels;
 /// hardest to look at by hand, like what a list does to the row under somebody's cursor while
 /// it refreshes itself.
 /// </summary>
-public sealed partial class MainViewModel : Observable
+public sealed partial class MainViewModel : Checked
 {
     // THREE CONSTANTS STOOD HERE AND ALL THREE ARE GONE, 2026-08-11. HideDrivers was declared,
     // documented and referenced by nothing - the same shape as QueryValueReader.ReadExpressionValue
@@ -378,12 +378,17 @@ public sealed partial class MainViewModel : Observable
             // Every complaint, not the first one. Two mistakes in one query is ordinary while
             // somebody is typing, and fixing one to be told about the next is a poor trade for
             // a shorter line.
-            Says.AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
+            AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
+
+            // The chips read the TEXT, so they follow it even though the list does not - UX-GUI-002.
+            // Leaving before this kept Running and Manual lit over `stat:runing`, a query that was
+            // no longer in the box.
+            _filters.Rethink();
 
             return;
         }
 
-        Says.AboutTheQuery(string.Empty);
+        AboutTheQuery(string.Empty);
         _query = parsed.Query!;
 
         // AGAINST THE WHOLE LISTING RATHER THAN AGAINST WHAT THE QUERY LEFT, which is why it is
@@ -434,7 +439,7 @@ public sealed partial class MainViewModel : Observable
         // under there asks about it - backlog 263. Passed rather than read out of this class by
         // Sentences, because that class has never been allowed to know a window exists.
         Says.AboutTheAnswer(
-            Asked, _holding.Pending, narrowed.Unreadable, narrowed.TooCostly,
+            Asked, _holding.Pending, narrowed,
             _readings.Have, _readings.Filling, rolled.Instances, !_showingOverview);
 
         TellTheList();

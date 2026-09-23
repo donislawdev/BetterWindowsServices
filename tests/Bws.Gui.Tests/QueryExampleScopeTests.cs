@@ -157,6 +157,15 @@ public sealed class QueryExampleScopeTests
             BinaryOnDisk = Reading<bool>.Present(false)
         },
 
+        // Automatic, stopped, and nothing starts it by itself - the one shape `mismatch:stopped`
+        // answers on Services, and the shape of the one service it answered on the machine the
+        // audit of 2026-09-23 was taken on. wuauserv above is stopped too, but a trigger starts it,
+        // so it is where it is meant to be.
+        Service("Updater", StartType.Automatic, EntryStatus.Stopped, "LocalSystem") with
+        {
+            ProcessId = Reading<int>.Absent()
+        },
+
         // Drivers. No account, no trigger, no process - the manager reads none of those for a
         // driver, and the query has to meet that rather than a fixture that says otherwise.
         Driver("disk", EntryType.KernelDriver, StartType.Boot, EntryStatus.Running),

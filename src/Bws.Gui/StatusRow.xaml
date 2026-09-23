@@ -8,8 +8,10 @@
         WHAT THE WINDOW ADMITS ABOUT AN ANSWER, AND THE ONE WAY OUT IT OFFERS.
 
         Two lines and never more than two. The count moved up beside the box it answers - complaint
-        8 - and what is left is what a result has to ADMIT about itself and what is wrong with the
-        QUESTION, which are two different things and stay apart.
+        8 - and so, on 2026-09-23, did everything about the QUESTION: its mistakes and what its answer
+        could not judge stand under the search box now (UX-GUI-002 and 009). What is left here is
+        about the WINDOW - the session's rights, the folded copies, the list holding still - and,
+        on the second line, what the window tried and could not do.
 
         A UserControl SINCE 2026-08-25 BECAUSE THE MARKUP RATCHET ASKED, and it is the fourth part
         of this window to leave the same way, after ScopeBar, SearchRow and FilterRow. The seam is
@@ -71,19 +73,26 @@
 
                 THE LINK IS SWITCHED OFF WHEN IT IS EMPTY, or an invisible Hyperlink would be a
                 Tab stop that does nothing - trap 8 of `docs/10`, one element down. Its colour is
-                the line's own, so a red line has a red link: the comment above about colouring
-                the whole line applies to every word in it.
+                the line's own.
+
+                FOUR RUNS SINCE 2026-09-23 - UX-GUI-009. The first is the sentence about rights, in
+                red on its own, and the line after it is in the notice colour. What this line says
+                about the ANSWER - reading in progress, fields nobody could read, an expression that
+                ran out of time - moved under the search box, where the question is (SearchRow.xaml).
+                What stays is about the window: rights, the folded copies and the list holding still.
+                The line keeps its AutomationId and still starts with the rights sentence, because
+                tools/gui-probe/errands.ps1 and tools/window-journey/journey.ps1 read it (backlog 429).
             -->
             <TextBlock Grid.Column="0"
                        AutomationProperties.AutomationId="noticeLine"
-                       TextWrapping="Wrap"><Run Text="{Binding Says.NoticeBeforeLink, Mode=OneWay}" /><Hyperlink x:Name="FoldLink" AutomationProperties.AutomationId="noticeLink"
+                       TextWrapping="Wrap"><Run Text="{Binding Says.NoticeRights, Mode=OneWay}" Foreground="{StaticResource MeaningRejected}" /><Run Text="{Binding Says.NoticeBeforeLink, Mode=OneWay}" /><Hyperlink x:Name="FoldLink" AutomationProperties.AutomationId="noticeLink"
                                                                                                           Style="{StaticResource NoticeLink}"
                                                                                                           IsEnabled="{Binding Says.NoticeHasLink}"
                                                                                                           Click="ShowEveryInstance"><Run Text="{Binding Says.NoticeLink, Mode=OneWay}" /></Hyperlink><Run Text="{Binding Says.NoticeAfterLink, Mode=OneWay}" />
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Says.Notice}" Value="">
+                            <DataTrigger Binding="{Binding Says.NoticeLine}" Value="">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
 
@@ -91,24 +100,18 @@
                                 RED WHILE THIS SESSION HAS NO ADMINISTRATOR RIGHTS, 2026-09-02, on
                                 the owner's words that without them this window is for looking at.
                                 Amber says "watch out" and the truth is "you cannot act", which is
-                                a boundary rather than a caution.
+                                a boundary rather than a caution. That still holds - for the rights
+                                sentence, which is the first run above and red by itself.
 
-                                THE WHOLE LINE RATHER THAN ONE SENTENCE, AND THAT IS A CHOICE WITH A
-                                COST. Sentences.Admissions joins its notes into one string, so
-                                colouring only the elevation one would mean breaking this line into
-                                runs - a real change to the shape of the answer for a colour. The
-                                cheap version turned out to be the more honest one: the other notes
-                                on this line are all about a list that is INCOMPLETE for exactly the
-                                reason the first note gives, so while this is red they are as red.
-
-                                Bound to NotElevated rather than tested against the sentence itself,
-                                because comparing rendered text to a literal is a trigger that dies
-                                silently the day somebody edits the language file.
+                                THE WHOLE LINE WAS RED UNTIL 2026-09-23, AND THE REASON GIVEN FOR IT
+                                WAS NOT TRUE. It said the other notes on this line were all about a
+                                list incomplete for the reason the first note gives. The sentence
+                                about folded copies is not about incompleteness at all, and the
+                                sentences about a reading in progress are not about rights - so a
+                                red line said "refused" about things nobody refused (UX-GUI-009).
+                                The line was split into runs, which is the cost that note named, and
+                                the trigger that coloured all of it is gone.
                             -->
-                            <DataTrigger Binding="{Binding Says.NotElevated}" Value="True">
-                                <Setter Property="Foreground"
-                                        Value="{StaticResource MeaningRejected}" />
-                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </TextBlock.Style>

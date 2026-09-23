@@ -285,6 +285,69 @@ public sealed class FilterChipTests
     }
 
     /// <summary>
+    /// A QUERY WITH A MISTAKE TELLS THE CHIPS TO LOOK AGAIN TOO - UX-GUI-002 of the audit of
+    /// 2026-09-23.
+    ///
+    /// <b>The chips used to stay lit for a query that was no longer in the box.</b> The path for a
+    /// query that does not parse left before the chips were asked, so Running and Manual clicked on
+    /// and then <c>stat:runing</c> typed over them left both chips lit - photographed in the audit,
+    /// <c>05-bad-query-stale-results.png</c>. Asked through the notification for the reason
+    /// <see cref="An_edit_anywhere_tells_every_chip_to_look_again"/> gives: a chip's value is worked
+    /// out on every read, so only the notification can be missing.
+    /// </summary>
+    [Fact]
+    public async Task A_query_with_a_mistake_tells_every_chip_to_look_again()
+    {
+        var model = await Loaded();
+        var running = Chip(model, "status", "running");
+        var manual = Chip(model, "start", "manual");
+
+        running.IsOn = true;
+        manual.IsOn = true;
+
+        var told = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var chip in new[] { running, manual })
+        {
+            var named = chip;
+
+            named.PropertyChanged += (_, change) =>
+            {
+                if (change.PropertyName == nameof(FilterChip.IsOn))
+                {
+                    told.Add(named.Member);
+                }
+            };
+        }
+
+        model.QueryText = "stat:runing";
+
+        Assert.Equal([manual.Member, running.Member], told.OrderBy(member => member, StringComparer.Ordinal));
+        Assert.False(running.IsOn);
+        Assert.False(manual.IsOn);
+    }
+
+    /// <summary>
+    /// And the other half: a chip whose member stands in the box stays lit when another member
+    /// beside it has the mistake. Its member IS there, and a dark chip over it would invite a click
+    /// that writes it a second time.
+    /// </summary>
+    [Fact]
+    public async Task A_chip_stays_lit_while_its_member_stands_beside_a_mistake()
+    {
+        var model = await Loaded();
+        var running = Chip(model, "status", "running");
+
+        model.QueryText = "status:running pid:abc";
+
+        Assert.True(running.IsOn);
+
+        running.IsOn = true;
+
+        Assert.Equal("status:running pid:abc", model.QueryText);
+    }
+
+    /// <summary>
     /// EVERY CHIP OF ONE FIELD STAYS LIT WHEN THE NEXT ONE IS CLICKED - owner's report, 2026-08-13.
     ///
     /// <b>The case no test had, and the one a person reaches for first.</b> The tests above click
