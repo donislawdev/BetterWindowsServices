@@ -362,7 +362,12 @@ public sealed class PublicSurfaceGuards
         // home directory or an address wanders into. .txt brings in the two NativeMethods.txt
         // lists that CsWin32 reads and the pinned scanner version - all three already ASCII,
         // checked when they were added here.
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt" }
+        //
+        // CODEOWNERS joined it on 2026-09-23, the day it arrived in .github. It is the one file
+        // GitHub reads from there that has no extension at all, so no pattern above could ever
+        // reach it - and it is forty lines of prose about how this repository is guarded, shown
+        // to anybody who opens it.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "CODEOWNERS" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)

@@ -290,6 +290,29 @@
     </Style>
 
     <!--
+        THE HEART BESIDE THE WORD ON THE DONATE BUTTON, since 2026-09-23. It is decoration beside the
+        word, never the message: the button's name is the word alone, and it reads correctly on a
+        machine that draws no heart at all.
+
+        THE SAME SHAPE AS FilterDisclosure IN Chips.xaml, AND FOR ITS TWO MEASURED REASONS: a Path
+        rather than a character, because a heart glyph needs a font that carries it on Windows
+        Server and a TextBlock gets a node of its own in the automation tree - and the fill follows
+        the button's own foreground, so the heart can never be the one part of the control that
+        does not answer to hover or to being disabled. The geometry is drawn inside the square of
+        SizeSupportMark with Stretch left at None, so it keeps its own coordinates.
+    -->
+    <Style x:Key="SupportMark" TargetType="Path">
+        <Setter Property="Fill"
+                Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+        <Setter Property="Width" Value="{StaticResource SizeSupportMark}" />
+        <Setter Property="Height" Value="{StaticResource SizeSupportMark}" />
+        <Setter Property="Data"
+                Value="M 5,9.2 C 5,9.2 0.4,6.2 0.4,3.3 C 0.4,1.6 1.7,0.6 3,0.6 C 4,0.6 4.7,1.2 5,2 C 5.3,1.2 6,0.6 7,0.6 C 8.3,0.6 9.6,1.6 9.6,3.3 C 9.6,6.2 5,9.2 5,9.2 Z" />
+    </Style>
+
+    <!--
         EVERY TOOLTIP IN THIS WINDOW WRAPS - backlog 167, and it is the third answer to a question
         the owner asked twice.
 

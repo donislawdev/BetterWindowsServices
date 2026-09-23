@@ -1,0 +1,82 @@
+name: Disagreement with sc.exe
+description: The tool and the sc.exe that ships with Windows say different things about a service
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `sc.exe` is the reference this tool is checked against, entry by entry, on the
+        machines it is built on. Yours is different, and a disagreement on your machine
+        is a bug here until shown otherwise - even when every test passes.
+
+        Run all of the commands below **in the same session**, so both tools had the same
+        rights.
+  - type: input
+    id: name
+    attributes:
+      label: Service name
+      description: >-
+        The internal name, as `sc query` shows it after SERVICE_NAME, and not the display
+        name. Display names are translated into the language of the machine, and the tool
+        never identifies a service by one.
+      placeholder: "Spooler"
+    validations:
+      required: true
+  - type: dropdown
+    id: elevated
+    attributes:
+      label: Was the session running as administrator?
+      description: >-
+        Without administrator rights Windows refuses some reads, and the two tools may
+        report a refusal differently. That is worth knowing before anything else.
+      options:
+        - "Yes, as administrator"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: difference
+    attributes:
+      label: What differs?
+      description: >-
+        The field and the two values, in a sentence. For example, sc qc says the start
+        type is DEMAND_START and the tool says automatic.
+    validations:
+      required: true
+  - type: textarea
+    id: bws
+    attributes:
+      label: The output of bws show NAME --json
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: sc
+    attributes:
+      label: The output of sc qc NAME, sc query NAME and sc qtriggerinfo NAME
+      description: >-
+        All three, one after another. Before pasting: they carry the launch path and the
+        account the service runs as, which can name a user or a machine, and this issue
+        is public. Remove anything you would rather not publish.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: "`bws --version` prints it - paste the first two lines."
+      placeholder: |
+        bws 0.1.0
+        snapshot schema 4
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and display language
+      description: >-
+        Output of `winver`, and the display language if it is not English.
+      placeholder: "Windows Server 2022, German"

@@ -499,7 +499,10 @@ narrows the list to that value or puts the column away, and the layout you leave
 opens in. A row's menu previews every operation before offering it, and copies the name, the
 display name, the description or everything. *Export...* writes the rows on screen, in the columns
 you have on and the order you sorted them into, to a CSV file. Ctrl+C over the list copies
-everything about the chosen entry. Escape backs out of the innermost thing first.
+everything about the chosen entry. Escape backs out of the innermost thing first. *Donate*, at the
+right end of the row above the search box, opens the project's support page in your browser - and
+in a window running as administrator it asks the desktop to open it, so the browser does not get
+those rights.
 
 ---
 
@@ -518,7 +521,8 @@ test suite runs both and compares them entry by entry.
 Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The
 one time it can touch a network at all is when a service's launch path points at another
 machine's share and you pass `--follow-network` to let it look there - off by default, and the
-help says why.
+help says why. The *Donate* button in the window hands one address to your browser when you press
+it, and your browser is what connects.
 
 ### Does it need administrator rights?
 
@@ -594,5 +598,6 @@ trademark of the Microsoft group of companies, and the name is used here only to
 manages.
 
 If it saved you an afternoon, [donislawdev.com/support](https://donislawdev.com/support/) is where
-that can be said in a way that keeps the next afternoon funded. The program itself opens no link
-and no socket - your browser is what connects.
+that can be said in a way that keeps the next afternoon funded - the *Donate* button in the window
+opens that page in your browser. The program itself opens no socket - your browser is what
+connects.

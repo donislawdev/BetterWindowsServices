@@ -205,29 +205,68 @@
         for five times: WPF builds an automation peer for controls, not for layout panels, so an
         identifier on a StackPanel sits on an element that is not in the tree at all.
     -->
-    <ItemsControl AutomationProperties.AutomationId="scopeSwitch"
-                  AutomationProperties.Name="{DynamicResource gui.scope.hint}"
-                  ToolTip="{DynamicResource gui.scope.hint}"
-                  ItemsSource="{Binding ScopePositions}">
-        <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-                <StackPanel Orientation="Horizontal" />
-            </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+    <!--
+        A DockPanel SO THAT NEITHER CHILD CARRIES A NUMBERED POSITION, and the order below is the
+        order of the Tab key: the positions first, then Donate, then the search box under this row.
+        The positions keep the left, and the last child takes what is left of the width and stands
+        at its right end.
+    -->
+    <DockPanel>
+        <ItemsControl DockPanel.Dock="Left"
+                      AutomationProperties.AutomationId="scopeSwitch"
+                      AutomationProperties.Name="{DynamicResource gui.scope.hint}"
+                      ToolTip="{DynamicResource gui.scope.hint}"
+                      ItemsSource="{Binding ScopePositions}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
 
-        <ItemsControl.ItemTemplate>
-            <DataTemplate>
-                <!--
-                    TwoWay, and the false half is thrown away on purpose - the argument is at
-                    ScopeChoice.IsOn. A radio group tells the OUTGOING position it is unchecked
-                    before it tells the incoming one it is checked, and acting on that would mean
-                    writing a scope on the way out of one.
-                -->
-                <RadioButton Style="{StaticResource ScopePosition}"
-                             Content="{Binding Label}"
-                             ToolTip="{Binding Hint}"
-                             IsChecked="{Binding IsOn, Mode=TwoWay}" />
-            </DataTemplate>
-        </ItemsControl.ItemTemplate>
-    </ItemsControl>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!--
+                        TwoWay, and the false half is thrown away on purpose - the argument is at
+                        ScopeChoice.IsOn. A radio group tells the OUTGOING position it is unchecked
+                        before it tells the incoming one it is checked, and acting on that would mean
+                        writing a scope on the way out of one.
+                    -->
+                    <RadioButton Style="{StaticResource ScopePosition}"
+                                 Content="{Binding Label}"
+                                 ToolTip="{Binding Hint}"
+                                 IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!--
+            THE ONE THING THIS WINDOW ASKS OF ANYBODY, since 2026-09-23 - owner's decision, at the
+            right end of the top row. It stands here because this row has room to its right and is
+            always on screen, and because it is the row furthest from the work: the list, the
+            filters and the actions all sit below it. The right end lines up with Columns, the last
+            control of the filters row, because neither carries a right margin.
+
+            THE LIBRARY'S OWN BUTTON, exactly as Columns and Show every instance wear it - the same
+            family of control, with nothing to make it louder than they are. The heart and the word
+            are the pattern of the Filters toggle, including the name set above the content, which
+            stopped being a string.
+
+            The tooltip says what pressing it does BEFORE it is pressed, and says that this program
+            still connects to nothing - the one moment a person could feel ADR-19 was broken is the
+            moment a browser appears. Nothing about starting anything is here: the click is wired
+            in MainWindow, and ExternalLinks is the file allowed to hand an address over.
+        -->
+        <Button x:Name="DonateButton"
+                AutomationProperties.AutomationId="donate"
+                AutomationProperties.Name="{DynamicResource gui.support.button}"
+                ToolTip="{DynamicResource gui.support.hint}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+                <Path Style="{StaticResource SupportMark}" />
+
+                <TextBlock Text="{DynamicResource gui.support.button}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
+    </DockPanel>
 </UserControl>

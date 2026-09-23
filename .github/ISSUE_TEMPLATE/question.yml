@@ -1,0 +1,53 @@
+name: Question or problem
+description: Ask about using the tool, or report something that does not fit the other templates
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions belong here rather than in private mail, because the next person to hit
+        the same thing can find the answer.
+
+        If it turns out to be a defect we will relabel it - you do not have to decide that
+        first. The same goes the other way: "the tool lists fewer services when I run it
+        without administrator rights, is that expected?" is a fair question, and the
+        answer is often yes with a reason.
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+      description: The task, and what you have tried so far.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        If the tool is already on the machine, `bws --version` prints it.
+      placeholder: "bws 0.1.0, snapshot schema 4"
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface, if it matters
+      options:
+        - "Window (BetterWindowsServices.exe)"
+        - "Command line (bws.exe)"
+        - "Both"
+        - "Not relevant"
+  - type: dropdown
+    id: elevated
+    attributes:
+      label: Was it running as administrator?
+      options:
+        - "Yes, as administrator"
+        - "No"
+        - "Not sure"
+  - type: textarea
+    id: extra
+    attributes:
+      label: The command or the output, if there is one
+      description: >-
+        Paste it rather than describing it. Anything you paste is public, and the output
+        names services, accounts and paths, so check it before it goes in.
+      render: shell

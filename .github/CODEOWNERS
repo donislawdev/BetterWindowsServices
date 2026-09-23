@@ -1,0 +1,39 @@
+# Who owns this repository, and who GitHub asks to review a change to it.
+#
+# One owner, one line. Finer-grained rules would be fiction here: every path
+# below has the same owner, and a list that pretends otherwise ages into a claim
+# nobody checks.
+#
+# What this file DOES do
+# ----------------------
+# A pull request opened by anyone else automatically requests a review from the
+# owner. That is the whole reason it exists: an outside contribution should not
+# sit unnoticed because nobody was asked. This project accepts translations of
+# the window and evidence from machines that are not ours, so that path is real
+# rather than hypothetical - see CONTRIBUTING.md.
+#
+# What it does NOT do
+# -------------------
+# GitHub never requests a review from the person who opened the pull request, and
+# nobody can approve their own. So on a change written by the owner this file is
+# silent by design - and a rule that demands a code-owner approval would, on such
+# a change, demand one from somebody who does not exist. That combination freezes
+# the repository: no pull request could ever be merged. The ruleset on the
+# default branch leaves `require_code_owner_review` off, and it has to stay off
+# for as long as this file names one person.
+#
+# What actually guards the code today
+# -----------------------------------
+# Measured on 2026-09-23: the default branch carries one active ruleset. It
+# refuses deletion and force pushes, takes every change through a pull request
+# with no approval required, and requires six named checks to pass -
+# `build and the tests that do not need this machine`, `Semgrep`,
+# `Dependency review`, `Analyse csharp`, `Analyse actions` and `submit-nuget`.
+# So a red check blocks a merge and a missing review does not. That is a weaker
+# guarantee than a second pair of eyes, and it is stated plainly rather than
+# dressed up.
+#
+# Syntax note: gitignore-style patterns, with three exceptions - a pattern may not
+# start with `#`, `!` does not negate, and `[ ]` character ranges do not work.
+
+*       @donislawdev

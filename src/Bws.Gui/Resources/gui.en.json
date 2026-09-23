@@ -346,6 +346,13 @@
   "gui.elevate.failed": "The tool could not be started again as administrator. {0}",
   "gui.elevate.noPath": "Windows does not say where this program is on disk, so it cannot be started again.",
 
+  "gui.support.button": "Donate",
+  "gui.support.hint": "Opens donislawdev.com/support in your browser. This tool itself still connects to nothing.",
+  "gui.support.failed": "The support page did not open. {0} It is at {1}, and any browser you open yourself will show it.",
+  "gui.support.noDesktop": "A window with administrator rights hands the page to the desktop, so that the browser does not get those rights, and there is no desktop here to take it.",
+  "gui.support.desktopRefused": "The desktop did not take it (error 0x{0}).",
+  "gui.support.slow": "Windows has not finished opening the support page, so it may still open by itself. It is at {0}, and any browser you open yourself will show it.",
+
   "gui.export.failed": "The list could not be written. {0}",
   "gui.export.name": "services",
   "gui.export.kind": "Comma separated values",
