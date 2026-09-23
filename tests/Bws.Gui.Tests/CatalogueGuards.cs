@@ -190,35 +190,13 @@ public sealed class CatalogueGuards
     [Fact]
     public void Every_component_that_can_be_wrong_is_shown_wrong_on_the_sheet()
     {
-        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-        var canBeWrong = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var file in Directory.EnumerateFiles(Themes, "*.xaml"))
-        {
-            var root = XDocument.Load(file).Root;
-
-            if (root is null)
-            {
-                continue;
-            }
-
-            foreach (var style in root.Elements().Where(element => element.Name.LocalName == "Style"))
-            {
-                var key = style.Attribute(x + "Key")?.Value;
-
-                if (key is not null && style.Descendants()
-                        .Where(element => element.Name.LocalName == "Trigger")
-                        .Any(trigger => trigger.Attribute("Property")?.Value == "Validation.HasError"))
-                {
-                    canBeWrong.Add(key);
-                }
-            }
-        }
+        var canBeWrong = StylesThatCanBeWrong();
 
         // A guard that is satisfied by nobody being able to be wrong is the absence-shaped pass
         // this file warns about twice already. The box of seconds has been wrong-able since the day
-        // this column arrived.
+        // this column arrived, and the search box since 2026-09-23 through the style they share.
         Assert.Contains("WaitingBox", canBeWrong);
+        Assert.Contains("ReportingBox", canBeWrong);
 
         var entries = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
             .SelectMany(group => group.Entries)
@@ -244,6 +222,76 @@ public sealed class CatalogueGuards
             invented.Length == 0,
             $"{invented.Length} component(s) are drawn wrong on the sheet and have no wrong state "
             + $"in their style: [{string.Join(", ", invented)}].");
+    }
+
+    /// <summary>
+    /// Every keyed style whose triggers - its own, or inherited through BasedOn - include one on
+    /// <c>Validation.HasError</c>, read out of the theme files with an XML parser.
+    ///
+    /// <b>UP THE BasedOn CHAIN, SINCE 2026-09-23</b> - the catalogue walks it (Catalogue.States), so
+    /// the guard has to as well, or the two disagree about a style that inherits its wrong state.
+    /// That day the box of seconds became WaitingBox BasedOn ReportingBox, and read only by its own
+    /// triggers it stopped being able to be wrong while the window still drew it red.
+    /// </summary>
+    private static HashSet<string> StylesThatCanBeWrong()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var canBeWrong = new HashSet<string>(StringComparer.Ordinal);
+        var basedOn = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var styles = Directory.EnumerateFiles(Themes, "*.xaml")
+            .Select(file => XDocument.Load(file).Root)
+            .Where(root => root is not null)
+            .SelectMany(root => root!.Elements().Where(element => element.Name.LocalName == "Style"));
+
+        foreach (var style in styles)
+        {
+            if (style.Attribute(x + "Key")?.Value is not { } key)
+            {
+                continue;
+            }
+
+            if (style.Descendants()
+                    .Where(element => element.Name.LocalName == "Trigger")
+                    .Any(trigger => trigger.Attribute("Property")?.Value == "Validation.HasError"))
+            {
+                canBeWrong.Add(key);
+            }
+
+            var parent = Regex.Match(style.Attribute("BasedOn")?.Value ?? string.Empty, @"^\{StaticResource (\w+)\}$", RegexOptions.None, TimeSpan.FromSeconds(5));
+
+            if (parent.Success)
+            {
+                basedOn[key] = parent.Groups[1].Value;
+            }
+        }
+
+        ThroughBasedOn(canBeWrong, basedOn);
+
+        return canBeWrong;
+    }
+
+    /// <summary>
+    /// A style is wrong-able when its parent is. Repeated until a pass adds nothing, so a chain of
+    /// any length reaches its root whatever order the files were read in.
+    /// </summary>
+    private static void ThroughBasedOn(HashSet<string> canBeWrong, Dictionary<string, string> basedOn)
+    {
+        int added;
+
+        do
+        {
+            added = 0;
+
+            foreach (var (child, parent) in basedOn)
+            {
+                if (canBeWrong.Contains(parent) && canBeWrong.Add(child))
+                {
+                    added++;
+                }
+            }
+        }
+        while (added > 0);
     }
 
     /// <summary>

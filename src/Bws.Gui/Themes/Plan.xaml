@@ -253,58 +253,18 @@
     <!--
         THE BOX OF SECONDS, WEARING THE PROBLEM COLOUR ON ITS EDGE WHILE IT SAYS SOMETHING THAT IS
         NOT SECONDS - 2026-09-15, point 5 of `docs/11` 2.14. GUI rule 3: a field has an error state,
-        and this is the only field in the window that can be wrong without being empty.
+        and this is the only field on the sheet that can be wrong without being empty.
 
-        BasedOn THE IMPLICIT TextBox STYLE, which is `docs/10` trap 4 read the other way: a keyed
-        style with no BasedOn REPLACES the library's template rather than adding to it, and the box
-        would come out as the framework's white field on a dark sheet. The edge colour is
-        MeaningRejected, the same brush as the sentence under the box, because a field and the
-        sentence about it must read as one thing - and it is the one red measured against BOTH the
-        window and the panel, `docs/11` section 8, which is where this box stands.
+        THE MECHANISM MOVED TO ReportingBox IN Controls.xaml ON 2026-09-23, when the search box
+        became the second field to need it - GUI rule 7. The argument for each part of it went with
+        it: the trigger on Validation.HasError, the error adorner drawn above the library's own
+        bottom line (the owner's remark of 2026-09-16 about a red edge on three sides and none along
+        the bottom), and the BorderBrush setter left for a render with no adorner layer.
 
-        THE TRIGGER IS ON Validation.HasError, THE FRAMEWORK'S OWN FLAG, AND NOT ON A PROPERTY OF
-        THE MODEL - for two reasons that point the same way. `docs/10` trap 10: a theme file cannot
-        name a type of its own assembly, so a trigger on "our" boolean was never available here. And
-        the component catalogue: it can put any control into this state generically, by marking the
-        control's binding invalid, where a trigger on a named model property would need a model.
-        The rule itself still lives in the model - Planned answers INotifyDataErrorInfo out of the
-        same property a test reads - so what stands between a person and a run is checkable
-        without a window, which is the decision the typed name took first.
-
-        THE FRAMEWORK'S ERROR ADORNER IS OURS, NOT OFF - 2026-09-16, the owner's remark that the
-        wrong box had a red edge on three sides and none along the bottom. Their template, read
-        with `tools/wpfui-probe probe template DefaultTextBoxStyle`: ContentBorder draws the four
-        edges in the BorderBrush this style sets, and a second Border named AccentBorder draws its
-        own one-pixel line along the bottom in ControlStrokeColorDefaultBrush, ON TOP - two pixels
-        when focused, in their accent. A style trigger cannot reach a named part of somebody
-        else's template, so the bottom edge was theirs whatever this style said. The adorner layer
-        is the one place above their template: the error template below draws our red on all four
-        sides there, over the AccentBorder, with their own corner radius. Until that day it was
-        switched off for being a red not ours - it is ours now, and the BorderBrush setter stays for
-        the three sides a render without an adorner layer can still see.
-
-        WHETHER THE COLOUR REACHES A PIXEL IS MEASURED, NOT ASSUMED - a property set on a control
-        whose template belongs to somebody else has failed to arrive three times in this project.
-        WaitingBoxGuards renders the footer and counts this red inside the box's own rectangle.
+        THE KEY STAYS, AS A STYLE ON THAT ONE, so the sheet keeps naming what the box IS rather than
+        how it is drawn, and so the day the box of seconds needs something the search box does not,
+        it has a place to go. Controls.xaml is merged before this file, which is what lets
+        StaticResource find the base while this one is read - App.xaml.
     -->
-    <Style x:Key="WaitingBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-        <Setter Property="Validation.ErrorTemplate">
-            <Setter.Value>
-                <ControlTemplate>
-                    <Border BorderBrush="{StaticResource MeaningRejected}"
-                            BorderThickness="{StaticResource BorderAllSides}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            SnapsToDevicePixels="True">
-                        <AdornedElementPlaceholder />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-
-        <Style.Triggers>
-            <Trigger Property="Validation.HasError" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
+    <Style x:Key="WaitingBox" TargetType="TextBox" BasedOn="{StaticResource ReportingBox}" />
 </ResourceDictionary>

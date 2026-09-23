@@ -34,6 +34,10 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="{StaticResource WidthCountLine}" />
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
         <!--
             THE SYNTAX LEFT THE PLACEHOLDER ON 2026-08-12 AND THE BUTTON THAT TOOK IT LEFT ON
@@ -58,7 +62,15 @@
                 inside the tooltip: a tooltip hangs off a Popup, which is not in the visual tree,
                 and what a Popup inherits is a question this window has already paid to learn.
             -->
+            <!--
+                A FIELD THAT CAN SAY IT IS WRONG SINCE 2026-09-23 - UX-GUI-002. While the query has
+                a mistake in it the box wears the red edge the box of seconds on the plan sheet
+                wears, through the same style: the model answers INotifyDataErrorInfo for
+                QueryText, the binding hears it by itself. ReportingBox in Controls.xaml carries
+                why each part of it is shaped the way it is.
+            -->
             <TextBox x:Name="QueryBox"
+                     Style="{StaticResource ReportingBox}"
                      ToolTip="{Binding SearchTip}"
                      Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
 
@@ -194,5 +206,47 @@
                    TextTrimming="CharacterEllipsis"
                    ToolTip="{Binding Says.Status}"
                    Style="{StaticResource CountLine}" />
+
+        <!--
+            WHAT THE ANSWER TO THIS QUESTION HAS TO SAY ABOUT ITSELF, UNDER THE BOX THAT ASKED IT -
+            UX-GUI-002 and 009 of the audit of 2026-09-23. A mistake in the query, in red, with the
+            sentence that the list below is the previous answer - or else, in the notice colour,
+            what the answer could not judge or has not read yet. Until that day both stood at the
+            foot of the window, about 830 pixels below the box, in a line shared with the session's
+            rights and the folded instances.
+
+            UNDER THE BOX AND NOT UNDER THE COUNT - it is a sentence about the question, and the
+            count beside it has its own width to keep.
+
+            IT TAKES ROOM WHILE THERE IS TEXT IN THE BOX, whether or not it has words - Says
+            decides that, because a view that counts is logic (GUI rule 11). The chrome already
+            takes nearly half the window's height (UX-GUI-007), so the line is not always there -
+            and a line tied to its words would move the list each time a reading note came and
+            went under somebody's typing. Tied to the box, it moves with a key somebody pressed.
+
+            The list under the box, when it is open, lies over this line - the red edge on the box
+            stays in sight. Moving that popup below the line is recorded as an observation, not
+            done here.
+        -->
+        <TextBlock Grid.Row="1"
+                   Grid.Column="0"
+                   AutomationProperties.AutomationId="answerLine"
+                   Margin="{StaticResource MarginUnderField}"
+                   Text="{Binding Says.AnswerLine}"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Says.AnswerLineShown}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Says.AnswerLineIsProblem}" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
     </Grid>
 </UserControl>

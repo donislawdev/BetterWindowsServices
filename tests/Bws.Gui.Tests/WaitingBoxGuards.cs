@@ -267,17 +267,30 @@ public sealed class WaitingBoxGuards
     /// cannot be instantiated here: AdornedElementPlaceholder refuses to exist outside a template
     /// being applied, which is one more thing four versions of this test found out by doing it.
     /// The shape every theme guard in this project reads is the shape read here.
+    ///
+    /// <b>Two files since 2026-09-23.</b> The template moved to ReportingBox in Controls.xaml when the
+    /// search box became the second field to need it, and WaitingBox in Plan.xaml became a style on
+    /// it - so this reads the template there and first makes sure the box of seconds still stands
+    /// on it. The pixel test above is what proves the two are joined in the running window.
     /// </summary>
     private static string TheEdge()
     {
-        var theme = File.ReadAllText(Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes", "Plan.xaml"));
-        var style = theme.IndexOf("<Style x:Key=\"WaitingBox\"", StringComparison.Ordinal);
+        var themes = Path.Combine(SourceTree.Root(), "src", "Bws.Gui", "Themes");
+        var plan = File.ReadAllText(Path.Combine(themes, "Plan.xaml"));
+
+        if (!plan.Contains("<Style x:Key=\"WaitingBox\" TargetType=\"TextBox\" BasedOn=\"{StaticResource ReportingBox}\"", StringComparison.Ordinal))
+        {
+            return "WaitingBox is no longer a style on ReportingBox - the error template below is not the one the box of seconds wears";
+        }
+
+        var theme = File.ReadAllText(Path.Combine(themes, "Controls.xaml"));
+        var style = theme.IndexOf("<Style x:Key=\"ReportingBox\"", StringComparison.Ordinal);
         var setter = style < 0 ? -1 : theme.IndexOf("<Setter Property=\"Validation.ErrorTemplate\">", style, StringComparison.Ordinal);
         var close = setter < 0 ? -1 : theme.IndexOf("</Setter>", setter, StringComparison.Ordinal);
 
         if (close < 0)
         {
-            return "no error template on WaitingBox - null draws nothing, and the framework's own would draw a red not ours";
+            return "no error template on ReportingBox - null draws nothing, and the framework's own would draw a red not ours";
         }
 
         var template = theme[setter..close];
