@@ -491,12 +491,12 @@ the third ends the process.
 `BetterWindowsServices.exe`, one argument it knows: `--catalogue` opens a developer's sheet that
 shows every component of the window in every state, and reads nothing from your machine.
 
-Three lists on the switch above the search box - *Services*, *Drivers*, *Everything* - each saying
+Three lists on the switch above the search box - *Services*, *Drivers*, *All* - each saying
 how big it is. The search box takes the query language and suggests as you type. The filter
 buttons write into the box. *Columns* chooses what the list shows, a right-click on a column heading
 narrows the list to that value or puts the column away, and the layout you leave is the layout it
-opens in. A row's menu previews every operation before offering it, and copies the name, the
-display name, the description or everything. *Export...* writes the rows on screen, in the columns
+opens in. A row's menu previews every operation before offering it, and copies the name or
+everything about the entry, display name and description included. *Export...* writes the rows on screen, in the columns
 you have on and the order you sorted them into, to a CSV file. Ctrl+C over the list copies
 everything about the chosen entry. Escape backs out of the innermost thing first. *Donate*, at the
 right end of the row above the search box, opens the project's support page in your browser - and
