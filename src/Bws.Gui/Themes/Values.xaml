@@ -341,6 +341,15 @@
     <system:Double x:Key="WidthDetailsPanelMost">560</system:Double>
 
     <!--
+        THE SHARES THE LIST AND AN OPEN PANEL SPLIT THE WINDOW IN - two to one, so the panel takes a
+        third between the two limits above. Names rather than "2*" and "*" written in MainWindow.xaml,
+        since the review of PR #16: a proportion is a width like any other, and GUI rule 12 keeps
+        widths out of views. Change the ratio here and nowhere else.
+    -->
+    <GridLength x:Key="ShareList">2*</GridLength>
+    <GridLength x:Key="ShareDetailsPanel">*</GridLength>
+
+    <!--
         TWO LINES OF THE PANEL'S TITLE, AND NOT THREE. The display name wraps under this and ends
         in an ellipsis, so the forty-five character Polish name of the Bluetooth user service is
         read whole where one line cut it after four words, and a name of three lines does not push

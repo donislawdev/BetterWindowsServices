@@ -45,6 +45,26 @@ internal sealed partial class Readings : IEntryReads
     /// <summary>What the panel has asked for, per entry, since the index last took a whole list.</summary>
     private readonly Dictionary<string, ExtraRead> _claimed = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Why the panel's reading of an entry failed, per entry, for as long as its claim stands.
+    ///
+    /// <b>Beside the claims and cleared with them, since the review of PR #16.</b> The failure was
+    /// the panel's until then, and a reading belongs to one ENTRY: opening another entry while a
+    /// reading was out dressed the new one in the old one's failure, and opening the failed one again
+    /// said nothing at all - the claim stood, so nothing was read, and the lines said "not read" as
+    /// though nobody had tried. Kept here, a failure is said for the entry it happened to, every time
+    /// that entry is shown, until a new listing lets the panel try again.
+    /// </summary>
+    private readonly Dictionary<string, string> _failures = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public string FailureOf(EntryRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        return _failures.GetValueOrDefault(row.ServiceName, string.Empty);
+    }
+
     /// <inheritdoc />
     public ExtraRead Claim(EntryRow row)
     {
@@ -82,7 +102,28 @@ internal sealed partial class Readings : IEntryReads
         // because the tick writes the process identifiers back into it.
         var everything = _index.Everything;
 
-        var read = await Task.Run(() => One(before, everything, families)).ConfigureAwait(true);
+        ScmEntry read;
+
+        try
+        {
+            read = await Task.Run(() => One(before, everything, families)).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031
+        // Broad, for the reason the second phase gives at its own catch: every file answers for
+        // itself, so what arrives here is the reading failing as a whole. It must neither take the
+        // window down nor leave the panel implying that nobody tried - so it becomes a sentence
+        // about THIS entry, said by the panel whenever the entry is shown. Not for a listing that
+        // has gone, whose entries nobody will be shown again.
+        catch (Exception failure)
+        {
+            if (!_gone && listing == _listing)
+            {
+                _failures[row.ServiceName] = string.Join(" ", Causes.Of(failure));
+            }
+
+            return;
+        }
+#pragma warning restore CA1031
 
         // ANSWERED FOR ENTRIES THAT NO LONGER EXIST, or for a window nobody is looking at: dropped.
         // The panel asks again for the fresh entry, because the new listing cleared what it claimed.
@@ -91,7 +132,21 @@ internal sealed partial class Readings : IEntryReads
             return;
         }
 
-        _index.AbsorbOne(Carry(row.Entry, before, read, families));
+        var now = row.Entry;
+        var sameProcess = now.ProcessId.Outcome == before.ProcessId.Outcome && now.ProcessId.Value == before.ProcessId.Value;
+
+        // A RESTART BETWEEN THE QUESTION AND THE ANSWER, since the review of PR #16: the memory read
+        // belongs to the old process and is dropped below, and the claim goes with it so the panel
+        // asks again for the new one. A restart arrives through the tick, which never clears a
+        // claim - without this the line said "not read" until the next full reading, and Enter did
+        // nothing. It cannot spin: each round is a real reading, and it stops the moment the process
+        // holds still for the few milliseconds one takes.
+        if (families.HasFlag(ExtraRead.Memory) && !sameProcess && _claimed.TryGetValue(row.ServiceName, out var had))
+        {
+            _claimed[row.ServiceName] = had & ~ExtraRead.Memory;
+        }
+
+        _index.AbsorbOne(Carry(now, read, families, sameProcess));
     }
 
     /// <summary>Called wherever the index takes a whole list - see <see cref="_listing"/>.</summary>
@@ -99,6 +154,7 @@ internal sealed partial class Readings : IEntryReads
     {
         _listing++;
         _claimed.Clear();
+        _failures.Clear();
     }
 
     /// <summary>
@@ -142,7 +198,7 @@ internal sealed partial class Readings : IEntryReads
     /// between the question and the answer has a new process, and the old one's figure against it
     /// would be a stranger's memory in the right field.
     /// </summary>
-    private static ScmEntry Carry(ScmEntry now, ScmEntry before, ScmEntry read, ExtraRead families)
+    private static ScmEntry Carry(ScmEntry now, ScmEntry read, ExtraRead families, bool sameProcess)
     {
         var carried = now;
 
@@ -151,9 +207,7 @@ internal sealed partial class Readings : IEntryReads
             carried = carried with { Signature = read.Signature, FileVersion = read.FileVersion, BinaryHash = read.BinaryHash };
         }
 
-        if (families.HasFlag(ExtraRead.Memory)
-            && now.ProcessId.Outcome == before.ProcessId.Outcome
-            && now.ProcessId.Value == before.ProcessId.Value)
+        if (families.HasFlag(ExtraRead.Memory) && sameProcess)
         {
             carried = carried with { Memory = read.Memory };
         }

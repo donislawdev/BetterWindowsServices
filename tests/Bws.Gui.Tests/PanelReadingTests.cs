@@ -137,14 +137,18 @@ public sealed class PanelReadingTests
     /// <summary>
     /// The service restarts between the question and the answer: the memory read belongs to the
     /// process that was asked, and against the new one it would be a stranger's figure in the right
-    /// field. It is left unread rather than kept.
+    /// field. It is dropped - and asked again for the new process, rather than left "not read" until
+    /// the next full reading, because a restart arrives through the tick and never clears a claim
+    /// (review of PR #16). The figure encodes the process it was read for, so the assertion can
+    /// tell the stranger's figure from the right one.
     /// </summary>
     [Fact]
-    public async Task A_memory_read_for_a_process_that_has_since_restarted_is_not_kept()
+    public async Task A_memory_read_for_a_process_that_has_since_restarted_is_read_again_for_the_new_one()
     {
         var inspector = new Inspector();
+        var memory = new Memory { HoldTheSecond = true };
         var machine = new LiveMachine(Entry());
-        var model = new MainViewModel(machine, new SteppedClock(), inspector, new Memory());
+        var model = new MainViewModel(machine, new SteppedClock(), inspector, memory);
         await model.LoadAsync();
         var row = model.Rows.Single();
 
@@ -157,11 +161,68 @@ public sealed class PanelReadingTests
         await model.RefreshAsync();
 
         inspector.Release();
-        await first;
+
+        // BETWEEN THE TWO READINGS: the first answer, for the old process, must not be in the row
+        // even for this moment - the second is held until it has been looked at.
+        Assert.True(SpinWait.SpinUntil(() => memory.Asked >= 2, TimeSpan.FromSeconds(10)), "The memory was never asked again for the new process.");
+        Assert.Equal(ReadOutcome.NotRead, row.Entry.Memory.Outcome);
+
+        memory.Release();
+        await first.WaitAsync(TimeSpan.FromSeconds(10));
 
         Assert.Equal(4321, row.Entry.ProcessId.Value);
-        Assert.Equal(ReadOutcome.NotRead, row.Entry.Memory.Outcome);
+        Assert.True(row.Entry.Memory.IsPresent, "The memory was dropped for the old process and never read for the new one.");
+        Assert.Equal(Memory.Of(4321), row.Entry.Memory.Value!.WorkingSet);
         Assert.True(row.Entry.Signature.IsPresent, "The file's answer does not depend on the process and should have been kept.");
+    }
+
+    /// <summary>
+    /// A failure belongs to the entry that failed. Opening another entry while that reading is out
+    /// must not dress the new one in it (review of PR #16, case one).
+    /// </summary>
+    [Fact]
+    public async Task A_failure_is_said_for_the_entry_that_failed_and_not_for_the_next()
+    {
+        var inspector = new Inspector { FailsFor = File };
+        var other = Rows.Entry("Dnscache") with { BinaryFile = Reading<string>.Present(@"C:\windows\system32\svchost.exe") };
+        var model = new MainViewModel(new LiveMachine(Entry(), other), new SteppedClock(), inspector, new Memory());
+        await model.LoadAsync();
+        var failing = model.Rows.Single(row => row.ServiceName == "Spooler");
+        var next = model.Rows.Single(row => row.ServiceName == "Dnscache");
+
+        inspector.Hold();
+        model.Chosen.Row = failing;
+        model.Chosen.Show();
+        var first = model.Chosen.CatchingUp;
+
+        model.Chosen.Row = next;
+        model.Chosen.Show();
+
+        inspector.Release();
+        await first.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.True(next.Entry.Signature.IsPresent);
+        Assert.Equal(string.Empty, model.Chosen.Notice);
+    }
+
+    /// <summary>
+    /// And the failure stays said when the panel is opened on that entry again - the reading is not
+    /// tried twice in one listing, so without the sentence the lines would say "not read" as though
+    /// nobody had tried (review of PR #16, case two).
+    /// </summary>
+    [Fact]
+    public async Task A_failure_stays_said_when_the_panel_opens_on_that_entry_again()
+    {
+        var inspector = new Inspector { Fails = true };
+        var model = new MainViewModel(new LiveMachine(Entry()), new SteppedClock(), inspector, new Memory());
+        await model.LoadAsync();
+        var row = model.Rows.Single();
+
+        await Open(model, row);
+        await Open(model, row);
+
+        Assert.Equal(1, inspector.Asked);
+        Assert.Contains("The file vanished mid-read", model.Chosen.Notice, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -207,6 +268,9 @@ public sealed class PanelReadingTests
 
         internal bool Fails { get; init; }
 
+        /// <summary>Fails for this one file only, so two entries can tell their failures apart.</summary>
+        internal string FailsFor { get; init; } = string.Empty;
+
         internal void Hold() => _gate.Reset();
 
         internal void Release() => _gate.Set();
@@ -216,7 +280,9 @@ public sealed class PanelReadingTests
             Interlocked.Increment(ref _asked);
             _gate.Wait(TimeSpan.FromSeconds(10));
 
-            return Fails ? throw new System.IO.IOException("The file vanished mid-read.") : Answer;
+            return Fails || string.Equals(file, FailsFor, StringComparison.OrdinalIgnoreCase)
+                ? throw new System.IO.IOException("The file vanished mid-read.")
+                : Answer;
         }
 
         public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("1.0.0.0");
@@ -224,9 +290,28 @@ public sealed class PanelReadingTests
         public Reading<string> ReadHash(string file) => Reading<string>.Present(new string('a', 64));
     }
 
+    /// <summary>A memory reader whose figure says which process it was read for, and which can hold its second answer.</summary>
     private sealed class Memory : IProcessMemoryReader
     {
-        public Reading<ProcessMemory> Read(int processId) =>
-            Reading<ProcessMemory>.Present(new ProcessMemory(1024, 2048, 1));
+        private readonly ManualResetEventSlim _gate = new(initialState: false);
+        private int _asked;
+
+        internal static long Of(int processId) => processId * 1024L;
+
+        internal int Asked => Volatile.Read(ref _asked);
+
+        internal bool HoldTheSecond { get; init; }
+
+        internal void Release() => _gate.Set();
+
+        public Reading<ProcessMemory> Read(int processId)
+        {
+            if (Interlocked.Increment(ref _asked) >= 2 && HoldTheSecond)
+            {
+                _gate.Wait(TimeSpan.FromSeconds(10));
+            }
+
+            return Reading<ProcessMemory>.Present(new ProcessMemory(Of(processId), 2048, 1));
+        }
     }
 }

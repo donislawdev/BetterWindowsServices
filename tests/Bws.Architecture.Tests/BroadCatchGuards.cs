@@ -72,12 +72,14 @@ public sealed class BroadCatchGuards
             "having failed either, because the reading succeeded. THE THIRD TIME THIS GUARD HAS " +
             "CAUGHT A SEAM WITH THE ARGUMENT LEFT BEHIND, and the second in two days.",
 
-        ["Chosen.cs"] =
+        ["Readings.OneEntry.cs"] =
             "The details panel's own reading of one entry, 2026-09-24, UX-GUI-005 - the same " +
             "argument as the second phase, over one row. Every file answers for itself, so what " +
             "arrives here is the reading failing as a whole. It must not take the window down, and " +
             "it must not leave the lines saying 'not read' as though nobody had tried: the failure " +
-            "becomes the panel's notice, in the system's own words, beside the unread lines."
+            "is kept against the entry it happened to and said by the panel whenever that entry is " +
+            "shown. It stood in Chosen.cs for one commit - the review of PR #16 found the failure " +
+            "following the panel to the next entry, and it moved here, beside the claims it lives with."
     };
 
     [Fact]

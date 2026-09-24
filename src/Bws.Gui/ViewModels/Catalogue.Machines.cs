@@ -116,6 +116,8 @@ public static partial class Catalogue
             Bws.Core.Querying.ExtraRead.Signatures | Bws.Core.Querying.ExtraRead.Memory | Bws.Core.Querying.ExtraRead.RequiredBy;
 
         public Task ReadAsync(EntryRow row, Bws.Core.Querying.ExtraRead families) => new TaskCompletionSource().Task;
+
+        public string FailureOf(EntryRow row) => string.Empty;
     }
 
     /// <summary>

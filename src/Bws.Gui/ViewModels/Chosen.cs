@@ -1,4 +1,3 @@
-using Bws.Core;
 using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
@@ -15,8 +14,11 @@ internal interface IEntryReads
     /// </summary>
     ExtraRead Claim(EntryRow row);
 
-    /// <summary>Reads those families for this one entry and puts them into its row.</summary>
+    /// <summary>Reads those families for this one entry and puts them into its row. Never throws - a failure is kept for <see cref="FailureOf"/>.</summary>
     Task ReadAsync(EntryRow row, ExtraRead families);
+
+    /// <summary>Why the reading of this entry failed in the current listing, in the system's words, or nothing.</summary>
+    string FailureOf(EntryRow row);
 }
 
 /// <summary>
@@ -44,7 +46,6 @@ public sealed class Chosen : Observable
     private EntryRow? _row;
     private bool _showing;
     private bool _gone;
-    private string _failed = string.Empty;
     private IReadOnlyList<DetailSection> _sections = [];
 
     /// <summary>A panel that reads nothing of its own - what a test of the panel alone needs.</summary>
@@ -136,26 +137,19 @@ public sealed class Chosen : Observable
 
     /// <summary>
     /// The sentence about the whole panel: the entry has gone, or - since 2026-09-24 - the panel's
-    /// own reading failed. Gone first, because a failure to read an entry that no longer exists is
-    /// not the news.
+    /// own reading of THIS entry failed. Gone first, because a failure to read an entry that no
+    /// longer exists is not the news. Rule 8: the lines stay "not read", which is true, and this
+    /// says it was tried rather than letting them imply nobody looked.
+    ///
+    /// <b>Asked of the readings for the entry on screen, since the review of PR #16</b> - a failure
+    /// held here belonged to the panel rather than to the entry, so it followed the panel to the next
+    /// entry and was gone when the failed one was opened again. See Readings._failures.
     /// </summary>
     public string Notice => Gone
         ? Texts.Of("gui.details.gone")
-        : _failed.Length == 0 ? string.Empty : Texts.Of("gui.details.readFailed", _failed);
-
-    /// <summary>
-    /// Why the panel's own reading failed, in the system's words, or nothing. Rule 8 - the lines
-    /// stay "not read", which is true, and this says it was tried rather than letting them imply
-    /// nobody looked.
-    /// </summary>
-    private string Failed
-    {
-        set
-        {
-            _failed = value;
-            Raise(nameof(Notice));
-        }
-    }
+        : _followed is { } row && _reads?.FailureOf(row) is { Length: > 0 } why
+            ? Texts.Of("gui.details.readFailed", why)
+            : string.Empty;
 
     /// <summary>
     /// The name of the shown entry, which is the identity rather than the label - `ADR-14`.
@@ -191,7 +185,6 @@ public sealed class Chosen : Observable
         // listing showed the new entry under "This entry is no longer in the listing". The entry
         // somebody just pressed Enter on is on the list, which is what Gone denies.
         Gone = false;
-        Failed = string.Empty;
 
         Follow(row);
 
@@ -239,7 +232,7 @@ public sealed class Chosen : Observable
 
         Showing = false;
         Gone = false;
-        Failed = string.Empty;
+        Raise(nameof(Notice));
 
         return true;
     }
@@ -315,9 +308,9 @@ public sealed class Chosen : Observable
 
     /// <summary>
     /// The panel's own reading, while one is out - finished otherwise. Kept rather than started and
-    /// walked away from, which BackgroundWorkGuards forbids: the key that opened the panel awaits
-    /// it, a test awaits it, and it cannot fault, because <see cref="CatchUpAsync"/> turns every
-    /// failure into the sentence in <see cref="Notice"/>.
+    /// walked away from, which BackgroundWorkGuards forbids: the tests and the component catalogue
+    /// await it, and it cannot fault, because the readings keep every failure as a sentence about
+    /// the entry it happened to - see <see cref="Notice"/>.
     /// </summary>
     internal Task CatchingUp { get; private set; } = Task.CompletedTask;
 
@@ -380,19 +373,12 @@ public sealed class Chosen : Observable
             _readingFor = row;
             Rebuild();
 
+            // No catch here: the readings keep a failure against the entry it happened to, and the
+            // notice asks for it - see Notice.
             try
             {
                 await _reads.ReadAsync(row, owed).ConfigureAwait(true);
             }
-#pragma warning disable CA1031
-            // Broad, for the reason the second phase gives at its own catch: every file answers for
-            // itself, so what arrives here is the reading failing as a whole - and it must neither take
-            // the window down nor leave the panel implying that nobody tried.
-            catch (Exception failure)
-            {
-                Failed = string.Join(" ", Causes.Of(failure));
-            }
-#pragma warning restore CA1031
             finally
             {
                 _reading = ExtraRead.None;
@@ -426,5 +412,6 @@ public sealed class Chosen : Observable
 
         Raise(nameof(ShownName));
         Raise(nameof(ShownLabel));
+        Raise(nameof(Notice));
     }
 }

@@ -88,14 +88,14 @@
             layout rule, written once, and nothing else in the product has a column like it.
         -->
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="{StaticResource ShareList}" />
             <ColumnDefinition>
                 <ColumnDefinition.Style>
                     <Style TargetType="ColumnDefinition">
                         <Setter Property="Width" Value="Auto" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Chosen.Showing}" Value="True">
-                                <Setter Property="Width" Value="*" />
+                                <Setter Property="Width" Value="{StaticResource ShareDetailsPanel}" />
                                 <Setter Property="MinWidth" Value="{StaticResource WidthDetailsPanelLeast}" />
                                 <Setter Property="MaxWidth" Value="{StaticResource WidthDetailsPanelMost}" />
                             </DataTrigger>
