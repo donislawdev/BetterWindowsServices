@@ -75,6 +75,9 @@ public static partial class Catalogue
         /// </summary>
         internal MainViewModel ChoseGone { get; init; } = null!;
 
+        /// <summary>The details panel with its own reading still out - the panel's loading state.</summary>
+        internal Chosen ChoseReading { get; init; } = null!;
+
         internal MainViewModel WithPlan { get; init; } = null!;
 
         internal MainViewModel WithRefusedPlan { get; init; } = null!;
@@ -115,14 +118,11 @@ public static partial class Catalogue
         var wrong = Over(new Refusing(), clock);
         var narrowed = Over(new Frozen(Specimens()), clock);
         var lit = Over(new Frozen(Specimens()), clock);
-        var choseOrdinary = Over(new Frozen(Specimens()), clock);
-        var choseDriver = Over(new Frozen(Specimens()), clock);
-        var choseLongest = Over(new Frozen(Specimens()), clock);
-        var choseGone = Over(new Frozen(Specimens()), clock);
         var planned = Over(new Frozen(Specimens()), clock);
         var plannedInVain = Over(new Frozen(Specimens()), clock);
         var plannedInBulk = Over(new Frozen(Specimens()), clock);
         var (mistaken, qualified, unelevated) = await PrepareSentencesAsync(clock).ConfigureAwait(false);
+        var panels = await PreparePanelsAsync(clock).ConfigureAwait(false);
 
         // THE LOADING ONE IS STARTED AND NOT AWAITED HERE. Its read waits on the gate until the
         // sheet is done, which is the whole point of it: the model is in the state between asking
@@ -132,13 +132,13 @@ public static partial class Catalogue
         var loading = Over(new Stalled(stalling), clock);
         var stillReading = loading.LoadAsync();
 
-        foreach (var model in new[] { data, empty, wrong, narrowed, lit, choseOrdinary, choseDriver, choseLongest, choseGone, planned, plannedInVain, plannedInBulk })
+        foreach (var model in new[] { data, empty, wrong, narrowed, lit, planned, plannedInVain, plannedInBulk })
         {
             await model.LoadAsync().ConfigureAwait(false);
         }
 
         // Each one opened out to the whole machine, so a driver is on the list a view is over.
-        foreach (var model in new[] { data, empty, narrowed, lit, choseOrdinary, choseDriver, choseLongest, choseGone, planned, plannedInVain, plannedInBulk })
+        foreach (var model in new[] { data, empty, narrowed, lit, planned, plannedInVain, plannedInBulk })
         {
             model.Scope = EntryScope.Everything;
         }
@@ -146,20 +146,6 @@ public static partial class Catalogue
         narrowed.QueryText = "name:nothing-on-this-machine-is-called-this";
         lit.QueryText = "status:running";
         lit.ShowingEveryInstance = true;
-
-        // Chosen AND shown: picking a row does not open the panel in the product either -
-        // `docs/11` opens with the sentence that the list is for searching - so the panel is asked
-        // to show the way Enter or a double click asks it.
-        foreach (var (model, name) in new[] { (choseOrdinary, "Spooler"), (choseDriver, "disk"), (choseLongest, LongestSpecimen().ServiceName), (choseGone, "Spooler") })
-        {
-            model.Chosen.Row = model.Rows.Single(row => row.ServiceName == name);
-            model.Chosen.Show();
-        }
-
-        // The entry the panel follows is asked about against a listing that no longer holds it -
-        // which is what the window asks once a second, through the same call, when a service is
-        // deleted or an update removes it. Rule 8's own state, drawn where somebody can see it.
-        choseGone.Chosen.StillIn([]);
 
         // A plan that can be carried out, one the builder refuses - a driver cannot be stopped
         // from here, PlanBuilder says so with a problem rather than a step - and one across the
@@ -176,10 +162,11 @@ public static partial class Catalogue
             Wrong = wrong,
             Narrowed = narrowed,
             Lit = lit,
-            ChoseOrdinary = choseOrdinary,
-            ChoseDriver = choseDriver,
-            ChoseLongest = choseLongest,
-            ChoseGone = choseGone,
+            ChoseOrdinary = panels.Ordinary,
+            ChoseDriver = panels.Driver,
+            ChoseLongest = panels.Longest,
+            ChoseGone = panels.Gone,
+            ChoseReading = panels.Reading,
             WithPlan = planned,
             WithRefusedPlan = plannedInVain,
             WithBulkPlan = plannedInBulk,
@@ -187,6 +174,51 @@ public static partial class Catalogue
             Qualified = qualified,
             Unelevated = unelevated
         };
+    }
+
+    /// <summary>
+    /// The models the details panel is drawn over, and the one panel whose reading is still out -
+    /// out of <see cref="PrepareViewsAsync"/> on 2026-09-24, when the panel began reading for itself
+    /// (UX-GUI-005) and brought a loading state and an await with it into a method already near the
+    /// ceiling of length.
+    ///
+    /// <b>They read the way the product does</b> - with an inspector and a memory reader that answer
+    /// at once - because the product always has something to read with, and a specimen without one
+    /// would show "not read" beside a signature, which the product now shows only for a file on
+    /// another machine.
+    /// </summary>
+    private static async Task<(MainViewModel Ordinary, MainViewModel Driver, MainViewModel Longest, MainViewModel Gone, Chosen Reading)> PreparePanelsAsync(IClock clock)
+    {
+        var chosen = new[] { "Spooler", "disk", LongestSpecimen().ServiceName, "Spooler" }
+            .Select(name => (Model: new MainViewModel(new Frozen(Specimens()), clock, new Vouching(), new Measuring()), Name: name))
+            .ToArray();
+
+        // Chosen AND shown: picking a row does not open the panel in the product either -
+        // `docs/11` opens with the sentence that the list is for searching - so the panel is asked
+        // to show the way Enter or a double click asks it. Opened out to the whole machine first,
+        // so a driver is on the list, and the panel's own reading awaited, so the data state is the
+        // one with the answers in.
+        foreach (var (model, name) in chosen)
+        {
+            await model.LoadAsync().ConfigureAwait(false);
+            model.Scope = EntryScope.Everything;
+            model.Chosen.Row = model.Rows.Single(row => row.ServiceName == name);
+            model.Chosen.Show();
+
+            await model.Chosen.CatchingUp.ConfigureAwait(false);
+        }
+
+        // The entry the panel follows is asked about against a listing that no longer holds it -
+        // which is what the window asks once a second, through the same call, when a service is
+        // deleted or an update removes it. Rule 8's own state, drawn where somebody can see it.
+        chosen[3].Model.Chosen.StillIn([]);
+
+        // THE PANEL WHILE ITS READING IS OUT - the loading state it has had since 2026-09-24. A real
+        // panel whose reading is asked and never answered.
+        var reading = new Chosen(new NeverAnswering()) { Row = EntryRow.Of(Specimens().Single(entry => entry.ServiceName == "Spooler")) };
+        reading.Show();
+
+        return (chosen[0].Model, chosen[1].Model, chosen[2].Model, chosen[3].Model, reading);
     }
 
     /// <summary>
@@ -270,7 +302,7 @@ public static partial class Catalogue
                 data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
 
             View(() => new DetailsView(),
-                data: ready.ChoseOrdinary.Chosen, wrong: ready.ChoseGone.Chosen, extreme: ready.ChoseLongest.Chosen),
+                data: ready.ChoseOrdinary.Chosen, wrong: ready.ChoseGone.Chosen, loading: ready.ChoseReading, extreme: ready.ChoseLongest.Chosen),
 
             // A driver has no account, no process and no trigger, so its details panel is a
             // different shape - the sheet shows it, keyed by what it is.

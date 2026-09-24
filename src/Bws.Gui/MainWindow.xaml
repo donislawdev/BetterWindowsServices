@@ -74,11 +74,35 @@
             TWO COLUMNS SINCE 2026-08-13, and only the list row is divided. The question, the
             filters and what the window admits about the answer are about the whole listing, so
             they span both - the panel is about ONE entry and stands beside the rows rather than
-            beside the search box. Auto, so a closed panel costs nothing at all.
+            beside the search box. Auto while the panel is closed, so a closed panel costs nothing.
+
+            A THIRD OF THE WINDOW FOR AN OPEN PANEL, SINCE 2026-09-24 - UX-GUI-012, variant C, owner's
+            decision. The panel held a fixed 380 points before: a third of the window it opens at,
+            where it cut four of the list's five columns, and a narrow strip beside a thousand pixels
+            of empty list on a maximised one. A share with two named limits follows the window
+            instead, and the style says it only while the panel is open - a star column holds its
+            share with nothing in it, so a closed panel has to be Auto to give the width back.
+
+            HERE RATHER THAN IN A THEME FILE, because a theme style is a component the catalogue has
+            to draw in its states, and a column definition draws nothing - it is this window's
+            layout rule, written once, and nothing else in the product has a column like it.
         -->
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition>
+                <ColumnDefinition.Style>
+                    <Style TargetType="ColumnDefinition">
+                        <Setter Property="Width" Value="Auto" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Chosen.Showing}" Value="True">
+                                <Setter Property="Width" Value="*" />
+                                <Setter Property="MinWidth" Value="{StaticResource WidthDetailsPanelLeast}" />
+                                <Setter Property="MaxWidth" Value="{StaticResource WidthDetailsPanelMost}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ColumnDefinition.Style>
+            </ColumnDefinition>
         </Grid.ColumnDefinitions>
 
         <!--

@@ -77,6 +77,17 @@ public partial class MainWindow
 
         kept.Watch(this, Entries, _columns, _model.Says);
 
+        // THE PANEL TAKES THE PROSE COLUMNS OFF THE LIST WHILE IT IS OPEN - UX-GUI-012, owner's
+        // decision of 2026-09-24. Told here because this is the one place holding the bar and the
+        // model at once. The bar decides which columns and never the last one - ColumnBar.Rethink.
+        _model.Chosen.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName == nameof(Chosen.Showing))
+            {
+                _columns.PanelOpen = _model.Chosen.Showing;
+            }
+        };
+
         // ANOTHER LIST MEANS ANOTHER SET OF COLUMNS, since 2026-08-19. A driver has no process
         // identifier and almost never an account - measured, 0 and 3 out of 472 - so one layout
         // serving both spends three columns of the longer list on emptiness.

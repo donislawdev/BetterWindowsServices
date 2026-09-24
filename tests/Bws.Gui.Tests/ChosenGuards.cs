@@ -83,9 +83,9 @@ public sealed class ChosenGuards
         Assert.Equal("Spooler", chosen.ShownName);
         Assert.Equal("Print Spooler", chosen.ShownLabel);
 
-        // Five, and the count is asserted whole rather than "more than none": four groups of the
-        // column picker plus the one naming what this window did not read. A group quietly
-        // disappearing is exactly the shape that would leave a panel looking complete.
+        // Four, and the count is asserted whole rather than "more than none": the four groups of
+        // the column picker. A group quietly disappearing is exactly the shape that would leave a
+        // panel looking complete.
         Assert.Equal(4, chosen.Sections.Count);
     }
 

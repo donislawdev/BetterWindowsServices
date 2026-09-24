@@ -144,20 +144,28 @@ public sealed class DetailsGuards
             Assert.Equal(column!.Reads(entry), line.Value);
         }
 
-        // A NOTE UNDER EXACTLY THE SECTIONS WITH A LINE NOBODY HAS ASKED FOR YET, since 2026-09-16
-        // - and none anywhere else. The specimen leaves the second phase unread, so Basics (memory)
-        // and What it runs (signature, publisher, version, hash) and Advanced (required by) carry
-        // it, and About the entry does not. Asserted both ways, because a note on every section
-        // would be the old apology back under a new name.
-        foreach (var section in sections)
-        {
-            var unread = section.Lines.Any(line => line.Outcome == ReadOutcome.NotRead);
+        // NO NOTE OVER A FILE ON THIS MACHINE, since 2026-09-24. From 2026-09-16 every section with
+        // an unread line said "the window reads a field when its column is turned on" - which
+        // stopped being true when the panel began reading for itself (UX-GUI-005). An unread line
+        // on a local file is a reading not yet back, and the line itself says so.
+        Assert.All(sections, section => Assert.Equal(string.Empty, section.Note));
+    }
 
-            Assert.Equal(unread ? Texts.Of("gui.details.notRead.note") : string.Empty, section.Note);
-        }
+    /// <summary>
+    /// A file on another machine is the one reason a signature line stays unread after the panel
+    /// has read - the window does not reach over the network - and only there, and only under the
+    /// section holding the signature, does the panel say so.
+    /// </summary>
+    [Fact]
+    public void A_file_on_another_machine_is_the_one_unread_the_panel_explains()
+    {
+        var entry = Rows.Entry("Spooler") with { BinaryFile = Reading<string>.Present(@"\\server\share\spoolsv.exe") };
+        var sections = Details.Shown(entry);
 
-        Assert.Contains(sections, section => section.Note.Length > 0);
-        Assert.Contains(sections, section => section.Note.Length == 0);
+        var noted = Assert.Single(sections, section => section.Note.Length > 0);
+
+        Assert.Equal(Texts.Of(Columns.Binary), noted.Heading);
+        Assert.Equal(Texts.Of("gui.details.notRead.network"), noted.Note);
     }
 
     /// <summary>

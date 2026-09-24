@@ -70,7 +70,14 @@ public sealed class BroadCatchGuards
             "arriving at the catch is the pass itself failing while the list on screen is already " +
             "good. It must not take the window down, and it must not be reported as the reading " +
             "having failed either, because the reading succeeded. THE THIRD TIME THIS GUARD HAS " +
-            "CAUGHT A SEAM WITH THE ARGUMENT LEFT BEHIND, and the second in two days."
+            "CAUGHT A SEAM WITH THE ARGUMENT LEFT BEHIND, and the second in two days.",
+
+        ["Chosen.cs"] =
+            "The details panel's own reading of one entry, 2026-09-24, UX-GUI-005 - the same " +
+            "argument as the second phase, over one row. Every file answers for itself, so what " +
+            "arrives here is the reading failing as a whole. It must not take the window down, and " +
+            "it must not leave the lines saying 'not read' as though nobody had tried: the failure " +
+            "becomes the panel's notice, in the system's own words, beside the unread lines."
     };
 
     [Fact]

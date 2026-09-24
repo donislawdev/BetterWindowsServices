@@ -324,14 +324,21 @@
     <system:Double x:Key="WidthOverviewFindings">1080</system:Double>
 
     <!--
-        THE PANEL ABOUT ONE ENTRY, and this number stood in DetailsView.xaml from 2026-08-13 until
-        2026-09-16 with a paragraph explaining that it had nowhere to live: this file was on the
-        markup ceiling the day the panel was built. It has room now, so the one deviation that
-        paragraph confessed to is closed. Fixed rather than shared with the content, for the reason
-        the panel gives at its head: a description of 1251 characters would make a panel as wide as
-        the screen, and the list is what the window is for.
+        THE PANEL ABOUT ONE ENTRY TAKES A THIRD OF THE WINDOW BETWEEN THESE TWO, since 2026-09-24 -
+        UX-GUI-012, owner's decision, variant C. It was one fixed WidthDetailsPanel of 380 before,
+        measured the same day as a third of the window it opens at (four of five list columns cut)
+        and a seventh of a maximised one. Still never sized by its content, for the reason it always
+        had: a description of 1251 characters would make a panel as wide as the screen.
+
+        BOTH LIMITS ARE A JUDGEMENT, NOT A MEASUREMENT, and are said to be one. Photographed on
+        Spooler: at the lower limit, on the window's floor of 1350 by 960 device pixels, the panel
+        is 478 pixels wide and the description wraps to four lines. At the upper limit, on a 3840
+        pixel screen, it is 838 wide and shows the first three groups whole and most of Advanced
+        without scrolling, where 380 showed about three quarters of the panel. Nobody measured
+        where a line gets too long to read.
     -->
-    <system:Double x:Key="WidthDetailsPanel">380</system:Double>
+    <system:Double x:Key="WidthDetailsPanelLeast">320</system:Double>
+    <system:Double x:Key="WidthDetailsPanelMost">560</system:Double>
 
     <!--
         TWO LINES OF THE PANEL'S TITLE, AND NOT THREE. The display name wraps under this and ends

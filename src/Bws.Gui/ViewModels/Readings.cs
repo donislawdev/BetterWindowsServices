@@ -243,6 +243,7 @@ internal sealed partial class Readings
         _everRead = true;
 
         _index.Absorb(entries);
+        TookAWholeList();
         _settled();
 
         await FillAsync(entries).ConfigureAwait(true);
