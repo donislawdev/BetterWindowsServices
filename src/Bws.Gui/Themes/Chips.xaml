@@ -229,9 +229,10 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
+            <!-- No tooltip of its own since 2026-09-24 (UX-GUI-017): the rules for every row are
+                 one sentence on the Filters switch, rather than the same sentence five times. -->
             <TextBlock Grid.Column="0"
                        Text="{Binding Label}"
-                       ToolTip="{Binding Hint}"
                        Margin="{StaticResource MarginBetweenControls}"
                        VerticalAlignment="Center"
                        Style="{StaticResource SubduedText}" />

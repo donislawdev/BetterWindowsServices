@@ -51,20 +51,17 @@ public partial class ActionBar : UserControl
     /// <b>The words come from CellFaces.SettingLabel</b>, the one place the cell, this menu, the
     /// step and the button name a setting - so "Automatic (delayed)" here is the letters a delayed
     /// entry wears in the list.
+    ///
+    /// <b>Filled by <see cref="StartSettingChoice.Offer"/> since 2026-09-24</b>, which fills the
+    /// same four under "Set startup type" on a row - UX-GUI-018.
     /// </summary>
-    private void OfferTheSettings()
-    {
-        var style = (Style)FindResource("RowMenuItem");
-
-        foreach (var setting in Enum.GetValues<StartSetting>())
+    private void OfferTheSettings() =>
+        StartSettingChoice.Offer(StartTypeMenu, (Style)FindResource("RowMenuItem"), setting =>
         {
-            var item = new MenuItem { DataContext = new StartSettingChoice(setting), Style = style };
+            StartTypeRequest?.Invoke(this, new StartTypeAsked(setting));
 
-            item.Click += (_, _) => StartTypeRequest?.Invoke(this, new StartTypeAsked(setting));
-
-            StartTypeMenu.Items.Add(item);
-        }
-    }
+            return Task.CompletedTask;
+        });
 
     /// <summary>
     /// Whether carrying out what these buttons ask for needs administrator rights this session does
@@ -240,26 +237,6 @@ public partial class ActionBar : UserControl
     /// the whole argument.
     /// </summary>
     private void StartTypeAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(StartTypeButton);
-}
-
-/// <summary>
-/// One startup setting as the menu offers it: what it writes, and what it is called on screen.
-///
-/// <b>Label and Gesture are the two names RowMenuItem binds</b>, so this wears the row menu's style
-/// rather than a copy of it - GUI rule 2, the variant made by the data rather than by a second file.
-/// A setting has no key of its own, so Gesture is empty, which the template draws as nothing.
-/// </summary>
-public sealed class StartSettingChoice
-{
-    internal StartSettingChoice(StartSetting setting) => Setting = setting;
-
-    internal StartSetting Setting { get; }
-
-    /// <summary>What the item says - the same letters the cell of such an entry says.</summary>
-    public string Label => ViewModels.CellFaces.SettingLabel(Setting);
-
-    /// <summary>No key does this, so nothing is written beside the label.</summary>
-    public string Gesture => string.Empty;
 }
 
 /// <summary>Which of the five somebody asked to see the effects of.</summary>

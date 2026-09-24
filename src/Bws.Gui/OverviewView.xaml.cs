@@ -61,9 +61,18 @@ public partial class OverviewView : UserControl
             return;
         }
 
-        // The query is deliberately left alone. Somebody who presses this has not asked anything,
-        // so putting a question in the box on their way out would be the window deciding what they
-        // meant - and they would then have to undo it to see the machine.
+        // THE BOX IS CLEARED, SINCE 2026-09-24 - UX-GUI-015 (c), owner's decision, and it is the
+        // same argument that used to leave it alone. Somebody who presses this has not asked
+        // anything, so what they get is the machine rather than a question. Leaving the box alone
+        // kept that promise only while the box was empty, which it always was on a first run - but
+        // the Overview button on the action bar brings this screen back over a list that may
+        // still hold the last number somebody clicked, and this button then opened on "3 of 334".
+        // The price, said rather than left to be found: a query typed before Overview is gone.
+        //
+        // Before the screen goes away rather than after, so the keyboard that follows the screen
+        // out (MainWindow.Overview.cs) lands in a box that is already empty.
+        model.ClearQuery();
+
         model.ShowingOverview = false;
 
         Finished?.Invoke(this, EventArgs.Empty);

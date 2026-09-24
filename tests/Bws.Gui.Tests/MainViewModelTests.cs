@@ -657,7 +657,7 @@ public sealed class MainViewModelTests
                      "gui.status.tooCostly.many", "gui.status.holding", "gui.cell.unknown",
                      "gui.cell.noAccess", "gui.search.hint.services", "gui.search.hint.drivers", "gui.search.hint.all",
                      "gui.filter.group.state", "gui.filter.group.start", "gui.filter.group.about",
-                     "gui.filter.hint.adds", "gui.filter.hint.narrows", "gui.query.unreadSignatures",
+                     "gui.filter.toggle.hint", "gui.query.unreadSignatures",
                      "gui.query.unreadMemory", "gui.query.unknownField", "gui.query.unknownValue",
                      "gui.query.unknownValueNearest", "gui.query.badPattern",
                      "gui.query.unclosedQuote", "gui.query.badNumber", "gui.query.badSize"

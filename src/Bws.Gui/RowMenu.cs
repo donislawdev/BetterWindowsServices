@@ -48,6 +48,26 @@ public sealed class RowMenuEntry
 
     /// <summary>What pressing it does. Already finished for the items that do their work on the spot.</summary>
     internal Func<Task> Act { get; }
+
+    /// <summary>
+    /// An item that holds the four startup settings under it rather than doing anything itself -
+    /// UX-GUI-018, 2026-09-24. The menu on a row had five of the action bar's six verbs, and the
+    /// missing one is the one that asks WHICH setting before it can open a plan, so on a row it is
+    /// a submenu, as the bar's is a menu under its button.
+    ///
+    /// <b>A constructor rather than a named factory, and TextKeyGuards is what decided that</b> -
+    /// it counts a key as used where it follows <c>new RowMenuEntry(</c>, and the factory this was
+    /// first written as left the key looking unused. The lesson package 6 paid for with the links
+    /// file, met again the next evening.
+    /// </summary>
+    internal RowMenuEntry(string labelKey, Func<StartSetting, Task> chosen)
+        : this(labelKey, null, () => Task.CompletedTask) => Settings = chosen;
+
+    /// <summary>
+    /// What choosing one of the four startup settings under this item does - or nothing, for every
+    /// item that does its work itself.
+    /// </summary>
+    internal Func<StartSetting, Task>? Settings { get; }
 }
 
 /// <summary>
@@ -79,17 +99,20 @@ internal static class RowMenu
 {
     /// <summary>
     /// What the menu offers, in the order it is offered: the one thing Enter does, then the four
-    /// copies, then the five previews.
+    /// copies, then the six verbs of the action bar.
     ///
     /// <b>"Show details" first, because it is the item the default gesture stands for.</b> Windows
     /// puts the action a double click performs at the top of a list's menu, and this menu's double
     /// click and Enter both open the panel - so the item that names them is where a person looks
     /// for it first.
     ///
-    /// <b>The previews still open a plan and nothing else</b> - the reasoning that stood beside
-    /// them in the markup, worded as questions rather than verbs since 2026-08-19: an item called
-    /// "Stop" would be a lie to somebody's hand, because what changed that day is that the plan has
-    /// a button under it, not that the menu acts.
+    /// <b>The verbs still open a plan and nothing else, and since 2026-09-24 they say it the way
+    /// the action bar does</b> - UX-GUI-018, owner's decision. From 2026-08-19 they were questions,
+    /// "What stopping would do", because an item called "Stop" would be a lie to somebody's hand.
+    /// The bar answered the same worry with three dots, the mark Windows has used since the eighties
+    /// for "this asks before it acts", and the audit found the two wordings reading as two different
+    /// actions. So both places say "Stop..." now, from the same key - one name per verb, changed in
+    /// one place.
     /// </summary>
     internal static IReadOnlyList<IReadOnlyList<RowMenuEntry>> GroupsFor(MainWindow window) =>
     [
@@ -112,17 +135,23 @@ internal static class RowMenu
             new RowMenuEntry("gui.menu.copyAll", "gui.menu.copyAll.gesture", () => Task.FromResult(window.Copy(Copying.Everything)))
         ],
         [
-            new RowMenuEntry("gui.menu.previewStop", null, () => window.Preview(ActionKind.Stop)),
-            new RowMenuEntry("gui.menu.previewStart", null, () => window.Preview(ActionKind.Start)),
-            new RowMenuEntry("gui.menu.previewRestart", null, () => window.Preview(ActionKind.Restart)),
+            new RowMenuEntry("gui.action.stop", null, () => window.Preview(ActionKind.Stop)),
+            new RowMenuEntry("gui.action.start", null, () => window.Preview(ActionKind.Start)),
+            new RowMenuEntry("gui.action.restart", null, () => window.Preview(ActionKind.Restart)),
 
-            // THE TWO PREVIEWS THAT CAN END A PROCESS, 2026-09-16 - backlog 374, the same order
-            // as the action bar. The same question as the three above them, about the plan
-            // `bws kill` builds. They stay live over any selection, because an item has no
-            // tooltip to carry a reason - the refusal for more than one entry lives in Preview
-            // and reaches the status line, which is how every item here reports doing nothing.
-            new RowMenuEntry("gui.menu.previewForceStop", null, () => window.Preview(ActionKind.ForceStop)),
-            new RowMenuEntry("gui.menu.previewForceRestart", null, () => window.Preview(ActionKind.ForceRestart))
+            // THE TWO VERBS THAT CAN END A PROCESS, 2026-09-16 - backlog 374, the same order
+            // as the action bar. The same plan as `bws kill` builds. They stay live over any
+            // selection, because the reason the bar puts on its button has nowhere to stand on
+            // an item - the refusal for more than one entry lives in Preview and reaches the
+            // status line, which is how every item here reports doing nothing.
+            new RowMenuEntry("gui.action.forceStop", null, () => window.Preview(ActionKind.ForceStop)),
+            new RowMenuEntry("gui.action.forceRestart", null, () => window.Preview(ActionKind.ForceRestart)),
+
+            // THE SIXTH, SINCE 2026-09-24 - UX-GUI-018. The same four settings as the bar's menu,
+            // put there by the same method, each one asking Preview the way the bar's does - so a
+            // driver or a load order group is refused here exactly as it is there.
+            new RowMenuEntry("gui.menu.startType", setting =>
+                window.Preview(ActionKind.SetStartType, setting))
         ]
     ];
 
@@ -147,17 +176,40 @@ internal static class RowMenu
 
             foreach (var entry in group)
             {
-                var made = new MenuItem { DataContext = entry, Style = item };
-
-                // The result is not read: what an item did is on the screen or on the clipboard,
-                // and a menu item has nowhere to say that it did nothing. The window says it
-                // through its own status line, as it does for a key press.
-                made.Click += async (_, _) => await entry.Act().ConfigureAwait(true);
-
-                menu.Items.Add(made);
+                menu.Items.Add(Made(entry, item));
             }
         }
 
         return menu;
+    }
+
+    /// <summary>
+    /// One item, carrying its entry as its data context - an action, or a header holding the four
+    /// startup settings.
+    ///
+    /// <b>Its own method since 2026-09-24</b>, when the header arrived and put a third level of
+    /// nesting into the loop above - the depth ratchet asked, and the seam is real: the loop is
+    /// about the shape of the menu, this is about one item.
+    /// </summary>
+    private static MenuItem Made(RowMenuEntry entry, Style item)
+    {
+        var made = new MenuItem { DataContext = entry, Style = item };
+
+        if (entry.Settings is { } chosen)
+        {
+            // A HEADER AND NOT AN ACTION, SO IT GETS NO Click - and that is WPF rather than
+            // tidiness: Click bubbles, so the click on a setting under this item reaches this item
+            // too, and a handler here would run beside the setting's own.
+            StartSettingChoice.Offer(made, item, chosen);
+        }
+        else
+        {
+            // The result is not read: what an item did is on the screen or on the clipboard, and a
+            // menu item has nowhere to say that it did nothing. The window says it through its own
+            // status line, as it does for a key press.
+            made.Click += async (_, _) => await entry.Act().ConfigureAwait(true);
+        }
+
+        return made;
     }
 }

@@ -256,6 +256,20 @@
                 </Grid>
 
                 <!--
+                    WHAT THIS TOOL IS, IN ONE SENTENCE, SINCE 2026-09-24 - UX-GUI-015 (d). The title
+                    says what the SCREEN is and the hint says how to use it, and nothing on the first
+                    screen anybody sees said what the program in front of them does. Body text rather
+                    than the subdued voice of the hint, because it is the first thing to read.
+                -->
+                <TextBlock AutomationProperties.AutomationId="overviewWhat"
+                           Text="{DynamicResource gui.overview.what}"
+                           TextWrapping="Wrap"
+                           MaxWidth="{StaticResource WidthOverview}"
+                           HorizontalAlignment="Left"
+                           Margin="{StaticResource MarginAboveStatus}"
+                           Style="{StaticResource BodyText}" />
+
+                <!--
                     WHAT THE MACHINE READING IS DOING, ON THE SCREEN THAT HAS NO LIST TO SAY IT.
                     Backlog 263.
 

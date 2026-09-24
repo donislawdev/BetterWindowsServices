@@ -223,7 +223,14 @@ internal static class Overview
             // do point at a file that is not there and none of them is automatic. A screen whose
             // number is always zero teaches that the screen is useless, so the promise is kept AND
             // the true finding is shown under it.
-            Line(Texts.Of("gui.overview.fileGone"), $"file:missing {Services}", rows, leading: false, counted)
+            //
+            // THE REST OF THEM RATHER THAN ALL OF THEM, SINCE 2026-09-24 - UX-GUI-015 (b), owner's
+            // decision. It counted every entry with a missing file, the orphans included, so the
+            // card read "0 orphans" over "3 point at a file that is not there" and looked like a
+            // contradiction at first glance. Now the two numbers split the missing files between
+            // them, the way "4 more are per-user templates" sits beside the number it is not part
+            // of. `start:auto` covers the delayed ones too (docs/07), so nothing falls between.
+            Line(Texts.Of("gui.overview.fileGone"), $"file:missing !start:auto {Services}", rows, leading: false, counted)
         ];
     }
 
