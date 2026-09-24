@@ -60,7 +60,8 @@ public sealed class CopyingAndPanelGuards
     }
 
     /// <summary>
-    /// The four menu items the owner asked for, each copying what its own label promises.
+    /// The copy items of the row menu, each copying what its own label promises. Four until
+    /// 2026-09-24, two since - the display name and the description went into "Copy everything".
     ///
     /// <b>Reached by the KEY of their label since 2026-09-15, when the menu became a list.</b>
     /// Until then they were reached by position - the first four - because the headers came from
@@ -84,10 +85,8 @@ public sealed class CopyingAndPanelGuards
         {
             // ASKED OF THE SELECTION RATHER THAN OF THE PANEL SINCE 2026-08-18. A copy is about the
             // rows somebody picked, which is a different set from the one entry the panel shows, and
-            // the four menu items promise the first of those.
+            // the copy items promise the first of those.
             ("gui.menu.copyName", WpfHost.On(() => Copying.Name(Picked(window)))),
-            ("gui.menu.copyDisplayName", WpfHost.On(() => Copying.DisplayName(Picked(window)))),
-            ("gui.menu.copyDescription", WpfHost.On(() => Copying.Description(Picked(window)))),
             ("gui.menu.copyAll", WpfHost.On(() => Copying.Everything(Picked(window))))
         };
 

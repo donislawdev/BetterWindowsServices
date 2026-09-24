@@ -35,16 +35,25 @@ public sealed partial class Planned
     /// worst bug this panel could have - which is why <c>Show</c> drops the old run and why a guard
     /// holds it. Taking the title away after a run would remove the label that makes the pair
     /// readable.
+    ///
+    /// <b>CUT WHERE THE ENTRY'S NAME STANDS SINCE 2026-09-24</b>, so the panel can set the name
+    /// apart from "What stopping ... would do" - owner's decision. <see cref="NamedSentence"/> says
+    /// how, and why the language file still places the name. Several entries have a count rather
+    /// than a name, and nothing to set apart. The whole sentence is its Text.
     /// </summary>
-    public string Heading => _plan is not { } plan
-        ? string.Empty
+    public NamedSentence Heading => _plan is not { } plan
+        ? NamedSentence.Unnamed(string.Empty)
         : _run is null
             ? Asked(plan) == 1
-                ? Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), Named(plan))
-                : Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan))
+                ? NamedSentence.Around(
+                    Texts.Of("gui.plan.heading.one", PlanWords.Doing(plan.Action.Kind), NamedSentence.Slot),
+                    Named(plan))
+                : NamedSentence.Unnamed(Texts.Of("gui.plan.heading.many", PlanWords.Doing(plan.Action.Kind), Asked(plan)))
             : Asked(plan) == 1
-                ? Texts.Of("gui.plan.heading.done.one", PlanWords.Doing(plan.Action.Kind), Named(plan))
-                : Texts.Of("gui.plan.heading.done.many", PlanWords.Doing(plan.Action.Kind), Asked(plan));
+                ? NamedSentence.Around(
+                    Texts.Of("gui.plan.heading.done.one", PlanWords.Doing(plan.Action.Kind), NamedSentence.Slot),
+                    Named(plan))
+                : NamedSentence.Unnamed(Texts.Of("gui.plan.heading.done.many", PlanWords.Doing(plan.Action.Kind), Asked(plan)));
 
     /// <summary>
     /// The manager's own name for the entry, under a title that used the one a person recognises.

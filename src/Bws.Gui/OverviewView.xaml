@@ -109,12 +109,7 @@
                 ending at three heights read as a mistake rather than as three independent things.
                 A row of equal cards is a row, a ragged one is a pile.
             -->
-            <Border Background="{StaticResource SurfacePanel}"
-                    BorderBrush="{StaticResource SurfacePanelEdge}"
-                    BorderThickness="{StaticResource BorderAllSides}"
-                    CornerRadius="{StaticResource CornerTile}"
-                    Margin="{StaticResource MarginTile}"
-                    Padding="{StaticResource PadTile}">
+            <Border Style="{StaticResource OverviewCard}">
                 <StackPanel>
 
                     <Button Style="{StaticResource OverviewNumber}"
@@ -223,8 +218,13 @@
                     The exit must not depend on the height of anything, and the top of a scroll is
                     the one place that holds at every size. Wrapping arrived after, as 277.
 
-                    AND IT DOES NOT WEAR THE ACCENT, backlog 270, truer up here rather than less:
-                    this is the way OFF the screen, not its action.
+                    AND IT WEARS THE ACCENT AGAIN SINCE 2026-09-24, on the owner's words that on a
+                    first run it was hidden in the background. Backlog 270 took the accent off on
+                    2026-09-01 for two reasons. One was a fault - the accent was a local Background
+                    that the library's template beat under the pointer - and PrimaryAction, which
+                    owns its template, cannot repeat it. The other was that the cards are the
+                    content and the way off should be quieter. A first-time user who cannot find
+                    the way to the list is the answer to that.
                 -->
                 <!--
                     THE GRID STRETCHES AND THE TITLE INSIDE IT DOES NOT, which is how the exit ends
@@ -252,6 +252,7 @@
                             Content="{DynamicResource gui.overview.dismiss}"
                             ToolTip="{DynamicResource gui.overview.dismiss.hint}"
                             VerticalAlignment="Center"
+                            Style="{StaticResource PrimaryAction}"
                             Click="Dismiss" />
                 </Grid>
 

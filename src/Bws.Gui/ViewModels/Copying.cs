@@ -30,18 +30,8 @@ internal static class Copying
     /// </summary>
     internal static string? Name(IReadOnlyList<EntryRow> rows) => Joined(rows.Select(row => row.ServiceName));
 
-    /// <summary>The names a person recognises, which is what a ticket takes.</summary>
-    internal static string? DisplayName(IReadOnlyList<EntryRow> rows) =>
-        Joined(rows.Select(row => row.DisplayName));
-
-    /// <summary>
-    /// What the entries say about themselves.
-    ///
-    /// Read through the column catalogue like every other value, so a copy cannot say something the
-    /// column does not - the same rule the details panel rests on.
-    /// </summary>
-    internal static string? Description(IReadOnlyList<EntryRow> rows) =>
-        Joined(rows.Select(row => row["description"]));
+    // THE DISPLAY NAME AND THE DESCRIPTION HAD A COPY EACH UNTIL 2026-09-24, when the owner took
+    // both items off the row menu as too many. Both are still on the clipboard, inside Everything.
 
     /// <summary>
     /// Everything the window knows about each of them.
@@ -61,6 +51,9 @@ internal static class Copying
     ///
     /// <b>An entry with nothing to say is left out rather than pasted as a blank line</b>, so a copy of
     /// five entries where two have no description is three lines rather than five with gaps in it.
+    /// Since 2026-09-24 only names pass through here and a name is never empty, so no test reaches
+    /// that branch any more - it was asked through the description copy, and it is kept for the
+    /// next field copied on its own rather than taken out and forgotten.
     ///
     /// <b>WHAT THIS DOES NOT DO, AND THE FIRST VERSION OF THIS COMMENT CLAIMED IT DID:</b> a value the
     /// tool was REFUSED goes on the clipboard as the same sentence a cell shows, because that is what

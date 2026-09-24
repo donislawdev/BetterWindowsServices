@@ -40,8 +40,6 @@ public sealed class RowMenuGuards
         "gui.menu.details",
         "-",
         "gui.menu.copyName",
-        "gui.menu.copyDisplayName",
-        "gui.menu.copyDescription",
         "gui.menu.copyAll",
         "-",
         "gui.action.stop",
@@ -84,8 +82,11 @@ public sealed class RowMenuGuards
 
         // AND Ctrl+C BESIDE "Copy everything" SINCE 2026-09-24 - UX-GUI-010 found the key named in
         // no text of the window, and that item is what the key does. On the item, for the reason
-        // above.
-        Assert.Equal("Ctrl+C", WpfHost.On(() => ((MenuItem)items[5]).InputGestureText));
+        // above. Found by its key rather than by its place, since the menu lost two copies on
+        // 2026-09-24 and a place is what moves.
+        Assert.Equal("Ctrl+C", WpfHost.On(() => items.OfType<MenuItem>()
+            .Single(item => item.DataContext is RowMenuEntry { LabelKey: "gui.menu.copyAll" })
+            .InputGestureText));
 
         // Every entry has words, and only those two have a key.
         foreach (var entry in WpfHost.On(() => items.OfType<MenuItem>().Select(item => (RowMenuEntry)item.DataContext).ToList()))

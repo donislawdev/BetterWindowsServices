@@ -3,8 +3,8 @@ using System.Windows;
 namespace Bws.Gui;
 
 /// <summary>
-/// The window's half of the Help button: the menu under it, F1, and the two things the menu does
-/// that are not a key press already - UX-GUI-014, owner's decision 2026-09-24.
+/// The window's half of the Help button: the menu under it, F1, and opening the page the menu
+/// offers - UX-GUI-014, owner's decision 2026-09-24.
 ///
 /// <b>A partial of its own because the constructor is at the analyser's length</b>, the reason
 /// MainWindow.Overview.cs gives for the same shape: one line there, and the wiring here. What the
@@ -15,8 +15,7 @@ public partial class MainWindow
     /// <summary>
     /// Hangs the help menu under its button. Called once, from the constructor.
     ///
-    /// <b>Built with the row menu's builder and the row menu's item style</b>, which is what makes
-    /// the key beside each shortcut appear - the style binds InputGestureText, and HelpMenu says why
+    /// <b>Built with the row menu's builder and the row menu's item style</b>, and HelpMenu says why
     /// the entry is the row's.
     /// </summary>
     private void IntroduceTheHelp()
@@ -30,17 +29,6 @@ public partial class MainWindow
     /// the way <see cref="OpenColumns"/> does, so a key press that found no menu is not swallowed.
     /// </summary>
     internal bool OpenHelp() => ButtonMenu.OpenUnder(Scope.Help);
-
-    /// <summary>
-    /// Picks every entry in the list - what Ctrl+A does in the grid, asked of the grid rather than
-    /// done a second way, so the menu item and the key are the same act.
-    /// </summary>
-    internal bool SelectEverything()
-    {
-        Entries.SelectAll();
-
-        return true;
-    }
 
     /// <summary>
     /// Hands one of the project's pages to a browser through <see cref="ExternalLinks"/>, and says

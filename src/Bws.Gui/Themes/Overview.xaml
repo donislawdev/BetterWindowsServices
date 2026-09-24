@@ -108,4 +108,20 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!--
+        ONE CARD'S SURFACE - the fill, the edge, the corner and the room around and inside it.
+        Moved out of OverviewView.xaml on 2026-09-24, when the way off the screen took the primary
+        action's style and the view stood one line over the markup ceiling. It is what the note at
+        the top of this file calls pure appearance with no wiring in it: the card's buttons and
+        their handlers stay in the view's template, and only what the card looks like came here.
+    -->
+    <Style x:Key="OverviewCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CornerTile}" />
+        <Setter Property="Margin" Value="{StaticResource MarginTile}" />
+        <Setter Property="Padding" Value="{StaticResource PadTile}" />
+    </Style>
 </ResourceDictionary>

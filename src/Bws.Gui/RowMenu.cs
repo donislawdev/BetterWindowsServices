@@ -23,25 +23,21 @@ namespace Bws.Gui;
 public sealed class RowMenuEntry
 {
     private readonly string _gestureKey;
-    private readonly Func<string>? _filling;
 
-    /// <param name="filling">
-    /// The one value a label cannot carry in the language file - the help menu's version number,
-    /// since 2026-09-24. Asked each time the label is read, so it is never a copy taken earlier.
-    /// </param>
-    internal RowMenuEntry(string labelKey, string? gestureKey, Func<Task> act, Func<string>? filling = null)
+    // A LABEL WITH A VALUE IN IT (the help menu's version number) had a second parameter here for
+    // one day, 2026-09-24, and went with the version item.
+    internal RowMenuEntry(string labelKey, string? gestureKey, Func<Task> act)
     {
         LabelKey = labelKey;
         _gestureKey = gestureKey ?? string.Empty;
         Act = act;
-        _filling = filling;
     }
 
     /// <summary>The key of its label, which is how a test tells the items apart without reading words.</summary>
     internal string LabelKey { get; }
 
     /// <summary>What the item says, in the language of whoever is reading it.</summary>
-    public string Label => _filling is null ? Texts.Of(LabelKey) : Texts.Of(LabelKey, _filling());
+    public string Label => Texts.Of(LabelKey);
 
     /// <summary>The key that does the same thing, written beside the label - or nothing.</summary>
     public string Gesture => _gestureKey.Length == 0 ? string.Empty : Texts.Of(_gestureKey);
@@ -98,7 +94,7 @@ public sealed class RowMenuEntry
 internal static class RowMenu
 {
     /// <summary>
-    /// What the menu offers, in the order it is offered: the one thing Enter does, then the four
+    /// What the menu offers, in the order it is offered: the one thing Enter does, then the two
     /// copies, then the six verbs of the action bar.
     ///
     /// <b>"Show details" first, because it is the item the default gesture stands for.</b> Windows
@@ -121,9 +117,10 @@ internal static class RowMenu
                 Task.FromResult(window.OpenDetailsOfPointed()))
         ],
         [
+            // TWO COPIES SINCE 2026-09-24, not four - owner's decision, the menu held too many
+            // actions. The display name and the description went: both are in "Copy everything"
+            // below, and the name stays on its own because a script takes it alone.
             new RowMenuEntry("gui.menu.copyName", null, () => Task.FromResult(window.Copy(Copying.Name))),
-            new RowMenuEntry("gui.menu.copyDisplayName", null, () => Task.FromResult(window.Copy(Copying.DisplayName))),
-            new RowMenuEntry("gui.menu.copyDescription", null, () => Task.FromResult(window.Copy(Copying.Description))),
 
             // THE WHOLE ENTRY, AND IT IS WHAT Ctrl+C DOES TOO - owner's request, 2026-08-13.
             // Everything the catalogue knows rather than the columns that happen to be on, because

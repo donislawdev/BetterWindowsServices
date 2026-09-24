@@ -327,7 +327,7 @@ public sealed class PluralGuards
     /// <summary>Everything the panel would put on a screen, as flat lines.</summary>
     private static List<string> Everything(Planned panel) =>
     [
-        panel.Heading,
+        panel.Heading.Text,
         panel.Notice,
         panel.Extra,
         panel.Overlapping,

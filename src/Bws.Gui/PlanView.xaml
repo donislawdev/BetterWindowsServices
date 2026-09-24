@@ -96,11 +96,22 @@
                     203.
                 -->
                 <StackPanel Grid.Column="0" Margin="{StaticResource MarginGroup}">
+                    <!--
+                        THE NAME SET APART SINCE 2026-09-24 - three runs, the middle one wearing
+                        NameInSentence, on one line because whitespace between inlines is a space
+                        on screen. Themes/PlanLines.xaml says the same about the steps.
+
+                        AND THE NAME FOR A SCREEN READER IS BOUND, BECAUSE RUNS TAKE IT AWAY. A
+                        TextBlock built from runs answers Text with an empty string - measured on
+                        the first build of this, where every test reading the title read nothing -
+                        and its automation peer names it from Text. Without this line the title
+                        would be silent to Narrator and to every probe reading it by name.
+                    -->
                     <TextBlock x:Name="PlanHeading"
                                AutomationProperties.AutomationId="planHeading"
-                               Text="{Binding Heading}"
+                               AutomationProperties.Name="{Binding Heading.Text}"
                                TextWrapping="Wrap"
-                               Style="{StaticResource PlanTitleText}" />
+                               Style="{StaticResource PlanTitleText}"><Run Text="{Binding Heading.Before, Mode=OneWay}" /><Run Text="{Binding Heading.Name, Mode=OneWay}" Style="{StaticResource NameInSentence}" /><Run Text="{Binding Heading.After, Mode=OneWay}" /></TextBlock>
 
                     <!--
                         THE MANAGER'S OWN NAME IN THE FIXED FACE SINCE 2026-09-02: this is the

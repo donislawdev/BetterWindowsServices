@@ -91,6 +91,16 @@ public static partial class Catalogue
             return Sample.Of(new TextBlock(link) { TextWrapping = TextWrapping.Wrap, IsEnabled = enabled });
         }
 
+        // A RUN, since 2026-09-24, when an entry's name in the plan panel got a style of its own.
+        // The same reason as the link above: it lives inside text and cannot stand alone. A run
+        // has no disabled state to show, so that column says so rather than drawing it twice.
+        if (target == nameof(System.Windows.Documents.Run))
+        {
+            return enabled
+                ? Sample.Of(new TextBlock(new System.Windows.Documents.Run(text) { Style = style }) { TextWrapping = TextWrapping.Wrap })
+                : Sample.None(NoSuchState);
+        }
+
         FrameworkElement? element = target switch
         {
             nameof(TextBlock) => new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap },

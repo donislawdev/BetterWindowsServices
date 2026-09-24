@@ -56,6 +56,14 @@ internal static class WpfHost
         Thread.Value.Invoke(() => { }, DispatcherPriority.ContextIdle);
 
     /// <summary>
+    /// The words a TextBlock draws, run by run - for a block built from runs, whose Text answers
+    /// with nothing (measured 2026-09-24 on the plan panel's title, PlanView.xaml says it there).
+    /// A block that holds plain Text has one run, so this answers the same for both.
+    /// </summary>
+    internal static string Drawn(System.Windows.Controls.TextBlock block) =>
+        On(() => string.Concat(block.Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text)));
+
+    /// <summary>
     /// Waits until something on the window is true, and fails rather than waiting forever.
     ///
     /// <b>Needed since 2026-09-03, and only where a press starts work off this thread</b> -

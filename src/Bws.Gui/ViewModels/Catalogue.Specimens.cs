@@ -167,7 +167,9 @@ public static partial class Catalogue
             "AgainstStartTypeCell" => (ordinary, EntryRow.Of(entries[6])),
 
             "TrimmedButtonLabel" => ("Stop Print Spooler", "Stop " + LongName + " display name"),
-            "PlanLineTemplate" => (new PlanLine("Stop Print Spooler", asked: true), new PlanLine("Stop " + LongName + " display name, which came along", asked: false)),
+            "PlanLineTemplate" => (
+                new PlanLine(new NamedSentence("1. stop ", "Spooler", " (asked for)"), asked: true),
+                new PlanLine(new NamedSentence("2. stop ", LongName + " display name", ", which came along"), asked: false)),
             "PlanSentenceTemplate" => ("Stopping this will stop the two entries that depend on it as well.", LongDescription),
             "PlanFailureTemplate" => (new PlanFailure("Windows refused to stop it: access is denied (5).", offer: null), new PlanFailure(LongDescription, offer: null)),
 
