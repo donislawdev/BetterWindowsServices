@@ -10,8 +10,8 @@ address from either of us.
 
 ## What is supported
 
-Only the latest version. This project has not made a release yet, so today that means the tip
-of `main`.
+Only the latest release - the one the Releases page marks as *Latest*. A fix goes into the next
+release rather than into an older one.
 
 ## What to expect
 

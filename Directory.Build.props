@@ -136,9 +136,12 @@
     It exists at all because the absence was not neutral. With no Version anywhere the SDK
     stamps 1.0.0.0, so every binary already claimed to be a first release while both
     changelogs held everything under [Unreleased]. A number below one says what is true.
+
+    0.2.0 on 2026-09-24, the owner's decision, for the first release. 0.1.0 was never released:
+    it named the binaries while everything stood under [Unreleased].
   -->
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

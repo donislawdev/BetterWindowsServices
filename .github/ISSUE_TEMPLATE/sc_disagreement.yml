@@ -68,7 +68,7 @@ body:
       label: Version
       description: "`bws --version` prints it - paste the first two lines."
       placeholder: |
-        bws 0.1.0
+        bws 0.2.0
         snapshot schema 4
       render: text
     validations:
