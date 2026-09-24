@@ -121,7 +121,34 @@ public enum PlanWarningKind
     /// keying on `criticalService` keeps working and simply never sees this value on a plan it was
     /// already reading. `docs/02` carries the shape.
     /// </summary>
-    CriticalStartType
+    CriticalStartType,
+
+    /// <summary>
+    /// The entry is running and the plan sets it to Disabled - which stops nothing now.
+    ///
+    /// <b>Glossary pitfall P7 from the side <see cref="ReturnsAfterReboot"/> does not cover, and the
+    /// half spec C4 calls critical.</b> Somebody who says "I disabled the spooler" may have stopped
+    /// it or may have set it to disabled, and the two have opposite effects: this one leaves the
+    /// process running until somebody stops it or the machine restarts. Before 2026-09-24 the plan
+    /// said nothing, and the window would have finished with "the entry is where you asked"
+    /// (UX-GUI-006).
+    ///
+    /// <b>It carries an offer rather than just a sentence</b> - the window puts "Also stop it" under
+    /// it and the command line has --stop - and a plan that already stops the entry does not raise
+    /// it. Only where the state was READ and is not stopped: an unreadable state is not "running".
+    /// Added 2026-09-24, an addition to the public kinds rather than a change to any.
+    /// </summary>
+    KeepsRunning,
+
+    /// <summary>
+    /// The entry is stopped and the plan sets it to start at boot - which starts nothing now.
+    ///
+    /// <b>The mirror of <see cref="KeepsRunning"/>, and it is only a sentence.</b> The audit asked
+    /// for the words and spec C4 asks for an offer only on the stopping side, so starting the entry
+    /// as well is not proposed - that would be this tool adding an ask nobody specified. Only where
+    /// the state was read as stopped. Added 2026-09-24.
+    /// </summary>
+    StartsAtNextBoot
 }
 
 /// <summary>

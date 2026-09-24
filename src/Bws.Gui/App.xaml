@@ -114,6 +114,12 @@
                     theme file split into two on 2026-09-07 rather than either half being new.
                 -->
                 <ResourceDictionary Source="Themes/PlanLines.xaml" />
+                <!--
+                    PlanOffers.xaml between them, 2026-09-24: the lines with a button under them,
+                    split off PlanLines.xaml by the markup ratchet. It extends the copy button
+                    declared in PlanLines.xaml, so it has to come after it.
+                -->
+                <ResourceDictionary Source="Themes/PlanOffers.xaml" />
                 <ResourceDictionary Source="Themes/Plan.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />

@@ -162,7 +162,7 @@ public sealed class ForcedStopViewGuards
         Assert.NotEqual(string.Empty, danger);
         Assert.Equal(danger, said);
         Assert.Same(WpfHost.Resources["DangerText"], style);
-        Assert.DoesNotContain(warnings, warning => danger.Contains(warning, StringComparison.Ordinal));
+        Assert.DoesNotContain(warnings, warning => danger.Contains(warning.Text, StringComparison.Ordinal));
 
         WpfHost.On(window.Close);
     }

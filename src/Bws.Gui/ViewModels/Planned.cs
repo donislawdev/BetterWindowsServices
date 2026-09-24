@@ -205,7 +205,7 @@ public sealed partial class Planned : Checked
                 "gui.plan.step.startType",
                 number,
                 step.ServiceName,
-                CellFaces.TypeLabel(step.To!.Value),
+                CellFaces.SettingLabel(step.To!.Value),
                 PlanWords.Reason(step.Reason))
             : Texts.Of(
                 "gui.plan.step",
@@ -241,10 +241,14 @@ public sealed partial class Planned : Checked
     /// Everything worth knowing before anybody presses anything - except the warnings that make
     /// the ask heavy, which stand in the footer over the confirmation box as <see cref="Danger"/>
     /// since 2026-09-16 and are not repeated here.
+    ///
+    /// <b>Lines rather than strings since 2026-09-24</b>, because one of them can carry the offer to
+    /// stop the entry too - <see cref="PlanWarningLine"/> says why, and why never on a record.
     /// </summary>
-    public IReadOnlyList<string> Warnings => _plan is not { } plan
+    public IReadOnlyList<PlanWarningLine> Warnings => _plan is not { } plan
         ? []
-        : [.. plan.Warnings.Where(warning => !Heavy(warning)).Select(PlanWords.Describe)];
+        : PlanWarningLine.Of(
+            [.. plan.Warnings.Where(warning => !Heavy(warning))], offering: _run is null && !Busy);
 
     /// <summary>
     /// The entries that get no plan at all, and why.

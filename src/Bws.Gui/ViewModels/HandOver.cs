@@ -1,6 +1,5 @@
 using System.Buffers.Text;
 using System.Text.Json;
-using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Gui.ViewModels;
@@ -56,8 +55,20 @@ internal sealed record HandOver
     /// <summary>The plan that was open, if one was - asked again in the new session, never carried.</summary>
     public ActionKind? Asked { get; init; }
 
-    /// <summary>The start type that plan was to write, for a start type plan and nothing else.</summary>
-    public StartType? To { get; init; }
+    /// <summary>
+    /// The startup setting that plan was to write, for a start type plan and nothing else. One of
+    /// the four settings since 2026-09-24 - until then any read-side start type crossed here,
+    /// Boot and System included, and a plan asked again from one would have shown "set to Boot"
+    /// over a write the writer refuses.
+    /// </summary>
+    public StartSetting? To { get; init; }
+
+    /// <summary>
+    /// Whether that plan also stopped the entry - the offer under "keeps running" had been taken.
+    /// Carried because the sheet on the screen had two steps, and asking again without it would
+    /// open a different plan from the one somebody restarted to carry out.
+    /// </summary>
+    public bool AlsoStop { get; init; }
 
     /// <summary>
     /// Whether the picked rows were too many to fit, so they and the plan over them were left out -
@@ -75,7 +86,7 @@ internal sealed record HandOver
 
         return whole.Length <= LongestArgument
             ? whole
-            : Write(this with { Picked = [], Asked = null, To = null, PickedLeftBehind = true });
+            : Write(this with { Picked = [], Asked = null, To = null, AlsoStop = false, PickedLeftBehind = true });
     }
 
     /// <summary>
@@ -116,6 +127,7 @@ internal sealed record HandOver
             Picked = [.. handOver.Picked],
             Asked = handOver.Asked?.ToString(),
             To = handOver.To?.ToString(),
+            Stop = handOver.AlsoStop,
             Left = handOver.PickedLeftBehind
         };
 
@@ -164,22 +176,24 @@ internal sealed record HandOver
             Picked = picked,
             Asked = picked.Length > 0 ? asked : null,
             To = picked.Length > 0 ? to : null,
+            AlsoStop = picked.Length > 0 && wire.Stop,
             PickedLeftBehind = wire.Left
         };
     }
 
     /// <summary>
-    /// The plan that was open, checked: a kind that exists, and a start type exactly when the kind
-    /// is a start type plan - such a plan always has one and no other plan ever does.
+    /// The plan that was open, checked: a kind that exists, a setting exactly when the kind is a
+    /// start type plan - such a plan always has one and no other plan ever does - and a stop riding
+    /// on it only beside Disabled, which is the one shape this window can have put on the screen.
     /// </summary>
-    private static bool Plan(Wire wire, out ActionKind? asked, out StartType? to)
+    private static bool Plan(Wire wire, out ActionKind? asked, out StartSetting? to)
     {
         asked = null;
         to = null;
 
         if (wire.Asked is null)
         {
-            return wire.To is null;
+            return wire.To is null && !wire.Stop;
         }
 
         if (!Named(wire.Asked, out ActionKind kind))
@@ -191,15 +205,15 @@ internal sealed record HandOver
 
         if (kind != ActionKind.SetStartType)
         {
-            return wire.To is null;
+            return wire.To is null && !wire.Stop;
         }
 
-        if (!Named(wire.To, out StartType type))
+        if (!Named(wire.To, out StartSetting setting) || (wire.Stop && setting != StartSetting.Disabled))
         {
             return false;
         }
 
-        to = type;
+        to = setting;
 
         return true;
     }
@@ -236,6 +250,7 @@ internal sealed record HandOver
         public string[]? Picked { get; init; }
         public string? Asked { get; init; }
         public string? To { get; init; }
+        public bool Stop { get; init; }
         public bool Left { get; init; }
     }
 }

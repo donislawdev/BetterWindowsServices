@@ -189,7 +189,7 @@ public partial class MainWindow : Window
         Actions.ExportRequest += (_, _) => ExportWhatIsShown();
 
         Actions.StartTypeRequest += async (_, asked) =>
-            await Preview(ActionKind.SetStartType, asked.Type).ConfigureAwait(true);
+            await Preview(ActionKind.SetStartType, asked.Setting).ConfigureAwait(true);
 
         // TOLD WHEN A PERSON CHANGES THE SELECTION, rather than binding to it. A binding into a
         // list that reconciles itself once a second is another party in the middle of `A10`, and
@@ -299,6 +299,11 @@ public partial class MainWindow : Window
         // same shape as the first - an async lambda awaiting the work - because working a plan out
         // asks the manager and that moved off this thread on 2026-09-03.
         PlanPanel.ForceRequest += async (_, asked) => await Force(asked.Failure).ConfigureAwait(true);
+
+        // THE OFFER UNDER "KEEPS RUNNING" - spec C4, the owner's variant O1 of 2026-09-24. The same
+        // question asked again with the stop riding on it, so the sheet that answers is this one
+        // with a second step rather than a second sheet somebody has to remember to open.
+        PlanPanel.AlsoStopRequest += async (_, _) => await AlsoStop().ConfigureAwait(true);
     }
 
     /// <summary>

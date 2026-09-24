@@ -217,31 +217,33 @@ public sealed class ActionBarGuards
 
 
     /// <summary>
-    /// The start type button offers three types, and pressing one opens a plan that names it.
+    /// The start type button offers the four settings, and pressing one opens a plan that names it.
     ///
-    /// <b>THREE AND NOT FIVE, which is a decision rather than a shortened list.</b> Boot and System
+    /// <b>FOUR AND NOT SIX, which is a decision rather than a shortened list.</b> Boot and System
     /// belong to drivers, and this tool refuses to operate on a driver at all - offering them would
-    /// be two menu items that always end in a refusal.
+    /// be two menu items that always end in a refusal. The fourth arrived on 2026-09-24 - "Automatic
+    /// (delayed)", backlog 231 - in the same letters a delayed entry wears in its cell.
     ///
     /// <b>And it opens a PLAN, like everything else in this bar.</b> The first ask in this product
     /// that changes a setting rather than moving a service is also the one where pressing a menu
     /// item and having it happen would have felt most natural to write.
     /// </summary>
     [Fact]
-    public async Task The_start_type_menu_offers_three_types_and_one_opens_a_plan_naming_it()
+    public async Task The_start_type_menu_offers_four_settings_and_one_opens_a_plan_naming_it()
     {
         var window = await Ready();
 
         var items = WpfHost.On(() =>
             window.Actions.StartType.ContextMenu!.Items.OfType<MenuItem>().ToList());
 
-        Assert.Equal(3, items.Count);
+        Assert.Equal(4, items.Count);
 
         // The headers are read on the interface thread, because a MenuItem belongs to the thread
         // that built it and throws on the property that holds its text.
         Assert.Equal(
             [
                 Bws.Gui.Texts.Of("gui.cell.start.automatic"),
+                Bws.Gui.Texts.Of("gui.cell.start.delayed", Bws.Gui.Texts.Of("gui.cell.start.automatic")),
                 Bws.Gui.Texts.Of("gui.cell.start.manual"),
                 Bws.Gui.Texts.Of("gui.cell.start.disabled")
             ],
@@ -253,7 +255,7 @@ public sealed class ActionBarGuards
 
         WpfHost.Settled();
 
-        WpfHost.On(() => items[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
+        WpfHost.On(() => items[3].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
 
         WpfHost.Until(
             () => window.PlanPanel.Visibility == Visibility.Visible,

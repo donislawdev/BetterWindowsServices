@@ -31,6 +31,39 @@ public partial class ActionBar : UserControl
         // as long as somebody is reading the list rather than acting on it. Without this line the
         // three buttons are live over an empty selection until the first click anywhere.
         Picked(0, onlyDrivers: false);
+
+        OfferTheSettings();
+    }
+
+    /// <summary>
+    /// The startup settings under the button, one item per setting, in the order the command line
+    /// offers the words.
+    ///
+    /// <b>A LIST SINCE 2026-09-24, WHEN THE FOURTH ARRIVED - "Automatic (delayed)", backlog 231.</b>
+    /// Three items and three handlers were written out in the markup until then, which is GUI rule
+    /// 8 of the project notes at its threshold: a set differing only by value is data rendered in a
+    /// loop, already at three. The shape is RowMenu's - items added one by one, so a guard reading
+    /// <c>Items.OfType&lt;MenuItem&gt;()</c> gets the real items before the menu has ever opened
+    /// (`docs/10` trap 19), and each item a real MenuItem with its own automation peer rather than
+    /// a container a grouped menu hides (trap 7). The handler is wired here because a style in a
+    /// resource dictionary has nowhere to put one.
+    ///
+    /// <b>The words come from CellFaces.SettingLabel</b>, the one place the cell, this menu, the
+    /// step and the button name a setting - so "Automatic (delayed)" here is the letters a delayed
+    /// entry wears in the list.
+    /// </summary>
+    private void OfferTheSettings()
+    {
+        var style = (Style)FindResource("RowMenuItem");
+
+        foreach (var setting in Enum.GetValues<StartSetting>())
+        {
+            var item = new MenuItem { DataContext = new StartSettingChoice(setting), Style = style };
+
+            item.Click += (_, _) => StartTypeRequest?.Invoke(this, new StartTypeAsked(setting));
+
+            StartTypeMenu.Items.Add(item);
+        }
     }
 
     /// <summary>
@@ -200,22 +233,33 @@ public partial class ActionBar : UserControl
         OverviewRequest?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
-    /// Opens the three types under the button, the same way the column picker opens its list.
+    /// Opens the four settings under the button, the same way the column picker opens its list.
     ///
     /// <b>A left click on a context menu, which is unusual and is the point</b> - the menu is the
     /// surface the theme already dresses, and the button is the discoverability. ButtonMenu carries
     /// the whole argument.
     /// </summary>
     private void StartTypeAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(StartTypeButton);
+}
 
-    private void SetAutomatic(object sender, RoutedEventArgs e) => Wanted(Core.StartType.Automatic);
+/// <summary>
+/// One startup setting as the menu offers it: what it writes, and what it is called on screen.
+///
+/// <b>Label and Gesture are the two names RowMenuItem binds</b>, so this wears the row menu's style
+/// rather than a copy of it - GUI rule 2, the variant made by the data rather than by a second file.
+/// A setting has no key of its own, so Gesture is empty, which the template draws as nothing.
+/// </summary>
+public sealed class StartSettingChoice
+{
+    internal StartSettingChoice(StartSetting setting) => Setting = setting;
 
-    private void SetManual(object sender, RoutedEventArgs e) => Wanted(Core.StartType.Manual);
+    internal StartSetting Setting { get; }
 
-    private void SetDisabled(object sender, RoutedEventArgs e) => Wanted(Core.StartType.Disabled);
+    /// <summary>What the item says - the same letters the cell of such an entry says.</summary>
+    public string Label => ViewModels.CellFaces.SettingLabel(Setting);
 
-    private void Wanted(Core.StartType type) =>
-        StartTypeRequest?.Invoke(this, new StartTypeAsked(type));
+    /// <summary>No key does this, so nothing is written beside the label.</summary>
+    public string Gesture => string.Empty;
 }
 
 /// <summary>Which of the five somebody asked to see the effects of.</summary>
@@ -225,9 +269,9 @@ internal sealed class PreviewAsked(ActionKind kind) : EventArgs
     internal ActionKind Kind { get; } = kind;
 }
 
-/// <summary>Which start type somebody asked to see the effects of setting.</summary>
-internal sealed class StartTypeAsked(Core.StartType type) : EventArgs
+/// <summary>Which startup setting somebody asked to see the effects of writing.</summary>
+internal sealed class StartTypeAsked(StartSetting setting) : EventArgs
 {
-    /// <summary>The type a plan would write, in the words of the catalogue rather than the manager.</summary>
-    internal Core.StartType Type { get; } = type;
+    /// <summary>The setting a plan would write.</summary>
+    internal StartSetting Setting { get; } = setting;
 }

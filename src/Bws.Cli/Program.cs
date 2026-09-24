@@ -51,7 +51,7 @@ try
     // carried out of that block, because a refusal handing back a value as well as a code would
     // be two answers from one call, and the reading itself is a table lookup.
     var wanted = WriteCommands.NeedsAStartType(options.Kind)
-        ? WriteCommands.Named(options.StartTypeWord)
+        ? WriteCommands.Named(options.Setting.Word)
         : null;
 
     // Read the query before touching the system. A typo costs nothing this way, and the
@@ -348,7 +348,8 @@ try
         // Never null here: the only command that leaves it unbuilt is the file comparison,
         // which is not a write and never reaches this branch.
         var plan = new PlanBuilder(entries, catalog!, new WindowsEndingFactsReader())
-            .Build(new ServiceAction(options.Action, options.ServiceName, options.Dependents, wanted, options.Force));
+            .Build(new ServiceAction(
+                options.Action, options.ServiceName, options.Dependents, wanted, options.Force, options.Setting.AlsoStop));
 
         if (!plan.IsRunnable)
         {

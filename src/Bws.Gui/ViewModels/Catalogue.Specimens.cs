@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Bws.Core;
+using Bws.Core.Planning;
 
 namespace Bws.Gui.ViewModels;
 
@@ -169,6 +170,12 @@ public static partial class Catalogue
             "PlanLineTemplate" => (new PlanLine("Stop Print Spooler", asked: true), new PlanLine("Stop " + LongName + " display name, which came along", asked: false)),
             "PlanSentenceTemplate" => ("Stopping this will stop the two entries that depend on it as well.", LongDescription),
             "PlanFailureTemplate" => (new PlanFailure("Windows refused to stop it: access is denied (5).", offer: null), new PlanFailure(LongDescription, offer: null)),
+
+            // The extreme carries the offer, because the button under a long sentence is the one
+            // shape of this template that can go wrong - it has to stay under its own sentence.
+            "PlanWarningTemplate" => (
+                PlanWarningLine.Of([new PlanWarning(PlanWarningKind.ReturnsAfterReboot, "Spooler", [])], offering: false)[0],
+                PlanWarningLine.Of([new PlanWarning(PlanWarningKind.KeepsRunning, LongName, [])], offering: true)[0]),
             "PlanCommandTemplate" => ("bws stop Spooler --dry-run", "bws stop " + LongName + " --dependents --timeout 90 --json --timing --follow-network"),
 
             _ => null

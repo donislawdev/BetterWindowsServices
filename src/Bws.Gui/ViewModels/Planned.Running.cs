@@ -101,6 +101,12 @@ public sealed partial class Planned
         // position 19 in this panel. The guard for it asks about the NOTIFICATION, not the value.
         Raise(nameof(Waits));
         RaiseTheProblem();
+
+        // AND THE OFFER UNDER A WARNING, THE SAME FAULT A THIRD TIME, found by review of PR #17.
+        // Warnings offers only while nothing runs, but it too was told to look again only when the
+        // run ended - so "Also stop it" stayed live for the whole run, and pressing it rebuilt the
+        // plan under a run still going. MainWindow.AlsoStop refuses on the same answer.
+        Raise(nameof(Warnings));
     }
 
     /// <summary>
@@ -214,5 +220,9 @@ public sealed partial class Planned
         Raise(nameof(CanCarryOut));
         Raise(nameof(CarryOutTip));
         Raise(nameof(Notice));
+
+        // The sheet is a question again rather than a record, so the offer Starting took away
+        // comes back with the button.
+        Raise(nameof(Warnings));
     }
 }

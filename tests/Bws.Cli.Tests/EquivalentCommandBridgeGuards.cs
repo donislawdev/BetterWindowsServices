@@ -1,4 +1,3 @@
-using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Cli.Tests;
@@ -38,7 +37,7 @@ public sealed class EquivalentCommandBridgeGuards
     /// to render at all.
     /// </summary>
     private static ServiceAction Asking(ActionKind kind, bool withDependents = false) =>
-        new(kind, "Spooler", withDependents, kind == ActionKind.SetStartType ? StartType.Manual : null);
+        new(kind, "Spooler", withDependents, kind == ActionKind.SetStartType ? StartSetting.Manual : null);
 
     private static ActionKind[] Rendered =>
         [.. Enum.GetValues<ActionKind>().Where(EquivalentCommand.HasAVerb)];
@@ -129,10 +128,11 @@ public sealed class EquivalentCommandBridgeGuards
     /// is the only thing that says they agree.
     /// </summary>
     [Theory]
-    [InlineData(StartType.Automatic)]
-    [InlineData(StartType.Manual)]
-    [InlineData(StartType.Disabled)]
-    public void The_start_type_the_core_writes_is_one_this_tool_reads_back(StartType type)
+    [InlineData(StartSetting.Automatic)]
+    [InlineData(StartSetting.AutomaticDelayed)]
+    [InlineData(StartSetting.Manual)]
+    [InlineData(StartSetting.Disabled)]
+    public void The_start_type_the_core_writes_is_one_this_tool_reads_back(StartSetting type)
     {
         var word = EquivalentCommand
             .For(new ServiceAction(ActionKind.SetStartType, "Spooler", To: type))

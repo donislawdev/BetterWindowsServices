@@ -55,7 +55,7 @@ public sealed class CarryOutLabelGuards
     {
         var panel = new Planned { Elevated = true };
 
-        Assert.True(panel.Show(Setting("Spooler", StartType.Disabled), shownAs: "Print Spooler"));
+        Assert.True(panel.Show(Setting("Spooler", StartSetting.Disabled), shownAs: "Print Spooler"));
 
         Assert.Equal(
             Bws.Gui.Texts.Of("gui.plan.carryOut.setStartType.one", "Print Spooler", CellFaces.TypeLabel(StartType.Disabled)),
@@ -101,7 +101,7 @@ public sealed class CarryOutLabelGuards
     {
         var panel = new Planned { Elevated = true };
 
-        Assert.True(panel.Show(Setting(StartType.Manual, "Spooler", "W32Time")));
+        Assert.True(panel.Show(Setting(StartSetting.Manual, "Spooler", "W32Time")));
 
         Assert.Equal(
             Bws.Gui.Texts.Of("gui.plan.carryOut.setStartType.many", 2, CellFaces.TypeLabel(StartType.Manual)),
@@ -263,9 +263,9 @@ public sealed class CarryOutLabelGuards
         Problems = []
     };
 
-    private static BulkPlan Setting(string name, StartType to) => Setting(to, name);
+    private static BulkPlan Setting(string name, StartSetting to) => Setting(to, name);
 
-    private static BulkPlan Setting(StartType to, params string[] names) => new()
+    private static BulkPlan Setting(StartSetting to, params string[] names) => new()
     {
         Action = new BulkAction(ActionKind.SetStartType, names, To: to),
         Plans =
@@ -273,7 +273,7 @@ public sealed class CarryOutLabelGuards
             .. names.Select(name => new OperationPlan
             {
                 Action = new ServiceAction(ActionKind.SetStartType, name, To: to),
-                Steps = [new PlanStep(name, name, StepOperation.SetStartType, StepReason.Requested, To: to, From: StartType.Automatic)],
+                Steps = [new PlanStep(name, name, StepOperation.SetStartType, StepReason.Requested, To: to, From: StartSetting.Automatic)],
                 Warnings = [],
                 Problems = []
             })

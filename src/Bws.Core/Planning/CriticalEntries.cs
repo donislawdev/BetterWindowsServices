@@ -83,7 +83,7 @@ internal static class CriticalEntries
         ServiceAction action,
         IReadOnlyList<ScmEntry> cascade)
     {
-        if (action.Kind is ActionKind.Stop or ActionKind.Restart)
+        if (PlanBuilder.StopsPolitely(action, target))
         {
             var stopping = Named([.. cascade, target]);
 
@@ -101,11 +101,12 @@ internal static class CriticalEntries
         // watching.
         //
         // The target alone, because a start type has no cascade: the blocking list is empty for
-        // this kind by construction in PlanBuilder, and building this from one would read as though
-        // there were a cascade to consider. Manual and automatic are deliberately not warned about
+        // this kind by construction in PlanBuilder unless a stop rides on the setting, and even then
+        // what is DISABLED is the target and nothing else. Building this from the cascade would read
+        // as though there were one to consider. Manual and automatic are deliberately not warned about
         // - `docs/03` pitfall `P1` keeps "you should not" for the thing that stops the entry
         // starting at all, and a warning on every start type change is one nobody finishes reading.
-        if (action.Kind == ActionKind.SetStartType && action.To == StartType.Disabled)
+        if (action.Kind == ActionKind.SetStartType && action.To == StartSetting.Disabled)
         {
             var disabling = Named([target]);
 

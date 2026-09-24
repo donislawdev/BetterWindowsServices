@@ -281,8 +281,9 @@ internal static class WpfHost
                      "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml",
 
                      // PlanLines.xaml before Plan.xaml, for the same reason and from the same
-                     // list in App.xaml. They were one file until 2026-09-07.
-                     "Scroll.xaml", "PlanLines.xaml", "Plan.xaml",
+                     // list in App.xaml. They were one file until 2026-09-07. PlanOffers.xaml
+                     // between them since 2026-09-24 - it extends a style PlanLines.xaml declares.
+                     "Scroll.xaml", "PlanLines.xaml", "PlanOffers.xaml", "Plan.xaml",
 
                      "List.xaml", "Marks.xaml", "Cells.xaml",
 

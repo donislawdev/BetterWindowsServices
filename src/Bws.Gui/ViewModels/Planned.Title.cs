@@ -108,7 +108,9 @@ public sealed partial class Planned
         ActionKind.Stop => Texts.Of("gui.plan.carryOut.stop.one", Named(plan)),
         ActionKind.Start => Texts.Of("gui.plan.carryOut.start.one", Named(plan)),
         ActionKind.Restart => Texts.Of("gui.plan.carryOut.restart.one", Named(plan)),
-        ActionKind.SetStartType => Texts.Of("gui.plan.carryOut.setStartType.one", Named(plan), SetTo(plan)),
+        ActionKind.SetStartType => plan.Action.AlsoStop
+            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.one", Named(plan), SetTo(plan))
+            : Texts.Of("gui.plan.carryOut.setStartType.one", Named(plan), SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.one", Named(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.one", Named(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
@@ -120,7 +122,9 @@ public sealed partial class Planned
         ActionKind.Stop => Texts.Of("gui.plan.carryOut.stop.many", Asked(plan)),
         ActionKind.Start => Texts.Of("gui.plan.carryOut.start.many", Asked(plan)),
         ActionKind.Restart => Texts.Of("gui.plan.carryOut.restart.many", Asked(plan)),
-        ActionKind.SetStartType => Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), SetTo(plan)),
+        ActionKind.SetStartType => plan.Action.AlsoStop
+            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.many", Asked(plan), SetTo(plan))
+            : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.many", Asked(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.many", Asked(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
@@ -148,7 +152,7 @@ public sealed partial class Planned
     /// silent hole exactly where the important word goes.
     /// </summary>
     private static string SetTo(BulkPlan plan) => plan.Action.To is { } to
-        ? CellFaces.TypeLabel(to)
+        ? CellFaces.SettingLabel(to)
         : throw new InvalidOperationException("A start type plan carries the type it sets, and this one does not.");
 
     private static int Asked(BulkPlan plan) =>

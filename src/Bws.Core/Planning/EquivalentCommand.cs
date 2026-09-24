@@ -61,6 +61,15 @@ public static class EquivalentCommand
     /// <summary>Bringing back what the forcing verb took down, in one line rather than two.</summary>
     private const string Restart = "--restart";
 
+    /// <summary>
+    /// Stopping the entry a startup setting of disabled leaves running, in the same plan.
+    ///
+    /// <b>A plain word, not --and-stop or --stop-now</b>, because it reads as what it does next to
+    /// the value it rides on: "start-type Spooler disabled --stop". Bridged the same way as
+    /// <see cref="Dependents"/> - the command line's tests assert it is a switch the verb takes.
+    /// </summary>
+    private const string AlsoStop = "--stop";
+
     /// <summary>What somebody would type to ask for this, on one line.</summary>
     public static string For(ServiceAction action)
     {
@@ -83,7 +92,7 @@ public static class EquivalentCommand
                 // exactly the ask this tool declines to carry out - so a line naming it would be
                 // worse than no line.
                 ? throw new ArgumentOutOfRangeException(nameof(action), action.To, NoWordForThatType)
-                : $"{command} {word}";
+                : action.AlsoStop ? $"{command} {word} {AlsoStop}" : $"{command} {word}";
         }
 
         // ONLY WHERE THE TOOL TAKES IT, AND LEAVING THAT OUT WAS A REAL FAULT CAUGHT BY WRITING THE
@@ -134,14 +143,13 @@ public static class EquivalentCommand
     ///
     /// <b>A question about the whole ask, where <see cref="HasAVerb"/> is a question about its
     /// kind</b> - and the two came apart the day a verb arrived carrying a value. The command line
-    /// has a start type verb, so <see cref="HasAVerb"/> says yes for every one of them, and yet
-    /// three of the six start types have no word: Boot and System belong to entries this tool will
-    /// not operate on, and Unknown is what a reading says when the manager did not answer.
+    /// has a start type verb, so <see cref="HasAVerb"/> says yes for every one of them, and a
+    /// setting still needs a word to be typed.
     ///
-    /// Nothing in this product can build such an ask today - the window offers three types and
-    /// WindowsScmControl refuses the other three at the moment of writing. It is asked anyway,
-    /// because the alternative is a line that reads as a command and is declined on paste, and the
-    /// cost of asking is one call.
+    /// Since 2026-09-24 every <see cref="StartSetting"/> has one, so nothing in this product builds
+    /// such an ask - short of a value cast from a number nobody defined. It is asked anyway, because
+    /// the alternative is a line that reads as a command and is declined on paste, and the cost of
+    /// asking is one call.
     /// </summary>
     public static bool Renders(ServiceAction action)
     {

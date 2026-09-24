@@ -94,6 +94,11 @@ internal static class CountedWords
         // what. This guard cannot tell a name from a count and is not meant to: it asks, and this
         // list is where the answer goes.
         "runs",
+        // Two more on 2026-09-24, from package 5 of the UX audit, and both caught only by CI because
+        // the session ran the window's tests filtered to its own classes. "{0} belongs to the load
+        // order group {1}" puts a service name before the verb, and "could not read some of these
+        // fields: {0} Press F5" puts a list of fields before the start of the next sentence.
+        "belongs", "Press",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

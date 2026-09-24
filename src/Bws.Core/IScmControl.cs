@@ -73,15 +73,20 @@ public interface IScmControl
     ControlAnswer Request(string serviceName, StepOperation operation);
 
     /// <summary>
-    /// Write an entry's start type - what the manager does with it at boot.
+    /// Write an entry's startup setting - what the manager does with it at boot, and whether late.
     ///
     /// <b>The first thing on this interface that changes CONFIGURATION rather than asking the
     /// manager to move something</b>, and the difference is the whole reason it is a second method
     /// rather than a third value passed to the first. A request is taken now and arrives later, so
-    /// the caller waits and watches. This is done when it returns: there is no half-configured
-    /// state to watch for, no wait hint, and nothing to poll.
+    /// the caller waits and watches. This is done when it returns: there is nothing to watch for, no
+    /// wait hint, and nothing to poll.
+    ///
+    /// <b>Two writes since 2026-09-24, the start type and the late start flag, and it answers for
+    /// both.</b> It works only if both did. Where the second is refused after the first landed, the
+    /// answer says which half is on the machine - the writer orders the two so that such a half can
+    /// only ever differ from the setting in a flag that does nothing on that entry at that moment.
     /// </summary>
-    ControlAnswer Configure(string serviceName, StartType wanted);
+    ControlAnswer Configure(string serviceName, StartSetting wanted);
 
     /// <summary>
     /// End a process, without asking anything whether it minds.

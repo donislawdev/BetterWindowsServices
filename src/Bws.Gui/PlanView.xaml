@@ -237,9 +237,9 @@
                                    Margin="{StaticResource MarginSection}"
                                    Style="{StaticResource SectionHeadingText}" />
 
-                        <ItemsControl AutomationProperties.AutomationId="planWarnings"
+                        <ItemsControl x:Name="WarningList" AutomationProperties.AutomationId="planWarnings"
                                       ItemsSource="{Binding Warnings}"
-                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
+                                      ItemTemplate="{StaticResource PlanWarningTemplate}" />
                     </StackPanel>
 
                     <StackPanel x:Name="ProblemSection"

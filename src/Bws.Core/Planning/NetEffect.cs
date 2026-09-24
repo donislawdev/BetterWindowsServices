@@ -97,10 +97,11 @@ public static class NetEffect
         // setting is answered with a value, and folding the two into one dictionary would mean an
         // entry that was both moved and reconfigured had to pick which of the two it was.
         //
-        // Nothing builds such a run today - one ask travels over a whole selection, so every step
-        // in a run is the same kind - and the arithmetic is written so that if one ever does, the
-        // entry gets both lines instead of quietly losing one.
-        var settings = new Dictionary<string, (StartType? From, StartType? To, int When)>(
+        // A run like that exists since 2026-09-24 - a startup setting of disabled carrying a stop,
+        // spec C4 - and the entry gets both lines instead of quietly losing one, which is what this
+        // arithmetic was written for before anything built one. The order of the two is decided
+        // where the lines are sorted, below.
+        var settings = new Dictionary<string, (StartSetting? From, StartSetting? To, int When)>(
             StringComparer.OrdinalIgnoreCase);
 
         var index = 0;
@@ -140,28 +141,41 @@ public static class NetEffect
             .Where(move => Before(move.Value.First) != After(move.Value.Last))
             .Select(move => (
                 Step: new ReversalStep(move.Key, Undoing(move.Value.Last)),
-                move.Value.When))
+                move.Value.When,
+                Setting: false))
             .Concat(settings
                 .Where(written => Nameable(written.Value.From) && written.Value.From != written.Value.To)
                 .Select(written => (
                     Step: new ReversalStep(written.Key, StepOperation.SetStartType, written.Value.From),
-                    written.Value.When)));
+                    When: moves.TryGetValue(written.Key, out var moved)
+                        ? Math.Max(written.Value.When, moved.When)
+                        : written.Value.When,
+                    Setting: true)));
 
         // Sorted once over both, rather than each list sorted and then joined. The order is the
         // reverse of the RUN, and two lists appended would put every setting after every move
         // whatever the machine actually did.
-        return [.. back.OrderByDescending(one => one.When).Select(one => one.Step)];
+        //
+        // WITH ONE EXCEPTION, AND IT ARRIVED WITH THE FIRST RUN THAT BUILDS BOTH (2026-09-24): an
+        // entry that was set to disabled and then stopped. The reverse of that run starts it first -
+        // and a disabled entry refuses to start, so the first line pasted would fail. The setting of
+        // an entry goes back BEFORE that entry's own move, wherever it stood in the run: writing a
+        // setting never depends on where the entry is, and starting it may depend on the setting.
+        return [.. back
+            .OrderByDescending(one => one.When)
+            .ThenByDescending(one => one.Setting)
+            .Select(one => one.Step)];
     }
 
     /// <summary>
-    /// Whether a start type is one this tool could hand somebody a line for.
+    /// Whether a startup setting is one this tool could hand somebody a line for.
     ///
-    /// <b>Asked through the word table rather than by listing the three types here</b>, because the
-    /// question this is really asking is "could somebody type it". A list of types would be a
-    /// second answer to that, and the day the command line learns a fourth word this would still be
-    /// refusing it.
+    /// <b>Asked through the word table rather than by listing the settings here</b>, because the
+    /// question this is really asking is "could somebody type it". A list would be a second answer
+    /// to that - and the day the command line learned its fourth word (2026-09-24, "delayed") is the
+    /// day a list here would have gone on refusing it.
     /// </summary>
-    private static bool Nameable(StartType? type) => StartTypeWords.Of(type) is not null;
+    private static bool Nameable(StartSetting? setting) => StartTypeWords.Of(setting) is not null;
 
     /// <summary>
     /// Whether an entry was running before the first step that moved it. A stop found it running,

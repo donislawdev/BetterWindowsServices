@@ -54,6 +54,8 @@ public sealed class DeadCodeGuards
         ["Bws.Gui.PlanView.CommandLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.FailureLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.OfferLines"] = ScreenSeam,
+        ["Bws.Gui.PlanView.WarningLines"] = ScreenSeam,
+        ["Bws.Gui.PlanView.AlsoStopLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.WayBackLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.ProblemsShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.WayBackShown"] = ScreenSeam,

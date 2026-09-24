@@ -11,8 +11,29 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Added
+
+- "Automatic (delayed)" in the startup type menu, and the word `delayed` on the command line:
+  `bws start-type <name> delayed`. An entry that belongs to a load order group is refused, with
+  the name of the group, because Windows does not let such an entry start late. The Print
+  Spooler is one of them.
+- Setting a running entry to Disabled says that it keeps running until it is stopped or the
+  machine restarts, and offers "Also stop it". That adds a step to the same plan which stops the
+  entry after its startup type is set, so there is one plan and one confirmation. On the command
+  line the same is `--stop`, accepted next to `disabled` only.
+- Setting a stopped entry to Automatic or Automatic (delayed) says that it starts at the next
+  restart of the machine.
+- The JSON of a plan carries `delayedAuto` next to `startType`, the same way `bws list --json`
+  does, and `alsoStop` for a plan that also stops.
+
 ### Changed
 
+- Setting a startup type now also sets or clears the delayed start, the way `sc.exe config`
+  does. Before, Automatic on a delayed entry left it delayed and said it was already there.
+- The way back after changing the startup type of a delayed entry is now
+  `bws start-type <name> delayed`. Before, there was no way back for such an entry.
+- When the details panel could not read some of its fields, it now says that F5 reads the
+  machine again and the panel tries once more.
 - The details panel reads the signature, publisher, file version, file hash, memory and
   "Required by" of its entry when it opens, instead of showing "not read" and asking you to
   turn on a column. While it reads, those lines say "reading...". A file on another machine is

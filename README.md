@@ -270,8 +270,9 @@ line that asks for the same thing, and the way back afterwards.
   before anything happens.
 - **Afterwards, the way back.** A report ends with what did not work and the commands that put things
   back - and the window offers *Copy all* over them.
-- **A start type change moves nothing.** It changes what happens at the next boot, leaves the service
-  as it was, and the report says so.
+- **A start type change moves nothing on its own.** It changes what happens at the next boot, leaves
+  the service as it was, and the report says so. The one exception is a stop you ask for in the same
+  plan - `--stop` beside `disabled`, or *Also stop it* in the window.
 
 The window and the command line are two clients of one engine. The plan the window shows is the
 plan `bws` would print, and the window prints the `bws` line beside it so you can take it to a
@@ -437,7 +438,7 @@ bws list [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-netw
 bws show NAME [--full] [--follow-network] [--json] [--timing]
 bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
 bws kill NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
-bws start-type NAME automatic|manual|disabled [--dry-run] [--json] [--timing]
+bws start-type NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
 bws snapshot create [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]
@@ -460,6 +461,7 @@ bws --version
 | `--timing` | how long each part of the read took, on standard error |
 | `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, write over a file that is already there |
 | `--restart` | on `kill`, bring the entry back once the process is gone, with everything that shared it |
+| `--stop` | on `start-type`, and only beside `disabled`, stop the entry in the same plan once the setting is written. A startup type changes the next boot and nothing now, so without it a running entry set to disabled keeps running |
 | `--exit-code` | on `snapshot diff`, end with 5 when anything differs |
 | `--live` | on `snapshot diff`, compare the file against this machine as it is now rather than against a second file |
 | `--note TEXT` | on `snapshot create`, what the snapshot was taken for, kept inside the file |

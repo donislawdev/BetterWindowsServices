@@ -29,26 +29,7 @@ public sealed class PlanBuilder(
     {
         ArgumentNullException.ThrowIfNull(action);
 
-        if (action.Kind == ActionKind.SetStartType && action.To is null)
-        {
-            // NOT A REFUSAL A PERSON CAN MEET, and that is why it is loud here rather than a
-            // problem in the plan. Neither interface can produce it - the command line turns it
-            // back in Refusals.AboutTheAsk and the window only ever offers three start types - so
-            // a sentence for it would be user-facing text nobody could ever read, which this
-            // project treats as a lie of its own.
-            //
-            // What it is instead is a shape the types allow: PlanStep.To is optional because a
-            // stop and a start have no start type to carry, and nothing tied the one operation
-            // that needs it to having one. Three places dereference it with a bang, and the worst
-            // of them is PlanRunner.Configure - which would throw HALFWAY THROUGH A RUN, after
-            // earlier steps had already changed the machine. Same argument as PlanRunner.Run
-            // makes about a plan with problems: caught before anything happens rather than
-            // discovered while it is happening.
-            throw new ArgumentException(
-                "Setting a start type needs a start type. A SetStartType action without one cannot "
-                + "be planned - the step would have nothing to write.",
-                nameof(action));
-        }
+        ThrowIfNobodyCouldAsk(action);
 
         // Identity is the service name, compared without case, because that is how Windows
         // compares it. Never the display name, which is translated (ADR-14).
@@ -60,13 +41,9 @@ public sealed class PlanBuilder(
             return Refuse(action, PlanProblemKind.UnknownService);
         }
 
-        if (target.IsDriver)
+        if (RefusedOnSight(action, target) is { } refused)
         {
-            // Deliberately refused rather than attempted. Open question 8 of the product
-            // specification asks whether drivers get operations at all, and operating on one
-            // is often irreversible without a reboot. Refusing is the answer that can be
-            // changed later without having broken anybody's machine in the meantime.
-            return Refuse(action, PlanProblemKind.NotOperable);
+            return refused;
         }
 
         var warnings = new List<PlanWarning>();
@@ -75,8 +52,10 @@ public sealed class PlanBuilder(
         // NOTHING IS IN THE WAY OF A CONFIGURATION CHANGE, and that is not the same sentence as
         // "a start has nothing in the way". A start is unblocked because dependents cannot hold it
         // down - setting a start type does not move the service at all, so the question does not
-        // arise. Both end up with an empty list and they get there for different reasons.
-        var blocking = action.Kind is ActionKind.Start or ActionKind.SetStartType
+        // arise. Both end up with an empty list and they get there for different reasons. A setting
+        // carrying a stop is the exception, and it asks exactly what a plain stop asks.
+        var blocking = action.Kind is ActionKind.Start
+            || (action.Kind == ActionKind.SetStartType && !StopsAlong(action, target))
             ? []
             : StoppingOrder(target, warnings);
 
@@ -146,6 +125,80 @@ public sealed class PlanBuilder(
 
 
     /// <summary>
+    /// The two asks no person can make, refused loudly before anything is looked at. Out of Build on
+    /// 2026-09-24, when the second arrived and Build went past the length ceiling - both are about the
+    /// SHAPE of the ask rather than about the machine, which is the seam.
+    /// </summary>
+    private static void ThrowIfNobodyCouldAsk(ServiceAction action)
+    {
+        if (action.Kind == ActionKind.SetStartType && action.To is null)
+        {
+            // NOT A REFUSAL A PERSON CAN MEET, and that is why it is loud here rather than a
+            // problem in the plan. Neither interface can produce it - the command line turns it
+            // back in Refusals.AboutTheAsk and the window only ever offers the four settings - so
+            // a sentence for it would be user-facing text nobody could ever read, which this
+            // project treats as a lie of its own.
+            //
+            // What it is instead is a shape the types allow: PlanStep.To is optional because a
+            // stop and a start have no start type to carry, and nothing tied the one operation
+            // that needs it to having one. Three places dereference it with a bang, and the worst
+            // of them is PlanRunner.Configure - which would throw HALFWAY THROUGH A RUN, after
+            // earlier steps had already changed the machine. Same argument as PlanRunner.Run
+            // makes about a plan with problems: caught before anything happens rather than
+            // discovered while it is happening.
+            throw new ArgumentException(
+                "Setting a start type needs a start type. A SetStartType action without one cannot "
+                + "be planned - the step would have nothing to write.",
+                nameof(action));
+        }
+
+        if (action.AlsoStop && action is not { Kind: ActionKind.SetStartType, To: StartSetting.Disabled })
+        {
+            // THE SAME KIND OF LOUD AS THE ONE ABOVE, AND FOR THE SAME REASON. The stop is offered
+            // under the one sentence that says a disabled entry keeps running - the window shows the
+            // offer nowhere else and the command line refuses --stop beside any other word - so a
+            // stop riding on anything else is a shape no person can reach. Planning it quietly would
+            // be this builder inventing an ask: "make it automatic and stop it" means nothing anybody
+            // was shown.
+            throw new ArgumentException(
+                "A stop rides only on a startup setting of Disabled - that is the one setting that "
+                + "leaves a running entry running and says so.",
+                nameof(action));
+        }
+    }
+
+    /// <summary>
+    /// The refusals the entry itself decides before anything is worked out - a driver, and a late
+    /// start where Windows is known to refuse one. Out of Build with the method above, and for the
+    /// same ceiling: these are about WHAT the entry is, and everything left in Build is about what
+    /// is in its way.
+    /// </summary>
+    private static OperationPlan? RefusedOnSight(ServiceAction action, ScmEntry target)
+    {
+        if (target.IsDriver)
+        {
+            // Deliberately refused rather than attempted. Open question 8 of the product
+            // specification asks whether drivers get operations at all, and operating on one
+            // is often irreversible without a reboot. Refusing is the answer that can be
+            // changed later without having broken anybody's machine in the meantime.
+            return Refuse(action, PlanProblemKind.NotOperable);
+        }
+
+        // A LATE START IN A LOAD ORDER GROUP IS REFUSED BY WINDOWS, AND SAID HERE BEFORE IT IS.
+        // Measured 2026-09-24 on the throwaway machine: the late start flag on Spooler (SpoolerGroup)
+        // and SCardSvr (SmartCardGroup) comes back 87, whatever the start type, and sc.exe gets the
+        // same answer. Microsoft's page says a delayed entry cannot be in a group and nothing more.
+        // Only a group that was READ refuses - an unreadable one leaves the answer to the manager,
+        // and the writer turns its 87 into the same sentence.
+        if (action.To == StartSetting.AutomaticDelayed && target.LoadOrderGroup.IsPresent)
+        {
+            return Refuse(action, PlanProblemKind.CannotStartLate, [target.LoadOrderGroup.Value!]);
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The steps one ask turns into, which is the whole of what this class decides.
     ///
     /// <b>Out of Build on 2026-08-25 because an analyser asked</b> - naming the fourth arm of that
@@ -173,10 +226,18 @@ public sealed class PlanBuilder(
                 break;
 
             case ActionKind.SetStartType:
-                // ONE STEP AND NO CASCADE. Nothing is taken down, nothing comes back, and nothing
-                // depends on the order - which is why this arm is one line under a switch whose
-                // other arms are four.
+                // ONE STEP AND NO CASCADE, UNLESS SOMEBODY TOOK THE OFFER TO STOP IT TOO. The setting
+                // goes FIRST: if the manager refuses it, the runner holds the stop back (a failed step
+                // forward stops the steps after it), so the entry is never left stopped and still set
+                // to come back at the next boot. If the stop is what fails, the entry is disabled and
+                // running - exactly the plan of one step, and the failure offers a forced stop.
                 steps.Add(PlanSteps.Made(target, StepOperation.SetStartType, StepReason.Requested, to));
+
+                if (StopsAlong(action, target))
+                {
+                    AddStops(steps, cascade, target);
+                }
+
                 break;
 
             case ActionKind.Restart:
@@ -244,6 +305,22 @@ public sealed class PlanBuilder(
                 .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
                 .Select(entry => entry.ServiceName)]
             : [];
+
+    /// <summary>
+    /// Whether a startup setting carries a stop of its own entry - somebody took the offer, and the
+    /// entry is not already stopped. An entry whose state could not be read gets the step, because
+    /// the runner reads it again before acting and reports "already there" if it was.
+    /// </summary>
+    internal static bool StopsAlong(ServiceAction action, ScmEntry target) =>
+        action is { Kind: ActionKind.SetStartType, AlsoStop: true } && target.Status != EntryStatus.Stopped;
+
+    /// <summary>
+    /// Whether this plan asks the target to stop, politely: the two stopping kinds, and a startup
+    /// setting carrying a stop. The forcing kinds are asked apart, because what they say about the
+    /// neighbours and the critical entries is said by <see cref="ForcedStop"/> instead.
+    /// </summary>
+    internal static bool StopsPolitely(ServiceAction action, ScmEntry target) =>
+        action.Kind is ActionKind.Stop or ActionKind.Restart || StopsAlong(action, target);
 
     private static void AddStops(List<PlanStep> steps, IReadOnlyList<ScmEntry> cascade, ScmEntry target)
     {
@@ -353,11 +430,11 @@ public sealed class PlanBuilder(
             ActionKind.Stop => target.Status == EntryStatus.Stopped,
             ActionKind.Start => target.Status == EntryStatus.Running,
 
-            // Only where the start type could be READ. An unreadable one is not "already that",
-            // and saying so would turn missing information into a claim - the thing the four read
-            // outcomes exist to prevent.
-            ActionKind.SetStartType =>
-                target.StartType is { IsPresent: true } kept && kept.Value == action.To,
+            // Only where the whole setting could be READ - type and late flag both - because the
+            // writer puts both on the machine since 2026-09-24. An unreadable half is not "already
+            // that", and saying so would turn missing information into a claim - the thing the four
+            // read outcomes exist to prevent. Automatic on a delayed entry is a real change now.
+            ActionKind.SetStartType => StartSettings.Of(target) == action.To,
 
             _ => false
         };
@@ -371,8 +448,7 @@ public sealed class PlanBuilder(
         // Without this the warning would tell somebody that changing a setting leaves the
         // neighbours running, which is true, irrelevant, and exactly the kind of sentence that
         // teaches people to stop reading warnings.
-        if (action.Kind is ActionKind.Stop or ActionKind.Restart
-            && target.EntryType == EntryType.SharedProcess)
+        if (StopsPolitely(action, target) && target.EntryType == EntryType.SharedProcess)
         {
             var neighbours = entries
                 .Where(entry => entry.ProcessId.IsPresent
@@ -403,8 +479,7 @@ public sealed class PlanBuilder(
         // Only where the answer is PRESENT. Absent means the entry is already stopped, where the
         // question does not arise - and turning that into a warning would put a sentence about a
         // refusal next to a step that is going to be skipped for having nothing to do.
-        if (action.Kind is ActionKind.Stop or ActionKind.Restart
-                or ActionKind.ForceStop or ActionKind.ForceRestart)
+        if (StopsPolitely(action, target) || ForcedStop.Asked(action.Kind))
         {
             var refusing = cascade
                 .Append(target)
@@ -426,6 +501,9 @@ public sealed class PlanBuilder(
         {
             warnings.Add(new PlanWarning(PlanWarningKind.ReturnsAfterReboot, target.ServiceName));
         }
+
+        // The same pitfall from the other side - UX-GUI-006 and spec C4.
+        StartTypeWarnings.Add(warnings, target, action);
 
         // THE TWO SENTENCES ONLY A FORCING ASK PRODUCES, and neither of them is the shared process
         // warning above - that one does not fire for these kinds at all, because it says the

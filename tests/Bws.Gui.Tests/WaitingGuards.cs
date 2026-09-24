@@ -1,4 +1,3 @@
-using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -337,7 +336,7 @@ public sealed class WaitingGuards
                 Action = new ServiceAction(
                     operation == StepOperation.SetStartType ? ActionKind.SetStartType : ActionKind.Stop,
                     "Spooler",
-                    To: operation == StepOperation.SetStartType ? StartType.Manual : null),
+                    To: operation == StepOperation.SetStartType ? StartSetting.Manual : null),
                 Steps = [new PlanStep("Spooler", "Spooler", operation, StepReason.Requested)],
                 Warnings = [],
                 Problems = []

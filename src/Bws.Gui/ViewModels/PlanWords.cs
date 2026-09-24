@@ -144,6 +144,12 @@ internal static class PlanWords
 
         PlanWarningKind.AlreadyThere => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName),
 
+        // The offer to stop it too is not in this sentence - it stands under it as a button, which
+        // PlanWarningLine decides. The terminal's sentence names --stop instead, having no button.
+        PlanWarningKind.KeepsRunning => Texts.Of("gui.plan.warning.keepsRunning", warning.ServiceName),
+
+        PlanWarningKind.StartsAtNextBoot => Texts.Of("gui.plan.warning.startsAtNextBoot", warning.ServiceName),
+
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // a warning added without a sentence would have said something confident and wrong about a
@@ -215,6 +221,10 @@ internal static class PlanWords
 
         PlanProblemKind.CascadeUnreadable =>
             Texts.Of("gui.plan.problem.cascadeUnreadable", problem.ServiceName),
+
+        // The group is named because it is the one fact somebody could act on.
+        PlanProblemKind.CannotStartLate =>
+            Texts.Of("gui.plan.problem.cannotStartLate", problem.ServiceName, Listed(problem.Related)),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)

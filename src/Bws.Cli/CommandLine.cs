@@ -20,15 +20,10 @@ internal sealed partial record CommandLine
     internal string ServiceName { get; private init; } = string.Empty;
 
     /// <summary>
-    /// The start type somebody named, as they wrote it. Empty when they named none.
-    ///
-    /// <b>The word rather than the value, and it is kept that way all the way to the refusal.</b>
-    /// A word that names no start type has to appear in the sentence that says so - "manuel is not
-    /// a start type" is an answer, and "that is not a start type" sends somebody back to look at a
-    /// line they have already read twice. Reading it into a value here would throw away the only
-    /// half of it worth saying.
+    /// What the start-type verb was asked for: the word, as it was written, and whether a stop
+    /// rides on it. <see cref="StartTypeAsk.None"/> for every other verb.
     /// </summary>
-    internal string StartTypeWord { get; private init; } = string.Empty;
+    internal StartTypeAsk Setting { get; private init; } = StartTypeAsk.None;
 
     internal bool Json { get; private init; }
 

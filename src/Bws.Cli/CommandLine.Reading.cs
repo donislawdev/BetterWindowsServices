@@ -34,6 +34,7 @@ internal sealed partial record CommandLine
         var timing = false;
         var dryRun = false;
         var dependents = false;
+        var alsoStop = false;
 
         // NOT SPELLED --dependents, AND THE COLLISION IS THE WHOLE REASON. That switch is above
         // and belongs to stop and restart, where it means "take the ones standing on this with
@@ -209,6 +210,7 @@ internal sealed partial record CommandLine
             if (Arguments.Matches(argument, "--follow-network")) { followNetwork = true; given.Add("--follow-network"); continue; }
             if (Arguments.Matches(argument, "--force")) { force = true; given.Add("--force"); continue; }
             if (Arguments.Matches(argument, "--restart")) { restart = true; given.Add("--restart"); continue; }
+            if (Arguments.Matches(argument, "--stop")) { alsoStop = true; given.Add("--stop"); continue; }
             if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
             if (Arguments.Matches(argument, "--components")) { components = true; given.Add("--components"); continue; }
             if (Arguments.Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
@@ -298,7 +300,7 @@ internal sealed partial record CommandLine
         {
             Kind = kind,
             ServiceName = serviceName,
-            StartTypeWord = startTypeWord,
+            Setting = new StartTypeAsk(startTypeWord, alsoStop),
             Json = json,
             Timing = timing,
             DryRun = dryRun,

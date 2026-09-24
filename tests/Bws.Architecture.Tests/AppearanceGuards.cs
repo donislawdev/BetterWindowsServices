@@ -169,6 +169,10 @@ public sealed class AppearanceGuards
             // pool does not name is one no rule in this class reaches, and nothing would say so.
             "PlanLines.xaml", "Plan.xaml", "List.xaml", "Marks.xaml", "Cells.xaml",
 
+            // PlanOffers.xaml, 2026-09-24: the lines of a plan with a button under them, split off
+            // PlanLines.xaml when the offer to stop arrived. Added in the same edit as the file.
+            "PlanOffers.xaml",
+
             // Details.xaml, 2026-09-16: the panel about one entry, whose values had been drawn in
             // black for thirty-four days because their only style lived in the view and named no
             // colour - and the guard that catches that reads the theme. Added here in the same
