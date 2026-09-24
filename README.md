@@ -270,8 +270,9 @@ line that asks for the same thing, and the way back afterwards.
   before anything happens.
 - **Afterwards, the way back.** A report ends with what did not work and the commands that put things
   back - and the window offers *Copy all* over them.
-- **A start type change moves nothing.** It changes what happens at the next boot, leaves the service
-  as it was, and the report says so.
+- **A start type change moves nothing on its own.** It changes what happens at the next boot, leaves
+  the service as it was, and the report says so. The one exception is a stop you ask for in the same
+  plan - `--stop` beside `disabled`, or *Also stop it* in the window.
 
 The window and the command line are two clients of one engine. The plan the window shows is the
 plan `bws` would print, and the window prints the `bws` line beside it so you can take it to a

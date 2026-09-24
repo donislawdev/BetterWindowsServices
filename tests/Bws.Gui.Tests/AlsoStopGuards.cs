@@ -89,6 +89,39 @@ public sealed class AlsoStopGuards
         Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.WarningLines.ToList()));
         Assert.Empty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
 
+        // And no door behind the button either - a record takes no second question.
+        Assert.False(await WpfHost.On(() => window.AlsoStop()));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// No offer while the plan runs, and no door to it. Until review of PR #17 the lines were told
+    /// to look again only when the run ended, so the button stayed live through the run and a press
+    /// rebuilt the plan under the run still going. Read from the screen's lines, so what is checked
+    /// is the notification, not only the value - and the offer comes back if the run is abandoned,
+    /// because the sheet is a question again.
+    /// </summary>
+    [Fact]
+    public async Task A_sheet_that_is_running_offers_nothing_and_takes_no_press()
+    {
+        var window = await Opened(onlySpooler: true);
+        var panel = WpfHost.On(() => ((MainViewModel)window.DataContext).Planned);
+
+        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+
+        WpfHost.On(panel.Starting);
+        WpfHost.Settled();
+
+        Assert.Empty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.False(await WpfHost.On(() => window.AlsoStop()));
+        Assert.Single(WpfHost.On(() => panel.Plan!.Plans.Single().Steps.ToList()));
+
+        WpfHost.On(panel.NoLongerRunning);
+        WpfHost.Settled();
+
+        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+
         WpfHost.On(window.Close);
     }
 

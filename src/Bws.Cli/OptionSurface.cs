@@ -233,7 +233,8 @@ internal static class OptionSurface
         // with it, the other asks how long to watch it arrive. Writing a start type moves nothing -
         // the manager answers when the configuration is written and there is no state to wait for -
         // so either switch here would be a word that does nothing, which is the silence this table
-        // was built to end.
+        // was built to end. The stop that --stop adds does move an entry, and why --timeout still
+        // stays off even beside it is written at --stop above.
         ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill]),
 
         // The only verb with anything to say about components, and NOT accepted anywhere else

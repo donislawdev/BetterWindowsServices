@@ -320,7 +320,7 @@
   "gui.plan.offer.hint": "Open a plan that ends the process holding this entry. Nothing happens until you agree to that plan.",
   "gui.plan.offer.alsoStop.one": "Also stop it",
   "gui.plan.offer.alsoStop.many": "Also stop the {0} that are running",
-  "gui.plan.offer.alsoStop.hint": "Add a step to this plan that stops it after the startup type is set. Nothing happens until you press the button at the foot.",
+  "gui.plan.offer.alsoStop.hint": "Add a step to this plan that stops each running entry after its startup type is set. Nothing happens until you press the button at the foot.",
   "gui.plan.confirm.type": "Type {0} to confirm",
   "gui.plan.confirm.hint": "The line above says what this would do. Typing the name out is how you say you have read it.",
   "gui.plan.blocked.notTyped": "Type {0} in the box above to turn this on.",

@@ -108,10 +108,11 @@
             four buttons, for the reason the column picker won the same argument: three more buttons
             in a bar of four is a bar nobody scans, and the theme already dresses a menu.
 
-            THREE TYPES AND NOT FIVE, and the two missing ones are a decision. Boot and System belong
+            FOUR SETTINGS AND NOT SIX, and the two missing ones are a decision. Boot and System belong
             to drivers, which this tool refuses to operate on at all - offering them would be a menu
-            item that always ends in a refusal. Automatic-delayed is a separate flag rather than a
-            start type, so setting it is a different call and a later slice.
+            item that always ends in a refusal. Automatic (delayed) is the fourth since 2026-09-24:
+            every setting writes the start type and the late-start flag together, as sc.exe does,
+            so the delayed one is a setting like the others rather than a separate call.
 
             Three dots like the three above it: this opens a plan, and what changes the machine is
             still the one button at the foot of it.

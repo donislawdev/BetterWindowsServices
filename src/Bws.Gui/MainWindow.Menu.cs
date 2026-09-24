@@ -299,9 +299,14 @@ public partial class MainWindow
     ///
     /// <b>Only from the shape the offer stands under</b>: a start type plan setting Disabled that
     /// does not already stop. Anything else answers false and opens nothing.
+    ///
+    /// <b>And only while the sheet still offers it</b> - asked of the same lines that draw the
+    /// button, so the door and the button cannot disagree. Until review of PR #17 the shape was
+    /// the only check, and a press during a run rebuilt the plan under the run still going.
     /// </summary>
     internal async Task<bool> AlsoStop() =>
         _asked is { Kind: ActionKind.SetStartType, To: StartSetting.Disabled, AlsoStop: false }
+            && _model.Planned.Warnings.Any(line => line.HasOffer)
             && await Preview(ActionKind.SetStartType, StartSetting.Disabled, alsoStop: true).ConfigureAwait(true);
 
     /// <summary>
