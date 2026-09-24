@@ -44,12 +44,12 @@ public sealed class PlanReportGuards
         Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
-        var asked = WpfHost.On(() => window.PlanPanel.Heading.Text);
+        var asked = WpfHost.Drawn(window.PlanPanel.Heading);
 
         WpfHost.On(() => panel.Finished(Ran(panel)));
         WpfHost.Settled();
 
-        var reported = WpfHost.On(() => window.PlanPanel.Heading.Text);
+        var reported = WpfHost.Drawn(window.PlanPanel.Heading);
 
         Assert.NotEqual(asked, reported);
         Assert.NotEmpty(reported);

@@ -269,7 +269,7 @@ public sealed class ActionBarGuards
         // title is the line somebody reads before changing a machine.
         Assert.Contains(
             Bws.Gui.Texts.Of("gui.plan.doing.setStartType"),
-            WpfHost.On(() => window.PlanPanel.Heading.Text),
+            WpfHost.Drawn(window.PlanPanel.Heading),
             StringComparison.Ordinal);
 
         var steps = WpfHost.On(() => string.Join(" ", window.PlanPanel.StepLines));

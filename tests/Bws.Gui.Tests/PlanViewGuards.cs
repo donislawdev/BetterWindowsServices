@@ -55,7 +55,7 @@ public sealed class PlanViewGuards
         Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
 
-        var heading = WpfHost.On(() => window.PlanPanel.Heading.Text);
+        var heading = WpfHost.Drawn(window.PlanPanel.Heading);
         var steps = WpfHost.On(() => window.PlanPanel.StepLines);
         var notice = WpfHost.On(() => window.PlanPanel.Notice.Text);
 
@@ -104,7 +104,7 @@ public sealed class PlanViewGuards
 
         Assert.Contains(
             "Print Spooler",
-            WpfHost.On(() => window.PlanPanel.Heading.Text),
+            WpfHost.Drawn(window.PlanPanel.Heading),
             StringComparison.Ordinal);
 
         Assert.Equal("Spooler", WpfHost.On(() => window.PlanPanel.Subtitle.Text));

@@ -25,9 +25,8 @@ is not part of this repository.
   restart of the machine.
 - The JSON of a plan carries `delayedAuto` next to `startType`, the same way `bws list --json`
   does, and `alsoStop` for a plan that also stops.
-- A Help button in the top right corner, also opened with F1. It lists the keyboard shortcuts -
-  each item does what its key does - opens the query language page and the project's website in
-  your browser, and shows the version of the program, which you can copy.
+- A Help button in the top right corner, also opened with F1. It opens the query language page
+  on the project's website in your browser.
 - After the list is exported, the foot of the window says how many entries went into which file.
   The sentence goes away as soon as you change the search.
 - "Set startup type" in the row menu, with the same four settings as the action bar.
@@ -72,6 +71,14 @@ is not part of this repository.
   both, and rows narrow each other. The row labels no longer repeat the same tooltip.
 - The row menu names its actions the way the action bar does: "Stop...", "Start...",
   "Restart...", "Force stop..." and "Force restart...". Each still opens a plan first.
+- "Show the list" on the machine overview is a blue button, so it is easy to find the first time
+  the window opens.
+- In the plan panel, the name of the entry stands out in bold in the title and in every step.
+
+### Removed
+
+- "Copy display name" and "Copy description" from the row menu. Both are still copied by "Copy
+  everything".
 
 ### Fixed
 

@@ -193,12 +193,34 @@
         and the name repeats what the title already named. That is wording rather than type, it
         needs an imperative form of every operation this product knows, and it is its own row of the
         backlog.
+
+        PLAIN WEIGHT SINCE 2026-09-24, AND THE WEIGHT MOVED RATHER THAN WENT. The entry's name in
+        the title wears NameInSentence below, owner's decision - and a title semibold from end to
+        end has no weight left to set a name apart with. The size stays, so the title still stands
+        over the steps at 14 against their 13.
     -->
     <Style x:Key="PlanTitleText" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
-        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
         <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+    </Style>
+
+    <!--
+        AN ENTRY'S NAME INSIDE A SENTENCE ABOUT IT, 2026-09-24, owner's decision: the plan panel
+        said "stop" six times on one sheet and the name each line was about read exactly like the
+        words around it. Worn by the middle of three runs - the plan's title and every step - and
+        ViewModels/NamedSentence.cs says how a sentence is cut there.
+
+        THE SIZE IS HERE BECAUSE THE WEIGHT IS, which is the rule PrimaryAction states: semibold has
+        a floor of 14 where plain text has 12, and a step is 13. So the name in a step is a point
+        larger than the words beside it, and TypeScaleGuards holds this style to that floor like
+        every other semibold one. No colour: a step nobody asked for is subdued, and its name stays
+        as dim as its line so asked and along still read apart.
+    -->
+    <Style x:Key="NameInSentence" TargetType="Run">
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
     </Style>
 
     <!--

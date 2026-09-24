@@ -10,13 +10,17 @@ namespace Bws.Gui.ViewModels;
 /// </remarks>
 public sealed class PlanLine
 {
-    internal PlanLine(string text, bool asked)
+    internal PlanLine(NamedSentence sentence, bool asked)
     {
-        Text = text;
+        Sentence = sentence;
         Asked = asked;
     }
 
-    public string Text { get; }
+    /// <summary>The line cut where the entry's name stands, which is what the panel draws.</summary>
+    public NamedSentence Sentence { get; }
+
+    /// <summary>The whole line, as a test, a copy or a screen reader takes it.</summary>
+    public string Text => Sentence.Text;
 
     /// <summary>
     /// Whether somebody asked for this entry, as opposed to it coming along.
@@ -198,21 +202,26 @@ public sealed partial class Planned : Checked
     /// "number, verb, name, reason" - which for a setting reads "1. set to Disabled Spooler". What a
     /// step of that kind has to say is which entry and which type, in that order, so it gets a line
     /// of its own.
+    ///
+    /// <b>Cut where the name stands since 2026-09-24</b>, so the panel can set the entry apart from
+    /// "stop" and the reason around it - <see cref="NamedSentence"/>.
     /// </summary>
-    private static string Line(PlanStep step, int number) =>
-        step.Operation == StepOperation.SetStartType
-            ? Texts.Of(
-                "gui.plan.step.startType",
-                number,
-                step.ServiceName,
-                CellFaces.SettingLabel(step.To!.Value),
-                PlanWords.Reason(step.Reason))
-            : Texts.Of(
-                "gui.plan.step",
-                number,
-                PlanWords.Word(step.Operation),
-                step.ServiceName,
-                PlanWords.Reason(step.Reason));
+    private static NamedSentence Line(PlanStep step, int number) =>
+        NamedSentence.Around(
+            step.Operation == StepOperation.SetStartType
+                ? Texts.Of(
+                    "gui.plan.step.startType",
+                    number,
+                    NamedSentence.Slot,
+                    CellFaces.SettingLabel(step.To!.Value),
+                    PlanWords.Reason(step.Reason))
+                : Texts.Of(
+                    "gui.plan.step",
+                    number,
+                    PlanWords.Word(step.Operation),
+                    NamedSentence.Slot,
+                    PlanWords.Reason(step.Reason)),
+            step.ServiceName);
 
     /// <summary>
     /// How many entries come along that nobody picked, as `C2`'s own sentence asks for it.

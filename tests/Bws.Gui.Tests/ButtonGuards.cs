@@ -62,6 +62,33 @@ public sealed class ButtonGuards
     }
 
     /// <summary>
+    /// The way off the first screen wears it too, since 2026-09-24 - the owner's words were that on
+    /// a first run "Show the list" was hidden in the background, and backlog 270 had taken the
+    /// accent off it on 2026-09-01.
+    ///
+    /// <b>Asked of the button the overview draws, with its template applied</b>, rather than of
+    /// the name of the style it asks for - a style named and then beaten by a local value is how
+    /// 270 began.
+    /// </summary>
+    [Fact]
+    public void The_way_off_the_first_screen_wears_the_colour_that_means_press_this()
+    {
+        var window = WpfHost.Window();
+
+        var painted = WpfHost.On(() =>
+        {
+            var button = window.Overview.DismissButton;
+            button.ApplyTemplate();
+
+            return ((Border)button.Template.FindName("Face", button)).Background;
+        });
+
+        Assert.Equal(Declared("SurfacePrimaryAction"), Colour(painted));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
     /// When it cannot be pressed it gives up the fill entirely rather than dimming it.
     ///
     /// <b>This is the state that matters most in this window and it is not a style preference.</b>

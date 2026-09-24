@@ -47,10 +47,20 @@
         WHAT SOMEBODY ASKED FOR READS DIFFERENTLY FROM WHAT COMES ALONG, and `C2` is why: the
         plan warns that stopping three drags seven along, so the seven have to be findable at a
         glance. Subdued goes to the ones nobody asked for, which is the right way round.
+
+        THE ENTRY'S NAME IS SET APART SINCE 2026-09-24, owner's decision: ten lines of "stop" read
+        as one grey block with the names lost in it. Three runs, the middle one wearing
+        NameInSentence - the colour stays the line's, so asked and along still read differently.
+        THE THREE RUNS STAND ON ONE LINE WITH NOTHING BETWEEN THEM, and that is not tidiness:
+        whitespace between inlines in markup is a space on screen, and the spaces the sentence
+        needs are already in its parts. Mode=OneWay because a Run's Text binds both ways by
+        default and these parts cannot be written back. The automation name is bound to the
+        whole line because a TextBlock of runs answers Text with nothing - PlanView.xaml says it
+        at the title, where it was measured.
     -->
     <DataTemplate x:Key="PlanLineTemplate">
-        <TextBlock Text="{Binding Text}"
-                   TextWrapping="Wrap"
+        <TextBlock TextWrapping="Wrap"
+                   AutomationProperties.Name="{Binding Text}"
                    Margin="{StaticResource MarginBetweenControls}">
             <TextBlock.Style>
                 <Style TargetType="TextBlock" BasedOn="{StaticResource PlanStepText}">
@@ -60,8 +70,7 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </TextBlock.Style>
-        </TextBlock>
+            </TextBlock.Style><Run Text="{Binding Sentence.Before, Mode=OneWay}" /><Run Text="{Binding Sentence.Name, Mode=OneWay}" Style="{StaticResource NameInSentence}" /><Run Text="{Binding Sentence.After, Mode=OneWay}" /></TextBlock>
     </DataTemplate>
 
     <!--

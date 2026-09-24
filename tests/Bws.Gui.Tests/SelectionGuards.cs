@@ -1,5 +1,4 @@
 using System.Windows.Controls;
-using Bws.Core;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui.Tests;
@@ -120,57 +119,14 @@ public sealed class SelectionGuards
         WpfHost.On(window.Close);
     }
 
-    /// <summary>
-    /// An entry with nothing to say is left out rather than pasted as a blank line.
-    ///
-    /// <b>WRITTEN THE OTHER WAY ROUND FIRST AND THE FAILURE IS WHY THIS COMMENT EXISTS.</b> It claimed
-    /// that a value the tool could not read is dropped, and asserted it against specimens that have a
-    /// description - so it failed, and the claim turned out to be false about the code as well: a
-    /// REFUSED value renders as the sentence a cell shows and does go on the clipboard. Telling those
-    /// apart would mean matching text against the language file from inside the copy path. The comment
-    /// on Copying.Joined now says so instead of the opposite.
-    ///
-    /// What is true, and is what this checks: an ABSENT value contributes no line at all, so a copy of
-    /// two entries where one has nothing to say is one line rather than two with a gap.
-    /// </summary>
-    [Fact]
-    public void An_entry_with_nothing_to_say_contributes_no_line()
-    {
-        var window = WpfHost.Window();
-
-        var rows = WpfHost.On(() =>
-        {
-            var said = EntryRow.Of(Rows.Entry("Spooler", "Print Spooler"));
-            var silent = EntryRow.Of(Rows.Entry("W32Time", "Windows Time") with
-            {
-                Description = Reading<string>.Absent()
-            });
-
-            window.Entries.ItemsSource = new[] { said, silent };
-            window.Entries.SelectedItem = said;
-            window.Entries.SelectedItems.Add(silent);
-
-            return new[] { said, silent };
-        });
-
-        WpfHost.Settled();
-
-        Assert.Equal(2, WpfHost.On(() => window.Entries.SelectedItems.Count));
-        Assert.Equal("Spooler description", Copying.Description(Picked(window)));
-
-        // Both are still there when the field is one every entry has, so the line above is about the
-        // empty value rather than about the second row having been dropped from the selection.
-        Assert.Equal("Spooler" + Environment.NewLine + "W32Time", Copying.Name(Picked(window)));
-
-        WpfHost.On(window.Close);
-    }
+    // AN ENTRY WITH NOTHING TO SAY CONTRIBUTING NO LINE was asked here through the description copy
+    // until 2026-09-24, when that copy left the row menu. The name copy cannot ask it - a name is
+    // never empty - and Copying.Joined says so beside the branch.
 
     [Fact]
     public void Nothing_picked_is_nothing_to_copy_rather_than_an_empty_line()
     {
         Assert.Null(Copying.Name([]));
-        Assert.Null(Copying.DisplayName([]));
-        Assert.Null(Copying.Description([]));
         Assert.Null(Copying.Everything([]));
     }
 
