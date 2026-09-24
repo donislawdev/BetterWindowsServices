@@ -54,13 +54,16 @@ internal static class ListColumns
             var kept = plan.Layout.Columns.FirstOrDefault(column => column.Id == choice.Column.Id);
             var column = Build(choice.Column, grid, kept?.Width, refused);
 
-            Show(column, choice.IsShown);
+            ColumnShowing.Apply(column, choice);
 
+            // ON THE LIST RATHER THAN CHOSEN, since 2026-09-24: the details panel takes the prose
+            // columns off the list without anybody unchoosing them - see ColumnShowing. IsOnList is
+            // raised whenever either half moves, so one subscription hears both.
             choice.PropertyChanged += (_, changed) =>
             {
-                if (changed.PropertyName == nameof(ColumnChoice.IsShown))
+                if (changed.PropertyName == nameof(ColumnChoice.IsOnList))
                 {
-                    Show(column, choice.IsShown);
+                    ColumnShowing.Apply(column, choice);
                     Freeze(grid);
                 }
             };
@@ -188,9 +191,11 @@ internal static class ListColumns
                 continue;
             }
 
+            // CHOSEN RATHER THAN VISIBLE, since 2026-09-24 - a column away for the details panel is
+            // collapsed and still somebody's choice. ColumnShowing carries the argument.
             kept.Add(new KeptColumn(
                 known.Id,
-                column.Visibility == Visibility.Visible,
+                ColumnShowing.IsChosen(column),
                 Moved(grid, known, column.Width)));
         }
 
@@ -265,9 +270,6 @@ internal static class ListColumns
 
         grid.FrozenColumnCount = 0;
     }
-
-    private static void Show(DataGridColumn column, bool shown) =>
-        column.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
     private static DataGridColumn Build(
         Column column, FrameworkElement grid, string? kept, List<string> refused)

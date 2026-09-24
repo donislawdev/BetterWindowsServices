@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
 
@@ -14,7 +15,7 @@ public sealed class DetailLine
     private readonly string _labelKey;
 
     internal DetailLine(
-        string labelKey, string value, string wears, ReadOutcome outcome, string mark = "")
+        string labelKey, string value, string wears, ReadOutcome outcome, string mark = "", string? reading = null)
     {
         _labelKey = labelKey;
         Value = value;
@@ -26,7 +27,11 @@ public sealed class DetailLine
         // it reads as "did not load" - backlog 367, found by the component catalogue the first day
         // it drew this panel over a driver. `docs/06` part 3: never a blank standing in for an
         // answer.
-        Shown = value.Length == 0 ? Texts.Of("gui.details.none") : value;
+        //
+        // AND WHILE THE PANEL READS THE FIELD, THAT - since 2026-09-24. Value stays the cell's own
+        // words ("not read"), so the guard holding a line to its cell keeps holding, and only what
+        // the panel draws says the reading is out.
+        Shown = reading ?? (value.Length == 0 ? Texts.Of("gui.details.none") : value);
         Missing = value.Length == 0 || outcome != ReadOutcome.Present;
 
         StatusShape = wears == "status" ? mark : string.Empty;
@@ -136,15 +141,18 @@ public sealed class DetailSection
 /// <summary>
 /// Everything this window knows about one entry, arranged for a person rather than for a grid.
 ///
-/// <b>It is the column catalogue applied to one row, and that is the whole design.</b> Eighteen
-/// columns are already eighteen label-and-value pairs derived from an entry, with translated
-/// headings and cells that answer the four read states - so the panel is those pairs, all of them,
-/// whether or not somebody turned the column on. Building a second list of fields here would be a
-/// second place to add a field to, and the two would disagree the first time only one was touched.
+/// <b>It is the column catalogue applied to one row, and that is the whole design.</b> The columns
+/// are already label-and-value pairs derived from an entry - twenty-eight of them, twenty-six once
+/// the panel's head has taken the two names - with translated headings and cells that answer the
+/// four read states. So the panel is those pairs, all of them, whether or not somebody turned the
+/// column on. Building a second list of fields here would be a second place to add a field to, and
+/// the two would disagree the first time only one was touched.
 ///
-/// <b>Nothing here asks the manager anything.</b> Every value comes out of the entry the listing
-/// already read, which is what keeps this slice free of the questions `ADR-13` exists to answer -
-/// no cost, no background thread, no field that is expensive on somebody else's machine.
+/// <b>Nothing HERE asks the manager anything - and since 2026-09-24 the panel as a whole does.</b>
+/// Every value comes out of the entry the row holds. What changed is who fills that entry: the
+/// panel reads the three expensive families for its own entry when it opens (UX-GUI-005), through
+/// <see cref="Readings"/> and into the row, so this class still only arranges what is there - and
+/// is told which families are being read right now, so those lines can say so.
 ///
 /// <b>THE SECTION THAT MADE THIS PANEL HONEST HAS BEEN DELETED, 2026-08-18, AND THAT IS THE POINT
 /// OF THE CHANGE RATHER THAN A LOSS.</b> Until backlog 21 the last section named four fields this
@@ -168,42 +176,67 @@ internal static class Details
     /// that day the first section repeated both a line below it - the one entry drawn twice on 380
     /// points. A copy keeps them, because a copy has no head.
     /// </summary>
-    internal static IReadOnlyList<DetailSection> Shown(ScmEntry entry) => Build(entry, identity: false);
+    /// <param name="entry">The entry the panel shows.</param>
+    /// <param name="reading">The families the panel is reading for it right now, whose lines say so.</param>
+    internal static IReadOnlyList<DetailSection> Shown(ScmEntry entry, ExtraRead reading = ExtraRead.None) =>
+        Build(entry, identity: false, reading);
 
-    private static IReadOnlyList<DetailSection> Build(ScmEntry entry, bool identity)
+    /// <summary>
+    /// The groups in the order the panel shows them. <b>What it runs second since 2026-09-24</b> -
+    /// owner's decision at UX-GUI-012: the file and its signature are what an administrator opens
+    /// the panel for, and they stood third, under the fields describing what kind of entry it is.
+    /// The groups themselves are still the picker's, only their order is the panel's.
+    /// </summary>
+    private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced];
+
+    private static IReadOnlyList<DetailSection> Build(ScmEntry entry, bool identity, ExtraRead reading = ExtraRead.None)
     {
         ArgumentNullException.ThrowIfNull(entry);
 
         var sections = new List<DetailSection>();
 
-        foreach (var heading in new[] { Columns.Basics, Columns.About, Columns.Binary, Columns.Advanced })
+        foreach (var heading in Order)
         {
-            var lines = Columns.All
+            var columns = Columns.All
                 .Where(column => Columns.GroupOf(column.Id) == heading)
                 .Where(column => identity || !Identity.Contains(column.Id))
-                .Select(column => Line(column, entry))
                 .ToList();
 
-            // ONE SENTENCE UNDER A SECTION WHOSE LINES NOBODY HAS ASKED FOR YET, saying what would
-            // read them. "Not read" six times is the truth and an idle one - the note is the half
-            // that tells somebody what to do about it. The section's note has existed since
-            // 2026-08-13 for exactly this kind of sentence and carried none until today.
-            var note = lines.Any(line => line.Outcome == ReadOutcome.NotRead)
-                ? NotReadNote
+            // ONE SENTENCE UNDER A SECTION WHOSE SIGNATURE LINES STAY UNREAD BECAUSE THE FILE IS ON
+            // ANOTHER MACHINE. Until 2026-09-24 the note said "the window reads a field when its
+            // column is turned on" under any unread line - false twice over once the panel read for
+            // itself: the panel had already tried, and turning the column on reads the same way and
+            // skips the same file. What is left unread after the panel's own reading is left unread
+            // for this reason, so this is the sentence, and it is said only when it is true.
+            var note = OnAnotherMachine(entry)
+                && columns.Any(column => column.Needs.HasFlag(ExtraRead.Signatures)
+                    && column.Outcome?.Invoke(entry) == ReadOutcome.NotRead)
+                ? NetworkNote
                 : string.Empty;
 
-            sections.Add(new DetailSection(heading, lines, note));
+            sections.Add(new DetailSection(heading, [.. columns.Select(column => Line(column, entry, reading))], note));
         }
 
         return sections;
     }
 
     /// <summary>
-    /// The sentence under a section with a line nobody has asked for yet. A constant rather than
-    /// a literal at the place it is used, because that is the shape TextKeyGuards reads a key in
-    /// - a key it cannot find in the source is a key it reports as said nowhere.
+    /// Whether the entry's file is on another machine, which the window does not reach for - the
+    /// inspector skips such a file (<c>NetworkPaths.Skip</c>, MainViewModel) and so does the path
+    /// resolver, so the resolved file and the raw path are both asked.
     /// </summary>
-    private const string NotReadNote = "gui.details.notRead.note";
+    private static bool OnAnotherMachine(ScmEntry entry) =>
+        NetworkPath.LeavesThisMachine(entry.BinaryFile.Value) || NetworkPath.LeavesThisMachine(entry.BinaryPath.Value);
+
+    /// <summary>
+    /// The sentence under a section whose signature lines stay unread for that reason. A constant
+    /// rather than a literal at the place it is used, because that is the shape TextKeyGuards reads a
+    /// key in - a key it cannot find in the source is a key it reports as said nowhere.
+    /// </summary>
+    private const string NetworkNote = "gui.details.notRead.network";
+
+    /// <summary>What a line says while the panel is reading its field. A constant for the same reason as the note.</summary>
+    private const string ReadingNow = "gui.details.reading";
 
     /// <summary>The two columns that are the entry's identity, and that the panel's head shows.</summary>
     private static readonly HashSet<string> Identity = new(StringComparer.Ordinal)
@@ -211,12 +244,21 @@ internal static class Details
         "serviceName", "displayName"
     };
 
-    private static DetailLine Line(Column column, ScmEntry entry) => new(
-        column.LabelKey,
-        Said(column, entry),
-        Wears(column.Face),
-        column.Outcome?.Invoke(entry) ?? ReadOutcome.Present,
-        column.Marks?.Invoke(entry) ?? string.Empty);
+    private static DetailLine Line(Column column, ScmEntry entry, ExtraRead reading)
+    {
+        var outcome = column.Outcome?.Invoke(entry) ?? ReadOutcome.Present;
+
+        return new(
+            column.LabelKey,
+            Said(column, entry),
+            Wears(column.Face),
+            outcome,
+            column.Marks?.Invoke(entry) ?? string.Empty,
+
+            // ONLY A LINE STILL UNREAD, and only for a family being read now. A line that already
+            // has its answer keeps it while the panel reads the others.
+            outcome == ReadOutcome.NotRead && (column.Needs & reading) != ExtraRead.None ? Texts.Of(ReadingNow) : null);
+    }
 
     /// <summary>The face as the code the view's triggers read - see <see cref="DetailLine.Wears"/>.</summary>
     private static string Wears(ColumnFace face) => face switch

@@ -131,6 +131,7 @@ internal sealed partial class Readings
         _have |= wanted;
 
         _index.Absorb(filled);
+        TookAWholeList();
         _settled();
     }
 

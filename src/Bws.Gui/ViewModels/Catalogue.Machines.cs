@@ -80,6 +80,47 @@ public static partial class Catalogue
     }
 
     /// <summary>
+    /// A file inspector that vouches for every file at once - what the details panel's own reading
+    /// meets on a machine where everything is signed. The product always has an inspector, so a
+    /// panel specimen without one would show "not read" beside a signature, which since
+    /// 2026-09-24 the product only shows for a file on another machine.
+    /// </summary>
+    private sealed class Vouching : IBinaryInspector
+    {
+        public Reading<BinarySignature> ReadSignature(string file) =>
+            Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows"));
+
+        public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("10.0.26100.1");
+
+        public Reading<string> ReadHash(string file) =>
+            Reading<string>.Present("5574acc33b33ab8fbd7e45b14b0d8425fd67df867a7c6d09417ea4ea096d0d57");
+    }
+
+    /// <summary>A memory reader that answers at once, for the same reason as <see cref="Vouching"/>.</summary>
+    private sealed class Measuring : IProcessMemoryReader
+    {
+        public Reading<ProcessMemory> Read(int processId) =>
+            Reading<ProcessMemory>.Present(new ProcessMemory(18 * 1024 * 1024, 9 * 1024 * 1024, 1));
+    }
+
+    /// <summary>
+    /// The details panel's own reading, asked and never answered - the loading state of the panel,
+    /// held for as long as the sheet is open. A pending task rather than a stalled thread, because
+    /// nothing here needs a thread to wait: the panel awaits the task, and an answer that never
+    /// comes is all the loading state is. The machine's own loading sample keeps the one thread
+    /// the gate below counts.
+    /// </summary>
+    private sealed class NeverAnswering : IEntryReads
+    {
+        public Bws.Core.Querying.ExtraRead Claim(EntryRow row) =>
+            Bws.Core.Querying.ExtraRead.Signatures | Bws.Core.Querying.ExtraRead.Memory | Bws.Core.Querying.ExtraRead.RequiredBy;
+
+        public Task ReadAsync(EntryRow row, Bws.Core.Querying.ExtraRead families) => new TaskCompletionSource().Task;
+
+        public string FailureOf(EntryRow row) => string.Empty;
+    }
+
+    /// <summary>
     /// The gate every stalled read of one sheet waits on. Opened once, when the sheet is done
     /// with its loading samples - by the window closing, or by a test finishing - so that the
     /// threads those reads hold are given back.

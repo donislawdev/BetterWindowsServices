@@ -71,6 +71,22 @@ internal sealed class RowIndex
     }
 
     /// <summary>
+    /// Takes what the details panel read about ONE entry into that entry's row - UX-GUI-005.
+    ///
+    /// <b>Not <see cref="Absorb(IReadOnlyList{ScmEntry})"/> with a list of one</b>, which would
+    /// remove every row it was not handed and leave the window a list of one. A row that has left
+    /// the listing meanwhile is not here to take it, and nothing is written - the panel says the
+    /// entry has gone.
+    /// </summary>
+    public void AbsorbOne(ScmEntry entry)
+    {
+        if (_byName.TryGetValue(entry.ServiceName, out var row))
+        {
+            row.Absorb(entry, _clock.Now);
+        }
+    }
+
+    /// <summary>
     /// Takes a cheap reading and moves what moved.
     ///
     /// A name nobody knows means an entry was installed, and a name that stopped coming means

@@ -3,8 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Focusable="False"
              IsTabStop="False"
-             Grid.IsSharedSizeScope="True"
-             Width="{StaticResource WidthDetailsPanel}">
+             Grid.IsSharedSizeScope="True">
 
     <!--
         EVERYTHING THIS WINDOW KNOWS ABOUT ONE ENTRY - the second half of `S7`, built 2026-08-13,
@@ -21,10 +20,10 @@
         own file is what a UserControl is for. It also gets what a template cannot: a code-behind
         class, so the close button needs no lookup by name.
 
-        THE WIDTH IS A NAME NOW. It was a number written here from 2026-08-13, with a paragraph
-        saying that Values.xaml stood on the markup ceiling and had no room for one - the one
-        deviation from `ADR-23` this panel confessed to. That file has room today, so the number
-        lives there under WidthDetailsPanel, with the reason it is fixed rather than shared.
+        THE WIDTH IS THE WINDOW'S, SINCE 2026-09-24. It was a number here from 2026-08-13 and a name
+        in Values.xaml from 2026-09-16, fixed at 380 points. It is now a third of the window between
+        WidthDetailsPanelLeast and WidthDetailsPanelMost, set on the column this panel sits in -
+        MainWindow.xaml says why, beside the style that does it.
 
         Focusable and IsTabStop are off because a ContentControl - which is what a UserControl is -
         is BOTH BY DEFAULT, measured rather than assumed on 2026-08-13. Without them the panel is a

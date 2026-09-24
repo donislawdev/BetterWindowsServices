@@ -60,6 +60,16 @@ public sealed class ConcurrencyGuards
             "second concurrency mechanism unnecessary rather than missing - which is the argument " +
             "that had to move with the code.",
 
+        ["Readings.OneEntry.cs"] =
+            "The details panel reading the three expensive families for ONE entry, off the " +
+            "interface thread, added 2026-09-24 for UX-GUI-005. Measured before it was built: " +
+            "46.7-66.9 ms for a typical service the first time a process asks and 425-518 ms " +
+            "for a 98 MB driver, so on the interface thread the window would freeze for half a " +
+            "second on the worst entry. Unlike the second phase it runs BESIDE the reading guard, " +
+            "so the list keeps moving - and it is kept honest without a lock: everything it " +
+            "touches on the way in is copied on the interface thread, and on the way back the " +
+            "answer is dropped unless the index still holds the listing it was read against.",
+
         ["Execution.cs"] =
             "Ctrl+C, and this file was concurrent long before it said so. The handler behind " +
             "Console.CancelKeyPress runs on a thread of the runtime's choosing while the plan " +

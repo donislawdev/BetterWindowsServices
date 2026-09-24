@@ -96,6 +96,12 @@ public partial class MainWindow
         if (overview)
         {
             ListEmptyState.Visibility = Visibility.Collapsed;
+
+            // AND THE PANEL ABOUT ONE ROW GOES AWAY WITH THE LIST - fixed 2026-09-24, found by
+            // reading the code: the overview spans both columns and the panel is declared after it
+            // in MainWindow.xaml, so an open panel was drawn over the overview. Closed rather than
+            // hidden, the way opening the plan sheet closes it - Enter on the row brings it back.
+            _model.Chosen.Hide();
         }
         else
         {

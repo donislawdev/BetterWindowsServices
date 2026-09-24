@@ -225,4 +225,18 @@ internal sealed record Column
 
     /// <summary>What two rows are compared by when this column is sorted.</summary>
     public IComparable? SortKey(ScmEntry entry) => Sorts is null ? Reads(entry) : Sorts(entry);
+
+    /// <summary>
+    /// Whether this column leaves the list while the details panel is open - UX-GUI-012, owner's
+    /// decision of 2026-09-24.
+    ///
+    /// <b>Prose, and only prose, because prose is what the panel shows better than a cell can.</b>
+    /// The panel draws a prose field under its label at the full width of the panel, and a cell
+    /// cuts it to one line and an ellipsis. Measured on the window that opens at 1650 by 1050 with
+    /// the panel open: the description column held the width the four columns beside it were cut
+    /// for, while the same text stood in full a few centimetres to the right. Read off the face
+    /// rather than written on the column, so a second prose field joins the rule without anybody
+    /// remembering to - and because the catalogue in Columns.cs has no line to spare.
+    /// </summary>
+    public bool YieldsToPanel => Face == ColumnFace.Prose;
 }

@@ -124,6 +124,10 @@ public sealed partial class MainViewModel : Checked
         _readings = new Readings(
             catalog, _index, () => Says, Reread, TellTheList, inspector, reader, () => Asked);
 
+        // THE PANEL READS WHAT ITS ENTRY LACKS, THROUGH THE SAME READINGS - UX-GUI-005. After them,
+        // because it is handed them.
+        Chosen = new Chosen(_readings);
+
         // Reading the field and writing the property, which is deliberate and is the difference
         // between a chip that filters and a chip that only edits text: the setter is what parses
         // the query, applies it and tells the list, so a chip goes through the same door a
@@ -209,7 +213,7 @@ public sealed partial class MainViewModel : Checked
     /// panel could not add a property here - and the seam that found is real: this class is about
     /// the LIST, and none of the questions about one chosen row are.
     /// </summary>
-    public Chosen Chosen { get; } = new();
+    public Chosen Chosen { get; }
 
     /// <summary>
     /// The next entry beginning with a character, after the one chosen now. Backlog 151.

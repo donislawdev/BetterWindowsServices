@@ -1,4 +1,25 @@
+using Bws.Core.Querying;
+
 namespace Bws.Gui.ViewModels;
+
+/// <summary>
+/// What the panel asks of the reading when it opens on an entry that lacks the expensive families -
+/// UX-GUI-005. <see cref="Readings"/> answers, and the argument for the whole mechanism is there.
+/// </summary>
+internal interface IEntryReads
+{
+    /// <summary>
+    /// The families this row still lacks and the window can read, marked as asked for so a family
+    /// that comes back unread is asked for once per listing rather than on every refresh of the row.
+    /// </summary>
+    ExtraRead Claim(EntryRow row);
+
+    /// <summary>Reads those families for this one entry and puts them into its row. Never throws - a failure is kept for <see cref="FailureOf"/>.</summary>
+    Task ReadAsync(EntryRow row, ExtraRead families);
+
+    /// <summary>Why the reading of this entry failed in the current listing, in the system's words, or nothing.</summary>
+    string FailureOf(EntryRow row);
+}
 
 /// <summary>
 /// The entry the window is looking at, and everything the window says about that one entry.
@@ -21,10 +42,19 @@ namespace Bws.Gui.ViewModels;
 /// </summary>
 public sealed class Chosen : Observable
 {
+    private readonly IEntryReads? _reads;
     private EntryRow? _row;
     private bool _showing;
     private bool _gone;
     private IReadOnlyList<DetailSection> _sections = [];
+
+    /// <summary>A panel that reads nothing of its own - what a test of the panel alone needs.</summary>
+    public Chosen()
+    {
+    }
+
+    /// <summary>A panel that reads what its entry lacks, the moment it opens - UX-GUI-005.</summary>
+    internal Chosen(IEntryReads reads) => _reads = reads;
 
     /// <summary>
     /// The row somebody has chosen, or nothing.
@@ -105,8 +135,21 @@ public sealed class Chosen : Observable
         }
     }
 
-    /// <summary>The sentence about the whole panel, which today is only ever the one above.</summary>
-    public string Notice => Gone ? Texts.Of("gui.details.gone") : string.Empty;
+    /// <summary>
+    /// The sentence about the whole panel: the entry has gone, or - since 2026-09-24 - the panel's
+    /// own reading of THIS entry failed. Gone first, because a failure to read an entry that no
+    /// longer exists is not the news. Rule 8: the lines stay "not read", which is true, and this
+    /// says it was tried rather than letting them imply nobody looked.
+    ///
+    /// <b>Asked of the readings for the entry on screen, since the review of PR #16</b> - a failure
+    /// held here belonged to the panel rather than to the entry, so it followed the panel to the next
+    /// entry and was gone when the failed one was opened again. See Readings._failures.
+    /// </summary>
+    public string Notice => Gone
+        ? Texts.Of("gui.details.gone")
+        : _followed is { } row && _reads?.FailureOf(row) is { Length: > 0 } why
+            ? Texts.Of("gui.details.readFailed", why)
+            : string.Empty;
 
     /// <summary>
     /// The name of the shown entry, which is the identity rather than the label - `ADR-14`.
@@ -137,6 +180,12 @@ public sealed class Chosen : Observable
             return false;
         }
 
+        // A NEW OPENING STARTS WITHOUT THE LAST ONE'S SENTENCE - fixed 2026-09-24, found by reading
+        // the code: only Hide cleared it, so Enter on another row after the first had left the
+        // listing showed the new entry under "This entry is no longer in the listing". The entry
+        // somebody just pressed Enter on is on the list, which is what Gone denies.
+        Gone = false;
+
         Follow(row);
 
         Showing = true;
@@ -147,6 +196,8 @@ public sealed class Chosen : Observable
         // it snatched back to the top once a second - GUI rule 3. What does want the top is a
         // DIFFERENT entry, and this is the only road one arrives by.
         Opened?.Invoke(this, EventArgs.Empty);
+
+        Keep();
 
         return true;
     }
@@ -181,6 +232,7 @@ public sealed class Chosen : Observable
 
         Showing = false;
         Gone = false;
+        Raise(nameof(Notice));
 
         return true;
     }
@@ -240,7 +292,7 @@ public sealed class Chosen : Observable
     ///
     /// <b>The teardown case, and it is the one this class would leak through.</b> A row lives as
     /// long as the window does, so a handler left on it keeps this object alive and keeps
-    /// rebuilding five sections for a panel nobody is looking at - once per second, for as long as
+    /// rebuilding four sections for a panel nobody is looking at - once per second, for as long as
     /// the window is open.
     /// </summary>
     private void Stop()
@@ -254,14 +306,94 @@ public sealed class Chosen : Observable
 
     private EntryRow? _followed;
 
-    private void Moved(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => Rebuild();
+    /// <summary>
+    /// The panel's own reading, while one is out - finished otherwise. Kept rather than started and
+    /// walked away from, which BackgroundWorkGuards forbids: the tests and the component catalogue
+    /// await it, and it cannot fault, because the readings keep every failure as a sentence about
+    /// the entry it happened to - see <see cref="Notice"/>.
+    /// </summary>
+    internal Task CatchingUp { get; private set; } = Task.CompletedTask;
+
+    /// <summary>Which families are being read right now, and for which row - so only that row's lines say so.</summary>
+    private ExtraRead _reading;
+
+    private EntryRow? _readingFor;
+
+    private void Moved(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        Rebuild();
+
+        // THE ROW MOVED, AND A FULL READING MAY HAVE BEEN WHAT MOVED IT - which hands the row a fresh
+        // entry with none of the expensive families, so an open panel would fall back to "not read"
+        // until somebody pressed Enter again. Asking here covers F5, a change in what is installed and
+        // a second phase absorbing the list, with one line. Cheap when nothing is owed: Claim looks
+        // at three outcomes and a dictionary, once per moved row per second.
+        Keep();
+    }
+
+    /// <summary>Starts the panel's reading unless one is already out - that one will look again when it finishes.</summary>
+    private void Keep()
+    {
+        if (CatchingUp.IsCompleted)
+        {
+            CatchingUp = CatchUpAsync();
+        }
+    }
+
+    /// <summary>
+    /// Reads what the followed entry lacks, for as long as it lacks something the window can read -
+    /// UX-GUI-005, owner's decision that the panel reads for itself if the cost allows.
+    ///
+    /// <b>THE COST, MEASURED 2026-09-24 over 797 entries with tools/details-probe:</b> the three
+    /// families for one entry, first time in the process, 46.7-66.9 ms for a typical service and
+    /// 425-518 ms for the one 98 MB driver on the machine. Every later panel 6-13 ms for a small
+    /// file. So it reads on opening, and says "reading..." while it does.
+    ///
+    /// <b>ONE READING AT A TIME, AND THE LOOP IS WHAT MAKES THAT SAFE.</b> Somebody pressing Enter on
+    /// row after row does not start a reading per press: while one is out, a new opening only moves
+    /// the panel, and when the reading returns this loop asks again for whatever the panel is on NOW.
+    /// The rows skipped in between were never shown for long enough to matter.
+    ///
+    /// <b>It ends</b> because Claim marks what it hands out: a family that comes back unread - a file
+    /// on another machine, which the window does not reach for - is not handed out again until the
+    /// list is read afresh.
+    /// </summary>
+    private async Task CatchUpAsync()
+    {
+        while (Showing && _reads is not null && _followed is { } row)
+        {
+            var owed = _reads.Claim(row);
+
+            if (owed == ExtraRead.None)
+            {
+                return;
+            }
+
+            _reading = owed;
+            _readingFor = row;
+            Rebuild();
+
+            // No catch here: the readings keep a failure against the entry it happened to, and the
+            // notice asks for it - see Notice.
+            try
+            {
+                await _reads.ReadAsync(row, owed).ConfigureAwait(true);
+            }
+            finally
+            {
+                _reading = ExtraRead.None;
+                _readingFor = null;
+                Rebuild();
+            }
+        }
+    }
 
     /// <summary>
     /// Builds the lines again from whatever the followed row now holds.
     ///
     /// Whole rather than in part, because a row says one word when any of its cells move - the
     /// notification is <c>Item[]</c> for all of them at once - so there is nothing finer to react
-    /// to. Five sections of eighteen lines is not a measurement worth making cleverer.
+    /// to. Four sections of twenty-six lines is not a measurement worth making cleverer.
     /// </summary>
     private void Rebuild()
     {
@@ -276,9 +408,10 @@ public sealed class Chosen : Observable
         // Shown rather than Of: the two names above are the panel's head, and Of would repeat
         // them as the first two lines of the first section - which it did from 2026-08-13 to
         // 2026-09-16. A copy still takes Of, because a copy has no head.
-        Sections = Details.Shown(row.Entry);
+        Sections = Details.Shown(row.Entry, ReferenceEquals(_readingFor, row) ? _reading : ExtraRead.None);
 
         Raise(nameof(ShownName));
         Raise(nameof(ShownLabel));
+        Raise(nameof(Notice));
     }
 }

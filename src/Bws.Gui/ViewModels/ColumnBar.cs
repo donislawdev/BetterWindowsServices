@@ -20,6 +20,7 @@ public sealed class ColumnChoice : Observable
     private readonly string _labelKey;
     private bool _shown;
     private bool _mayHide = true;
+    private bool _yielding;
 
     internal ColumnChoice(Column column)
     {
@@ -31,8 +32,15 @@ public sealed class ColumnChoice : Observable
     /// <summary>Which column this stands for.</summary>
     internal Column Column { get; }
 
-    /// <summary>What it is called, in the language of whoever is reading it.</summary>
-    public string Label => Texts.Of(_labelKey);
+    /// <summary>
+    /// What it is called, in the language of whoever is reading it - and, while the details panel
+    /// has taken it off the list, where it went. A tick beside a column that is not on the list
+    /// would be the picker contradicting the screen, so the label says why rather than the tick
+    /// lying or going out.
+    /// </summary>
+    public string Label => _yielding && _shown
+        ? Texts.Of("gui.columns.yielded", Texts.Of(_labelKey))
+        : Texts.Of(_labelKey);
 
     /// <summary>
     /// The heading this one sits under in the picker.
@@ -44,11 +52,45 @@ public sealed class ColumnChoice : Observable
     /// </summary>
     public string Group => Columns.GroupOf(Column.Id) is { } key ? Texts.Of(key) : string.Empty;
 
-    /// <summary>Whether the column is in the list right now.</summary>
+    /// <summary>
+    /// Whether somebody chose this column - which is what the layout file keeps and what the tick
+    /// in the picker shows. Not the same as being on the list since 2026-09-24: see
+    /// <see cref="IsOnList"/>.
+    /// </summary>
     public bool IsShown
     {
         get => _shown;
-        set => Set(ref _shown, value);
+        set
+        {
+            if (Set(ref _shown, value))
+            {
+                Raise(nameof(IsOnList));
+                Raise(nameof(Label));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether the column is on the list right now: chosen, and not stepped aside for the details
+    /// panel. The grid follows THIS, and the layout file follows <see cref="IsShown"/> - the two
+    /// answers were one until UX-GUI-012, and a panel that hid a column through the only answer
+    /// there was would have written "turned off" into somebody's profile on every close.
+    /// </summary>
+    public bool IsOnList => _shown && !_yielding;
+
+    /// <summary>Whether the open details panel has this column off the list. Set by <see cref="ColumnBar"/>.</summary>
+    internal bool Yielding
+    {
+        get => _yielding;
+        set
+        {
+            if (_yielding != value)
+            {
+                _yielding = value;
+                Raise(nameof(IsOnList));
+                Raise(nameof(Label));
+            }
+        }
     }
 
     /// <summary>
@@ -236,6 +278,23 @@ public sealed class ColumnBar
     /// <summary>The same choices with their headings between them, which is what the menu shows.</summary>
     public IReadOnlyList<object> Entries { get; }
 
+    /// <summary>
+    /// Whether the details panel is open beside the list, which takes the prose columns off it -
+    /// <see cref="Column.YieldsToPanel"/>. Told by the window, because the window is what holds
+    /// both the panel and this bar.
+    /// </summary>
+    internal bool PanelOpen
+    {
+        get => _panelOpen;
+        set
+        {
+            _panelOpen = value;
+            Rethink();
+        }
+    }
+
+    private bool _panelOpen;
+
     /// <summary>The columns that are on, in the catalogue's order.</summary>
     public IEnumerable<ColumnChoice> Shown => Choices.Where(choice => choice.IsShown);
 
@@ -294,11 +353,25 @@ public sealed class ColumnBar
     /// </summary>
     private void Rethink()
     {
-        var alone = Choices.Count(choice => choice.IsShown) <= 1;
+        // WHICH COLUMNS STEP ASIDE FOR THE PANEL, AND NEVER THE LAST ONE ON THE LIST. A list whose
+        // only chosen column is the description would otherwise go blank the moment the panel
+        // opened - `docs/11` complaint 9 arriving by a door nobody thought to close, the same one
+        // MayHide shuts below.
+        var others = Choices.Any(choice => choice.IsShown && !choice.Column.YieldsToPanel);
 
         foreach (var choice in Choices)
         {
-            choice.MayHide = !(alone && choice.IsShown);
+            choice.Yielding = _panelOpen && others && choice.Column.YieldsToPanel;
+        }
+
+        // COUNTED ON THE LIST RATHER THAN IN THE CHOICES since 2026-09-24. With the description
+        // away for the panel, a list of the name and the description is a list of one column, and
+        // counting choices would let that one go too.
+        var alone = Choices.Count(choice => choice.IsOnList) <= 1;
+
+        foreach (var choice in Choices)
+        {
+            choice.MayHide = !(alone && choice.IsOnList);
         }
     }
 }
