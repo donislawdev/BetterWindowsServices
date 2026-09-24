@@ -71,6 +71,19 @@ public sealed class GeneratorTests : IDisposable
     }
 
     /// <summary>
+    /// A video's still frame is an address too, and the check read only href and src until the
+    /// front page got a video on 2026-09-24 - a poster pointing at nothing would have shipped as
+    /// a black box with a play button on it.
+    /// </summary>
+    [Fact]
+    public void A_poster_pointing_at_nothing_is_reported()
+    {
+        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "poster=\"/assets/bws-in-action.jpg\"");
+
+        Assert.Contains(Build(), problem => problem.Contains("/assets/bws-in-action.jpg", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// The promise on every page's footer - that the site loads nothing from anywhere else - is
     /// the one this check exists for. A font or a script from another host would make that
     /// sentence false without changing how the page looks.
@@ -81,8 +94,8 @@ public sealed class GeneratorTests : IDisposable
         DamagePage(
             "home",
             "en",
-            "<img src=\"/assets/icon.svg\" alt=\"\" width=\"16\" height=\"16\">",
-            "<img src=\"https://cdn.example.com/icon.svg\" alt=\"\" width=\"16\" height=\"16\">");
+            "<img src=\"/assets/window-plan.png\"",
+            "<img src=\"https://cdn.example.com/window-plan.png\"");
 
         var problems = Build();
 

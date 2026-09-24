@@ -34,15 +34,12 @@ next administrator finds out it exists.
 - **Run from one file, offline** - no installer, no .NET to install, and it never talks to the
   internet. Reading needs no administrator rights. GPL-3.0.
 
-<!-- TODO(owner): record this one. The window opened on a machine, a number on the opening screen
-     clicked, the query it wrote into the search box edited, a row right-clicked, "What stopping
-     would do" chosen, the plan shown with its steps and warnings. Ten to twenty seconds. -->
-![Better Windows Services opening on a summary of the machine, one of its numbers clicked so its query lands in the search box, and a plan for stopping a service shown with the services it would take down and the command line that asks for the same thing.](.github/bws-in-action.gif)
+![A real session in the Better Windows Services window: two entries picked and the plan for starting them shown before anything runs, the Print Spooler found by typing part of its name and its plan carried out, the menu of column groups, and the filter buttons narrowing the list until nothing matches.](.github/bws-in-action.gif)
 
-*A real session. The plan on the right is shown before anything happens, and the command line
-under it asks for exactly the same thing.*
+*A real session, on a Windows installed in Polish - the display names come from Windows, so they
+are in its language. Every plan is shown before anything happens, and the command line in it asks
+for exactly the same thing.*
 
-<!-- TODO(owner): the star GIF, the same one the other repositories carry. -->
 ![Clicking the Star button at the top of the Better Windows Services repository page: the counter goes from Star 0 to Starred 1.](.github/star-the-repo.gif)
 
 ---
@@ -122,9 +119,9 @@ a warning if one of them is something the machine needs, and the `bws` line that
 thing. The button under it is named after what it will do - *Stop Winmgmt* - and runs exactly that
 plan, and afterwards the panel says what did not work and how to get back.
 
-<!-- TODO(owner): a still of the window with a plan open. The plan panel on the right, a few rows
-     picked on the left, the warning line visible. -->
-![The Better Windows Services window: the list of services with the search box above it, a row chosen, and the plan panel showing the steps a stop would take, a warning about a dependent service, and the equivalent bws command.](.github/window-plan.png)
+![The opening screen of Better Windows Services: three cards of numbers about this machine - services running, services set to start automatically that did not come up, and services set to start automatically whose file is gone - with smaller counts under two of them, and a Show the list button.](site/assets/window-overview.png)
+
+![The list of services with the query !type:driver in the search box and four rows picked, and over it the plan for stopping them: four steps in order, a note that three of the four are already stopped so nothing would change for them, a bws stop line for each entry with a Copy button, a box for how many seconds to wait for each step, and a Stop 4 entries button.](site/assets/window-plan.png)
 
 **From the command line:**
 
@@ -503,6 +500,8 @@ everything about the chosen entry. Escape backs out of the innermost thing first
 right end of the row above the search box, opens the project's support page in your browser - and
 in a window running as administrator it asks the desktop to open it, so the browser does not get
 those rights.
+
+![The Better Windows Services window with the three lists above the search box - Services 335, Drivers 465, All 800 - the query !type:driver in the box, the filter buttons open in rows for state, startup type, signature, disagreements and triggers, the row of operation buttons, and the list with display name, description, status, startup type and account.](site/assets/window-list.png)
 
 ---
 

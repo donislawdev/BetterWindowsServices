@@ -25,30 +25,39 @@
       </ul>
     </div>
     <figure>
-      <div class="shot" aria-hidden="true">
-        <div class="shot-bar"><img src="/assets/icon.svg" alt="" width="16" height="16">{{product}}<span class="scope">Services 811 &middot; Drivers &middot; Everything</span></div>
-        <div class="shot-search"><span class="k">management</span><span class="count">3 of 811</span></div>
-        <table class="shot-list">
-          <thead><tr><th>Name</th><th>Display name</th><th>Status</th><th>Startup type</th></tr></thead>
-          <tbody>
-            <tr aria-selected="true"><td>Winmgmt</td><td>Windows Management Instrumentation</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
-            <tr><td>vmms</td><td>Hyper-V Virtual Machine Management</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
-            <tr><td>WinRM</td><td>Windows Remote Management (WS-Management)</td><td><span class="dot dot-stopped"></span>Stopped</td><td><span class="ring ring-manual"></span>Manual</td></tr>
-          </tbody>
-        </table>
-        <div class="shot-plan">
-          <h3>What stopping Winmgmt would do</h3>
-          <ol>
-            <li>stop <span>vmms</span> (would break otherwise)</li>
-            <li>stop <span>Winmgmt</span> (asked for)</li>
-          </ol>
-          <p class="warn">Stopping Winmgmt also stops one other entry: vmms. Winmgmt starts automatically, so it will be back after the next restart.</p>
-          <div class="cmd">bws stop Winmgmt --dependents</div>
-          <div class="buttons"><span>Copy all</span><span class="go">Stop Winmgmt</span></div>
-        </div>
-      </div>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="The window with four entries picked and the plan for stopping them shown over the list: four steps, a note that three of them are already stopped, a bws stop line for each entry, and the Stop 4 entries button." width="1632" height="1041"></a>
       <figcaption>A query in the search box, a plan shown before anything happens, and the <code>bws</code> line that asks for exactly the same thing.</figcaption>
     </figure>
+  </div>
+</section>
+
+<!--
+  Real captures of the window, 2026-09-24. They replaced a mock window drawn in HTML, which stood in
+  the hero until somebody recorded the program. The session is a video with controls rather than the
+  GIF the README carries, because a loop of half a minute that cannot be paused is what WCAG 2.2.2
+  asks a page not to have, and because the video is a quarter lighter.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Half a minute with it</span>
+    <h2>What it looks like in use</h2>
+    <p class="lede">A real session, on a Windows installed in Polish - the display names come from Windows, so they are in its language. The window itself speaks English.</p>
+    <figure>
+      <video class="window-shot" controls loop playsinline preload="metadata" poster="/assets/bws-in-action.png" width="2162" height="1210" aria-label="Two entries picked and the plan for starting them, the Print Spooler found by typing part of its name and its plan carried out, the menu of column groups, and the filter buttons narrowing the list until nothing matches.">
+        <source src="/assets/bws-in-action.mp4" type="video/mp4">
+      </video>
+      <figcaption>Two entries picked and the plan for starting them, the Print Spooler found by typing and its plan carried out, the column groups, and the filter buttons narrowing the list until nothing matches.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="The opening screen: three cards of numbers about this machine - services running, services set to start automatically that did not come up, and services set to start automatically whose file is gone - and a Show the list button." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>It opens on a few numbers about this machine. Each one is a question - click it and the question goes into the search box.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="The list of services with the three lists above the search box, the query !type:driver in the box, the filter buttons open in rows for state, startup type, signature and triggers, and the list below." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>The filter buttons write into the search box, so what you clicked is a query you can read and edit.</figcaption>
+      </figure>
+    </div>
   </div>
 </section>
 
