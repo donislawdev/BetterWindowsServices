@@ -99,7 +99,40 @@ public sealed class GeneratorTests : IDisposable
 
         var problems = Build();
 
-        Assert.Contains(problems, problem => problem.Contains("cdn.example.com", StringComparison.Ordinal));
+        // The LOAD sentence, not the host name alone: an unlisted host is reported by a second
+        // sentence that names it too, so "cdn.example.com" somewhere in the problems passed even
+        // with the load check gone.
+        Assert.Contains(problems, problem => problem.Contains("loads https://cdn.example.com/window-plan.png from another host", StringComparison.Ordinal));
+    }
+
+    /// <summary>A video's still frame is loaded like an image, so it is refused from another host the same way.</summary>
+    [Fact]
+    public void A_poster_loaded_from_another_host_is_refused()
+    {
+        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "poster=\"https://cdn.example.com/bws-in-action.png\"");
+
+        Assert.Contains(Build(), problem => problem.Contains("loads https://cdn.example.com/bws-in-action.png from another host", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// HTML takes an attribute name in any case and a value in single quotes as well as double,
+    /// and a check that reads only one spelling passes the others without a word.
+    /// </summary>
+    [Fact]
+    public void An_address_in_capitals_and_single_quotes_is_still_checked()
+    {
+        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "POSTER='/assets/bws-in-action.jpg'");
+
+        Assert.Contains(Build(), problem => problem.Contains("/assets/bws-in-action.jpg", StringComparison.Ordinal));
+    }
+
+    /// <summary>An address that is not an address is a problem to report, not an exception that stops the build.</summary>
+    [Fact]
+    public void A_malformed_address_is_reported_rather_than_thrown()
+    {
+        DamagePage("home", "en", "href=\"/download/\"", "href=\"https://\"");
+
+        Assert.Contains(Build(), problem => problem.Contains("'https://'", StringComparison.Ordinal));
     }
 
     [Fact]
