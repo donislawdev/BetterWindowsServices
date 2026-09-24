@@ -114,8 +114,17 @@ internal static class ExternalLinks
     /// <summary>Hands the query language page to a browser, or says why it did not.</summary>
     internal static Task<string?> OpenQueryLanguagePageAsync() => QueryLanguage.Ask();
 
+    /// <summary>
+    /// What a failure says, per destination - named rather than written into a call, so the sentence
+    /// is found by its key wherever the key is looked for (TextKeyGuards reads named keys like these).
+    /// </summary>
+    private const string SupportFailed = "gui.support.failed";
+
+    /// <inheritdoc cref="SupportFailed"/>
+    private const string PageFailed = "gui.link.failed";
+
     private static ShellHandover Page(string address) => new(
-        () => Open(address, Session.IsElevated(), Start, HandToDesktop, "gui.link.failed"),
+        () => Open(address, Session.IsElevated(), Start, HandToDesktop, PageFailed),
         ShellHandover.Patience,
         Texts.Of("gui.link.slow", address));
 
@@ -131,7 +140,7 @@ internal static class ExternalLinks
         bool elevated,
         Func<string, string?> start,
         Func<string, string?> handToDesktop,
-        string failedKey = "gui.support.failed")
+        string failedKey = SupportFailed)
     {
         var reason = elevated ? handToDesktop(address) : start(address);
 
