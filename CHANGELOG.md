@@ -28,6 +28,11 @@ is not part of this repository.
 - A Help button in the top right corner, also opened with F1. It lists the keyboard shortcuts -
   each item does what its key does - opens the query language page and the project's website in
   your browser, and shows the version of the program, which you can copy.
+- After the list is exported, the foot of the window says how many entries went into which file.
+  The sentence goes away as soon as you change the search.
+- "Set startup type" in the row menu, with the same four settings as the action bar.
+- Each startup setting in both menus says what it means when you point at it.
+- The machine overview says in one sentence what the tool does.
 
 ### Changed
 
@@ -56,6 +61,17 @@ is not part of this repository.
   panel shows the description in full. The column comes back when the panel closes, and your
   choice of columns is kept.
 - "What it runs" comes second in the details panel, before "About the entry".
+- "Show the list" on the machine overview clears the search box, so it always shows the whole list
+  rather than the answer to the last number you clicked.
+- On the orphans card of the overview, the second number counts only entries whose file is gone
+  and that are not set to start automatically, so the two numbers add up to every missing file.
+- The sentence about the number the overview cannot count yet no longer talks about planned work.
+- Export offers a file name after the tab you are on: services.csv, drivers.csv or
+  services-and-drivers.csv.
+- The rules for the filters are in one place, on the Filters button: two filters in one row show
+  both, and rows narrow each other. The row labels no longer repeat the same tooltip.
+- The row menu names its actions the way the action bar does: "Stop...", "Start...",
+  "Restart...", "Force stop..." and "Force restart...". Each still opens a plan first.
 
 ### Fixed
 

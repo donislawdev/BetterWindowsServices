@@ -28,11 +28,14 @@ public partial class MainWindow
     /// thing that happens to a save dialog, and a sentence about it would be a window complaining
     /// that somebody changed their mind.
     ///
-    /// <b>Nothing is said when it works either, and that is stated rather than left to be
-    /// noticed.</b> The file is where the person put it and they chose the name, so the
-    /// confirmation is the thing itself. Rule 8 is about a FAILURE nobody is told about, and every
-    /// one of those has a sentence below.
+    /// <b>WHEN IT WORKS IT SAYS SO, SINCE 2026-09-24 - UX-GUI-016, owner's decision, and it
+    /// reverses one.</b> Until that day nothing was said: the file is where the person put it and
+    /// they chose the name, so the confirmation was the thing itself. The audit's answer was that
+    /// nothing on screen then said how many rows went in, so checking an export against the window
+    /// meant opening the file. The sentence is in <see cref="WriteShownTo"/>, beside the failure.
     ///
+    /// <b>The name offered is the list's</b> - drivers.csv on the Drivers tab rather than
+    /// services.csv on every tab. <see cref="Exporting.FileName"/> says why.
     /// </summary>
     private const string Mark = "\uFEFF";
 
@@ -40,7 +43,7 @@ public partial class MainWindow
     {
         var dialog = new SaveFileDialog
         {
-            FileName = Texts.Of("gui.export.name") + ".csv",
+            FileName = Exporting.FileName(_model.Scope),
             DefaultExt = ".csv",
             Filter = Texts.Of("gui.export.kind") + " (*.csv)|*.csv",
             AddExtension = true
@@ -51,14 +54,12 @@ public partial class MainWindow
             return;
         }
 
-        if (WriteShownTo(dialog.FileName) is { } trouble)
-        {
-            _model.Says.CouldNotDo(trouble);
-        }
+        _ = WriteShownTo(dialog.FileName);
     }
 
     /// <summary>
-    /// Writes what the list shows to a named file, or hands back the sentence about why it could not.
+    /// Writes what the list shows to a named file and says what happened - how many rows went where,
+    /// or why none did. Hands back the sentence about the failure, for a guard to read.
     ///
     /// <b>Apart from the dialog because the dialog is the one part nothing here can drive.</b>
     /// Measured 2026-08-25: a save dialog opened from a session started in the background never
@@ -73,22 +74,36 @@ public partial class MainWindow
     /// </summary>
     internal string? WriteShownTo(string path)
     {
-        var text = Exporting.AsCsv(ShownColumns(), InTheOrderOnScreen());
+        var rows = InTheOrderOnScreen();
+        var text = Exporting.AsCsv(ShownColumns(), rows);
+
+        string? trouble;
 
         try
         {
             AtomicFile.Write(path, Mark + text);
 
-            return null;
+            trouble = null;
         }
-        catch (IOException trouble)
+        catch (IOException failure)
         {
-            return Texts.Of("gui.export.failed", trouble.Message);
+            trouble = Texts.Of("gui.export.failed", failure.Message);
         }
-        catch (UnauthorizedAccessException trouble)
+        catch (UnauthorizedAccessException failure)
         {
-            return Texts.Of("gui.export.failed", trouble.Message);
+            trouble = Texts.Of("gui.export.failed", failure.Message);
         }
+
+        if (trouble is null)
+        {
+            _model.Says.Did(Exporting.Wrote(rows.Count, Path.GetFileName(path)));
+        }
+        else
+        {
+            _model.Says.CouldNotDo(trouble);
+        }
+
+        return trouble;
     }
 
     /// <summary>

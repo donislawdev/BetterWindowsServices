@@ -244,4 +244,102 @@ public sealed class ExportingGuards
             WpfHost.On(window.Close);
         }
     }
+
+    /// <summary>
+    /// A file that was written is SAID to have been written, with how many rows went in and the
+    /// name it went to - UX-GUI-016, owner's decision, 2026-09-24, reversing a window that said
+    /// nothing when it worked.
+    ///
+    /// <b>And the sentence goes when somebody asks for something else</b>, because "wrote one entry"
+    /// under a list somebody has since narrowed to twelve is a sentence about a list nobody is
+    /// looking at.
+    ///
+    /// <b>Two rows, not one</b>, because a sentence that always said one row passed this test while
+    /// it exported one. The singular is asked of <see cref="Exporting.Wrote"/> itself, below.
+    /// </summary>
+    [Fact]
+    public async Task A_written_file_is_said_with_its_rows_and_its_name_until_somebody_moves_on()
+    {
+        _ = WpfHost.Resources;
+
+        var model = new MainViewModel(
+            new LiveMachine(Rows.Entry("Spooler", "Print Spooler"), Rows.Entry("Audiosrv")),
+            new SteppedClock());
+
+        await model.LoadAsync();
+
+        var window = WpfHost.On(() => new MainWindow(WpfHost.Nowhere(), model));
+
+        WpfHost.On(() => window.Entries.ItemsSource = model.Rows);
+        WpfHost.Settled();
+
+        var path = Path.Combine(Path.GetTempPath(), $"bws-export-{Guid.NewGuid():N}.csv");
+
+        try
+        {
+            Assert.Equal(string.Empty, model.Says.Done);
+
+            Assert.Null(WpfHost.On(() => window.WriteShownTo(path)));
+
+            Assert.Equal(Exporting.Wrote(2, Path.GetFileName(path)), model.Says.Done);
+            Assert.StartsWith("Wrote 2 entries to ", model.Says.Done, StringComparison.Ordinal);
+            Assert.Contains(Path.GetFileName(path), model.Says.Done, StringComparison.Ordinal);
+            Assert.Equal(string.Empty, model.Says.Problem);
+
+            WpfHost.On(() => model.QueryText = "spool");
+
+            Assert.Equal(string.Empty, model.Says.Done);
+        }
+        finally
+        {
+            File.Delete(path);
+            WpfHost.On(window.Close);
+        }
+    }
+
+    /// <summary>
+    /// What a finished action did and what a refused one could not do share the second line of the
+    /// foot of the window, so the newer puts the older away - the row holds two lines and no more.
+    /// </summary>
+    [Fact]
+    public void A_finished_action_and_a_refused_one_put_each_other_away()
+    {
+        var says = new Says();
+
+        says.Did(Exporting.Wrote(3, "services.csv"));
+        says.CouldNotDo("the disk is full");
+
+        Assert.Equal(string.Empty, says.Done);
+        Assert.NotEqual(string.Empty, says.Problem);
+
+        says.Did(Exporting.Wrote(3, "services.csv"));
+
+        Assert.Equal(string.Empty, says.Problem);
+        Assert.NotEqual(string.Empty, says.Done);
+    }
+
+    /// <summary>
+    /// The name the save dialog offers is the list's, not "services" on every tab - UX-GUI-016. A
+    /// file is named once and read by people who never saw the window it came from.
+    ///
+    /// <b>Each tab against its own name</b>, because asking only that the three differ let two tabs
+    /// trade names and pass.
+    /// </summary>
+    [Fact]
+    public void The_name_offered_is_the_list_somebody_is_looking_at()
+    {
+        var names = new[] { EntryScope.Services, EntryScope.Drivers, EntryScope.Everything }
+            .Select(Exporting.FileName)
+            .ToList();
+
+        Assert.Equal(["services.csv", "drivers.csv", "services-and-drivers.csv"], names);
+    }
+
+    /// <summary>One row is "entry" and every other number is "entries" - the plural pair the language file keeps.</summary>
+    [Fact]
+    public void The_sentence_counts_one_row_in_the_singular()
+    {
+        Assert.Contains("1 entry to", Exporting.Wrote(1, "drivers.csv"), StringComparison.Ordinal);
+        Assert.Contains("0 entries to", Exporting.Wrote(0, "drivers.csv"), StringComparison.Ordinal);
+    }
 }

@@ -171,6 +171,14 @@ public sealed class FilterChip : Observable
 /// two together 808, which is their sum. Across fields it multiplies instead:
 /// <c>status:running start:automatic</c> gives 90. So chips in one group ADD and chips in different
 /// groups NARROW, and a person who cannot see the boundary cannot predict either.
+///
+/// <b>EVERY GROUP ASKS ABOUT ONE FIELD, AND SINCE 2026-09-24 THAT IS A PROMISE ON SCREEN -
+/// UX-GUI-017.</b> Each label carried a sentence of its own until that day, chosen by whether its
+/// chips shared a field: the same sentence on all five, "two of these show both" even over a group
+/// of one chip, and nowhere that rows narrow each other. The rules are one sentence on the Filters
+/// switch now, and it says "two in one row show both" about EVERY row. A chip of another field
+/// slipped into a group would make that untrue for one row, so the property that chose between two
+/// sentences went with them, and FilterChipTests holds the rule itself - every group, one field.
 /// </summary>
 public sealed class FilterGroup
 {
@@ -186,34 +194,6 @@ public sealed class FilterGroup
     public string Label => Texts.Of(_labelKey);
 
     public IReadOnlyList<FilterChip> Chips { get; }
-
-    /// <summary>
-    /// Whether clicking two of these shows MORE rather than less.
-    ///
-    /// <b>Worked out from the chips rather than declared, because it is a fact about the query
-    /// rather than a choice about the row.</b> One field means the language ORs them and the group
-    /// adds up. Several fields mean it ANDs them and each chip narrows on its own.
-    ///
-    /// <b>This property exists because the guard for it went red on the first row that was
-    /// built.</b> Three groups were drawn and two of them added up - the third holds a trigger
-    /// question and a driver question, which are different fields, so the label above it was
-    /// promising something the parser does not do. The answer is not to force the two apart into
-    /// groups of one, it is to stop claiming the same thing about both kinds.
-    /// </summary>
-    public bool AddsUp => Chips.Select(chip => chip.Field).Distinct(StringComparer.Ordinal).Count() == 1;
-
-    /// <summary>
-    /// The sentence under this group's name, which differs by the answer above.
-    ///
-    /// Two calls rather than one with a choice inside it, and that is <c>TextKeyGuards</c>'s own
-    /// precedent obeyed rather than worked around: a key travelling as anything but a literal in
-    /// the call is invisible to it, and the fix it chose for <c>ListState</c> was to move the keys
-    /// into their calls instead of widening the pattern. A key visible where it is chosen is
-    /// better for a reader too.
-    /// </summary>
-    public string Hint => AddsUp
-        ? Texts.Of("gui.filter.hint.adds")
-        : Texts.Of("gui.filter.hint.narrows");
 }
 
 public sealed class FilterBar : Observable

@@ -26,6 +26,7 @@ public sealed class Says : Observable
     private bool _asking;
     private string _refusal = string.Empty;
     private string _layout = string.Empty;
+    private string _done = string.Empty;
     private bool _incomplete;
     private bool _narrowed;
     private bool _partial;
@@ -184,6 +185,22 @@ public sealed class Says : Observable
     public string Problem => _refusal.Length > 0 ? _refusal : _layout;
 
     /// <summary>
+    /// What a finished action did, in the ordinary voice - empty while there is nothing to say.
+    ///
+    /// <b>SINCE 2026-09-24 - UX-GUI-016, owner's decision, and it reverses one.</b> Writing the list
+    /// to a file used to say nothing when it worked, on the argument that the file is where the
+    /// person put it. The audit's answer was that nothing on screen then said how many rows went
+    /// into it, and a person checking an export against the window had to open the file to know.
+    ///
+    /// <b>The same line as <see cref="Problem"/> and never beside it</b>, because the foot of the
+    /// window holds two lines and no more: a finished action and a refused one are both news about
+    /// the last thing somebody did, so the newer one replaces the older (<see cref="Did"/> and
+    /// <see cref="CouldNotDo"/>). Its own property rather than a flag on that one, because the
+    /// colour differs and a trigger can only ask what it is told.
+    /// </summary>
+    public string Done => _done;
+
+    /// <summary>
     /// Whether the reading admitted to gaps. Shown, never swallowed.
     ///
     /// Rule 8 in the window: a listing that quietly dropped what it could not read looks
@@ -312,7 +329,30 @@ public sealed class Says : Observable
     {
         _refusal = Texts.Of("gui.status.couldNotDo", because);
 
+        // A refusal is newer news than whatever finished before it - Done says why the two share
+        // a line rather than stand one over the other.
+        _done = string.Empty;
+
         Raise(nameof(Problem));
+        Raise(nameof(Done));
+    }
+
+    /// <summary>
+    /// What an action somebody asked for did, once it has done it - <see cref="Done"/>.
+    ///
+    /// <b>It puts away what <see cref="Moved"/> puts away</b>, and for the same reason: somebody who
+    /// has just carried something out has been in the window long enough to have read the line that
+    /// was there before, and two lines of news about two different moments would leave the reader
+    /// to work out which is current.
+    /// </summary>
+    internal void Did(string sentence)
+    {
+        _refusal = string.Empty;
+        _layout = string.Empty;
+        _done = sentence;
+
+        Raise(nameof(Problem));
+        Raise(nameof(Done));
     }
 
     /// <summary>
@@ -352,7 +392,7 @@ public sealed class Says : Observable
     /// <summary>Puts away what the last action could not do, because the person asked for something else.</summary>
     internal void Moved()
     {
-        if (_refusal.Length == 0 && _layout.Length == 0)
+        if (_refusal.Length == 0 && _layout.Length == 0 && _done.Length == 0)
         {
             return;
         }
@@ -364,7 +404,12 @@ public sealed class Says : Observable
         // admission still standing an hour later reads as though it just happened.
         _layout = string.Empty;
 
+        // And so does what the last action did - "wrote 334 entries" under a list of twelve would
+        // be a sentence about a list nobody is looking at any more.
+        _done = string.Empty;
+
         Raise(nameof(Problem));
+        Raise(nameof(Done));
     }
 
     /// <summary>

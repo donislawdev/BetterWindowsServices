@@ -52,6 +52,38 @@ internal static class Exporting
         return text.ToString();
     }
 
+    /// <summary>
+    /// The name the save dialog offers, after the list somebody is looking at - UX-GUI-016, owner's
+    /// decision, 2026-09-24.
+    ///
+    /// <b>It was "services.csv" on every tab</b>, so a list of drivers saved without a second look
+    /// arrived on disk named for what it did not hold. A file is named once and read many times, by
+    /// people who never saw the window it came from.
+    ///
+    /// <b>Three calls with the key written in each rather than one call with the key chosen</b>,
+    /// because TextKeyGuards sees a key only where it is written - the note at Overview.Of.
+    /// </summary>
+    internal static string FileName(EntryScope scope) => scope switch
+    {
+        EntryScope.Drivers => Texts.Of("gui.export.name.drivers"),
+        EntryScope.Everything => Texts.Of("gui.export.name.all"),
+        _ => Texts.Of("gui.export.name.services")
+    } + ".csv";
+
+    /// <summary>
+    /// What the window says once the file is written - UX-GUI-016, and it reverses a decision that
+    /// had the file speak for itself (MainWindow.Exporting.cs says why it no longer does).
+    ///
+    /// <b>Rows, counted as the list shows them.</b> A folded per-user family is one row in the file
+    /// because it is one row on screen, so the number here is the number of rows the list showed.
+    /// The name and not the path: the person chose the folder a second ago, and a path in a line
+    /// this narrow would push the number out of sight.
+    /// </summary>
+    internal static string Wrote(int rows, string file) =>
+        rows == 1
+            ? Texts.Of("gui.export.done.one", rows, file)
+            : Texts.Of("gui.export.done.many", rows, file);
+
     private static void Line(StringBuilder text, IEnumerable<string> values)
     {
         text.AppendJoin(',', values.Select(value => Quoted(Inert(value))));

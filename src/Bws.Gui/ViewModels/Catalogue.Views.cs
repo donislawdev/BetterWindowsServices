@@ -333,7 +333,7 @@ public static partial class Catalogue
             // The extreme cell is a session without rights: the rights sentence in red at the head
             // of the line, the rest of the line in the notice colour - UX-GUI-009, 2026-09-23.
             View(() => new StatusRow(),
-                data: Saying(ready, notice: true), wrong: Saying(ready, notice: false), extreme: ready.Unelevated),
+                data: Saying(ready, done: true), wrong: Saying(ready, done: false), extreme: ready.Unelevated),
 
             // The list, built from the same styles and the same column builder the window uses,
             // over the same models - a second grid rather than the window's own, because the
@@ -437,14 +437,21 @@ public static partial class Catalogue
         return bar;
     }
 
-    /// <summary>The status row over a model saying a notice, or over one saying a problem.</summary>
-    private static MainViewModel Saying(Prepared ready, bool notice)
+    /// <summary>
+    /// The status row over a model saying what a finished action did, or over one saying what an
+    /// action could not do.
+    ///
+    /// <b>The finished action is the data cell since 2026-09-24 - UX-GUI-016.</b> The layout note
+    /// stood there until that day, and it draws the same red line as the refusal in the wrong cell,
+    /// so the sheet loses no style by giving the cell to the one sentence that line did not have.
+    /// </summary>
+    private static MainViewModel Saying(Prepared ready, bool done)
     {
-        var model = notice ? ready.Data : ready.Empty;
+        var model = done ? ready.Data : ready.Empty;
 
-        if (notice)
+        if (done)
         {
-            model.Says.AboutTheLayout("A sentence the window admits to, in the line under the list - the kept layout named a column this build does not have.");
+            model.Says.Did("What an action somebody asked for did, in the ordinary voice - wrote 334 entries to services.csv.");
         }
         else
         {

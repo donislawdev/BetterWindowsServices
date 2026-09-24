@@ -37,79 +37,19 @@ public sealed class FilterChipTests
     /// the real window before the row was rebuilt: <c>status:running</c> 323, <c>status:stopped</c>
     /// 485, both together 808, while <c>status:running start:automatic</c> gives 90. So a group is
     /// a promise that its chips ADD UP, and one chip from another field quietly turns that group
-    /// into a narrowing - with three labels on screen still claiming otherwise.
+    /// into a narrowing.
+    ///
+    /// <b>A PROMISE MADE IN WORDS SINCE 2026-09-24 - UX-GUI-017.</b> Until that day each label chose
+    /// between two sentences by whether its chips shared a field, and this test held the choice to
+    /// the fact. The rules are one sentence on the Filters switch now - "two in one row show both,
+    /// and rows narrow each other" - said about every row at once, so the only true shape left is
+    /// one field per group, and a chip on another field joining a group goes red here before anybody
+    /// reads the sentence on screen. The two tests that compared the per-label sentences went with
+    /// them, and the narrowing sentence that no data could reach (backlog 215) with them too.
     ///
     /// It is a property of the CATALOGUE rather than of any one chip, which is why it cannot be
     /// checked by the test below however carefully that one is written.
     /// </summary>
-    /// <summary>
-    /// A group that adds up and a group that narrows do not say the same sentence.
-    ///
-    /// <b>The claim on screen has to differ where the behaviour differs, or the labels are
-    /// decoration.</b> Two chips in the state group show both - two chips in the last group narrow
-    /// each other, because they are different fields. A single hint over both would be true for one
-    /// of them and false for the other - which is how a window teaches somebody the wrong rule and
-    /// then behaves correctly.
-    /// </summary>
-    [Fact]
-    public void A_group_that_adds_up_says_something_different_from_one_that_narrows()
-    {
-        // BUILT HERE RATHER THAN FOUND IN THE CATALOGUE SINCE 2026-08-19, AND THE REASON IS A
-        // FINDING RATHER THAN A CONVENIENCE. This test used to reach into the real groups for one
-        // of each. When the drivers chip left for the scope switch, the last mixed group lost its
-        // second field - so EVERY group in the catalogue now adds up, the narrowing sentence became
-        // unreachable, and this test went red for the honest reason that there was no longer one of
-        // each to find.
-        //
-        // TextKeyGuards did NOT catch that, and the limit is worth writing down: it looks for the
-        // key at a call site, and Texts.Of("gui.filter.hint.narrows") is still written in
-        // FilterGroup.Hint. A sentence that can be reached by no data on the machine is invisible
-        // to it. Backlog 215.
-        //
-        // The property under test was never about the catalogue - it is that the hint follows the
-        // field count - so it is asked of two groups made for the question. The capability is kept
-        // rather than deleted because `A5` still names families that will arrive on other fields.
-        var group = new List<FilterChip>
-        {
-            new("gui.filter.stopped", "status", "stopped", negated: false, () => string.Empty, _ => { }),
-            new("gui.filter.running", "status", "running", negated: false, () => string.Empty, _ => { })
-        };
-
-        var mixed = new List<FilterChip>
-        {
-            group[0],
-            new("gui.filter.triggered", "trigger", "any", negated: false, () => string.Empty, _ => { })
-        };
-
-        var adding = new FilterGroup("gui.filter.group.state", group);
-        var narrowing = new FilterGroup("gui.filter.group.about", mixed);
-
-        Assert.True(adding.AddsUp);
-        Assert.False(narrowing.AddsUp);
-
-        Assert.NotEqual(adding.Hint, narrowing.Hint);
-        Assert.NotEmpty(adding.Hint);
-        Assert.NotEmpty(narrowing.Hint);
-    }
-
-    /// <summary>
-    /// Every group in the catalogue adds up today, and that is stated rather than left to be
-    /// noticed.
-    ///
-    /// <b>This is not a property anybody wants - it is a record of where the row stands.</b> It
-    /// became true on 2026-08-19 when the drivers chip left, and it means the window cannot
-    /// currently show the sentence about groups narrowing each other. If a chip on a new field
-    /// joins an existing group, this goes red and whoever wrote it gets to decide on purpose
-    /// whether the boundary the hint describes is back.
-    /// </summary>
-    [Fact]
-    public void No_group_in_the_catalogue_mixes_fields_today()
-    {
-        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
-
-        Assert.All(model.FilterGroups, group => Assert.True(group.AddsUp));
-    }
-
     [Fact]
     public void No_group_says_its_chips_add_up_while_the_query_narrows_them()
     {
@@ -121,20 +61,12 @@ public sealed class FilterChipTests
         {
             var fields = group.Chips.Select(chip => chip.Field).Distinct(StringComparer.Ordinal).ToList();
 
-            // The claim on screen and the fact underneath it, asserted against each other rather
-            // than the claim being taken on trust.
-            Assert.Equal(fields.Count == 1, group.AddsUp);
-
-            // AND THE HALF WITH TEETH. A group of several fields is a row of independent switches
-            // and says so - but two chips of the SAME field inside it would be ORed with each other
-            // while everything around them ANDs, which is one group behaving two ways with nothing
-            // on screen dividing it.
             Assert.True(
-                group.AddsUp || fields.Count == group.Chips.Count,
-                $"The group '{group.Label}' mixes fields AND repeats one of them - "
+                fields.Count == 1,
+                $"The group '{group.Label}' asks about more than one field - "
                 + string.Join(", ", group.Chips.Select(chip => chip.Field))
-                + ". Two chips of one field are ORed by the language while the rest of the group is "
-                + "ANDed, so half of this group adds up and half narrows, under one name.");
+                + ". The language ANDs different fields, so this row narrows while the sentence on "
+                + "the Filters switch tells the person that two in one row show both.");
         }
     }
 
@@ -353,7 +285,7 @@ public sealed class FilterChipTests
     /// <b>The case no test had, and the one a person reaches for first.</b> The tests above click
     /// two chips of DIFFERENT fields, which the query ANDs - so nothing here ever asked what happens
     /// when three chips of one field are on at once, which is the thing the whole grouping of this
-    /// row is about: <see cref="FilterGroup.AddsUp"/> promises that a group adds up, and a row where
+    /// row is about: a group promises that its chips add up, and a row where
     /// only the last click shows is that promise visibly broken.
     ///
     /// Both halves are claimed, because they can fail apart: the TEXT has to carry all three, and

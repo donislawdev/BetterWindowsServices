@@ -144,5 +144,25 @@
                 </Style>
             </TextBlock.Style>
         </TextBlock>
+
+        <!--
+            WHAT A FINISHED ACTION DID, SINCE 2026-09-24 - UX-GUI-016. The second line's other
+            voice: never beside the one above, because Says.Did and Says.CouldNotDo each put the
+            other away, so the row stays at two lines. The subdued voice ordinary news passes in
+            elsewhere in this window, because a file written where somebody asked is not a warning.
+        -->
+        <TextBlock AutomationProperties.AutomationId="doneLine"
+                   Text="{Binding Says.Done}"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Says.Done}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
     </StackPanel>
 </UserControl>

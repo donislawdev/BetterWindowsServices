@@ -128,6 +128,12 @@ public sealed class OverviewGuards
     /// this machine actually has - owner's decision, 2026-08-25. A screen whose number is always
     /// zero teaches that the screen is useless, so the promise is kept and the true finding is shown
     /// under it.
+    ///
+    /// <b>AND THE TWO NUMBERS SPLIT THE MISSING FILES SINCE 2026-09-24 - UX-GUI-015 (b).</b> The
+    /// second one counted every missing file, orphans included, so "0 orphans" over "3 point at a
+    /// file that is not there" read as a contradiction. It counts the rest now, the way "4 more are
+    /// per-user templates" sits beside the number it is not part of - so the orphan is in the first
+    /// number and not in the second, and the two add up to every entry whose file is gone.
     /// </summary>
     [Fact]
     public async Task An_orphan_is_told_apart_from_an_entry_that_merely_lost_its_file()
@@ -141,10 +147,55 @@ public sealed class OverviewGuards
             Rows.Stopped("Orphaned") with { BinaryOnDisk = Reading<bool>.Present(false) });
 
         var orphans = model.Overview.Single(line => line.Label.Contains("orphans", StringComparison.Ordinal));
-        var gone = model.Overview.Single(line => line.Label.Contains("whatever their startup type", StringComparison.Ordinal));
+        var gone = model.Overview.Single(line => line.Label.Contains("not set to start automatically", StringComparison.Ordinal));
 
         Assert.Equal(1, orphans.Count);
-        Assert.Equal(2, gone.Count);
+        Assert.Equal(1, gone.Count);
+    }
+
+    /// <summary>
+    /// "Show the list" shows the whole list, whatever the box held when the screen came back -
+    /// UX-GUI-015 (c), owner's decision, 2026-09-24.
+    ///
+    /// <b>The road that broke it is the one this test takes.</b> A first run has an empty box, so
+    /// leaving the box alone used to be the same thing as showing the machine. The Overview button
+    /// brings this screen back over a list that still holds the last number clicked, and the button
+    /// then opened on that answer - measured 3 of 334 on the audit's machine.
+    /// </summary>
+    [Fact]
+    public async Task Show_the_list_clears_the_question_the_last_number_left_in_the_box()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler"), Rows.Stopped("BITS")), new SteppedClock());
+        var window = WpfHost.Window(model);
+
+        await WpfHost.On(model.LoadAsync);
+
+        // Opened from the bar, which is the road that matters, and the numbers exist only while
+        // the screen is showing.
+        void BackToTheOverview()
+        {
+            WpfHost.On(() => window.Actions.OverviewBack.RaiseEvent(
+                new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
+            WpfHost.Settled();
+        }
+
+        BackToTheOverview();
+
+        var running = WpfHost.On(() => model.Overview.Single(line =>
+            line.Label.Contains("services running", StringComparison.Ordinal)));
+
+        WpfHost.On(() => model.Ask(running));
+        Assert.Equal(["Spooler"], WpfHost.On(() => model.Rows.Select(row => row.ServiceName).ToList()));
+
+        BackToTheOverview();
+
+        WpfHost.On(() => window.Overview.DismissButton.RaiseEvent(
+            new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
+        WpfHost.Settled();
+
+        Assert.False(model.ShowingOverview);
+        Assert.Equal(string.Empty, model.QueryText);
+        Assert.Equal(["BITS", "Spooler"], model.Rows.Select(row => row.ServiceName).Order(StringComparer.Ordinal));
     }
 
     /// <summary>

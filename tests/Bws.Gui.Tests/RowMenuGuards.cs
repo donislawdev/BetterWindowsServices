@@ -28,6 +28,31 @@ namespace Bws.Gui.Tests;
 public sealed class RowMenuGuards
 {
     /// <summary>
+    /// The menu on a row, key by key, with "-" for a rule between groups.
+    ///
+    /// <b>The action bar's words since 2026-09-24 - UX-GUI-018, owner's decision.</b> The same keys
+    /// as the bar, so one verb has one name wherever it is met, and the sixth verb the menu lacked
+    /// until that day holds the four settings under it. A field rather than a literal inside the
+    /// test because the test stood at the length ratchet's edge.
+    /// </summary>
+    private static readonly string[] Shape =
+    [
+        "gui.menu.details",
+        "-",
+        "gui.menu.copyName",
+        "gui.menu.copyDisplayName",
+        "gui.menu.copyDescription",
+        "gui.menu.copyAll",
+        "-",
+        "gui.action.stop",
+        "gui.action.start",
+        "gui.action.restart",
+        "gui.action.forceStop",
+        "gui.action.forceRestart",
+        "gui.menu.startType"
+    ];
+
+    /// <summary>
     /// The menu starts with the item Enter and a double click stand for, and writes the key beside
     /// it - and the rest is two groups behind rules, every item with words rather than a key.
     ///
@@ -50,22 +75,7 @@ public sealed class RowMenuGuards
             _ => "?"
         }).ToList());
 
-        Assert.Equal(
-            [
-                "gui.menu.details",
-                "-",
-                "gui.menu.copyName",
-                "gui.menu.copyDisplayName",
-                "gui.menu.copyDescription",
-                "gui.menu.copyAll",
-                "-",
-                "gui.menu.previewStop",
-                "gui.menu.previewStart",
-                "gui.menu.previewRestart",
-                "gui.menu.previewForceStop",
-                "gui.menu.previewForceRestart"
-            ],
-            shape);
+        Assert.Equal(Shape, shape);
 
         var details = (MenuItem)items[0];
 
@@ -230,8 +240,8 @@ public sealed class RowMenuGuards
             .Select(item => (RowMenuEntry)item.DataContext)
             .ToList());
 
-        var forceStop = entries.Single(entry => entry.LabelKey == "gui.menu.previewForceStop");
-        var forceRestart = entries.Single(entry => entry.LabelKey == "gui.menu.previewForceRestart");
+        var forceStop = entries.Single(entry => entry.LabelKey == "gui.action.forceStop");
+        var forceRestart = entries.Single(entry => entry.LabelKey == "gui.action.forceRestart");
 
         // Ready leaves two rows picked: the item does nothing, and says so where the window says
         // everything an item could not do.
@@ -262,6 +272,66 @@ public sealed class RowMenuGuards
             "the sheet came back with the forced restart the item asked for");
 
         Assert.Equal(["Spooler"], WpfHost.On(() => model.Planned.Plan!.Action.ServiceNames));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// "Set startup type" on a row holds the same four settings as the action bar's menu, each with
+    /// what it means on hover - and choosing one opens the plan the bar's would - UX-GUI-018.
+    ///
+    /// <b>Both menus are asked, because one method fills both</b> and the promise is that they
+    /// cannot say different things: the same four labels, the same four tooltips, in the same
+    /// order.
+    ///
+    /// <b>The setting is clicked as a click, raised on the item under the header</b>, because the
+    /// header has no handler of its own on purpose - Click bubbles to it - and a handler added there
+    /// later would open a second plan over the first.
+    /// </summary>
+    [Fact]
+    public async Task The_start_type_item_holds_the_bar_s_four_settings_and_one_opens_its_plan()
+    {
+        var window = await PlanFixture.Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        var holder = WpfHost.On(() => window.Entries.ContextMenu!.Items
+            .OfType<MenuItem>()
+            .Single(item => item.DataContext is RowMenuEntry { LabelKey: "gui.menu.startType" }));
+
+        var onRow = WpfHost.On(() => holder.Items.OfType<MenuItem>().ToList());
+        var onBar = WpfHost.On(() => window.Actions.StartType.ContextMenu!.Items.OfType<MenuItem>().ToList());
+
+        Assert.Equal(4, onRow.Count);
+
+        Assert.Equal(
+            WpfHost.On(() => onBar.Select(item => (item.Header as string, item.ToolTip as string)).ToList()),
+            WpfHost.On(() => onRow.Select(item => (item.Header as string, item.ToolTip as string)).ToList()));
+
+        Assert.All(
+            WpfHost.On(() => onRow.Select(item => item.ToolTip as string).ToList()),
+            hint => Assert.False(string.IsNullOrWhiteSpace(hint)));
+
+        Assert.Equal(
+            Texts.Of("gui.start.mark.delayed"),
+            WpfHost.On(() => onRow[1].ToolTip as string));
+
+        WpfHost.On(() =>
+        {
+            window.Entries.UnselectAll();
+            window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
+        });
+        WpfHost.Settled();
+
+        WpfHost.On(() => onRow[3].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)));
+
+        WpfHost.Until(
+            () => model.Planned.Plan?.Action.Kind == Bws.Core.Planning.ActionKind.SetStartType,
+            "the sheet opened with the startup type the row's menu asked for");
+
+        Assert.Equal(["Spooler"], WpfHost.On(() => model.Planned.Plan!.Action.ServiceNames));
+        Assert.Equal(
+            Bws.Core.Planning.StartSetting.Disabled,
+            WpfHost.On(() => model.Planned.Plan!.Action.To));
 
         WpfHost.On(window.Close);
     }
