@@ -132,7 +132,21 @@ public sealed class GeneratorTests : IDisposable
     {
         DamagePage("home", "en", "href=\"/download/\"", "href=\"https://\"");
 
-        Assert.Contains(Build(), problem => problem.Contains("'https://'", StringComparison.Ordinal));
+        // The sentence of THIS branch. "'https://'" alone is also what the relative-address branch
+        // would print, so it passed whether or not the scheme was recognised at all.
+        Assert.Contains(Build(), problem => problem.Contains("'https://', which is not an address a browser can follow", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A data attribute ends in src or href and is not an address - it is whatever a page keeps
+    /// there. Read as one, a value that is not a path failed a strict build and with it the site.
+    /// </summary>
+    [Fact]
+    public void A_data_attribute_is_not_read_as_an_address()
+    {
+        DamagePage("home", "en", "<img src=\"/assets/window-plan.png\"", "<img data-src=\"not-an-address\" data-href=\"#\" src=\"/assets/window-plan.png\"");
+
+        Assert.DoesNotContain(Build(), problem => problem.Contains("not-an-address", StringComparison.Ordinal));
     }
 
     [Fact]
