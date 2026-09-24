@@ -79,6 +79,11 @@ public sealed class ColumnGuards
     /// Earlier: the six were the window's original set minus RAM and plus the display name, owner's
     /// decision 2026-08-11, because RAM belongs to a phase that does not exist and a column that can
     /// only say "nobody looked" is a promise the window cannot keep.
+    ///
+    /// <b>THE ORDER IS PART OF IT SINCE 2026-09-24, and the description is last</b> - UX-GUI-013,
+    /// owner's decision. Second in line, the one star column that takes what is left pushed the state
+    /// about 2800 pixels right of the name on a maximised window. Last, the state sits beside the
+    /// name at every width.
     /// </summary>
     [Fact]
     public void Five_columns_are_shown_before_anybody_chooses_anything()
@@ -86,7 +91,7 @@ public sealed class ColumnGuards
         Assert.Equal(5, Columns.All.Count(column => column.ShownAtFirst));
 
         Assert.Equal(
-            ["displayName", "description", "status", "startType", "account"],
+            ["displayName", "status", "startType", "account", "description"],
             Columns.All.Where(column => column.ShownAtFirst).Select(column => column.Id));
     }
 

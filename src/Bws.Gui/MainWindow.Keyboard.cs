@@ -189,6 +189,9 @@ public partial class MainWindow
                 // are written twice are two answers waiting to disagree.
                 return Copy(Copying.Everything);
 
+            case Shortcut.Help:
+                return OpenHelp();
+
             case Shortcut.Back:
                 // A PANEL FIRST, THE QUERY LAST, and the order is the decision rather than the
                 // implementation - `docs/04` at Paczka 1. One press doing both at once takes

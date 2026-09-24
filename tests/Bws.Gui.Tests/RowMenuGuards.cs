@@ -72,11 +72,23 @@ public sealed class RowMenuGuards
         Assert.Equal(Texts.Of("gui.menu.details"), WpfHost.On(() => details.Header));
         Assert.Equal("Enter", WpfHost.On(() => details.InputGestureText));
 
-        // Every entry has words, and only the first has a key.
+        // AND Ctrl+C BESIDE "Copy everything" SINCE 2026-09-24 - UX-GUI-010 found the key named in
+        // no text of the window, and that item is what the key does. On the item, for the reason
+        // above.
+        Assert.Equal("Ctrl+C", WpfHost.On(() => ((MenuItem)items[5]).InputGestureText));
+
+        // Every entry has words, and only those two have a key.
         foreach (var entry in WpfHost.On(() => items.OfType<MenuItem>().Select(item => (RowMenuEntry)item.DataContext).ToList()))
         {
             Assert.NotEqual(entry.LabelKey, entry.Label);
-            Assert.Equal(entry.LabelKey == "gui.menu.details" ? "Enter" : string.Empty, entry.Gesture);
+            Assert.Equal(
+                entry.LabelKey switch
+                {
+                    "gui.menu.details" => "Enter",
+                    "gui.menu.copyAll" => "Ctrl+C",
+                    _ => string.Empty
+                },
+                entry.Gesture);
         }
     }
 

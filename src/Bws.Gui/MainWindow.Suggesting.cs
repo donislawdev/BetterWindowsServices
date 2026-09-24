@@ -32,6 +32,56 @@ namespace Bws.Gui;
 public partial class MainWindow
 {
     /// <summary>
+    /// True for exactly as long as <see cref="GiveTheBoxTheKeyboard"/> is handing the box its
+    /// keyboard, which is the one arrival WITH somewhere to come from that is still not a person.
+    /// </summary>
+    private bool _givingTheBoxTheKeyboard;
+
+    /// <summary>
+    /// Puts the keyboard in the search box when the list appears - at the window's start, and when
+    /// the overview is put away - without offering anything under it. UX-GUI-010, owner's decision
+    /// 2026-09-24: this is a tool for searching, and until that day typing after it opened went
+    /// nowhere, because nothing held the keyboard but the window itself.
+    ///
+    /// <b>QUIET, AND THAT IS THE WHOLE DIFFICULTY.</b> The focus event below reads a focus with
+    /// somewhere to come from as a person arriving, and opens the questions under an empty box. From
+    /// the overview the keyboard comes from its "Show the list" button, so a plain Focus() here would
+    /// open a list nobody asked for - which the audit and backlog 136 both rule out. The flag makes
+    /// this one arrival read like the framework's own hand-back.
+    ///
+    /// <b>The box and not the grid</b>, because keyboard focus in the grid holds the list still
+    /// (`A10`) and nobody opening a window has asked it to stop.
+    ///
+    /// <b>AT INPUT PRIORITY, AND THE FIRST BUILD WITHOUT IT WAS MEASURED DOING NOTHING.</b> Called
+    /// the moment the overview goes, the box had been given its Visibility and not yet a layout pass,
+    /// and the button holding the keyboard was being collapsed in the same breath - so
+    /// tools/gui-probe/focus-at-start.ps1 found the keyboard on the window, exactly as before the
+    /// change. PlanView.TakeTheKeyboard paid for the same lesson first: shown and arranged are two
+    /// moments. Nothing waits for the focus to land, so the operation is discarded (MA0134).
+    /// </summary>
+    internal void GiveTheBoxTheKeyboard() =>
+        _ = Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Input,
+            () =>
+            {
+                if (_model.ShowingOverview)
+                {
+                    return;
+                }
+
+                _givingTheBoxTheKeyboard = true;
+
+                try
+                {
+                    Search.Box.Focus();
+                }
+                finally
+                {
+                    _givingTheBoxTheKeyboard = false;
+                }
+            });
+
+    /// <summary>
     /// Wires the box and the list to the model. Called once, from the constructor, beside the
     /// typing timer that watches the same box.
     ///
@@ -52,7 +102,7 @@ public partial class MainWindow
 
         box.GotKeyboardFocus += (_, e) =>
         {
-            if (e.OldFocus is null)
+            if (e.OldFocus is null || _givingTheBoxTheKeyboard)
             {
                 list.Keyboard(present: true);
             }
@@ -63,6 +113,10 @@ public partial class MainWindow
         };
 
         box.PreviewMouseLeftButtonUp += (_, _) => list.Arrived(box.Text);
+
+        // And the keyboard starts here rather than on the window, since 2026-09-24 - the same
+        // quiet hand-over as the one after the overview, GiveTheBoxTheKeyboard.
+        Loaded += (_, _) => GiveTheBoxTheKeyboard();
 
         // The one lock that covers a chip, a tab, the plan sheet, the box's own context menu and
         // the closing of the window: all of them take the keyboard.

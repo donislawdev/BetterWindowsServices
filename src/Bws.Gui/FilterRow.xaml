@@ -69,9 +69,11 @@
             the chips are not the only place their state shows - each one writes its member into the
             box above, so a folded row still has "status:stopped" on screen in the query.
 
-            NOT REMEMBERED BETWEEN RUNS, said rather than left to be discovered. The one file this
-            program keeps is a frozen contract at schema 2, and a new field in it is a schema bump
-            and a conversation rather than an edit.
+            REMEMBERED BETWEEN RUNS SINCE 2026-09-24 - UX-GUI-007, owner's decision. Until that day
+            this said it was not, because the one file this program keeps is a contract and a new
+            field is a schema bump and a conversation. The conversation was had and the bump made
+            (schema 5), so a profile that folded the chips opens folded. IsChecked below is the
+            first run's answer, and MainWindow.Filters.cs sets the kept one over it.
         -->
         <!--
             AND IT STOPPED WEARING THE ACCENT ON 2026-09-01, WHICH IS A FAULT THIS SESSION MADE AND

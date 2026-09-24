@@ -44,7 +44,6 @@ public sealed class DeadCodeGuards
     {
         ["Bws.Gui.ActionBar.Offering"] = ScreenSeam,
         ["Bws.Gui.ActionBar.OverviewBack"] = ScreenSeam,
-        ["Bws.Gui.FilterRow.Switch"] = ScreenSeam,
         ["Bws.Gui.StatusRow.NoticeLinkWords"] = ScreenSeam,
         ["Bws.Gui.MainWindow.HeadingMenu"] = ScreenSeam,
         ["Bws.Gui.MainWindow.HoldingForScroll"] = ScreenSeam,

@@ -25,6 +25,9 @@ is not part of this repository.
   restart of the machine.
 - The JSON of a plan carries `delayedAuto` next to `startType`, the same way `bws list --json`
   does, and `alsoStop` for a plan that also stops.
+- A Help button in the top right corner, also opened with F1. It lists the keyboard shortcuts -
+  each item does what its key does - opens the query language page and the project's website in
+  your browser, and shows the version of the program, which you can copy.
 
 ### Changed
 
@@ -34,6 +37,16 @@ is not part of this repository.
   `bws start-type <name> delayed`. Before, there was no way back for such an entry.
 - When the details panel could not read some of its fields, it now says that F5 reads the
   machine again and the panel tries once more.
+- The window starts with the cursor in the search box, so you can type a query straight away. The
+  same happens after "Show the list" on the overview. The list of suggestions under the box does
+  not open by itself.
+- Folding the filters away with the Filters button is remembered, so the window opens the way you
+  left it. The first time the window opens, the filters are showing.
+- The Description column comes last in the usual columns, so the state and the startup type stand
+  next to the name even in a maximised window. A layout you have already arranged keeps its order -
+  "Restore the usual columns" under Columns gives you the new one.
+- The row menu shows Ctrl+C next to "Copy everything".
+- The "Also stop it" offer in a startup type plan is drawn in red, like "Force stop...".
 - The details panel reads the signature, publisher, file version, file hash, memory and
   "Required by" of its entry when it opens, instead of showing "not read" and asking you to
   turn on a column. While it reads, those lines say "reading...". A file on another machine is

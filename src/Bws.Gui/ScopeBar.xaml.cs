@@ -26,4 +26,10 @@ public partial class ScopeBar : UserControl
     /// that reports a failure is.
     /// </summary>
     internal Button Donate => DonateButton;
+
+    /// <summary>
+    /// The Help button at the very end of this row, since 2026-09-24 - forwarded for the reason
+    /// Donate is: the window hangs the menu on it and answers F1 with the same menu.
+    /// </summary>
+    internal Button Help => HelpButton;
 }

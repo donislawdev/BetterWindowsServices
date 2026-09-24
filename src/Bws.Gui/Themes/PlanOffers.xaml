@@ -101,22 +101,14 @@
         THE SHAPE IS PlanFailureTemplate'S, BECAUSE THE SITUATION IS: a sentence, and under a few of
         them a way to act on it, collapsed by default so a binding that fails shows no button.
 
-        THE QUIET OUTLINE OF "Copy" RATHER THAN THE RED ONE OF "Force stop...". Red here means "the
-        way out of that red sentence", and this sentence is not red - it is a fact about the plan,
-        and the press changes nothing on the machine, it adds a step to a plan still waiting for its
-        own button. The choice between the two was made on photographs of both.
+        THE RED OUTLINE OF "Force stop...", THE OWNER'S CHOICE OF 2026-09-24 made on photographs of
+        both. The quiet outline of "Copy" was built first, on the argument that red on this sheet
+        means the way out of a red sentence and this sentence is not red. The owner weighed that and
+        chose the red, so the offer is the failure's button under another name - based on it rather
+        than copied from it (GUI rule 7), and kept as a name of its own so the two can part again
+        without touching the template.
     -->
-    <Style x:Key="PlanOfferButton" TargetType="Button" BasedOn="{StaticResource PlanCopyButton}">
-        <Setter Property="Visibility" Value="Collapsed" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding HasOffer}" Value="True">
-                <Setter Property="Visibility" Value="Visible" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
+    <Style x:Key="PlanOfferButton" TargetType="Button" BasedOn="{StaticResource PlanForceButton}" />
 
     <DataTemplate x:Key="PlanWarningTemplate">
         <StackPanel Margin="{StaticResource MarginBetweenControls}">

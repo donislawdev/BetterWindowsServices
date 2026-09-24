@@ -11,7 +11,9 @@ using Windows.Win32.UI.Shell;
 namespace Bws.Gui;
 
 /// <summary>
-/// The one address this window hands to a browser, and the two ways it hands it over.
+/// The addresses this window hands to a browser, and the two ways it hands them over. One until
+/// 2026-09-24 - the support page - and three since the help menu (UX-GUI-014) offered the project's
+/// website and its query language page.
 ///
 /// <b>THE SECOND FILE IN THIS WINDOW ALLOWED TO START SOMETHING, and that is the owner's decision
 /// of 2026-09-23 rather than an arrangement of mine.</b> <see cref="Elevation"/> was the only one
@@ -86,6 +88,46 @@ internal static class ExternalLinks
     /// </summary>
     internal static Task<string?> OpenSupportAsync() => Supporting.Ask();
 
+    /// <summary>The project's website, from the help menu - UX-GUI-014, 2026-09-24.</summary>
+    internal const string ProjectPage = "https://betterwindowsservices.donislawdev.com/";
+
+    /// <summary>
+    /// The page describing the query language, from the help menu. The same address the README
+    /// gives, so a person who found it there finds the same page here.
+    /// </summary>
+    internal const string QueryLanguagePage = "https://betterwindowsservices.donislawdev.com/query-language/";
+
+    /// <summary>
+    /// The two pages the help menu offers, each with a hand-over of its own for the reason
+    /// <see cref="Supporting"/> has one: a second press while the shell still has the first joins
+    /// it rather than starting another. THE SAME TWO WAYS AS THE SUPPORT PAGE AND NO THIRD - an
+    /// elevated window hands the address to the desktop, and this adds no call into the shell.
+    /// </summary>
+    private static readonly ShellHandover Project = Page(ProjectPage);
+
+    /// <inheritdoc cref="Project"/>
+    private static readonly ShellHandover QueryLanguage = Page(QueryLanguagePage);
+
+    /// <summary>Hands the project's website to a browser, or says why it did not.</summary>
+    internal static Task<string?> OpenProjectPageAsync() => Project.Ask();
+
+    /// <summary>Hands the query language page to a browser, or says why it did not.</summary>
+    internal static Task<string?> OpenQueryLanguagePageAsync() => QueryLanguage.Ask();
+
+    /// <summary>
+    /// What a failure says, per destination - named rather than written into a call, so the sentence
+    /// is found by its key wherever the key is looked for (TextKeyGuards reads named keys like these).
+    /// </summary>
+    private const string SupportFailed = "gui.support.failed";
+
+    /// <inheritdoc cref="SupportFailed"/>
+    private const string PageFailed = "gui.link.failed";
+
+    private static ShellHandover Page(string address) => new(
+        () => Open(address, Session.IsElevated(), Start, HandToDesktop, PageFailed),
+        ShellHandover.Patience,
+        Texts.Of("gui.link.slow", address));
+
     /// <summary>
     /// Which of the two ways, and what a failure says.
     ///
@@ -97,11 +139,12 @@ internal static class ExternalLinks
         string address,
         bool elevated,
         Func<string, string?> start,
-        Func<string, string?> handToDesktop)
+        Func<string, string?> handToDesktop,
+        string failedKey = SupportFailed)
     {
         var reason = elevated ? handToDesktop(address) : start(address);
 
-        return reason is null ? null : Texts.Of("gui.support.failed", reason, address);
+        return reason is null ? null : Texts.Of(failedKey, reason, address);
     }
 
     /// <summary>
