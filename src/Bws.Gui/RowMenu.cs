@@ -23,19 +23,25 @@ namespace Bws.Gui;
 public sealed class RowMenuEntry
 {
     private readonly string _gestureKey;
+    private readonly Func<string>? _filling;
 
-    internal RowMenuEntry(string labelKey, string? gestureKey, Func<Task> act)
+    /// <param name="filling">
+    /// The one value a label cannot carry in the language file - the help menu's version number,
+    /// since 2026-09-24. Asked each time the label is read, so it is never a copy taken earlier.
+    /// </param>
+    internal RowMenuEntry(string labelKey, string? gestureKey, Func<Task> act, Func<string>? filling = null)
     {
         LabelKey = labelKey;
         _gestureKey = gestureKey ?? string.Empty;
         Act = act;
+        _filling = filling;
     }
 
     /// <summary>The key of its label, which is how a test tells the items apart without reading words.</summary>
     internal string LabelKey { get; }
 
     /// <summary>What the item says, in the language of whoever is reading it.</summary>
-    public string Label => Texts.Of(LabelKey);
+    public string Label => _filling is null ? Texts.Of(LabelKey) : Texts.Of(LabelKey, _filling());
 
     /// <summary>The key that does the same thing, written beside the label - or nothing.</summary>
     public string Gesture => _gestureKey.Length == 0 ? string.Empty : Texts.Of(_gestureKey);
@@ -100,7 +106,10 @@ internal static class RowMenu
             // Everything the catalogue knows rather than the columns that happen to be on, because
             // somebody copying an entry into a ticket wants what there is to know, and the columns
             // that are off by default are exactly the ones too long to have kept on screen.
-            new RowMenuEntry("gui.menu.copyAll", null, () => Task.FromResult(window.Copy(Copying.Everything)))
+            //
+            // AND ITS KEY IS WRITTEN BESIDE IT SINCE 2026-09-24 - UX-GUI-010 found Ctrl+C named in no
+            // text of the window. The press is still decided in Shortcuts.cs, this is only its name.
+            new RowMenuEntry("gui.menu.copyAll", "gui.menu.copyAll.gesture", () => Task.FromResult(window.Copy(Copying.Everything)))
         ],
         [
             new RowMenuEntry("gui.menu.previewStop", null, () => window.Preview(ActionKind.Stop)),

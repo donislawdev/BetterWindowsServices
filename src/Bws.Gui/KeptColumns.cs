@@ -81,16 +81,36 @@ internal sealed class KeptColumns
     /// Does nothing when it is already written, so clicking through the numbers costs one write
     /// rather than one per click.
     /// </summary>
-    internal void TheOverviewWasSeen(Says says)
+    internal void TheOverviewWasSeen(Says says) => KeepTheProfile(_layouts with { OverviewSeen = true }, says);
+
+    /// <summary>
+    /// Whether the filter chips were folded when this profile last left them - UX-GUI-007, schema 5.
+    /// Asked of what was read, for the reason <see cref="OverviewSeen"/> gives: no file at all is a
+    /// first run, and a first run opens with the chips showing.
+    /// </summary>
+    internal bool FiltersFolded => _reading.Layouts?.FiltersFolded ?? false;
+
+    /// <summary>
+    /// Writes down that the chips were folded or opened, at the press rather than at close - the
+    /// reason <see cref="TheOverviewWasSeen"/> gives, a window killed rather than closed - and
+    /// without harvesting the grid, for the reason given there too.
+    /// </summary>
+    internal void TheFiltersWere(bool folded, Says says) => KeepTheProfile(_layouts with { FiltersFolded = folded }, says);
+
+    /// <summary>
+    /// Writes one changed fact about the profile, or nothing when it is already written - so clicking
+    /// through the numbers or the toggle costs one write rather than one per click.
+    /// </summary>
+    private void KeepTheProfile(ColumnLayouts changed, Says says)
     {
         ArgumentNullException.ThrowIfNull(says);
 
-        if (_layouts.OverviewSeen)
+        if (changed == _layouts)
         {
             return;
         }
 
-        _layouts = _layouts with { OverviewSeen = true };
+        _layouts = changed;
 
         if (_file.Write(_layouts) is { } trouble)
         {

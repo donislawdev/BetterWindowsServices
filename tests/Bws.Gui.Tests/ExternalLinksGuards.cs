@@ -229,18 +229,19 @@ public sealed class ExternalLinksGuards
     public void The_scan_reaches_the_file_it_claims_to_cover()
     {
         // The canary. A walk that reads no files, or a rename that makes the search match nothing,
-        // satisfies the assertion above and looks exactly like a guard that works. Five is what the
+        // satisfies the assertion above and looks exactly like a guard that works. Six is what the
         // links file has - the three declarations, the call the support hand-over makes to Open,
-        // and the one Process.Start - so losing one is a look of its own.
-        Assert.Equal(5, Calls(inLinksFile: true).Count);
+        // the one Process.Start, and since 2026-09-24 the call the help menu's two pages make to
+        // Open through one builder (UX-GUI-014) - so losing one is a look of its own.
+        Assert.Equal(6, Calls(inLinksFile: true).Count);
     }
 
     [Fact]
-    public void The_button_stands_at_the_right_end_of_the_top_row_named_by_its_word()
+    public void Help_ends_the_top_row_in_line_with_Columns_and_Donate_stands_beside_it()
     {
         var window = WpfHost.Window();
 
-        var (id, name, hint, heart, donateRight, columnsRight) = WpfHost.On(() =>
+        var (id, name, hint, heart, donateRight, helpLeft, helpRight, columnsRight) = WpfHost.On(() =>
         {
             window.WindowStyle = WindowStyle.None;
             window.ShowInTaskbar = false;
@@ -249,6 +250,7 @@ public sealed class ExternalLinksGuards
             window.UpdateLayout();
 
             var donate = window.Scope.Donate;
+            var help = window.Scope.Help;
             var mark = FirstPath(donate);
 
             return (
@@ -257,6 +259,8 @@ public sealed class ExternalLinksGuards
                 donate.ToolTip as string,
                 mark?.ActualWidth ?? 0,
                 donate.TransformToAncestor(window).Transform(new Point(donate.ActualWidth, 0)).X,
+                help.TransformToAncestor(window).Transform(new Point(0, 0)).X,
+                help.TransformToAncestor(window).Transform(new Point(help.ActualWidth, 0)).X,
                 window.ColumnsButton.TransformToAncestor(window).Transform(new Point(window.ColumnsButton.ActualWidth, 0)).X);
         });
 
@@ -269,8 +273,14 @@ public sealed class ExternalLinksGuards
         // Drawn, not only declared - a Path with no size is a heart nobody sees.
         Assert.Equal((double)WpfHost.Resources["SizeSupportMark"], heart);
 
-        // GUI rule 19: aligned with the last control of the filters row rather than placed by eye.
-        Assert.Equal(columnsRight, donateRight, precision: 1);
+        // GUI rule 19: the last control of the row aligned with the last control of the filters row
+        // rather than placed by eye. HELP SINCE 2026-09-24 (UX-GUI-014) - the corner is where people
+        // look for help - and Donate stands just left of it, one gap between them.
+        Assert.Equal(columnsRight, helpRight, precision: 1);
+        Assert.Equal(
+            ((System.Windows.Thickness)WpfHost.Resources["MarginBetweenControls"]).Right,
+            helpLeft - donateRight,
+            precision: 1);
     }
 
     private static System.Windows.Shapes.Path? FirstPath(DependencyObject root)

@@ -49,7 +49,8 @@ internal static partial class Columns
 
             // OFF AT THE START SINCE 2026-09-02, ON THE OWNER'S DECISION, so the first screen is the
             // one somebody already knows from services.msc - display name, description, state,
-            // start type and account, and never the internal name.
+            // start type and account, and never the internal name. The same five since 2026-09-24,
+            // with the description moved to the end of them (see there).
             //
             // WHAT IT COSTS WAS PUT TO HIM AND HE TOOK IT: the rollup badge lives in this cell, so
             // out of the box nothing says that 23 per-user copies were folded away. The status line
@@ -77,31 +78,6 @@ internal static partial class Columns
             // the ORDER as well as the text: an at sign sorts before every letter, and these two
             // entries held the first two rows of the Drivers and All scopes until it was written.
             Reads = entry => ServiceDisplayName.Of(entry.DisplayName, entry.ServiceName)
-        },
-        new Column
-        {
-            // THE SECOND COLUMN OF services.msc, and the only one that answers "what even is this".
-            //
-            // ON AT THE START SINCE 2026-09-02, REVERSING WHAT STOOD HERE, on the owner's decision.
-            // The sentence it replaces argued that prose in a narrow column shows a fragment and an
-            // ellipsis, which is true and was the wrong thing to weigh: a stranger opening this
-            // window meets three hundred names and no way to tell what any of them are for, and a
-            // fragment of an answer beats none. Whoever disagrees turns it off in Columns.
-            //
-            // IT COSTS NOTHING EXTRA TO READ, and that was measured rather than assumed. Descriptions
-            // come back on the same handle as the rest of the configuration - 212-223 ms over 819
-            // entries, recorded beside the call in WindowsScmCatalog - so this column was always
-            // paid for and never shown. What it costs to DRAW is not measured yet.
-            Id = "description",
-            LabelKey = "gui.column.description",
-            WidthKey = "ColumnDescription",
-
-            // PROSE SINCE 2026-09-01, WHICH IS WHAT LETS THE CHOSEN ROW SHOW MORE THAN A FRAGMENT -
-            // backlog 192, owner's decision. The comment above this is the reason it was needed:
-            // one line and an ellipsis over a field that runs to 1251 characters on this machine.
-            Face = ColumnFace.Prose,
-            ShownAtFirst = true,
-            Reads = entry => CellFaces.Say(entry.Description, value => value)
         },
         new Column
         {
@@ -143,6 +119,40 @@ internal static partial class Columns
             // the spelling still travels with the cell rather than being replaced.
             Reads = entry => SystemAccounts.Shown(entry.Account),
             Holds = entry => SystemAccounts.Held(entry.Account)
+        },
+        new Column
+        {
+            // THE SECOND COLUMN OF services.msc, and the only one that answers "what even is this".
+            //
+            // AND THE LAST OF THOSE SHOWN AT THE START SINCE 2026-09-24, on the owner's decision
+            // (UX-GUI-013). A star
+            // column takes whatever width is left, so in the second place it took the whole of a
+            // maximised window and pushed the state about 2800 pixels right of the name it belongs
+            // to - `docs/11` 3.2, a row somebody cannot follow across the screen. Last, it still
+            // takes what is left, and takes it from nothing anybody reads beside the name. The price
+            // was put to the owner and taken: the order stops being services.msc's, and this list is
+            // also the order of the column picker. A saved layout keeps its own order.
+            //
+            // ON AT THE START SINCE 2026-09-02, REVERSING WHAT STOOD HERE, on the owner's decision.
+            // The sentence it replaces argued that prose in a narrow column shows a fragment and an
+            // ellipsis, which is true and was the wrong thing to weigh: a stranger opening this
+            // window meets three hundred names and no way to tell what any of them are for, and a
+            // fragment of an answer beats none. Whoever disagrees turns it off in Columns.
+            //
+            // IT COSTS NOTHING EXTRA TO READ, and that was measured rather than assumed. Descriptions
+            // come back on the same handle as the rest of the configuration - 212-223 ms over 819
+            // entries, recorded beside the call in WindowsScmCatalog - so this column was always
+            // paid for and never shown. What it costs to DRAW is not measured yet.
+            Id = "description",
+            LabelKey = "gui.column.description",
+            WidthKey = "ColumnDescription",
+
+            // PROSE SINCE 2026-09-01, WHICH IS WHAT LETS THE CHOSEN ROW SHOW MORE THAN A FRAGMENT -
+            // backlog 192, owner's decision. The comment above this is the reason it was needed:
+            // one line and an ellipsis over a field that runs to 1251 characters on this machine.
+            Face = ColumnFace.Prose,
+            ShownAtFirst = true,
+            Reads = entry => CellFaces.Say(entry.Description, value => value)
         },
         new Column
         {

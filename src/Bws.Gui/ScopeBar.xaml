@@ -256,17 +256,31 @@
             moment a browser appears. Nothing about starting anything is here: the click is wired
             in MainWindow, and ExternalLinks is the file allowed to hand an address over.
         -->
-        <Button x:Name="DonateButton"
-                AutomationProperties.AutomationId="donate"
-                AutomationProperties.Name="{DynamicResource gui.support.button}"
-                ToolTip="{DynamicResource gui.support.hint}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal">
-                <Path Style="{StaticResource SupportMark}" />
+        <!--
+            AND HELP AT THE VERY END SINCE 2026-09-24 - UX-GUI-014, owner's decision. The corner is
+            where people look for help, so Help has it and Donate stands just left of it. One panel
+            for the two so the Tab key meets them in the order the eye does. Help carries no right
+            margin, so it is Help that lines up with Columns now.
+        -->
+        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+            <Button x:Name="DonateButton"
+                    AutomationProperties.AutomationId="donate"
+                    AutomationProperties.Name="{DynamicResource gui.support.button}"
+                    ToolTip="{DynamicResource gui.support.hint}"
+                    Margin="{StaticResource MarginBetweenControls}">
+                <StackPanel Orientation="Horizontal">
+                    <Path Style="{StaticResource SupportMark}" />
 
-                <TextBlock Text="{DynamicResource gui.support.button}" VerticalAlignment="Center" />
-            </StackPanel>
-        </Button>
+                    <TextBlock Text="{DynamicResource gui.support.button}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+
+            <!-- The menu is hung on it by MainWindow.Help.cs, the items are HelpMenu.cs. -->
+            <Button x:Name="HelpButton"
+                    AutomationProperties.AutomationId="help"
+                    AutomationProperties.Name="{DynamicResource gui.help.button}"
+                    ToolTip="{DynamicResource gui.help.hint}"
+                    Content="{DynamicResource gui.help.button}" />
+        </StackPanel>
     </DockPanel>
 </UserControl>

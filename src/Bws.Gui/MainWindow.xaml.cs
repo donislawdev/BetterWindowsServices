@@ -154,6 +154,9 @@ public partial class MainWindow : Window
 
         HandTheColumnsOver();
 
+        // The filter chips open folded or not, the way this profile left them - MainWindow.Filters.cs.
+        KeepTheFiltersAsLeft();
+
         // WHAT THIS MACHINE LOOKS LIKE BEFORE ANYBODY ASKS IT ANYTHING - `G`. Its own method for the
         // reason Arrange has one: an analyser asked, and the seam is a subject rather than a line
         // count. MainWindow.Overview.cs.
@@ -180,6 +183,9 @@ public partial class MainWindow : Window
         // sentence for the model this window holds and the row does not. An async lambda, the shape
         // the bar below uses, because the press waits for the shell off this thread.
         Scope.Donate.Click += async (_, _) => await OpenSupportPage().ConfigureAwait(true);
+
+        // AND HELP BESIDE IT, 2026-09-24 - UX-GUI-014. MainWindow.Help.cs.
+        IntroduceTheHelp();
 
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that

@@ -88,7 +88,14 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     /// of which six columns are default, knowledge that lives only in <see cref="Columns"/> today
     /// and would drift the first time that list changes, silently.
     /// </summary>
-    internal const int CurrentSchemaVersion = 4;
+    /// <summary>
+    /// FIVE SINCE 2026-09-24, AND ONE MORE SIBLING - whether the filter chips were folded away when
+    /// the window last closed. UX-GUI-007, owner's decision: the chips took nearly half the height of
+    /// the window above the list, and the toggle folding them was forgotten at every start. A version
+    /// 4 file IS a version 5 file that says nothing about it, and saying nothing means "open", which
+    /// is what the window has always done and what somebody who has never folded them should see.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 5;
 
     /// <summary>The oldest schema this build reads and carries forward. See <see cref="ColumnLayouts.Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
@@ -237,6 +244,13 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
     /// </summary>
     internal bool OverviewSeen { get; init; }
 
+    /// <summary>
+    /// Whether the filter chips were folded away - UX-GUI-007, schema 5. Init-only for the reason
+    /// <see cref="OverviewSeen"/> is, and false - open - for every file this build did not write,
+    /// because open is what complaint 7 of `docs/11` asked for and what a first run shows.
+    /// </summary>
+    internal bool FiltersFolded { get; init; }
+
     /// <summary>The layout for one scope.</summary>
     internal ColumnLayout For(EntryScope scope) => scope switch
     {
@@ -286,6 +300,13 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         tree["everythingColumns"] = Everything.Render();
 
         Sorted(tree, "everythingSort", Everything.Sort);
+
+        // The same rule for the folded filters, schema 5 - written only when folded. Ordinal order
+        // holds: f comes after everythingSort and before overviewSeen.
+        if (FiltersFolded)
+        {
+            tree["filtersFolded"] = true;
+        }
 
         // WRITTEN ONLY WHEN IT IS TRUE, which is the rule every optional key in this file follows:
         // what is not there is what the program does on its own. Ordinal order holds - o beats s,
@@ -375,9 +396,13 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         // already read, where the other way round costs the screen entirely.
         var overviewSeen = root["overviewSeen"] is JsonValue seen && seen.TryGetValue<bool>(out var yes) && yes;
 
+        // The same strictness for the folded filters, and the safe half is "open" for the same
+        // reason: a hand-edited key costs at most a row of chips somebody folds again.
+        var filtersFolded = root["filtersFolded"] is JsonValue fold && fold.TryGetValue<bool>(out var folded) && folded;
+
         return new LayoutReading
         {
-            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen },
+            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen, FiltersFolded = filtersFolded },
             CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
         };
     }

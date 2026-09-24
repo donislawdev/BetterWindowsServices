@@ -55,6 +55,7 @@ internal static class Shortcuts
         return key switch
         {
             Key.F5 => Shortcut.Refresh,
+            Key.F1 => Shortcut.Help,
             Key.Escape => Shortcut.Back,
             Key.Enter => Shortcut.OpenDetails,
             Key.Down => Shortcut.NextSuggestion,
@@ -100,6 +101,12 @@ internal enum Shortcut
 
     /// <summary>Put the cursor in the query box, with what is there already selected.</summary>
     FocusQuery,
+
+    /// <summary>
+    /// Open the help menu - F1, since 2026-09-24 (UX-GUI-014). The key every Windows program
+    /// answers with help, and until that day this one answered it with nothing.
+    /// </summary>
+    Help,
 
     /// <summary>
     /// Back out of the innermost thing that can be backed out of.

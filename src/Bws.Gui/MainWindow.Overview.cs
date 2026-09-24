@@ -46,6 +46,11 @@ public partial class MainWindow
             {
                 ArrangeTheMiddle();
                 ArrangeTheChrome();
+
+                // The list is back, so the keyboard goes where somebody searching it types -
+                // quietly and after layout, GiveTheBoxTheKeyboard says why. It does nothing while the
+                // overview is what is showing.
+                GiveTheBoxTheKeyboard();
             }
         };
 
