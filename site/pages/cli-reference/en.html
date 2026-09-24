@@ -25,7 +25,7 @@
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
 <span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
-<span class="k">bws start-type</span> NAME automatic|manual|disabled [--dry-run] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
 <span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
@@ -57,7 +57,7 @@ There is no command lst. Did you mean list?</code></pre>
       </div>
       <div>
         <h3><code>start-type</code> - a setting, not a move</h3>
-        <p>It says what the manager will do with an entry at the next boot and moves nothing: an entry that is running keeps running, one that is stopped stays stopped. <code>disabled</code> is the one worth pausing over, because it stops the manager starting the entry at all, including on demand for something else that needs it.</p>
+        <p>It says what the manager will do with an entry at the next boot and moves nothing: an entry that is running keeps running, one that is stopped stays stopped, and the plan says so. <code>disabled</code> is the one worth pausing over, because it stops the manager starting the entry at all, including on demand for something else that needs it. <code>delayed</code> is automatic, started a little after the other automatic entries - the word <code>start:delayed</code> asks about in a query - and Windows refuses it for an entry in a load order group, which the plan says before anything happens. Each of the four writes whether the entry starts late, as <code>sc.exe</code> does. <code>--stop</code>, beside <code>disabled</code> only, stops the entry in the same plan once the setting is written.</p>
       </div>
       <div>
         <h3><code>snapshot create</code> and <code>snapshot diff</code></h3>

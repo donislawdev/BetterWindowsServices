@@ -333,7 +333,8 @@ public sealed class PluralGuards
         panel.Overlapping,
         panel.Blocked,
         .. panel.Steps.Select(line => line.Text),
-        .. panel.Warnings,
+        .. panel.Warnings.Select(line => line.Text),
+        .. panel.Warnings.Select(line => line.Label),
         .. panel.Problems,
         // BOTH HALVES OF A FAILURE SINCE 2026-09-07, because both reach a screen. The line became
         // an object when a way out arrived under it, and reading only the sentence would leave the

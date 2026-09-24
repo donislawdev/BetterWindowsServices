@@ -239,6 +239,16 @@ internal static class PlanText
 
         PlanWarningKind.AlreadyThere => Texts.Of("cli.plan.warning.alreadyThere", warning.ServiceName),
 
+        // THE TERMINAL'S HALF OF THE OFFER. The window puts a button under this sentence and a
+        // terminal has none, so the sentence ends with the line that takes the offer - the same
+        // command with --stop, which is a whole plan of its own rather than a second command after.
+        PlanWarningKind.KeepsRunning => Texts.Of(
+            "cli.plan.warning.keepsRunning", warning.ServiceName,
+            EquivalentCommand.For(new ServiceAction(
+                ActionKind.SetStartType, warning.ServiceName, To: StartSetting.Disabled, AlsoStop: true))),
+
+        PlanWarningKind.StartsAtNextBoot => Texts.Of("cli.plan.warning.startsAtNextBoot", warning.ServiceName),
+
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // so a warning added without a sentence would not have been silent, which is survivable, but
@@ -308,6 +318,11 @@ internal static class PlanText
                 "cli.plan.problem.processCannotBeEnded.plain",
                 problem.ServiceName, problem.ProcessId),
 
+        // The group is named because it is the one fact somebody could act on - and the first
+        // thing they would otherwise go and look up with sc qc.
+        PlanProblemKind.CannotStartLate => Texts.Of(
+            "cli.plan.problem.cannotStartLate", problem.ServiceName, Join(problem.Related)),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };
@@ -324,30 +339,34 @@ internal static class PlanText
     /// <summary>
     /// What one step does, in the column a person scans down.
     ///
-    /// <b>Takes the whole step rather than its operation, and the fourth kind of step is why.</b>
-    /// A stop is a stop wherever it appears - the word carries the whole of what will happen. A
-    /// start type write does not: "set" alone leaves out the only part somebody is reading the line
-    /// to check, and two lines setting two different types would be identical on screen.
-    ///
-    /// The type is spelled the way the listing spells it, not the way the command line accepts it.
-    /// This column is prose for a person, and the line somebody would paste has its own place at
-    /// the foot of the document.
-    /// </summary>
-    /// <summary>
-    /// What one step does, in the column a person scans down.
-    ///
     /// <b>Two of the four carry a VALUE, and the word alone leaves out the part somebody is
     /// reading the line to check.</b> "set" without the type is two lines that look identical
     /// setting two different things, and "terminate" without the process is the most dangerous
     /// line this tool prints naming the one thing it is NOT about - the entry is a service, and
     /// what ends is a process that may be running several of them.
+    ///
+    /// The setting is spelled the way the listing spells it, not the way the command line accepts
+    /// it. This column is prose for a person, and the line somebody would paste has its own place at
+    /// the foot of the document. (Two summaries stood on this method until 2026-09-24, the older one
+    /// saying the first half of this one.)
     /// </summary>
     private static string Operation(PlanStep step) => step.Operation switch
     {
-        StepOperation.SetStartType => Texts.Of("cli.plan.operation.setStartType", step.To!.Value.ToString()),
+        StepOperation.SetStartType => Texts.Of("cli.plan.operation.setStartType", Spelled(step.To!.Value)),
         StepOperation.Terminate => Texts.Of("cli.plan.operation.terminate", step.ProcessId!.Value),
         _ => Texts.Of($"cli.plan.operation.{Camel(step.Operation)}")
     };
+
+    /// <summary>
+    /// A startup setting in the listing's own words - "Automatic (delayed)" is how a delayed entry
+    /// reads in <c>bws list</c>, so it is how the step that makes one reads too.
+    /// </summary>
+    internal static string Spelled(StartSetting setting)
+    {
+        var (type, delayed) = StartSettings.Written(setting);
+
+        return delayed ? Texts.Of("cli.cell.startDelayed", type.ToString()) : type.ToString();
+    }
 
     private static string Reason(StepReason reason) => Texts.Of($"cli.plan.reason.{Camel(reason)}");
 

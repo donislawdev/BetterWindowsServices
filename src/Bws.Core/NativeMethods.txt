@@ -28,6 +28,13 @@ QueryServiceConfig2
 // passing the whole structure would be the quietest possible way to break a machine.
 ChangeServiceConfig
 
+// And the late start flag beside it, since 2026-09-24 (backlog 231, route (c)). It is written
+// at the one information level SERVICE_DELAYED_AUTO_START_INFO, which is already asked for above
+// for reading, so the call cannot touch anything else. Every startup setting writes it - the
+// way sc.exe does, measured on the throwaway machine that day - and an entry in a load order
+// group refuses it with 87, which the plan says before anybody presses.
+ChangeServiceConfig2
+
 // What the entry is allowed to do, and who is allowed to do things to it.
 //
 // The privileges and the service SID type ride on the configuration handle the listing

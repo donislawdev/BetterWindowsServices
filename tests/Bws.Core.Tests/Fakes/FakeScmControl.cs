@@ -30,7 +30,7 @@ internal sealed class FakeScmControl : IScmControl
     /// what the runner did NOT do, and "asked the manager to move it" and "wrote a setting on it"
     /// are two different wrong answers to check for.
     /// </summary>
-    internal List<(string Name, StartType To)> Configured { get; } = [];
+    internal List<(string Name, StartSetting To)> Configured { get; } = [];
 
     /// <summary>
     /// Processes this was asked to end, in order.
@@ -125,7 +125,7 @@ internal sealed class FakeScmControl : IScmControl
         return this;
     }
 
-    public ControlAnswer Configure(string serviceName, StartType wanted)
+    public ControlAnswer Configure(string serviceName, StartSetting wanted)
     {
         Configured.Add((serviceName, wanted));
 

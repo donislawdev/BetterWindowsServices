@@ -17,11 +17,17 @@ namespace Bws.Core.Planning;
 /// because it is one question somebody was asked once - and off by default, which is the same
 /// safety property <see cref="ServiceAction"/> carries for the same reason.
 /// </param>
+/// <param name="AlsoStop">
+/// Whether the entries a startup setting leaves running are stopped as well. One answer for the
+/// whole selection, like the tick box above, and each entry's own plan decides whether it applies -
+/// an entry already stopped gets no stop step.
+/// </param>
 public sealed record BulkAction(
     ActionKind Kind,
     IReadOnlyList<string> ServiceNames,
     bool IncludeDependents = false,
-    StartType? To = null);
+    StartSetting? To = null,
+    bool AlsoStop = false);
 
 /// <summary>
 /// Everything that would happen to a selection, worked out and frozen. `C2` in one type.

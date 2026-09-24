@@ -148,7 +148,7 @@ public sealed class WindowsScmControl : IScmControl
 
 
     /// <summary>
-    /// Writes the start type and nothing else.
+    /// Writes the startup setting - the start type and the late start flag - and nothing else.
     ///
     /// <b>SERVICE_NO_CHANGE in every other field, which is the manager's own way of saying "leave
     /// that one alone".</b> The call takes the whole configuration - the binary path, the account,
@@ -156,18 +156,40 @@ public sealed class WindowsScmControl : IScmControl
     /// ago would rewrite all of them from a copy that may already be stale. That is the quietest
     /// possible way to break somebody's machine, and it is what this constant exists to prevent.
     ///
+    /// <b>THE FLAG IS WRITTEN TOO SINCE 2026-09-24, and until then it was the one field this left
+    /// alone on purpose.</b> Our "Automatic" and the Automatic sc.exe and services.msc write were not
+    /// the same write: sc.exe clears the flag on every start type, this did not, so choosing
+    /// Automatic on a delayed entry kept it delayed (backlog 231, measured 2026-08-25). Every setting
+    /// now writes both halves, as sc.exe does - the owner's decision, and the reason a way back can
+    /// be an exact inverse.
+    ///
+    /// <b>ONE HANDLE, TWO CALLS, AND THE ORDER DEPENDS ON WHERE THE ENTRY IS GOING.</b> Two writes
+    /// are not one, so something can land between them. The order makes the only possible half a
+    /// harmless one: the flag does nothing unless the entry is automatic (Microsoft's page on
+    /// SERVICE_DELAYED_AUTO_START_INFO, and measured on the throwaway machine). Going TO automatic,
+    /// the flag goes first, while the old type still makes it inert. Going AWAY from automatic, the
+    /// type goes first, which makes the flag inert before it is touched. Automatic to automatic is
+    /// the one case where the flag is the whole change, and there the second call writes the type
+    /// the entry already has.
+    ///
+    /// <b>An entry in a load order group refuses the flag with 87</b> - measured on Spooler and
+    /// SCardSvr, and sc.exe gets the same answer. The plan refuses that before anybody presses, so
+    /// reaching it here means the group could not be read. Going to automatic, the flag is the first
+    /// call, so nothing has changed when it is refused.
+    ///
     /// <b>The right asked for is SERVICE_CHANGE_CONFIG and only that</b>, the same rule the two
     /// requests above follow: a machine where somebody may change a setting but not stop a service
-    /// behaves the way its administrator set it up.
+    /// behaves the way its administrator set it up. Both calls need exactly that right.
     /// </summary>
-    public ControlAnswer Configure(string serviceName, StartType wanted)
+    public ControlAnswer Configure(string serviceName, StartSetting wanted)
     {
-        var start = Numbered(wanted);
-
-        if (start is not { } code)
+        if (!Enum.IsDefined(wanted))
         {
-            return ControlAnswer.Refused(0, "There is no such start type to write.");
+            return ControlAnswer.Refused(0, StartSettings.NoSuchSetting);
         }
+
+        var (type, delayed) = StartSettings.Written(wanted);
+        var code = Numbered(type)!.Value;
 
         using var handle = Open(serviceName, ChangeConfig, out var refusal);
 
@@ -176,10 +198,24 @@ public sealed class WindowsScmControl : IScmControl
             return refusal!;
         }
 
-        // The overload WITHOUT the tag identifier, and that is a choice rather than the shorter
-        // line: the other one hands back a tag through an out parameter, and a tag is part of the
-        // load order group this call is being told to leave alone.
-        return PInvoke.ChangeServiceConfig(
+        var flagFirst = StartSettings.StartsAtBoot(wanted);
+
+        if (!(flagFirst ? WriteFlag(handle, delayed) : WriteType(handle, code)))
+        {
+            return FirstRefused(delayed && flagFirst);
+        }
+
+        return (flagFirst ? WriteType(handle, code) : WriteFlag(handle, delayed))
+            ? ControlAnswer.Done()
+            : HalfWritten(flagFirst);
+    }
+
+    /// <summary>
+    /// The start type half. The overload WITHOUT the tag identifier, and that is a choice rather
+    /// than the shorter line: the other one hands back a tag through an out parameter, and a tag is
+    /// part of the load order group this call is being told to leave alone.
+    /// </summary>
+    private static bool WriteType(SafeHandle handle, SERVICE_START_TYPE code) => PInvoke.ChangeServiceConfig(
             handle,
             (ENUM_SERVICE_TYPE)NoChange,
             code,
@@ -189,10 +225,56 @@ public sealed class WindowsScmControl : IScmControl
             lpDependencies: null!,
             lpServiceStartName: null!,
             lpPassword: null!,
-            lpDisplayName: null!)
-            ? ControlAnswer.Done()
-            : Refusal();
+            lpDisplayName: null!);
+
+    /// <summary>The late start half, at the one information level that holds nothing else.</summary>
+    private static unsafe bool WriteFlag(SafeHandle handle, bool delayed)
+    {
+        var info = new SERVICE_DELAYED_AUTO_START_INFO { fDelayedAutostart = delayed };
+
+        return PInvoke.ChangeServiceConfig2W(handle, SERVICE_CONFIG.SERVICE_CONFIG_DELAYED_AUTO_START_INFO, &info);
     }
+
+    /// <summary>
+    /// The first write refused, so nothing is on the machine. The manager's own words, except for
+    /// the one refusal whose words say nothing: 87 on the late start flag is "the parameter is
+    /// incorrect", and what it means there is a load order group.
+    /// </summary>
+    private static ControlAnswer FirstRefused(bool wasTheLateFlag)
+    {
+        var code = Marshal.GetLastWin32Error();
+
+        return wasTheLateFlag && code == InvalidParameter
+            ? ControlAnswer.Refused(code, CannotStartLate)
+            : ControlAnswer.Refused(code, ManagerTerms.Describe(code));
+    }
+
+    /// <summary>
+    /// The second write refused after the first landed. Said in full, because a refusal reads as
+    /// "nothing happened" and here something did - which half, and that the half is inert.
+    /// </summary>
+    private static ControlAnswer HalfWritten(bool flagWent)
+    {
+        var code = Marshal.GetLastWin32Error();
+        var half = flagWent ? OnlyTheFlag : OnlyTheType;
+
+        return ControlAnswer.Refused(code, half + " " + ManagerTerms.Describe(code));
+    }
+
+    /// <summary>ERROR_INVALID_PARAMETER, the manager's answer to a late start in a load order group.</summary>
+    private const int InvalidParameter = 87;
+
+    private const string CannotStartLate =
+        "Windows does not let this entry start late - it belongs to a load order group, and a "
+        + "delayed entry cannot.";
+
+    private const string OnlyTheFlag =
+        "The late start mark was written and the start type was not. The mark only does anything on "
+        + "an entry that is already automatic.";
+
+    private const string OnlyTheType =
+        "The start type was written and the late start mark was not cleared. The mark does nothing "
+        + "on an entry that is not automatic.";
 
     /// <summary>The manager's own word for "leave this field as it is".</summary>
     private const uint NoChange = 0xFFFFFFFF;
@@ -210,11 +292,9 @@ public sealed class WindowsScmControl : IScmControl
     /// <summary>
     /// The number the manager uses for a start type, or nothing for one it cannot be told.
     ///
-    /// <b>Boot and System are refused rather than translated</b>, and that is the same decision the
-    /// plan builder already makes about drivers: those two belong to entries this tool will not
-    /// operate on, and writing one onto a service is a machine that may not come back. Unknown is
-    /// refused because it is not a type at all - it is what a reading says when the manager did
-    /// not answer.
+    /// <b>Boot and System have no number here</b>, and since 2026-09-24 nothing can ask for them:
+    /// <see cref="StartSetting"/> has no value that writes either. Those two belong to entries this
+    /// tool will not operate on, and writing one onto a service is a machine that may not come back.
     /// </summary>
     private static SERVICE_START_TYPE? Numbered(StartType wanted) => wanted switch
     {

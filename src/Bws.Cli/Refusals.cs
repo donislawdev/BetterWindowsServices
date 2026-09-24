@@ -213,35 +213,62 @@ internal static class Refusals
             }
         }
 
-        if (WriteCommands.NeedsAStartType(options.Kind))
+        if (WriteCommands.NeedsAStartType(options.Kind) && AboutTheSetting(options.ServiceName, options.Setting) is { } code)
         {
-            // Named as its own mistake rather than folded into "unknown option", because a value
-            // left off is not a word nobody knows. That distinction has been paid for twice in this
-            // tool already - once for a switch given without its value, once for a subcommand half
-            // typed - and this is the third shape of it.
-            if (options.StartTypeWord.Length == 0)
-            {
-                Console.Error.WriteLine(Texts.Of(
-                    "cli.missingStartType", options.ServiceName, string.Join(", ", StartTypeWords.All)));
-
-                return ExitCode.Usage;
-            }
-
-            if (WriteCommands.Named(options.StartTypeWord) is null)
-            {
-                // Says the word they wrote rather than "that is not a start type". Somebody who
-                // typed "automatik" has read their own line twice by now, and the sentence that
-                // repeats it back to them is the one that ends the search.
-                Console.Error.WriteLine(Texts.Of(
-                    "cli.badStartType", options.StartTypeWord, string.Join(", ", StartTypeWords.All)));
-
-                return ExitCode.Usage;
-            }
+            return code;
         }
 
         if (options.BadTimeout is not null)
         {
             Console.Error.WriteLine(Texts.Of("cli.badTimeout", options.BadTimeout));
+            return ExitCode.Usage;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// What is wrong with a start-type ask, or nothing.
+    ///
+    /// <b>Out of AboutTheAsk on 2026-09-24, when --stop brought a third refusal</b> - the first
+    /// method here stands a line under the length ceiling, and the three answers are one subject:
+    /// the value this verb carries and what may ride on it.
+    /// </summary>
+    private static int? AboutTheSetting(string serviceName, StartTypeAsk asked)
+    {
+        // Named as its own mistake rather than folded into "unknown option", because a value
+        // left off is not a word nobody knows. That distinction has been paid for twice in this
+        // tool already - once for a switch given without its value, once for a subcommand half
+        // typed - and this is the third shape of it.
+        if (asked.Word.Length == 0)
+        {
+            Console.Error.WriteLine(Texts.Of(
+                "cli.missingStartType", serviceName, string.Join(", ", StartTypeWords.All)));
+
+            return ExitCode.Usage;
+        }
+
+        var setting = WriteCommands.Named(asked.Word);
+
+        if (setting is null)
+        {
+            // Says the word they wrote rather than "that is not a start type". Somebody who
+            // typed "automatik" has read their own line twice by now, and the sentence that
+            // repeats it back to them is the one that ends the search.
+            Console.Error.WriteLine(Texts.Of(
+                "cli.badStartType", asked.Word, string.Join(", ", StartTypeWords.All)));
+
+            return ExitCode.Usage;
+        }
+
+        // --stop RIDES ON "disabled" AND NOTHING ELSE. It is offered by the plan under the one
+        // sentence that says a disabled entry keeps running, and beside any other setting it would
+        // be a second ask nobody was shown - "make it automatic and stop it" - which the core
+        // refuses to plan. Turned back here with the word they wrote, before anything is read.
+        if (asked.AlsoStop && setting != StartSetting.Disabled)
+        {
+            Console.Error.WriteLine(Texts.Of("cli.stopNeedsDisabled", asked.Word));
+
             return ExitCode.Usage;
         }
 

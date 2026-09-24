@@ -24,15 +24,18 @@
         SHEET. That is also the practical difference - a template here is instantiated as many
         times as the plan has steps, so what it costs is multiplied and what the sheet costs is not.
 
-        MERGED IMMEDIATELY BEFORE Plan.xaml AND AFTER Controls.xaml, and neither is optional. The
-        offer below extends ElevateAction, which Controls.xaml declares, and StaticResource resolves
-        WHILE THIS FILE IS BEING READ - so a dictionary merged after this one is a name that does
-        not exist yet. App.xaml carries the order and three other places repeat it: WpfHost in the
+        MERGED AFTER Controls.xaml AND BEFORE PlanOffers.xaml AND Plan.xaml, and none of it is
+        optional: StaticResource resolves WHILE A FILE IS BEING READ, so a dictionary merged after
+        this one is a name that does not exist yet - and PlanOffers.xaml extends the copy button
+        declared here. App.xaml carries the order and three other places repeat it: WpfHost in the
         tests, tools/wpfui-probe, and the pool in AppearanceGuards.
+
+        THE LINES WITH A BUTTON UNDER THEM LEFT FOR PlanOffers.xaml ON 2026-09-24 - a failure with
+        "Force stop..." and a warning with "Also stop it". That file says why.
 
         NOTHING HERE BINDS A Click, and that is a rule rather than an oversight - a resource
         dictionary has no code-behind, so a handler named here would resolve against nothing. The
-        two buttons below travel their item in Tag instead, and PlanView.xaml catches the press by
+        copy buttons below travel their line in Tag instead, and PlanView.xaml catches the press by
         bubbling, where the markup is compiled with a class that can hold the method.
     -->
 
@@ -82,76 +85,6 @@
                    TextWrapping="Wrap"
                    Foreground="{StaticResource TextOnSurface}"
                    Margin="{StaticResource MarginBetweenControls}" />
-    </DataTemplate>
-
-    <!--
-        A FAILURE, AND UNDER THE ONES THAT CAN BE ESCALATED, THE WAY OUT OF IT. Added 2026-09-07,
-        and the shape is the sentence template above with one thing that appears under a few of
-        them.
-
-        THE OFFER STANDS UNDER ITS OWN SENTENCE RATHER THAN IN THE FOOTER, which is `docs/11` 9.2
-        point 4: nothing is asked about a thing whose effect was not shown. A second button in the
-        footer would be detached from the entry it is about - a plan over twenty rows can fail on
-        any of them - and it would put two destructive-looking asks side by side in the one part of
-        the sheet that is always on the screen.
-
-        IT WEARS ElevateAction, WHICH IS ALREADY THE STYLE FOR "HERE IS THE WAY OUT OF THAT RED
-        SENTENCE" - the status line's elevate button is the other one. An outline rather than a
-        fill, because the fill is spoken for: on this window a red FILL means "pressing this changes
-        your machine", and this press changes nothing at all. It opens a plan.
-
-        THE BRUSH IS MeaningRejected AND NOT MeaningUntrusted, AND THAT IS A CORRECTION TO THE
-        DESIGN RATHER THAN A PREFERENCE. That design asked for #F1707A on the strength of its 5.69
-        ratio - which is measured against the WINDOW. This sheet is a panel, and everything on it
-        stands on SurfacePanel. Measured with tools/contrast/contrast.ps1 -Background '#343434' on
-        2026-09-07: #F1707A reads 4,35 there, under the 4,5 WCAG SC 1.4.3 asks, and #F47F88 reads
-        4,88. It is the same measurement that moved the rejected role off that colour on 2026-09-02,
-        backlog 286, and the design was reading the figure from before that move. ContrastGuards
-        would not have caught it, because it checks every brush against the window.
-
-        THE WORD CARRIES IT AND NOT THE COLOUR - WCAG 1.4.1. It says "Force stop" and it is a
-        button, so a screen with no colour at all still says what it is.
-
-        THE FAILURE TRAVELS ON THE BUTTON IN Tag, and there is no Click here, both for the reasons
-        written out at PlanCommandTemplate below.
-    -->
-    <!--
-        IT GOES AWAY BY TRIGGER RATHER THAN BY CONVERTER, AND THAT IS THE RULE THIS FILE LIVES
-        UNDER rather than a preference. A theme file may hold a Style or a DataTemplate and nothing
-        else - AppearanceGuards holds that whitelist - so the BooleanToVisibilityConverter the
-        sheet's own markup uses six times cannot be declared here, and a StaticResource reaching for
-        one declared over in PlanView.xaml resolves against nothing at parse time. A DataTrigger
-        says the same thing with the tools this file is allowed.
-
-        COLLAPSED IS THE DEFAULT AND VISIBLE IS THE TRIGGER, never the other way round. Most
-        failures offer nothing, so the state that has to be right when a binding fails is the one
-        where no button appears.
-    -->
-    <Style x:Key="PlanForceButton" TargetType="Button" BasedOn="{StaticResource ElevateAction}">
-        <Setter Property="Visibility" Value="Collapsed" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding HasOffer}" Value="True">
-                <Setter Property="Visibility" Value="Visible" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
-    <DataTemplate x:Key="PlanFailureTemplate">
-        <StackPanel Margin="{StaticResource MarginBetweenControls}">
-            <TextBlock Text="{Binding Text}"
-                       TextWrapping="Wrap"
-                       Foreground="{StaticResource TextOnSurface}" />
-
-            <Button Style="{StaticResource PlanForceButton}"
-                    AutomationProperties.AutomationId="planForce"
-                    AutomationProperties.Name="{Binding Label}"
-                    Content="{Binding Label}"
-                    ToolTip="{DynamicResource gui.plan.offer.hint}"
-                    Tag="{Binding}" />
-        </StackPanel>
     </DataTemplate>
 
     <!--

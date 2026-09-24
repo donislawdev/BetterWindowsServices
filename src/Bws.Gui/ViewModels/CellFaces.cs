@@ -1,5 +1,6 @@
 using System.Globalization;
 using Bws.Core;
+using Bws.Core.Planning;
 
 namespace Bws.Gui.ViewModels;
 
@@ -155,6 +156,24 @@ internal static class CellFaces
         StartType.Disabled => Texts.Of("gui.cell.start.disabled"),
         _ => Texts.Of("gui.cell.unknown")
     };
+
+    /// <summary>
+    /// What a startup setting is called on screen - the menu item that offers it, the step that
+    /// writes it and the button that carries it out.
+    ///
+    /// <b>Composed from the cell's own words rather than given a key of its own</b>, so a delayed
+    /// entry and the menu item that makes one read "Automatic (delayed)" in exactly the same
+    /// letters. The type half comes from <see cref="TypeLabel"/> through the one table the writer
+    /// uses, so the label cannot name a type the setting does not write.
+    /// </summary>
+    internal static string SettingLabel(StartSetting setting)
+    {
+        var (type, delayed) = StartSettings.Written(setting);
+
+        return delayed
+            ? Texts.Of("gui.cell.start.delayed", TypeLabel(type))
+            : TypeLabel(type);
+    }
 
     /// <summary>
     /// A reading as text, with each of the four states saying something different.

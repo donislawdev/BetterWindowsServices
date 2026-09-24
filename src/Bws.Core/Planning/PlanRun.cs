@@ -205,13 +205,13 @@ public sealed record PlanRun
 /// running it is exactly the machinery `ADR-11` promises and backlog 58 says does not exist yet.
 /// </summary>
 /// <param name="To">
-/// The start type that would put this entry back, for a way back that writes one.
+/// The startup setting that would put this entry back, for a way back that writes one.
 ///
-/// <b>The type the entry had BEFORE the run, which is the whole difficulty of this case.</b> Every
+/// <b>The setting the entry had BEFORE the run, which is the whole difficulty of this case.</b> Every
 /// other way back is worked out from direction alone - something that was stopped gets started -
 /// and a setting has no direction. It has a value, and the value has to have been carried from the
 /// plan through <see cref="PlanStep.From"/> to reach here.
 ///
 /// Null for a stop or a start, where there is no such value and inventing one would be a claim.
 /// </param>
-public sealed record ReversalStep(string ServiceName, StepOperation Operation, StartType? To = null);
+public sealed record ReversalStep(string ServiceName, StepOperation Operation, StartSetting? To = null);

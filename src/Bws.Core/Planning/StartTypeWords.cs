@@ -1,7 +1,7 @@
 namespace Bws.Core.Planning;
 
 /// <summary>
-/// The start types this tool can be asked for, and how each is spelled on a command line.
+/// The startup settings this tool can be asked for, and how each is spelled on a command line.
 ///
 /// <b>One table read in both directions, rather than a renderer here and a parser in the command
 /// line.</b> <see cref="EquivalentCommand"/> carries the argument for its own verbs and it applies
@@ -9,39 +9,36 @@ namespace Bws.Core.Planning;
 /// a line that looks like a command and is not one. Two tables would be two answers to a question
 /// with one right answer, and they would disagree the first time somebody reworded one of them.
 ///
-/// <b>THREE WORDS WHERE THE ENUMERATION HAS SIX, and the other three are refused rather than
-/// spelled.</b> Boot and System belong to entries this tool will not operate on, and Unknown is not
-/// a type at all - it is what a reading says when the manager did not answer. WindowsScmControl
-/// refuses exactly those three at the moment of writing, so a word for any of them would be a line
-/// this tool accepts and then declines to carry out.
+/// <b>ONE WORD PER <see cref="StartSetting"/>, and the table cannot name anything else.</b> Until
+/// 2026-09-24 this spelled three of the six read-side start types and had to explain why the other
+/// three were refused. The writing side has its own type now, so there is nothing left to refuse
+/// here: Boot and System have no setting, and neither has "nobody said".
 ///
-/// <b>WHAT THIS CANNOT SAY, AND IT COSTS A WAY BACK FOR ABOUT ONE AUTOMATIC SERVICE IN SIX.</b> An
-/// automatic entry can also be marked to start late, and that flag is a field of its own on the
-/// entry rather than a sixth start type - 13 of 78 automatic services carry it on a real machine,
-/// measured 2026-08-01. So "automatic" here does not say which of the two an entry ends up as: it
-/// writes the start type and leaves the flag exactly as it found it, measured on a real machine
-/// 2026-08-25. Nothing built on this table may therefore claim to put such an entry back.
-/// PlanBuilder.WayBackTo is where that refusal lives, with all three runs that decided it.
+/// <b>"delayed" IS THE WORD THE QUERY LANGUAGE ALREADY USES</b> (`start:delayed`, `docs/07`), and
+/// that is the owner's decision of 2026-09-24 over sc.exe's "delayed-auto". One vocabulary for
+/// asking which entries are late and for making one late.
 /// </summary>
 public static class StartTypeWords
 {
     /// <summary>
     /// The whole surface, in the order a person reading the usage text meets it.
     ///
-    /// Automatic first because it is the one an administrator sets deliberately, disabled last
+    /// Automatic first because it is the one an administrator sets deliberately, its late variant
+    /// straight after it because that is where the menu in the window puts it, disabled last
     /// because it is the one worth pausing over.
     /// </summary>
-    private static readonly (StartType Type, string Word)[] Table =
+    private static readonly (StartSetting Setting, string Word)[] Table =
     [
-        (StartType.Automatic, "automatic"),
-        (StartType.Manual, "manual"),
-        (StartType.Disabled, "disabled")
+        (StartSetting.Automatic, "automatic"),
+        (StartSetting.AutomaticDelayed, "delayed"),
+        (StartSetting.Manual, "manual"),
+        (StartSetting.Disabled, "disabled")
     ];
 
     private static readonly string[] Spellings = [.. Table.Select(entry => entry.Word)];
 
     /// <summary>
-    /// Every word this tool takes for a start type.
+    /// Every word this tool takes for a startup setting.
     ///
     /// For the sentence that offers them when somebody types something else. Built from the same
     /// table the reader uses, so a word that stops being accepted stops being offered in the same
@@ -50,17 +47,17 @@ public static class StartTypeWords
     public static IReadOnlyList<string> All => Spellings;
 
     /// <summary>
-    /// How a start type is written on a command line, or nothing for one that cannot be asked for.
+    /// How a startup setting is written on a command line, or nothing where there is none.
     ///
-    /// <b>Takes a nullable on purpose.</b> "No start type is involved here" is the state every stop,
+    /// <b>Takes a nullable on purpose.</b> "No setting is involved here" is the state every stop,
     /// start and restart is in, and a caller obliged to check that first would be a caller who could
     /// forget to.
     /// </summary>
-    public static string? Of(StartType? type)
+    public static string? Of(StartSetting? setting)
     {
         foreach (var entry in Table)
         {
-            if (type == entry.Type)
+            if (setting == entry.Setting)
             {
                 return entry.Word;
             }
@@ -70,13 +67,17 @@ public static class StartTypeWords
     }
 
     /// <summary>
-    /// Reads one word as a start type, or says it is not one.
+    /// Reads one word as a startup setting, or nothing where it is not one.
     ///
     /// <b>Case insensitive, like every other word this tool reads</b> - a verb and a switch are
     /// both matched that way, and a value that alone insisted on lower case would be a rule nobody
     /// could guess from the rest of the surface.
+    ///
+    /// <b>A nullable rather than a bool and an out value</b>, because every value of the out
+    /// parameter would have been a real setting - so a caller that forgot the bool would have
+    /// carried on with Automatic.
     /// </summary>
-    public static bool TryRead(string word, out StartType type)
+    public static StartSetting? Read(string word)
     {
         ArgumentNullException.ThrowIfNull(word);
 
@@ -84,15 +85,10 @@ public static class StartTypeWords
         {
             if (word.Equals(entry.Word, StringComparison.OrdinalIgnoreCase))
             {
-                type = entry.Type;
-                return true;
+                return entry.Setting;
             }
         }
 
-        // Unknown rather than a guess, and it is the honest value: the caller is being told this
-        // word named no start type, and Unknown is what this product already uses for "nobody
-        // said". Callers read the bool.
-        type = StartType.Unknown;
-        return false;
+        return null;
     }
 }

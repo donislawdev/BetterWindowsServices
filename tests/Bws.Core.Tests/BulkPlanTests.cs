@@ -212,7 +212,7 @@ public sealed class BulkPlanTests
         var catalog = Chain();
 
         var plan = new BulkPlanBuilder(catalog.ReadAll(), catalog).Build(
-            new BulkAction(ActionKind.SetStartType, ["MRxSmb20", "LanmanWorkstation"], To: StartType.Disabled));
+            new BulkAction(ActionKind.SetStartType, ["MRxSmb20", "LanmanWorkstation"], To: StartSetting.Disabled));
 
         Assert.True(plan.IsRunnable);
         Assert.Empty(catalog.DependentsAsked);

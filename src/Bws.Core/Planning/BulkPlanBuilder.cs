@@ -40,9 +40,10 @@ public sealed class BulkPlanBuilder(
         var plans = new List<OperationPlan>();
         var problems = new List<PlanProblem>();
 
-        foreach (var name in InTheOrderTheyMustHappen(action.Kind, asked))
+        foreach (var name in InTheOrderTheyMustHappen(action, asked))
         {
-            var plan = builder.Build(new ServiceAction(action.Kind, name, action.IncludeDependents, action.To));
+            var plan = builder.Build(new ServiceAction(
+                action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop));
 
             if (plan.Problems.Count > 0)
             {
@@ -91,9 +92,14 @@ public sealed class BulkPlanBuilder(
     /// those opens the manager and then the service. Selecting three hundred entries and asking to
     /// disable them paid three hundred round trips to the manager, on the thread drawing the
     /// window, to sort a list whose order did not matter.
+    ///
+    /// <b>A setting that carries a stop goes back to the ordered side (2026-09-24).</b> Then each
+    /// plan does take its entry down, and two selected entries where one depends on the other have
+    /// to stop in the order a plain stop of both would use - or the first stop meets the second
+    /// entry still running and the manager refuses it.
     /// </summary>
-    private List<string> InTheOrderTheyMustHappen(ActionKind kind, List<string> asked) =>
-        kind is ActionKind.Start or ActionKind.SetStartType
+    private List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked) =>
+        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(catalog, asked);
 }

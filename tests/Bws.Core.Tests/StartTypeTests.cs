@@ -20,8 +20,11 @@ namespace Bws.Core.Tests;
 /// rather than oversights are the tests that had to change when the decision did, which is the
 /// shape working correctly.
 ///
-/// <b>What is still an absence, and it is a narrower one:</b> an automatic entry marked to start
-/// late gets no way back, because nothing this tool writes can say "automatic, and late".
+/// <b>The last absence closed on 2026-09-24:</b> an automatic entry marked to start late had no way
+/// back, because nothing this tool wrote could say "automatic, and late". It can now - the writing
+/// side has <see cref="StartSetting"/> - and the entries still without a line are the ones whose
+/// setting nobody could read, and the few that carry the late flag while not automatic.
+/// StartSettingTests holds the rest of what that day added.
 /// </summary>
 public sealed class StartTypeTests
 {
@@ -45,7 +48,7 @@ public sealed class StartTypeTests
 
         var plan = new PlanBuilder(catalog.ReadAll(), catalog).Build(
             new ServiceAction(ActionKind.SetStartType, "MRxSmb20", IncludeDependents: true,
-                To: StartType.Disabled));
+                To: StartSetting.Disabled));
 
         Assert.True(
             plan.IsRunnable,
@@ -55,7 +58,7 @@ public sealed class StartTypeTests
 
         Assert.Equal(StepOperation.SetStartType, step.Operation);
         Assert.Equal("MRxSmb20", step.ServiceName);
-        Assert.Equal(StartType.Disabled, step.To);
+        Assert.Equal(StartSetting.Disabled, step.To);
 
         // The entry has dependents on this catalogue - that is what it is there for - and none of
         // them is mentioned, because nothing is being taken down.
@@ -73,7 +76,7 @@ public sealed class StartTypeTests
     [Fact]
     public void Setting_the_type_it_already_has_is_said_before_anybody_presses()
     {
-        var plan = Plan(StartType.Automatic, "Spooler");
+        var plan = Plan(StartSetting.Automatic, "Spooler");
 
         Assert.True(plan.IsRunnable);
         Assert.Contains(plan.Warnings, warning => warning.Kind == PlanWarningKind.AlreadyThere);
@@ -88,7 +91,7 @@ public sealed class StartTypeTests
     [Fact]
     public void A_driver_is_refused_a_start_type_as_it_is_refused_everything_else()
     {
-        var plan = Plan(StartType.Manual, "amduw23g-202073-df09ebb6");
+        var plan = Plan(StartSetting.Manual, "amduw23g-202073-df09ebb6");
 
         Assert.False(plan.IsRunnable);
         Assert.Equal(PlanProblemKind.NotOperable, Assert.Single(plan.Problems).Kind);
@@ -107,10 +110,10 @@ public sealed class StartTypeTests
     {
         var control = new FakeScmControl().At("Spooler", EntryStatus.Running);
 
-        var run = Run(control, StartType.Disabled, "Spooler");
+        var run = Run(control, StartSetting.Disabled, "Spooler");
 
         Assert.Equal(StepOutcome.Succeeded, Assert.Single(run.Results).Outcome);
-        Assert.Equal(("Spooler", StartType.Disabled), Assert.Single(control.Configured));
+        Assert.Equal(("Spooler", StartSetting.Disabled), Assert.Single(control.Configured));
         Assert.Empty(control.Requested);
     }
 
@@ -122,7 +125,7 @@ public sealed class StartTypeTests
             .At("Spooler", EntryStatus.Running)
             .RefusingConfiguration("Spooler", 5);
 
-        var run = Run(control, StartType.Disabled, "Spooler");
+        var run = Run(control, StartSetting.Disabled, "Spooler");
 
         var result = Assert.Single(run.Results);
 
@@ -145,13 +148,13 @@ public sealed class StartTypeTests
 
         // Automatic on the catalogue, and its delay flag was READ and is false - which is what
         // makes automatic a thing this tool can put back.
-        var run = Run(control, StartType.Disabled, "Spooler");
+        var run = Run(control, StartSetting.Disabled, "Spooler");
 
         var back = Assert.Single(NetEffect.Of(run.Results));
 
         Assert.Equal("Spooler", back.ServiceName);
         Assert.Equal(StepOperation.SetStartType, back.Operation);
-        Assert.Equal(StartType.Automatic, back.To);
+        Assert.Equal(StartSetting.Automatic, back.To);
 
         // And it comes out as a line somebody can paste, with the value on it. A verb with no value
         // is a line this tool refuses.
@@ -170,33 +173,29 @@ public sealed class StartTypeTests
     {
         var control = new FakeScmControl().At("Spooler", EntryStatus.Running);
 
-        var run = Run(control, StartType.Automatic, "Spooler");
+        var run = Run(control, StartSetting.Automatic, "Spooler");
 
         Assert.Empty(NetEffect.Of(run.Results));
     }
 
     /// <summary>
-    /// NO WAY BACK IS OFFERED WHERE THE TYPE BEFORE IS NOT KNOWN, and there are two ways not to
-    /// know it.
+    /// NO WAY BACK IS OFFERED WHERE THE SETTING BEFORE IS NOT KNOWN, and there are two ways not to
+    /// know it: the manager turned down the configuration read, or it gave the type and turned down
+    /// the late start flag beside it.
     ///
-    /// <b>The delayed one is the case that would have gone unnoticed.</b> An automatic entry can
-    /// also be marked to start late - 13 of 78 automatic services carry that flag on a real machine,
-    /// measured 2026-08-01 - and it is a field of its own rather than a sixth start type, so nothing
-    /// this tool can write says "automatic, and late". A line offering to put such an entry back on
-    /// automatic would leave it starting at boot instead of after it, which is a change to how a
-    /// machine comes up wearing the word undo.
-    ///
-    /// The refused one is the plainer half: the manager can turn down a configuration read, and an
-    /// entry whose start type nobody could read has no before for anybody to name.
+    /// <b>BITS stood in this theory until 2026-09-24</b>, as the delayed entry nothing could put
+    /// back. It has its own test now, with its line - backlog 232. The half-read one took its place,
+    /// because an automatic entry whose flag nobody could read is the case that would now go wrong
+    /// quietly: "automatic" would put a delayed entry back starting at boot.
     /// </summary>
     [Theory]
-    [InlineData("BITS")]
+    [InlineData("HalfRead")]
     [InlineData("Locked")]
     public void No_way_back_is_offered_where_the_type_before_is_not_known(string serviceName)
     {
         var control = new FakeScmControl().At(serviceName, EntryStatus.Running);
 
-        var run = Run(control, StartType.Disabled, serviceName);
+        var run = Run(control, StartSetting.Disabled, serviceName);
 
         // The step still ran - this is about what can be said afterwards, not about refusing to do
         // what somebody asked for.
@@ -218,7 +217,7 @@ public sealed class StartTypeTests
         var catalog = Specimens.Catalog();
 
         var plan = new BulkPlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new BulkAction(ActionKind.SetStartType, ["Spooler"], To: StartType.Disabled));
+            .Build(new BulkAction(ActionKind.SetStartType, ["Spooler"], To: StartSetting.Disabled));
 
         Assert.Equal("bws start-type Spooler disabled", Assert.Single(EquivalentCommand.For(plan)));
     }
@@ -239,23 +238,23 @@ public sealed class StartTypeTests
     public void The_cascade_tick_box_does_not_reach_a_setting()
     {
         var rendered = EquivalentCommand.For(new ServiceAction(
-            ActionKind.SetStartType, "Spooler", IncludeDependents: true, To: StartType.Manual));
+            ActionKind.SetStartType, "Spooler", IncludeDependents: true, To: StartSetting.Manual));
 
         Assert.Equal("bws start-type Spooler manual", rendered);
     }
 
     /// <summary>
-    /// A start type nobody can name gets no line at all, rather than a line naming it.
+    /// A setting nobody can name gets no line at all, rather than a line naming it.
     ///
-    /// <b>Nothing in this product can build such an ask today</b> - the window offers three types
-    /// and the writer refuses the other three before it opens a handle. It is asked anyway, because
-    /// the cost of asking is one call and the cost of not asking is a line that reads as a command
-    /// and is declined on paste.
+    /// <b>Nothing in this product can build such an ask</b> - every one of the four settings has a
+    /// word since 2026-09-24, and the only way to hold anything else is a number cast into the type.
+    /// It is asked anyway, because the cost of asking is one call and the cost of not asking is a
+    /// line that reads as a command and is declined on paste.
     /// </summary>
     [Fact]
     public void An_ask_carrying_a_type_with_no_word_renders_no_line()
     {
-        foreach (var nameless in new[] { StartType.Boot, StartType.System, StartType.Unknown })
+        foreach (var nameless in new[] { (StartSetting)(-1), (StartSetting)99 })
         {
             var action = new ServiceAction(ActionKind.SetStartType, "Spooler", To: nameless);
 
@@ -334,19 +333,19 @@ public sealed class StartTypeTests
     }
 
     /// <summary>
-    /// A start type the manager cannot be told is refused before a handle is opened.
+    /// A setting the manager cannot be told is refused before a handle is opened.
     ///
-    /// <b>Boot and System belong to drivers</b>, which this tool refuses to operate on, and Unknown
-    /// is not a type at all - it is what a reading says when the manager did not answer. Writing any
-    /// of the three onto a service is a machine that may not come back, so the refusal is here
-    /// rather than at the manager.
+    /// <b>Until 2026-09-24 this asked Boot, System and Unknown</b> - read-side start types the
+    /// writer refused. The writing side has its own four values now and cannot name those, so what
+    /// is left to refuse is a number cast into the type, and it is refused before the manager is
+    /// asked anything: a write of something nobody chose is a machine that may not come back.
     /// </summary>
     [Fact]
     public void A_start_type_the_manager_cannot_be_told_is_refused_before_anything_is_opened()
     {
         var control = new WindowsScmControl();
 
-        foreach (var refused in new[] { StartType.Boot, StartType.System, StartType.Unknown })
+        foreach (var refused in new[] { (StartSetting)(-1), (StartSetting)99 })
         {
             var answer = control.Configure("Spooler", refused);
 
@@ -379,7 +378,7 @@ public sealed class StartTypeTests
             builder.Build(new ServiceAction(ActionKind.SetStartType, "Spooler")));
     }
 
-    private static OperationPlan Plan(StartType to, string serviceName)
+    private static OperationPlan Plan(StartSetting to, string serviceName)
     {
         var catalog = Specimens.Catalog();
 
@@ -387,6 +386,6 @@ public sealed class StartTypeTests
             .Build(new ServiceAction(ActionKind.SetStartType, serviceName, To: to));
     }
 
-    private static PlanRun Run(FakeScmControl control, StartType to, string serviceName) =>
+    private static PlanRun Run(FakeScmControl control, StartSetting to, string serviceName) =>
         new PlanRunner(control, new FakeClock()).Run(Plan(to, serviceName), TimeSpan.FromSeconds(5));
 }

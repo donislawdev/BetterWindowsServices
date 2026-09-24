@@ -179,6 +179,16 @@ internal static class OptionSurface
         // either brings a service back already - restart - or was never going to take one down.
         ("--restart", [CommandKind.Kill]),
 
+        // Only on the verb that sets a start type, and the refusals narrow it further to the one
+        // word it means anything beside - "disabled", the setting the plan says leaves a running
+        // entry running. Spec C4, the owner's decision of 2026-09-24.
+        //
+        // --timeout stays off this verb even though --stop makes the plan move something: the stop
+        // step waits the default ceiling, a minute. Accepting --timeout here would make it a word
+        // that means something beside --stop and nothing without it, which is a rule nobody could
+        // guess - and adding it later is an addition, where taking it back would not be.
+        ("--stop", [CommandKind.SetStartType]),
+
         // Only where there is a field that can be empty rather than merely unread. It says
         // "print the ones that are genuinely absent as well", which every other verb here either
         // has no fields for or prints in full anyway.

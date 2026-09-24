@@ -1,0 +1,135 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        A SENTENCE WITH A WAY TO ACT ON IT UNDER IT - a failure with "Force stop..." and, since
+        2026-09-24, a warning with "Also stop it". Styles and templates only, not one value.
+
+        ITS OWN FILE SINCE 2026-09-24, AND THE MARKUP RATCHET IS WHAT ASKED, for the third time in
+        this corner of the window. PlanLines.xaml took the offer under a warning and went past the
+        line where a markup file counts as crowding its ceiling. The seam was already there: these
+        two are the only lines of a plan that carry a button, and a button under a sentence is one
+        subject - the press bubbles to the sheet, which decides what it means. Everything left in
+        PlanLines.xaml is a line somebody reads, and everything here is a line somebody can act on.
+
+        MERGED AFTER PlanLines.xaml AND BEFORE Plan.xaml, AND NEITHER IS OPTIONAL. The quiet offer
+        extends PlanCopyButton, which PlanLines.xaml declares, and the loud one extends ElevateAction
+        from Controls.xaml - and StaticResource resolves WHILE A FILE IS BEING READ, so a dictionary
+        merged after this one is a name that does not exist yet. App.xaml carries the order, and
+        three places repeat it: WpfHost in the tests, tools/wpfui-probe, and the pool in
+        AppearanceGuards.
+
+        NOTHING HERE BINDS A Click. A resource dictionary has no code-behind, so each button carries
+        its item in Tag and PlanView catches the press as it bubbles.
+    -->
+    <!--
+        A FAILURE, AND UNDER THE ONES THAT CAN BE ESCALATED, THE WAY OUT OF IT. Added 2026-09-07,
+        and the shape is the sentence template above with one thing that appears under a few of
+        them.
+
+        THE OFFER STANDS UNDER ITS OWN SENTENCE RATHER THAN IN THE FOOTER, which is `docs/11` 9.2
+        point 4: nothing is asked about a thing whose effect was not shown. A second button in the
+        footer would be detached from the entry it is about - a plan over twenty rows can fail on
+        any of them - and it would put two destructive-looking asks side by side in the one part of
+        the sheet that is always on the screen.
+
+        IT WEARS ElevateAction, WHICH IS ALREADY THE STYLE FOR "HERE IS THE WAY OUT OF THAT RED
+        SENTENCE" - the status line's elevate button is the other one. An outline rather than a
+        fill, because the fill is spoken for: on this window a red FILL means "pressing this changes
+        your machine", and this press changes nothing at all. It opens a plan.
+
+        THE BRUSH IS MeaningRejected AND NOT MeaningUntrusted, AND THAT IS A CORRECTION TO THE
+        DESIGN RATHER THAN A PREFERENCE. That design asked for #F1707A on the strength of its 5.69
+        ratio - which is measured against the WINDOW. This sheet is a panel, and everything on it
+        stands on SurfacePanel. Measured with tools/contrast/contrast.ps1 -Background '#343434' on
+        2026-09-07: #F1707A reads 4,35 there, under the 4,5 WCAG SC 1.4.3 asks, and #F47F88 reads
+        4,88. It is the same measurement that moved the rejected role off that colour on 2026-09-02,
+        backlog 286, and the design was reading the figure from before that move. ContrastGuards
+        would not have caught it, because it checks every brush against the window.
+
+        THE WORD CARRIES IT AND NOT THE COLOUR - WCAG 1.4.1. It says "Force stop" and it is a
+        button, so a screen with no colour at all still says what it is.
+
+        THE FAILURE TRAVELS ON THE BUTTON IN Tag, and there is no Click here, both for the reasons
+        written out at PlanCommandTemplate in PlanLines.xaml.
+    -->
+    <!--
+        IT GOES AWAY BY TRIGGER RATHER THAN BY CONVERTER, AND THAT IS THE RULE THIS FILE LIVES
+        UNDER rather than a preference. A theme file may hold a Style or a DataTemplate and nothing
+        else - AppearanceGuards holds that whitelist - so the BooleanToVisibilityConverter the
+        sheet's own markup uses six times cannot be declared here, and a StaticResource reaching for
+        one declared over in PlanView.xaml resolves against nothing at parse time. A DataTrigger
+        says the same thing with the tools this file is allowed.
+
+        COLLAPSED IS THE DEFAULT AND VISIBLE IS THE TRIGGER, never the other way round. Most
+        failures offer nothing, so the state that has to be right when a binding fails is the one
+        where no button appears.
+    -->
+    <Style x:Key="PlanForceButton" TargetType="Button" BasedOn="{StaticResource ElevateAction}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasOffer}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="PlanFailureTemplate">
+        <StackPanel Margin="{StaticResource MarginBetweenControls}">
+            <TextBlock Text="{Binding Text}"
+                       TextWrapping="Wrap"
+                       Foreground="{StaticResource TextOnSurface}" />
+
+            <Button Style="{StaticResource PlanForceButton}"
+                    AutomationProperties.AutomationId="planForce"
+                    AutomationProperties.Name="{Binding Label}"
+                    Content="{Binding Label}"
+                    ToolTip="{DynamicResource gui.plan.offer.hint}"
+                    Tag="{Binding}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!--
+        A SENTENCE UNDER "WORTH KNOWING", AND UNDER THE ONE SAYING A DISABLED ENTRY KEEPS RUNNING, THE
+        OFFER TO STOP IT IN THE SAME PLAN. 2026-09-24, UX-GUI-006 and spec C4 - the owner chose to have
+        the press rebuild this sheet with the stop as a second step (PlanWarningLine says why one
+        offer per sheet, and why none on a record).
+
+        THE SHAPE IS PlanFailureTemplate'S, BECAUSE THE SITUATION IS: a sentence, and under a few of
+        them a way to act on it, collapsed by default so a binding that fails shows no button.
+
+        THE QUIET OUTLINE OF "Copy" RATHER THAN THE RED ONE OF "Force stop...". Red here means "the
+        way out of that red sentence", and this sentence is not red - it is a fact about the plan,
+        and the press changes nothing on the machine, it adds a step to a plan still waiting for its
+        own button. The choice between the two was made on photographs of both.
+    -->
+    <Style x:Key="PlanOfferButton" TargetType="Button" BasedOn="{StaticResource PlanCopyButton}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="{StaticResource MarginBelowSearch}" />
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasOffer}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <DataTemplate x:Key="PlanWarningTemplate">
+        <StackPanel Margin="{StaticResource MarginBetweenControls}">
+            <TextBlock Text="{Binding Text}"
+                       TextWrapping="Wrap"
+                       Foreground="{StaticResource TextOnSurface}" />
+
+            <Button Style="{StaticResource PlanOfferButton}"
+                    AutomationProperties.AutomationId="planAlsoStop"
+                    AutomationProperties.Name="{Binding Label}"
+                    Content="{Binding Label}"
+                    ToolTip="{DynamicResource gui.plan.offer.alsoStop.hint}"
+                    Tag="{Binding}" />
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

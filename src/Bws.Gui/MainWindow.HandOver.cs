@@ -1,5 +1,4 @@
 using System.Windows;
-using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -19,7 +18,7 @@ public partial class MainWindow
     /// The plan that is open, as it was asked for - remembered at the moment it opens, because the
     /// sheet itself keeps the answer and not the question.
     /// </summary>
-    private (ActionKind Kind, StartType? To)? _asked;
+    private (ActionKind Kind, StartSetting? To, bool AlsoStop)? _asked;
 
     /// <summary>
     /// The first reading, and everything that has to wait for it. Out of the constructor since
@@ -57,7 +56,8 @@ public partial class MainWindow
         Query = _model.QueryText,
         Picked = [.. PickedRows().Select(row => row.ServiceName)],
         Asked = _model.Planned.Showing ? _asked?.Kind : null,
-        To = _model.Planned.Showing ? _asked?.To : null
+        To = _model.Planned.Showing ? _asked?.To : null,
+        AlsoStop = _model.Planned.Showing && _asked?.AlsoStop == true
     };
 
     /// <summary>
@@ -107,7 +107,7 @@ public partial class MainWindow
 
         if (found > 0 && carried.Asked is { } kind)
         {
-            await Preview(kind, carried.To).ConfigureAwait(true);
+            await Preview(kind, carried.To, carried.AlsoStop).ConfigureAwait(true);
         }
     }
 

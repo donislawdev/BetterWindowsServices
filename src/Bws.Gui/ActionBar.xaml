@@ -121,18 +121,9 @@
                 Content="{DynamicResource gui.action.startType}"
                 Style="{StaticResource WriteAction}"
                 Click="StartTypeAsked">
+            <!-- THE ITEMS ARE A LIST SINCE 2026-09-24: four settings, filled in by the code behind. -->
             <Button.ContextMenu>
-                <ContextMenu>
-                    <MenuItem x:Name="AutomaticItem"
-                              Header="{DynamicResource gui.cell.start.automatic}"
-                              Click="SetAutomatic" />
-                    <MenuItem x:Name="ManualItem"
-                              Header="{DynamicResource gui.cell.start.manual}"
-                              Click="SetManual" />
-                    <MenuItem x:Name="DisabledItem"
-                              Header="{DynamicResource gui.cell.start.disabled}"
-                              Click="SetDisabled" />
-                </ContextMenu>
+                <ContextMenu x:Name="StartTypeMenu" />
             </Button.ContextMenu>
         </Button>
 

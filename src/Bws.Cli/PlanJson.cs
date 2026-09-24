@@ -26,8 +26,18 @@ namespace Bws.Cli;
 /// Every step gains the field and three quarters of them carry null - which is the shape this file
 /// already uses everywhere else.
 /// </param>
+/// <param name="DelayedAuto">
+/// Whether that step makes the entry start late, and null for every other step.
+///
+/// <b>A FIELD BESIDE startType RATHER THAN A FIFTH VALUE IN IT, the owner's decision of 2026-09-24.</b>
+/// The listing has always said a late automatic entry as <c>"startType": "Automatic"</c> with
+/// <c>"delayedAuto": true</c>, and the script reading this is the same script (docs/02, the row on
+/// the shape of a plan). A value "AutomaticDelayed" here would be the one place that script ever met
+/// it. Every setting writes the flag since that day - false for all but one - so a step of that kind
+/// always carries true or false here, and an addition to the document changes no field it had.
+/// </param>
 internal sealed record PlanStepJson(
-    string ServiceName, string DisplayName, string Operation, string Reason, string? StartType);
+    string ServiceName, string DisplayName, string Operation, string Reason, string? StartType, bool? DelayedAuto);
 
 internal sealed record PlanWarningJson(string Kind, string ServiceName, IReadOnlyList<string> Related, string Message);
 
@@ -89,13 +99,22 @@ internal sealed record StepResultJson(
     int ErrorCode,
     string? Error,
     long Milliseconds,
-    string? StartType);
+    string? StartType,
+    bool? DelayedAuto);
 
 internal sealed record PlanJsonShape
 {
     public required string Action { get; init; }
     public required string ServiceName { get; init; }
     public required bool IncludeDependents { get; init; }
+
+    /// <summary>
+    /// Whether a startup setting was asked to stop the entry as well - <c>--stop</c>. False for every
+    /// other ask. Added 2026-09-24 beside <see cref="IncludeDependents"/>, which is the other switch
+    /// that changes what a plan does rather than how it is shown. The stop itself appears as a step,
+    /// and this says it was asked for rather than worked out.
+    /// </summary>
+    public required bool AlsoStop { get; init; }
 
     /// <summary>
     /// Whether this document is a preview or a record of something that happened. Explicit
@@ -137,6 +156,7 @@ internal static class PlanJson
             Action = Camel(plan.Action.Kind.ToString()),
             ServiceName = plan.Action.ServiceName,
             IncludeDependents = plan.Action.IncludeDependents,
+            AlsoStop = plan.Action.AlsoStop,
             DryRun = run is null,
 
             Steps =
@@ -146,7 +166,8 @@ internal static class PlanJson
                     step.DisplayName,
                     Camel(step.Operation.ToString()),
                     Camel(step.Reason.ToString()),
-                    Written(step)))
+                    Written(step),
+                    Delayed(step)))
             ],
 
             Warnings =
@@ -174,7 +195,8 @@ internal static class PlanJson
                     result.ErrorCode,
                     result.Error,
                     result.Milliseconds,
-                    Written(result.Step)))],
+                    Written(result.Step),
+                    Delayed(result.Step)))],
 
             Completed = run?.Completed,
             Cancelled = run?.Cancelled
@@ -196,7 +218,14 @@ internal static class PlanJson
     /// write a comparison that works on one of the two.
     ///
     /// Asked of <see cref="PlanStep.To"/> rather than of the operation, so a step of that kind
-    /// arriving without a type says null instead of failing here.
+    /// arriving without a type says null instead of failing here. The type half of the setting only
+    /// - a late automatic step says "Automatic" here and true in <see cref="Delayed"/>, exactly as the
+    /// listing says an entry that already is one.
     /// </summary>
-    private static string? Written(PlanStep step) => step.To?.ToString();
+    private static string? Written(PlanStep step) =>
+        step.To is { } setting ? StartSettings.Written(setting).Type.ToString() : null;
+
+    /// <summary>The late start half of the same setting, or null for a step that writes none.</summary>
+    private static bool? Delayed(PlanStep step) =>
+        step.To is { } setting ? StartSettings.Written(setting).Delayed : null;
 }

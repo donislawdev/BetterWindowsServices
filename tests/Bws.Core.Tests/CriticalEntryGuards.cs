@@ -95,7 +95,7 @@ public sealed class CriticalEntryGuards
     [Fact]
     public void Disabling_one_is_its_own_sentence_rather_than_the_stop_one()
     {
-        var plan = StartTypePlan(StartType.Disabled, "LSM");
+        var plan = StartTypePlan(StartSetting.Disabled, "LSM");
 
         var warning = Warning(plan, PlanWarningKind.CriticalStartType);
 
@@ -109,9 +109,10 @@ public sealed class CriticalEntryGuards
     /// starting at all.
     /// </summary>
     [Theory]
-    [InlineData(StartType.Manual)]
-    [InlineData(StartType.Automatic)]
-    public void Any_other_start_type_says_nothing(StartType to)
+    [InlineData(StartSetting.Manual)]
+    [InlineData(StartSetting.Automatic)]
+    [InlineData(StartSetting.AutomaticDelayed)]
+    public void Any_other_start_type_says_nothing(StartSetting to)
     {
         Assert.DoesNotContain(
             StartTypePlan(to, "LSM").Warnings,
@@ -140,7 +141,7 @@ public sealed class CriticalEntryGuards
     /// A start type plan, which the shared <c>Plan</c> helper cannot build: the value being written
     /// travels in <see cref="ServiceAction.To"/> rather than in the kind.
     /// </summary>
-    private static OperationPlan StartTypePlan(StartType to, string serviceName)
+    private static OperationPlan StartTypePlan(StartSetting to, string serviceName)
     {
         var catalog = Specimens.Catalog();
 

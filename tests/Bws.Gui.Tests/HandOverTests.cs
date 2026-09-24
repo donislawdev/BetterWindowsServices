@@ -1,6 +1,5 @@
 using System.Buffers.Text;
 using System.Text;
-using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -25,7 +24,7 @@ public sealed class HandOverTests
             Query = "status:running \"a b\" name:/x\\y/",
             Picked = ["Spooler", "W32Time"],
             Asked = ActionKind.SetStartType,
-            To = StartType.Manual
+            To = StartSetting.Manual
         };
 
         var (carried, refused) = HandOver.Read([HandOver.Argument, sent.Encode()]);
@@ -128,6 +127,13 @@ public sealed class HandOverTests
     [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","To":"Manual"}""")]
     [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType"}""")]
     [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot, System"}""")]
+    // A read-side type this window could never have offered, and the two shapes of a stop riding on
+    // something it never rides on - since 2026-09-24, when the setting became four values and the
+    // offer to stop arrived.
+    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot"}""")]
+    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Manual","Stop":true}""")]
+    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","Stop":true}""")]
+    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Stop":true}""")]
     [InlineData("""[[[[[[[[[[]]]]]]]]]]""")]
     public void A_hand_over_this_program_could_not_have_written_is_refused_whole(string json)
     {

@@ -155,10 +155,19 @@ public enum StepReason
 /// stop is a plan of one step and a warning naming who is in the way.
 /// </param>
 /// <param name="To">
-/// The start type an ask of kind <see cref="ActionKind.SetStartType"/> sets, and nothing at all for
-/// the other three. Nullable rather than a default value, because "no start type is being set" is a
-/// real state and <see cref="StartType.Unknown"/> already means something else - the manager did not
-/// say.
+/// The startup setting an ask of kind <see cref="ActionKind.SetStartType"/> writes, and nothing at
+/// all for every other kind. Nullable rather than a default value, because "no setting is being
+/// written" is a real state and none of the four settings means it.
+/// </param>
+/// <param name="AlsoStop">
+/// Whether a setting that leaves the entry running also stops it, as a second step of the same
+/// plan. Meaningless for every kind but <see cref="ActionKind.SetStartType"/>.
+///
+/// <b>Spec C4 in one field, the owner's decision of 2026-09-24.</b> A startup setting changes what
+/// happens at the next boot and nothing now, so somebody who disables a running service and walks
+/// away has left it running - and almost always wanted both. The plan offers the stop, and taking
+/// the offer rebuilds the plan with it: one preview showing both steps and one press carrying out
+/// both, rather than a second plan somebody has to remember to open.
 /// </param>
 /// <param name="Immediate">
 /// Whether to skip asking politely and go straight to ending the process. Meaningless for every
@@ -177,15 +186,16 @@ public sealed record ServiceAction(
     ActionKind Kind,
     string ServiceName,
     bool IncludeDependents = false,
-    StartType? To = null,
-    bool Immediate = false);
+    StartSetting? To = null,
+    bool Immediate = false,
+    bool AlsoStop = false);
 
 /// <summary>One thing that will happen, to one entry.</summary>
 /// <param name="To">
-/// The start type this step writes, and nothing at all for a stop or a start.
+/// The startup setting this step writes, and nothing at all for a stop or a start.
 /// </param>
 /// <param name="From">
-/// The start type the entry had when the plan was built, for a step that writes one.
+/// The startup setting the entry had when the plan was built, for a step that writes one.
 ///
 /// <b>READ AT PLAN TIME BECAUSE THERE IS NOWHERE ELSE TO READ IT, and its absence is what kept a
 /// start type change from having a way back until 2026-08-25.</b> A step knows what it set. A
@@ -233,8 +243,8 @@ public sealed record PlanStep(
     string DisplayName,
     StepOperation Operation,
     StepReason Reason,
-    StartType? To = null,
-    StartType? From = null,
+    StartSetting? To = null,
+    StartSetting? From = null,
     int? ProcessId = null,
     long? ProcessCreatedAt = null);
 
@@ -325,7 +335,22 @@ public enum PlanProblemKind
     /// preview shows exactly what execution does, and a preview whose last step is known to be
     /// impossible does not.
     /// </summary>
-    ProcessCannotBeEnded
+    ProcessCannotBeEnded,
+
+    /// <summary>
+    /// The entry belongs to a load order group, and Windows does not let such an entry start late.
+    ///
+    /// <b>Measured rather than read, 2026-09-24:</b> Microsoft's page on the late start says only
+    /// that a delayed entry cannot be in a group. On the throwaway machine the manager answers the
+    /// flag with 87 on Spooler (SpoolerGroup) and SCardSvr (SmartCardGroup), automatic or not, and
+    /// sc.exe gets the same answer. Spooler is the commonest example in this project and it is one
+    /// of them - 30 of 80 automatic services on the owner's machine have a group.
+    ///
+    /// <b>A refusal rather than a warning, for the reason <see cref="CascadeNotOperable"/> gives.</b>
+    /// A step the manager is known to refuse is not a preview of anything. Related names the group,
+    /// because "which group" is the one fact a person could act on.
+    /// </summary>
+    CannotStartLate
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>

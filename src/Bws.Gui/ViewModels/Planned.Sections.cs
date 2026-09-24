@@ -157,6 +157,10 @@ public sealed partial class Planned
         Raise(nameof(HasCommands));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));
+
+        // The lines as well as whether there are any, since 2026-09-24: one of them carries an
+        // offer that has to go the moment the plan runs, and a run changes no warning.
+        Raise(nameof(Warnings));
         Raise(nameof(HasProblems));
         Raise(nameof(HasFailures));
         Raise(nameof(HasWayBack));

@@ -1,4 +1,3 @@
-using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Cli;
@@ -66,12 +65,11 @@ internal static class WriteCommands
     internal static bool NeedsAStartType(CommandKind kind) => kind == CommandKind.SetStartType;
 
     /// <summary>
-    /// The start type somebody named, or nothing when the word was not one.
+    /// The startup setting somebody named, or nothing when the word was not one.
     ///
     /// <b>The reading itself is in the core, beside the writer that renders it.</b> A word this tool
     /// accepts and a word this tool prints have to be the same word - that is the whole argument of
     /// EquivalentCommand, and a table here would be the second answer it warns about.
     /// </summary>
-    internal static StartType? Named(string word) =>
-        StartTypeWords.TryRead(word, out var type) ? type : null;
+    internal static StartSetting? Named(string word) => StartTypeWords.Read(word);
 }

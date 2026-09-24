@@ -25,66 +25,36 @@ internal static class PlanSteps
     internal static PlanStep Moving(ScmEntry entry, StepOperation operation, StepReason reason) =>
         Made(entry, operation, reason);
     /// <summary>
-    /// The start type a way back would have to write, or nothing where there is no honest answer.
+    /// The startup setting a way back would have to write, or nothing where there is no honest answer.
     ///
     /// <b>THE ONE PLACE THAT CAN ANSWER THIS, WHICH IS WHY IT IS ASKED WHILE THE PLAN IS BEING
     /// BUILT.</b> A step knows what it set and a result knows what came of it - the entry as it was
     /// found is only in scope here, and reading it later would be reading a machine this tool has
     /// since changed.
     ///
+    /// <b>A DELAYED AUTOMATIC ENTRY GETS ITS WAY BACK SINCE 2026-09-24, and the reason it did not
+    /// before is the reason it may now.</b> Until then this tool wrote the start type and left the
+    /// late start flag as it found it, so a round trip made with it happened to land back on delayed
+    /// automatic (three runs on a real machine, 2026-08-25) - correct, and resting on a property of
+    /// the writer that no guard held. A way back is the most dangerous sentence this tool prints, and
+    /// "correct as long as nobody changes the writer" was not the footing for it. Backlog 232 made a
+    /// guard on both sides of the write its condition. Now the writer writes both halves of an exact
+    /// <see cref="StartSetting"/> and this reads the entry through the SAME table the writer uses,
+    /// <see cref="StartSettings"/> - so the way back names a value that is written, not a flag that
+    /// is hoped to be left alone.
+    ///
     /// <b>Nothing at all rather than a guess, in three cases, and each is a different silence.</b>
-    /// The manager can refuse a configuration read. The type can be one this tool has no word for.
-    /// And an automatic entry can carry the delay flag, which is the case worth spelling out:
-    ///
-    /// <b>An automatic entry may also be marked to start late, and nothing this tool writes can say
-    /// "automatic, and late".</b> The delay is a separate field on the entry rather than a sixth
-    /// start type, and 13 of 78 automatic services carry it on a real machine - measured
-    /// 2026-08-01.
-    ///
-    /// <b>MEASURED ON A REAL MACHINE 2026-08-25, THREE WAYS, AND IT REFUTED THE PREDICTION WRITTEN
-    /// BEFORE THE RUN AND THEN REFUTED THE SENTENCE THAT REPLACED IT.</b> On a service made delayed
-    /// automatic and read with sc.exe after every step:
-    ///
-    /// <list type="bullet">
-    /// <item>our write to manual, then sc.exe to auto - plain automatic. The flag is gone.</item>
-    /// <item>sc.exe to demand, then our write to automatic - plain automatic. Gone again.</item>
-    /// <item>our write to manual, then our write to automatic - AUTOMATIC (DELAYED), twice.</item>
-    /// </list>
-    ///
-    /// So sc.exe clears the flag on every start type it writes and this tool never touches it -
-    /// which is exactly what WindowsScmControl.Configure promises in as many words, and it means a
-    /// round trip made entirely with this tool DOES land back on delayed automatic.
-    ///
-    /// <b>The way back is refused here anyway, and that is a decision rather than the measurement.</b>
-    /// It would be correct today and it would rest on a property of our own write that no guard
-    /// holds - one line changed in Configure and every one of those lines becomes a claim that
-    /// quietly stopped being true. A way back is the most dangerous sentence this tool prints, and
-    /// "correct as long as nobody changes the writer" is not the footing for it. Silence costs
-    /// somebody one manual step. The alternative costs them a machine that comes up differently
-    /// from the way they left it.
-    ///
-    /// <b>Said out loud because it is the owner's to decide, not mine:</b> the measurement says
-    /// this could be offered, and beside it sits a larger question - our Automatic and the Automatic
-    /// in services.msc are not the same write. Backlog 231 and 232.
-    ///
-    /// A reading that is present and false is the only one that clears it. Denied and never read
-    /// both mean nobody knows, and this is not the place to decide that nobody knows means no.
+    /// The manager can refuse a configuration read, of the type or of the flag. The type can be Boot
+    /// or System, which no setting writes. And the entry can carry the late flag while not being
+    /// automatic - nine entries on the owner's machine, WinRM and BITS among them - which none of the
+    /// four settings reproduces: every one of them writes the flag false there. The owner's decision
+    /// of 2026-09-24 was no line for those rather than a line that puts back how the entry behaves
+    /// and quietly drops a flag a snapshot will still see.
     /// </summary>
-    internal static StartType? WayBackTo(ScmEntry entry)
-    {
-        if (!entry.StartType.IsPresent)
-        {
-            return null;
-        }
+    internal static StartSetting? WayBackTo(ScmEntry entry) => StartSettings.Of(entry);
 
-        var was = entry.StartType.Value;
-
-        return was == StartType.Automatic && entry.DelayedAuto is not { IsPresent: true, Value: false }
-            ? null
-            : was;
-    }
     internal static PlanStep Made(
-        ScmEntry entry, StepOperation operation, StepReason reason, StartType? to = null) =>
+        ScmEntry entry, StepOperation operation, StepReason reason, StartSetting? to = null) =>
         new(
             entry.ServiceName,
 

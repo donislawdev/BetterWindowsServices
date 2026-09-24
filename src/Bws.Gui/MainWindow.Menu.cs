@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Bws.Core;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
 
@@ -200,12 +199,16 @@ public partial class MainWindow
     /// </summary>
     /// <param name="kind">What was asked for, in the words a person used.</param>
     /// <param name="to">
-    /// The start type to write, and nothing at all for the other three asks. It travels from the
+    /// The startup setting to write, and nothing at all for every other ask. It travels from the
     /// menu that offered it rather than being worked out here, for the reason every other value in
     /// this file travels the same way: the control knows what it offered, and the model knows what
     /// that means.
     /// </param>
-    internal async Task<bool> Preview(ActionKind kind, StartType? to = null)
+    /// <param name="alsoStop">
+    /// Whether the setting carries a stop - the offer under "keeps running" was taken, which asks
+    /// this same question again over the same rows with this one word changed.
+    /// </param>
+    internal async Task<bool> Preview(ActionKind kind, StartSetting? to = null, bool alsoStop = false)
     {
         var picked = PickedRows();
         var names = Everything(picked);
@@ -256,7 +259,7 @@ public partial class MainWindow
         // MainViewModel.PlanAsync. The whole listing selected and asked to stop was measured at
         // 224-240 ms, all of it round trips to the manager, and the owner's decision was that a
         // window not answering for that long is too much.
-        var plan = await _model.PlanAsync(new BulkAction(kind, names, To: to)).ConfigureAwait(true);
+        var plan = await _model.PlanAsync(new BulkAction(kind, names, To: to, AlsoStop: alsoStop)).ConfigureAwait(true);
 
         if (asked != _previews)
         {
@@ -277,13 +280,29 @@ public partial class MainWindow
         if (shown)
         {
             // The question behind the open sheet, for a restart as administrator to ask again.
-            _asked = (kind, to);
+            _asked = (kind, to, alsoStop);
 
             PlanPanel.TakeTheKeyboard();
         }
 
         return shown;
     }
+
+    /// <summary>
+    /// Takes up the offer under "keeps running": the same ask over the same rows, with the stop
+    /// riding on it - so the sheet on the screen becomes the same sheet with a second step.
+    ///
+    /// <b>THE SAME SHEET HERE, WHERE THE OFFER UNDER A FAILURE OPENS A NEW ONE, and the difference
+    /// is the one <see cref="Force"/> names.</b> That sheet is a record of a run and may not grow a
+    /// second question. This one has not run - it is still the question, and taking the offer
+    /// changes the question before anybody answers it. PlanWarningLine offers nothing on a record.
+    ///
+    /// <b>Only from the shape the offer stands under</b>: a start type plan setting Disabled that
+    /// does not already stop. Anything else answers false and opens nothing.
+    /// </summary>
+    internal async Task<bool> AlsoStop() =>
+        _asked is { Kind: ActionKind.SetStartType, To: StartSetting.Disabled, AlsoStop: false }
+            && await Preview(ActionKind.SetStartType, StartSetting.Disabled, alsoStop: true).ConfigureAwait(true);
 
     /// <summary>
     /// Takes up the offer under a failure: closes the sheet reporting it and opens a new one
@@ -345,7 +364,7 @@ public partial class MainWindow
 
         if (shown)
         {
-            _asked = (offer.Kind, null);
+            _asked = (offer.Kind, null, false);
 
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it

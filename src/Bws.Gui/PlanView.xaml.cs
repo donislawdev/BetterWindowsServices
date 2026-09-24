@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Bws.Gui.ViewModels;
 
@@ -46,6 +47,13 @@ public partial class PlanView : UserControl
     internal event EventHandler<ForceAsked>? ForceRequest;
 
     /// <summary>
+    /// Somebody took the offer under "keeps running": the same ask again, with the stop as a second
+    /// step. An event for the reason the one above gives - building a plan means asking the manager
+    /// off this thread, and that lives where every other preview is opened.
+    /// </summary>
+    internal event EventHandler? AlsoStopRequest;
+
+    /// <summary>
     /// Somebody asked for one of the terminal commands, and it carries which one.
     ///
     /// <b>An event for the same reason as the two above, and here the reason is sharper.</b> The
@@ -66,6 +74,22 @@ public partial class PlanView : UserControl
         // outside these two lines had to learn that the ask lives somewhere else now.
         Footer.CarryOutRequest += (_, _) => CarryOutRequest?.Invoke(this, EventArgs.Empty);
         Footer.InterruptRequest += (_, _) => InterruptRequest?.Invoke(this, EventArgs.Empty);
+
+        // CAUGHT ON THE LIST RATHER THAN NAMED IN THE MARKUP, which is the other way this sheet
+        // catches a press from a template - the failures name theirs in PlanView.xaml. This file's
+        // markup stands at the size ceiling, so the handler is wired here and the markup carries
+        // only a name. Only a line that carries the offer has a button, so any press here is it.
+        WarningList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(AlsoStopRequested));
+    }
+
+    private void AlsoStopRequested(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not Button { Tag: PlanWarningLine { HasOffer: true } })
+        {
+            return;
+        }
+
+        AlsoStopRequest?.Invoke(this, EventArgs.Empty);
     }
 
     private void CloseRequested(object sender, RoutedEventArgs e) => Dismiss();
@@ -355,6 +379,17 @@ public partial class PlanView : UserControl
 
     /// <summary>The way back, as it reaches the screen.</summary>
     internal IReadOnlyList<string> WayBackLines => [.. WayBackList.Items.OfType<string>()];
+
+    /// <summary>What is worth knowing, as it reaches the screen.</summary>
+    internal IReadOnlyList<string> WarningLines =>
+        [.. WarningList.Items.OfType<PlanWarningLine>().Select(line => line.Text)];
+
+    /// <summary>
+    /// The offer under those sentences, as it reaches the screen - read off the items for the reason
+    /// <see cref="OfferLines"/> gives about the failures.
+    /// </summary>
+    internal IReadOnlyList<string> AlsoStopLines =>
+        [.. WarningList.Items.OfType<PlanWarningLine>().Where(line => line.HasOffer).Select(line => line.Label)];
 
     /// <summary>
     /// Whether the refusals section is on the screen at all, heading included.
