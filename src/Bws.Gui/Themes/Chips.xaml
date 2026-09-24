@@ -173,10 +173,10 @@
         style declared here. It also kept the window under the markup ceiling without shortening a
         single reason, which is what a seam is for.
 
-        The hint sits on every group label rather than once beside the row, because the sentence is
-        about the boundary BETWEEN groups and a person reads whichever label they arrive at. It is
-        a tooltip rather than a second line: it explains a mechanism somebody discovers by clicking
-        once, which is worth having and not worth a line of a window whose job is 810 rows.
+        How the chips combine is said ONCE, on the Filters switch, and a group label names its group
+        and nothing more (UX-GUI-017, 2026-09-24). The same sentence stood on all five labels
+        before, and every group now asks about one field, so there was no boundary left for five
+        copies to explain.
 
         THE GROUP LABEL IS WHAT COMPLAINT 7 ASKED FOR, and it waited for this row on purpose.
         docs/11 closed that complaint in half on 2026-08-05 and said the other half - a label over

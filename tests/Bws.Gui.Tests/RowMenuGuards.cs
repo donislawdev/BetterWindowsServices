@@ -329,6 +329,9 @@ public sealed class RowMenuGuards
             "the sheet opened with the startup type the row's menu asked for");
 
         Assert.Equal(["Spooler"], WpfHost.On(() => model.Planned.Plan!.Action.ServiceNames));
+        Assert.Equal(
+            Bws.Core.Planning.StartSetting.Disabled,
+            WpfHost.On(() => model.Planned.Plan!.Action.To));
 
         WpfHost.On(window.Close);
     }

@@ -253,6 +253,9 @@ public sealed class ExportingGuards
     /// <b>And the sentence goes when somebody asks for something else</b>, because "wrote one entry"
     /// under a list somebody has since narrowed to twelve is a sentence about a list nobody is
     /// looking at.
+    ///
+    /// <b>Two rows, not one</b>, because a sentence that always said one row passed this test while
+    /// it exported one. The singular is asked of <see cref="Exporting.Wrote"/> itself, below.
     /// </summary>
     [Fact]
     public async Task A_written_file_is_said_with_its_rows_and_its_name_until_somebody_moves_on()
@@ -260,7 +263,8 @@ public sealed class ExportingGuards
         _ = WpfHost.Resources;
 
         var model = new MainViewModel(
-            new LiveMachine(Rows.Entry("Spooler", "Print Spooler")), new SteppedClock());
+            new LiveMachine(Rows.Entry("Spooler", "Print Spooler"), Rows.Entry("Audiosrv")),
+            new SteppedClock());
 
         await model.LoadAsync();
 
@@ -277,7 +281,8 @@ public sealed class ExportingGuards
 
             Assert.Null(WpfHost.On(() => window.WriteShownTo(path)));
 
-            Assert.Equal(Exporting.Wrote(1, Path.GetFileName(path)), model.Says.Done);
+            Assert.Equal(Exporting.Wrote(2, Path.GetFileName(path)), model.Says.Done);
+            Assert.StartsWith("Wrote 2 entries to ", model.Says.Done, StringComparison.Ordinal);
             Assert.Contains(Path.GetFileName(path), model.Says.Done, StringComparison.Ordinal);
             Assert.Equal(string.Empty, model.Says.Problem);
 
@@ -316,6 +321,9 @@ public sealed class ExportingGuards
     /// <summary>
     /// The name the save dialog offers is the list's, not "services" on every tab - UX-GUI-016. A
     /// file is named once and read by people who never saw the window it came from.
+    ///
+    /// <b>Each tab against its own name</b>, because asking only that the three differ let two tabs
+    /// trade names and pass.
     /// </summary>
     [Fact]
     public void The_name_offered_is_the_list_somebody_is_looking_at()
@@ -324,9 +332,7 @@ public sealed class ExportingGuards
             .Select(Exporting.FileName)
             .ToList();
 
-        Assert.Equal("services.csv", names[0]);
-        Assert.Equal(3, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.All(names, name => Assert.EndsWith(".csv", name, StringComparison.Ordinal));
+        Assert.Equal(["services.csv", "drivers.csv", "services-and-drivers.csv"], names);
     }
 
     /// <summary>One row is "entry" and every other number is "entries" - the plural pair the language file keeps.</summary>
