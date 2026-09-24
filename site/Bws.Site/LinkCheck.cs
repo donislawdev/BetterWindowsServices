@@ -22,8 +22,12 @@ internal static class LinkCheck
     // Every spelling HTML takes: the name in any case, space around the equals sign, and the value
     // in double quotes, single quotes or none. The pages are written by hand, and a check that
     // reads one spelling passes the others without a word - which is the failure it exists for.
+    //
+    // WHITESPACE BEFORE THE NAME, NOT \b. An attribute starts after whitespace, and \b also stands
+    // between the hyphen and the name in data-src and data-href - which read their values as
+    // addresses and failed a strict build on whatever a page keeps there.
     private static readonly Regex Reference = new(
-        @"\b(?<what>href|src|poster)\s*=\s*(?:""(?<target>[^""]+)""|'(?<target>[^']+)'|(?<target>[^\s""'=<>`]+))",
+        @"(?<=\s)(?<what>href|src|poster)\s*=\s*(?:""(?<target>[^""]+)""|'(?<target>[^']+)'|(?<target>[^\s""'=<>`]+))",
         RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(5));
 

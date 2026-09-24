@@ -102,7 +102,6 @@ Write-Host "building into $OutputDirectory"
 if (Test-Path -LiteralPath $OutputDirectory) { Remove-Item -LiteralPath $OutputDirectory -Recurse -Force }
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $staging = Join-Path $OutputDirectory 'staging'
-$packageRoot = Get-PackageRoot
 
 $written = [System.Collections.Generic.List[string]]::new()
 
@@ -124,6 +123,12 @@ foreach ($id in $ids) {
     }
 
     Write-Host "`n[2/6] the pinned bytes"
+    # AFTER the publish and not before the loop. The publish restores, and the restore is what
+    # creates the package folder - on a fresh build agent it is not there before it. Asked up
+    # front, the question stopped the first run of the release workflow, 2026-09-24, on a folder
+    # the very next command would have made. A machine that had built anything before has the
+    # folder already, which is why every local run passed.
+    $packageRoot = Get-PackageRoot
     $deps = Get-DepsPath $package.project
     $resolved = @{}
     foreach ($library in (Get-Content -Raw -LiteralPath $deps | ConvertFrom-Json).libraries.PSObject.Properties) {
