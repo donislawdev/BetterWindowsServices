@@ -25,7 +25,7 @@ body:
       label: Version
       description: >-
         If the tool is already on the machine, `bws --version` prints it.
-      placeholder: "bws 0.1.0, snapshot schema 4"
+      placeholder: "bws 0.2.0, snapshot schema 4"
   - type: dropdown
     id: surface
     attributes:

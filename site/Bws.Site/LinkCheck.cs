@@ -19,9 +19,12 @@ namespace Bws.Site;
 /// </summary>
 internal static class LinkCheck
 {
+    // Every spelling HTML takes: the name in any case, space around the equals sign, and the value
+    // in double quotes, single quotes or none. The pages are written by hand, and a check that
+    // reads one spelling passes the others without a word - which is the failure it exists for.
     private static readonly Regex Reference = new(
-        @"(?<what>href|src|poster)=""(?<target>[^""]+)""",
-        RegexOptions.ExplicitCapture,
+        @"\b(?<what>href|src|poster)\s*=\s*(?:""(?<target>[^""]+)""|'(?<target>[^']+)'|(?<target>[^\s""'=<>`]+))",
+        RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(5));
 
     internal static void Run(string outputRoot, SiteConfig site, Problems problems)
@@ -53,15 +56,23 @@ internal static class LinkCheck
             return;
         }
 
-        if (target.StartsWith("http://", StringComparison.Ordinal) || target.StartsWith("https://", StringComparison.Ordinal))
+        if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || target.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            var host = new Uri(target).Host;
+            // Reported rather than thrown: an exception here stopped the whole build on the first
+            // bad address and named none of the others.
+            if (!Uri.TryCreate(target, UriKind.Absolute, out var uri))
+            {
+                problems.Add($"links: {where} has the address '{target}', which is not an address a browser can follow.");
+                return;
+            }
+
+            var host = uri.Host;
             if (!site.LinkHosts.Contains(host, StringComparer.OrdinalIgnoreCase))
             {
                 problems.Add($"links: {where} points at {host}, which site.json does not list under link_hosts.");
             }
 
-            if (!string.Equals(what, "href", StringComparison.Ordinal))
+            if (!string.Equals(what, "href", StringComparison.OrdinalIgnoreCase))
             {
                 problems.Add($"links: {where} loads {target} from another host. This site loads nothing from anywhere else.");
             }

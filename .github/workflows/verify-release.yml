@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: The release tag to re-check, e.g. v0.1.0
+        description: The release tag to re-check, e.g. v0.2.0
         required: true
         type: string
 

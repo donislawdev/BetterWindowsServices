@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: The release tag whose signed assets to attest, e.g. v0.1.0
+        description: The release tag whose signed assets to attest, e.g. v0.2.0
         required: true
         type: string
       digests:
