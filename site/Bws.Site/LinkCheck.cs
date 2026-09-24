@@ -3,8 +3,9 @@ using System.Text.RegularExpressions;
 namespace Bws.Site;
 
 /// <summary>
-/// Every <c>href</c> and <c>src</c> the built site carries, held against what the site actually
-/// contains.
+/// Every <c>href</c>, <c>src</c> and <c>poster</c> the built site carries, held against what the
+/// site actually contains. A poster is loaded like a src, so it is refused from another host the
+/// same way.
 ///
 /// <b>A dead internal link is the failure this site is most likely to have</b>, because the
 /// addresses are written by hand in fragments while the pages they point at are declared in JSON,
@@ -19,7 +20,7 @@ namespace Bws.Site;
 internal static class LinkCheck
 {
     private static readonly Regex Reference = new(
-        @"(?<what>href|src)=""(?<target>[^""]+)""",
+        @"(?<what>href|src|poster)=""(?<target>[^""]+)""",
         RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(5));
 
@@ -60,7 +61,7 @@ internal static class LinkCheck
                 problems.Add($"links: {where} points at {host}, which site.json does not list under link_hosts.");
             }
 
-            if (string.Equals(what, "src", StringComparison.Ordinal))
+            if (!string.Equals(what, "href", StringComparison.Ordinal))
             {
                 problems.Add($"links: {where} loads {target} from another host. This site loads nothing from anywhere else.");
             }

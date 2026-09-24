@@ -19,30 +19,33 @@
       </ul>
     </div>
     <figure>
-      <div class="shot" aria-hidden="true">
-        <div class="shot-bar"><img src="/assets/icon.svg" alt="" width="16" height="16">{{product}}<span class="scope">Services 811 &middot; Drivers &middot; Everything</span></div>
-        <div class="shot-search"><span class="k">management</span><span class="count">3 of 811</span></div>
-        <table class="shot-list">
-          <thead><tr><th>Name</th><th>Display name</th><th>Status</th><th>Startup type</th></tr></thead>
-          <tbody>
-            <tr aria-selected="true"><td>Winmgmt</td><td>Windows Management Instrumentation</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
-            <tr><td>vmms</td><td>Hyper-V Virtual Machine Management</td><td><span class="dot dot-running"></span>Running</td><td><span class="ring ring-automatic"></span>Automatic</td></tr>
-            <tr><td>WinRM</td><td>Windows Remote Management (WS-Management)</td><td><span class="dot dot-stopped"></span>Stopped</td><td><span class="ring ring-manual"></span>Manual</td></tr>
-          </tbody>
-        </table>
-        <div class="shot-plan">
-          <h3>What stopping Winmgmt would do</h3>
-          <ol>
-            <li>stop <span>vmms</span> (would break otherwise)</li>
-            <li>stop <span>Winmgmt</span> (asked for)</li>
-          </ol>
-          <p class="warn">Stopping Winmgmt also stops one other entry: vmms. Winmgmt starts automatically, so it will be back after the next restart.</p>
-          <div class="cmd">bws stop Winmgmt --dependents</div>
-          <div class="buttons"><span>Copy all</span><span class="go">Stop Winmgmt</span></div>
-        </div>
-      </div>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Okno z czterema zaznaczonymi wpisami i planem ich zatrzymania nad listą: cztery kroki, uwaga, że trzy z nich są już zatrzymane, linia bws stop dla każdego wpisu i przycisk Stop 4 entries." width="1632" height="1041"></a>
       <figcaption>Zapytanie w polu wyszukiwania, plan pokazany zanim cokolwiek się stanie, i linia <code>bws</code>, która prosi dokładnie o to samo. Program mówi po angielsku - okno czyta plik językowy położony obok, więc tłumaczenie jest możliwe bez przebudowy.</figcaption>
     </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Pół minuty z programem</span>
+    <h2>Jak to wygląda w użyciu</h2>
+    <p class="lede">Prawdziwa sesja na Windowsie zainstalowanym po polsku - nazwy wyświetlane daje Windows, więc są w jego języku. Samo okno mówi po angielsku.</p>
+    <figure>
+      <video class="window-shot" controls loop playsinline preload="metadata" poster="/assets/bws-in-action.png" width="2162" height="1210" aria-label="Dwa zaznaczone wpisy i plan ich uruchomienia, bufor wydruku znaleziony przez wpisanie części nazwy i jego plan wykonany, menu grup kolumn oraz przyciski filtrów zawężające listę, aż nic nie pasuje.">
+        <source src="/assets/bws-in-action.mp4" type="video/mp4">
+      </video>
+      <figcaption>Dwa zaznaczone wpisy i plan ich uruchomienia, bufor wydruku znaleziony przez wpisanie nazwy i jego plan wykonany, grupy kolumn oraz przyciski filtrów zawężające listę, aż nic nie pasuje.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Ekran startowy: trzy karty z liczbami o tej maszynie - usługi działające, usługi ustawione na start automatyczny, które nie wstały, oraz usługi ustawione na start automatyczny, których pliku nie ma - i przycisk Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Okno otwiera się na kilku liczbach o tej maszynie. Każda jest pytaniem - kliknij ją, a pytanie trafi do pola wyszukiwania.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Lista usług z trzema listami nad polem wyszukiwania, zapytaniem !type:driver w polu, rozwiniętymi przyciskami filtrów w rzędach dla stanu, typu uruchomienia, podpisu i wyzwalaczy oraz listą poniżej." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Przyciski filtrów piszą do pola wyszukiwania, więc to, co kliknąłeś, jest zapytaniem, które da się przeczytać i poprawić.</figcaption>
+      </figure>
+    </div>
   </div>
 </section>
 
