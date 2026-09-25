@@ -167,6 +167,12 @@ internal static class ContrastFloors
         // worst of four surfaces and lives in its own test further down.
         ["FocusRing"] = new(ForState),
 
+        // THE SAME SHAPE FOR THE LINE UNDER A TEXT FIELD WITH THE KEYBOARD IN IT, review of PR 21.
+        // Against the window here, where it clears at 6.04. It is drawn on the field's own fill,
+        // which is translucent, so its real floor is every fill composed over the window and over
+        // the plan sheet - its own test in ContrastGuards, with the ring's.
+        ["FocusLine"] = new(ForState),
+
         // THE FOUR START TYPES, 2026-08-17. SC 1.4.11 rather than the text floor, and the
         // distinction is not a rounding: nobody reads these, they are rings beside a word that
         // carries the same answer in text. What they have to do is be TELLABLE from the window and

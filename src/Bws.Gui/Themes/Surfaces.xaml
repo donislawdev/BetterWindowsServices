@@ -347,19 +347,42 @@
         a button do not read as one control. Translucent for the reason the buttons are: the box of
         seconds stands on the plan sheet.
 
-        THE FOCUS LINE IS THE SELECTION BLUE, the one the scope tabs are underlined with, so "this is
-        where you are" is one colour in this window rather than one colour per machine.
+        THE FOCUS LINE IS OUR OWN BLUE, not the machine's accent, so "this is where you are" is one
+        colour in this window rather than one colour per machine. FocusLine below says which blue.
     -->
     <SolidColorBrush x:Key="TextControlBackground" Color="#12FFFFFF" />
     <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#12FFFFFF" />
     <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1AFFFFFF" />
+
+    <!--
+        THE LINE ALONG THE FOOT OF A TEXT FIELD WITH THE KEYBOARD IN IT - the search field draws it
+        itself (SearchFieldLine), every other text box through the library's key below.
+
+        THE SELECTION BLUE LIGHTENED, NOT THE SELECTION BLUE, since the review of PR 21. It was
+        SurfaceSelected's #3F7099, the blue the scope tabs are underlined with - 3.09 against the
+        window, where a tab's line stands, and 2.51 against the field's own fill, where this line
+        stands. WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator, and the same rule chose FocusRing:
+        the worst surface the indicator is drawn on decides the colour. The worst here is a field
+        under the pointer on the plan sheet - the box of seconds - which reads #494949. Measured
+        with tools/contrast/contrast.ps1 on the same hue, 207 degrees:
+
+          #3F7099  the selection blue   1.71
+          #5E9BD0                       3.03   one rounding from failing, the #C0392B lesson
+          #65A3D8  this                 3.34
+
+        ContrastGuards composes every text box fill over the window and over the sheet and holds
+        this line to 3.0 against all six.
+    -->
+    <SolidColorBrush x:Key="FocusLine">#65A3D8</SolidColorBrush>
+
     <!--
         A BRUSH OF ITS OWN, NOT AN ALIAS - and the alias was built first and failed on the owner's
         screen. <StaticResource x:Key="TextControlFocusedBorderBrush" ResourceKey="SurfaceSelected" />
         compiled and ran, and the library's template, which reads this key through DynamicResource,
         drew the focus line in its own grey (#454545 on the pixel, three device pixels thick - so the
-        trigger fired and the colour did not arrive). The value is SurfaceSelected's, written twice
-        until the two-layer palette gives both a colour to point at.
+        trigger fired and the colour did not arrive). The value is FocusLine's, written twice until
+        the two-layer palette gives both a colour to point at - ContrastGuards fails the day the two
+        stop being equal.
     -->
-    <SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="#3F7099" />
+    <SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="#65A3D8" />
 </ResourceDictionary>

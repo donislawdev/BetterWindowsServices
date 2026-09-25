@@ -74,8 +74,9 @@ is not part of this repository.
 - "Show the list" on the machine overview is a blue button, so it is easy to find the first time
   the window opens.
 - In the plan panel, the name of the entry stands out in bold in the title and in every step.
-- The search box has a magnifier and a lighter fill, and a blue line under it while you type in
-  it. Before, it was darker than the window, and the line took the accent colour of your Windows.
+- The search box has a magnifier and a lighter fill. Before, it was darker than the window.
+- Every text box has a light blue line under it while you type in it. Before, the line took the
+  accent colour of your Windows.
 - A mistake in the query, or a note about something still being read, no longer takes a line under
   the search box, so the window no longer moves when you start typing. While you are in the box,
   a panel under it shows every message in full, over the filters. When you leave the box, the box

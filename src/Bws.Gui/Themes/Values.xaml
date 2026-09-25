@@ -384,4 +384,19 @@
         three lines would be 72 and still do not fit.
     -->
     <system:Double x:Key="HeightDetailTitle">56</system:Double>
+
+    <!--
+        THE LAYERS OF THE WINDOW, 2026-09-25 - which part of MainWindow.xaml's grid paints over
+        which. Everything else there stands on the default layer and paints in the order it is
+        declared in.
+
+        NAMED BECAUSE ONE NUMBER BROKE THE OTHER. The search row went up a layer that day so the
+        panel of messages under the field lies over the filters - and a layer outranks the order
+        siblings are declared in, so the plan, last in the file so it would cover everything, was
+        drawn UNDER the search field and the field took clicks and keys through the dimming (review
+        of PR 21). The two numbers stand together here so nobody raises one without seeing the other.
+        THE PLAN IS THE TOP LAYER and PlanViewGuards asks it of a click.
+    -->
+    <system:Int32 x:Key="LayerOverTheRows">1</system:Int32>
+    <system:Int32 x:Key="LayerPlan">2</system:Int32>
 </ResourceDictionary>

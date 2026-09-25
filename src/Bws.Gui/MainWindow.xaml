@@ -126,7 +126,7 @@
         -->
         <local:SearchRow Grid.Row="1"
                          Grid.ColumnSpan="2"
-                         Panel.ZIndex="1"
+                         Panel.ZIndex="{StaticResource LayerOverTheRows}"
                          x:Name="Search"
                          Margin="{StaticResource MarginBelowSearch}" />
 
@@ -360,10 +360,13 @@
             WHAT AN OPERATION OVER THE SELECTION WOULD DO - a LAYER OVER THE WHOLE WINDOW since
             2026-09-02 rather than a cell beside the list, still mutually exclusive with the details
             panel. LAST IN THIS FILE ON PURPOSE: siblings paint in document order, so one place
-            higher would have put the status row over its dimming, elevate button and all.
+            higher would have put the status row over its dimming, elevate button and all. AND ON
+            THE TOP LAYER since the search row stands on one of its own - a layer outranks the
+            order, Values.xaml says how that was found.
         -->
         <local:PlanView Grid.Row="0" Grid.RowSpan="6"
                         Grid.Column="0" Grid.ColumnSpan="2"
+                        Panel.ZIndex="{StaticResource LayerPlan}"
                         x:Name="PlanPanel"
                         DataContext="{Binding Planned}" />
     </Grid>

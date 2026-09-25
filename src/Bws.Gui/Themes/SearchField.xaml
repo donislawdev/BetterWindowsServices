@@ -68,8 +68,8 @@
     </Style>
 
     <!--
-        The line along the foot of the field: the library's quiet stroke at rest, two points of the
-        selection blue while the keyboard is anywhere in the field. Laid over the frame rather than
+        The line along the foot of the field: the library's quiet stroke at rest, two points of
+        FocusLine while the keyboard is anywhere in the field. Laid over the frame rather than
         being its bottom edge, which is how the library's own text box does it - a line that thickens
         must not move what it is drawn under.
     -->
@@ -80,7 +80,7 @@
         <Setter Property="BorderThickness" Value="{StaticResource BorderRuleBelow}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource SurfaceSelected}" />
+                <Setter Property="BorderBrush" Value="{StaticResource FocusLine}" />
                 <Setter Property="BorderThickness" Value="{StaticResource BorderFocusLine}" />
             </DataTrigger>
         </Style.Triggers>
