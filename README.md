@@ -492,7 +492,8 @@ the third ends the process.
 shows every component of the window in every state, and reads nothing from your machine.
 
 Three lists on the switch above the search box - *Services*, *Drivers*, *All* - each saying
-how big it is. The search box takes the query language and suggests as you type. The filter
+how big it is. The search box takes the query language and suggests as you type - Tab or Enter
+writes the highlighted word. The filter
 buttons write into the box. *Columns* chooses what the list shows, a right-click on a column heading
 narrows the list to that value or puts the column away, and the layout you leave is the layout it
 opens in. A row's menu previews every operation before offering it, and copies the name or

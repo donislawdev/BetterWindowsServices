@@ -121,6 +121,7 @@
   "gui.example.waitingOnTrigger": "Stopped, waiting on a trigger",
 
   "gui.suggest.keys": "Up and Down choose, Enter writes it, Escape closes",
+  "gui.suggest.keys.words": "Tab or Enter writes it, Up and Down choose, Escape closes",
   "gui.suggest.caption.questions": "Questions to start from",
   "gui.suggest.caption.words": "What can go here",
   "gui.suggest.spoken": "{0}, {1}, {2} of {3}",

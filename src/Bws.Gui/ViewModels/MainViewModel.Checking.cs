@@ -34,7 +34,7 @@ public sealed partial class MainViewModel
     /// </summary>
     private void AboutTheQuery(string problem)
     {
-        if (Says.AboutTheQuery(_queryText, problem))
+        if (Says.AboutTheQuery(problem))
         {
             RaiseErrors(nameof(QueryText));
         }

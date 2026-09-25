@@ -23,7 +23,6 @@ public sealed class Says : Observable
     private string _status = Texts.Of("gui.status.reading");
 
     private string _queryProblem = string.Empty;
-    private bool _asking;
     private string _refusal = string.Empty;
     private string _layout = string.Empty;
     private string _done = string.Empty;
@@ -129,40 +128,30 @@ public sealed class Says : Observable
     public string QueryProblem => _queryProblem;
 
     /// <summary>
-    /// The line under the search box: what is wrong with the query, or else what the answer to it
-    /// has to admit.
+    /// What the search field says about its query: what is wrong with it, or else what the answer
+    /// to it has to admit. Since 2026-09-25 in a short form at the field's right end and in full in
+    /// the panel under it - it stood in a line of its own under the box until then.
     ///
-    /// <b>One line rather than two, and the mistake wins</b> - a query that does not read has no
+    /// <b>One sentence rather than two, and the mistake wins</b> - a query that does not read has no
     /// answer of its own to qualify, and the list under it is the previous one.
+    ///
+    /// <b>It still speaks with the box empty, and that is rule 8.</b> A column on screen asks for a
+    /// family too (MainViewModel.Asked), so a shown Memory column gets a note here while the window
+    /// reads what fills it - or the window reads for seconds with no sentence about it.
     /// </summary>
     public string AnswerLine => _queryProblem.Length > 0 ? _queryProblem : _admitted.Reservations;
 
     /// <summary>Whether <see cref="AnswerLine"/> is a mistake - what colours it.</summary>
     public bool AnswerLineIsProblem => _queryProblem.Length > 0;
 
-    /// <summary>
-    /// Whether the line under the box takes any room: while there is text in the box, or while
-    /// the line has something to say.
-    ///
-    /// <b>Not always, because the window's chrome already takes nearly half its height</b>
-    /// (UX-GUI-007). <b>Not only while it has words, because then the list would jump</b> each time a
-    /// reading note came and went under somebody's typing. Tied to the box instead, the line appears
-    /// with the first character and goes when the box is emptied - a move the person made.
-    ///
-    /// <b>UNLESS IT STILL HAS SOMETHING TO SAY, and that half is rule 8 rather than layout.</b> A
-    /// column on screen asks for a family too (MainViewModel.Asked), so with the box empty a shown
-    /// Memory column still gets a note while the window reads what fills it. The reservations no
-    /// longer stand under the list, so without this half that note would be said nowhere - the
-    /// window reading for seconds with no sentence about it. The review of PR #11 caught the user
-    /// changelog promising only the first half.
-    /// </summary>
-    public bool AnswerLineShown => _asking || AnswerLine.Length > 0;
+    // AnswerLineShown and the flag behind it went on 2026-09-25 (backlog 461): they said whether
+    // a line under the box took room, and that line went with the palette the same day, when the
+    // sentence moved into the field so that typing no longer moves the window.
 
     private void RaiseTheAnswerLine()
     {
         Raise(nameof(AnswerLine));
         Raise(nameof(AnswerLineIsProblem));
-        Raise(nameof(AnswerLineShown));
     }
 
     /// <summary>
@@ -413,35 +402,29 @@ public sealed class Says : Observable
     }
 
     /// <summary>
-    /// What is wrong with the query in the box, which may be nothing, and whether the box holds
-    /// anything at all. Answers whether the sentence changed, so the caller can tell the box
-    /// without telling it once a second for nothing.
+    /// What is wrong with the query in the box, which may be nothing. Answers whether the sentence
+    /// changed, so the caller can tell the box without telling it once a second for nothing.
     ///
     /// <b>The second half of the sentence is written here rather than by the caller</b>, because it
     /// is true of every mistake: the list stays, so it is the previous answer.
     /// </summary>
-    internal bool AboutTheQuery(string text, string problem)
+    internal bool AboutTheQuery(string problem)
     {
         var sentence = problem.Length == 0
             ? string.Empty
             : problem + " " + Texts.Of("gui.query.listIsPrevious");
 
-        var asking = text.Length > 0;
-
-        if (_queryProblem == sentence && _asking == asking)
+        if (_queryProblem == sentence)
         {
             return false;
         }
 
-        var changed = _queryProblem != sentence;
-
         _queryProblem = sentence;
-        _asking = asking;
 
         Raise(nameof(QueryProblem));
         RaiseTheAnswerLine();
 
-        return changed;
+        return true;
     }
 
     /// <summary>

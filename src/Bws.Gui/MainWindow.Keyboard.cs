@@ -80,6 +80,11 @@ public partial class MainWindow
     /// <b>And in the box, Enter belongs to the list UNDER the box while that list is open</b> - and
     /// to nobody while it is closed, which is what it was before the list existed (decision 8 of
     /// the design). Down and Up belong to that list from the box and to the grid from the grid.
+    ///
+    /// <b>Tab writes a word in the box while a list of WORDS is open, and walks on otherwise</b> -
+    /// in the box with the questions open or nothing to write, and everywhere outside the box.
+    /// Owner's decision of 2026-09-25, and why the questions are left out is at
+    /// <see cref="Suggesting.TabWrites"/>.
     /// </summary>
     internal Shortcut Wanted(Key key, ModifierKeys modifiers, bool inTheBox, bool inTheGrid)
     {
@@ -90,13 +95,14 @@ public partial class MainWindow
             return wanted switch
             {
                 Shortcut.OpenDetails => _model.Suggesting.IsOpen ? Shortcut.TakeSuggestion : Shortcut.None,
+                Shortcut.CompleteWord => _model.Suggesting.TabWrites ? Shortcut.TakeSuggestion : Shortcut.None,
                 Shortcut.CopyRow => Shortcut.None,
                 _ => wanted
             };
         }
 
         var theListPress = wanted is Shortcut.OpenDetails or Shortcut.CopyRow;
-        var theBoxPress = wanted is Shortcut.NextSuggestion or Shortcut.PreviousSuggestion;
+        var theBoxPress = wanted is Shortcut.NextSuggestion or Shortcut.PreviousSuggestion or Shortcut.CompleteWord;
 
         return (theListPress && !inTheGrid) || theBoxPress ? Shortcut.None : wanted;
     }
