@@ -139,9 +139,11 @@
 
     0.2.0 on 2026-09-24, the owner's decision, for the first release. 0.1.0 was never released:
     it named the binaries while everything stood under [Unreleased].
+
+    0.3.0 on 2026-09-25, the owner's decision.
   -->
   <PropertyGroup>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>
