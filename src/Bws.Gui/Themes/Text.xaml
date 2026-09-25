@@ -98,6 +98,19 @@
     </Style>
 
     <!--
+        The words of a column heading, 2026-09-25. Named on the TextBlock rather than set on the
+        heading, because a size set on the heading loses to the implicit TextBlock style - List.xaml,
+        ColumnHeading. Semibold at 14, the floor TypeScaleGuards sets for a semibold face, and the
+        secondary text colour, so the heading reads as the name of a column rather than as a row.
+    -->
+    <Style x:Key="ColumnHeadingText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+    </Style>
+
+    <!--
         THE TWO BODY STYLES, 2026-09-16, AND THE REASON THEY EXIST IS SIX STYLES THAT SAID THE SAME
         THING. "Segoe, 13, white" stood in this theme under two names and "Segoe, 13, subdued" under
         four - SectionHeadingText, PlanStepText, DetailLabelText and OverviewQualificationText - each

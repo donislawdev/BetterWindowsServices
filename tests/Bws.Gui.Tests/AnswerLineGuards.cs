@@ -147,20 +147,58 @@ public sealed class AnswerLineGuards
 
     /// <summary>
     /// The search row drawn at 1000 by 200, the picture left in artifacts/gui, and the problem
-    /// colour counted inside the box's own rectangle - the line under the box wears the same red,
-    /// and a count over the whole row would pass on the sentence alone.
+    /// colour counted in a strip down the LEFT EDGE of the field's frame.
+    ///
+    /// <b>The edge rather than the field, since 2026-09-25.</b> The frame draws the red edge now, not
+    /// the text box's error template - the text box is the middle third of the field - and the short
+    /// sentence at the field's right end wears the same red, so a count over the whole field would
+    /// pass on the sentence alone. Nothing but the edge is red at the left: the magnifier is grey.
     /// </summary>
     private static int RedInsideTheBox(MainWindow window, string state)
     {
         var drawn = Drawn.Of(window.Search, 1000, 200);
-        var box = drawn.Around(window.Search.Box);
+        var frame = drawn.Around(window.Search.SearchField);
 
-        Assert.True(box.Width > 0 && box.Height > 0, "the search box has no rectangle, so it was never laid out");
+        Assert.True(frame.Width > 0 && frame.Height > 0, "the search field has no rectangle, so it was never laid out");
 
         drawn.Save($"search-row-{state}-1000x200.png");
 
-        return drawn.Count(WpfHost.Declared("MeaningRejected"), box);
+        return drawn.Count(WpfHost.Declared("MeaningRejected"), new Int32Rect(frame.X, frame.Y, EdgeStrip, frame.Height));
     }
+
+    /// <summary>How far in from the frame's left edge the red is counted - the edge and its antialiasing, short of the magnifier.</summary>
+    private const int EdgeStrip = 4;
+
+    /// <summary>
+    /// THE SEARCH ROW KEEPS ITS HEIGHT WHATEVER THE ANSWER SAYS - owner, 2026-09-25: the window jumped
+    /// while he typed. tools/gui-probe/typing-jump.ps1 measured it at 31 device pixels on the first
+    /// character: the sentence about the query took a line of its own under the box. It stands in the
+    /// field now, and the full text in a panel that measures to nothing, so a row that grows with what
+    /// the answer says is that fault back. Asked with the longest thing it can say - a mistake, whose
+    /// sentence lists every value a field accepts.
+    /// </summary>
+    [Fact]
+    public async Task The_search_row_keeps_its_height_whatever_the_answer_says()
+    {
+        var (window, model) = await Opened();
+
+        var empty = Height(window);
+
+        WpfHost.On(() => model.QueryText = "stat:runing");
+        WpfHost.Settled();
+
+        Assert.NotEqual(string.Empty, WpfHost.On(() => model.Says.AnswerLine));
+        Assert.Equal(empty, Height(window));
+
+        WpfHost.On(window.Close);
+    }
+
+    private static double Height(MainWindow window) => WpfHost.On(() =>
+    {
+        window.Search.Measure(new Size(1000, double.PositiveInfinity));
+
+        return window.Search.DesiredSize.Height;
+    });
 
     /// <summary>
     /// The LOGICAL tree rather than the visual one, which is the difference between this file and

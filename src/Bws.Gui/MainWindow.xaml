@@ -126,6 +126,7 @@
         -->
         <local:SearchRow Grid.Row="1"
                          Grid.ColumnSpan="2"
+                         Panel.ZIndex="1"
                          x:Name="Search"
                          Margin="{StaticResource MarginBelowSearch}" />
 

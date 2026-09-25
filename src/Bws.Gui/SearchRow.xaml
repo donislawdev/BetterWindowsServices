@@ -49,8 +49,34 @@
             It is all in the tooltip below now, composed in QueryExamples.cs - which also argues
             why a composed string rather than a panel of controls.
         -->
-        <Grid Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
-            <!--
+        <!--
+            ONE FIELD IN THREE PARTS SINCE 2026-09-25 - the magnifier, what is typed, and what the
+            answer has to say about itself. The owner: the window jumped while he typed. It did, by
+            31 device pixels at the first character, measured by tools/gui-probe/typing-jump.ps1 on
+            this build and the one before it - the sentence about the query took a line of its own
+            under the box from the first keystroke. Now it takes the right end of the box instead,
+            as wide as it needs and no wider than WidthSearchMessage, and the text beside it gets
+            the rest. Nothing moves up or down, and the typed text never runs under the sentence,
+            because they are two columns rather than one drawn over the other.
+
+            THE FRAME IS DRAWN HERE, NOT BY THE TEXT BOX, and that is the price of the columns. The
+            box wears the library's template with its own chrome made transparent (SearchFieldBox),
+            so caret, selection, IME and automation are still the stock control's - `docs/11` 9b
+            asks that of every text box - and the fill, the edge, the focus line and the red edge
+            of a mistake are the frame's.
+        -->
+        <Grid Grid.Column="0" x:Name="SearchField" Margin="{StaticResource MarginBetweenControls}">
+            <Border Style="{StaticResource SearchFieldFrame}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Path Grid.Column="0" Style="{StaticResource SearchMark}" />
+
+                    <!--
                 Updated on every keystroke rather than when the field loses focus. The
                 filtering is the feature, and a list that waits for Tab is a list that
                 does not filter as you type.
@@ -69,36 +95,63 @@
                 QueryText, the binding hears it by itself. ReportingBox in Controls.xaml carries
                 why each part of it is shaped the way it is.
             -->
-            <TextBox x:Name="QueryBox"
-                     Style="{StaticResource ReportingBox}"
-                     ToolTip="{Binding SearchTip}"
-                     Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                    <TextBox Grid.Column="1"
+                             x:Name="QueryBox"
+                             Style="{StaticResource SearchFieldBox}"
+                             ToolTip="{Binding SearchTip}"
+                             Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
 
-            <!--
-                The hint, behind the field and out of the way of the mouse. An empty box
-                teaches nobody that the language exists, and this is the one place it can
-                be shown without spending a line of the window on it.
+                    <!--
+                        The hint, behind the field and out of the way of the mouse. An empty box
+                        teaches nobody that the language exists, and this is the one place it can
+                        be shown without spending a line of the window on it.
 
-                BOUND TO THE MODEL RATHER THAN A FIXED KEY SINCE 2026-09-15, point 8(b) of
-                `docs/11` 2.14: it named services AND drivers on a list from which, by its own
-                tooltip, a search never reaches a driver. MainViewModel.SearchHint says what the
-                list somebody is standing on holds.
-            -->
-            <TextBlock Text="{Binding SearchHint}"
-                       Margin="{StaticResource PadCell}"
-                       VerticalAlignment="Center"
-                       IsHitTestVisible="False">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Text, ElementName=QueryBox}" Value="">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                        BOUND TO THE MODEL RATHER THAN A FIXED KEY SINCE 2026-09-15, point 8(b) of
+                        `docs/11` 2.14: it named services AND drivers on a list from which, by its own
+                        tooltip, a search never reaches a driver. MainViewModel.SearchHint says what the
+                        list somebody is standing on holds.
+                    -->
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding SearchHint}"
+                               Margin="{StaticResource PadSearchText}"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=QueryBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!--
+                        WHAT THE ANSWER TO THIS QUESTION HAS TO SAY ABOUT ITSELF - UX-GUI-002 and 009
+                        of the audit of 2026-09-23: a mistake in the query, in red, with the sentence
+                        that the list below is the previous answer - or else, in the notice colour,
+                        what the answer could not judge or has not read yet.
+
+                        INSIDE THE BOX SINCE 2026-09-25, owner's decision, and it was a line of its own
+                        under the box from 2026-09-23 - which moved the whole window by a line at the
+                        first keystroke. It takes room only while it has words, because in here room
+                        is width, and a sentence coming and going narrows the text beside it without
+                        moving anything else. As wide as it needs up to WidthSearchMessage, trimmed
+                        with the whole sentence in its tooltip - the sentences run from a few words to
+                        two clauses, and the typed query needs the rest of the box more.
+                    -->
+                    <TextBlock Grid.Column="2"
+                               AutomationProperties.AutomationId="answerLine"
+                               Text="{Binding Says.AnswerLine}"
+                               ToolTip="{Binding Says.AnswerLine}"
+                               Style="{StaticResource SearchMessageText}" />
+                </Grid>
+            </Border>
+
+            <!-- The line along the foot of the field, blue while the keyboard is in it. Its own element, so a thicker line moves nothing. -->
+            <Border Style="{StaticResource SearchFieldLine}" />
 
             <!--
                 THE LIST UNDER THE FIELD - point 9 of `docs/11` 2.14, backlog 15. What can be
@@ -129,15 +182,17 @@
                 library's menus wear would cost the sharpness of every word in the list. Backlog
                 359 carries the question.
             -->
+            <!-- Under the panel of messages when there is one, so the two never lie over each other. -->
             <Popup x:Name="SuggestionPopup"
-                   PlacementTarget="{Binding ElementName=QueryBox}"
+                   PlacementTarget="{Binding ElementName=SearchField}"
                    Placement="Bottom"
+                   VerticalOffset="{Binding ActualHeight, ElementName=UnderField}"
                    IsOpen="{Binding Suggesting.IsOpen, Mode=OneWay}"
                    StaysOpen="True"
                    AllowsTransparency="False"
                    Focusable="False">
                 <Border Style="{StaticResource SuggestionPanel}"
-                        Width="{Binding ActualWidth, ElementName=QueryBox}">
+                        Width="{Binding ActualWidth, ElementName=SearchField}">
                     <DockPanel>
                         <!--
                             WHAT THIS LIST IS, SAID OVER IT, 2026-09-16: "Questions to start from"
@@ -208,45 +263,35 @@
                    Style="{StaticResource CountLine}" />
 
         <!--
-            WHAT THE ANSWER TO THIS QUESTION HAS TO SAY ABOUT ITSELF, UNDER THE BOX THAT ASKED IT -
-            UX-GUI-002 and 009 of the audit of 2026-09-23. A mistake in the query, in red, with the
-            sentence that the list below is the previous answer - or else, in the notice colour,
-            what the answer could not judge or has not read yet. Until that day both stood at the
-            foot of the window, about 830 pixels below the box, in a line shared with the session's
-            rights and the folded instances.
+            EVERYTHING THE ANSWER HAS TO SAY, IN FULL, UNDER THE FIELD WHILE SOMEBODY IS IN IT -
+            2026-09-25, owner's decision after the sentence moved into the field: a sentence of two
+            hundred characters listing every value a field accepts cannot be read in the right end of
+            a box, and the mistake and the reading notes can both have something to say at once. So
+            both, each on its own lines, wrapped as far as they need.
 
-            UNDER THE BOX AND NOT UNDER THE COUNT - it is a sentence about the question, and the
-            count beside it has its own width to keep.
+            IT DRAWS OVER THE FILTERS AND MOVES NOTHING, which is the whole point: a line that took
+            room under the box moved the window at the first keystroke. The Canvas it stands in
+            measures to nothing, so the row keeps its height, and MainWindow.xaml lifts this row above
+            the filter row so the panel is drawn on top of it. Not a Popup: a popup is a window of its
+            own that stays behind when this one moves, which is why the suggestion list has to close
+            itself on every move - this is part of the window and goes where it goes.
 
-            IT TAKES ROOM WHILE THERE IS TEXT IN THE BOX, whether or not it has words - Says
-            decides that, because a view that counts is logic (GUI rule 11). The chrome already
-            takes nearly half the window's height (UX-GUI-007), so the line is not always there -
-            and a line tied to its words would move the list each time a reading note came and
-            went under somebody's typing. Tied to the box, it moves with a key somebody pressed.
-
-            The list under the box, when it is open, lies over this line - the red edge on the box
-            stays in sight. Moving that popup below the line is recorded as an observation, not
-            done here.
+            ONLY WHILE THE KEYBOARD IS IN THE FIELD. Leave it and the panel goes, the filters are all
+            there again, and the field keeps its red edge and the short sentence at its right end.
         -->
-        <TextBlock Grid.Row="1"
-                   Grid.Column="0"
-                   AutomationProperties.AutomationId="answerLine"
-                   Margin="{StaticResource MarginUnderField}"
-                   Text="{Binding Says.AnswerLine}"
-                   TextWrapping="Wrap">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Says.AnswerLineShown}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Says.AnswerLineIsProblem}" Value="True">
-                            <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
+        <Canvas Grid.Row="1" Grid.Column="0" Margin="{StaticResource MarginBetweenControls}">
+            <StackPanel x:Name="UnderField" Width="{Binding ActualWidth, ElementName=SearchField}">
+                <Border AutomationProperties.AutomationId="answerPanel" Style="{StaticResource SearchMessagesPanel}">
+                    <StackPanel>
+                        <TextBlock AutomationProperties.AutomationId="answerProblem"
+                                   Text="{Binding Says.QueryProblem}"
+                                   Style="{StaticResource SearchProblemText}" />
+                        <TextBlock AutomationProperties.AutomationId="answerNotes"
+                                   Text="{Binding Says.Reservations}"
+                                   Style="{StaticResource SearchNoteText}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Canvas>
     </Grid>
 </UserControl>

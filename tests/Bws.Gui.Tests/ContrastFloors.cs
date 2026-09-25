@@ -83,6 +83,15 @@ internal static class ContrastFloors
         // stronger of the two signals rather than competing with the furniture.
         ["SurfaceRowLine"] = new(1.25),
 
+        // THE LINE UNDER THE COLUMN HEADINGS, 2026-09-25, and it answers to more than the line
+        // between two rows on purpose: it separates the names of the columns from what is in them,
+        // and the owner's complaint was that the headings read as one more row. 1.84 measured.
+        ["SurfaceHeadingRule"] = new(1.5),
+
+        // THE SECOND TEXT COLOUR, 2026-09-25 - the column headings. Fluent's secondary text laid on
+        // the window, and it is text, so it answers to WCAG's text floor: 10.15 measured.
+        ["TextSecondary"] = new(ForText),
+
         // THE SCROLLBAR THUMB ASLEEP AND AWAKE, 2026-09-02, AND THE PAIR IS THE POINT. The bar was
         // one colour at 2.84 and the owner said it was too big and ugly - the width was half of
         // that and the brightness was the other half. At rest the thumb answers "where am I in the
@@ -206,7 +215,7 @@ internal static class ContrastFloors
     /// </summary>
     internal static readonly string[] CarriesNoText =
     [
-        "SurfaceRowLine", "SurfacePanelEdge", "SurfaceChipEdge",
+        "SurfaceRowLine", "SurfaceHeadingRule", "SurfacePanelEdge", "SurfaceChipEdge",
         "SurfaceScrollThumb", "SurfaceScrollThumbAwake", "SurfaceScrim"
     ];
 }

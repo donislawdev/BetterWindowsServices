@@ -59,7 +59,7 @@
     <system:Double x:Key="SizeNone">0</system:Double>
 
     <!-- The mark a meaningful cell wears. The gap between it and its word is MarginAfterShape, in Spacing.xaml. -->
-    <system:Double x:Key="ShapeMark">8</system:Double>
+    <system:Double x:Key="ShapeMark">10</system:Double>
 
     <!--
         THE BOX THE DISCLOSURE TRIANGLE ON THE FILTERS BUTTON IS DRAWN IN, since 2026-09-15 - point
@@ -254,6 +254,25 @@
 
     <!-- The rule above the panel's footer, so the button reads as part of the panel. The gap under it is PaddingFooter, in Spacing.xaml. -->
     <Thickness x:Key="BorderFooterRule">0,1,0,0</Thickness>
+
+    <!-- A rule under something and nowhere else - the line under the column headings. -->
+    <Thickness x:Key="BorderRuleBelow">0,0,0,1</Thickness>
+
+    <!-- The magnifier in the search box. Its geometry is drawn on a 14 unit square, so this and the Data in SearchMark change together. -->
+    <system:Double x:Key="SizeSearchMark">14</system:Double>
+
+    <!--
+        The sentence at the right end of the search field is never wider than this, and the typed
+        query keeps the rest of the field. Chosen for a two-clause sentence at the notice size, not
+        measured against the narrowest window the frame allows.
+    -->
+    <system:Double x:Key="WidthSearchMessage">420</system:Double>
+
+    <!-- The line under the search field while the keyboard is in it - twice the resting one, the way Windows draws a focused field. -->
+    <Thickness x:Key="BorderFocusLine">0,0,0,2</Thickness>
+
+    <!-- No edge at all, for a control whose frame something around it draws. -->
+    <Thickness x:Key="BorderNone">0</Thickness>
 
     <!-- The ceiling on a menu, with a scrollbar under it. Why it stopped deciding the column picker: ColumnGroup. -->
     <system:Double x:Key="HeightMenu">420</system:Double>
