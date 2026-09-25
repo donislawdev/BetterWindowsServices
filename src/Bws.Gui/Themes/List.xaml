@@ -313,14 +313,29 @@
         gives way has to be gettable. It matters more here than in a cell, because a heading is
         the only place the NAME of what you are looking at appears.
     -->
+    <!--
+        A RULE AND A STYLE THAT REACHES THE WORDS, 2026-09-25 - owner's complaint that the headings
+        look like the rows under them. They did, and for two reasons. Nothing drew a line between
+        the names of the columns and the first row. And the size and weight set on this style never
+        arrived: the words are a TextBlock in the template below, and the app-wide implicit
+        TextBlock style is nearer to it than an inherited value - pitfall 16 of docs/10, in a place
+        nobody had looked. A heading now names its own text style and has SurfaceHeadingRule under it.
+
+        NO FILL OF ITS OWN, and that was tried the same day: a band behind the headings was one of
+        three zone fills the owner ran and turned down as "many apps in one app". The window keeps
+        one surface.
+    -->
     <Style x:Key="ColumnHeading" TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
         <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
         <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
         <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SurfaceHeadingRule}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderRuleBelow}" />
         <Setter Property="ContentTemplate">
             <Setter.Value>
                 <DataTemplate>
                     <TextBlock Text="{Binding}"
+                               Style="{StaticResource ColumnHeadingText}"
                                TextTrimming="CharacterEllipsis"
                                ToolTip="{Binding}" />
                 </DataTemplate>

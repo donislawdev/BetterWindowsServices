@@ -74,6 +74,18 @@ is not part of this repository.
 - "Show the list" on the machine overview is a blue button, so it is easy to find the first time
   the window opens.
 - In the plan panel, the name of the entry stands out in bold in the title and in every step.
+- The search box has a magnifier and a lighter fill. Before, it was darker than the window.
+- Every text box has a light blue line under it while you type in it. Before, the line took the
+  accent colour of your Windows.
+- A mistake in the query, or a note about something still being read, no longer takes a line under
+  the search box, so the window no longer moves when you start typing. While you are in the box,
+  a panel under it shows every message in full, over the filters. When you leave the box, the box
+  keeps its red edge and a short form of the message at its right end.
+- The column headings are semibold and grey, with a line under them, so they no longer look like
+  one more row.
+- A button that cannot be pressed has no fill, and one that can has a slightly lighter fill than
+  before.
+- The state and startup type marks in the list and in the details panel are a little larger.
 
 ### Removed
 
@@ -83,6 +95,7 @@ is not part of this repository.
 ### Fixed
 
 - The details panel no longer stays open over the machine overview.
+- The numbers on the machine overview light up under the pointer where you can see it.
 - Opening the details panel on another entry no longer shows the previous entry's "no longer
   in the listing" notice.
 

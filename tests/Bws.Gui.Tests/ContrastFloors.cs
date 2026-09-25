@@ -83,6 +83,15 @@ internal static class ContrastFloors
         // stronger of the two signals rather than competing with the furniture.
         ["SurfaceRowLine"] = new(1.25),
 
+        // THE LINE UNDER THE COLUMN HEADINGS, 2026-09-25, and it answers to more than the line
+        // between two rows on purpose: it separates the names of the columns from what is in them,
+        // and the owner's complaint was that the headings read as one more row. 1.84 measured.
+        ["SurfaceHeadingRule"] = new(1.5),
+
+        // THE SECOND TEXT COLOUR, 2026-09-25 - the column headings. Fluent's secondary text laid on
+        // the window, and it is text, so it answers to WCAG's text floor: 10.15 measured.
+        ["TextSecondary"] = new(ForText),
+
         // THE SCROLLBAR THUMB ASLEEP AND AWAKE, 2026-09-02, AND THE PAIR IS THE POINT. The bar was
         // one colour at 2.84 and the owner said it was too big and ugly - the width was half of
         // that and the brightness was the other half. At rest the thumb answers "where am I in the
@@ -158,6 +167,12 @@ internal static class ContrastFloors
         // worst of four surfaces and lives in its own test further down.
         ["FocusRing"] = new(ForState),
 
+        // THE SAME SHAPE FOR THE LINE UNDER A TEXT FIELD WITH THE KEYBOARD IN IT, review of PR 21.
+        // Against the window here, where it clears at 6.04. It is drawn on the field's own fill,
+        // which is translucent, so its real floor is every fill composed over the window and over
+        // the plan sheet - its own test in ContrastGuards, with the ring's.
+        ["FocusLine"] = new(ForState),
+
         // THE FOUR START TYPES, 2026-08-17. SC 1.4.11 rather than the text floor, and the
         // distinction is not a rounding: nobody reads these, they are rings beside a word that
         // carries the same answer in text. What they have to do is be TELLABLE from the window and
@@ -206,7 +221,7 @@ internal static class ContrastFloors
     /// </summary>
     internal static readonly string[] CarriesNoText =
     [
-        "SurfaceRowLine", "SurfacePanelEdge", "SurfaceChipEdge",
+        "SurfaceRowLine", "SurfaceHeadingRule", "SurfacePanelEdge", "SurfaceChipEdge",
         "SurfaceScrollThumb", "SurfaceScrollThumbAwake", "SurfaceScrim"
     ];
 }

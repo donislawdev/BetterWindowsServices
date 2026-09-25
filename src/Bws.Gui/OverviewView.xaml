@@ -118,37 +118,8 @@
                             Click="AskThis"
                             ToolTip="{Binding Query}">
                         <StackPanel>
-                            <TextBlock Text="{Binding CountText}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock"
-                                           BasedOn="{StaticResource OverviewNumberText}">
-                                        <!--
-                                            A ZERO IS THE ABSENCE OF A FINDING AND STOPS SHOUTING
-                                            LIKE ONE - "0 orphans" is the line where nothing is.
-
-                                            THE NUMBER GOES QUIET AND THE LABEL DOES NOT, which
-                                            REVERSES half of a decision taken hours earlier the same
-                                            day - and it can be reversed because that decision was
-                                            made about a different drawing. On a flat line a subdued
-                                            digit beside a full strength label read as a number
-                                            greyed out by mistake, so the line went quiet together.
-                                            At 32 inside a card, colour alone demotes it - and a card
-                                            greyed end to end reads as DISABLED, which is the
-                                            complaint this rebuild is answering.
-
-                                            ASKED OF A BOOL RATHER THAN OF THE NUMBER, and the first
-                                            version asked the number and did not fire.
-                                            OverviewLine.Nothing carries that argument in full.
-                                        -->
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Nothing}" Value="True">
-                                                <Setter Property="Foreground"
-                                                        Value="{StaticResource TextSubdued}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                            <TextBlock Text="{Binding CountText}"
+                                       Style="{StaticResource OverviewHeadlineText}" />
 
                             <TextBlock Text="{Binding Label}"
                                        TextWrapping="Wrap"

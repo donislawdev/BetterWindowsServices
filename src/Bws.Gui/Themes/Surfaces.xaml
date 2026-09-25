@@ -293,4 +293,96 @@
     <SolidColorBrush x:Key="SurfaceDestructiveAction">#C43C2E</SolidColorBrush>
     <SolidColorBrush x:Key="SurfaceDestructiveActionHover">#A32F23</SolidColorBrush>
     <SolidColorBrush x:Key="SurfaceDestructiveActionPressed">#8C271D</SolidColorBrush>
+
+    <!--
+        THE LINE UNDER THE COLUMN HEADINGS, 2026-09-25 - owner's complaint that the headings read as
+        one more row. Stronger than the line between two rows (SurfaceRowLine, 1.29) because it
+        separates the names of the columns from what is in them, which is a different kind of seam.
+        1.84 against the window.
+
+        ONE SURFACE FOR THE WHOLE WINDOW, AND THAT IS THE OWNER'S DECISION OF THE SAME DAY. Three
+        drawings giving the commands, the list and the headings fills of their own were built and
+        run, and he turned all three down as "many apps in one app". What sets things apart in this
+        window is the things themselves - docs/PROJEKT-PALETA-20260925.md.
+    -->
+    <SolidColorBrush x:Key="SurfaceHeadingRule">#4A4A4A</SolidColorBrush>
+
+    <!--
+        FOUR OF THE LIBRARY'S OWN KEYS, OVERRIDDEN BY NAME, 2026-09-25. WPF UI's button and toggle
+        templates read these through DynamicResource (Button.xaml at tag 4.3.0, lines 24 and 83), so
+        one line here reaches every button in the window without a fill of its own - a dozen of them.
+
+        A DISABLED BUTTON LOSES ITS FILL. Measured: enabled #2D2D2D, disabled #2A2A2A - the only
+        difference between a button that can be pressed and one that cannot was three steps of grey
+        and the colour of the word. With no fill it keeps the library's faint outline and its dimmed
+        word, and reads as a place where a button will be rather than as a button.
+
+        AN ENABLED ONE GETS A LITTLE MORE. The library's fill is 6% white, 1.18 against the window.
+        These are 10% at rest and 14% under the pointer, and they stay TRANSLUCENT on purpose: the
+        same button stands on the window and on the panel, and a fraction of white lifts it off
+        whichever it is on, where a solid grey chosen for the window vanishes on the lighter panel.
+        Pressed stays the library's, which is darker than rest.
+
+        THESE ARE WRITTEN AS ATTRIBUTES AND ContrastGuards DOES NOT SEE THEM - it reads six hex digits
+        between tags. A known hole, and closing it is part of the two-layer palette in the same
+        project document.
+    -->
+    <SolidColorBrush x:Key="ButtonBackground" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#24FFFFFF" />
+    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#24FFFFFF" />
+    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="Transparent" />
+
+    <!--
+        EVERY TEXT BOX, THROUGH THE LIBRARY'S OWN KEYS, 2026-09-25 - owner: the search box looks bad.
+        Measured on the pixel: the box the window opens with the keyboard in was #1F1F1F on a #202020
+        window - DARKER than what it stands on, a hole rather than a field - with a line under it
+        three pixels thick in #686562. That line is WPF UI's focus line, and it takes Windows' own
+        accent colour (TextControlFocusedBorderBrush = SystemAccentColorPrimary, Dark.xaml:612), so
+        it wore whatever the machine's owner once chose for his taskbar.
+
+        THE FIELD NOW STANDS OUT OF THE WINDOW RATHER THAN INTO IT: 7% white at rest AND with the
+        keyboard in it, 10% under the pointer - a step under the buttons at 10 and 14, so a field and
+        a button do not read as one control. Translucent for the reason the buttons are: the box of
+        seconds stands on the plan sheet.
+
+        THE FOCUS LINE IS OUR OWN BLUE, not the machine's accent, so "this is where you are" is one
+        colour in this window rather than one colour per machine. FocusLine below says which blue.
+    -->
+    <SolidColorBrush x:Key="TextControlBackground" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1AFFFFFF" />
+
+    <!--
+        THE LINE ALONG THE FOOT OF A TEXT FIELD WITH THE KEYBOARD IN IT - the search field draws it
+        itself (SearchFieldLine), every other text box through the library's key below.
+
+        THE SELECTION BLUE LIGHTENED, NOT THE SELECTION BLUE, since the review of PR 21. It was
+        SurfaceSelected's #3F7099, the blue the scope tabs are underlined with - 3.09 against the
+        window, where a tab's line stands, and 2.51 against the field's own fill, where this line
+        stands. WCAG 2.2 SC 1.4.11 asks 3:1 of a focus indicator, and the same rule chose FocusRing:
+        the worst surface the indicator is drawn on decides the colour. The worst here is a field
+        under the pointer on the plan sheet - the box of seconds - which reads #494949. Measured
+        with tools/contrast/contrast.ps1 on the same hue, 207 degrees:
+
+          #3F7099  the selection blue   1.71
+          #5E9BD0                       3.03   one rounding from failing, the #C0392B lesson
+          #65A3D8  this                 3.34
+
+        ContrastGuards composes every text box fill over the window and over the sheet and holds
+        this line to 3.0 against all six.
+    -->
+    <SolidColorBrush x:Key="FocusLine">#65A3D8</SolidColorBrush>
+
+    <!--
+        A BRUSH OF ITS OWN, NOT AN ALIAS - and the alias was built first and failed on the owner's
+        screen. <StaticResource x:Key="TextControlFocusedBorderBrush" ResourceKey="SurfaceSelected" />
+        compiled and ran, and the library's template, which reads this key through DynamicResource,
+        drew the focus line in its own grey (#454545 on the pixel, three device pixels thick - so the
+        trigger fired and the colour did not arrive). The value is FocusLine's, written twice until
+        the two-layer palette gives both a colour to point at - ContrastGuards fails the day the two
+        stop being equal.
+    -->
+    <SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="#65A3D8" />
 </ResourceDictionary>

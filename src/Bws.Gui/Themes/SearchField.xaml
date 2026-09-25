@@ -1,0 +1,175 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        THE SEARCH FIELD - the frame, the magnifier, the text box inside it, the short sentence at its
+        right end, and the panel under it that says everything in full. 2026-09-25, all of it built
+        that day on the owner's word that the search box looked bad and that the window jumped while
+        he typed. SearchRow.xaml carries the layout and why it is three columns and a zero-height
+        canvas. docs/PROJEKT-PALETA-20260925.md carries the measurements and the four builds it took.
+
+        ITS OWN FILE BECAUSE THE SIZE RATCHET ASKED, and the seam is the honest one: Suggestions.xaml
+        is the list that opens under the field, this is the field. The ratchet counts files standing
+        within seventy per cent of the markup ceiling, and this block took Suggestions.xaml there.
+
+        MERGED AFTER Suggestions.xaml: the panel under the field wears SuggestionPanel, so the two
+        things that open under the field read as one family.
+    -->
+
+    <!--
+        THE MAGNIFIER AT THE LEFT OF THE SEARCH BOX, 2026-09-25 - owner: the search box looks bad. A
+        wide empty field said nothing about what it was until somebody read its hint, and a magnifier
+        is the sign every search field on Windows carries. Drawn rather than taken from an icon font,
+        the way RightsMark and SupportMark are: Segoe Fluent Icons is not on Windows Server, and a
+        font this window cannot count on is a square on the machines it is for.
+
+        On a 14 unit square - SizeSearchMark - a ring and a handle, stroked in the hint's colour so it
+        reads as part of the hint rather than as a button. It takes no clicks: the box under it does.
+    -->
+    <Style x:Key="SearchMark" TargetType="Path">
+        <Setter Property="Stroke" Value="{StaticResource TextSubdued}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource ShapeOutline}" />
+        <Setter Property="StrokeStartLineCap" Value="Round" />
+        <Setter Property="StrokeEndLineCap" Value="Round" />
+        <Setter Property="Width" Value="{StaticResource SizeSearchMark}" />
+        <Setter Property="Height" Value="{StaticResource SizeSearchMark}" />
+        <Setter Property="Margin" Value="{StaticResource MarginSearchMark}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Data" Value="M 5.75,1 A 4.75,4.75 0 1 1 5.74,1 M 9.3,9.3 L 13,13" />
+    </Style>
+
+    <!--
+        THE SEARCH FIELD AS ONE FRAME ROUND THREE PARTS, 2026-09-25 - SearchRow.xaml says why the frame
+        is drawn here rather than by the text box. It wears the library's own text box brushes by
+        name, so it looks like every other field in the window and follows the overrides in
+        Surfaces.xaml: fill, the fill under the pointer, the edge.
+
+        THE RED EDGE OF A MISTAKE IS THE FRAME'S. Until this day it was ReportingBox's error template
+        round the text box, and the text box is now the middle third of the field - a red frame round
+        a third would read as a mistake in a part of it. It answers to the same fact the red
+        sentence does, Says.AnswerLineIsProblem.
+    -->
+    <Style x:Key="SearchFieldFrame" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource TextControlBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TextControlElevationBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource TextControlBackgroundPointerOver}" />
+            </Trigger>
+            <DataTrigger Binding="{Binding Says.AnswerLineIsProblem}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        The line along the foot of the field: the library's quiet stroke at rest, two points of
+        FocusLine while the keyboard is anywhere in the field. Laid over the frame rather than
+        being its bottom edge, which is how the library's own text box does it - a line that thickens
+        must not move what it is drawn under.
+    -->
+    <Style x:Key="SearchFieldLine" TargetType="Border">
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderRuleBelow}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource FocusLine}" />
+                <Setter Property="BorderThickness" Value="{StaticResource BorderFocusLine}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        THE TEXT BOX IN THE MIDDLE OF THE FIELD, WITH ITS OWN CHROME MADE INVISIBLE. The library's
+        template stays - caret, selection, IME and the automation peer are the stock control's - and
+        the brushes that template draws its fill and lines with are answered transparent from this
+        style's own resources, which the template finds before the application's. No error template:
+        the frame says a mistake.
+    -->
+    <Style x:Key="SearchFieldBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Style.Resources>
+            <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="Transparent" />
+        </Style.Resources>
+        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderNone}" />
+        <Setter Property="Padding" Value="{StaticResource PadSearchText}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Validation.ErrorTemplate" Value="{x:Null}" />
+    </Style>
+
+    <!--
+        The sentence at the right end of the field. One line, trimmed, never wider than
+        WidthSearchMessage - the whole of it is in the tooltip. The notice colour, and red for a
+        mistake, set where it is used.
+    -->
+    <!--
+        THE PANEL UNDER THE FIELD THAT SAYS EVERYTHING IN FULL - SearchRow.xaml. The suggestion
+        list's own surface, so the two things that open under the field read as one family, with
+        the room inside a cell has and a small gap from the field.
+    -->
+    <Style x:Key="SearchMessagesPanel" TargetType="Border" BasedOn="{StaticResource SuggestionPanel}">
+        <Setter Property="Padding" Value="{StaticResource PadCell}" />
+        <Setter Property="Margin" Value="{StaticResource MarginUnderSearchField}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Says.AnswerLine}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <!-- The keyboard in the search row is the keyboard in the field: nothing else in the row takes it. -->
+            <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A mistake in the query, in full: red, wrapped as far as it needs, gone when there is none. -->
+    <Style x:Key="SearchProblemText" TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+        <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- What the answer could not judge or has not read yet, in full: the notice colour, wrapped. -->
+    <Style x:Key="SearchNoteText" TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SearchMessageText" TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+        <Setter Property="MaxWidth" Value="{StaticResource WidthSearchMessage}" />
+        <Setter Property="Margin" Value="{StaticResource MarginSearchMessage}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Says.AnswerLine}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <!-- While somebody is in the field the panel under it says all of it, so this would say it twice. The frame is the nearest Border and holds the text box. -->
+            <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Says.AnswerLineIsProblem}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource MeaningRejected}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

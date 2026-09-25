@@ -161,7 +161,11 @@ public sealed class AppearanceGuards
             // Actions.xaml, 2026-09-23: the write buttons of the action bar and the shield they
             // wear. Controls.xaml stood two lines under its ceiling. Added here in the same edit as
             // the file, for the reason every entry here gives.
-            "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml",
+            //
+            // SearchField.xaml, 2026-09-25: the search field's frame, text box, sentence and panel,
+            // out of Suggestions.xaml when the size ratchet counted it among the files near the
+            // ceiling. Added here in the same edit as the file.
+            "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml", "SearchField.xaml",
 
             // PlanLines.xaml left Plan.xaml on 2026-09-07 when the markup ratchet fired on THAT
             // one - a failure that can be escalated needed a template of its own. Added here in

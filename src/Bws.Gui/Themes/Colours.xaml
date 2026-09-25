@@ -133,6 +133,14 @@
     <SolidColorBrush x:Key="TextSubdued">#A0A0A0</SolidColorBrush>
 
     <!--
+        THE STEP BETWEEN, 2026-09-25. Until then this theme had two text colours, white and #A0A0A0,
+        so anything that was neither the thing itself nor a quiet aside had to be one of them - and the
+        column headings came out white, the same as the rows under them. Fluent's own secondary text,
+        TextFillColorSecondary (#C5FFFFFF, WPF UI 4.3.0 Dark.xaml:28), laid on the window.
+    -->
+    <SolidColorBrush x:Key="TextSecondary">#CCCCCC</SolidColorBrush>
+
+    <!--
         Text at full strength. Beside TextSubdued rather than with the surfaces it is drawn on,
         since the split of 2026-09-16: what it says is "this is the text", and the surfaces file
         argues what white measures on each of them.

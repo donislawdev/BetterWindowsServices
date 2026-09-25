@@ -98,10 +98,16 @@
                         <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                     </Border>
 
+                    <!--
+                        THE PANEL'S HOVER, NOT THE WINDOW'S, since 2026-09-25 - found while mapping
+                        the palette. Every number stands on a card, and SurfaceHover reads 1.30 on the
+                        card against the 1.5 this project set for a state to be seen at all.
+                        SurfaceHoverOnPanel exists for exactly this and was not used here.
+                    -->
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Line" Property="Background"
-                                    Value="{StaticResource SurfaceHover}" />
+                                    Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -123,5 +129,25 @@
         <Setter Property="CornerRadius" Value="{StaticResource CornerTile}" />
         <Setter Property="Margin" Value="{StaticResource MarginTile}" />
         <Setter Property="Padding" Value="{StaticResource PadTile}" />
+    </Style>
+
+    <!--
+        THE HEADLINE NUMBER. Moved out of OverviewView.xaml on 2026-09-25, when the view stood four
+        lines under the markup ceiling - it was the one style written inside a view on this screen.
+
+        A ZERO IS THE ABSENCE OF A FINDING AND STOPS SHOUTING LIKE ONE - "0 orphans" is the line where
+        nothing is. The number goes quiet and the label does not: at 32 inside a card colour alone
+        demotes it, and a card greyed end to end reads as DISABLED. Asked of a bool rather than of the
+        number - OverviewLine.Nothing carries why.
+
+        A WARNING COLOUR AND A TINTED CARD FOR A NUMBER THAT IS TROUBLE WERE BUILT THE SAME DAY AND
+        TAKEN OUT BY THE OWNER after he ran the build - docs/PROJEKT-PALETA-20260925.md.
+    -->
+    <Style x:Key="OverviewHeadlineText" TargetType="TextBlock" BasedOn="{StaticResource OverviewNumberText}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Nothing}" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

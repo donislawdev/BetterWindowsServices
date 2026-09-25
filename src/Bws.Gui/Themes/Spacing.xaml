@@ -84,6 +84,16 @@
     -->
     <Thickness x:Key="MarginSuggestionTrail">16,0,0,0</Thickness>
 
+    <!--
+        THE SEARCH FIELD IN THREE PARTS, 2026-09-25 - SearchRow.xaml. The magnifier stands ten in from
+        the frame with six after it, the text and its hint share PadSearchText so the hint sits where
+        the first typed letter will, and the sentence at the right end keeps ten from the frame.
+    -->
+    <Thickness x:Key="MarginSearchMark">10,0,6,0</Thickness>
+    <Thickness x:Key="PadSearchText">0,4,8,4</Thickness>
+    <Thickness x:Key="MarginSearchMessage">0,0,10,0</Thickness>
+    <Thickness x:Key="MarginUnderSearchField">0,4,0,0</Thickness>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
     <!--

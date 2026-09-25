@@ -181,6 +181,64 @@ public sealed class ContrastGuards
             + Environment.NewLine + string.Join(Environment.NewLine, short_));
     }
 
+    /// <summary>
+    /// The line under a text field with the keyboard in it clears 3:1 against every fill a text box
+    /// takes, on every surface a text box stands on - review of PR 21.
+    ///
+    /// <b>It was the selection blue, 3.09 against the window and 2.51 against the fill it is
+    /// actually drawn on.</b> The fills are translucent white, so what the line meets is the fill
+    /// composed over what the field stands on: the window for the search field, the plan sheet for
+    /// the box of seconds and the box a confirmation is typed into. Resolved out of the running theme rather
+    /// than read from the files, because the fills are written as attributes and
+    /// <see cref="Declared"/> sees only the element form - backlog 459.
+    ///
+    /// <b>And the library's key has to carry the same colour</b>, since every text box but the
+    /// search field draws its line through it and an alias of FocusLine does not reach that template.
+    /// </summary>
+    [Fact]
+    public void The_focus_line_clears_its_ratio_against_every_fill_a_text_box_takes()
+    {
+        var line = WpfHost.Declared("FocusLine");
+
+        Assert.Equal(line, WpfHost.Declared("TextControlFocusedBorderBrush"));
+
+        var surfaces = new[] { ("the window", WindowBackground()), ("the plan sheet", WpfHost.Declared("SurfacePanel")) };
+        var short_ = new List<string>();
+
+        foreach (var (surface, under) in surfaces)
+        {
+            foreach (var fill in FillsOfATextBox)
+            {
+                var beneath = Composed(WpfHost.Declared(fill), under);
+                var ratio = Contrast(line, beneath);
+
+                if (ratio < ForState)
+                {
+                    short_.Add(string.Create(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        $"  {fill} on {surface} reads {Hex(beneath)}, the line measures {ratio:F2} and needs {ForState:F1}"));
+                }
+            }
+        }
+
+        Assert.True(
+            short_.Count == 0,
+            "The focus line is drawn on the field's own fill, so it has to be tellable from all of them:"
+            + Environment.NewLine + string.Join(Environment.NewLine, short_));
+    }
+
+    /// <summary>The library's text box fills, all three of which Surfaces.xaml overrides.</summary>
+    private static readonly string[] FillsOfATextBox =
+        ["TextControlBackground", "TextControlBackgroundFocused", "TextControlBackgroundPointerOver"];
+
+    /// <summary>A translucent colour laid over an opaque one, channel by channel, the way it reaches the pixel.</summary>
+    private static Color Composed(Color over, Color under)
+    {
+        byte Channel(byte top, byte bottom) => (byte)Math.Round(((top * over.A) + (bottom * (255 - over.A))) / 255.0);
+
+        return Color.FromRgb(Channel(over.R, under.R), Channel(over.G, under.G), Channel(over.B, under.B));
+    }
+
     [Fact]
     public void No_colour_is_declared_without_a_ratio_it_has_to_clear()
     {

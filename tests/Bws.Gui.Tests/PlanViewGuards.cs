@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using Bws.Core.Planning;
 using Bws.Gui.ViewModels;
@@ -331,6 +332,7 @@ public sealed class PlanViewGuards
     public async Task Every_word_on_the_panel_can_be_read_on_the_surface_it_is_drawn_on()
     {
         var window = await Ready();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
         Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
         WpfHost.Settled();
@@ -353,21 +355,30 @@ public sealed class PlanViewGuards
             var found = new List<TextBlock>();
             Collect(window.PlanPanel, found);
 
-            var words = found.Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToList();
+            // THE RUNS, NOT TextBlock.Text, which is EMPTY for a block built from runs - and since
+            // 2026-09-24 the title and every step are (review of PR 20). A run is measured in the
+            // colour it ended up with, its block's unless it names its own.
+            var runs = found
+                .SelectMany(text => text.Inlines.OfType<Run>())
+                .Where(run => !string.IsNullOrWhiteSpace(run.Text))
+                .ToList();
 
-            return (words
-                .Select(text => (text.Text, Ratio(Ink(text), surface)))
+            return (runs
+                .Select(run => (run.Text, Ratio(Ink(run.Foreground), surface)))
                 .Where(pair => pair.Item2 < 4.5)
                 .Select(pair => string.Create(
                     CultureInfo.InvariantCulture,
                     $"{pair.Item2:F2}  {pair.Text}"))
-                .ToList(), words.Count);
+                .ToList(), found.Select(text => string.Concat(text.Inlines.OfType<Run>().Select(run => run.Text))).ToList());
         });
 
         // A GUARD SATISFIED BY ABSENCE IS SATISFIED FOR AS LONG AS NOBODY BUILDS ANYTHING, and this
         // project has that lesson written in three other files. The panel shows a title, a name, a
-        // state, a heading and a step at the very least.
-        Assert.True(read >= 5, $"Only {read} lines were found on the panel, so nothing was measured.");
+        // state, a heading and a step at the very least - and the title and a step by name, because
+        // those two are the blocks built from runs.
+        Assert.True(read.Count(line => !string.IsNullOrWhiteSpace(line)) >= 5, "Too few lines were found on the panel, so nothing was measured.");
+        Assert.Contains(WpfHost.On(() => model.Planned.Heading.Text), read);
+        Assert.Contains(WpfHost.On(() => model.Planned.Steps[0].Text), read);
 
         Assert.True(
             thin.Count == 0,
@@ -379,9 +390,9 @@ public sealed class PlanViewGuards
         WpfHost.On(window.Close);
     }
 
-    /// <summary>The colour a TextBlock ended up with, however it got there.</summary>
-    private static Color Ink(TextBlock text) =>
-        text.Foreground is SolidColorBrush brush ? brush.Color : Colors.Black;
+    /// <summary>The colour a run ended up with, however it got there.</summary>
+    private static Color Ink(Brush ink) =>
+        ink is SolidColorBrush brush ? brush.Color : Colors.Black;
 
     /// <summary>Every TextBlock under something, including the ones a template built.</summary>
     private static void Collect(DependencyObject from, List<TextBlock> into)

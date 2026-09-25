@@ -286,7 +286,9 @@ internal static class WpfHost
                      // Suggestions.xaml beside it, after Text.xaml whose names it resolves.
                      // Actions.xaml after Menus.xaml, as in App.xaml - it extends the implicit Button
                      // style the same way. The write buttons and their shield, 2026-09-23.
-                     "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml",
+                     // SearchField.xaml after Suggestions.xaml, as in App.xaml - its panel of
+                     // messages wears SuggestionPanel. The search field, 2026-09-25.
+                     "Controls.xaml", "Menus.xaml", "Actions.xaml", "Suggestions.xaml", "SearchField.xaml",
 
                      // PlanLines.xaml before Plan.xaml, for the same reason and from the same
                      // list in App.xaml. They were one file until 2026-09-07. PlanOffers.xaml

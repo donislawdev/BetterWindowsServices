@@ -90,6 +90,11 @@ public sealed class CopyingAndPanelGuards
             ("gui.menu.copyAll", WpfHost.On(() => Copying.Everything(Picked(window))))
         };
 
+        // THE FIXTURE'S OWN WORDS, NOT Copying's - a wanted text computed by the function under test
+        // agrees with it whatever it drops, and these two fields lost their items to this one.
+        Assert.Contains("Print Spooler", promises[1].Wanted, StringComparison.Ordinal);
+        Assert.Contains("Spooler description", promises[1].Wanted, StringComparison.Ordinal);
+
         foreach (var (key, wanted) in promises)
         {
             if (string.IsNullOrWhiteSpace(wanted))

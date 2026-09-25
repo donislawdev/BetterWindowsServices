@@ -107,6 +107,8 @@
                     templates to add - point 9 of `docs/11` 2.14.
                 -->
                 <ResourceDictionary Source="Themes/Suggestions.xaml" />
+                <!-- The search field, after the list under it: its panel of messages wears SuggestionPanel. -->
+                <ResourceDictionary Source="Themes/SearchField.xaml" />
                 <ResourceDictionary Source="Themes/Scroll.xaml" />
                 <!--
                     PlanLines.xaml immediately before Plan.xaml, which is App.xaml's order and is
