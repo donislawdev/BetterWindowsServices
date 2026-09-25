@@ -86,6 +86,12 @@ is not part of this repository.
 - A button that cannot be pressed has no fill, and one that can has a slightly lighter fill than
   before.
 - The state and startup type marks in the list and in the details panel are a little larger.
+- Tab in the search box writes the highlighted suggestion, the same as Enter, and keeps the cursor
+  in the box - so `sta`, Tab, Tab gives `status:running`. When there is nothing to write, or the
+  list shows the example questions, Tab moves on to the next control as before. While an input
+  method is still composing a character, neither Tab nor Enter writes a suggestion.
+- The list of suggestions opens when you type, not when you only move the cursor with the arrow
+  keys or a click. Down still opens it wherever the cursor is.
 
 ### Removed
 

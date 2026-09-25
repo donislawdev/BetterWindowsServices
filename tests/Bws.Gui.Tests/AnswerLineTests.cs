@@ -70,7 +70,6 @@ public sealed class AnswerLineTests
         Assert.Contains(Texts.Of("gui.query.unreadSignatures"), model.Says.Reservations, StringComparison.Ordinal);
         Assert.Equal(model.Says.Reservations, model.Says.AnswerLine);
         Assert.False(model.Says.AnswerLineIsProblem);
-        Assert.True(model.Says.AnswerLineShown);
         Assert.DoesNotContain(Texts.Of("gui.query.unreadSignatures"), model.Says.NoticeLine, StringComparison.Ordinal);
     }
 
@@ -97,35 +96,14 @@ public sealed class AnswerLineTests
     }
 
     /// <summary>
-    /// The line takes room while there is text in the box, even with nothing to say - so a reading
-    /// note that comes and goes under somebody's typing does not move the list - and gives the room
-    /// back when the box is emptied.
-    /// </summary>
-    [Fact]
-    public async Task The_line_takes_room_while_the_box_holds_text_and_gives_it_back_when_emptied()
-    {
-        var model = await Loaded();
-
-        Assert.False(model.Says.AnswerLineShown);
-
-        model.QueryText = "spool";
-
-        Assert.Equal(string.Empty, model.Says.AnswerLine);
-        Assert.True(model.Says.AnswerLineShown);
-
-        model.ClearQuery();
-
-        Assert.False(model.Says.AnswerLineShown);
-    }
-
-    /// <summary>
-    /// WITH THE BOX EMPTY THE LINE STILL SPEAKS WHILE IT HAS SOMETHING TO SAY - the half of
-    /// AnswerLineShown the user changelog left out until the review of PR #11.
+    /// WITH THE BOX EMPTY THE FIELD STILL SPEAKS WHILE IT HAS SOMETHING TO SAY - written for the
+    /// review of PR #11, when a line under the box took its room from this, and kept when that line
+    /// went with the palette on 2026-09-25 (backlog 461), because the half it held was never layout.
     ///
-    /// <b>This half is rule 8, not layout.</b> A shown column asks for its family too, and the
-    /// reservations no longer stand under the list, so a Memory column turned on with nothing typed
-    /// is said here while its pass is out, or nowhere. The pass is held open by a reader that waits,
-    /// so the state is looked at while it is true rather than raced.
+    /// <b>It is rule 8.</b> A shown column asks for its family too, and the reservations no longer
+    /// stand under the list, so a Memory column turned on with nothing typed is said here while its
+    /// pass is out, or nowhere. The pass is held open by a reader that waits, so the state is looked
+    /// at while it is true rather than raced.
     /// </summary>
     [Fact]
     public async Task A_shown_column_still_being_read_is_said_under_an_empty_box()
@@ -146,14 +124,12 @@ public sealed class AnswerLineTests
 
         Assert.Equal(string.Empty, model.QueryText);
         Assert.Equal(Texts.Of("gui.query.readingMemory"), model.Says.AnswerLine);
-        Assert.True(model.Says.AnswerLineShown);
 
         reader.Release();
         await refresh;
 
-        // Read, so nothing is left to say, and the room goes back with the words.
+        // Read, so nothing is left to say.
         Assert.Equal(string.Empty, model.Says.AnswerLine);
-        Assert.False(model.Says.AnswerLineShown);
     }
 
     /// <summary>

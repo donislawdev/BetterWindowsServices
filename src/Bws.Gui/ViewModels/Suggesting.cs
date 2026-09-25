@@ -58,11 +58,19 @@ public sealed class Suggesting : Observable
     private Suggestion? _chosen;
     private bool _keyboardHere;
     private bool _questions;
+    private bool _composing;
+
+    // What the box held, and where its caret stood, the last time the list was told - so that a
+    // caret moving through text nobody changed can be told apart from typing. See Follow.
+    private string? _followedText;
+    private int _followedCaret;
 
     // Constants rather than literals in the expression below, because TextKeyGuards knows the
     // shapes a key is used in and a literal inside a conditional is not one of them.
     private const string QuestionsCaption = "gui.suggest.caption.questions";
     private const string WordsCaption = "gui.suggest.caption.words";
+    private const string QuestionsKeys = "gui.suggest.keys";
+    private const string WordsKeys = "gui.suggest.keys.words";
 
     /// <summary>
     /// The chips are read rather than copied, because their labels are read in whatever language
@@ -106,8 +114,43 @@ public sealed class Suggesting : Observable
     /// The sentence under the list saying which keys do what - under the list rather than in the
     /// tooltip, because under the list is where somebody is looking while the keys matter.
     /// Decision 9 of the design.
+    ///
+    /// <b>Two sentences since 2026-09-25, because Tab means two things</b> - it writes a word and
+    /// it walks past the questions. `docs/PROJEKT-PODPOWIEDZI-UX-20260925.md`, P3.
     /// </summary>
-    public string Keys => Texts.Of("gui.suggest.keys");
+    public string Keys => Texts.Of(_questions ? QuestionsKeys : WordsKeys);
+
+    /// <summary>
+    /// Whether Tab writes the chosen row - the owner's reflex from PowerShell and every editor,
+    /// 2026-09-25, which reversed decision 7 of the first design.
+    ///
+    /// <b>For a list of WORDS and never for the questions.</b> The questions open when somebody
+    /// arrives at an empty box, and arriving by Tab is one of the ways - so a Tab that wrote them
+    /// would make walking through the window with the keyboard type a query into the box and stop
+    /// there. With nothing to write, Tab walks on as it always did.
+    /// </summary>
+    public bool TabWrites => CanTake && !_questions;
+
+    /// <summary>
+    /// Whether Enter or Tab may write the chosen row now: a list is open, and no input method is in
+    /// the middle of composing a character in the box.
+    ///
+    /// <b>Review of PR 22.</b> An input method - the way Chinese, Japanese and Korean are typed -
+    /// holds the characters it is still composing in the box until they are committed, and a row
+    /// written over them would replace text the person has not finished. Whether a key reaches the
+    /// window as itself during a composition depends on the input method, and there is none on the
+    /// machine this was built on - NOT MEASURED - so the list simply takes nothing until the
+    /// composition ends. <see cref="Composing"/> is told by the window.
+    /// </summary>
+    public bool CanTake => IsOpen && !_composing;
+
+    /// <summary>
+    /// An input method began composing text in the box, or finished. Said by the window from the
+    /// text composition events. Whether ordinary typing raises the start too was not checked - if
+    /// it does, the end follows with the character, so between two keystrokes this is false either
+    /// way.
+    /// </summary>
+    public void Composing(bool open) => _composing = open;
 
     /// <summary>
     /// What kind of list is open, said over it: the questions on an empty box, or what can go where
@@ -164,6 +207,9 @@ public sealed class Suggesting : Observable
 
         if (!present)
         {
+            // A composition does not outlive the keyboard leaving the box - and one abandoned
+            // without an end said to the window would otherwise keep Tab and Enter from writing.
+            _composing = false;
             Close();
         }
     }
@@ -193,16 +239,60 @@ public sealed class Suggesting : Observable
     public void Left() => Keyboard(present: false);
 
     /// <summary>
-    /// The text or the caret moved. The list follows - and opens only while the keyboard is in
-    /// the box and nothing is selected. Read from the box's own text rather than from the
+    /// The text or the caret moved. The list follows TYPING - and opens only while the keyboard is
+    /// in the box and nothing is selected. Read from the box's own text rather than from the
     /// model's, which is 400 ms behind it.
+    ///
+    /// <b>A caret moving through text nobody changed CLOSES the list, since 2026-09-25</b> - owner's
+    /// decision P2 of `docs/PROJEKT-PODPOWIEDZI-UX-20260925.md`. Until then one Left arrow in
+    /// <c>status:running</c> opened a list of one row saying <c>running</c>, and correcting a query
+    /// with the arrows blinked a list at every press. Down still asks for it on purpose.
+    ///
+    /// <b>Told apart by the text, not by which event arrived</b>, because the box raises two for
+    /// one keystroke - its text changed and its selection changed - and the window does not rely
+    /// on their order. A new text is typing. The same text with the caret elsewhere is a move. The
+    /// same text at the same caret is the second event of a keystroke already followed, and leaves
+    /// the list as it is.
     /// </summary>
     public void Follow(string? text, int caret, int selectionLength)
     {
-        if (!_keyboardHere || selectionLength > 0)
+        var sameText = string.Equals(text, _followedText, StringComparison.Ordinal);
+        var sameCaret = caret == _followedCaret;
+
+        _followedText = text;
+        _followedCaret = caret;
+
+        if (!_keyboardHere || selectionLength > 0 || (sameText && !sameCaret))
         {
             Close();
 
+            return;
+        }
+
+        if (!sameText)
+        {
+            _questions = false;
+            Offer(Rows(QueryCompletions.WhileTyping(text, caret)));
+        }
+    }
+
+    /// <summary>
+    /// The window has just written a row into the box. Followed as typing, whatever the box's own
+    /// events said on the way.
+    ///
+    /// <b>Needed because of the rule in <see cref="Follow"/>.</b> The window writes through the
+    /// selection and then puts the caret after what it wrote - so the last thing the box reports
+    /// is a caret moving through text that did not change, which closes the list. That would take
+    /// away the values offered the moment a field is written, and <c>sta</c> Tab Tab giving
+    /// <c>status:running</c> is the whole of the Tab decision.
+    /// </summary>
+    public void Wrote(string? text, int caret)
+    {
+        _followedText = text;
+        _followedCaret = caret;
+
+        if (!_keyboardHere)
+        {
             return;
         }
 
@@ -267,6 +357,7 @@ public sealed class Suggesting : Observable
         Chosen = null;
         Raise(nameof(IsOpen));
         Raise(nameof(Caption));
+        Raise(nameof(Keys));
 
         return true;
     }
@@ -314,6 +405,7 @@ public sealed class Suggesting : Observable
 
         Offered = rows;
         Raise(nameof(Caption));
+        Raise(nameof(Keys));
         Chosen = rows.FirstOrDefault(row => string.Equals(row.Word, kept, StringComparison.Ordinal)) ?? rows[0];
 
         if (!wasOpen)

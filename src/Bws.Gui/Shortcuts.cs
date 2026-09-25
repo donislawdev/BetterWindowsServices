@@ -51,7 +51,8 @@ internal static class Shortcuts
 
         // DOWN AND UP MEAN THE LIST UNDER THE SEARCH BOX, since 2026-09-15 - and only there, which
         // is the window's half to decide, the same way Enter means the details only from the grid.
-        // From anywhere else they are the arrows every control already has an opinion about.
+        // From anywhere else they are the arrows every control already has an opinion about. Tab
+        // the same, since 2026-09-25 - and only without a modifier, so Shift+Tab always walks back.
         return key switch
         {
             Key.F5 => Shortcut.Refresh,
@@ -60,6 +61,7 @@ internal static class Shortcuts
             Key.Enter => Shortcut.OpenDetails,
             Key.Down => Shortcut.NextSuggestion,
             Key.Up => Shortcut.PreviousSuggestion,
+            Key.Tab => Shortcut.CompleteWord,
             _ => Shortcut.None
         };
     }
@@ -157,5 +159,16 @@ internal enum Shortcut
     /// Enter, and Enter from the grid means the details - which of the two a press means depends
     /// on where the keyboard is and whether the list is open, and both are the window's to know.
     /// </summary>
-    TakeSuggestion
+    TakeSuggestion,
+
+    /// <summary>
+    /// Tab: write the chosen WORD of the list under the search box - the reflex from PowerShell and
+    /// every editor, owner's decision of 2026-09-25 (`docs/PROJEKT-PODPOWIEDZI-UX-20260925.md`, T1).
+    ///
+    /// <b>Never carried out as itself.</b> Tab walks through the window everywhere else, so the
+    /// window turns this into <see cref="TakeSuggestion"/> in the box while a list of words is open
+    /// and into <see cref="None"/> in every other case - handed back, the press moves the keyboard on
+    /// as it always did.
+    /// </summary>
+    CompleteWord
 }

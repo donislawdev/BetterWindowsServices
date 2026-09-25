@@ -135,11 +135,13 @@ public sealed class SuggestingTests
         Assert.False(suggesting.IsOpen);
         Assert.False(suggesting.Ask("status:r", 7, 1));
 
-        // And it closes a list that was open when the selection arrives.
-        suggesting.Follow("status:r", 8, 0);
+        // And it closes a list that was open when the selection arrives. Opened by TYPING the next
+        // letter since 2026-09-25 - collapsing the selection with the text unchanged is a caret
+        // move, and a caret move closes (SuggestingTypingTests).
+        suggesting.Follow("status:ru", 9, 0);
         Assert.True(suggesting.IsOpen);
 
-        suggesting.Follow("status:r", 7, 1);
+        suggesting.Follow("status:ru", 7, 2);
         Assert.False(suggesting.IsOpen);
     }
 
@@ -381,12 +383,5 @@ public sealed class SuggestingTests
         excluding.Follow("type:dri", 8, 0);
 
         Assert.Equal(string.Empty, excluding.Offered.Single(row => row.Word == "driver").Meaning);
-    }
-
-    [Fact]
-    public void The_sentence_about_the_keys_is_the_one_under_the_list()
-    {
-        Assert.Equal(Texts.Of("gui.suggest.keys"), Fresh().Keys);
-        Assert.DoesNotContain("gui.", Fresh().Keys, StringComparison.Ordinal);
     }
 }

@@ -279,6 +279,80 @@ public sealed class KeyboardTests
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// Tab means the word under the box - and only Tab alone, so Shift+Tab always walks back.
+    /// Owner's decision of 2026-09-25, `docs/PROJEKT-PODPOWIEDZI-UX-20260925.md` T1.
+    /// </summary>
+    [Fact]
+    public void Tab_alone_means_the_word_under_the_box_and_Shift_Tab_never_does() =>
+        Assert.Equal(
+            [Shortcut.CompleteWord, Shortcut.None, Shortcut.None],
+            [Shortcuts.For(Key.Tab, ModifierKeys.None), Shortcuts.For(Key.Tab, ModifierKeys.Shift), Shortcuts.For(Key.Tab, ModifierKeys.Control)]);
+
+    /// <summary>
+    /// Tab in the box writes the chosen word while a list of WORDS is open, and is handed back - so
+    /// the keyboard walks on - with the questions open, with nothing open, and anywhere outside the
+    /// box. The questions are the case that matters: arriving at an empty box by Tab opens them, and
+    /// a Tab that wrote one would stop anybody walking through the window in the search box.
+    /// </summary>
+    [Fact]
+    public void Tab_in_the_box_writes_a_word_and_walks_on_everywhere_else()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Tab, inTheBox: true, inTheGrid: false));
+
+        WpfHost.On(() =>
+        {
+            model.Suggesting.Keyboard(present: true);
+            model.Suggesting.Arrived(string.Empty);
+        });
+
+        Assert.True(model.Suggesting.IsOpen);
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Tab, inTheBox: true, inTheGrid: false));
+
+        WpfHost.On(() => model.Suggesting.Ask("sta", 3, 0));
+
+        Assert.Equal(Shortcut.TakeSuggestion, Wanted(window, Key.Tab, inTheBox: true, inTheGrid: false));
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Tab, inTheBox: false, inTheGrid: true));
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Tab, inTheBox: false, inTheGrid: false));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// <c>sta</c> Tab Tab gives <c>status:running </c> with the list closed and the caret at the end
+    /// - the reflex the owner reached for, through the same road a real press takes. The second Tab
+    /// only works because the values are offered after the field is written, which the caret rule
+    /// of 2026-09-25 would take away without Suggesting.Wrote.
+    /// </summary>
+    [Fact]
+    public void Tab_twice_writes_a_field_and_then_its_first_value()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, string.Empty, 0);
+        Keyed(window, "sta");
+
+        Assert.Equal("sta", WpfHost.On(() => window.Search.Box.Text));
+        Assert.True(model.Suggesting.TabWrites);
+        Assert.True(WpfHost.On(() => window.Act(window.Wanted(Key.Tab, ModifierKeys.None, inTheBox: true, inTheGrid: false), out _)));
+        Assert.Equal("status:", WpfHost.On(() => window.Search.Box.Text));
+        Assert.True(model.Suggesting.TabWrites);
+
+        Assert.True(WpfHost.On(() => window.Act(window.Wanted(Key.Tab, ModifierKeys.None, inTheBox: true, inTheGrid: false), out _)));
+        Assert.Equal("status:running ", WpfHost.On(() => window.Search.Box.Text));
+        Assert.Equal(15, WpfHost.On(() => window.Search.Box.CaretIndex));
+        Assert.False(model.Suggesting.IsOpen);
+
+        // And the third walks on, because there is nothing left to write.
+        Assert.Equal(Shortcut.None, Wanted(window, Key.Tab, inTheBox: true, inTheGrid: false));
+
+        WpfHost.On(window.Close);
+    }
+
     [Fact]
     public void Down_on_a_closed_list_opens_it_and_moves_through_it_once_open()
     {
@@ -450,6 +524,29 @@ public sealed class KeyboardTests
     /// (BindingExpression.AttachToContext under DataBindEngine.Run), not by reasoning. A shown
     /// window has drained that queue long before anybody types - this host never shows one.
     /// </summary>
+    /// <summary>
+    /// Characters typed into the box the way a keyboard types them - through the text input event
+    /// the box's own editor answers - rather than by setting its text.
+    ///
+    /// <b>The difference is the order of the box's two events, and since 2026-09-25 the list cares.</b>
+    /// Setting Text reports the new text with the caret at zero and moves the caret after, which the
+    /// list reads as typing followed by a caret move - and a caret move closes it. A keystroke
+    /// inserts at the caret and reports the text with the caret already past what it inserted.
+    /// </summary>
+    private static void Keyed(MainWindow window, string characters) =>
+        WpfHost.On(() =>
+        {
+            foreach (var character in characters)
+            {
+                var composition = new TextComposition(InputManager.Current, window.Search.Box, character.ToString());
+
+                window.Search.Box.RaiseEvent(new TextCompositionEventArgs(Keyboard.PrimaryDevice, composition)
+                {
+                    RoutedEvent = TextCompositionManager.TextInputEvent
+                });
+            }
+        });
+
     private static void Typed(MainWindow window, string text, int caret)
     {
         WpfHost.Settled();

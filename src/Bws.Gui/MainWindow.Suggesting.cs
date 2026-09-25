@@ -125,10 +125,22 @@ public partial class MainWindow
         // THE BOX'S TEXT, NOT THE MODEL'S. The binding to QueryText waits 400 ms so that the list
         // of entries does not narrow under every keystroke, and a list of completions that waited
         // with it would be a list answering the previous keystroke. The caret and the text arrive
-        // as two events and both recompute from the current values, so their order is not relied
-        // on.
+        // as two events and both go to Follow with the current values, which tells typing from a
+        // caret moving through unchanged text by the text itself - so their order is not relied on.
         box.TextChanged += (_, _) => FollowTheBox();
         box.SelectionChanged += (_, _) => FollowTheBox();
+
+        // NOTHING IS WRITTEN OVER A CHARACTER STILL BEING COMPOSED - review of PR 22, and
+        // Suggesting.CanTake says why. The start and the end of every text composition in the box,
+        // handled or not, because an input method's own handling is exactly the case this is for.
+        box.AddHandler(
+            TextCompositionManager.PreviewTextInputStartEvent,
+            new TextCompositionEventHandler((_, _) => list.Composing(open: true)),
+            handledEventsToo: true);
+        box.AddHandler(
+            TextCompositionManager.PreviewTextInputEvent,
+            new TextCompositionEventHandler((_, _) => list.Composing(open: false)),
+            handledEventsToo: true);
 
         Search.List.PreviewMouseLeftButtonUp += (_, e) => TakeUnderThePointer(e);
 
@@ -256,6 +268,11 @@ public partial class MainWindow
         box.Select(start, end - start);
         box.SelectedText = taken.Written;
         box.CaretIndex = start + taken.Written.Length;
+
+        // Followed as typing, because the last thing the box just reported is its caret moving
+        // through unchanged text - which closes the list since 2026-09-25, and would take away the
+        // values that belong after a field just written. Suggesting.Wrote says it in full.
+        _model.Suggesting.Wrote(box.Text, box.CaretIndex);
 
         return true;
     }
