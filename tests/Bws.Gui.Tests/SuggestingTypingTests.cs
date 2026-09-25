@@ -1,3 +1,5 @@
+using System.Windows;
+using System.Windows.Input;
 using Bws.Core.Querying;
 using Bws.Gui.ViewModels;
 
@@ -124,6 +126,80 @@ public sealed class SuggestingTypingTests
 
         Assert.False(Typing("spooler", 7).TabWrites);
     }
+
+    /// <summary>
+    /// Review of PR 22: nothing is written over a character an input method is still composing -
+    /// neither by Tab nor by Enter. The list stays open, and the keyboard leaving the box ends the
+    /// composition, so one abandoned without an end cannot keep the keys from writing afterwards.
+    /// </summary>
+    [Fact]
+    public void Nothing_is_taken_while_an_input_method_is_composing()
+    {
+        var suggesting = Typing("sta", 3);
+
+        Assert.True(suggesting.CanTake);
+        Assert.True(suggesting.TabWrites);
+
+        suggesting.Composing(open: true);
+
+        Assert.True(suggesting.IsOpen);
+        Assert.False(suggesting.CanTake);
+        Assert.False(suggesting.TabWrites);
+
+        suggesting.Composing(open: false);
+
+        Assert.True(suggesting.TabWrites);
+
+        suggesting.Composing(open: true);
+        suggesting.Left();
+        suggesting.Keyboard(present: true);
+        suggesting.Follow("stat", 4, 0);
+
+        Assert.True(suggesting.TabWrites);
+    }
+
+    /// <summary>
+    /// The window's half: a composition opening in the box stops Tab and Enter from writing, and
+    /// its end lets them write again. Raised on the box as the input system raises them.
+    /// </summary>
+    [Fact]
+    public void The_window_hears_a_composition_open_in_the_box_and_close()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.On(() =>
+        {
+            model.Suggesting.Keyboard(present: true);
+            model.Suggesting.Ask("sta", 3, 0);
+        });
+
+        Assert.Equal([Shortcut.TakeSuggestion, Shortcut.TakeSuggestion], Presses(window));
+
+        WpfHost.On(() => Composed(window, TextCompositionManager.PreviewTextInputStartEvent));
+
+        Assert.Equal([Shortcut.None, Shortcut.None], Presses(window));
+
+        WpfHost.On(() => Composed(window, TextCompositionManager.PreviewTextInputEvent));
+
+        Assert.Equal([Shortcut.TakeSuggestion, Shortcut.TakeSuggestion], Presses(window));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>What Tab and Enter mean in the box, in that order.</summary>
+    private static Shortcut[] Presses(MainWindow window) => WpfHost.On(() => new[]
+    {
+        window.Wanted(Key.Tab, ModifierKeys.None, inTheBox: true, inTheGrid: false),
+        window.Wanted(Key.Enter, ModifierKeys.None, inTheBox: true, inTheGrid: false)
+    });
+
+    private static void Composed(MainWindow window, RoutedEvent routed) =>
+        window.Search.Box.RaiseEvent(
+            new TextCompositionEventArgs(Keyboard.PrimaryDevice, new TextComposition(InputManager.Current, window.Search.Box, string.Empty))
+            {
+                RoutedEvent = routed
+            });
 
     /// <summary>
     /// The sentence under the list names Tab for the words and leaves it out for the questions,

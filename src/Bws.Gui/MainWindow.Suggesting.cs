@@ -130,6 +130,18 @@ public partial class MainWindow
         box.TextChanged += (_, _) => FollowTheBox();
         box.SelectionChanged += (_, _) => FollowTheBox();
 
+        // NOTHING IS WRITTEN OVER A CHARACTER STILL BEING COMPOSED - review of PR 22, and
+        // Suggesting.CanTake says why. The start and the end of every text composition in the box,
+        // handled or not, because an input method's own handling is exactly the case this is for.
+        box.AddHandler(
+            TextCompositionManager.PreviewTextInputStartEvent,
+            new TextCompositionEventHandler((_, _) => list.Composing(open: true)),
+            handledEventsToo: true);
+        box.AddHandler(
+            TextCompositionManager.PreviewTextInputEvent,
+            new TextCompositionEventHandler((_, _) => list.Composing(open: false)),
+            handledEventsToo: true);
+
         Search.List.PreviewMouseLeftButtonUp += (_, e) => TakeUnderThePointer(e);
 
         Deactivated += (_, _) => list.Close();

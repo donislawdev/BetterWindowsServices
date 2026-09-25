@@ -58,6 +58,7 @@ public sealed class Suggesting : Observable
     private Suggestion? _chosen;
     private bool _keyboardHere;
     private bool _questions;
+    private bool _composing;
 
     // What the box held, and where its caret stood, the last time the list was told - so that a
     // caret moving through text nobody changed can be told apart from typing. See Follow.
@@ -128,7 +129,28 @@ public sealed class Suggesting : Observable
     /// would make walking through the window with the keyboard type a query into the box and stop
     /// there. With nothing to write, Tab walks on as it always did.
     /// </summary>
-    public bool TabWrites => IsOpen && !_questions;
+    public bool TabWrites => CanTake && !_questions;
+
+    /// <summary>
+    /// Whether Enter or Tab may write the chosen row now: a list is open, and no input method is in
+    /// the middle of composing a character in the box.
+    ///
+    /// <b>Review of PR 22.</b> An input method - the way Chinese, Japanese and Korean are typed -
+    /// holds the characters it is still composing in the box until they are committed, and a row
+    /// written over them would replace text the person has not finished. Whether a key reaches the
+    /// window as itself during a composition depends on the input method, and there is none on the
+    /// machine this was built on - NOT MEASURED - so the list simply takes nothing until the
+    /// composition ends. <see cref="Composing"/> is told by the window.
+    /// </summary>
+    public bool CanTake => IsOpen && !_composing;
+
+    /// <summary>
+    /// An input method began composing text in the box, or finished. Said by the window from the
+    /// text composition events. Whether ordinary typing raises the start too was not checked - if
+    /// it does, the end follows with the character, so between two keystrokes this is false either
+    /// way.
+    /// </summary>
+    public void Composing(bool open) => _composing = open;
 
     /// <summary>
     /// What kind of list is open, said over it: the questions on an empty box, or what can go where
@@ -185,6 +207,9 @@ public sealed class Suggesting : Observable
 
         if (!present)
         {
+            // A composition does not outlive the keyboard leaving the box - and one abandoned
+            // without an end said to the window would otherwise keep Tab and Enter from writing.
+            _composing = false;
             Close();
         }
     }

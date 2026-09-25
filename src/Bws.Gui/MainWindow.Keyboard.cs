@@ -94,7 +94,7 @@ public partial class MainWindow
         {
             return wanted switch
             {
-                Shortcut.OpenDetails => _model.Suggesting.IsOpen ? Shortcut.TakeSuggestion : Shortcut.None,
+                Shortcut.OpenDetails => _model.Suggesting.CanTake ? Shortcut.TakeSuggestion : Shortcut.None,
                 Shortcut.CompleteWord => _model.Suggesting.TabWrites ? Shortcut.TakeSuggestion : Shortcut.None,
                 Shortcut.CopyRow => Shortcut.None,
                 _ => wanted
