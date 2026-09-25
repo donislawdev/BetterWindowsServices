@@ -182,8 +182,9 @@ a declaration:
 
 ## Two things that are the maintainer's alone
 
-- **The version number.** Raising it is a declaration to users, not housekeeping, and it is not part
-  of any pull request.
+- **The version number.** Raising it is a declaration to users, not housekeeping. It is never part
+  of a contributed pull request - the maintainer raises it in the pull request that prepares a
+  release, together with closing the changelog.
 - **A change to one of the promises above.** They can be discussed in an issue. A pull request that
   quietly relaxes one is closed with a pointer here.
 
