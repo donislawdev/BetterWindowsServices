@@ -16,8 +16,9 @@ namespace Bws.Core;
 /// performance report, backlog 466. Asked several entries at once the same pass cost 19-40 ms over
 /// the same 797 entries on sixteen processors (median 21.5), against 155-167 ms one at a time in the
 /// series just before it. That is a fifth to a third of a listing here, and more of one on a machine
-/// with two processors, where nobody has measured it. Whether that still earns a pass of its own is the owner's question and it
-/// is written down as one, not answered here.
+/// with two processors, where nobody has measured it. Whether that still earns a pass of its own
+/// was put to the owner the same day, and the answer was yes: it stays asked for, so the listing,
+/// the JSON of `list` and the snapshot keep the shape they had.
 ///
 /// <b>It is a DESCRIPTION rather than a measurement, unlike memory</b>, which is why this one may
 /// go into a snapshot and that one may not. Who depends on a service is configuration: it reads
