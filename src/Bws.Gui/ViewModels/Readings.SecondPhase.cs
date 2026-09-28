@@ -230,9 +230,10 @@ internal sealed partial class Readings
     /// <b>Answered by reading the machine again rather than by filling in what is held.</b> The
     /// entries kept from the last full reading are older than the rows on screen - a tick has been
     /// writing statuses into them since - so absorbing them would roll those changes back. Reading
-    /// again costs about a tenth of a second on sixteen processors on top of a pass that costs
-    /// seconds, and it is the
-    /// difference between a fresh answer and a stale one.
+    /// again costs about a tenth of a second on sixteen processors, and it is the difference between
+    /// a fresh answer and a stale one. <b>Since 2026-09-29 that reading keeps what the window knows
+    /// about files</b> (<see cref="Relisting.Keeping"/>, the owner's word), so turning a column on
+    /// no longer verifies every signature again - only F5 does.
     /// </summary>
     internal bool WantsMore() => Asked();
 

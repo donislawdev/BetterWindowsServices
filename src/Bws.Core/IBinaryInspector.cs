@@ -43,4 +43,22 @@ public interface IBinaryInspector
     /// Absent when the path names nothing on disk, denied when it is there and unreadable.
     /// </summary>
     Reading<string> ReadHash(string file);
+
+    /// <summary>
+    /// The inspector ONE pass of the second phase asks through - backlog 468, 2026-09-29.
+    ///
+    /// <b>Whatever an inspector remembers between files lives as long as one pass and no longer.</b>
+    /// The Windows one keeps the publisher of every catalogue it has opened, and the window holds
+    /// one inspector for its whole life - so a catalogue replaced under the same name went on
+    /// showing its old publisher until the window closed, F5 or no F5. Since the same day F5 is
+    /// promised to verify everything again (`ADR-13`, the owner's S-1 decision), which a memory
+    /// older than the F5 would quietly break.
+    ///
+    /// <b>This rather than the caller clearing the memory</b>, because a pass is several threads
+    /// asking at once and the details panel can ask about one entry while a pass is out. A fresh
+    /// inspector per pass shares nothing with the one before it, so there is no moment at which a
+    /// clear could land in the middle of somebody else's question. An inspector that remembers
+    /// nothing answers with itself.
+    /// </summary>
+    IBinaryInspector ForOnePass() => this;
 }

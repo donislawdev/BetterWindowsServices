@@ -69,8 +69,21 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     /// Concurrent because the interface will read this from background threads once there
     /// is an interface. Cheap insurance against a bug that would only ever appear under
     /// load, in a thread nobody is watching.
+    ///
+    /// <b>ONE PASS LONG SINCE 2026-09-29, and until then as long as the window</b> - backlog 468.
+    /// The window holds one inspector for its whole life, so a catalogue replaced under the same
+    /// name showed its old publisher until it closed. Every pass now asks through
+    /// <see cref="ForOnePass"/>, which starts this empty. Whether Windows ever replaces a catalogue
+    /// under the same name is NOT CHECKED - what made it matter is that F5 is promised to verify
+    /// everything again, and a memory older than the F5 would break that promise quietly.
     /// </summary>
     private readonly ConcurrentDictionary<string, string?> _publishers = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A fresh inspector with nothing remembered, for one pass of the second phase - see
+    /// <see cref="IBinaryInspector.ForOnePass"/>. It costs one empty dictionary.
+    /// </summary>
+    public IBinaryInspector ForOnePass() => new WindowsBinaryInspector(networkPaths);
 
     /// <summary>
     /// Whether this file is one nobody asked us to reach for.

@@ -317,9 +317,20 @@ public sealed partial class MainViewModel : Checked
     /// Handed straight on, because the window binds to this class and the state machine behind it
     /// is not something a window should have to know the name of.
     /// </summary>
-    public async Task LoadAsync()
+    public Task LoadAsync() => ReadMachineAsync(Relisting.Afresh);
+
+    /// <summary>
+    /// Reads the machine in full after a plan, keeping what the window already knows about files.
+    ///
+    /// <b>The owner's S-1 decision, 2026-09-28, recorded in `ADR-13`.</b> A plan writes no file and
+    /// no path, so verifying every signature again afterwards could not give a new answer and cost
+    /// seconds on a small machine. F5 stays <see cref="LoadAsync()"/> and verifies everything.
+    /// </summary>
+    public Task LoadKeepingAsync() => ReadMachineAsync(Relisting.Keeping);
+
+    private async Task ReadMachineAsync(Relisting how)
     {
-        await _readings.LoadAsync().ConfigureAwait(true);
+        await _readings.LoadAsync(how).ConfigureAwait(true);
 
         // THE MACHINE OVERVIEW IS COUNTED FROM THE LISTING, AND THE LISTING ARRIVES AFTER THE WINDOW
         // DOES. Without this line every number on that screen is zero and stays zero: it is worked
