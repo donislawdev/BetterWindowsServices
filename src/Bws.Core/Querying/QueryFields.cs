@@ -333,8 +333,8 @@ public static class QueryFields
             // and the one services.msc answers only by opening a service and reading a tab.
             //
             // IT DECLARES A FAMILY AND THE ONE ABOVE DOES NOT, which is the whole difference
-            // between the two directions. This takes a call per entry: measured 236-259 ms over
-            // 313 services on 2026-09-05, against 423-500 ms for the entire listing. So it is
+            // between the two directions. This takes a call per entry: measured 148-155 ms over
+            // 797 entries on 2026-09-28, against 107-113 ms for the entire listing. So it is
             // asked for rather than always read, exactly as signatures and memory are.
             //
             // THE FIRST HOP ONLY, which a person reading a member has to know: dependents:spooler

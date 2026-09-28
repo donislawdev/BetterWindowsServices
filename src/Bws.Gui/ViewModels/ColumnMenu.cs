@@ -34,7 +34,7 @@ public sealed class ColumnMenu
 {
     private readonly ColumnChoice? _choice;
 
-    internal ColumnMenu(string columnId, ColumnChoice? choice, Func<string> read, Action<string> write)
+    internal ColumnMenu(string columnId, ColumnChoice? choice, Func<QueryAsTyped> read, Action<string> write)
     {
         ArgumentNullException.ThrowIfNull(columnId);
 

@@ -38,9 +38,11 @@ internal sealed partial record CommandLine
     /// <summary>
     /// Read who signed each binary, which the listing does not do by default.
     ///
-    /// Measured at 4620-7656 ms over 810 entries and 544 distinct files, against 476-551 ms
-    /// for the rest of a listing, so it is asked for rather than assumed. A query about
-    /// signatures turns it on by itself - somebody who wrote signed:no has already asked.
+    /// Measured 2026-09-28 at about 12 s of processor over 797 entries and 531 distinct files -
+    /// 1.0-1.2 s of clock on sixteen processors, 4.3-5.0 s on two - against 136-144 ms for the
+    /// cold reading of the manager every command makes. (It was 4620-7656 ms on 2026-08-01, one
+    /// file at a time.) So it is asked for rather than assumed. A query about signatures turns it
+    /// on by itself - somebody who wrote signed:no has already asked.
     ///
     /// The spread is wider than most whole operations here, which is itself the point: one
     /// run of this tells nobody anything.
@@ -106,8 +108,9 @@ internal sealed partial record CommandLine
     /// <summary>
     /// Whether the listing should go and read who depends on each entry.
     ///
-    /// Asked for rather than always read: a call per entry, measured at 236-259 ms over 313
-    /// services on 2026-09-05, against 423-500 ms for the whole listing. A query naming the
+    /// Asked for rather than always read: a call per entry, measured 2026-09-28 at 148-155 ms over
+    /// 797 entries, against 107-113 ms for the whole reading on sixteen processors - more than the
+    /// listing it sits behind. A query naming the
     /// field turns it on by itself, exactly as one about signatures or memory does.
     /// </summary>
     internal bool RequiredBy { get; private init; }

@@ -331,7 +331,11 @@ public sealed class PlanViewGuards
     [Fact]
     public async Task Every_word_on_the_panel_can_be_read_on_the_surface_it_is_drawn_on()
     {
-        var window = await Ready();
+        // WITH THE DRIVER, OR THE SENTENCE TEMPLATE IS NEVER BUILT. Since the warnings got their own
+        // template (PR 17) the plain sentence template draws only the problem list, and a plan over
+        // two services has no problems - so its colour could go and this guard stayed green, which
+        // the full gate before 0.3.0 caught as a mutation nobody killed (backlog 464).
+        var window = await Ready(withTheDriver: true);
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
         Assert.True(await WpfHost.On(() => window.Preview(ActionKind.Stop)));
@@ -379,6 +383,7 @@ public sealed class PlanViewGuards
         Assert.True(read.Count(line => !string.IsNullOrWhiteSpace(line)) >= 5, "Too few lines were found on the panel, so nothing was measured.");
         Assert.Contains(WpfHost.On(() => model.Planned.Heading.Text), read);
         Assert.Contains(WpfHost.On(() => model.Planned.Steps[0].Text), read);
+        Assert.Contains(WpfHost.On(() => model.Planned.Problems[0]), read);
 
         Assert.True(
             thin.Count == 0,
@@ -472,7 +477,7 @@ public sealed class PlanViewGuards
         return part <= 0.04045 ? part / 12.92 : Math.Pow((part + 0.055) / 1.055, 2.4);
     }
 
-    private static async Task<MainWindow> Ready()
+    private static async Task<MainWindow> Ready(bool withTheDriver = false)
     {
         var machine = new LiveMachine(
             Rows.Entry("Spooler", "Print Spooler"),
@@ -480,7 +485,14 @@ public sealed class PlanViewGuards
             Rows.Entry("Dnscache", "DNS Client"),
             Rows.Driver("amdkmdag"));
 
-        var model = new MainViewModel(machine, new SteppedClock());
+        // THE DRIVER IS ON THE LIST ONLY WHEN ASKED FOR, because the Services list is the default and
+        // most of this file is about the panel over services. Over Everything it is picked beside the
+        // two services, and the core refuses every action on a driver (PlanBuilder.RefusedOnSight) -
+        // which is the one sure way to put a sentence into the problem section.
+        var model = new MainViewModel(machine, new SteppedClock())
+        {
+            Scope = withTheDriver ? EntryScope.Everything : EntryScope.Services
+        };
 
         await model.LoadAsync();
 
@@ -495,6 +507,11 @@ public sealed class PlanViewGuards
             window.Entries.ItemsSource = model.Rows;
             window.Entries.SelectedItem = model.Rows.First(row => row.ServiceName == "Spooler");
             window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "W32Time"));
+
+            if (withTheDriver)
+            {
+                window.Entries.SelectedItems.Add(model.Rows.First(row => row.ServiceName == "amdkmdag"));
+            }
         });
 
         WpfHost.Settled();

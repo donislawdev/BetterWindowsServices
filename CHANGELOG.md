@@ -11,6 +11,12 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Changed
+
+- A minimised window no longer reads the list of services every second. It reads it again the
+  moment it is restored, so the list is current as soon as it is on screen. A window started
+  minimised, from a shortcut set to "Run: Minimized", reads it once and then waits the same way.
+
 ## [0.3.0] - 2026-09-25
 
 ### Added

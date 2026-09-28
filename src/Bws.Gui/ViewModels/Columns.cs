@@ -315,7 +315,8 @@ internal static partial class Columns
             ShownAtFirst = false,
 
             // The same family as the signature and the version beside it, because one pass fills
-            // all three - SecondPass reads the file once and writes the three answers it found.
+            // all three - SecondPass asks for the three answers of each file together. NOT from one
+            // opening of the file, which this said until 2026-09-28: each answer opens it on its own.
             Needs = ExtraRead.Signatures,
             Reads = entry => CellFaces.Say(entry.BinaryHash, value => value),
             Outcome = entry => entry.BinaryHash.Outcome
@@ -419,8 +420,8 @@ internal static partial class Columns
             // something. "What needs this" is asked before stopping something, and it is the only
             // one of the two that can talk somebody out of an action.
             //
-            // IT IS THE ONLY COLUMN IN THIS CATALOGUE THAT COSTS A CALL PER ENTRY - 236-259 ms
-            // over 313 services, measured 2026-09-05, against 423-500 ms for the whole listing. So
+            // IT IS THE ONLY COLUMN IN THIS CATALOGUE THAT COSTS A CALL PER ENTRY - 148-155 ms
+            // over 797 entries, measured 2026-09-28, against 107-113 ms for the whole listing. So
             // it declares a family and is read when somebody turns it on, exactly as the four
             // signature columns and the memory column are.
             Id = "requiredBy",

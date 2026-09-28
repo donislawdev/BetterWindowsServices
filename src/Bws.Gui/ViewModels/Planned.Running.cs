@@ -122,7 +122,7 @@ public sealed partial class Planned
         _step = Texts.Of(
             "gui.plan.progress",
             number,
-            _plan?.Steps.Count() ?? 0,
+            _stepsInPlan,
             PlanWords.Word(step.Operation),
             step.ServiceName);
 

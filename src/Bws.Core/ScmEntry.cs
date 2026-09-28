@@ -145,10 +145,10 @@ public sealed record ScmEntry
     /// <b>NOT free, which is the whole reason it is a family of its own.</b> The declaration above
     /// arrives in the configuration structure the start type comes from and costs nothing. This
     /// takes a call PER ENTRY: the manager is asked, one service at a time, who is standing on it.
-    /// Measured on this machine on 2026-09-05 through the same Win32 call reached from .NET,
-    /// five runs with the first discarded: <b>236-259 ms over 313 services, 784 dependents found,
-    /// nothing refused</b>. That is the size of the whole listing again - 423-500 ms over 810
-    /// entries - so paying it on every F5 for a column that is off by default is exactly the trade
+    /// Measured on this machine on 2026-09-28 through the product's own pass, five runs with the
+    /// first discarded: <b>148-155 ms over 797 entries</b>. That is more than the whole listing
+    /// again - 107-113 ms over the same entries - so paying it on every F5 for a column that is
+    /// off by default is exactly the trade
     /// `ADR-13` refuses. It is read when somebody asks, and <see cref="Querying.ExtraRead.RequiredBy"/> is
     /// how they ask.
     ///
@@ -236,11 +236,11 @@ public sealed record ScmEntry
     ///
     /// The first field whose ordinary state in a plain listing is
     /// <see cref="ReadOutcome.NotRead"/>, and the first one that earns it. Measured on a
-    /// real machine on 2026-08-01, seven runs with the first discarded as cold: verifying
-    /// 544 distinct files costs 4620-7656 ms, median 4882, against 476-551 ms for everything
-    /// the listing does otherwise. Reading it every time would put the listing five to eight
-    /// times over its one second budget - a range rather than a figure, because the spread
-    /// of this one operation is wider than the whole of the rest of the listing.
+    /// real machine on 2026-08-01, one file at a time: 4620-7656 ms over 544 files. Measured again
+    /// on 2026-09-28, several at a time as it now runs: about 12 s of processor over 531 files -
+    /// 1.0-1.2 s of clock on sixteen processors and 4.3-5.0 s on two - against 107-113 ms for
+    /// everything else the listing does. Reading it every time would put a listing on a
+    /// two-processor machine four to five times over its one second budget.
     ///
     /// That is what ADR-13 was written for. Triggers and launch paths both looked like they
     /// would need it and both turned out cheap enough not to - this is the family where the
@@ -269,10 +269,12 @@ public sealed record ScmEntry
     /// <summary>
     /// The version <see cref="BinaryFile"/> claims for itself.
     ///
-    /// Cheap on its own - 0.27 s across the same 544 files - and read in the same pass
-    /// anyway, because it comes from a file that has just been opened for the signature.
-    /// Splitting it out would mean walking every binary on the machine twice to save a
-    /// quarter of a second on a step that already costs three.
+    /// Cheap on its own - 0.27 s across the same 544 files one at a time, and about 4% of the
+    /// pass's processor on 2026-09-28 - and read in the same pass as the signature. <b>Not from
+    /// the same opening of the file</b>, which is what this said until the external performance
+    /// report of 2026-09-28 read the code: each of the three answers opens the file on its own.
+    /// Whether the version and the hash should be a family of their own is the owner's open
+    /// decision, because it changes what the JSON carries - not a cost this comment can settle.
     ///
     /// Absent for a file with no version resource, which is ordinary rather than missing.
     /// </summary>
@@ -285,10 +287,10 @@ public sealed record ScmEntry
     /// for the file, and this says whether it is byte for byte the same file. A binary
     /// swapped for another one signed by the same publisher changes this and nothing else.
     ///
-    /// Read alongside the signature rather than on its own, because both open the same file
-    /// and walking every binary on the machine twice would cost more than the hash does.
-    /// Measured on 2026-08-01: 0.52 s across 544 distinct files totalling 368 MB, against
-    /// 4620-7656 ms for the signatures in the same pass.
+    /// Read in the same pass as the signature, though NOT from the same opening of the file - each
+    /// answer opens it on its own, which this said the other way round until 2026-09-28. Measured on
+    /// 2026-08-01: 0.52 s across 544 distinct files totalling 368 MB one at a time, and on 2026-09-28
+    /// about 6% of the pass's processor.
     /// </summary>
     public required Reading<string> BinaryHash { get; init; }
 

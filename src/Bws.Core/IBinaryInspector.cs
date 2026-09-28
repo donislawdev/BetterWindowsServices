@@ -9,9 +9,9 @@ namespace Bws.Core;
 /// need nothing the manager can grant or refuse. Something that only lists services should
 /// not have to be handed an object that can open and hash every binary on the machine.
 ///
-/// It is also the seam ADR-13 needs. The second pass is expensive - measured at 4620-7656
-/// ms over 810 entries and 544 distinct files, against 476-551 ms for everything the
-/// listing does today - so it has to be possible to build a listing without one of these
+/// It is also the seam ADR-13 needs. The second pass is expensive - about 12 s of processor
+/// over 797 entries and 531 distinct files on 2026-09-28, against 107-113 ms of clock for
+/// everything else the listing does - so it has to be possible to build a listing without one of these
 /// at all.
 /// </summary>
 public interface IBinaryInspector

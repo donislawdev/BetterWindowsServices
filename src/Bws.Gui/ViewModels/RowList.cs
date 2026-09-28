@@ -168,6 +168,17 @@ public sealed class RowList : ObservableCollection<EntryRow>
             return;
         }
 
+        // ONE RESET INSTEAD OF HUNDREDS OF REMOVALS WAS TRIED HERE AND DID NOTHING - backlog 153,
+        // measured 2026-08-11. Swapping 764 separate removals for one reset left the keystroke at the
+        // same 143 ms in the window, because this method and the filter together are under 3 ms and
+        // about 140 ms is the list's own reaction to any change at all. It was taken back, since it
+        // also broke the promise above about selection and scroll for no measured gain. Written here
+        // because the idea is obvious from this code alone - the external performance report of
+        // 2026-09-28 proposed it again for that reason. What is still open is where the 140 ms goes.
+
+        // BUILT ON EVERY CALL, the tick included - unlike `present` below, which waits until
+        // something is out of place. About eight hundred hash insertions a second on a quiet machine
+        // (G-14 of the same report), judged too small to be worth a second code path.
         var keeping = new HashSet<EntryRow>(wanted);
 
         for (var index = Count - 1; index >= 0; index--)

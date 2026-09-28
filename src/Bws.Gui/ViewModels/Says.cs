@@ -350,7 +350,7 @@ public sealed class Says : Observable
     /// <b>The quieter of the two, and second in the order for that reason.</b> An action's refusal is
     /// about what just failed - newer news than a file read before the window appeared. (A query
     /// problem stood in this order too until 2026-09-23, and has a line of its own now.) It outlives the first tick
-    /// on purpose: the reading finishes in half a second, and a sentence gone by then is a
+    /// on purpose: the reading finishes in a fraction of a second, and a sentence gone by then is a
     /// sentence nobody was given.
     ///
     /// Rule 8 in the one place a window can break it without anything looking wrong. A layout half

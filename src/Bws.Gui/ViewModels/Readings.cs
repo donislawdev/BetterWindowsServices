@@ -84,6 +84,15 @@ internal sealed partial class Readings
     private readonly Action _changed;
 
     /// <summary>
+    /// That the second pass is setting out, which changes one sentence and nothing else.
+    ///
+    /// <b>Its own callback since 2026-09-28</b> - G-11 of the external performance report. The pass
+    /// used to announce itself through <see cref="_settled"/>, which recuts the scope and runs the
+    /// query again over entries the reading just before it had already narrowed and shown.
+    /// </summary>
+    private readonly Action _announce;
+
+    /// <summary>
     /// Whether the window this reads for has gone.
     ///
     /// <b>BACKLOG 300, AND WHAT IT DOES AND DOES NOT BUY IS WRITTEN AT <see cref="NoLongerWanted"/>
@@ -126,6 +135,7 @@ internal sealed partial class Readings
         Func<Says> look,
         Action settled,
         Action changed,
+        Action announce,
         IBinaryInspector? inspector = null,
         IProcessMemoryReader? reader = null,
         Func<ExtraRead>? wanted = null)
@@ -138,6 +148,7 @@ internal sealed partial class Readings
         _look = look;
         _settled = settled;
         _changed = changed;
+        _announce = announce;
     }
 
     /// <summary>Whether the last reading failed outright.</summary>
@@ -258,8 +269,9 @@ internal sealed partial class Readings
     /// none of them, and a test can call it whenever it likes instead of waiting for seconds
     /// to pass.
     ///
-    /// The cheap reading measures 13-22 ms over 810 entries against 423-500 ms for a full one,
-    /// which is what makes asking once a second reasonable rather than rude.
+    /// The cheap reading measured 12.5-16.9 ms (p95) over 797 entries across an hour of ticks on
+    /// 2026-09-28, against 107-113 ms for a full one, which is what makes asking once a second
+    /// reasonable rather than rude.
     /// </summary>
     internal async Task RefreshAsync()
     {

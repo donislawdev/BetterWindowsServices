@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Bws.Core;
 using Bws.Core.Planning;
+using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
 
@@ -185,8 +186,12 @@ public static partial class Catalogue
     }
 
     /// <summary>A row of chips lit by a query, the way the filter row lights them.</summary>
-    private static IReadOnlyList<FilterChip> Chips(string query, string field, params (string Key, string Value)[] members) =>
-        [.. members.Select(member => new FilterChip(member.Key, field, member.Value, negated: false, () => query, _ => { }))];
+    private static IReadOnlyList<FilterChip> Chips(string query, string field, params (string Key, string Value)[] members)
+    {
+        var typed = QueryAsTyped.Of(query);
+
+        return [.. members.Select(member => new FilterChip(member.Key, field, member.Value, negated: false, () => typed, _ => { }))];
+    }
 
     /// <summary>
     /// The keyed templates of the theme files, each drawn over its specimen - one group per file,

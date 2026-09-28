@@ -90,8 +90,9 @@ public sealed class BulkPlanBuilder(
     /// not the order, which was harmless, but the question asked to work it out:
     /// <see cref="DependentsFirst.Order"/> spends one <c>ReadDependents</c> per name, and each of
     /// those opens the manager and then the service. Selecting three hundred entries and asking to
-    /// disable them paid three hundred round trips to the manager, on the thread drawing the
-    /// window, to sort a list whose order did not matter.
+    /// disable them paid three hundred round trips to the manager - on the thread drawing the
+    /// window, as working out a plan then was, until 2026-09-03 - to sort a list whose order did
+    /// not matter.
     ///
     /// <b>A setting that carries a stop goes back to the ordered side (2026-09-24).</b> Then each
     /// plan does take its entry down, and two selected entries where one depends on the other have

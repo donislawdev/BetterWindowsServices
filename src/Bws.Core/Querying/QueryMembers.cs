@@ -127,31 +127,12 @@ public static class QueryMembers
     }
 
     /// <summary>
-    /// Whether the text already carries this member, on this side.
-    ///
-    /// <b>MEMBER BY MEMBER WHEN THE WHOLE LINE DOES NOT PARSE - UX-GUI-002, 2026-09-23.</b> Until
-    /// then a mistake anywhere in the line meant no member counted, so in
-    /// <c>status:running pid:abc</c> the chip for Running went dark over its own member, and
-    /// clicking it wrote a second copy on the end. The whole line is still asked first, because
-    /// that is the reading that folds repeated fields - and a line that cannot be taken apart at
-    /// all, an unclosed quote, carries nothing, for the reason <see cref="Without"/> gives.
+    /// Whether the text already carries this member, on this side - for one question about one
+    /// text. Anything asking several questions of the same text keeps a <see cref="QueryAsTyped"/>
+    /// instead, which is where the answer and its argument live.
     /// </summary>
-    public static bool Carries(string? text, string field, string value, bool negated)
-    {
-        var parsed = QueryParser.Parse(text, QueryInput.BeingTyped);
-
-        if (parsed.IsValid)
-        {
-            return parsed.Query!.Carries(field, value, negated);
-        }
-
-        if (string.IsNullOrEmpty(text) || !QueryScanner.TryScan(text, out _, out var spans, out _))
-        {
-            return false;
-        }
-
-        return spans.Exists(span => Is(text[span], field, value, negated));
-    }
+    public static bool Carries(string? text, string field, string value, bool negated) =>
+        QueryAsTyped.Of(text).Carries(field, value, negated);
 
     /// <summary>How this member is written when a chip puts it there.</summary>
     public static string Member(string field, string value, bool negated) =>

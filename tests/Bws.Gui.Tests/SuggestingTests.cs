@@ -376,7 +376,7 @@ public sealed class SuggestingTests
         // opposite of what writing the value would do. No such chip exists in the row today, so
         // one is built here to hold the rule.
         var excluding = new Suggesting(
-            () => [new FilterChip("gui.filter.stopped", "type", "driver", negated: true, () => string.Empty, _ => { })],
+            () => [new FilterChip("gui.filter.stopped", "type", "driver", negated: true, () => QueryAsTyped.Of(string.Empty), _ => { })],
             () => QueryExamples.All);
 
         excluding.Keyboard(present: true);

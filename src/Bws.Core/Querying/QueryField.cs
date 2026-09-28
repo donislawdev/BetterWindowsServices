@@ -40,18 +40,18 @@ public enum ExtraRead
 {
     None = 0,
 
-    /// <summary>Who signed each binary. Measured at 4620-7656 ms over 810 entries.</summary>
+    /// <summary>Who signed each binary. About 12 s of processor over 797 entries, measured 2026-09-28.</summary>
     Signatures = 1,
 
     /// <summary>What each running process is using. Measured at under a millisecond over 110 processes.</summary>
     Memory = 2,
 
     /// <summary>
-    /// Who breaks if each entry stops. Measured at 236-259 ms over 313 services on 2026-09-05.
+    /// Who breaks if each entry stops. Measured at 148-155 ms over 797 entries on 2026-09-28.
     ///
     /// <b>The third family, and the one that shows why this was flags rather than a yes-or-no from
-    /// the start.</b> It sits between the other two - two hundred and fifty milliseconds against
-    /// under one and against seven and a half seconds - so a query about dependents must not send
+    /// the start.</b> It sits between the other two - a hundred and fifty milliseconds against
+    /// under one and against twelve seconds of processor - so a query about dependents must not send
     /// the window to open eight hundred binaries, and a question about signatures must not walk the
     /// manager service by service. Each caller asks for what it needs and gets only that, which
     /// <c>Readings.Fill</c> honours one flag at a time.

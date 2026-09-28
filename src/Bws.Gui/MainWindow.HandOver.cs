@@ -42,7 +42,14 @@ public partial class MainWindow
             await TakeOverAsync(handed.Carried, handed.Refused).ConfigureAwait(true);
         }
 
-        _timer.Start();
+        // ONLY IF SOMEBODY CAN SEE IT - a window started minimised reads the machine once and waits
+        // to be looked at, and coming back starts the timer with a tick (WatchWhileSeen).
+        _looked = true;
+
+        if (Seen)
+        {
+            _timer.Start();
+        }
     }
 
     /// <summary>

@@ -236,7 +236,7 @@ public partial class MainWindow
         var model = new ColumnMenu(
             id,
             _columns.Choices.FirstOrDefault(choice => choice.Column.Id == id),
-            () => _model.QueryText,
+            _model.AsTyped,
 
             // The PROPERTY rather than the field, which is the same door a chip and a keystroke go
             // through: the setter is what parses the query, applies it and tells the list.

@@ -73,10 +73,12 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
     /// old way has nothing to compare against. Nothing in the product passes it.
     ///
     /// <b>Why this is parallel at all, measured rather than assumed.</b> The same loop over
-    /// the same 810 entries costs 13-22 ms without opening a handle per entry and 455-475 ms
-    /// with - so about 440 ms of a listing is spent waiting on the manager, one entry at a
-    /// time, while fifteen processors do nothing. It is the same shape `ADR-22` already found
-    /// in signature verification, one layer down.
+    /// the same 810 entries cost 13-22 ms without opening a handle per entry and 455-475 ms
+    /// with, before it was parallel - so about 440 ms of a listing was spent waiting on the
+    /// manager, one entry at a time, while fifteen processors did nothing. It is the same shape
+    /// `ADR-22` already found in signature verification, one layer down. Measured again on
+    /// 2026-09-28 over 797 entries, with the descriptions read here since: 13.3-14.7 ms for the
+    /// enumeration, 721-739 ms one entry at a time and 107-113 ms as it runs.
     ///
     /// <b>Order is held by index, not by collecting and sorting afterwards.</b> Each entry
     /// writes into the slot it came from, so the answer is identical to the sequential one by
@@ -301,7 +303,7 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
             // Filled in by RequiredByPass, and only when asked - the OTHER direction of DependsOn
             // three fields up, and the reason the two sit apart. That one arrives inside this same
             // configuration structure and is free. This one is a call per entry, measured at
-            // 236-259 ms over 313 services, which is the whole listing again.
+            // 148-155 ms over 797 entries on 2026-09-28, which is more than the whole listing again.
             RequiredBy = Reading<IReadOnlyList<string>>.NotRead()
         };
     }
@@ -378,7 +380,8 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
 
             // On this handle rather than in the second pass, and that is a measurement rather
             // than a convenience: the whole description family costs 212-223 ms over 819 entries,
-            // which is the privileges' order of magnitude and not the signatures' 4620-7656 ms.
+            // which is the privileges' order of magnitude and not the signatures' twelve seconds
+            // of processor.
             Description = ScmDetailReader.ReadDescription(service)
         };
 

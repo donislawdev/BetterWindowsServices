@@ -221,7 +221,7 @@ public sealed class EntryRow : Observable
     /// than a value: a computed cell answers correctly whenever it is asked, so asking it proves
     /// nothing about whether anybody was told to ask.
     /// </summary>
-    private const string EveryCell = "Item[]";
+    internal const string EveryCell = "Item[]";
 
     /// <summary>When this row last moved, for whoever is clearing the highlight.</summary>
     internal DateTimeOffset ChangedAt { get; private set; }
@@ -297,14 +297,19 @@ public sealed class EntryRow : Observable
     {
         var qualifies = StartQualifiers.Of(entry);
 
+        // Worked out once and used twice - to decide whether the row moved and then to show it.
+        // Until 2026-09-28 each was worked out again below (G-11 of the external performance report).
+        var startType = CellFaces.StartLabel(entry, qualifies);
+        var account = SystemAccounts.Shown(entry.Account);
+
         // Compared against what the row currently SHOWS rather than against the entry behind
         // it. The two are the same thing said twice, and the shown form is the one that now
         // carries the qualifiers - so a file going missing under a service counts as the row
         // moving, which it is.
         var moved = _entry.Status != entry.Status
             || !SameProcess(_entry.ProcessId, entry.ProcessId)
-            || CellFaces.StartLabel(entry, qualifies) != _startType
-            || SystemAccounts.Shown(entry.Account) != _account
+            || startType != _startType
+            || account != _account
             || _entry.DisplayName != entry.DisplayName;
 
         _entry = entry;
@@ -314,8 +319,8 @@ public sealed class EntryRow : Observable
         StartShape = CellFaces.StartShape(entry, qualifies);
         AgainstShape = CellFaces.AgainstShape(entry.RunsAgainstItsStartType);
 
-        _startType = CellFaces.StartLabel(entry, qualifies);
-        _account = SystemAccounts.Shown(entry.Account);
+        _startType = startType;
+        _account = account;
 
         // UNCONDITIONAL, AND THAT IS NOT LAZINESS - IT IS THE ONLY HONEST ANSWER HERE. The five
         // comparisons above decide whether the row MOVED, which is a question about what a person

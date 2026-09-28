@@ -75,7 +75,9 @@ internal sealed partial class Readings
 
         // Said before the work rather than after it, or the one state this announces would be
         // announced only once it had stopped being true - the same argument as the reading above.
-        _settled();
+        // The sentence only, since 2026-09-28: the entries have not moved since the reading that
+        // handed them here narrowed and showed them (G-11, _announce).
+        _announce();
 
         IReadOnlyList<ScmEntry> filled;
 
@@ -170,9 +172,10 @@ internal sealed partial class Readings
             filled = MemoryPass.Fill(filled, _reader!);
         }
 
-        // THE THIRD FAMILY, 2026-09-06, and it sits between the other two in price: 236-259 ms over
-        // 313 services against under a millisecond for memory and seven and a half seconds for
-        // signatures. Last because it is the only one that goes back to the manager, so a run that
+        // THE THIRD FAMILY, 2026-09-06, and it sits between the other two in price: 148-155 ms over
+        // 797 entries against under a millisecond for memory and about twelve seconds of processor
+        // for signatures (2026-09-28). Last because it is the only one that goes back to the
+        // manager, so a run that
         // wants all three has already finished with the files and the processes by the time it
         // starts walking services one at a time.
         if (wanted.HasFlag(ExtraRead.RequiredBy))
@@ -227,7 +230,8 @@ internal sealed partial class Readings
     /// <b>Answered by reading the machine again rather than by filling in what is held.</b> The
     /// entries kept from the last full reading are older than the rows on screen - a tick has been
     /// writing statuses into them since - so absorbing them would roll those changes back. Reading
-    /// again costs about half a second on top of a pass that costs seconds, and it is the
+    /// again costs about a tenth of a second on sixteen processors on top of a pass that costs
+    /// seconds, and it is the
     /// difference between a fresh answer and a stale one.
     /// </summary>
     internal bool WantsMore() => Asked();
