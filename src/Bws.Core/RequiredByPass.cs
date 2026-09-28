@@ -12,6 +12,13 @@ namespace Bws.Core;
 /// nobody had asked for. That is exactly the trade `ADR-13` refuses, and it is the same argument
 /// <see cref="MemoryPass"/> and <see cref="SecondPass"/> each make with a different number.
 ///
+/// <b>The number got smaller on 2026-09-29 and the argument with it</b> - S-5 of the external
+/// performance report, backlog 466. Asked several entries at once the same pass cost 19-40 ms over
+/// the same 797 entries on sixteen processors (median 21.5), against 155-167 ms one at a time in the
+/// series just before it. That is a fifth to a third of a listing here, and more of one on a machine
+/// with two processors, where nobody has measured it. Whether that still earns a pass of its own is the owner's question and it
+/// is written down as one, not answered here.
+///
 /// <b>It is a DESCRIPTION rather than a measurement, unlike memory</b>, which is why this one may
 /// go into a snapshot and that one may not. Who depends on a service is configuration: it reads
 /// the same twice in a row and changes when somebody changes the machine, which is precisely what
@@ -45,17 +52,56 @@ public static class RequiredByPass
     /// is given, because every caller has the whole listing at this point and a second rule about
     /// when filtering is allowed would be a rule nobody could check.
     /// </summary>
-    public static IReadOnlyList<ScmEntry> Fill(IReadOnlyList<ScmEntry> entries, IScmCatalog catalog)
+    public static IReadOnlyList<ScmEntry> Fill(IReadOnlyList<ScmEntry> entries, IScmCatalog catalog) =>
+        Fill(entries, catalog, DefaultDegreeOfParallelism);
+
+    /// <summary>
+    /// How many entries are asked about at once when nobody says otherwise.
+    ///
+    /// The processor count, the answer the listing and <see cref="SecondPass"/> each arrived at by
+    /// sweeping. <b>This pass was NOT swept</b> - it was measured at sixteen, on one machine with
+    /// sixteen processors, and nowhere else.
+    /// </summary>
+    public static int DefaultDegreeOfParallelism => Environment.ProcessorCount;
+
+    /// <summary>
+    /// The same, with the number of entries asked about at once given rather than defaulted.
+    ///
+    /// <b>It is a parameter because the guard needs it</b>, the argument written on
+    /// <see cref="SecondPass"/>: "threads changed no answer" can only be checked by running both
+    /// ways. Nothing in the product passes it.
+    ///
+    /// <b>Several at once since 2026-09-29, and each call still opens its own manager handle.</b>
+    /// Both were measured side by side on 2026-09-28 over 797 entries with
+    /// tools/scm-probe/required-by-timing.ps1: one after another 148-155 ms, this 15-16 ms, and every
+    /// thread sharing ONE handle 23-24 ms - slower, not faster, which is the opposite of what the
+    /// report proposed and of what the listing does with its own handle. So the catalogue is not
+    /// touched.
+    ///
+    /// <b>Order is held by index</b>, the same way the listing holds it: each answer lands in the slot
+    /// its entry came from, so the answer is the sequential one by construction. <b>What a caller
+    /// must now bring</b> is a catalogue that can be asked from several threads at once. The Windows
+    /// one opens a handle per call and keeps its last error per thread. An exception from a catalogue
+    /// arrives wrapped in an AggregateException rather than as itself, and nothing catches one here
+    /// by type, since the Windows catalogue answers a refusal rather than throwing it.
+    /// </summary>
+    public static IReadOnlyList<ScmEntry> Fill(
+        IReadOnlyList<ScmEntry> entries, IScmCatalog catalog, int degreeOfParallelism)
     {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentOutOfRangeException.ThrowIfLessThan(degreeOfParallelism, 1);
 
-        var filled = new List<ScmEntry>(entries.Count);
+        var filled = new ScmEntry[entries.Count];
 
-        foreach (var entry in entries)
-        {
-            filled.Add(entry with { RequiredBy = catalog.ReadDependents(entry.ServiceName) });
-        }
+        Parallel.For(
+            0,
+            entries.Count,
+            new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism },
+            index => filled[index] = entries[index] with
+            {
+                RequiredBy = catalog.ReadDependents(entries[index].ServiceName)
+            });
 
         return filled;
     }

@@ -14,25 +14,8 @@ namespace Bws.Core.Planning;
 /// bulk operations, where there are independent things to run - here the whole plan is one
 /// service and its cascade, which is a chain by construction.
 /// </summary>
-public sealed class PlanRunner(IScmControl control, IClock clock)
+public sealed partial class PlanRunner(IScmControl control, IClock clock)
 {
-    /// <summary>
-    /// How often the entry is asked where it has got to.
-    ///
-    /// Our choice, not the system's, and it carries no correctness: the deadline comes from
-    /// the entry's own wait hint, this only decides how soon we notice. Short because
-    /// somebody is watching a terminal and most stops are over in well under a second, and
-    /// asking is cheap - five calls to the manager (open it, open the entry, close the manager,
-    /// query, close the entry - WindowsScmControl.Read), not the one call this said until
-    /// 2026-09-28.
-    ///
-    /// <b>Measured on the throwaway machine on 2026-09-28, this cadence is most of every wait:</b>
-    /// Spooler and W32Time changed state in 2-50 ms and each step reported 260-289 ms, because the
-    /// first question goes straight after the request, is almost always too early, and the next
-    /// one is a whole cadence later. Backlog 466, S-6 of the external performance report.
-    /// </summary>
-    private static readonly TimeSpan Cadence = TimeSpan.FromMilliseconds(250);
-
     /// <summary>
     /// Runs every step, in order.
     /// </summary>
@@ -210,17 +193,6 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     }
 
     /// <summary>
-    /// Watches an entry on its way, and decides when it has stopped going anywhere.
-    ///
-    /// Two deadlines, and the entry's own comes first. Win32 documents the promise: before
-    /// its wait hint elapses a service will either raise its check point or change state.
-    /// Keeping that promise buys it a fresh wait hint, so an entry that genuinely needs a
-    /// minute gets one. Breaking it is the documented signal that something has gone wrong.
-    /// The cap is ours and only stops a plan hanging a terminal on an entry that reports
-    /// progress it never finishes.
-    /// </summary>
-
-    /// <summary>
     /// Writes a start type, and says where the entry is while it is at it.
     ///
     /// <b>The status is read AFTER rather than before, and it is not there to decide anything.</b>
@@ -239,57 +211,6 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
         return answer.Worked
             ? Result(step, StepOutcome.Succeeded, Where(seen), Holding(seen), Elapsed(started))
             : Refused(step, answer, Where(seen), Holding(seen), started);
-    }
-    private StepResult WaitFor(PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started)
-    {
-        var giveUpAt = started + timeout;
-        var status = EntryStatus.Unknown;
-
-        // Carried alongside the status rather than read again at the end, because the point of it
-        // is the step that gives up: by then the entry is exactly where nobody can act on it, and
-        // the last process seen holding it is the only handle a person has on what to do next.
-        var processId = Reading<int>.NotRead();
-        uint? checkPoint = null;
-        TimeSpan? promisedBy = null;
-
-        while (true)
-        {
-            var answer = control.Read(step.ServiceName);
-
-            if (!answer.Worked)
-            {
-                return Refused(step, answer, status, processId, started);
-            }
-
-            var progress = answer.Progress!.Value;
-            var moved = checkPoint is null || progress.CheckPoint > checkPoint || progress.Status != status;
-
-            status = progress.Status;
-            processId = Holding(answer);
-
-            if (status == target)
-            {
-                return Result(step, StepOutcome.Succeeded, status, processId, Elapsed(started));
-            }
-
-            var now = clock.Elapsed;
-
-            if (moved)
-            {
-                checkPoint = progress.CheckPoint;
-
-                // A wait hint of zero is what an entry reports when it has nothing pending,
-                // so it is not a promise to hold anybody to. Then only our own cap applies.
-                promisedBy = progress.WaitHint > TimeSpan.Zero ? now + progress.WaitHint : null;
-            }
-
-            if (now >= giveUpAt || (promisedBy is not null && now >= promisedBy))
-            {
-                return Result(step, StepOutcome.TimedOut, status, processId, Elapsed(started));
-            }
-
-            clock.Wait(Cadence);
-        }
     }
 
     /// <summary>

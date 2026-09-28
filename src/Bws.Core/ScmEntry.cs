@@ -146,9 +146,10 @@ public sealed record ScmEntry
     /// arrives in the configuration structure the start type comes from and costs nothing. This
     /// takes a call PER ENTRY: the manager is asked, one service at a time, who is standing on it.
     /// Measured on this machine on 2026-09-28 through the product's own pass, five runs with the
-    /// first discarded: <b>148-155 ms over 797 entries</b>. That is more than the whole listing
-    /// again - 107-113 ms over the same entries - so paying it on every F5 for a column that is
-    /// off by default is exactly the trade
+    /// first discarded: <b>148-155 ms over 797 entries</b>, more than the whole listing again -
+    /// 107-113 ms over the same entries. Asked several at once since 2026-09-29 it costs 19-40 ms, a
+    /// fifth to a third of the listing, and paying even that on every F5 for a column that is off
+    /// by default is the trade
     /// `ADR-13` refuses. It is read when somebody asks, and <see cref="Querying.ExtraRead.RequiredBy"/> is
     /// how they ask.
     ///

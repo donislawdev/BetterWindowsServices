@@ -420,8 +420,8 @@ internal static partial class Columns
             // something. "What needs this" is asked before stopping something, and it is the only
             // one of the two that can talk somebody out of an action.
             //
-            // IT IS THE ONLY COLUMN IN THIS CATALOGUE THAT COSTS A CALL PER ENTRY - 148-155 ms
-            // over 797 entries, measured 2026-09-28, against 107-113 ms for the whole listing. So
+            // IT IS THE ONLY COLUMN IN THIS CATALOGUE THAT COSTS A CALL PER ENTRY - 19-40 ms over
+            // 797 entries asked several at once, 2026-09-29, against 107-113 ms for the listing. So
             // it declares a family and is read when somebody turns it on, exactly as the four
             // signature columns and the memory column are.
             Id = "requiredBy",

@@ -172,12 +172,12 @@ internal sealed partial class Readings
             filled = MemoryPass.Fill(filled, _reader!);
         }
 
-        // THE THIRD FAMILY, 2026-09-06, and it sits between the other two in price: 148-155 ms over
-        // 797 entries against under a millisecond for memory and about twelve seconds of processor
-        // for signatures (2026-09-28). Last because it is the only one that goes back to the
-        // manager, so a run that
-        // wants all three has already finished with the files and the processes by the time it
-        // starts walking services one at a time.
+        // THE THIRD FAMILY, 2026-09-06, and it sits between the other two in price: 19-40 ms over
+        // 797 entries since it asks several at once (2026-09-29, 155-167 ms one at a time before),
+        // against under a millisecond for memory and about twelve seconds of processor for
+        // signatures (2026-09-28). Last because it is the only one that goes back to the manager,
+        // so a run that wants all three has already finished with the files and the processes by
+        // the time it starts asking about services.
         if (wanted.HasFlag(ExtraRead.RequiredBy))
         {
             filled = RequiredByPass.Fill(filled, _catalog);

@@ -165,7 +165,8 @@ public sealed class ListingContractTests
     ///
     /// <b>Both halves, because either alone passes over a build that does nothing.</b> A test that
     /// only asked WITH the switch would pass on one that always read them, which is the cost this
-    /// family exists to avoid - a call per entry, measured at 236-259 ms over 313 services. A test
+    /// family exists to avoid - a call per entry, 19-40 ms over 797 entries asked several at once
+    /// (2026-09-29), 236-259 ms over 313 services when it was first measured one at a time. A test
     /// that only checked the field was null without it would pass on one that never reads them at
     /// all.
     ///

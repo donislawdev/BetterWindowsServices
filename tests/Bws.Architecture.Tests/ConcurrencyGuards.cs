@@ -42,6 +42,14 @@ public sealed class ConcurrencyGuards
             "The publisher cache the pass above reads from several threads at once. A plain " +
             "dictionary here would be the quiet kind of race: right on most runs.",
 
+        ["RequiredByPass.cs"] =
+            "Asking who depends on each entry several entries at a time, added 2026-09-29 (S-5 of " +
+            "the external performance report). One at a time it measured 155-167 ms over 797 " +
+            "entries and several at once 19-40 ms, in the same series. Each call opens its own " +
+            "manager handle, because one handle shared by every thread measured slower. Order is " +
+            "held by index, and RequiredByPassParallelTests holds both halves: every answer in its " +
+            "own entry against a single-threaded run, and the questions really going out together.",
+
         ["Readings.cs"] =
             "Reading the manager off the interface thread, because a full reading takes about " +
             "half a second and a window that stops answering for half a second looks broken. " +

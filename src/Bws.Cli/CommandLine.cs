@@ -108,9 +108,9 @@ internal sealed partial record CommandLine
     /// <summary>
     /// Whether the listing should go and read who depends on each entry.
     ///
-    /// Asked for rather than always read: a call per entry, measured 2026-09-28 at 148-155 ms over
-    /// 797 entries, against 107-113 ms for the whole reading on sixteen processors - more than the
-    /// listing it sits behind. A query naming the
+    /// Asked for rather than always read: a call per entry, several at once since 2026-09-29 -
+    /// 19-40 ms over 797 entries on sixteen processors, against 107-113 ms for the whole reading and
+    /// 155-167 ms when it asked one at a time. A query naming the
     /// field turns it on by itself, exactly as one about signatures or memory does.
     /// </summary>
     internal bool RequiredBy { get; private init; }

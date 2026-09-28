@@ -154,8 +154,10 @@ public sealed class PlanRunnerTests
 
         Assert.Equal(StepOutcome.Succeeded, Assert.Single(run.Results).Outcome);
 
-        // Twice the hint it first gave, spent on an entry that kept saying it was working.
-        Assert.Equal(TimeSpan.FromSeconds(10), clock.Waited);
+        // More than the five seconds it first asked for, spent on an entry that kept saying it was
+        // working. Said as "more than" since 2026-09-29: this used to be exactly forty looks of a
+        // quarter of a second each, and how often the runner looks is not what this is about.
+        Assert.True(clock.Waited > TimeSpan.FromSeconds(5), $"Waited only {clock.Waited}.");
     }
 
     [Fact]
@@ -175,7 +177,10 @@ public sealed class PlanRunnerTests
 
         // Where it was left, which is the half a person needs to decide what to do next.
         Assert.Equal(EntryStatus.StopPending, result.Status);
-        Assert.Equal(TimeSpan.FromSeconds(2), clock.Waited);
+
+        // The two seconds, and the first look after them - never less, and never a whole cadence
+        // more. A range since 2026-09-29, because the looks stopped landing on whole seconds.
+        Assert.InRange(clock.Waited, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2) + PlanRunner.Cadence);
 
         // AND WHAT IS HOLDING IT THERE, WHICH IS THE OTHER HALF - 2026-09-06. An entry stuck in
         // StopPending will not be moved by asking again, so the process is the only thing left a
@@ -199,7 +204,7 @@ public sealed class PlanRunnerTests
             Plan(ActionKind.Stop, "MRxSmb20", dependents: false), control, clock, TimeSpan.FromSeconds(30));
 
         Assert.Equal(StepOutcome.TimedOut, Assert.Single(run.Results).Outcome);
-        Assert.Equal(TimeSpan.FromSeconds(30), clock.Waited);
+        Assert.InRange(clock.Waited, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30) + PlanRunner.Cadence);
     }
 
     // -- what happens to the rest ----------------------------------------------------------
