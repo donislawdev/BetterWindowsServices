@@ -178,7 +178,7 @@
     dependency on Roslyn, recorded in ADR-15. Nothing that ships carries it.
   -->
   <ItemGroup>
-    <PackageReference Include="Meziantou.Analyzer" Version="3.0.259">
+    <PackageReference Include="Meziantou.Analyzer" Version="3.0.266">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
