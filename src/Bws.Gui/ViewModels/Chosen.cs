@@ -321,6 +321,18 @@ public sealed class Chosen : Observable
 
     private void Moved(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        // ONLY WHAT THE PANEL SHOWS - G-8 of the external performance report of 2026-09-28. A row
+        // raises its shapes and its highlight beside the word for every cell, and the highlight goes
+        // out again three seconds later, so one service starting rebuilt the whole panel up to four
+        // times. Every line of the panel is read from the entry, which only ever changes with the
+        // word for every cell - and the name at the head changes with its own. An empty name means
+        // everything changed, by the framework's own convention, so it rebuilds too.
+        if (!string.IsNullOrEmpty(e.PropertyName)
+            && e.PropertyName is not (EntryRow.EveryCell or nameof(EntryRow.DisplayName)))
+        {
+            return;
+        }
+
         Rebuild();
 
         // THE ROW MOVED, AND A FULL READING MAY HAVE BEEN WHAT MOVED IT - which hands the row a fresh

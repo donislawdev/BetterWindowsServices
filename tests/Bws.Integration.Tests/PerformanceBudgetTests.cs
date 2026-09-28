@@ -125,9 +125,10 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
     ///
     /// <b>This test exists to answer a question the window's design rests on rather than to watch a
     /// number.</b> Building a plan asks the manager who depends on each entry, so a selection of
-    /// twenty costs a question per entry plus one per cascade member - and the window works that out
-    /// on the interface thread, with no background pass, no cancellation and no generation counter.
-    /// That choice was made on a measurement and this is the measurement kept where it can go red.
+    /// twenty costs a question per entry plus one per cascade member. The window worked that out on
+    /// the interface thread until 2026-09-03, when it moved off it with a generation counter
+    /// (PlanBuildingGuards) - and the budget here still stands, because a preview slower than section
+    /// 8.1 allows is late whichever thread is waiting for it.
     ///
     /// <b>What was measured before the code, through the command line, five runs each with the first
     /// discarded:</b> a plan with a thirteen member cascade took 316-360 ms end to end and the same
@@ -192,6 +193,6 @@ public sealed class PerformanceBudgetTests(ITestOutputHelper output)
             $"the {budget.TotalSeconds:F0} s section 8.1 gives this window for an answer. CHECK WHAT " +
             "ELSE WAS RUNNING BEFORE LOOKING AT THE CODE - backlog 200 is about exactly that shape on " +
             "the test above. If the run was alone, the cost has started scaling with the selection, and " +
-            "the window works this out on the thread that draws it.");
+            "the window waits that long for the plan to show.");
     }
 }

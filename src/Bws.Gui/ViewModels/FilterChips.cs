@@ -23,18 +23,22 @@ namespace Bws.Gui.ViewModels;
 /// </summary>
 public sealed class FilterChip : Observable
 {
-    private readonly Func<string> _read;
+    // THE QUERY AS TYPED, NOT THE TEXT, since 2026-09-28 - G-4 of the external performance report.
+    // Sixteen chips each parsing the same line on every keystroke was sixteen of the eighteen parses
+    // one keystroke cost. They still hold nothing: what they read is kept by whoever owns the text,
+    // beside the text and replaced when it differs, so it is the same fact and not a second copy.
+    private readonly Func<QueryAsTyped> _read;
     private readonly Action<string> _write;
     private readonly Func<string> _label;
 
     internal FilterChip(
-        string labelKey, string field, string value, bool negated, Func<string> read, Action<string> write)
+        string labelKey, string field, string value, bool negated, Func<QueryAsTyped> read, Action<string> write)
         : this(() => Texts.Of(labelKey), field, value, negated, read, write)
     {
     }
 
     private FilterChip(
-        Func<string> label, string field, string value, bool negated, Func<string> read, Action<string> write)
+        Func<string> label, string field, string value, bool negated, Func<QueryAsTyped> read, Action<string> write)
     {
         _label = label;
         _read = read;
@@ -64,7 +68,7 @@ public sealed class FilterChip : Observable
     /// ORed by the language - so ticking two shows both, which is what a person expects from a
     /// list of ticks. Excluding is a different gesture and does not have one yet.
     /// </summary>
-    internal static FilterChip Spelled(string field, string value, Func<string> read, Action<string> write) =>
+    internal static FilterChip Spelled(string field, string value, Func<QueryAsTyped> read, Action<string> write) =>
         new(() => value, field, value, negated: false, read, write);
 
     /// <summary>The field this chip constrains, in the language's own spelling.</summary>
@@ -100,13 +104,15 @@ public sealed class FilterChip : Observable
     /// </summary>
     public bool IsOn
     {
-        get => QueryMembers.Carries(_read(), Field, Value, Negated);
+        get => _read().Carries(Field, Value, Negated);
 
         set
         {
+            var text = _read().Text;
+
             _write(value
-                ? QueryMembers.With(_read(), Field, Value, Negated)
-                : QueryMembers.Without(_read(), Field, Value, Negated));
+                ? QueryMembers.With(text, Field, Value, Negated)
+                : QueryMembers.Without(text, Field, Value, Negated));
 
             Rethink();
         }
@@ -118,12 +124,12 @@ public sealed class FilterChip : Observable
     /// Called for every chip whenever the text changes, because one edit can move several of
     /// them - clearing the box turns them all off at once, and a chip that only listened to its
     /// own click would stay lit over a query that no longer says anything about it.
+    ///
+    /// <b>The label is not raised, since 2026-09-28</b> - it cannot change while the window runs
+    /// (there is no switching of language in flight), and raising it made every binding to it read
+    /// the text catalogue again on every keystroke for sixteen chips.
     /// </summary>
-    internal void Rethink()
-    {
-        Raise(nameof(IsOn));
-        Raise(nameof(Label));
-    }
+    internal void Rethink() => Raise(nameof(IsOn));
 }
 
 /// <summary>
@@ -200,7 +206,7 @@ public sealed class FilterBar : Observable
 {
     private readonly IReadOnlyList<FilterChip> _chips;
 
-    internal FilterBar(Func<string> read, Action<string> write)
+    internal FilterBar(Func<QueryAsTyped> read, Action<string> write)
     {
         Groups = FilterChips.Grouped(read, write);
         _chips = [.. Groups.SelectMany(group => group.Chips)];
@@ -261,7 +267,7 @@ internal static class FilterChips
     /// Adding the field is a change to a surface people write scripts against, which is a decision
     /// rather than a slice of this one.
     /// </summary>
-    internal static IReadOnlyList<FilterGroup> Grouped(Func<string> read, Action<string> write) =>
+    internal static IReadOnlyList<FilterGroup> Grouped(Func<QueryAsTyped> read, Action<string> write) =>
     [
         new FilterGroup("gui.filter.group.state",
         [

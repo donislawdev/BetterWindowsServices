@@ -4,10 +4,11 @@ namespace Bws.Core;
 /// Fills in who breaks if each entry stops.
 ///
 /// <b>Its own pass because of one number, and it is the number in the middle.</b> Asking the
-/// manager who depends on an entry takes a call per entry - measured 2026-09-05 through the same
-/// Win32 call reached from .NET, five runs with the first discarded: 236-259 ms over 313 services,
-/// 784 dependents found and nothing refused. The listing this sits behind costs 423-500 ms over
-/// 810 entries, so always running this would roughly double what every F5 costs, for an answer
+/// manager who depends on an entry takes a call per entry - measured 2026-09-28 through this pass
+/// itself, five runs with the first discarded: 148-155 ms over 797 entries, 86 of them with
+/// dependents and 13 refused without rights. (The 236-259 ms over 313 services that stood here from
+/// 2026-09-05 came from a separate probe.) The listing this sits behind costs 107-113 ms over the
+/// same 797 entries, so always running this would more than double what every F5 costs, for an answer
 /// nobody had asked for. That is exactly the trade `ADR-13` refuses, and it is the same argument
 /// <see cref="MemoryPass"/> and <see cref="SecondPass"/> each make with a different number.
 ///

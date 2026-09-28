@@ -84,7 +84,7 @@ public sealed class QueryExampleTests
     [Fact]
     public void The_question_about_what_should_be_running_is_the_one_the_chip_asks()
     {
-        var chip = FilterChips.Grouped(() => string.Empty, _ => { })
+        var chip = FilterChips.Grouped(() => QueryAsTyped.Of(string.Empty), _ => { })
             .SelectMany(group => group.Chips)
             .Single(chip => chip.Label == Texts.Of("gui.filter.shouldRun"));
 

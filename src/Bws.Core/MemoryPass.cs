@@ -5,7 +5,8 @@ namespace Bws.Core;
 ///
 /// Its own pass rather than part of the listing, and the reason is not cost - measured on
 /// 2026-08-01, the whole pass costs 5-8 ms over 810 entries and 110 processes, beside the
-/// 476-551 ms the listing already spends. The calls themselves are under a millisecond and
+/// 476-551 ms the listing spent then (107-113 ms over 797 entries on 2026-09-28, since it reads
+/// several entries at once). The calls themselves are under a millisecond and
 /// the rest is building 810 new records, which is worth separating: the probe measured only
 /// the calls and the figure it gave was wrong by a factor of six.
 ///

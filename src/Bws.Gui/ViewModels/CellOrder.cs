@@ -24,7 +24,9 @@ internal sealed class CellOrder(Column column, bool ascending) : System.Collecti
     /// listing - a few hundred. A new comparer is built for every sort, so nothing here outlives
     /// the order it belongs to. It does hold its rows alive until then, and that is deliberate
     /// rather than overlooked: the rows are held anyway by <see cref="RowIndex"/>, which keeps one
-    /// object per service for as long as the service exists.
+    /// object per service for as long as the service exists. The one exception is a service
+    /// removed while this is the sort - its row stays here until the next sort, one small object per
+    /// removed service (G-14 of the external performance report, 2026-09-28, judged negligible).
     ///
     /// Not thread safe, and it does not need to be. A comparer handed to a ListCollectionView is
     /// only ever called from the thread that owns the view, which is the interface thread.

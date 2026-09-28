@@ -111,7 +111,10 @@ internal sealed class RowIndex
             moved |= _byName[status.ServiceName].Absorb(status, now);
         }
 
-        Fade();
+        // NO FADE HERE SINCE 2026-09-28, which is where it stood beside the window's own on every
+        // tick - G-14 of the external performance report, two walks over every row a second for one
+        // job. The window's tick keeps the other one because it covers more: a tick dropped while a
+        // reading is out never reaches this method, and a highlight must still go out on time.
 
         // Only when something moved. Re-running the filter over 810 entries every second to
         // find out that nothing changed would be the one part of this that is genuinely
@@ -163,7 +166,8 @@ internal sealed class RowIndex
 /// What a cheap reading found, and therefore what the window owes.
 ///
 /// Three answers rather than a boolean, because the two that are not "nothing" are owed very
-/// different things - a filter re-run costs milliseconds and a full reading costs half a second.
+/// different things - a filter re-run costs milliseconds and a full reading about a tenth of a
+/// second, with seconds more when a second phase follows it.
 /// Returned rather than acted on, so the class that knows about queries stays the class that
 /// decides what to do about them.
 /// </summary>

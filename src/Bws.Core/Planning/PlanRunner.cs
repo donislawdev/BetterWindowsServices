@@ -22,7 +22,14 @@ public sealed class PlanRunner(IScmControl control, IClock clock)
     /// Our choice, not the system's, and it carries no correctness: the deadline comes from
     /// the entry's own wait hint, this only decides how soon we notice. Short because
     /// somebody is watching a terminal and most stops are over in well under a second, and
-    /// asking costs one call to the manager.
+    /// asking is cheap - five calls to the manager (open it, open the entry, close the manager,
+    /// query, close the entry - WindowsScmControl.Read), not the one call this said until
+    /// 2026-09-28.
+    ///
+    /// <b>Measured on the throwaway machine on 2026-09-28, this cadence is most of every wait:</b>
+    /// Spooler and W32Time changed state in 2-50 ms and each step reported 260-289 ms, because the
+    /// first question goes straight after the request, is almost always too early, and the next
+    /// one is a whole cadence later. Backlog 466, S-6 of the external performance report.
     /// </summary>
     private static readonly TimeSpan Cadence = TimeSpan.FromMilliseconds(250);
 

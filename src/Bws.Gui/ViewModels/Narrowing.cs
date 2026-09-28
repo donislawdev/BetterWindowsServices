@@ -37,6 +37,11 @@ internal static class Narrowing
     /// compiled once and never reaches out to the system while it is being asked. The budget is
     /// 50 ms over the whole listing, from section 8.1 of the specification, and the measurement
     /// against it is 0.42-2.25 ms over 810 entries.
+    ///
+    /// <b>THAT IS THIS METHOD, NOT THE KEYSTROKE.</b> The whole reaction in the window was 143 ms
+    /// on 2026-08-11 and 184-228 ms for a query leaving most rows, and nearly all of it is the
+    /// list's own reaction to the change (backlog 153) - so the budget is met here and not on
+    /// screen, and a number from this method is no answer to "is typing fast enough".
     /// </summary>
     public static Narrowed Of(Query query, IReadOnlyList<EntryRow> everything)
     {

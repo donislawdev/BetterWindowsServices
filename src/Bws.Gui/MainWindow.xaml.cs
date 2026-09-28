@@ -18,9 +18,10 @@ public partial class MainWindow : Window
     /// <summary>
     /// How often the list asks what is running.
     ///
-    /// Measured before choosing it: the cheap reading costs 13-22 ms over 810 entries against
+    /// Measured before choosing it: the cheap reading cost 13-22 ms over 810 entries against
     /// 423-500 ms for a full one, so asking every second spends under two per cent of one
-    /// processor. A slower tick would be cheaper and would also be a window that tells you
+    /// processor. Still true on 2026-09-28: a median of 13.6 ms over an hour of ticks on 797
+    /// entries, against 107-113 ms for a full reading as it now runs. A slower tick would be cheaper and would also be a window that tells you
     /// about a service three seconds after you stopped it, which is the habit `A10` exists to
     /// break.
     /// </summary>
@@ -39,6 +40,12 @@ public partial class MainWindow : Window
     private readonly ColumnBar _columns = new();
 
     private readonly DispatcherTimer _timer;
+
+    /// <summary>
+    /// Whether the first reading is done. Until it is, the timer is the first look's to start -
+    /// <see cref="WatchWhileSeen"/> says why.
+    /// </summary>
+    private bool _looked;
 
     /// <summary>
     /// How long the window waits after the last keystroke before it narrows the list.
@@ -246,26 +253,16 @@ public partial class MainWindow : Window
         // to are decided beside every other shortcut of this window. MainWindow.Suggesting.cs.
         WatchTheBoxForSuggestions();
 
-        // After the window is up, not before. Reading the manager takes about half a second
-        // over 810 entries, and doing it in the constructor means the window appears already
+        // After the window is up, not before. Reading the manager takes 107-113 ms over 797
+        // entries on sixteen processors (2026-09-28) and longer on fewer, and doing it in the
+        // constructor means the window appears already
         // late - the specification asks for a useful list inside a second, and part of that
         // second is spent showing that something is happening.
         Loaded += async (_, _) => await FirstLook().ConfigureAwait(true);
 
-        // Nothing to refresh when nobody can see it. A window minimised for an afternoon has
-        // no business asking the manager anything, and the first tick after it comes back
-        // catches up in one go.
-        IsVisibleChanged += (_, _) =>
-        {
-            if (IsVisible)
-            {
-                _timer.Start();
-            }
-            else
-            {
-                _timer.Stop();
-            }
-        };
+        // Nothing to refresh when nobody can see it - WatchWhileSeen says why both events.
+        IsVisibleChanged += async (_, _) => await WatchWhileSeen().ConfigureAwait(true);
+        StateChanged += async (_, _) => await WatchWhileSeen().ConfigureAwait(true);
 
         ListenToThePlanSheet();
 
@@ -325,6 +322,45 @@ public partial class MainWindow : Window
     {
         _timer.Stop();
         _model.NoLongerWanted();
+    }
+
+    /// <summary>
+    /// Whether anybody can see the list - shown and not minimised.
+    /// </summary>
+    private bool Seen => IsVisible && WindowState != WindowState.Minimized;
+
+    /// <summary>
+    /// The once-a-second reading runs while the window is seen and stops while it is not. A window
+    /// minimised for an afternoon has no business asking the manager anything - and on a machine
+    /// whose list of entries changed, a tick does a full reading, second phase included.
+    ///
+    /// <b>TWO EVENTS, AND UNTIL 2026-09-28 THERE WAS ONE</b> - backlog 467. Only IsVisibleChanged
+    /// stopped the timer, and WPF leaves IsVisible true on a minimised window, so the comment here
+    /// promised a rest the window never took: measured with tools/perf-probe/window-idle.ps1
+    /// -Minimised, 375 ms of processor in 36 s minimised by hand and 203 ms in 39 s started minimised.
+    ///
+    /// <b>Coming back asks at once rather than a second later</b>, because the list on screen is what
+    /// the machine looked like when the window went away. <b>Not before the first reading</b>, which
+    /// starts the timer itself when it is done: a tick there would begin a full reading of its own
+    /// and the first look, finding a reading out, would return without sorting what arrives.
+    /// </summary>
+    private async Task WatchWhileSeen()
+    {
+        if (!Seen)
+        {
+            _timer.Stop();
+
+            return;
+        }
+
+        if (!_looked || _timer.IsEnabled)
+        {
+            return;
+        }
+
+        _timer.Start();
+
+        await Tick().ConfigureAwait(true);
     }
 
     private async Task Tick()

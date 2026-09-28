@@ -8,8 +8,8 @@ namespace Bws.Gui.ViewModels;
 ///
 /// <b>WHY THE PANEL READS AT ALL, and the number decided it.</b> Until 2026-09-24 the panel showed
 /// "not read" beside the signature, the memory and who depends on an entry, and sent the reader to
-/// turn on a column - which reads every entry on the machine, 4620-7656 ms for the signatures over
-/// 810. The owner's rule was that the panel reads for itself if the cost allows, and the cost was
+/// turn on a column - which reads every entry on the machine, about 12 s of processor for the
+/// signatures over 797 (2026-09-28). The owner's rule was that the panel reads for itself if the cost allows, and the cost was
 /// measured before anything was built (tools/details-probe, 797 entries, five counted runs, each in
 /// a fresh process): the three families for one typical service 46.7-66.9 ms the first time a
 /// process asks, the signature family 6-13 ms every time after, and 425-518 ms for the one 98 MB

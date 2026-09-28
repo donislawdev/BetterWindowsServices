@@ -221,10 +221,10 @@ public static class Scopes
     /// method which of the six type values belong to which scope, and that is a second definition
     /// of what a driver is - the one thing the rest of this file refuses to write down twice.
     /// </summary>
-    internal static bool AsksElsewhere(EntryScope scope, string query) => scope switch
+    internal static bool AsksElsewhere(EntryScope scope, QueryAsTyped query) => scope switch
     {
-        EntryScope.Services => QueryMembers.Carries(query, DriverField, DriverValue, negated: false),
-        EntryScope.Drivers => QueryMembers.Carries(query, DriverField, DriverValue, negated: true),
+        EntryScope.Services => query.Carries(DriverField, DriverValue, negated: false),
+        EntryScope.Drivers => query.Carries(DriverField, DriverValue, negated: true),
 
         // Everything leaves nothing out, so nothing can be asked for elsewhere.
         EntryScope.Everything => false,

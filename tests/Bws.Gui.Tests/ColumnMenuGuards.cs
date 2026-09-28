@@ -74,7 +74,7 @@ public sealed class ColumnMenuGuards
     public void Ticking_a_value_writes_the_member_into_the_query_and_unticking_takes_it_out()
     {
         var text = string.Empty;
-        var menu = new ColumnMenu("status", null, () => text, written => text = written);
+        var menu = new ColumnMenu("status", null, () => QueryAsTyped.Of(text), written => text = written);
 
         Assert.NotEmpty(menu.Values);
 
@@ -107,7 +107,7 @@ public sealed class ColumnMenuGuards
     public void A_tick_is_lit_by_the_query_text_rather_than_by_having_been_clicked()
     {
         var text = "status:stopped";
-        var menu = new ColumnMenu("status", null, () => text, written => text = written);
+        var menu = new ColumnMenu("status", null, () => QueryAsTyped.Of(text), written => text = written);
 
         Assert.True(menu.Values.Single(value => value.Label == "stopped").IsOn);
         Assert.False(menu.Values.Single(value => value.Label == "running").IsOn);
@@ -137,7 +137,7 @@ public sealed class ColumnMenuGuards
 
         foreach (var id in noField.Concat(freeText))
         {
-            var menu = new ColumnMenu(id, null, () => text, written => text = written);
+            var menu = new ColumnMenu(id, null, () => QueryAsTyped.Of(text), written => text = written);
 
             Assert.Empty(menu.Values);
             Assert.NotEmpty(menu.HideLabel);
@@ -146,7 +146,7 @@ public sealed class ColumnMenuGuards
         // And the ones that DO have something, so the two lists above are not simply everything.
         foreach (var id in new[] { "status", "startType", "entryType", "signature", "triggers" })
         {
-            Assert.NotEmpty(new ColumnMenu(id, null, () => text, written => text = written).Values);
+            Assert.NotEmpty(new ColumnMenu(id, null, () => QueryAsTyped.Of(text), written => text = written).Values);
         }
     }
 
@@ -161,7 +161,7 @@ public sealed class ColumnMenuGuards
         var text = string.Empty;
 
         var first = bar.Choices.First(choice => choice.IsShown);
-        var menu = new ColumnMenu(first.Column.Id, first, () => text, written => text = written);
+        var menu = new ColumnMenu(first.Column.Id, first, () => QueryAsTyped.Of(text), written => text = written);
 
         Assert.True(menu.MayHide);
 
@@ -177,7 +177,7 @@ public sealed class ColumnMenuGuards
         }
 
         var alone = bar.Choices.Single(one => one.IsShown);
-        var last = new ColumnMenu(alone.Column.Id, alone, () => text, written => text = written);
+        var last = new ColumnMenu(alone.Column.Id, alone, () => QueryAsTyped.Of(text), written => text = written);
 
         Assert.False(last.MayHide);
         Assert.NotEmpty(last.HideRefused);

@@ -135,6 +135,39 @@ public sealed class ChosenGuards
     }
 
     /// <summary>
+    /// A service starting rebuilds the panel ONCE, and its highlight going out three seconds later
+    /// does not rebuild it at all - G-8 of the external performance report of 2026-09-28. A row
+    /// raises its shapes and its highlight beside the word for every cell, and the panel used to
+    /// rebuild all its sections for each of them.
+    /// </summary>
+    [Fact]
+    public void A_status_moving_rebuilds_the_panel_once_and_the_highlight_going_out_does_not()
+    {
+        var row = EntryRow.Of(Rows.Entry("Spooler"));
+        var chosen = new Chosen { Row = row };
+
+        chosen.Show();
+
+        var rebuilt = 0;
+
+        chosen.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName == nameof(Chosen.Sections))
+            {
+                rebuilt++;
+            }
+        };
+
+        Assert.True(row.Absorb(new ScmStatus("Spooler", EntryStatus.Stopped, Reading<int>.Absent()), DateTimeOffset.UnixEpoch));
+        Assert.True(row.RecentlyChanged);
+        Assert.Equal(1, rebuilt);
+
+        row.RecentlyChanged = false;
+
+        Assert.Equal(1, rebuilt);
+    }
+
+    /// <summary>
     /// A closed panel stops listening, which is the teardown this class would leak through.
     ///
     /// A row lives as long as the window does, so a handler left on it keeps rebuilding five

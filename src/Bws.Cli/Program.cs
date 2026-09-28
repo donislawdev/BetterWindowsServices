@@ -77,7 +77,8 @@ try
     // Comparing two files never opens the service control manager, and it matters that it
     // does not. A pipeline step comparing two snapshots on a build agent has no business
     // needing rights over that agent's own services, and reading eight hundred entries this
-    // branch never looks at would spend half a second saying nothing.
+    // branch never looks at would spend a cold reading of the manager saying nothing - 136-144 ms
+    // here and 215-234 ms on an eight-processor machine, measured 2026-09-28.
     var offline = options.Kind == CommandKind.SnapshotDiff && !options.Live;
 
     // Skip unless somebody said otherwise, everywhere, including the branches that never see
@@ -94,8 +95,9 @@ try
     var read = offline ? 0 : stopwatch.ElapsedMilliseconds;
 
     // Its own number, and not folded into the time spent filtering. The second pass is by
-    // far the most expensive thing this tool does - measured at around five seconds against
-    // a third of one for the read - and reporting it under the word "filtered" would put a
+    // far the most expensive thing this tool does - 869-954 ms against 136-144 ms for the read on
+    // sixteen processors, and 1451-1591 ms against 215-234 ms on eight, both measured 2026-09-28
+    // through --timing - and reporting it under the word "filtered" would put a
     // true number next to a sentence about something else.
     long inspected = 0;
 
@@ -188,7 +190,8 @@ try
         // nothing to preview that the file itself does not already say.
         //
         // Refused before the expensive work rather than after it, and the order is the whole
-        // courtesy: verifying signatures takes about a second, and spending it to then say
+        // courtesy: verifying signatures takes about a second here and half as much again on an
+        // eight-processor machine (2026-09-28), and spending it to then say
         // "there is already a file there" would be a second nobody got anything for.
         //
         // Found 2026-08-02 by reading a security document from another project, and confirmed
@@ -386,9 +389,10 @@ try
     else
     {
         // The second pass, and the first thing in this tool that is asked for rather than
-        // simply done. Measured at 4620-7656 ms over 810 entries and 544 distinct files
-        // against 476-551 ms for everything above, so a listing does not verify signatures
-        // unless somebody wants them.
+        // simply done. Measured 2026-09-28 at about 12 s of processor over 797 entries and 531
+        // distinct files - 1.0-1.2 s of clock on sixteen processors and 4.3-5.0 s on two - against
+        // 136-144 ms for the reading above, so a listing does not verify signatures unless
+        // somebody wants them.
         //
         // A query about them counts as wanting them. Answering "signed:no" with an empty
         // list because nobody had looked would be a correct query returning what reads

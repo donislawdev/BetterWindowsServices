@@ -3,10 +3,12 @@ namespace Bws.Core;
 /// <summary>
 /// The second half of ADR-13: fills in what a listing costs too much to know up front.
 ///
-/// The first pass reads the manager and is cheap - measured at 476-551 ms for 810 entries
+/// The first pass reads the manager and is cheap - 107-113 ms for 797 entries on 2026-09-28,
 /// against a budget of a second. This one opens files and asks the trust providers about
 /// them, which measured at 4620-7656 ms over 544 distinct files before it was made to ask
-/// about several at once. That gap is the entire reason the two are separate, and it is the
+/// about several at once, and about 12 s of processor over 531 files after it (2026-09-28) -
+/// 1.0-1.2 s of clock on sixteen processors, 4.3-5.0 s on two. That gap is the entire reason the
+/// two are separate, and it is the
 /// first family where the separation earned itself: triggers and launch paths both turned
 /// out cheap enough to fold into the first pass, and this one is not.
 ///

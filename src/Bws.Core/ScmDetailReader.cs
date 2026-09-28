@@ -249,7 +249,7 @@ internal static class ScmDetailReader
     /// configuration already opened - this level needs no right the listing does not have. The
     /// whole family costs <b>212-223 ms over 819 entries</b>, four warm runs, which puts it in the
     /// cheap pass beside the privileges rather than in the second pass of `ADR-13` beside the
-    /// signatures at 4620-7656 ms.
+    /// signatures at about 12 s of processor (2026-09-28).
     ///
     /// <b>Translated, like the display name, so it is never an identity</b> - `ADR-14`. The
     /// longest one measured is 1251 characters and two contain a newline, which is a fact for

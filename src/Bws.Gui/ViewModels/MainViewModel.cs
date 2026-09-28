@@ -6,8 +6,9 @@ namespace Bws.Gui.ViewModels;
 /// <summary>
 /// What the window shows and how it got there.
 ///
-/// Every reading runs off the interface thread, because a full one takes about half a second
-/// over 810 entries and a window that stops answering for half a second looks broken.
+/// Every reading runs off the interface thread, because a full one takes 107-113 ms over 797
+/// entries on sixteen processors and 215-234 ms cold on eight (2026-09-28), a second phase takes
+/// seconds, and a window that stops answering for that long looks broken.
 /// `docs/06`, part 4: nothing from a worker thread touches the interface, so what comes back
 /// is a plain list and everything the window binds to is built here.
 ///
@@ -68,6 +69,14 @@ public sealed partial class MainViewModel : Checked
     private string _queryText = string.Empty;
 
     /// <summary>
+    /// The text above, parsed once for everything that asks about it - <see cref="AsTyped"/>.
+    /// </summary>
+    private QueryAsTyped _asTyped = QueryAsTyped.Of(string.Empty);
+
+    /// <summary>The answer on screen and how many copies it folded - <see cref="SayTheAnswer"/>.</summary>
+    private (Narrowed Narrowed, int Instances)? _answered;
+
+    /// <summary>
     /// The controls standing for members of the query. Declared after the text they read,
     /// because they close over it.
     /// </summary>
@@ -122,7 +131,7 @@ public sealed partial class MainViewModel : Checked
         // for the same reason and a second one: TWO things can ask the second phase for something
         // and one of them is the picker, which the window builds after this - MainViewModel.Asking.
         _readings = new Readings(
-            catalog, _index, () => Says, Reread, TellTheList, inspector, reader, () => Asked);
+            catalog, _index, () => Says, Reread, TellTheList, SayTheAnswer, inspector, reader, () => Asked);
 
         // THE PANEL READS WHAT ITS ENTRY LACKS, THROUGH THE SAME READINGS - UX-GUI-005. After them,
         // because it is handed them.
@@ -133,7 +142,7 @@ public sealed partial class MainViewModel : Checked
         // the query, applies it and tells the list, so a chip goes through the same door a
         // keystroke does. Writing the field instead would change the box and leave the list
         // showing the answer to the previous question.
-        _filters = new FilterBar(() => _queryText, text => QueryText = text);
+        _filters = new FilterBar(AsTyped, text => QueryText = text);
 
         // After the chips, because it reads their labels for the sentence beside a value - the
         // same word somebody sees in the row above the list, in the same language. The examples
@@ -358,7 +367,41 @@ public sealed partial class MainViewModel : Checked
             _index.Ordered.Count,
             _scoping.InScope.Count,
             _scoping.Current,
-            Scopes.AsksElsewhere(_scoping.Current, _queryText));
+            Scopes.AsksElsewhere(_scoping.Current, AsTyped()));
+
+    /// <summary>
+    /// The query in the box, parsed once for everything that asks about it - the narrowing, the
+    /// sentence about the scope, the sixteen chips and an open column menu. G-4 of the external
+    /// performance report of 2026-09-28 counted eighteen parses of one text on one keystroke.
+    ///
+    /// <b>KEPT BY THE TEXT, NOT BY THE MOMENT</b>, which is what keeps it from being a second copy of
+    /// the query: it is made again whenever the text differs from the one it was made from, and it
+    /// does not matter who asks first or whether anybody remembered to refresh it.
+    /// </summary>
+    internal QueryAsTyped AsTyped() =>
+        string.Equals(_asTyped.Text, _queryText, StringComparison.Ordinal)
+            ? _asTyped
+            : _asTyped = QueryAsTyped.Of(_queryText);
+
+    /// <summary>
+    /// The sentence about the answer on screen, said from the last answer <see cref="Apply"/> drew.
+    ///
+    /// <b>Also by the second pass setting out, since 2026-09-28</b> - G-11 of the external performance
+    /// report. That changes whether the list is still being filled and nothing else, and it used to
+    /// be said by recutting the scope and running the query again over entries shown a moment before.
+    ///
+    /// <b>Silent after a query with a mistake in it</b>, exactly as Apply is: Apply leaves before this
+    /// sentence then, so the end of the pass would never take back a "still filling" said here.
+    /// </summary>
+    private void SayTheAnswer()
+    {
+        if (_answered is { } answered)
+        {
+            Says.AboutTheAnswer(
+                Asked, _holding.Pending, answered.Narrowed,
+                _readings.Have, _readings.Filling, answered.Instances, !_showingOverview);
+        }
+    }
 
     /// <summary>
     /// Reads the query and narrows the list to what it selects.
@@ -374,8 +417,7 @@ public sealed partial class MainViewModel : Checked
         // somebody making a mistake - and a box that shows an error through most of the typing
         // teaches people to ignore the box. The command line says Finished, because by the time
         // text reaches it there is no later.
-        var parsed = QueryParser.Parse(
-            _queryText, input: QueryInput.BeingTyped);
+        var parsed = AsTyped().Parsed;
 
         if (!parsed.IsValid)
         {
@@ -383,6 +425,7 @@ public sealed partial class MainViewModel : Checked
             // somebody is typing, and fixing one to be told about the next is a poor trade for
             // a shorter line.
             AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
+            _answered = null;
 
             // The chips read the TEXT, so they follow it even though the list does not - UX-GUI-002.
             // Leaving before this kept Running and Manual lit over `stat:runing`, a query that was
@@ -442,9 +485,8 @@ public sealed partial class MainViewModel : Checked
         // The last argument is which screen has the middle of the window, and only one sentence
         // under there asks about it - backlog 263. Passed rather than read out of this class by
         // Sentences, because that class has never been allowed to know a window exists.
-        Says.AboutTheAnswer(
-            Asked, _holding.Pending, narrowed,
-            _readings.Have, _readings.Filling, rolled.Instances, !_showingOverview);
+        _answered = (narrowed, rolled.Instances);
+        SayTheAnswer();
 
         TellTheList();
 

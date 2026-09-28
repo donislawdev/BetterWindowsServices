@@ -62,6 +62,9 @@ public sealed partial class Planned : Checked
     private BulkPlan? _plan;
     private BulkRun? _run;
 
+    /// <summary>How many steps the plan on screen has, counted once when it is shown rather than on every step of a run.</summary>
+    private int _stepsInPlan;
+
     /// <summary>
     /// What a person calls the one entry this plan is about, handed over by whoever is looking at
     /// rows. Empty whenever nobody knew one, which the title and <see cref="Subtitle"/> both read.
@@ -253,11 +256,35 @@ public sealed partial class Planned : Checked
     ///
     /// <b>Lines rather than strings since 2026-09-24</b>, because one of them can carry the offer to
     /// stop the entry too - <see cref="PlanWarningLine"/> says why, and why never on a record.
+    ///
+    /// <b>Built once for each plan and each state of the offer, since 2026-09-28</b> - G-7 of the
+    /// external performance report counted three builds on every showing, one for each binding that
+    /// asks. Kept beside the plan and the offer it was built for, so it cannot outlive either.
     /// </summary>
-    public IReadOnlyList<PlanWarningLine> Warnings => _plan is not { } plan
-        ? []
-        : PlanWarningLine.Of(
-            [.. plan.Warnings.Where(warning => !Heavy(warning))], offering: _run is null && !Busy);
+    public IReadOnlyList<PlanWarningLine> Warnings
+    {
+        get
+        {
+            if (_plan is not { } plan)
+            {
+                return [];
+            }
+
+            var offering = _run is null && !Busy;
+
+            if (_warnings is not { } kept || !ReferenceEquals(kept.Plan, plan) || kept.Offered != offering)
+            {
+                kept = (plan, offering, PlanWarningLine.Of([.. plan.Warnings.Where(warning => !Heavy(warning))], offering));
+                _warnings = kept;
+            }
+
+            return kept.Lines;
+        }
+    }
+
+    // "Offered" rather than "Offering" for the element, which DeadCodeGuards reads by name and would
+    // take for a caller of ActionBar.Offering.
+    private (BulkPlan Plan, bool Offered, IReadOnlyList<PlanWarningLine> Lines)? _warnings;
 
     /// <summary>
     /// The entries that get no plan at all, and why.
@@ -281,8 +308,11 @@ public sealed partial class Planned : Checked
     /// Rendered by the core, so these are commands this tool really accepts rather than text that
     /// looks like them - a guard in the command line's own tests holds that, and it caught a switch
     /// rendered onto a verb that refuses it.
+    ///
+    /// <b>Rendered once, when the plan is shown, since 2026-09-28</b> - G-7 of the external
+    /// performance report: four bindings read this, and each read rendered every command again.
     /// </summary>
-    public IReadOnlyList<string> Commands => _plan is not { } plan ? [] : EquivalentCommand.For(plan);
+    public IReadOnlyList<string> Commands { get; private set; } = [];
 
     /// <summary>
     /// Where this panel is in the only sequence it has: nothing done, doing it, done.
@@ -384,6 +414,8 @@ public sealed partial class Planned : Checked
         // could have: a report of what happened to five services, sitting under the steps of a plan
         // for five different ones, with nothing on screen to say the two do not belong together.
         _plan = plan;
+        _stepsInPlan = plan.Steps.Count();
+        Commands = EquivalentCommand.For(plan);
         _run = null;
         Busy = false;
         Progress = string.Empty;
@@ -422,6 +454,9 @@ public sealed partial class Planned : Checked
         }
 
         _plan = null;
+        _stepsInPlan = 0;
+        Commands = [];
+        _warnings = null;
         _run = null;
         _shownAs = string.Empty;
         _because = string.Empty;

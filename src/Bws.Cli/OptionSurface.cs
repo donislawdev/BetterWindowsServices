@@ -143,8 +143,8 @@ internal static class OptionSurface
 
         // Listing only. A plan never asks who signed anything, so accepting it on a write
         // verb would be a switch that does nothing - the silence this table was built to
-        // end. Measured at 4620-7656 ms over 810 entries and 544 files, which is why it is
-        // asked for rather than assumed.
+        // end. It costs about 12 s of processor over 797 entries (2026-09-28, 1.0-1.2 s of clock on
+        // sixteen processors), which is why it is asked for rather than assumed.
         ("--signatures", [CommandKind.List]),
 
         // Listing only, for the same reason: a plan is about what will happen to a service,
@@ -153,7 +153,7 @@ internal static class OptionSurface
 
         // Listing only, and NOT the same switch as --dependents further down. That one is an
         // instruction to a write verb - take the services standing on this one with you. This is
-        // a reading, and it costs a call per entry: 236-259 ms over 313 services.
+        // a reading, and it costs a call per entry: 148-155 ms over 797 entries, 2026-09-28.
         ("--required-by", [CommandKind.List]),
 
         // The two verbs that resolve a launch path against the disk. A plan does not - it

@@ -19,7 +19,8 @@ namespace Bws.Cli;
 ///
 /// <b>Not one of these opens a handle or reads an entry</b>, which is the property that makes the
 /// whole block worth having in front of the expensive work. Refusing a typo after eight hundred
-/// entries have been read is half a second spent to say "you made a typo".
+/// entries have been read is a whole cold reading spent to say "you made a typo" - 136-144 ms here
+/// and 215-234 ms on an eight-processor machine, measured 2026-09-28.
 /// </summary>
 internal static class Refusals
 {
@@ -178,7 +179,8 @@ internal static class Refusals
         // WERE ASKED AFTER THE MACHINE HAD BEEN READ. That is the one property this whole class
         // exists for: nothing here opens a handle, so a typo is answered before eight hundred
         // entries are enumerated. Both of these commands read the manager first and then said
-        // "you left out an argument" - about half a second spent to report a missing word.
+        // "you left out an argument" - a whole cold reading of the manager spent to report a
+        // missing word.
         //
         // Nothing about the answers changed. Same two sentences, same code, and the order they are
         // asked in is the order they stood in.
