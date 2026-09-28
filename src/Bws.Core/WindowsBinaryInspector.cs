@@ -264,6 +264,12 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     /// </summary>
     private unsafe Reading<BinarySignature> ThroughCatalogue(string file)
     {
+        // One context per file, and a context held per worker instead was measured on 2026-09-29
+        // (tools/signature-probe/auto-cache.ps1, variant "held"). Acquiring and releasing is almost
+        // free - what a fresh context costs is its FIRST catalogue lookup, about 1 ms per file on
+        // one thread. Held per worker, the catalogue path took 894-1041 ms of wall clock at two
+        // processors against 1017-1287, which is two or three percent of the 4247-4877 ms pass and
+        // smaller than that pass's own spread. Not worth a context whose lifetime spans calls.
         if (!PInvoke.CryptCATAdminAcquireContext2(out var admin, null, "SHA256", null))
         {
             var error = Marshal.GetLastWin32Error();
@@ -425,6 +431,16 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         fdwRevocationChecks = WINTRUST_DATA_REVOCATION_CHECKS.WTD_REVOKE_NONE,
 
         dwUnionChoice = choice,
+
+        // VERIFY, NOT AUTO_CACHE, AND THAT WAS MEASURED rather than assumed - 2026-09-29, 797 entries,
+        // 195 files through 77 catalogues, tools/signature-probe/auto-cache.ps1. The documentation
+        // says AUTO_CACHE caches catalogue data and nothing about where. On this machine the state
+        // handle stays zero after every call, so the cache lives inside the process, and it buys
+        // nothing: on one thread the time inside WinVerifyTrust was 1138-1561 ms with VERIFY and
+        // 1108-1249 with AUTO_CACHE, even with the files grouped by catalogue. On several threads
+        // it is worse - the calls queue behind each other, and the catalogue path took 1380-1497 ms
+        // of wall clock at sixteen processors against 347-403, and 1141-1442 against 1017-1287 at
+        // two. A process-wide cache would also outlive a pass unless flushed, which ADR-13 forbids.
         dwStateAction = WINTRUST_DATA_STATE_ACTION.WTD_STATEACTION_VERIFY,
 
         // WTD_CACHE_ONLY_URL_RETRIEVAL confines the chain engine to what this machine already
