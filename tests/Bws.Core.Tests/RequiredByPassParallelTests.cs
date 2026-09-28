@@ -12,6 +12,19 @@ namespace Bws.Core.Tests;
 /// entry rather than a neighbour's, and the questions really going out together rather than a loop
 /// that only looks parallel.
 /// </summary>
+[CollectionDefinition("asking about dependents alone", DisableParallelization = true)]
+public sealed class AskingAboutDependentsAlone;
+
+/// <summary>
+/// Runs with nothing else running, since the day it first ran anywhere but here.
+///
+/// <b>Found on the first CI run, 2026-09-29, and the lesson is the one ReadAllContractTests had
+/// already paid for.</b> The second test below needs the thread pool to hand the pass a second
+/// thread. On sixteen processors it always got one. On the build agent, with the rest of this
+/// project's tests running beside it, it waited ten seconds and never did - the guard measured the
+/// test runner and called it the product. Alone, a free thread is there to take the work.
+/// </summary>
+[Collection("asking about dependents alone")]
 public sealed class RequiredByPassParallelTests
 {
     [Fact]
@@ -59,7 +72,7 @@ public sealed class RequiredByPassParallelTests
     {
         // The first two questions wait for each other. One after another, the first waits for a
         // partner that only comes once it has given up - so a loop that is parallel in name only
-        // fails here, ten seconds late, rather than passing quietly.
+        // fails here, twenty seconds late, rather than passing quietly.
         using var catalog = new Meeting();
 
         var entries = Enumerable.Range(0, 4)
@@ -80,7 +93,7 @@ public sealed class RequiredByPassParallelTests
     };
 
     /// <summary>
-    /// A manager whose first two questions wait for each other, for up to ten seconds.
+    /// A manager whose first two questions wait for each other, for up to twenty seconds.
     ///
     /// A deadline rather than a wait with no end, because a test that is meant to go red must not
     /// become a run that never finishes - the note at the top of tools/mutate/mutate.ps1 says why.
@@ -103,7 +116,7 @@ public sealed class RequiredByPassParallelTests
             {
                 _both.Signal();
 
-                if (!_both.Wait(TimeSpan.FromSeconds(10)))
+                if (!_both.Wait(TimeSpan.FromSeconds(20)))
                 {
                     Met = false;
                 }
