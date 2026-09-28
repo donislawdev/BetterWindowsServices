@@ -85,8 +85,10 @@ public static class SecondPass
         ArgumentNullException.ThrowIfNull(inspector);
         ArgumentOutOfRangeException.ThrowIfLessThan(degreeOfParallelism, 1);
 
+        // THROUGH AN INSPECTOR THAT REMEMBERS NOTHING FROM THE PASS BEFORE, since 2026-09-29 -
+        // backlog 468. Why it is the pass that asks for one is written on IBinaryInspector.ForOnePass.
         var files = Distinct(entries);
-        var answers = Ask(files, inspector, degreeOfParallelism);
+        var answers = Ask(files, inspector.ForOnePass(), degreeOfParallelism);
         var filled = new List<ScmEntry>(entries.Count);
 
         foreach (var entry in entries)
@@ -117,7 +119,12 @@ public static class SecondPass
 
         foreach (var entry in entries)
         {
-            if (entry.BinaryFile.Outcome == ReadOutcome.Present && seen.Add(entry.BinaryFile.Value!))
+            // An entry already holding an answer - kept from an earlier pass by Keep - is not asked
+            // about again. Every entry a first reading hands over holds none, so for everybody who
+            // does not call Keep this line changes nothing.
+            if (entry.BinaryFile.Outcome == ReadOutcome.Present
+                && !Answered(entry)
+                && seen.Add(entry.BinaryFile.Value!))
             {
                 files.Add(entry.BinaryFile.Value!);
             }
@@ -165,6 +172,60 @@ public static class SecondPass
     private readonly record struct Answer(
         Reading<BinarySignature> Signature, Reading<string> Version, Reading<string> Hash);
 
+    /// <summary>
+    /// A fresh listing, with the answers an earlier reading already had about the SAME FILES.
+    ///
+    /// <b>The owner's decision S-1 of 2026-09-28, recorded in `ADR-13`</b>, and it exists for the
+    /// window alone. Carrying out a plan writes no file and no path - only a start type and the
+    /// delayed flag, with the path handed over as "unchanged" - so verifying every signature again
+    /// afterwards cannot give a new answer about anything the plan did, and it cost 4.3-5.0 s of
+    /// clock on two processors (P3 of the performance analysis). So after a plan, after a change to
+    /// what is installed and when a question needs a family the window has not read, the window
+    /// keeps what it knows. F5 keeps nothing and verifies everything again.
+    ///
+    /// <b>Keyed by the FILE, never by the entry</b>: a new service pointing at a svchost that was
+    /// already verified has an answer, and an entry whose path changed has none - a different path
+    /// is a different key, so it is verified afresh. <b>"Not read" is not an answer</b> and is not
+    /// kept: a file on another machine that was skipped is asked about again.
+    ///
+    /// <b>The price, accepted by the owner before the decision:</b> a file replaced by somebody else
+    /// between F5 and a plan keeps its old verdict until the next F5.
+    /// </summary>
+    public static IReadOnlyList<ScmEntry> Keep(IReadOnlyList<ScmEntry> fresh, IEnumerable<ScmEntry> earlier)
+    {
+        ArgumentNullException.ThrowIfNull(fresh);
+        ArgumentNullException.ThrowIfNull(earlier);
+
+        var known = new Dictionary<string, Answer>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in earlier)
+        {
+            if (entry.BinaryFile.Outcome == ReadOutcome.Present && Answered(entry))
+            {
+                known.TryAdd(entry.BinaryFile.Value!, new Answer(entry.Signature, entry.FileVersion, entry.BinaryHash));
+            }
+        }
+
+        if (known.Count == 0)
+        {
+            return fresh;
+        }
+
+        var kept = new List<ScmEntry>(fresh.Count);
+
+        foreach (var entry in fresh)
+        {
+            kept.Add(entry.BinaryFile.Outcome == ReadOutcome.Present && known.TryGetValue(entry.BinaryFile.Value!, out var answer)
+                ? entry with { Signature = answer.Signature, FileVersion = answer.Version, BinaryHash = answer.Hash }
+                : entry);
+        }
+
+        return kept;
+    }
+
+    /// <summary>Whether a pass - this one or an earlier one kept by <see cref="Keep"/> - already answered for this entry.</summary>
+    private static bool Answered(ScmEntry entry) => entry.Signature.Outcome != ReadOutcome.NotRead;
+
     private static ScmEntry Fill(ScmEntry entry, Dictionary<string, Answer> answers)
     {
         switch (entry.BinaryFile.Outcome)
@@ -191,6 +252,9 @@ public static class SecondPass
                     FileVersion = Reading<string>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!),
                     BinaryHash = Reading<string>.Denied(entry.BinaryFile.ErrorCode, entry.BinaryFile.Reason!)
                 };
+
+            case ReadOutcome.Present when Answered(entry):
+                return entry;
 
             case ReadOutcome.Present:
                 var answer = answers[entry.BinaryFile.Value!];

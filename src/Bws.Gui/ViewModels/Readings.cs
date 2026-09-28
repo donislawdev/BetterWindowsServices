@@ -180,7 +180,10 @@ internal sealed partial class Readings
     /// comes back to the interface thread, which is precisely why the hole was invisible: it
     /// is a question of ordering rather than of two threads touching one field.
     /// </summary>
-    internal async Task LoadAsync()
+    /// <param name="how">
+    /// Afresh for the first look and F5, keeping file answers after a plan - <see cref="Relisting"/>.
+    /// </param>
+    internal async Task LoadAsync(Relisting how)
     {
         if (_reading)
         {
@@ -191,7 +194,7 @@ internal sealed partial class Readings
 
         try
         {
-            await LoadEverything().ConfigureAwait(true);
+            await LoadEverything(how).ConfigureAwait(true);
         }
         finally
         {
@@ -203,7 +206,7 @@ internal sealed partial class Readings
     /// The reading itself, without the guard, because the tick already holds it when it finds
     /// out that it needs a full one.
     /// </summary>
-    private async Task LoadEverything()
+    private async Task LoadEverything(Relisting how)
     {
         Says.Status = Texts.Of("gui.status.reading");
 
@@ -238,9 +241,20 @@ internal sealed partial class Readings
         Says.Incomplete = false;
         _failed = false;
 
+        // KEPT RATHER THAN VERIFIED AGAIN, SINCE 2026-09-29 - the owner's S-1 decision in `ADR-13`.
+        // Taken from the rows BEFORE they are replaced, because the rows are where every answer this
+        // window has ever had lives, the details panel's single-entry ones included. The price the
+        // owner accepted: a file replaced by somebody else keeps its old verdict until the next F5.
+        if (how == Relisting.Keeping)
+        {
+            entries = SecondPass.Keep(entries, _index.Everything);
+        }
+
         // The families belong to THESE entries, not to the window, so a fresh listing starts with
-        // none of them. Anything else would show a signature read against a file that has since
-        // been replaced, which for an audit tool is worse than showing nothing.
+        // none of them HELD. Anything else would show a signature read against a file that has
+        // since been replaced, which for an audit tool is worse than showing nothing. Answers kept
+        // just above are in the entries themselves - whether the family counts as held for the whole
+        // list is still decided by the pass below, which asks only about what nobody answered.
         _have = ExtraRead.None;
         _tried = ExtraRead.None;
 
@@ -295,7 +309,9 @@ internal sealed partial class Readings
             // thing to leave standing than a status that is one second old.
             if (WantsMore())
             {
-                await LoadEverything().ConfigureAwait(true);
+                // Keeping, on the owner's word of 2026-09-29: turning a column on is not F5, and the
+                // signatures already on screen were verified since the last one.
+                await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
 
                 return;
             }
@@ -332,8 +348,9 @@ internal sealed partial class Readings
                     // The unguarded one, because the guard above is already held. Calling the
                     // public entry point here would find its own flag raised and quietly do
                     // nothing, which is the sort of deadlock-by-politeness that looks like the
-                    // machine simply never installing anything.
-                    await LoadEverything().ConfigureAwait(true);
+                    // machine simply never installing anything. Keeping file answers: what was
+                    // installed or removed brings its own path, and that one is verified.
+                    await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
                     break;
 
                 case Freshening.Moved:

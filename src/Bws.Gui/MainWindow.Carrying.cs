@@ -149,8 +149,9 @@ public partial class MainWindow
             _model.Planned.Finished(await running.ConfigureAwait(true));
 
             // Whatever moved, moved. Asking now rather than waiting up to a second means the list
-            // agrees with the panel by the time somebody looks up from it.
-            await _model.LoadAsync().ConfigureAwait(true);
+            // agrees with the panel by the time somebody looks up from it. KEEPING what is known
+            // about files since 2026-09-29 - the plan wrote none, `ADR-13`.
+            await _model.LoadKeepingAsync().ConfigureAwait(true);
 
             return true;
         }

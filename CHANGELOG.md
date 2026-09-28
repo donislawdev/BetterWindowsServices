@@ -25,6 +25,11 @@ is not part of this repository.
 - Reading who depends on each entry - the Required by column, `required:` in a query and
   `bws list --required-by` - asks about several entries at once and takes a fraction of the time
   it did.
+- After a plan is carried out, after something is installed or removed, and when a column or a
+  query needs something the window has not read yet, the window no longer verifies every
+  signature again. It keeps what it already knows about files whose path has not changed and
+  verifies only new or changed ones. F5 still verifies everything again, so a file replaced by
+  someone else in the meantime shows its new verdict after the next F5.
 
 ## [0.3.0] - 2026-09-25
 
