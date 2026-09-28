@@ -302,8 +302,8 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
 
             // Filled in by RequiredByPass, and only when asked - the OTHER direction of DependsOn
             // three fields up, and the reason the two sit apart. That one arrives inside this same
-            // configuration structure and is free. This one is a call per entry, measured at
-            // 148-155 ms over 797 entries on 2026-09-28, which is more than the whole listing again.
+            // configuration structure and is free. This one is a call per entry - 19-40 ms over 797
+            // entries asked several at once (2026-09-29), 148-155 ms one at a time the day before.
             RequiredBy = Reading<IReadOnlyList<string>>.NotRead()
         };
     }

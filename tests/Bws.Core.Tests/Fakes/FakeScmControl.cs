@@ -16,7 +16,11 @@ namespace Bws.Core.Tests.Fakes;
 /// anyway would be a preview that lied, which is the failure this whole pattern exists to
 /// prevent.
 /// </summary>
-internal sealed class FakeScmControl : IScmControl
+/// <param name="clock">
+/// The ruler an entry made with <see cref="Arriving"/> keeps time by - the same one the runner
+/// under test is given. Only those entries need it.
+/// </param>
+internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
 {
     private readonly Dictionary<string, Behaviour> _entries = new(StringComparer.OrdinalIgnoreCase);
 
@@ -153,6 +157,32 @@ internal sealed class FakeScmControl : IScmControl
         return this;
     }
 
+    /// <summary>
+    /// An entry that gets there a set time after it was asked, however often anybody looks in
+    /// between - and until then says <paramref name="meanwhile"/>.
+    ///
+    /// <b>Time rather than a count of looks, since 2026-09-29</b>, because the runner no longer
+    /// looks at a steady pace. <see cref="Reaching"/> hands out one reading per look, so it can say
+    /// "arrives at the third look" and cannot say "arrives after 40 ms", which is the only way to
+    /// ask how soon an arrival is noticed.
+    /// </summary>
+    internal FakeScmControl Arriving(string serviceName, TimeSpan after, ServiceProgress meanwhile)
+    {
+        var ruler = clock
+            ?? throw new InvalidOperationException("An entry that arrives in time needs the clock the runner is given.");
+
+        Entry(serviceName).Arrival = new Arrival(ruler, after, meanwhile);
+        return this;
+    }
+
+    /// <summary>
+    /// How many times anybody asked where an entry is, every entry counted.
+    ///
+    /// For the one question the other lists cannot answer: whether looking sooner turned into
+    /// asking the manager all the time.
+    /// </summary>
+    internal int Reads { get; private set; }
+
     /// <summary>An entry the manager will not move, optionally because it has moved itself.</summary>
     internal FakeScmControl RefusingRequests(string serviceName, int errorCode, EntryStatus? becomes = null)
     {
@@ -187,6 +217,14 @@ internal sealed class FakeScmControl : IScmControl
 
         entry.Moving = true;
 
+        if (entry.Arrival is { } arrival)
+        {
+            entry.AskedAt = arrival.Clock.Elapsed;
+            entry.Heading = operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running;
+
+            return ControlAnswer.Done();
+        }
+
         // Nothing scripted means it is there by the time anybody looks, which is what most
         // services do and what most of these tests are not about.
         if (entry.AfterRequest is null)
@@ -199,11 +237,26 @@ internal sealed class FakeScmControl : IScmControl
 
     public ControlAnswer Read(string serviceName)
     {
+        Reads++;
+
         var entry = Entry(serviceName);
 
         if (entry.ReadRefusedWith is { } refused)
         {
             return ControlAnswer.Refused(refused, $"refused with {refused}");
+        }
+
+        if (entry.Moving && entry.Arrival is { } arrival)
+        {
+            if (arrival.Clock.Elapsed - entry.AskedAt < arrival.After)
+            {
+                entry.Status = arrival.Meanwhile.Status;
+                return ControlAnswer.At(arrival.Meanwhile);
+            }
+
+            // Arrived, and from here on it is an entry that is where it is.
+            entry.Status = entry.Heading;
+            entry.Arrival = null;
         }
 
         if (!entry.Moving || entry.AfterRequest is null)
@@ -269,5 +322,15 @@ internal sealed class FakeScmControl : IScmControl
         internal EntryStatus? BecomesOnRefusal { get; set; }
 
         internal int? ReadRefusedWith { get; set; }
+
+        internal Arrival? Arrival { get; set; }
+
+        /// <summary>When the manager was asked to move it, on the ruler of <see cref="Arrival"/>.</summary>
+        internal TimeSpan AskedAt { get; set; }
+
+        /// <summary>Where the request sent it, which is where it ends up once it arrives.</summary>
+        internal EntryStatus Heading { get; set; }
     }
+
+    private sealed record Arrival(IClock Clock, TimeSpan After, ServiceProgress Meanwhile);
 }

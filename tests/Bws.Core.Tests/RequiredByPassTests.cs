@@ -36,7 +36,10 @@ public sealed class RequiredByPassTests
 
         var filled = RequiredByPass.Fill([spooler, other], catalog);
 
-        Assert.Equal(["Spooler", "RpcSs"], catalog.DependentsAsked);
+        // Once each, in whatever order the threads got there - since 2026-09-29 the pass asks
+        // several at once, and the order of the ASKING was never the claim. The order of the
+        // ANSWERS is, and it is held just below and in RequiredByPassParallelTests.
+        Assert.Equal(["RpcSs", "Spooler"], catalog.DependentsAsked.Order(StringComparer.Ordinal));
 
         // Nothing stands on the print spooler on this fixture, and that is an ANSWER rather than
         // a gap: the manager said so. Absent and refused are told apart below.

@@ -47,11 +47,12 @@ public enum ExtraRead
     Memory = 2,
 
     /// <summary>
-    /// Who breaks if each entry stops. Measured at 148-155 ms over 797 entries on 2026-09-28.
+    /// Who breaks if each entry stops. Measured at 19-40 ms over 797 entries on 2026-09-29, asked
+    /// several at once (148-155 ms one at a time, the day before).
     ///
     /// <b>The third family, and the one that shows why this was flags rather than a yes-or-no from
-    /// the start.</b> It sits between the other two - a hundred and fifty milliseconds against
-    /// under one and against twelve seconds of processor - so a query about dependents must not send
+    /// the start.</b> It sits between the other two - tens of milliseconds against under one and
+    /// against twelve seconds of processor - so a query about dependents must not send
     /// the window to open eight hundred binaries, and a question about signatures must not walk the
     /// manager service by service. Each caller asks for what it needs and gets only that, which
     /// <c>Readings.Fill</c> honours one flag at a time.

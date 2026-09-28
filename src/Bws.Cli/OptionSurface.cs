@@ -153,7 +153,7 @@ internal static class OptionSurface
 
         // Listing only, and NOT the same switch as --dependents further down. That one is an
         // instruction to a write verb - take the services standing on this one with you. This is
-        // a reading, and it costs a call per entry: 148-155 ms over 797 entries, 2026-09-28.
+        // a reading, and it costs a call per entry: 19-40 ms over 797 entries, several at once, 2026-09-29.
         ("--required-by", [CommandKind.List]),
 
         // The two verbs that resolve a launch path against the disk. A plan does not - it

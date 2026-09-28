@@ -261,8 +261,11 @@ internal static class ManagerBlocks
         return names;
     }
 
-    internal static unsafe List<EnumeratedEntry> ReadEnumerationBuffer(byte[] buffer, uint count)
+    internal static unsafe List<EnumeratedEntry> ReadEnumerationBuffer(ReadOnlySpan<byte> buffer, uint count)
     {
+        // A span rather than an array since 2026-09-29, because the block now comes from a pool and
+        // is CUT to what the manager asked for - WindowsScmCatalog.ReadTurn. The length below is the
+        // length of that cut, never of the array behind it.
         // However many records the manager says it wrote, never more than the room it was given.
         // Trusting the count alone is the shape this project used everywhere and wrote down
         // nowhere - see ReadConfigurationBuffer for the argument.

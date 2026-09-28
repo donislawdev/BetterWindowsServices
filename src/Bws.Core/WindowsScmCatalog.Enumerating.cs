@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Windows.Win32;
@@ -23,7 +24,7 @@ public sealed partial class WindowsScmCatalog
     // A list rather than a sequence, because the caller needs a count before it starts and an
     // index while it runs. It was already building one internally - the sequence was hiding
     // that behind a type that promised less than it delivered.
-    private static unsafe List<EnumeratedEntry> Enumerate(SafeHandle manager)
+    private static List<EnumeratedEntry> Enumerate(SafeHandle manager)
     {
         uint resume = 0;
         var results = new List<EnumeratedEntry>(capacity: 1024);
@@ -78,7 +79,62 @@ public sealed partial class WindowsScmCatalog
                 break;
             }
 
-            var buffer = new byte[needed];
+            var returned = ReadTurn(manager, needed, ref resume, results);
+
+            // THE ONE LOOP IN THIS PROJECT WHOSE ENDING IS DECIDED ENTIRELY BY SOMEBODY ELSE,
+            // and until 2026-09-02 nothing here insisted that it end. Backlog 304. Both exits
+            // come from the manager: a size of zero above and a resume handle of zero below.
+            // A turn that hands over no record and does not move the handle has made no
+            // progress, and repeating it makes none either - so the loop would spin, taking a
+            // fresh buffer every time, with the command line hung and the window silently
+            // stuck on a reading that never returns.
+            //
+            // NOBODY HAS SEEN THIS AND THAT IS WRITTEN DOWN RATHER THAN GLOSSED. The manager
+            // answers in one or two turns. What earns the check is the asymmetry: three lines
+            // against a hang on somebody's server, in the only place here where the condition
+            // to continue is a number a different process chose.
+            if (returned == 0 && resume == before)
+            {
+                throw new Win32Exception(
+                    (int)WIN32_ERROR.ERROR_INVALID_DATA,
+                    "The service control manager stopped making progress through its own listing.");
+            }
+
+            // A resume handle of zero means the manager has nothing left to hand over.
+            if (resume == 0)
+            {
+                break;
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// One turn: the records the manager hands over into a block of exactly the size it asked for.
+    /// Returns how many it said it wrote.
+    ///
+    /// <b>RENTED RATHER THAN NEW SINCE 2026-09-29</b> - S-3 of the external performance report,
+    /// backlog 466. The window asks this every second, and over 797 entries the manager wants
+    /// 129 418 B: past the 85 000 B line, so every tick put a fresh block on the large object heap,
+    /// and only a full collection gives one back. Measured with tools/scm-probe/tick-alloc.ps1 over
+    /// 1500 ticks before the change: 347 KB allocated a tick and 34 full collections.
+    ///
+    /// <b>The block is cut to what the manager asked for and cleared, and that is what keeps this the
+    /// reading it was.</b> A pooled array is usually longer than asked and carries whatever its last
+    /// renter left in it, and <see cref="ManagerBlocks.ReadEnumerationBuffer"/> bounds every pointer
+    /// and every count by the length it is handed. Handed the whole array, those checks would be
+    /// measured against room the manager was never told about. Cut and cleared, the reader sees the
+    /// same length and the same zeros a new array gave it.
+    /// </summary>
+    private static unsafe uint ReadTurn(SafeHandle manager, uint needed, ref uint resume, List<EnumeratedEntry> results)
+    {
+        var rented = ArrayPool<byte>.Shared.Rent((int)needed);
+
+        try
+        {
+            var buffer = rented.AsSpan(0, (int)needed);
+            buffer.Clear();
 
             // Pinned across the call and the reading, for the reason set out in full at
             // ReadConfiguration: each record here carries two absolute pointers into this very
@@ -99,33 +155,12 @@ public sealed partial class WindowsScmCatalog
 
                 results.AddRange(ManagerBlocks.ReadEnumerationBuffer(buffer, returned));
 
-                // THE ONE LOOP IN THIS PROJECT WHOSE ENDING IS DECIDED ENTIRELY BY SOMEBODY ELSE,
-                // and until 2026-09-02 nothing here insisted that it end. Backlog 304. Both exits
-                // come from the manager: a size of zero above and a resume handle of zero below.
-                // A turn that hands over no record and does not move the handle has made no
-                // progress, and repeating it makes none either - so the loop would spin, taking a
-                // fresh buffer every time, with the command line hung and the window silently
-                // stuck on a reading that never returns.
-                //
-                // NOBODY HAS SEEN THIS AND THAT IS WRITTEN DOWN RATHER THAN GLOSSED. The manager
-                // answers in one or two turns. What earns the check is the asymmetry: three lines
-                // against a hang on somebody's server, in the only place here where the condition
-                // to continue is a number a different process chose.
-                if (returned == 0 && resume == before)
-                {
-                    throw new Win32Exception(
-                        (int)WIN32_ERROR.ERROR_INVALID_DATA,
-                        "The service control manager stopped making progress through its own listing.");
-                }
-            }
-
-            // A resume handle of zero means the manager has nothing left to hand over.
-            if (resume == 0)
-            {
-                break;
+                return returned;
             }
         }
-
-        return results;
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
     }
 }

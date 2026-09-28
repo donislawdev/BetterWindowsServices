@@ -16,6 +16,15 @@ is not part of this repository.
 - A minimised window no longer reads the list of services every second. It reads it again the
   moment it is restored, so the list is current as soon as it is on screen. A window started
   minimised, from a shortcut set to "Run: Minimized", reads it once and then waits the same way.
+- Stopping, starting and restarting a service, from the window or with `bws`, no longer waits
+  about a quarter of a second longer than the service needs on every step. A service that stops
+  in 10 ms is now reported done after a few tens of milliseconds, where it used to be reported
+  after about 260, so a restart with a cascade of dependents finishes seconds sooner. The
+  `milliseconds` of each step in the JSON of a plan is smaller for the same reason. How long a
+  service is given before it is reported as not responding has not changed.
+- Reading who depends on each entry - the Required by column, `required:` in a query and
+  `bws list --required-by` - asks about several entries at once and takes a fraction of the time
+  it did.
 
 ## [0.3.0] - 2026-09-25
 

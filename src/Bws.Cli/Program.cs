@@ -220,8 +220,8 @@ try
         entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
         inspected = stopwatch.ElapsedMilliseconds - before;
 
-        // AND WHO DEPENDS ON EACH ENTRY, EVERY TIME, on the argument above and for a twentieth of
-        // the price - RequiredByPass carries the measurement. No switch here: one taken without it
+        // AND WHO DEPENDS ON EACH ENTRY, EVERY TIME, on the argument above and for a small fraction
+        // of the price - RequiredByPass carries the measurement. No switch here: one taken without it
         // would compare against one that has it as though every service had lost its dependents.
         entries = RequiredByPass.Fill(entries, catalog!);
 

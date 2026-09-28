@@ -72,7 +72,13 @@ internal sealed class FakeScmCatalog : IScmCatalog
 
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
     {
-        DependentsAsked.Add(serviceName);
+        // LOCKED SINCE 2026-09-29, when RequiredByPass started asking several entries at once. A
+        // list is not safe to add to from two threads, and a double that loses a name under load
+        // would make the pass look as if it skipped one. Everything else here is only read.
+        lock (DependentsAsked)
+        {
+            DependentsAsked.Add(serviceName);
+        }
 
         if (RefuseDependentsFor.Contains(serviceName))
         {
