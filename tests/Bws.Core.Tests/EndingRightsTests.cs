@@ -175,27 +175,32 @@ public class EndingRightsTests
     }
 
     /// <summary>
-    /// The chain with every entry in a process of its own, which is what 105 of 110 processes on a
-    /// real machine look like.
+    /// MRxSmb20 alone in its process, which is what 105 of 110 processes on a real machine look like.
+    ///
+    /// <b>Its three dependants are stopped, and until 2026-09-29 they were running.</b> A forced stop
+    /// refuses running dependants since that day (stability report W-4), and every test here is about
+    /// the identity of the process rather than about who depends on it - ForcedStopRefusalTests holds
+    /// the refusal.
     /// </summary>
-    private static FakeScmCatalog Alone() => WithProcesses(
-        ("MRxSmb20", 4444), ("LanmanWorkstation", 5555), ("SessionEnv", 6666), ("Netlogon", 7777));
-
-    /// <summary>Two entries in one process, which is what an svchost group looks like.</summary>
-    private static FakeScmCatalog Sharing() => WithProcesses(
-        ("MRxSmb20", 4444), ("LanmanWorkstation", 4444), ("SessionEnv", 6666), ("Netlogon", 7777));
-
-    private static FakeScmCatalog WithProcesses(params (string Name, int ProcessId)[] processes)
+    private static FakeScmCatalog Alone()
     {
-        var catalog = Chain();
+        var catalog = Housed(("MRxSmb20", 4444));
 
-        foreach (var (name, processId) in processes)
+        foreach (var name in (string[])["LanmanWorkstation", "SessionEnv", "Netlogon"])
         {
-            catalog = Rebuild(catalog, name, entry => entry with { ProcessId = Reading<int>.Present(processId) });
+            catalog = Rebuild(catalog, name, entry => entry with
+            {
+                Status = EntryStatus.Stopped,
+                ProcessId = Reading<int>.Absent()
+            });
         }
 
         return catalog;
     }
+
+    /// <summary>Two entries in one process, which is what an svchost group looks like.</summary>
+    private static FakeScmCatalog Sharing() => Housed(
+        ("MRxSmb20", 4444), ("LanmanWorkstation", 4444), ("SessionEnv", 6666), ("Netlogon", 7777));
 
     private static OperationPlan Plan(
         FakeScmCatalog catalog, FakeEndingFacts facts, bool immediate = false) =>

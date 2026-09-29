@@ -323,9 +323,30 @@ internal static class PlanText
         PlanProblemKind.CannotStartLate => Texts.Of(
             "cli.plan.problem.cannotStartLate", problem.ServiceName, Join(problem.Related)),
 
+        PlanProblemKind.DependentsInTheWay or PlanProblemKind.NeighbourNeeded => StillRunning(problem),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };
+
+    /// <summary>
+    /// The two refusals of a forced stop that name entries still running, since 2026-09-29.
+    ///
+    /// <b>Both name them, because they are what somebody has to stop first. Only the first offers
+    /// --dependents</b>, which reaches what depends on the entry itself and nothing else. Out of
+    /// Describe because that switch stands close to the complexity ceiling.
+    /// </summary>
+    private static string StillRunning(PlanProblem problem) => problem.Kind == PlanProblemKind.DependentsInTheWay
+        ? Texts.Of(
+            problem.Related.Count == 1
+                ? "cli.plan.problem.dependentsInTheWay.one"
+                : "cli.plan.problem.dependentsInTheWay.many",
+            problem.ServiceName, Join(problem.Related))
+        : Texts.Of(
+            problem.Related.Count == 1
+                ? "cli.plan.problem.neighbourNeeded.one"
+                : "cli.plan.problem.neighbourNeeded.many",
+            problem.ServiceName, Join(problem.Related));
 
     private static bool IsTheTarget(PlanProblem problem) =>
         problem.Related.Count == 1

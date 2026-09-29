@@ -75,6 +75,23 @@ internal static class DependencyChain
     }
 
     /// <summary>
+    /// The chain with each entry in the process named beside it - two entries given one number share
+    /// it, which is what an svchost group looks like. Out of ForcedStopTests on 2026-09-29, when a
+    /// second file of forced stop tests needed the same machine.
+    /// </summary>
+    internal static FakeScmCatalog Housed(params (string Name, int ProcessId)[] processes)
+    {
+        var catalog = Chain();
+
+        foreach (var (name, processId) in processes)
+        {
+            catalog = Rebuild(catalog, name, entry => entry with { ProcessId = Reading<int>.Present(processId) });
+        }
+
+        return catalog;
+    }
+
+    /// <summary>
     /// Builds with the cascade included, which is what most of these are about. The plain
     /// form, where it is not, has tests of its own.
     /// </summary>

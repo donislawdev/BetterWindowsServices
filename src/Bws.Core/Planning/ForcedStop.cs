@@ -46,14 +46,21 @@ internal static class ForcedStop
     /// manager a second time would be a second answer to a question with one answer, and the two
     /// could disagree.
     /// </summary>
+    /// <param name="blocking">
+    /// Every running entry that depends on the target, whether or not the plan stops them - the plan
+    /// stops them exactly when the ask carries <see cref="ServiceAction.IncludeDependents"/>.
+    /// </param>
     internal static (PlanProblem? Refusal, Ending? Ending) Decide(
         IReadOnlyList<ScmEntry> entries,
+        IScmCatalog catalog,
         ScmEntry target,
-        IReadOnlyList<ScmEntry> cascade,
+        IReadOnlyList<ScmEntry> blocking,
         IReadOnlyList<PlanWarning> warnings,
-        bool immediate,
+        ServiceAction action,
         EndingFacts facts)
     {
+        ThrowIfTheCourtesySkipsTheCascade(action);
+
         if (ProcessNeighbours.Endable(target) is not { } processId)
         {
             // Nothing to name in the preview, so there is no preview. Four quite different readings
@@ -80,6 +87,13 @@ internal static class ForcedStop
             return (Because(PlanProblemKind.CascadeUnreadable, target), null);
         }
 
+        if (InTheWay(action, target, blocking) is { } inTheWay)
+        {
+            return (inTheWay, null);
+        }
+
+        IReadOnlyList<ScmEntry> cascade = action.IncludeDependents ? blocking : [];
+
         // Minus anything the cascade is already taking down, because an entry named twice in one
         // plan is two steps doing one thing - and the second reports "already there" in a report
         // somebody is reading carefully.
@@ -90,10 +104,15 @@ internal static class ForcedStop
                     other.ServiceName, entry.ServiceName, StringComparison.OrdinalIgnoreCase)))
         ];
 
+        if (Needed(catalog, entries, target, cascade, sharing) is { } needed)
+        {
+            return (needed, null);
+        }
+
         return (null, new Ending(
             processId,
             sharing,
-            immediate,
+            action.Immediate,
             facts.Created.IsPresent ? facts.Created.Value : null));
     }
 
@@ -136,6 +155,104 @@ internal static class ForcedStop
             Error: rights.Reason);
     }
 
+    /// <summary>
+    /// NOT A REFUSAL A PERSON CAN MEET, the same kind of loud as PlanBuilder.ThrowIfNobodyCouldAsk.
+    ///
+    /// Skipping the courtesy skips every stop in front of the ending, the cascade's too, so a plan
+    /// built from this shape promised its dependants stopped and then ended the process under them -
+    /// the preview saying one thing and the run doing another, which is rule 5 of the untouchable list
+    /// (stability report W-4). The command line refuses the pair before anything is read, and the
+    /// window never asks for dependants.
+    /// </summary>
+    private static void ThrowIfTheCourtesySkipsTheCascade(ServiceAction action)
+    {
+        if (action is { Immediate: true, IncludeDependents: true })
+        {
+            throw new ArgumentException(
+                "Skipping the courtesy skips the cascade too, so an immediate ask cannot carry its "
+                + "dependents. Refuse the pair where it is typed.",
+                nameof(action));
+        }
+    }
+
+    /// <summary>
+    /// The running dependants a plan without them would leave standing on a process that is gone.
+    ///
+    /// <b>A REFUSAL WHERE AN ORDINARY STOP GETS A WARNING, on the owner's decision of 2026-09-29.</b>
+    /// The manager refuses that stop with 1051 and nothing is harmed. The last step here asks no
+    /// manager, and ends the process under entries still running on it.
+    /// </summary>
+    private static PlanProblem? InTheWay(ServiceAction action, ScmEntry target, IReadOnlyList<ScmEntry> blocking) =>
+        action.IncludeDependents || blocking.Count == 0
+            ? null
+            : new PlanProblem(
+                PlanProblemKind.DependentsInTheWay,
+                target.ServiceName,
+                [.. blocking.Select(entry => entry.ServiceName)]);
+
+    /// <summary>
+    /// Whether something running outside the plan needs an entry that dies only because it shares the
+    /// process - and a refusal naming what, when it does.
+    ///
+    /// <b>The same question <see cref="PlanProblemKind.DependentsInTheWay"/> asks about the target,
+    /// asked of its neighbours, and the external stability report (W-6) is why it is asked at all.</b>
+    /// Nobody asked about them before 2026-09-29, so a neighbour holding up a running entry was ended
+    /// under it without a word in the preview.
+    ///
+    /// <b>The manager is asked rather than the declarations inverted</b>, for the reason
+    /// PlanBuilder.StoppingOrder gives: an entry can depend on a load order group, and the declaration
+    /// does not say who belongs to it. One question per neighbour, and 105 of 110 processes on a
+    /// measured machine hold one service, so on the ordinary plan there is nobody to ask.
+    ///
+    /// <b>An unreadable answer is a refusal</b> - a casualty list known to be short, exactly as for the
+    /// target's own cascade in <see cref="Decide"/>.
+    /// </summary>
+    private static PlanProblem? Needed(
+        IScmCatalog catalog,
+        IReadOnlyList<ScmEntry> entries,
+        ScmEntry target,
+        IReadOnlyList<ScmEntry> cascade,
+        IReadOnlyList<ScmEntry> sharing)
+    {
+        var dying = new HashSet<string>(
+            cascade.Concat(sharing).Append(target).Select(entry => entry.ServiceName),
+            StringComparer.OrdinalIgnoreCase);
+
+        var needing = new List<string>();
+
+        foreach (var neighbour in sharing)
+        {
+            var dependents = catalog.ReadDependents(neighbour.ServiceName);
+
+            if (dependents.Outcome == ReadOutcome.Denied)
+            {
+                return Because(PlanProblemKind.CascadeUnreadable, target);
+            }
+
+            needing.AddRange(Running(entries, dependents).Where(name => !dying.Contains(name)));
+        }
+
+        return needing.Count == 0
+            ? null
+            : new PlanProblem(
+                PlanProblemKind.NeighbourNeeded,
+                target.ServiceName,
+                [.. needing.Distinct(StringComparer.OrdinalIgnoreCase)]);
+    }
+
+    /// <summary>
+    /// The names in a dependants answer that are running on this listing. Absent and unread give
+    /// nobody, which is what PlanBuilder.StoppingOrder makes of them too.
+    /// </summary>
+    private static IEnumerable<string> Running(
+        IReadOnlyList<ScmEntry> entries, Reading<IReadOnlyList<string>> dependents) =>
+        !dependents.IsPresent
+            ? []
+            : entries
+                .Where(entry => entry.Status != EntryStatus.Stopped
+                    && dependents.Value!.Contains(entry.ServiceName, StringComparer.OrdinalIgnoreCase))
+                .Select(entry => entry.ServiceName);
+
     /// <summary>The plain shape, for the reasons that carry nothing but a name.</summary>
     private static PlanProblem Because(PlanProblemKind kind, ScmEntry target) =>
         new(kind, target.ServiceName, []);
@@ -143,9 +260,18 @@ internal static class ForcedStop
     /// <summary>
     /// Ask everything politely, then end what is left.
     ///
-    /// <b>The neighbours are asked first and they were never in anybody's request.</b> They die
-    /// when the process does, so the only question is whether they get to close their files on the
-    /// way - and asking costs one step in a preview that already names them.
+    /// <b>The order is the cascade, the entry itself, the neighbours, the ending - and until
+    /// 2026-09-29 the neighbours came BEFORE the entry.</b> The external stability report (W-2) found
+    /// what that cost: a neighbour refusing its stop was a failed step forward, which skipped the
+    /// polite stop of the entry itself, and the process was ended at once. And where the entry would
+    /// have stopped politely, the neighbours had been taken down for nothing - the process stays when
+    /// its entry stops by itself, and so do they. So the entry is asked first, and the neighbours are
+    /// asked only on the way to an ending that is actually going to happen: PlanRunner skips them as
+    /// <see cref="SkipReason.ProcessStays"/> otherwise.
+    ///
+    /// <b>The neighbours were never in anybody's request.</b> They die when the process does, so the
+    /// only question is whether they get to close their files on the way - and asking costs one step
+    /// in a preview that already names them.
     ///
     /// <b>The entry somebody asked about gets a polite step only if it has not already had one.</b>
     /// From the window's offer under a failure this plan is built after a stop that gave up, so the
@@ -172,14 +298,14 @@ internal static class ForcedStop
                 steps.Add(step(dependent, StepOperation.Stop, StepReason.Cascade));
             }
 
-            foreach (var sharing in ending.Sharing)
-            {
-                steps.Add(step(sharing, StepOperation.Stop, StepReason.SharesTheProcess));
-            }
-
             if (!ProcessNeighbours.AlreadyAsked(target))
             {
                 steps.Add(step(target, StepOperation.Stop, StepReason.Requested));
+            }
+
+            foreach (var sharing in ending.Sharing)
+            {
+                steps.Add(step(sharing, StepOperation.Stop, StepReason.SharesTheProcess));
             }
         }
 
@@ -195,15 +321,22 @@ internal static class ForcedStop
             // escalation would print "if the stop does not work" over a plan with no stop in it.
             ending.Immediate ? StepReason.Requested : StepReason.Escalation,
             ProcessId: ending.ProcessId,
-            ProcessCreatedAt: ending.CreatedAt));
+            ProcessCreatedAt: ending.CreatedAt,
+            TakesWithIt: [.. ending.Sharing.Select(entry => entry.ServiceName)]));
     }
 
     /// <summary>
-    /// Everything that comes back up, in the mirror of the order it went down.
+    /// Everything that comes back up: the entry, its neighbours, then the cascade in the mirror of the
+    /// order it went down.
     ///
     /// <b>Two loops rather than a reversal of the plan, and the neighbours are why they were worth
     /// making steps.</b> What has a step going down has a step coming back, worked out here rather
     /// than guessed at afterwards from what happened.
+    ///
+    /// <b>The entry before its neighbours although it went down before them since 2026-09-29</b> -
+    /// the ending takes them down in one moment, so there is no order to mirror between the two, and
+    /// the entry somebody asked about is the one worth having back first. The cascade still comes up
+    /// last, because every one of them depends on the entry.
     /// </summary>
     internal static void AddRestores(
         List<PlanStep> steps,
@@ -233,7 +366,8 @@ internal static class ForcedStop
     /// and the exact opposite of what happens here. Two warnings contradicting each other about one
     /// machine on one screen would be worse than either alone.
     /// </summary>
-    internal static void AddWarnings(List<PlanWarning> warnings, ScmEntry target, Ending ending)
+    internal static void AddWarnings(
+        List<PlanWarning> warnings, ScmEntry target, IReadOnlyList<ScmEntry> cascade, Ending ending)
     {
         // Said even though every one of them is already a STEP, because the steps say they will be
         // asked to stop and this says what happens to the ones that do not.
@@ -249,7 +383,11 @@ internal static class ForcedStop
         // where a person takes down an entry the machine needs without ever typing its name.
         // Glossary pitfall P1: this says "you should not", which is a different sentence from "you
         // cannot" and from "confirm that you mean it", and the wording keeps them apart.
-        var critical = CriticalEntries.Named(ending.Sharing.Append(target));
+        //
+        // THE CASCADE TOO, SINCE 2026-09-29 (stability report W-6). The ordinary stop asks it through
+        // CriticalEntries.AddWarnings, which does not run for this kind - so a critical entry arriving
+        // with --dependents on a forced stop was taken down without the sentence that plan exists to say.
+        var critical = CriticalEntries.Named([.. cascade, .. ending.Sharing, target]);
 
         if (critical.Count > 0)
         {

@@ -87,7 +87,7 @@ public sealed class PlanBuilder(
         if (ForcedStop.Asked(action.Kind))
         {
             var (refusal, decided) = ForcedStop.Decide(
-                entries, target, cascade, warnings, action.Immediate, Ask(target));
+                entries, catalog, target, blocking, warnings, action, Ask(target));
 
             if (refusal is { } why)
             {
@@ -97,7 +97,7 @@ public sealed class PlanBuilder(
             ending = decided;
         }
 
-        if (StuckDown(action.Kind, target, cascade) is { Count: > 0 } cannotComeBack)
+        if (StuckDown(action.Kind, target, [.. cascade, .. ending?.Sharing ?? []]) is { Count: > 0 } cannotComeBack)
         {
             return Refuse(action, PlanProblemKind.CannotComeBack, cannotComeBack);
         }
@@ -296,11 +296,14 @@ public sealed class PlanBuilder(
     /// <b>Only where the answer is known.</b> An unreadable start type is not a reason to
     /// refuse - that would turn missing information into a decision, which is the opposite of
     /// what the four read outcomes exist for.
+    ///
+    /// <b>The neighbours of a forced restart as well, since 2026-09-29</b> (stability report W-6): a
+    /// disabled one running in the process dies with it and its way back is refused like anybody's.
     /// </summary>
     private static List<string> StuckDown(
-        ActionKind kind, ScmEntry target, IReadOnlyList<ScmEntry> cascade) =>
+        ActionKind kind, ScmEntry target, IReadOnlyList<ScmEntry> alongside) =>
         kind is ActionKind.Restart or ActionKind.ForceRestart
-            ? [.. cascade
+            ? [.. alongside
                 .Append(target)
                 .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
                 .Select(entry => entry.ServiceName)]
@@ -479,10 +482,13 @@ public sealed class PlanBuilder(
         // Only where the answer is PRESENT. Absent means the entry is already stopped, where the
         // question does not arise - and turning that into a warning would put a sentence about a
         // refusal next to a step that is going to be skipped for having nothing to do.
+        //
+        // A forced stop asks its neighbours too (stability report W-6): each is a stop step of its own.
         if (StopsPolitely(action, target) || ForcedStop.Asked(action.Kind))
         {
-            var refusing = cascade
-                .Append(target)
+            IEnumerable<ScmEntry> asked = [.. cascade, target, .. ending?.Sharing ?? []];
+
+            var refusing = asked
                 .Where(entry => entry.AcceptsStop is { IsPresent: true, Value: false })
                 .Select(entry => entry.ServiceName)
                 .ToList();
@@ -510,7 +516,7 @@ public sealed class PlanBuilder(
         // neighbours keep running and here they do not.
         if (ending is { } dies)
         {
-            ForcedStop.AddWarnings(warnings, target, dies);
+            ForcedStop.AddWarnings(warnings, target, cascade, dies);
         }
     }
 

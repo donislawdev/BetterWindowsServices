@@ -112,9 +112,15 @@ public static class EquivalentCommand
         // nothing, carried in from a selection whose tick box belongs to a different question. That
         // is the same shape as the nine two-way branches this file's Unhandled constant describes:
         // a condition phrased as everything-except answers for kinds nobody has written yet.
+        //
+        // KILL TAKES IT TOO AND WAS MISSING HERE UNTIL 2026-09-29 (stability report W-12). The command
+        // line has accepted it on kill from the day the verb arrived, so a forced stop planned with
+        // its dependents came back as a line that, pasted, planned the stop without them - which since
+        // that day is a refusal rather than a quieter plan.
         var switches = new List<string>();
 
-        if (action.IncludeDependents && action.Kind is ActionKind.Stop or ActionKind.Restart)
+        if (action.IncludeDependents
+            && action.Kind is ActionKind.Stop or ActionKind.Restart or ActionKind.ForceStop or ActionKind.ForceRestart)
         {
             switches.Add(Dependents);
         }

@@ -60,7 +60,9 @@ public static class NetEffect
     /// it out would be a claim about something nobody saw, and the direction of that error is the
     /// bad one - it would stay silent about an entry somebody was left holding.
     ///
-    /// Skipped steps moved nothing by definition, and a refusal moved nothing either.
+    /// Skipped steps moved nothing by definition, and a refusal moved nothing either - <b>with one
+    /// exception since 2026-09-29:</b> a neighbour in a process that was ended moved, whatever its own
+    /// step said, and <see cref="WentWith"/> counts it.
     ///
     /// <b>The order is the reverse of the run</b>, and it has to be: a stop cascade takes the
     /// dependants down before the entry they depend on, so putting them back starts that entry
@@ -89,53 +91,7 @@ public static class NetEffect
     {
         ArgumentNullException.ThrowIfNull(results);
 
-        var moves = new Dictionary<string, (StepOperation First, StepOperation Last, int When)>(
-            StringComparer.OrdinalIgnoreCase);
-
-        // ITS OWN TALLY RATHER THAN A THIRD DIRECTION IN THE ONE ABOVE. A move is answered by
-        // asking whether the entry ended up running, which is a question with two answers. A
-        // setting is answered with a value, and folding the two into one dictionary would mean an
-        // entry that was both moved and reconfigured had to pick which of the two it was.
-        //
-        // A run like that exists since 2026-09-24 - a startup setting of disabled carrying a stop,
-        // spec C4 - and the entry gets both lines instead of quietly losing one, which is what this
-        // arithmetic was written for before anything built one. The order of the two is decided
-        // where the lines are sorted, below.
-        var settings = new Dictionary<string, (StartSetting? From, StartSetting? To, int When)>(
-            StringComparer.OrdinalIgnoreCase);
-
-        var index = 0;
-
-        foreach (var result in results)
-        {
-            var at = index++;
-
-            if (result.Outcome != StepOutcome.Succeeded && result.Outcome != StepOutcome.TimedOut)
-            {
-                continue;
-            }
-
-            var name = result.Step.ServiceName;
-
-            if (result.Step.Operation == StepOperation.SetStartType)
-            {
-                // The FIRST from and the LAST to, which is the move arithmetic said in values -
-                // and it matters for the same reason. An entry set to manual and then to disabled
-                // inside one run has one way back, and it goes to where the run found it rather
-                // than to the halfway house it passed through.
-                settings[name] = settings.TryGetValue(name, out var written)
-                    ? (written.From, result.Step.To, at)
-                    : (result.Step.From, result.Step.To, at);
-
-                continue;
-            }
-
-            var operation = result.Step.Operation;
-
-            moves[name] = moves.TryGetValue(name, out var seen)
-                ? (seen.First, operation, at)
-                : (operation, operation, at);
-        }
+        var (moves, settings) = Tally(results);
 
         var back = moves
             .Where(move => Before(move.Value.First) != After(move.Value.Last))
@@ -165,6 +121,111 @@ public static class NetEffect
             .OrderByDescending(one => one.When)
             .ThenByDescending(one => one.Setting)
             .Select(one => one.Step)];
+    }
+
+    /// <summary>
+    /// Where each entry was first and last moved, and what each startup setting was before and after -
+    /// the two tallies <see cref="Of"/> turns into lines.
+    ///
+    /// <b>Out of Of on 2026-09-29</b>, when the neighbours of an ended process joined the count
+    /// (stability report W-10) and Of went past the length the shape guard calls close to its ceiling.
+    /// The seam is the one the method already had: counting what happened, then saying what undoes it.
+    /// </summary>
+    private static (
+        Dictionary<string, (StepOperation First, StepOperation Last, int When)> Moves,
+        Dictionary<string, (StartSetting? From, StartSetting? To, int When)> Settings)
+        Tally(IEnumerable<StepResult> results)
+    {
+        var moves = new Dictionary<string, (StepOperation First, StepOperation Last, int When)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        // ITS OWN TALLY RATHER THAN A THIRD DIRECTION IN THE ONE ABOVE. A move is answered by
+        // asking whether the entry ended up running, which is a question with two answers. A
+        // setting is answered with a value, and folding the two into one dictionary would mean an
+        // entry that was both moved and reconfigured had to pick which of the two it was.
+        //
+        // A run like that exists since 2026-09-24 - a startup setting of disabled carrying a stop,
+        // spec C4 - and the entry gets both lines instead of quietly losing one, which is what this
+        // arithmetic was written for before anything built one. The order of the two is decided
+        // where the lines are sorted, in Of.
+        var settings = new Dictionary<string, (StartSetting? From, StartSetting? To, int When)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        // Entries a stop found already stopped - the one thing that tells a neighbour who was not in
+        // the process when it ended from one who died with it.
+        var foundStopped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var index = 0;
+
+        foreach (var result in results)
+        {
+            var at = index++;
+
+            if (result is { SkippedBecause: SkipReason.AlreadyThere, Step.Operation: StepOperation.Stop })
+            {
+                foundStopped.Add(result.Step.ServiceName);
+            }
+
+            if (result.Outcome != StepOutcome.Succeeded && result.Outcome != StepOutcome.TimedOut)
+            {
+                continue;
+            }
+
+            if (result.Step.Operation == StepOperation.Terminate)
+            {
+                WentWith(result.Step, foundStopped, moves, at);
+            }
+
+            var name = result.Step.ServiceName;
+
+            if (result.Step.Operation == StepOperation.SetStartType)
+            {
+                // The FIRST from and the LAST to, which is the move arithmetic said in values -
+                // and it matters for the same reason. An entry set to manual and then to disabled
+                // inside one run has one way back, and it goes to where the run found it rather
+                // than to the halfway house it passed through.
+                settings[name] = settings.TryGetValue(name, out var written)
+                    ? (written.From, result.Step.To, at)
+                    : (result.Step.From, result.Step.To, at);
+
+                continue;
+            }
+
+            var operation = result.Step.Operation;
+
+            moves[name] = moves.TryGetValue(name, out var seen)
+                ? (seen.First, operation, at)
+                : (operation, operation, at);
+        }
+
+        return (moves, settings);
+    }
+    /// <summary>
+    /// The neighbours an ended process took down with it, counted as moved by the step that ended it.
+    ///
+    /// <b>THE EXTERNAL STABILITY REPORT FOUND THEM MISSING (W-10), and a live forced restart would have
+    /// been worse than missing.</b> A neighbour whose polite stop was refused, or that never had one
+    /// because the courtesy was skipped, has no step of its own that moved it - yet the process it
+    /// lived in is gone. Left out, its way back was silence after a forced stop, and after a forced
+    /// restart with <c>--force</c> it was "stop it", worked out from the one step that brought it
+    /// back, about an entry that had been running all along.
+    ///
+    /// <b>Only neighbours with no move of their own and not found already stopped.</b> One whose own
+    /// stop worked is counted already, and one its step found stopped was not in the process at all.
+    /// </summary>
+    private static void WentWith(
+        PlanStep ending,
+        HashSet<string> foundStopped,
+        Dictionary<string, (StepOperation First, StepOperation Last, int When)> moves,
+        int at)
+    {
+        foreach (var name in ending.TakesWithIt ?? [])
+        {
+            if (!moves.ContainsKey(name) && !foundStopped.Contains(name))
+            {
+                moves[name] = (StepOperation.Terminate, StepOperation.Terminate, at);
+            }
+        }
     }
 
     /// <summary>

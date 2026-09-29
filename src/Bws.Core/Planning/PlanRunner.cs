@@ -68,6 +68,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         var cancelled = false;
         var abandoned = false;
         var forwardFailed = false;
+        var cascadeFailed = false;
 
         for (var index = 0; index < plan.Steps.Count; index++)
         {
@@ -76,28 +77,18 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             cancelled |= cancellation.IsCancellationRequested;
             abandoned |= abandonment.IsCancellationRequested;
 
-            // Putting things back is not part of the forward path and does not stop when the
-            // forward path does. Those steps exist to give back what earlier steps took, and
-            // abandoning them would leave the machine trimmed by a plan that failed - the
-            // one outcome nobody asked for. Anything that was never taken down is found
-            // already in place and reported as such, so this costs nothing when it is not
-            // needed.
-            var putsBack = step.Reason == StepReason.Restore;
+            var because = Held(step.Reason, abandoned, cancelled, forwardFailed, cascadeFailed);
 
-            // THE STRONGER ATTEMPT STANDING BEHIND ONE THAT MAY NOT WORK, AND IT NEEDS THE OPPOSITE
-            // TREATMENT FROM THE LINE ABOVE. An escalation exists for the case where an earlier
-            // step did not arrive, so the ordinary rule - stop going forward once something failed -
-            // would skip the only step that was ever going to help. It is still held by an
-            // interruption, because that is somebody saying stop rather than something going wrong.
-            var stronger = step.Reason == StepReason.Escalation;
+            if (because is null && step.Reason == StepReason.SharesTheProcess && Stays(plan))
+            {
+                because = SkipReason.ProcessStays;
+            }
 
-            if (abandoned
-                || (cancelled && !putsBack)
-                || (forwardFailed && !putsBack && !stronger))
+            if (because is { } skipped)
             {
                 results.Add(Skipped(
                     step,
-                    cancelled || abandoned ? SkipReason.Cancelled : SkipReason.EarlierStepFailed,
+                    skipped,
                     EntryStatus.Unknown,
 
                     // Nobody asked the manager about this entry, so there is nothing to say about
@@ -114,9 +105,10 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
 
             results.Add(result);
 
-            if (!result.Arrived && !putsBack)
+            if (!result.Arrived && step.Reason != StepReason.Restore)
             {
                 forwardFailed = true;
+                cascadeFailed |= step.Reason == StepReason.Cascade;
             }
         }
 
@@ -132,6 +124,76 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             Cancelled = cancelled || abandoned
                 || cancellation.IsCancellationRequested || abandonment.IsCancellationRequested
         };
+    }
+
+    /// <summary>
+    /// Why a step is not to be tried at all, from what has happened so far - or nothing when it is.
+    ///
+    /// <b>Putting things back is not part of the forward path and does not stop when the forward path
+    /// does.</b> Those steps exist to give back what earlier steps took, and abandoning them would
+    /// leave the machine trimmed by a plan that failed - the one outcome nobody asked for. Anything
+    /// that was never taken down is found already in place and reported as such, so this costs
+    /// nothing when it is not needed.
+    ///
+    /// <b>THE STEPS STANDING BEHIND THE ENTRY'S OWN STOP NEED THE OPPOSITE TREATMENT.</b> The ending
+    /// of a process and, since 2026-09-29, the neighbours asked on the way to it exist for the case
+    /// where the stop in front of them did not arrive - so the ordinary rule, stop going forward once
+    /// something failed, would skip the only steps that were ever going to help. A neighbour refusing
+    /// its own stop holds nothing back either: it dies with the process, and the preview says so. They
+    /// are still held by an interruption, because that is somebody saying stop rather than something
+    /// going wrong.
+    ///
+    /// <b>AND BY A CASCADE STEP THAT DID NOT ARRIVE, on the owner's decision of 2026-09-29</b> (stability
+    /// report W-2). A dependant that refused to stop is still running on the process, and ending the
+    /// process under it is exactly what the manager's refusal was protecting. Until that day the ending
+    /// went ahead after any failure at all.
+    /// </summary>
+    private static SkipReason? Held(
+        StepReason reason, bool abandoned, bool cancelled, bool forwardFailed, bool cascadeFailed)
+    {
+        var putsBack = reason == StepReason.Restore;
+        var behind = reason is StepReason.Escalation or StepReason.SharesTheProcess;
+
+        if (abandoned || (cancelled && !putsBack))
+        {
+            return SkipReason.Cancelled;
+        }
+
+        return (forwardFailed && !putsBack && !behind) || (cascadeFailed && behind)
+            ? SkipReason.EarlierStepFailed
+            : null;
+    }
+
+    /// <summary>
+    /// Whether the process a plan ends is going to stay, asked just before a neighbour would be told
+    /// to stop on the way to ending it.
+    ///
+    /// <b>The answer is what the ending step would find if it ran now</b> - the entry it ends for
+    /// already stopped (the step would be "already there"), unreadable, or held by a process other
+    /// than the one the plan froze (the step would refuse). In each of the three nothing is going to be
+    /// ended, so asking a neighbour to stop would take down a service for no reason. The neighbours
+    /// come after the entry's own polite stop since 2026-09-29, and this is what lets that stop leave
+    /// them running when it works.
+    ///
+    /// <b>One reading per neighbour, and it is not the runner working the plan out again.</b> It
+    /// invents no step and changes none - it declines one that stopped being needed, the same way a
+    /// step whose entry is already where it was going is declined. A plan with no ending in it holds
+    /// no neighbours, and one that somehow did has no process to ask them to make way for.
+    /// </summary>
+    private bool Stays(OperationPlan plan)
+    {
+        if (plan.Steps.FirstOrDefault(step => step.Operation == StepOperation.Terminate) is not { } ending)
+        {
+            return true;
+        }
+
+        // THE QUESTION END ASKS, ASKED THE SAME WAY, and one question answers all three. An entry that
+        // stopped is held by no process - the manager answers zero, which Holding makes an absence -
+        // and one that cannot be read is held by nothing anybody saw. Until a mutation run on
+        // 2026-09-29 this spelled the stopped case out as well, and removing it changed nothing.
+        var holding = Holding(control.Read(ending.ServiceName));
+
+        return !(holding.IsPresent && holding.Value == ending.ProcessId);
     }
 
     private StepResult RunStep(PlanStep step, TimeSpan timeout)

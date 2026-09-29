@@ -22,7 +22,7 @@ public sealed class ForcedStopTests
     [Fact]
     public void A_forced_stop_asks_politely_first_and_ends_the_process_only_behind_that()
     {
-        var plan = Plan(ActionKind.ForceStop, "MRxSmb20", includeDependents: false, Alone());
+        var plan = Plan(ActionKind.ForceStop, "Netlogon", includeDependents: false, Alone());
 
         Assert.Collection(
             plan.Steps,
@@ -41,7 +41,7 @@ public sealed class ForcedStopTests
 
                 // NAMED IN THE PLAN, WHICH IS THE HALF THE WORD "terminate" CANNOT CARRY. The entry
                 // is a service and what ends is a process, and the two are not the same thing.
-                Assert.Equal(4444, step.ProcessId);
+                Assert.Equal(7777, step.ProcessId);
             });
     }
 
@@ -67,9 +67,9 @@ public sealed class ForcedStopTests
         // were walked. The window reaches this plan only after a stop gave up, so the entry is
         // sitting in a pending state with a request already in flight. A second polite step would
         // send the same thing again and then wait the whole ceiling for it.
-        var catalog = Rebuild(Alone(), "MRxSmb20", entry => entry with { Status = EntryStatus.StopPending });
+        var catalog = Rebuild(Alone(), "Netlogon", entry => entry with { Status = EntryStatus.StopPending });
 
-        var only = Assert.Single(Plan(ActionKind.ForceStop, "MRxSmb20", includeDependents: false, catalog).Steps);
+        var only = Assert.Single(Plan(ActionKind.ForceStop, "Netlogon", includeDependents: false, catalog).Steps);
 
         Assert.Equal(StepOperation.Terminate, only.Operation);
     }
@@ -77,9 +77,9 @@ public sealed class ForcedStopTests
     [Fact]
     public void Entries_living_in_the_same_process_are_steps_with_a_reason_of_their_own()
     {
-        var plan = Plan(ActionKind.ForceStop, "MRxSmb20", includeDependents: false, Sharing());
+        var plan = Plan(ActionKind.ForceStop, "Netlogon", includeDependents: false, Sharing());
 
-        var neighbour = plan.Steps.First(step => step.ServiceName == "LanmanWorkstation");
+        var neighbour = plan.Steps.First(step => step.ServiceName == "SessionEnv");
 
         Assert.Equal(StepOperation.Stop, neighbour.Operation);
 
@@ -102,10 +102,10 @@ public sealed class ForcedStopTests
     public void What_dies_alongside_is_said_as_well_as_stepped()
     {
         var warning = Warning(
-            Plan(ActionKind.ForceStop, "MRxSmb20", includeDependents: false, Sharing()),
+            Plan(ActionKind.ForceStop, "Netlogon", includeDependents: false, Sharing()),
             PlanWarningKind.TerminationTakesWithIt);
 
-        Assert.Equal("LanmanWorkstation", Assert.Single(warning.Related));
+        Assert.Equal("SessionEnv", Assert.Single(warning.Related));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class ForcedStopTests
         // That one says the process does not go away and the neighbours keep running. True of an
         // ordinary stop, and the exact opposite here - two warnings disagreeing about one machine
         // on one screen would be worse than either alone.
-        var plan = Plan(ActionKind.ForceStop, "MRxSmb20", includeDependents: false, Sharing());
+        var plan = Plan(ActionKind.ForceStop, "Netlogon", includeDependents: false, Sharing());
 
         Assert.DoesNotContain(plan.Warnings, warning => warning.Kind == PlanWarningKind.SharedProcess);
     }
@@ -193,7 +193,7 @@ public sealed class ForcedStopTests
         // The entry somebody asked about, and the one that only died because it shared the process.
         // Nothing works this out afterwards from what happened - it is decided when the plan is
         // built, which is the reason the housemates are steps in the first place.
-        Assert.Equal(["MRxSmb20", "LanmanWorkstation"], started);
+        Assert.Equal(["Netlogon", "SessionEnv"], started);
         Assert.All(plan.Steps.Where(step => step.Operation == StepOperation.Start),
             step => Assert.Equal(StepReason.Restore, step.Reason));
     }
@@ -201,27 +201,20 @@ public sealed class ForcedStopTests
     /// <summary>
     /// The chain with every entry in a process of its own, which is what 105 of 110 processes on a
     /// real machine look like.
+    ///
+    /// <b>The entry forced here is Netlogon, at the end of the chain, and until 2026-09-29 it was
+    /// MRxSmb20 at the head of it.</b> Three running entries depend on MRxSmb20, and a forced stop
+    /// refuses running dependants since that day (stability report W-4) - so every test below that is
+    /// about something else would have met that refusal first. ForcedStopRefusalTests holds it.
     /// </summary>
-    private static FakeScmCatalog Alone() => WithProcesses(
+    private static FakeScmCatalog Alone() => Housed(
         ("MRxSmb20", 4444), ("LanmanWorkstation", 5555), ("SessionEnv", 6666), ("Netlogon", 7777));
 
     /// <summary>Two entries in one process, which is what an svchost group looks like.</summary>
-    private static FakeScmCatalog Sharing() => WithProcesses(
-        ("MRxSmb20", 4444), ("LanmanWorkstation", 4444), ("SessionEnv", 6666), ("Netlogon", 7777));
-
-    private static FakeScmCatalog WithProcesses(params (string Name, int ProcessId)[] processes)
-    {
-        var catalog = Chain();
-
-        foreach (var (name, processId) in processes)
-        {
-            catalog = Rebuild(catalog, name, entry => entry with { ProcessId = Reading<int>.Present(processId) });
-        }
-
-        return catalog;
-    }
+    private static FakeScmCatalog Sharing() => Housed(
+        ("MRxSmb20", 4444), ("LanmanWorkstation", 5555), ("SessionEnv", 7777), ("Netlogon", 7777));
 
     private static OperationPlan Build(ActionKind kind, bool immediate, FakeScmCatalog catalog) =>
         new PlanBuilder(catalog.ReadAll(), catalog)
-            .Build(new ServiceAction(kind, "MRxSmb20", IncludeDependents: false, Immediate: immediate));
+            .Build(new ServiceAction(kind, "Netlogon", IncludeDependents: false, Immediate: immediate));
 }

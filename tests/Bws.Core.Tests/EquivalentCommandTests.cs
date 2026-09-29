@@ -42,6 +42,23 @@ public sealed class EquivalentCommandTests
     }
 
     /// <summary>
+    /// A forced stop planned with its dependants hands back the switch it was planned with - stability
+    /// report W-12. Without it the pasted line plans the stop alone, which since 2026-09-29 is a
+    /// refusal rather than the same plan.
+    /// </summary>
+    [Fact]
+    public void A_forced_stop_with_its_dependants_hands_back_the_switch_it_was_planned_with()
+    {
+        Assert.Equal(
+            "bws kill Spooler --dependents",
+            EquivalentCommand.For(new ServiceAction(ActionKind.ForceStop, "Spooler", IncludeDependents: true)));
+
+        Assert.Equal(
+            "bws kill Spooler --dependents --restart",
+            EquivalentCommand.For(new ServiceAction(ActionKind.ForceRestart, "Spooler", IncludeDependents: true)));
+    }
+
+    /// <summary>
     /// A REAL FAULT THIS CLASS HAD, CAUGHT BEFORE IT REACHED THE WINDOW.
     ///
     /// The switch is refused by the command line on a start, because starting is not the mirror of

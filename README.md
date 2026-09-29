@@ -265,9 +265,15 @@ line that asks for the same thing, and the way back afterwards.
   The window greys the button and says why beside it.
 - **Force stop is two steps, and the second is conditional.** `bws kill` asks the service to stop and
   ends its process only if that does not work. The preview names the process and every other service
-  living in it, because ending a process takes all of them. `--restart` brings them back, `--force`
-  skips the polite step - and the preview shows one step instead of two, so the difference is visible
-  before anything happens.
+  living in it, because ending a process takes all of them - and those are asked to stop only when the
+  service itself did not, so a polite stop that works leaves them running. `--restart` brings them
+  back, `--force` skips the polite step - and the preview shows one step instead of two, so the
+  difference is visible before anything happens.
+- **Force stop never pulls a process out from under a running service.** While services that depend
+  on it, or on anything sharing its process, are running outside the plan, `bws kill` refuses and
+  names them. `--dependents` stops the first kind as part of the plan, and a dependant that will not
+  stop holds the process ending back. `--force` does not go with `--dependents`, because skipping the
+  polite step would skip theirs too.
 - **Afterwards, the way back.** A report ends with what did not work and the commands that put things
   back - and the window offers *Copy all* over them.
 - **A start type change moves nothing on its own.** It changes what happens at the next boot, leaves
