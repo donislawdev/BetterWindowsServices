@@ -76,6 +76,18 @@
         word is translated - the code is not, and a trigger matching on "Running" would quietly
         stop matching the day a second language file appears - the row would just lose its
         colour, with nothing anywhere saying why. This project has had four of those.
+
+        EVERY TRIGGER HERE CARRIES A BINDING OF ITS OWN, AND THAT WAS MEASURED AND KEPT - 2026-09-29.
+        WPF keeps one binding expression per Binding OBJECT per element, so five triggers are five
+        expressions on every status mark and seven on every start mark - thirteen of the eighteen
+        bindings a row carries. Handing each mark's triggers ONE shared Binding from this dictionary
+        (a keyed Binding and {StaticResource} in each trigger) takes a row to three, keeps every
+        trigger and setter as it is, and was built on a trial branch that day. The time did not
+        move: the list's answer to a query and the processor per scroll step came out the same
+        within their spread, interleaved runs of each. The external report of 2026-09-28 proposed
+        another way to the same count - one binding into Tag and plain Triggers - which also needs
+        MarkDistinctionGuards rewritten, and it was not built once the count itself had bought
+        nothing. Not worth a change to the product, by the owner's decision on the numbers.
     -->
     <Style x:Key="StatusMark" TargetType="Ellipse" BasedOn="{StaticResource MarkShape}">
         <Style.Triggers>
