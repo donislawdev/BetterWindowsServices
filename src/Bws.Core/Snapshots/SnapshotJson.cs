@@ -303,6 +303,12 @@ public static class SnapshotJson
             return ordered;
         }
 
-        return node.DeepClone();
+        // The leaf itself, not a copy of it. Both branches above take a child out of its old parent
+        // before handing it here, so it belongs to no tree and the new one can take it as it is.
+        // A copy of every value in the file is what this returned until 2026-09-29 (S-11 of the
+        // performance report). The kept copy in SnapshotGoldenTests is what says the bytes did
+        // not move - and a leaf that was still attached would throw on the first test, not
+        // write something wrong.
+        return node;
     }
 }

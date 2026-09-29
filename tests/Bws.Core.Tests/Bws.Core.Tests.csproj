@@ -26,6 +26,14 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    The kept copy of the snapshot file, embedded under its own name so SnapshotGoldenTests reads the
+    exact bytes of the source rather than whatever a copy step left in the output folder.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Golden\snapshot-schema-4.json" LogicalName="snapshot-schema-4.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bws.Core\Bws.Core.csproj" />
   </ItemGroup>

@@ -148,6 +148,11 @@ public sealed class PublicSurfaceGuards
         ["tests/Bws.Integration.Tests/SnapshotContractTests.cs"] =
             "an accented word written to a file on purpose, to prove the encoding survives",
 
+        ["tests/Bws.Core.Tests/Golden/snapshot-schema-4.json"] =
+            "the kept copy of the snapshot file, holding the captured display names of the specimen "
+            + "catalogue exactly as the format writes them - as themselves, not escaped, which is the "
+            + "half of the format this copy exists to pin",
+
         ["README.md"] =
             "one star character on the line asking for a star, the same line the owner's other "
             + "public repositories carry - the rest of the file is plain ASCII on purpose",

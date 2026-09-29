@@ -1,0 +1,4 @@
+# The kept copy of the snapshot file is compared byte for byte, line endings included, so git has
+# to hand it over exactly as it was committed on every machine and every CI runner. Without this a
+# checkout with core.autocrlf would rewrite it and the test would fail on bytes nobody changed.
+tests/Bws.Core.Tests/Golden/* -text
