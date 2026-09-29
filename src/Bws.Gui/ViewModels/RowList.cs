@@ -171,10 +171,19 @@ public sealed class RowList : ObservableCollection<EntryRow>
         // ONE RESET INSTEAD OF HUNDREDS OF REMOVALS WAS TRIED HERE AND DID NOTHING - backlog 153,
         // measured 2026-08-11. Swapping 764 separate removals for one reset left the keystroke at the
         // same 143 ms in the window, because this method and the filter together are under 3 ms and
-        // about 140 ms is the list's own reaction to any change at all. It was taken back, since it
-        // also broke the promise above about selection and scroll for no measured gain. Written here
+        // the rest is the list's own reaction to any change at all. It was taken back, since it also
+        // broke the promise above about selection and scroll for no measured gain. Written here
         // because the idea is obvious from this code alone - the external performance report of
-        // 2026-09-28 proposed it again for that reason. What is still open is where the 140 ms goes.
+        // 2026-09-28 proposed it again for that reason.
+        //
+        // WHERE THE REST GOES WAS SETTLED 2026-09-29, and there is nothing left to take on this side.
+        // Timed inside the process with nothing polling the window, the answer to a query over 774
+        // entries is a median of 25-55 ms - the 143 was measured through UI Automation, and a third of
+        // the interface thread's work then was the window answering the probe. Profiled with managed
+        // stacks and again with kernel samples, this code and everything else of ours is 2-4% of it.
+        // The rest is WPF taking a new set of rows: layout, bindings, render preparation and the
+        // collection change. Two thirds of the bindings on a row were removed on a trial branch the
+        // same day (see Themes/Marks.xaml) and the time did not move.
 
         // BUILT ON EVERY CALL, the tick included - unlike `present` below, which waits until
         // something is out of place. About eight hundred hash insertions a second on a quiet machine

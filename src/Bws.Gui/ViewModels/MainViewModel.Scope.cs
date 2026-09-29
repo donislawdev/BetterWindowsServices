@@ -32,6 +32,15 @@ public sealed partial class MainViewModel
     ///
     /// Setting it to what it already is does nothing at all, so a radio button re-announcing itself
     /// cannot throw somebody's selection away.
+    ///
+    /// <b>A move is removals and insertions rather than one reset, and that was measured and kept on
+    /// 2026-09-29.</b> Timed inside the process with nothing polling the window, the kept preferences
+    /// written afterwards included: Services to Drivers and back a median of 54-68 ms, every move to
+    /// or from Everything 33-54 ms - about what a query costs. A reset is allowed only between
+    /// Services and Drivers, which share no row, so it could take at most the difference between
+    /// those two lines, and on a query the same reset took nothing at all (see RowList.Reconcile).
+    /// Anywhere else it would drop the rows the two lists share together with their selection and
+    /// scroll, which `A10` forbids. Kept by the owner's decision on those numbers.
     /// </summary>
     public EntryScope Scope
     {
@@ -87,6 +96,13 @@ public sealed partial class MainViewModel
     /// <b>In this file since 2026-09-15</b>, when MainViewModel.cs stood one line under the ceiling
     /// and the positions of the switch needed telling here that their counts moved - the counts
     /// are cut with the scope, so the reading that recuts is the reading that has to say so.
+    ///
+    /// <b>Called on a tick that found entries only MOVED too, where no scope can have changed, and
+    /// that was measured and kept on 2026-09-29.</b> The external report of 2026-09-28 proposed
+    /// skipping the recut and the three positions there. Timed inside the process over 311 and 774
+    /// rows, this whole method is a median of 0.7-1.0 ms against 0.3-0.5 ms for Apply alone, so the
+    /// proposal could save half a millisecond a tick, and a second path would be one more way for a
+    /// scope to go stale.
     /// </summary>
     private void Reread()
     {
