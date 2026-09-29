@@ -1,3 +1,5 @@
+using Bws.Core.Planning;
+
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
@@ -51,16 +53,21 @@ public sealed partial class Planned
     public bool HasSubtitle => Subtitle.Length > 0;
 
     /// <summary>
-    /// Whether the command that would ask for the same thing still belongs on screen.
+    /// The command that would ask for the same thing, as the sheet shows it - and nothing once
+    /// something was asked.
     ///
-    /// <b>False once there is a result, and that is `E5` read as it was written rather than as a
+    /// <b>Empty once there is a result, and that is `E5` read as it was written rather than as a
     /// field that happens to be full.</b> The equivalent command is part of the PREVIEW - the plan
     /// rendered as something a person could type INSTEAD of pressing - which is why it was built
     /// before this window could run anything at all. After a run it describes something that has
     /// already happened, and it sits directly under the way back, so the last thing a reader meets
     /// scanning up from the button is the command they do not want.
+    ///
+    /// <b>A block rather than a list and five questions about it since 2026-09-29</b> - W6, where
+    /// what the sheet shows past twenty lines became one field. <see cref="ViewModels.CommandBlock"/>
+    /// says why, and the section binds it as its data so the same markup serves the way back.
     /// </summary>
-    public bool HasCommands => _run is null && Commands.Count > 0;
+    public CommandBlock CommandBlock => _run is null ? _commandBlock : CommandBlock.None;
 
     /// <summary>Whether an entry is named by more than one plan.</summary>
     public bool HasOverlapping => Overlapping.Length > 0;
@@ -74,34 +81,29 @@ public sealed partial class Planned
     /// <summary>Whether anything failed. Never true before a run.</summary>
     public bool HasFailures => Failures.Count > 0;
 
-    /// <summary>Whether there is a way back. Never true before a run.</summary>
-    public bool HasWayBack => WayBack.Count > 0;
-
     /// <summary>
-    /// Whether the commands are worth a button that takes all of them at once - the owner's
-    /// request of 2026-09-16, made over a sheet with five of them and five buttons that each took
-    /// one.
+    /// The way back, as the sheet shows it - empty before a run.
     ///
-    /// <b>More than one, not at least one.</b> Over a single command "Copy all" beside "Copy" is
-    /// two buttons for one thing, and the second would be the one somebody wonders about.
+    /// <b>Made once per run and kept</b>, so the reversals are rendered once rather than on every
+    /// read, and the section keeps the same block through every raise that is not a new run.
     /// </summary>
-    public bool HasSeveralCommands => Commands.Count > 1;
+    public CommandBlock WayBackBlock
+    {
+        get
+        {
+            if (_run is not { } run)
+            {
+                return CommandBlock.None;
+            }
 
-    /// <summary>The same question about the way back.</summary>
-    public bool HasSeveralWayBack => WayBack.Count > 1;
+            if (!ReferenceEquals(_wayBack.Of, run))
+            {
+                _wayBack = (run, new CommandBlock([.. run.Reversal.Select(EquivalentCommand.For)]));
+            }
 
-    /// <summary>
-    /// Every command, one per line, as the clipboard should hold them.
-    ///
-    /// <b>The platform's line ending rather than a bare newline</b>, because what this is for is
-    /// pasting into a Windows terminal, which runs the lines one after another - and the join is
-    /// done here rather than in the view, which holds layout and bindings and nothing else (GUI
-    /// rule 11).
-    /// </summary>
-    public string AllCommands => string.Join(Environment.NewLine, Commands);
-
-    /// <summary>The whole way back, one command per line.</summary>
-    public string AllWayBack => string.Join(Environment.NewLine, WayBack);
+            return _wayBack.Block;
+        }
+    }
 
     /// <summary>
     /// That every section may have appeared or gone.
@@ -154,7 +156,7 @@ public sealed partial class Planned
         // sheet stops being a problem the moment a plan with nothing to wait for hides the box,
         // and becomes one again when the next plan shows it.
         RaiseTheProblem();
-        Raise(nameof(HasCommands));
+        Raise(nameof(CommandBlock));
         Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));
 
@@ -163,12 +165,9 @@ public sealed partial class Planned
         Raise(nameof(Warnings));
         Raise(nameof(HasProblems));
         Raise(nameof(HasFailures));
-        Raise(nameof(HasWayBack));
 
-        // The button over each list of commands, and what it carries - both follow the lists.
-        Raise(nameof(HasSeveralCommands));
-        Raise(nameof(AllCommands));
-        Raise(nameof(HasSeveralWayBack));
-        Raise(nameof(AllWayBack));
+        // Whether each block is there, how it is shown and what "Copy all" carries all come with
+        // the block itself since 2026-09-29, so one raise each says all of it.
+        Raise(nameof(WayBackBlock));
     }
 }

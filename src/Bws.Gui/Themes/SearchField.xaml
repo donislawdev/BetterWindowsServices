@@ -87,13 +87,19 @@
     </Style>
 
     <!--
-        THE TEXT BOX IN THE MIDDLE OF THE FIELD, WITH ITS OWN CHROME MADE INVISIBLE. The library's
-        template stays - caret, selection, IME and the automation peer are the stock control's - and
-        the brushes that template draws its fill and lines with are answered transparent from this
-        style's own resources, which the template finds before the application's. No error template:
-        the frame says a mistake.
+        A STOCK TEXT BOX WITH ITS OWN CHROME MADE INVISIBLE, for a box that stands inside a frame
+        somebody else draws. The library's template stays - caret, selection, IME and the automation
+        peer are the stock control's - and the brushes that template draws its fill and lines with
+        are answered transparent from this style's own resources, which the template finds before
+        the application's (`docs/10` trap 32, the half that works). No error template: whatever
+        draws the frame says a mistake.
+
+        ITS OWN STYLE SINCE 2026-09-29, when the plan sheet's field of commands became the second
+        box to need exactly this - GUI rule 7. It was the search box's alone until then. The
+        resources are found through BasedOn as well: an element's lookup walks its style and the
+        style that one is based on, measured the same day on a TextBox before this was split.
     -->
-    <Style x:Key="SearchFieldBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+    <Style x:Key="ChromelessBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
         <Style.Resources>
             <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
             <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
@@ -103,9 +109,13 @@
         </Style.Resources>
         <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
         <Setter Property="BorderThickness" Value="{StaticResource BorderNone}" />
+        <Setter Property="Validation.ErrorTemplate" Value="{x:Null}" />
+    </Style>
+
+    <!-- THE TEXT BOX IN THE MIDDLE OF THE FIELD - the frame round it is SearchFieldFrame above. -->
+    <Style x:Key="SearchFieldBox" TargetType="TextBox" BasedOn="{StaticResource ChromelessBox}">
         <Setter Property="Padding" Value="{StaticResource PadSearchText}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Validation.ErrorTemplate" Value="{x:Null}" />
     </Style>
 
     <!--

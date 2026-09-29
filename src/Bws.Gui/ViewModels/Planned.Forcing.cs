@@ -168,10 +168,14 @@ public sealed partial class Planned
     ///
     /// <b>One string rather than a list</b>, so the footer binds one TextBlock the way it binds
     /// <see cref="TypeToConfirm"/>, and the tree keeps one node for a reader to meet.
+    ///
+    /// <b>One sentence per kind rather than per warning since 2026-09-29</b> - a stop over a whole
+    /// scope stood a sentence here for every plan touching such an entry and left no room for a
+    /// single step. PlanWords.Describe over a list says what it gathers and what it does not.
     /// </summary>
     public string Danger => !NeedsTyping || _plan is not { } plan
         ? string.Empty
-        : string.Join(Environment.NewLine, plan.Warnings.Where(Heavy).Select(PlanWords.Describe));
+        : string.Join(Environment.NewLine, PlanWords.Describe(plan.Warnings.Where(Heavy)));
 
     /// <summary>Whether there is a reason for the ask to show - true exactly when the box is.</summary>
     public bool HasDanger => Danger.Length > 0;

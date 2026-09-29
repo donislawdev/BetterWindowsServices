@@ -323,7 +323,8 @@ public sealed class ContrastGuards
         return (0.2126 * Channel(colour.R)) + (0.7152 * Channel(colour.G)) + (0.0722 * Channel(colour.B));
     }
 
-    private static double Contrast(Color first, Color second)
+    /// <summary>WCAG 2.2 contrast ratio. Internal so a guard about one surface uses this arithmetic rather than a copy.</summary>
+    internal static double Contrast(Color first, Color second)
     {
         var a = Luminance(first);
         var b = Luminance(second);

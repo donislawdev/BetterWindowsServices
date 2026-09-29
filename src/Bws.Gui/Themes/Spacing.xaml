@@ -58,6 +58,9 @@
     <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
     <Thickness x:Key="MarginNone">0</Thickness>
 
+    <!-- No air inside a control whose frame somebody else draws and pads - the field of commands on the plan sheet. -->
+    <Thickness x:Key="PadNone">0</Thickness>
+
     <!-- The gap between a mark and its word. The mark itself is ShapeMark, in Values.xaml. -->
     <Thickness x:Key="MarginAfterShape">0,0,8,0</Thickness>
 

@@ -511,18 +511,30 @@ public sealed class CatalogueGuards
     /// it - the plan sheet was drawn as two faint edges until 2026-09-16 because its own margin
     /// pushed its content past a 96 pixel clip. Both halves: the model marks it, and the theme
     /// declares the taller ceiling the style reaches for.
+    ///
+    /// <b>EVERY SAMPLE'S FLAG IS ITS MEASUREMENT, SINCE 2026-09-29</b>, rather than PlanSheet's
+    /// flag being true. W6 moved the sheet's margin to the cell it stands in with its shadow, and
+    /// measured the same day no style or template sample is taller than the row any more - the
+    /// tallest is SuggestionList at 86.6 of 96. So the direction "raised when past the row" has no
+    /// real sample to show it today, and that is the price: this holds that the flag never says
+    /// anything the measurement does not, and the next tall style is marked by the same line.
     /// </summary>
     [Fact]
     public void A_sample_taller_than_the_row_is_given_the_taller_ceiling()
     {
-        var sheet = WpfHost.On(() => Catalogue.Read(WpfHost.Resources))
-            .SelectMany(group => group.Entries)
-            .Single(entry => entry.Key == "PlanSheet");
-
-        Assert.NotNull(sheet.Normal.Element);
-        Assert.True(sheet.Normal.Tall, "PlanSheet measures past the row ceiling and is not marked tall.");
-
         var row = WpfHost.On(() => (double)WpfHost.Resources["HeightCatalogueSample"]);
+
+        var wrong = WpfHost.On(() => Catalogue.Read(WpfHost.Resources)
+            .SelectMany(group => group.Entries)
+            .SelectMany(entry => new[] { (entry.Key, Sample: entry.Normal), (entry.Key, Sample: entry.Extreme) })
+            .Where(one => one.Sample.Element is { } element && one.Sample.Tall != element.DesiredSize.Height > row)
+            .Select(one => string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"{one.Key} measures {one.Sample.Element!.DesiredSize.Height:F1} and is marked tall={one.Sample.Tall}"))
+            .ToList());
+
+        Assert.True(wrong.Count == 0, string.Join(Environment.NewLine, wrong));
+
         var tall = WpfHost.On(() => (double)WpfHost.Resources["HeightCatalogueTall"]);
 
         Assert.True(tall > row, $"The taller ceiling ({tall}) is not taller than the row ceiling ({row}).");

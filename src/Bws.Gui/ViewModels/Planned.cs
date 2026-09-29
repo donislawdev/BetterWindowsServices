@@ -62,6 +62,17 @@ public sealed partial class Planned : Checked
     private BulkPlan? _plan;
     private BulkRun? _run;
 
+    /// <summary>The equivalent commands of the plan on screen - see <see cref="Commands"/>.</summary>
+    private CommandBlock _commandBlock = CommandBlock.None;
+
+    /// <summary>
+    /// The way back of the run it was made for. Kept rather than made on every read, so the reversals
+    /// are rendered once per run rather than once per read - the fault G-7 found in the commands
+    /// above - and the section bound to it keeps the same block, and its boxes, through every raise
+    /// that is not a new run.
+    /// </summary>
+    private (BulkRun? Of, CommandBlock Block) _wayBack = (null, CommandBlock.None);
+
     /// <summary>How many steps the plan on screen has, counted once when it is shown rather than on every step of a run.</summary>
     private int _stepsInPlan;
 
@@ -311,8 +322,9 @@ public sealed partial class Planned : Checked
     ///
     /// <b>Rendered once, when the plan is shown, since 2026-09-28</b> - G-7 of the external
     /// performance report: four bindings read this, and each read rendered every command again.
+    /// Held in a <see cref="ViewModels.CommandBlock"/> since 2026-09-29, which is what the sheet binds.
     /// </summary>
-    public IReadOnlyList<string> Commands { get; private set; } = [];
+    public IReadOnlyList<string> Commands => _commandBlock.Lines;
 
     /// <summary>
     /// Where this panel is in the only sequence it has: nothing done, doing it, done.
@@ -371,10 +383,11 @@ public sealed partial class Planned : Checked
     /// entry - so a restart that ended where it began says nothing, and a selection dealt with
     /// dependants first hands the lines back in an order whose first line works. All of that is
     /// `NetEffect` in the core, and none of it is decided here.
+    ///
+    /// <b>Rendered once per run since 2026-09-29</b>, kept in <see cref="WayBackBlock"/> - which is
+    /// what the sheet binds, for the reason <see cref="Commands"/> gives.
     /// </summary>
-    public IReadOnlyList<string> WayBack => _run is not { } run
-        ? []
-        : [.. run.Reversal.Select(EquivalentCommand.For)];
+    public IReadOnlyList<string> WayBack => WayBackBlock.Lines;
 
     /// <summary>
     /// Puts a plan on screen, and says whether there was anything to put there.
@@ -415,7 +428,8 @@ public sealed partial class Planned : Checked
         // for five different ones, with nothing on screen to say the two do not belong together.
         _plan = plan;
         _stepsInPlan = plan.Steps.Count();
-        Commands = EquivalentCommand.For(plan);
+        _commandBlock = new CommandBlock(EquivalentCommand.For(plan));
+        _wayBack = (null, CommandBlock.None);
         _run = null;
         Busy = false;
         Progress = string.Empty;
@@ -455,8 +469,9 @@ public sealed partial class Planned : Checked
 
         _plan = null;
         _stepsInPlan = 0;
-        Commands = [];
+        _commandBlock = CommandBlock.None;
         _warnings = null;
+        _wayBack = (null, CommandBlock.None);
         _run = null;
         _shownAs = string.Empty;
         _because = string.Empty;

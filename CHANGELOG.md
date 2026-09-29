@@ -30,6 +30,17 @@ is not part of this repository.
   signature again. It keeps what it already knows about files whose path has not changed and
   verifies only new or changed ones. F5 still verifies everything again, so a file replaced by
   someone else in the meantime shows its new verdict after the next F5.
+- The text on the plan sheet is sharper - it is drawn with ClearType like the rest of the window.
+  The sheet's shadow looks the same, but it no longer makes the whole sheet redraw with every blink
+  of the cursor. Where the window is drawn without the graphics card, as it is over Remote Desktop,
+  that cost a third to half of a processor core for as long as the box a name is typed into was
+  waiting.
+- A plan with more than twenty commands shows them in one field that can be selected and copied,
+  instead of a box and a Copy button for every line. *Copy all* still takes all of them. The same
+  goes for the way back after a run. A plan over a whole scope opens noticeably faster.
+- When a plan touches several entries this machine does not work without, the sheet names them all
+  in one sentence instead of one sentence each. On a plan over a whole scope those sentences used
+  to push every step off the sheet.
 
 ## [0.3.0] - 2026-09-25
 

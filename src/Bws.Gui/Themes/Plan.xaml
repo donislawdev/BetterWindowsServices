@@ -3,8 +3,9 @@
                     xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
 
     <!--
-        WHAT THE PLAN SHEET IS: the dimming behind it, the sheet itself, the way out of it, and the
-        two blocks a section can sit in. Styles only, not one value.
+        WHAT THE PLAN SHEET IS: the dimming behind it, the sheet itself and its shadow, the way out
+        of it, the two blocks a section can sit in, and the two sections of commands. Styles only,
+        not one value.
 
         IT SPLIT IN TWO ON 2026-09-07 AND THE MARKUP RATCHET IS WHAT ASKED, for the second time in
         five days and the second time pointing at the same seam. A failure that can be escalated
@@ -221,24 +222,54 @@
         THE MARGIN IS THE MAXIMUM HEIGHT. Centred with air above and below, the sheet can never be
         taller than the window minus that air, and its body scrolls inside itself instead - so the
         buttons at the foot are always on screen. That is the fault this replaces, said as geometry.
+        The margin, the centring and the width stand on the cell PlanView.xaml wraps the sheet in
+        since 2026-09-29, so the shadow below gets exactly the rectangle the sheet gets.
+
+        THE SHAPE IS ONE STYLE AND TWO THINGS WEAR IT - the sheet and its shadow - so the shadow can
+        only ever be cast by the rectangle the sheet is (GUI rule 7).
     -->
-    <Style x:Key="PlanSheet" TargetType="Border">
+    <Style x:Key="PlanSheetFrame" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SurfacePanel}" />
         <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
         <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
         <Setter Property="CornerRadius" Value="{StaticResource CornerPlanSheet}" />
-        <Setter Property="Padding" Value="{StaticResource PaddingPanel}" />
-        <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="{StaticResource MarginPlanSheet}" />
+    </Style>
 
+    <Style x:Key="PlanSheet" TargetType="Border" BasedOn="{StaticResource PlanSheetFrame}">
+        <Setter Property="Padding" Value="{StaticResource PaddingPanel}" />
+    </Style>
+
+    <!--
+        THE SHADOW, UNDER THE SHEET RATHER THAN ON IT SINCE 2026-09-29 - W6 of the performance
+        series, report item G-6, measured before it was chosen (performance analysis, section 5).
+
+        AN EFFECT ON AN ELEMENT TAKES ITS WHOLE SUBTREE AS THE EFFECT'S INPUT. On the sheet, every
+        redraw of anything inside it - the caret in the confirmation box, the progress line once a
+        second - had WPF blur the sheet again. Where WPF draws in software, which is the case over
+        Remote Desktop unless an application opts out, that was a third to a half of a core for as
+        long as the confirmation box held the keyboard, and 8-14% of one through a run. As a
+        sibling under the sheet it cost nothing measurable over no shadow at all in either mode:
+        WPF blurs again when what is UNDER the effect changes, not when something drawn over it
+        does - the prediction said otherwise and the third run settled it. A bitmap cache round the
+        effect added nothing measurable and drew the shadow further from the shipped one.
+
+        AND THE SHEET'S TEXT GOT ITS ClearType BACK, which is the visible half. An effect turns
+        ClearType off for everything under it - measured on the 16 826 pixels of the sheet's text
+        that differ between the two: 3 126 of them coloured in the shipped window, 15 904 with the
+        shadow moved beside the sheet. The same family CLAUDE.md records for Mica. The owner was
+        told before deciding.
+
+        NO HIT TESTING: the dimming under it keeps eating the clicks the list must not get, and the
+        shadow is never what somebody pressed. WindowLayerGuards asks by a hit test.
+
+        Black rather than a colour, and soft rather than tight: a shadow that can be SEEN as a shape
+        reads as a border drawn badly. This one only has to say that there is space between the
+        sheet and the window behind it.
+    -->
+    <Style x:Key="PlanSheetShadow" TargetType="Border" BasedOn="{StaticResource PlanSheetFrame}">
+        <Setter Property="IsHitTestVisible" Value="False" />
         <Setter Property="Effect">
             <Setter.Value>
-                <!--
-                    Black rather than a colour, and soft rather than tight: a shadow that can be
-                    SEEN as a shape reads as a border drawn badly. This one only has to say that
-                    there is space between the sheet and the window behind it.
-                -->
                 <DropShadowEffect Color="Black"
                                   BlurRadius="28"
                                   ShadowDepth="8"
@@ -246,6 +277,81 @@
                                   Opacity="0.55" />
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!--
+        THE BODY OF THE SHEET - the rule over the half that scrolls, and the air inside it. It was
+        three attributes on the Border in PlanView.xaml until 2026-09-29, when that file stood on its
+        markup ceiling and W6 needed the lines - so the look went where looks live.
+
+        THE LINE ABOVE THE SCROLLING HALF, 2026-09-01, repairing what the owner called things
+        running into each other: the last visible line was cut through the middle by the edge of the
+        scrolling region with nothing saying an edge was there. A rule turns the same pixels into
+        "there is more below".
+    -->
+    <Style x:Key="PlanBody" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource SurfacePanelEdge}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderFooterRule}" />
+        <Setter Property="Padding" Value="{StaticResource PaddingFooter}" />
+    </Style>
+
+    <!--
+        THE TWO SECTIONS OF COMMANDS - the heading, the recess and the field past twenty lines. HERE
+        RATHER THAN IN PlanLines.xaml, by that file's own rule: it holds what is drawn once per ITEM,
+        and each of these is drawn once per section of a SHEET. PlanLines.xaml is merged before this
+        file, which is what lets the recess be based on one line's box.
+    -->
+    <!-- The heading of a section of commands, centred on the line it shares with "Copy all". -->
+    <Style x:Key="PlanCommandsHeading" TargetType="TextBlock" BasedOn="{StaticResource SectionHeadingText}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!--
+        MORE THAN TWENTY COMMANDS STAND IN ONE FIELD, SINCE 2026-09-29 - W6 of the performance
+        series, report item G-7, and CommandBlock carries the whole argument: a box per line cost 5013
+        of the 7185 elements of a sheet over a whole scope, and the window stood still for half a
+        second while they were built.
+
+        THE SAME RECESS AS ONE LINE, so a section reads as the same kind of thing at any length.
+        It shows only while its block says the lines stand at once.
+
+        AND ITS EDGE TAKES THE FOCUS LINE WHILE THE KEYBOARD IS IN THE FIELD, because this is the one
+        thing in the section a person selects inside, and a field with no sign of focus is one a
+        keyboard user cannot find. The edge rather than the library's line under the field - that
+        line is answered transparent by ChromelessBox, and a second kind of focus mark on this sheet
+        would be one more thing to learn. FocusLine clears 3:1 against the recess and against the
+        sheet round it, which PlanSheetCostGuards holds.
+    -->
+    <Style x:Key="PlanCommandsRecess" TargetType="Border" BasedOn="{StaticResource PlanCommandBox}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding AtOnce}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource FocusLine}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        THE FIELD ITSELF: a stock text box that can only be read. Stock because selecting, Ctrl+C,
+        the context menu and the screen reader's text pattern are what a person needs from it and
+        what a TextBlock does not give - `docs/11` 9b, "leave it stock and theme it". Read only, so
+        it never shows a caret and never redraws on a blink. Never wrapped, for the reason a single
+        line scrolls sideways: a wrapped command reads as two. Never scrolled up and down inside
+        itself - the sheet's body does that, and a scroller in a scroller is a wheel that goes to
+        the wrong one.
+    -->
+    <Style x:Key="PlanCommandsField" TargetType="TextBox" BasedOn="{StaticResource ChromelessBox}">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="Text" Value="{Binding All, Mode=OneWay}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFaceFixed}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+        <Setter Property="Padding" Value="{StaticResource PadNone}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
     </Style>
 
     <!--
