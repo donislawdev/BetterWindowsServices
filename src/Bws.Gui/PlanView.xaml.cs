@@ -358,8 +358,11 @@ public partial class PlanView : UserControl
     /// <summary>The entries that got no plan, as they reach the screen.</summary>
     internal IReadOnlyList<string> ProblemLines => [.. ProblemList.Items.OfType<string>()];
 
-    /// <summary>The command lines, as they reach the screen. `E5`.</summary>
-    internal IReadOnlyList<string> CommandLines => [.. CommandList.Items.OfType<string>()];
+    /// <summary>
+    /// The command lines, as they reach the screen - one box each up to twenty, one field past that
+    /// (W6, see CommandBlock). `E5`.
+    /// </summary>
+    internal IReadOnlyList<string> CommandLines => Shown(CommandList, CommandField);
 
     /// <summary>What did not work, as it reaches the screen.</summary>
     internal IReadOnlyList<string> FailureLines =>
@@ -377,8 +380,18 @@ public partial class PlanView : UserControl
         [.. FailureList.Items.OfType<PlanFailure>().Where(failure => failure.HasOffer)
             .Select(failure => failure.Label)];
 
-    /// <summary>The way back, as it reaches the screen.</summary>
-    internal IReadOnlyList<string> WayBackLines => [.. WayBackList.Items.OfType<string>()];
+    /// <summary>The way back, as it reaches the screen, in either of the two shapes above.</summary>
+    internal IReadOnlyList<string> WayBackLines => Shown(WayBackList, WayBackField);
+
+    /// <summary>
+    /// The lines of one block of commands off whichever of its two shapes holds them: the list's own
+    /// items, or - when the list is empty - the field's text cut back into lines. Read off the
+    /// controls rather than the model, for the reason <see cref="StepLines"/> gives.
+    /// </summary>
+    private static IReadOnlyList<string> Shown(ItemsControl list, TextBox field) =>
+        list.Items.Count == 0 && field.Text.Length > 0
+            ? field.Text.Split(Environment.NewLine)
+            : [.. list.Items.OfType<string>()];
 
     /// <summary>What is worth knowing, as it reaches the screen.</summary>
     internal IReadOnlyList<string> WarningLines =>

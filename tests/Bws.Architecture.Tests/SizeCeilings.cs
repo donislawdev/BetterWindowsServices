@@ -44,12 +44,16 @@ internal static class SizeCeilings
     internal const int ShippedFilesNearLongest = 8;
 
     /// <summary>
-    /// 178 lines of markup, PlanView.xaml. OverviewView.xaml is 171 and Themes/Catalogue.xaml 168, so
-    /// the top three stand within ten lines of each other.
+    /// 176 lines of markup, Themes/Controls.xaml, since 2026-09-29 - PlanView.xaml stood on 178 and
+    /// came down to 174 when W6 moved the look of its two sections of commands and its body into
+    /// Themes/Plan.xaml. Themes/Catalogue.xaml is 168 and OverviewView.xaml 163.
     /// </summary>
-    internal const int LongestShippedMarkupFile = 178;
+    internal const int LongestShippedMarkupFile = 176;
 
-    /// <summary>Five at 125 or more: PlanView, OverviewView, Catalogue, Controls and Chips.</summary>
+    /// <summary>
+    /// Five at 124 or more (70% of 176 is 123.2): Controls, PlanView, Catalogue, OverviewView and
+    /// Chips. PlanFooter.xaml stands one line under, at 123.
+    /// </summary>
     internal const int MarkupFilesNearLongest = 5;
 
     /// <summary>

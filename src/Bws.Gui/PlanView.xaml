@@ -71,8 +71,18 @@
             THE WIDTH IS A NAME SINCE 2026-09-15 and was a raw 560 here for a fortnight - the same
             family as backlog 352, a dimension written where no guard reads it. The number did not
             move, only where it lives.
+
+            A CELL WITH TWO THINGS IN IT SINCE 2026-09-29: the shadow under, the sheet on top, both
+            filling the one rectangle the cell is given - so the shadow cannot part from the sheet
+            at any height of the footer. Why the shadow stopped being an effect ON the sheet is
+            beside PlanSheetShadow in Themes/Plan.xaml, with the measurement. The place and the size
+            are attributes rather than a style, because the catalogue builds samples of styles and
+            has nothing to build a Grid from.
         -->
-        <Border x:Name="Sheet" Style="{StaticResource PlanSheet}" Width="{StaticResource WidthPlanSheet}">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center"
+              Margin="{StaticResource MarginPlanSheet}" Width="{StaticResource WidthPlanSheet}">
+        <Border Style="{StaticResource PlanSheetShadow}" />
+        <Border x:Name="Sheet" Style="{StaticResource PlanSheet}">
 
         <Grid>
             <Grid.RowDefinitions>
@@ -180,15 +190,10 @@
             </StackPanel>
 
             <!--
-                THE LINE ABOVE THE SCROLLING HALF, 2026-09-01, repairing what the owner called
-                things running into each other: the last visible line was cut through the middle by
-                the edge of the scrolling region with nothing saying an edge was there. A rule turns
-                the same pixels into "there is more below". Scrolls vertically and never sideways.
+                THE HALF THAT SCROLLS, under a rule - what the rule is for is beside PlanBody in
+                Themes/Plan.xaml. Scrolls vertically and never sideways.
             -->
-            <Border Grid.Row="2"
-                    BorderBrush="{StaticResource SurfacePanelEdge}"
-                    BorderThickness="{StaticResource BorderFooterRule}"
-                    Padding="{StaticResource PaddingFooter}">
+            <Border Grid.Row="2" Style="{StaticResource PlanBody}">
             <!--
                 THE WHEEL IS TAKEN IN THE TUNNEL, since 2026-09-16, because a command's own viewer
                 below would otherwise keep it - the argument is beside that viewer in PlanLines.xaml.
@@ -290,34 +295,38 @@
                         THE HEADING SHARES ITS LINE WITH "COPY ALL" SINCE 2026-09-16, here and over
                         the commands below, and the press is caught on the SECTION rather than on
                         the list: the button beside each line and the one over all of them bubble
-                        to one handler, which reads the text off whichever Tag was pressed. The
-                        button goes when there is one line - see Planned.HasSeveralCommands.
+                        to one handler, which reads the text off whichever Tag was pressed.
+
+                        EACH SECTION'S DATA IS ITS CommandBlock SINCE 2026-09-29 - W6 - so both are
+                        the same markup over different blocks: whether the section is there, the
+                        button over it, the list of lines up to twenty and the one field past that.
+                        What the button carries and when it goes are in PlanCopyAllButton, and the
+                        field is in PlanCommandsRecess and PlanCommandsField, all in PlanLines.xaml.
                     -->
                     <StackPanel x:Name="WayBackSection"
+                                DataContext="{Binding WayBackBlock}"
                                 Button.Click="CopyCommandRequested"
-                                Visibility="{Binding HasWayBack, Converter={StaticResource WhenTrue}}">
+                                Visibility="{Binding Any, Converter={StaticResource WhenTrue}}">
                         <DockPanel Margin="{StaticResource MarginSection}">
                             <!-- The ghost box: same margin, edge and padding as a line's box, so this
                                  button ends where the lines' buttons end. Argument in PlanLines.xaml. -->
                             <Border DockPanel.Dock="Right" Style="{StaticResource PlanCommandGhost}">
-                                <Button Style="{StaticResource PlanCopyAllButton}"
-                                        AutomationProperties.AutomationId="planCopyAllWayBack"
-                                        AutomationProperties.Name="{DynamicResource gui.plan.copyAll}"
-                                        Content="{DynamicResource gui.plan.copyAll}"
-                                        ToolTip="{DynamicResource gui.plan.copyAll.hint}"
-                                        Visibility="{Binding HasSeveralWayBack, Converter={StaticResource WhenTrue}}"
-                                        Tag="{Binding AllWayBack}" />
+                                <Button Style="{StaticResource PlanCopyAllButton}" AutomationProperties.AutomationId="planCopyAllWayBack" />
                             </Border>
 
-                            <TextBlock Text="{DynamicResource gui.plan.wayBack}"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource SectionHeadingText}" />
+                            <TextBlock Text="{DynamicResource gui.plan.wayBack}" Style="{StaticResource PlanCommandsHeading}" />
                         </DockPanel>
 
                         <ItemsControl x:Name="WayBackList"
                                       AutomationProperties.AutomationId="planWayBack"
-                                      ItemsSource="{Binding WayBack}"
+                                      ItemsSource="{Binding Listed}"
                                       ItemTemplate="{StaticResource PlanCommandTemplate}" />
+
+                        <Border Style="{StaticResource PlanCommandsRecess}">
+                            <TextBox x:Name="WayBackField" Style="{StaticResource PlanCommandsField}"
+                                     AutomationProperties.AutomationId="planWayBackField"
+                                     AutomationProperties.Name="{DynamicResource gui.plan.wayBack}" />
+                        </Border>
                     </StackPanel>
 
                     <!--
@@ -334,29 +343,27 @@
                         first.
                     -->
                     <StackPanel x:Name="CommandSection"
+                                DataContext="{Binding CommandBlock}"
                                 Button.Click="CopyCommandRequested"
-                                Visibility="{Binding HasCommands, Converter={StaticResource WhenTrue}}">
+                                Visibility="{Binding Any, Converter={StaticResource WhenTrue}}">
                         <DockPanel Margin="{StaticResource MarginSection}">
                             <Border DockPanel.Dock="Right" Style="{StaticResource PlanCommandGhost}">
-                                <Button x:Name="CopyAllButton"
-                                        Style="{StaticResource PlanCopyAllButton}"
-                                        AutomationProperties.AutomationId="planCopyAll"
-                                        AutomationProperties.Name="{DynamicResource gui.plan.copyAll}"
-                                        Content="{DynamicResource gui.plan.copyAll}"
-                                        ToolTip="{DynamicResource gui.plan.copyAll.hint}"
-                                        Visibility="{Binding HasSeveralCommands, Converter={StaticResource WhenTrue}}"
-                                        Tag="{Binding AllCommands}" />
+                                <Button x:Name="CopyAllButton" Style="{StaticResource PlanCopyAllButton}" AutomationProperties.AutomationId="planCopyAll" />
                             </Border>
 
-                            <TextBlock Text="{DynamicResource gui.plan.commands}"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource SectionHeadingText}" />
+                            <TextBlock Text="{DynamicResource gui.plan.commands}" Style="{StaticResource PlanCommandsHeading}" />
                         </DockPanel>
 
                         <ItemsControl x:Name="CommandList"
                                       AutomationProperties.AutomationId="planCommands"
-                                      ItemsSource="{Binding Commands}"
+                                      ItemsSource="{Binding Listed}"
                                       ItemTemplate="{StaticResource PlanCommandTemplate}" />
+
+                        <Border Style="{StaticResource PlanCommandsRecess}">
+                            <TextBox x:Name="CommandField" Style="{StaticResource PlanCommandsField}"
+                                     AutomationProperties.AutomationId="planCommandsField"
+                                     AutomationProperties.Name="{DynamicResource gui.plan.commands}" />
+                        </Border>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
@@ -371,5 +378,6 @@
             <local:PlanFooter Grid.Row="3" x:Name="Footer" />
         </Grid>
         </Border>
+        </Grid>
     </Grid>
 </UserControl>

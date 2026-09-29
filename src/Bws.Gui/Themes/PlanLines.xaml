@@ -168,11 +168,25 @@
         THE BUTTON THAT TAKES EVERY COMMAND OF A SECTION AT ONCE, 2026-09-16 - the owner's remark
         over a sheet with five commands and five buttons that each took one. The same quiet outline
         as the button beside a line, standing at the right end of the section's heading, and it is
-        only there when there is more than one line to take (Planned.HasSeveralCommands). Its Tag
-        carries the lines already joined, so the press bubbles to the same handler as its siblings.
+        only there when there is more than one line to take (CommandBlock.Several). Its Tag carries
+        the lines already joined, so the press bubbles to the same handler as its siblings.
+
+        WHAT IT SAYS AND WHAT IT CARRIES LIVE HERE SINCE 2026-09-29, and so does when it is there.
+        Both sections of commands wore the same six attributes, twice (GUI rule 7), in a view on its
+        markup ceiling - and since W6 each section's data is its CommandBlock, so the bindings read
+        the same names in both places and could move into one style.
     -->
     <Style x:Key="PlanCopyAllButton" TargetType="Button" BasedOn="{StaticResource PlanCopyButton}">
         <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="AutomationProperties.Name" Value="{DynamicResource gui.plan.copyAll}" />
+        <Setter Property="Content" Value="{DynamicResource gui.plan.copyAll}" />
+        <Setter Property="ToolTip" Value="{DynamicResource gui.plan.copyAll.hint}" />
+        <Setter Property="Tag" Value="{Binding All}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Several}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!--

@@ -160,6 +160,49 @@ internal static class PlanWords
     };
 
     /// <summary>
+    /// Warnings in words, with the two kinds that name entries this machine does not work without
+    /// gathered into ONE sentence each, naming every such entry once.
+    ///
+    /// <b>W6 of the performance series, 2026-09-29, and it was found on a picture rather than by a
+    /// test.</b> The core raises one of these per plan that stops or disables such an entry, and the
+    /// owner's machine has seven of them - so on a stop over the whole Services scope the footer,
+    /// which stands these sentences over the box a name is typed into and never scrolls, grew a
+    /// sentence per plan and took 465 of the sheet's 551 units. The body holding the steps was left
+    /// one unit tall: the preview of a stop over 334 entries showed none of them. The sentences
+    /// already had a plural ("{1} of these are ones this machine does not work without: {2}"), so
+    /// one sentence naming all of them says what the many said. The owner's decision of that day.
+    ///
+    /// <b>Here and not in the core</b>, because the core's warnings reach the JSON of --dry-run,
+    /// which is a public contract, and one warning per plan is what that contract promises.
+    ///
+    /// <b>The warning about a process that takes others with it is NOT gathered</b>, because its
+    /// sentence names the entry whose process it is ({0}), and one sentence would pin every other
+    /// entry's processes on the first. A forcing plan carries one entry, so there is one of those.
+    /// </summary>
+    internal static IReadOnlyList<string> Describe(IEnumerable<PlanWarning> warnings)
+    {
+        ArgumentNullException.ThrowIfNull(warnings);
+
+        var sentences = new List<string>();
+
+        foreach (var kind in warnings.GroupBy(warning => warning.Kind))
+        {
+            if (kind.Key is PlanWarningKind.CriticalService or PlanWarningKind.CriticalStartType)
+            {
+                string[] named = [.. kind.SelectMany(warning => warning.Related).Distinct(StringComparer.OrdinalIgnoreCase)];
+
+                sentences.Add(Describe(kind.First() with { Related = named }));
+            }
+            else
+            {
+                sentences.AddRange(kind.Select(Describe));
+            }
+        }
+
+        return sentences;
+    }
+
+    /// <summary>
     /// A refusal in words, with the entry it belongs to named first.
     ///
     /// <b>The same singular and plural pair as the warnings above, and for the same reason.</b> A
