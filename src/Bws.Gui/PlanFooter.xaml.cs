@@ -68,10 +68,14 @@ public partial class PlanFooter : UserControl
     /// more than one entry, and whether it is what the sheet hands the keyboard to - which is what
     /// keeps Enter on an open forcing sheet from ending a process.
     /// </summary>
-    internal TextBox Confirm => ConfirmBox;
+    internal TextBox Confirm => Confirmation.Box;
 
-    /// <summary>Whether the box and its label are on the screen at all, heading included.</summary>
-    internal bool ConfirmShown => ConfirmSection.Visibility == Visibility.Visible;
+    /// <summary>
+    /// Whether the box and its label are on the screen at all. The box rather than the section since
+    /// 2026-09-29: a refused selection shows the section with no box in it, and the sheet hands the
+    /// keyboard to the box only when there is one.
+    /// </summary>
+    internal bool ConfirmShown => Confirmation.BoxShown;
 
     private void CarryOutRequested(object sender, RoutedEventArgs e) =>
         CarryOutRequest?.Invoke(this, EventArgs.Empty);

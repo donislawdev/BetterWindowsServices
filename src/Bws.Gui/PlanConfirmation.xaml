@@ -1,0 +1,99 @@
+<UserControl x:Class="Bws.Gui.PlanConfirmation"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        THE HEAVY ASK AT THE FOOT OF A PLAN SHEET: why it is heavy, and what it takes to go ahead -
+        the entry's name typed back on one entry, or a refusal on a selection.
+
+        ITS OWN FILE SINCE 2026-09-29, AND THE SIZE RATCHET POINTED AT IT - PlanFooter.xaml stood one
+        line under the markup share that counts as "near", and the refusal of backlog 475 needed
+        lines. The seam is the one GUI rule 9 names rather than a block of lines: this section has a
+        state of its own (what was typed) and controls of its own, and the rest of the footer is
+        the buttons and what stands in their way.
+
+        Focusable and IsTabStop are off because a UserControl is a ContentControl and arrives with
+        both - `docs/10` trap 8, a silent extra Tab stop in front of the box.
+    -->
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="WhenTrue" />
+    </UserControl.Resources>
+
+    <!--
+        THE HEAVIEST CONFIRMATION THIS PROJECT HAS, AND IT IS ALMOST NEVER ON THE SCREEN.
+        `docs/11` 9.2 point 2 puts the weight of an ask on the size of what it does, so this
+        appears only where ending a process takes down more than the entry somebody named,
+        or takes down one the machine will not run without. Measured 2026-08-01: 105 of 110
+        processes on this machine host exactly one service, so the ordinary forcing plan
+        shows the footer that shipped and nothing more.
+
+        THE WHOLE BLOCK GOES WHEN IT IS NOT WANTED, heading included - backlog 203, which
+        this window has already paid for once. A label reading "Type Spooler to confirm"
+        over a plan that never asked for it would leave the button grey with nothing on
+        screen explaining what would turn it on.
+    -->
+    <StackPanel x:Name="ConfirmSection"
+                Visibility="{Binding AsksHeavily, Converter={StaticResource WhenTrue}}">
+        <!--
+            WHY THE NAME HAS TO BE TYPED, OVER THE BOX IT HAS TO BE TYPED INTO, since
+            2026-09-16. The sentence saying the machine would go down used to stand in
+            "Worth knowing" - in the half of the sheet that scrolls, in plain white beside
+            "it will be back after the next restart" - and the label under it said only
+            "Type PlugPlay to confirm". The owner's words: the person does not know what
+            they are confirming. The argument at the head of PlanFooter.xaml for putting the box
+            in the footer - a confirmation somebody can skip past is not one - is the
+            argument for its reason standing here too, and it leaves "Worth knowing" rather
+            than being said twice.
+
+            THE BLOCK IS THE REFUSED ONE, NOT A THIRD. Its red rule has meant "stop and read
+            this" since 2026-09-02, and a block of its own in the same red would be a second
+            name for one look. The text style is the one place this sheet weighs a sentence:
+            DangerText, in Text.xaml, with the measurement beside it.
+        -->
+        <Border Style="{StaticResource PanelBlockRefused}"
+                Visibility="{Binding HasDanger, Converter={StaticResource WhenTrue}}">
+            <TextBlock x:Name="PlanDanger"
+                       AutomationProperties.AutomationId="planDanger"
+                       Text="{Binding Danger}"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource DangerText}" />
+        </Border>
+
+        <!--
+            A SELECTION IS REFUSED RATHER THAN ASKED, backlog 475, the owner's decision of
+            2026-09-29. The sentence above names the entries, and this one says what to do about
+            them - in the place and the style of the label it stands in for, because it answers the
+            same question: what does it take to go ahead from here.
+        -->
+        <TextBlock x:Name="PlanRefusesSelection"
+                   AutomationProperties.AutomationId="planRefusesSelection"
+                   Text="{DynamicResource gui.plan.confirm.selection}"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding RefusesSelection, Converter={StaticResource WhenTrue}}"
+                   Style="{StaticResource SubduedText}" />
+
+        <!--
+            UpdateSourceTrigger IS THE WHOLE MECHANISM. A TextBox tells its binding on losing
+            focus by default, so without this line the name would be typed, the button would
+            stay grey, and it would come alive only when somebody clicked somewhere else -
+            which reads exactly like a confirmation that does not work.
+        -->
+        <StackPanel x:Name="TypingPart"
+                    Visibility="{Binding NeedsTyping, Converter={StaticResource WhenTrue}}">
+            <TextBlock AutomationProperties.AutomationId="planConfirmLabel"
+                       Text="{Binding TypeToConfirm}"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource SubduedText}" />
+
+            <TextBox x:Name="ConfirmBox"
+                     AutomationProperties.AutomationId="planConfirm"
+                     AutomationProperties.Name="{Binding TypeToConfirm}"
+                     ToolTip="{DynamicResource gui.plan.confirm.hint}"
+                     Margin="{StaticResource MarginBelowSearch}"
+                     Text="{Binding Typed, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

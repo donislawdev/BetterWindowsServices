@@ -356,59 +356,8 @@ public sealed class ForcedStopGuards
         Assert.False(panel.NeedsTyping);
     }
 
-    /// <summary>
-    /// A plan asking about more than one entry can never be confirmed, because there is no single
-    /// name to type for it.
-    ///
-    /// <b>Unreachable today and guarded anyway, which is the whole argument for the clause.</b>
-    /// Section 15.6 of the analysis records that bulk forcing cannot be reached - the window opens
-    /// this sheet from one failure and the command line takes one name - so this is what happens if
-    /// that ever stops being true. Accepting one name for several processes would be somebody
-    /// agreeing to the first entry and getting all of them, which is the shape rule 5 of the
-    /// untouchable rules exists against: the preview and the press saying different things.
-    /// </summary>
-    [Fact]
-    public void A_plan_that_would_end_several_processes_can_never_be_confirmed()
-    {
-        var panel = new Planned { Elevated = true };
-
-        panel.Show(ForcingTwo());
-
-        Assert.True(panel.NeedsTyping);
-        Assert.False(panel.CanCarryOut);
-
-        // NEITHER NAME LETS IT THROUGH, and nor does an empty box - which is the failure this
-        // clause was written against: TypeTheName answers with the first entry alone, so a plain
-        // comparison would have accepted one name for two processes.
-        foreach (var typed in new[] { "Spooler", "W32Time", string.Empty, "  " })
-        {
-            panel.Typed = typed;
-
-            Assert.False(panel.CanCarryOut, typed);
-        }
-    }
-
-    /// <summary>Two entries, each ending a process of its own. Nothing in this product builds one.</summary>
-    private static BulkPlan ForcingTwo() => new()
-    {
-        Action = new BulkAction(ActionKind.ForceStop, ["Spooler", "W32Time"]),
-        Plans =
-        [
-            .. new[] { "Spooler", "W32Time" }.Select((name, at) => new OperationPlan
-            {
-                Action = new ServiceAction(ActionKind.ForceStop, name),
-                Steps =
-                [
-                    new PlanStep(
-                        name, name, StepOperation.Terminate,
-                        StepReason.Requested, ProcessId: 4812 + at)
-                ],
-                Warnings = [new PlanWarning(PlanWarningKind.TerminationTakesWithIt, name, ["Dnscache"])],
-                Problems = []
-            })
-        ],
-        Problems = []
-    };
+    // A plan ending several processes at once, which can never be confirmed, moved to
+    // PlanConfirmationGuards on 2026-09-29 - it is the refusal of a selection that file is about.
 
     /// <summary>A plan with one entry, asked for in the given words, with one stop step.</summary>
     private static BulkPlan Asking(ActionKind kind) => new()

@@ -36,11 +36,14 @@ public sealed class BulkPlanBuilder(
         // what somebody asked keeps its repeats, because it is a record.
         var asked = action.ServiceNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var builder = new PlanBuilder(entries, catalog, processes);
+        // One answer per name for the whole of this build - the ordering and every plan below ask
+        // about the same names, and DependentsAskedOnce says what that cost before it was shared.
+        var asking = new DependentsAskedOnce(catalog);
+        var builder = new PlanBuilder(entries, asking, processes);
         var plans = new List<OperationPlan>();
         var problems = new List<PlanProblem>();
 
-        foreach (var name in InTheOrderTheyMustHappen(action, asked))
+        foreach (var name in InTheOrderTheyMustHappen(action, asked, asking))
         {
             var plan = builder.Build(new ServiceAction(
                 action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop));
@@ -99,8 +102,8 @@ public sealed class BulkPlanBuilder(
     /// to stop in the order a plain stop of both would use - or the first stop meets the second
     /// entry still running and the manager refuses it.
     /// </summary>
-    private List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked) =>
+    private static List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked, IScmCatalog asking) =>
         action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
-            : DependentsFirst.Order(catalog, asked);
+            : DependentsFirst.Order(asking, asked);
 }

@@ -235,6 +235,58 @@ public sealed class BulkPlanTests
         Assert.NotEmpty(catalog.DependentsAsked);
     }
 
+    /// <summary>
+    /// <b>S-7 of the performance report, 2026-09-29.</b> The ordering asks about every selected name,
+    /// each plan asks again about its own target, and the cascades of a chain overlap - so the whole
+    /// listing asked to stop put 1433 questions to the manager about 800 names. Each one opens the
+    /// manager and then the service. The whole chain, cascade included, is the shape that repeats
+    /// most, so it is the one that has to come out with every name asked exactly once.
+    /// </summary>
+    [Fact]
+    public void A_bulk_plan_asks_who_depends_on_each_name_once()
+    {
+        var catalog = Chain();
+        string[] chain = ["MRxSmb20", "LanmanWorkstation", "SessionEnv", "Netlogon"];
+
+        new BulkPlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new BulkAction(ActionKind.Stop, chain, IncludeDependents: true));
+
+        Assert.Equal(chain.Order(StringComparer.Ordinal), catalog.DependentsAsked.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void A_refusal_asked_once_is_still_a_refusal_in_the_plan_that_needed_it()
+    {
+        // The ordering meets the refusal first and orders nothing by it. The plan for the same entry
+        // has to meet the SAME refusal from memory and still say its cascade could not be read -
+        // an answer remembered as an absence would shorten a preview without a word, rule 8.
+        var catalog = Chain();
+        catalog.RefuseDependentsFor.Add("LanmanWorkstation");
+
+        var plan = new BulkPlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new BulkAction(ActionKind.Stop, ["MRxSmb20", "LanmanWorkstation"]));
+
+        Assert.Single(catalog.DependentsAsked, name => name == "LanmanWorkstation");
+        Assert.Contains(
+            plan.Plans.Single(one => one.Action.ServiceName == "LanmanWorkstation").Warnings,
+            warning => warning.Kind == PlanWarningKind.CascadeUnreadable);
+    }
+
+    [Fact]
+    public void The_next_build_asks_the_manager_again()
+    {
+        // What is remembered belongs to one preview. A second press builds a second picture of the
+        // machine, and an answer carried over from the first would be a cascade of a moment ago.
+        var catalog = Chain();
+        var builder = new BulkPlanBuilder(catalog.ReadAll(), catalog);
+        var action = new BulkAction(ActionKind.Stop, ["MRxSmb20", "LanmanWorkstation"]);
+
+        builder.Build(action);
+        builder.Build(action);
+
+        Assert.Equal(2, catalog.DependentsAsked.Count(name => name == "MRxSmb20"));
+    }
+
     private static BulkPlan Bulk(ActionKind kind, IReadOnlyList<string> names, bool includeDependents)
     {
         var catalog = Chain();
