@@ -78,6 +78,12 @@ internal sealed record Escalation(ActionKind Kind, string ServiceName, string La
 /// </summary>
 public sealed partial class Planned
 {
+    /// <summary>ERROR_DEPENDENT_SERVICES_RUNNING - the manager's refusal to stop what something running needs.</summary>
+    private const int DependentsStillRunning = 1051;
+
+    /// <summary>ERROR_ACCESS_DENIED.</summary>
+    private const int AccessDenied = 5;
+
     private string _typed = string.Empty;
 
     /// <summary>Why this sheet is open, when something offered it. Empty for every other plan.</summary>
@@ -293,12 +299,20 @@ public sealed partial class Planned
     /// escalation standing behind it in the same plan - offering another would propose a second
     /// sheet identical to the one already on screen. And an ask with no stop in it cannot arrive
     /// here at all, which <see cref="Forcing"/> answers by having no arm for it.
+    ///
+    /// <b>The sixth arrived with the external stability report (W-4), on the owner's decision of
+    /// 2026-09-29: no offer under the two refusals ending a process does not answer.</b> Error 1051 is
+    /// the manager refusing because something running depends on the entry - the forced plan behind
+    /// the offer refuses that since the same day, so the button would open an apology, and until then
+    /// it ended the process under the dependants. Error 5 is a refusal of rights, and a stronger ask
+    /// does not bring rights with it.
     /// </summary>
     private static Escalation? Offered(PlanRun run, StepResult result)
     {
         if (result.Step.Operation != StepOperation.Stop
             || result.Status == EntryStatus.Stopped
             || !result.ProcessId.IsPresent
+            || result.ErrorCode is DependentsStillRunning or AccessDenied
             || Forcing(run.Plan.Action.Kind) is not { } kind)
         {
             return null;

@@ -215,6 +215,11 @@ internal static class Refusals
             }
         }
 
+        if (AboutTheForcing(options) is { } forced)
+        {
+            return forced;
+        }
+
         if (WriteCommands.NeedsAStartType(options.Kind) && AboutTheSetting(options.ServiceName, options.Setting) is { } code)
         {
             return code;
@@ -227,6 +232,27 @@ internal static class Refusals
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// What is wrong with a kill ask, or nothing.
+    ///
+    /// <b>--force skips every stop in front of the ending, the cascade's too</b>, so beside --dependents
+    /// it promised dependants stopped and then ended the process under them - the preview and the run
+    /// disagreeing, which is rule 5 of the untouchable list (stability report W-4, 2026-09-29). Refused
+    /// here with both ways out, before anything is read. The core refuses the same shape loudly behind
+    /// this. Its own method because AboutTheAsk stands close to the complexity ceiling.
+    /// </summary>
+    private static int? AboutTheForcing(CommandLine options)
+    {
+        if (options.Kind != CommandKind.Kill || !options.Force || !options.Dependents)
+        {
+            return null;
+        }
+
+        Console.Error.WriteLine(Texts.Of("cli.forceWithDependents", options.ServiceName));
+
+        return ExitCode.Usage;
     }
 
     /// <summary>

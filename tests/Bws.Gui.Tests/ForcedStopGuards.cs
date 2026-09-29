@@ -21,6 +21,13 @@ namespace Bws.Gui.Tests;
 public sealed class ForcedStopGuards
 {
     /// <summary>
+    /// ERROR_INVALID_SERVICE_CONTROL - the manager refusing a control the entry does not accept, which
+    /// is what a failed step here stands for unless a test says otherwise. It was 1051 until
+    /// 2026-09-29, when 1051 stopped being a refusal that offers anything.
+    /// </summary>
+    private const int InvalidControl = 1052;
+
+    /// <summary>
     /// A stop that ran out of time on an entry still held by a process is the case the whole slice
     /// exists for.
     /// </summary>
@@ -54,6 +61,27 @@ public sealed class ForcedStopGuards
         panel.Finished(Ended(panel, StepOutcome.Failed));
 
         Assert.True(Assert.Single(panel.Failures).HasOffer);
+    }
+
+    /// <summary>
+    /// No offer under the two refusals a stronger ask does not answer - the external stability
+    /// report (W-4) and the owner's decision of 2026-09-29.
+    ///
+    /// <b>1051 is something running that depends on the entry.</b> The forced plan behind the offer
+    /// refuses that since the same day, so the button would open an apology - and until then it ended
+    /// the process under the dependants. <b>5 is a refusal of rights</b>, which a stronger ask does not
+    /// bring with it.
+    /// </summary>
+    [Theory]
+    [InlineData(1051)]
+    [InlineData(5)]
+    public void A_stop_refused_for_a_reason_forcing_does_not_answer_offers_nothing(int code)
+    {
+        var panel = Showing(Asking(ActionKind.Stop));
+
+        panel.Finished(Ended(panel, StepOutcome.Failed, refusedWith: code));
+
+        Assert.False(Assert.Single(panel.Failures).HasOffer);
     }
 
     /// <summary>
@@ -417,7 +445,8 @@ public sealed class ForcedStopGuards
         Planned panel,
         StepOutcome outcome,
         Reading<int>? process = null,
-        EntryStatus status = EntryStatus.Running) => new()
+        EntryStatus status = EntryStatus.Running,
+        int refusedWith = InvalidControl) => new()
     {
         Plan = panel.Plan!,
         Runs =
@@ -434,7 +463,7 @@ public sealed class ForcedStopGuards
                         SkippedBecause = null,
                         Status = status,
                         ProcessId = process ?? Reading<int>.Present(4812),
-                        ErrorCode = outcome == StepOutcome.Failed ? 1051 : 0,
+                        ErrorCode = outcome == StepOutcome.Failed ? refusedWith : 0,
                         Error = outcome == StepOutcome.Failed ? "A stop control has been refused." : null,
                         Milliseconds = 10
                     })

@@ -66,6 +66,28 @@ is not part of this repository.
   doing nothing.
 - After a reading of the list fails once and the next one works, the window says so straight away.
   It used to go on saying it could not read the list until something on the machine changed.
+- A force stop no longer ends a process under services that still need it. While services depending
+  on the entry are running outside the plan, `bws kill` and the window's Force stop refuse and name
+  them. The same goes for running services that depend on anything sharing the entry's process.
+  `bws kill NAME --dependents` still stops the dependents as part of the plan, and if one of them
+  will not stop, the process is not ended.
+- `bws kill NAME --force --dependents` is refused. Its preview listed the dependents as stopping,
+  while the run skipped their stops along with the polite one and ended the process under them.
+- A force stop asks the entry itself to stop before the other services sharing its process, and asks
+  those only if the entry did not stop. A service sharing the process that refused to stop used to
+  make the plan skip the entry's own polite stop and end the process at once, and when the entry
+  would have stopped on its own, the others had been stopped for nothing. In the JSON of a run, the
+  steps not needed are reported with `"skippedBecause": "processStays"`, and the run still counts as
+  completed.
+- The preview of a force stop names a critical service arriving with `--dependents`, a service
+  sharing the process that does not accept a stop, and one that is disabled and could not be
+  started again by `--restart`.
+- The way back after a force stop includes the services that ended with the process without stopping
+  on their own. After `bws kill NAME --restart --force` it used to tell you to stop a service that was
+  running before and after.
+- After a stop refused because other running services depend on the entry, or because of missing
+  rights, the window no longer offers Force stop, which could not help with either.
+- The equivalent command of a force stop planned with its dependents includes `--dependents`.
 
 ## [0.3.0] - 2026-09-25
 

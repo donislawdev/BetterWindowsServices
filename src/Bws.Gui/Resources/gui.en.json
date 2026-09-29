@@ -287,7 +287,11 @@
   "gui.plan.problem.noProcessToEnd": "There is no process to end for {0}. Either the manager names none, which is ordinary for an entry that is not running, or the number it gave is not one a service process can have.",
   "gui.plan.problem.processCannotBeEnded": "Windows will not let this tool end process {1}, which is the process {0} runs in. It said: {2} (error {3}). Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
   "gui.plan.problem.processCannotBeEnded.plain": "Windows will not let this tool end process {1}, which is the process {0} runs in. Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
-  "gui.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0}, so the list of what would go with its process would be shorter than the truth.",
+  "gui.plan.problem.dependentsInTheWay.one": "{1} depends on {0} and is still running. Ending the process under it is exactly what Windows refuses an ordinary stop for. Stop it first.",
+  "gui.plan.problem.dependentsInTheWay.many": "These depend on {0} and are still running: {1}. Ending the process under them is exactly what Windows refuses an ordinary stop for. Stop them first.",
+  "gui.plan.problem.neighbourNeeded.one": "{1} is running and depends on an entry that shares the process of {0}, which ending that process would take down. Stop {1} first.",
+  "gui.plan.problem.neighbourNeeded.many": "These are running and depend on an entry that shares the process of {0}, which ending that process would take down: {1}. Stop them first.",
+  "gui.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0} or on what shares its process, so the list of what would go with its process would be shorter than the truth.",
   "gui.plan.problem.cannotStartLate": "{0} belongs to the load order group {1}, and Windows does not let such an entry start late. Nothing was changed. Automatic starts it at boot with the others.",
 
   "gui.plan.commands": "From a terminal",

@@ -269,6 +269,15 @@ internal static class PlanWords
         PlanProblemKind.CannotStartLate =>
             Texts.Of("gui.plan.problem.cannotStartLate", problem.ServiceName, Listed(problem.Related)),
 
+        // The window has no way to ask for dependants, so both say to stop them first.
+        PlanProblemKind.DependentsInTheWay => problem.Related.Count == 1
+            ? Texts.Of("gui.plan.problem.dependentsInTheWay.one", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.dependentsInTheWay.many", problem.ServiceName, Listed(problem.Related)),
+
+        PlanProblemKind.NeighbourNeeded => problem.Related.Count == 1
+            ? Texts.Of("gui.plan.problem.neighbourNeeded.one", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.neighbourNeeded.many", problem.ServiceName, Listed(problem.Related)),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
     };

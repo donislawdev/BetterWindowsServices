@@ -25,7 +25,7 @@ public enum StepOutcome
 /// <summary>
 /// Why a step was never attempted.
 ///
-/// Three quite different stories, and folding them into one word would be the empty-value
+/// Four quite different stories, and folding them into one word would be the empty-value
 /// mistake part 3 of 06-STRUKTURA-I-KONWENCJE is about: "skipped" alone cannot tell
 /// somebody whether the machine is where they wanted it or half-way to somewhere else.
 /// </summary>
@@ -38,7 +38,20 @@ public enum SkipReason
     EarlierStepFailed,
 
     /// <summary>Somebody interrupted the run before this step was reached.</summary>
-    Cancelled
+    Cancelled,
+
+    /// <summary>
+    /// A step asking a neighbour to stop, not needed because the process it lives in is not going to
+    /// be ended - the entry the process was to be ended for stopped by itself, cannot be read, or is
+    /// no longer in the process the plan named.
+    ///
+    /// <b>A fourth story, added on the owner's decision of 2026-09-29, and neither of the others will
+    /// do.</b> The neighbour is still running, so "already there" would be a claim about something
+    /// that is not true. And the step before it may well have worked - a polite stop that arrived is
+    /// the reason, not a failure. The neighbours are asked AFTER the entry itself since that day
+    /// (stability report W-2), so that a polite stop which works leaves them running.
+    /// </summary>
+    ProcessStays
 }
 
 /// <summary>
@@ -167,8 +180,14 @@ public sealed record PlanRun
     /// process was ended - has no later step of its own that watched it arrive, so it still reads as
     /// not arrived. Claiming otherwise would be a claim nobody checked. Reading the neighbours again
     /// after a terminate is a separate change and a backlog row, not a widening of this one.
+    ///
+    /// <b>A neighbour skipped because the process stays is not counted at all (2026-09-29).</b> The plan
+    /// wanted it down only on the way to ending the process, and that way was not needed - so a
+    /// forced stop whose polite step worked reads as done rather than as three neighbours "not where
+    /// you asked", which would be exit code 3 over a machine in exactly the state asked for.
     /// </summary>
     public bool Completed => Results
+        .Where(result => result.SkippedBecause != SkipReason.ProcessStays)
         .GroupBy(result => (result.Step.ServiceName, Aim(result.Step.Operation)))
         .All(same => same.Last().Arrived);
 

@@ -99,6 +99,10 @@ internal static class CountedWords
         // order group {1}" puts a service name before the verb, and "could not read some of these
         // fields: {0} Press F5" puts a list of fields before the start of the next sentence.
         "belongs", "Press",
+        // One more on 2026-09-29, from the refusal of a forced stop under running dependants: "{1}
+        // depends on {0} and is still running" is the ONE half of a pair, and the placeholder before the
+        // verb is a service name. The MANY half starts "These depend on", so no count ever stands here.
+        "depends",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

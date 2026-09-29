@@ -32,6 +32,19 @@ public sealed class ArgumentRefusalTests
         Assert.Equal(ExitCode.Usage, Answer("snapshot", "diff", "before.json", "after.json", "--live"));
     }
 
+    /// <summary>
+    /// --force skips every stop in front of the ending, the cascade's too, so beside --dependents it
+    /// promised dependants stopped and ended the process under them - stability report W-4, a preview
+    /// disagreeing with its run. Refused together, and each alone still reaches the machine.
+    /// </summary>
+    [Fact]
+    public void Force_and_dependents_on_kill_are_refused_together_and_not_apart()
+    {
+        Assert.Equal(ExitCode.Usage, Answer("kill", "Spooler", "--force", "--dependents"));
+        Assert.Null(Answer("kill", "Spooler", "--force"));
+        Assert.Null(Answer("kill", "Spooler", "--dependents"));
+    }
+
     [Fact]
     public void A_comparison_with_two_files_has_nothing_wrong_with_it()
     {

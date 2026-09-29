@@ -40,6 +40,7 @@
   "cli.missingStartType": "start-type needs a start type after the name. Example: bws start-type {0} manual --dry-run\nThe start types are: {1}",
   "cli.badStartType": "{0} is not a start type. The start types are: {1}",
   "cli.stopNeedsDisabled": "--stop goes only with disabled. To stop an entry you set to {0}, run bws stop with its name after this command.",
+  "cli.forceWithDependents": "--force and --dependents cannot go together. --force skips every stop before the process is ended, so the entries depending on {0} would still be running when it goes. Drop --force to have them stopped first, or stop them yourself and then use --force.",
   "cli.badTimeout": "--timeout takes a whole number of seconds, at least 1. It got: {0}",
 
   "cli.plan.heading.one": "Plan: {0} {1}  (1 step)",
@@ -103,6 +104,7 @@
   "cli.run.outcome.alreadyThere": "already there, nothing to do",
   "cli.run.outcome.earlierStepFailed": "not tried, an earlier step did not work",
   "cli.run.outcome.cancelled": "not tried, the run was interrupted",
+  "cli.run.outcome.processStays": "not needed, the process it lives in is not being ended",
 
   "cli.run.took.milliseconds": "{0} ms",
   "cli.run.took.seconds": "{0} s",
@@ -118,7 +120,11 @@
   "cli.plan.problem.processCannotBeEnded": "Windows will not let this tool end process {1}, which is the process {0} runs in. It said: {2} (error {3}). Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
   "cli.plan.problem.processCannotBeEnded.plain": "Windows will not let this tool end process {1}, which is the process {0} runs in. Nothing was changed. A process the system protects is the usual reason, and no tool running as you gets past it.",
   "cli.plan.problem.cannotStartLate": "{0} belongs to the load order group {1}, and Windows does not let such an entry start late. Nothing was changed. The word automatic starts it at boot with the others.",
-  "cli.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0}, so the list of what ending its process would take down would be shorter than the truth. There is no preview this tool can honestly offer for that.",
+  "cli.plan.problem.dependentsInTheWay.one": "{1} depends on {0} and is still running. Ending the process under it is exactly what Windows refuses an ordinary stop for, so there is no plan. Stop it first, or add --dependents to stop it as part of this one.",
+  "cli.plan.problem.dependentsInTheWay.many": "These depend on {0} and are still running: {1}. Ending the process under them is exactly what Windows refuses an ordinary stop for, so there is no plan. Stop them first, or add --dependents to stop them as part of this one.",
+  "cli.plan.problem.neighbourNeeded.one": "{1} is running and depends on an entry that shares the process of {0}, which ending that process would take down. There is no plan. Stop {1} first.",
+  "cli.plan.problem.neighbourNeeded.many": "These are running and depend on an entry that shares the process of {0}, which ending that process would take down: {1}. There is no plan. Stop them first.",
+  "cli.plan.problem.cascadeUnreadable":"Could not read everything that depends on {0} or on what shares its process, so the list of what ending its process would take down would be shorter than the truth. There is no preview this tool can honestly offer for that.",
 
   "cli.column.name": "NAME",
   "cli.column.displayName": "DISPLAY NAME",

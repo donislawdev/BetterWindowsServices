@@ -99,8 +99,14 @@ public enum StepReason
     /// either one needing the other, and a preview claiming a dependency that is not there is a
     /// preview somebody could reasonably act on.
     ///
-    /// <b>It is a stop like any other</b> - asked politely, first, so the entry gets a chance to
-    /// close its files before the process it lives in goes away.
+    /// <b>It is a stop like any other</b> - asked politely, so the entry gets a chance to close its
+    /// files before the process it lives in goes away.
+    ///
+    /// <b>Asked AFTER the entry somebody named, and only on the way to an ending that will happen,
+    /// since 2026-09-29</b> (stability report W-2). A polite stop of that entry which works leaves the
+    /// process where it is, and these with it - the run then skips them as
+    /// <see cref="SkipReason.ProcessStays"/>. A failure of one of them holds nothing back, because it
+    /// dies with the process either way.
     /// </summary>
     SharesTheProcess,
 
@@ -135,6 +141,11 @@ public enum StepReason
     /// dies either way - so declining to run it would deliver LESS than what was shown, which is
     /// the same fault as delivering more. An interruption is the opposite: somebody has said stop,
     /// and ending a process after that would be acting on an instruction that was withdrawn.
+    ///
+    /// <b>With one exception since 2026-09-29, the owner's decision on the stability report (W-2):
+    /// a CASCADE step that did not arrive holds it.</b> That dependant is still running on the process,
+    /// and ending the process under it is what the manager's own refusal was protecting. The entry
+    /// itself or a neighbour failing is still exactly the situation this step is for.
     /// </summary>
     Escalation
 }
@@ -238,6 +249,21 @@ public sealed record ServiceAction(
 /// <b>Nothing here is a state, not an oversight.</b> A plan built without anything to ask carries
 /// no time, and the run then checks the number alone - exactly what it did before this existed.
 /// </param>
+/// <param name="TakesWithIt">
+/// The entries that die with the process a step of kind <see cref="StepOperation.Terminate"/> ends,
+/// by service name, and nothing at all for the other three.
+///
+/// <b>ON THE STEP BECAUSE A PLAN THAT SKIPS THE COURTESY HAS NO OTHER STEP NAMING THEM.</b> Without
+/// <c>--force</c> every neighbour is a stop step of its own, and the way back could be worked out
+/// from those. With it there is one step, and until 2026-09-29 the neighbours it took down were
+/// simply missing from the way back - and a forced restart handed back "stop it" for a neighbour
+/// that had been running before and was running after. The same list is what the run will one day
+/// compare the process against just before ending it (paczka B2 of the stability report), which is
+/// the second reason it is frozen here rather than looked up again.
+///
+/// <b>The same names as the warning that says so</b>, <see cref="PlanWarningKind.TerminationTakesWithIt"/>,
+/// taken from the same list at the same moment. Empty for a process holding nobody else.
+/// </param>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
@@ -246,7 +272,8 @@ public sealed record PlanStep(
     StartSetting? To = null,
     StartSetting? From = null,
     int? ProcessId = null,
-    long? ProcessCreatedAt = null);
+    long? ProcessCreatedAt = null,
+    IReadOnlyList<string>? TakesWithIt = null);
 
 /// <summary>Why a plan could not be made at all.</summary>
 public enum PlanProblemKind
@@ -350,7 +377,33 @@ public enum PlanProblemKind
     /// A step the manager is known to refuse is not a preview of anything. Related names the group,
     /// because "which group" is the one fact a person could act on.
     /// </summary>
-    CannotStartLate
+    CannotStartLate,
+
+    /// <summary>
+    /// Entries depending on the one somebody asked to force are running and the plan does not stop
+    /// them. Related names them.
+    ///
+    /// <b>THE SAME FACT AS <see cref="PlanWarningKind.DependentsInTheWay"/> AND A HARDER ANSWER, the
+    /// owner's decision of 2026-09-29.</b> On an ordinary stop the manager refuses with error 1051 and
+    /// nothing is harmed, so a warning is enough. A forced stop does not ask the manager at its last
+    /// step - it ends the process under entries that still need it, which is exactly what that 1051
+    /// exists to prevent. Found by the external stability report (W-4): the window offered a forced
+    /// stop under a 1051, and the plan behind the offer ended the process.
+    ///
+    /// The command line answers it with <c>--dependents</c>, which puts them in the plan as a
+    /// cascade. The window has no such tick box and says to stop them first.
+    /// </summary>
+    DependentsInTheWay,
+
+    /// <summary>
+    /// A running entry the plan does not stop depends on an entry that shares the process, and that
+    /// neighbour dies when the process does. Related names the running entries.
+    ///
+    /// <b>Apart from <see cref="DependentsInTheWay"/> because the way out is different.</b>
+    /// <c>--dependents</c> reaches what depends on the TARGET - these depend on something that merely
+    /// lives beside it, so the only answer is to stop them first. The same decision of 2026-09-29.
+    /// </summary>
+    NeighbourNeeded
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>
