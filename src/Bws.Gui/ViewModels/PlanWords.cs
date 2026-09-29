@@ -21,7 +21,7 @@ namespace Bws.Gui.ViewModels;
 /// call around it produces strings that never reach a screen and nothing goes red. This project has
 /// the lesson from ListState.Say and walked into it again on 2026-08-18.
 /// </summary>
-internal static class PlanWords
+internal static partial class PlanWords
 {
     /// <summary>
     /// The verb as a person reads it, with the key INSIDE each call.
@@ -63,100 +63,6 @@ internal static class PlanWords
         StepReason.Escalation => Texts.Of("gui.plan.reason.escalation"),
 
         _ => Texts.Of("gui.plan.reason.restore")
-    };
-
-    /// <summary>
-    /// A warning in words. The kinds come from the core and the sentences belong here.
-    ///
-    /// <b>Written out rather than composed from the name of the value</b>, for the reason the command
-    /// line gives about the same six: flattening a name to lower case works for as long as every one
-    /// is a single word and then quietly asks for a key nobody wrote.
-    ///
-    /// <b>TWO KEYS APIECE WHEREVER A SENTENCE COUNTS SOMETHING OR POINTS AT A GROUP, ADDED
-    /// 2026-08-19.</b> The command line has had exactly this pair since it learned to warn, and its
-    /// own comment says why - a warning reading "1 other entries" spends the trust the warning
-    /// needs. These sentences were written later, from the same facts, and arrived with the plural
-    /// half only. Nothing went red, because no guard in this project reads prose.
-    ///
-    /// <b>The pair is spelled out per branch rather than through a helper that appends ".one" or
-    /// ".many", which is what the command line does.</b> That helper cannot live here: a key built
-    /// as an expression is invisible to TextKeyGuards, so both halves would be reported as text no
-    /// screen ever shows, and the missing one would render on screen as its own key. The head of
-    /// this file carries the same lesson from Doing, one switch earlier.
-    /// </summary>
-    internal static string Describe(PlanWarning warning) => warning.Kind switch
-    {
-        PlanWarningKind.Cascade => warning.Related.Count == 1
-            ? Texts.Of(
-                "gui.plan.warning.cascade.one", warning.ServiceName, warning.Related.Count, Listed(warning.Related))
-            : Texts.Of(
-                "gui.plan.warning.cascade.many", warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        PlanWarningKind.DependentsInTheWay => warning.Related.Count == 1
-            ? Texts.Of("gui.plan.warning.inTheWay.one", warning.ServiceName, Listed(warning.Related))
-            : Texts.Of("gui.plan.warning.inTheWay.many", warning.ServiceName, Listed(warning.Related)),
-
-        PlanWarningKind.SharedProcess => warning.Related.Count == 1
-            ? Texts.Of("gui.plan.warning.sharedProcess.one", warning.ServiceName, Listed(warning.Related))
-            : Texts.Of("gui.plan.warning.sharedProcess.many", warning.ServiceName, Listed(warning.Related)),
-
-        PlanWarningKind.ReturnsAfterReboot => Texts.Of("gui.plan.warning.returnsAfterReboot", warning.ServiceName),
-
-        PlanWarningKind.CascadeUnreadable => Texts.Of("gui.plan.warning.cascadeUnreadable", warning.ServiceName),
-
-        // THE LITERAL SITS INSIDE Texts.Of RATHER THAN IN A TERNARY HANDED TO IT, and the first
-        // attempt did the second - TextKeyGuards found both halves and was right to. Its patterns
-        // read the argument of a call, so a key chosen one line earlier is a key nobody can find by
-        // searching for it, which is the same failure that file records against a key assembled at
-        // run time. The five arms above are all written this way and now so is this one.
-        PlanWarningKind.DoesNotAcceptStop => warning.Related.Count == 1
-            ? Texts.Of(
-                "gui.plan.warning.doesNotAcceptStop.one",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
-            : Texts.Of(
-                "gui.plan.warning.doesNotAcceptStop.many",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        PlanWarningKind.TerminationTakesWithIt => warning.Related.Count == 1
-            ? Texts.Of(
-                "gui.plan.warning.takesWithIt.one",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
-            : Texts.Of(
-                "gui.plan.warning.takesWithIt.many",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        PlanWarningKind.CriticalService => warning.Related.Count == 1
-            ? Texts.Of(
-                "gui.plan.warning.critical.one",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
-            : Texts.Of(
-                "gui.plan.warning.critical.many",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        // SAME NAMES, DIFFERENT WHEN - see the terminal's own arm for the whole of the argument.
-        PlanWarningKind.CriticalStartType => warning.Related.Count == 1
-            ? Texts.Of(
-                "gui.plan.warning.criticalStartType.one",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related))
-            : Texts.Of(
-                "gui.plan.warning.criticalStartType.many",
-                warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
-
-        PlanWarningKind.AlreadyThere => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName),
-
-        // The offer to stop it too is not in this sentence - it stands under it as a button, which
-        // PlanWarningLine decides. The terminal's sentence names --stop instead, having no button.
-        PlanWarningKind.KeepsRunning => Texts.Of("gui.plan.warning.keepsRunning", warning.ServiceName),
-
-        PlanWarningKind.StartsAtNextBoot => Texts.Of("gui.plan.warning.startsAtNextBoot", warning.ServiceName),
-
-        // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
-        // kind but one used to fall through to "is already in that state, so nothing would change" -
-        // a warning added without a sentence would have said something confident and wrong about a
-        // machine rather than nothing at all. The terminal's own switch had the same shape and was
-        // changed the same day.
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
 
     /// <summary>
@@ -389,13 +295,24 @@ internal static class PlanWords
                 result.Error ?? string.Empty)
             : Ordinary(result);
 
-    private static string Ordinary(StepResult result) => result.Outcome == StepOutcome.TimedOut
-        ? TimedOut(result)
-        : Texts.Of(
+    private static string Ordinary(StepResult result) => result switch
+    {
+        { Outcome: StepOutcome.TimedOut } => TimedOut(result),
+
+        // NOT "WOULD NOT START", because nothing refused it (stability report W-7, 2026-09-30). The
+        // manager took the start and the service stopped again, and the number is its own exit code.
+        { StoppedWhileStarting: true } => Texts.Of(
+            "gui.plan.failure.stoppedWhileStarting",
+            result.Step.ServiceName,
+            result.ErrorCode,
+            result.Error ?? string.Empty),
+
+        _ => Texts.Of(
             "gui.plan.failure.refused",
             result.Step.ServiceName,
             Word(result.Step.Operation),
-            result.Error ?? string.Empty);
+            result.Error ?? string.Empty)
+    };
 
     /// <summary>
     /// A step that was watched and did not arrive, naming the process still holding the entry.
@@ -453,18 +370,14 @@ internal static class PlanWords
     /// 2025 has been measured here at 30 375 - 30 450 ms, so the half minute this is about is not
     /// hypothetical.
     ///
-    /// <b>Both numbers, because one of them alone is the wrong sentence.</b> Elapsed on its own
-    /// says how long somebody has been waiting and not whether waiting is nearly over. The ceiling
-    /// on its own is the thing they could already have read off the box. Together they say the one
-    /// thing worth knowing at that moment: whether this is about to be given up on.
+    /// <b>Both numbers, and since 2026-09-30 the second one says what it counts.</b> Elapsed on its
+    /// own says how long somebody has been waiting and not what would end it. The line read "70 s of
+    /// 60" until the limit started counting time WITHOUT PROGRESS (stability report W-1), and from
+    /// that day seventy of sixty is an ordinary step that kept moving - the words have to say the
+    /// limit is about progress, or the line reads as a counter that overran.
     ///
     /// <b>Whole seconds, rounded down.</b> A tenth of a second changing under somebody's eye is
     /// motion carrying no information, and this line sits under a list they are trying to read.
-    ///
-    /// <b>Past the ceiling is a real state rather than an impossible one.</b> The ceiling caps our
-    /// watching, not the manager's answering - PlanRunner says so - so a step can sit at seventy of
-    /// sixty while the entry's own wait hint is still being honoured. The words have to survive
-    /// that rather than pretend it cannot happen.
     /// </summary>
     internal static string StillWaiting(string step, TimeSpan waited, int ceiling)
     {

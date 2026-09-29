@@ -177,10 +177,10 @@ public sealed class ForcedStopGuards
         timedOut.Finished(Ended(timedOut, StepOutcome.TimedOut));
         refused.Finished(Ended(refused, StepOutcome.Failed));
 
-        // The number is the run's own ceiling rather than a sixty written down here, which is what
-        // keeps this sentence true if the window's ceiling ever moves.
+        // No number since 2026-09-30 - the limit counts time without progress and a step also gives
+        // up on the entry's own promise, so any number of seconds here could be false.
         Assert.Equal(
-            Bws.Gui.Texts.Of("gui.plan.because.timedOut", 60),
+            Bws.Gui.Texts.Of("gui.plan.because.timedOut"),
             Assert.Single(timedOut.Failures).Offer!.Because);
 
         Assert.Equal(

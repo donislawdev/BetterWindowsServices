@@ -357,7 +357,9 @@ public sealed class WindowsScmControl : IScmControl
                 ManagerTerms.Status(status.dwCurrentState),
                 status.dwCheckPoint,
                 TimeSpan.FromMilliseconds(status.dwWaitHint),
-                status.dwProcessId));
+                status.dwProcessId,
+                status.dwWin32ExitCode,
+                status.dwServiceSpecificExitCode));
         }
     }
 

@@ -21,8 +21,22 @@ namespace Bws.Core;
 /// "still stopping, process 4812" are the same fact with and without somewhere to go next.
 /// Zero becomes an absence one layer up, where the four read states live.
 /// </param>
+/// <param name="ExitCode">
+/// The Windows error number the service gave when it last stopped or failed to start, zero when it
+/// gave none - <c>dwWin32ExitCode</c>, raw, from the same structure as everything else here.
+///
+/// <b>Here since 2026-09-30 so that a start which fell over can say why</b> (stability report W-7).
+/// Before that a service that died while starting sat in Stopped with no wait hint, and the step
+/// watched it for the whole limit and reported that it ran out of time - a sentence about waiting,
+/// over a service that had already told the manager exactly what went wrong.
+/// </param>
+/// <param name="ServiceExitCode">
+/// The service's own number, meaningful only when <paramref name="ExitCode"/> is 1066 - Windows'
+/// "the service has returned a service-specific error code". Not a Windows error number, so it is
+/// never mixed with one.
+/// </param>
 public readonly record struct ServiceProgress(
-    EntryStatus Status, uint CheckPoint, TimeSpan WaitHint, uint ProcessId);
+    EntryStatus Status, uint CheckPoint, TimeSpan WaitHint, uint ProcessId, uint ExitCode = 0, uint ServiceExitCode = 0);
 
 /// <summary>
 /// What the manager said. Facts only - the wording belongs to the layer above, same as

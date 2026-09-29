@@ -48,7 +48,7 @@ There is no command lst. Did you mean list?</code></pre>
       </div>
       <div>
         <h3><code>stop</code>, <code>start</code> and <code>restart</code></h3>
-        <p>Each builds a plan and carries it out. <code>--dry-run</code> prints the plan and changes nothing, <code>--dependents</code> puts the services that would break into it as steps of their own, and <code>--timeout</code> says how long to wait for one step. Drivers are refused rather than attempted, because stopping a kernel driver is often not reversible without a restart.</p>
+        <p>Each builds a plan and carries it out. <code>--dry-run</code> prints the plan and changes nothing, <code>--dependents</code> puts the services that would break into it as steps of their own, and <code>--timeout</code> says how long one step may go without progress. Drivers are refused rather than attempted, because stopping a kernel driver is often not reversible without a restart.</p>
       </div>
       <div>
         <h3><code>kill</code> - for a service that will not stop</h3>

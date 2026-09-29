@@ -458,7 +458,7 @@ bws --version
 | `--query TEXT` | on `list`, narrow the listing with the query language |
 | `--dry-run` | print the plan and change nothing. The plan is the same one an execution runs |
 | `--dependents` | put the services that would break into the plan as steps of their own |
-| `--timeout SECONDS` | how long to wait for one step to reach the state it asked for, sixty unless you say otherwise. Running out is the end of watching, not a failure, and the report says where the entry was left |
+| `--timeout SECONDS` | how long one step may go without progress before it is given up on, sixty unless you say otherwise. A service that keeps reporting progress is watched for as long as it takes. Running out is the end of watching, not a failure, and the report says where the entry was left |
 | `--signatures` | read who signed each binary and whether Windows trusts it. Several seconds over a whole machine, so it is off unless asked, and a query about signatures turns it on by itself |
 | `--memory` | read what each running entry's process is using. Off by default because it is a measurement, not a setting |
 | `--required-by` | read which entries break if one is stopped, asked of Windows directly. A call per entry, so off unless asked. `show` and `snapshot create` always read it |

@@ -232,9 +232,9 @@ public sealed class WaitingGuards
 
     /// <summary>
     /// <b>Past the ceiling is a real state rather than an impossible one</b>, and the words have to
-    /// survive it rather than pretend it cannot happen. The ceiling caps our watching, not the
-    /// manager's answering - an entry reporting its own wait hint is still being honoured while
-    /// this reads seventy of sixty.
+    /// survive it rather than pretend it cannot happen. Since 2026-09-30 the ceiling counts time
+    /// without progress, so an entry that keeps moving is still being watched while this reads
+    /// seventy.
     /// </summary>
     [Fact]
     public void Past_the_ceiling_it_keeps_counting_rather_than_stopping_at_the_number() =>

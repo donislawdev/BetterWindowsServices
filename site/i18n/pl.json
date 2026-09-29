@@ -57,7 +57,7 @@
   "switch.timing": "Ile trwała każda część odczytu, na wyjściu błędów.",
   "switch.dry-run": "Drukuje plan i nie zmienia niczego. To ten sam plan, który wykonuje się przy wykonaniu - nie ma drugiej ścieżki kodu dla wersji prawdziwej.",
   "switch.dependents": "Wstawia do planu, jako osobne kroki, usługi, które przestaną działać.",
-  "switch.timeout": "Jak długo czekać, aż jeden krok osiągnie stan, o który poprosił, licząc od chwili przyjęcia żądania przez menedżera. Sześćdziesiąt sekund, o ile nie powiesz inaczej. Wyczerpanie tego czasu jest końcem patrzenia, a nie porażką - raport mówi, w jakim stanie wpis został zostawiony.",
+  "switch.timeout": "Jak długo jeden krok może trwać bez postępu, zanim narzędzie przestanie czekać - liczone od nowa za każdym razem, gdy usługa zamelduje postęp. Sześćdziesiąt sekund, o ile nie powiesz inaczej. Usługa, która melduje postęp, jest obserwowana tak długo, jak trzeba. Wyczerpanie tego czasu jest końcem patrzenia, a nie porażką - raport mówi, w jakim stanie wpis został zostawiony.",
 
   "field.name": "nazwę usługi, tę, po której identyfikuje ją Windows",
   "field.display": "nazwę wyświetlaną, tak jak pisze ją ten Windows",
