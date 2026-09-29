@@ -199,6 +199,11 @@ public sealed partial class Planned : Checked
         // WHERE THEY ARE STANDING. The other four are facts about the session, the run or the
         // plan - this one is a sentence saying what to type, and the tooltip is where a person
         // resting on a grey button finds out there is anything to do at all.
+        //
+        // A SELECTION carrying a heavy warning is refused rather than asked about (backlog 475), so
+        // its button says the sentence the footer does - naming a box that is not on the screen
+        // would be the same dead end moved from the footer to the tooltip.
+        : !Confirmed && RefusesSelection ? Texts.Of("gui.plan.confirm.selection")
         : !Confirmed ? Texts.Of("gui.plan.blocked.notTyped", TypeTheName)
         : Texts.Of("gui.plan.carryOut.hint");
 

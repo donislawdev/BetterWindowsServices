@@ -85,6 +85,14 @@ public static partial class Catalogue
         internal MainViewModel WithBulkPlan { get; init; } = null!;
 
         /// <summary>
+        /// A plan over one critical entry, which asks for its name, and one over a selection holding
+        /// it, which refuses - the two states of the heavy ask, since 2026-09-29 (backlog 475).
+        /// </summary>
+        internal MainViewModel AskingForName { get; init; } = null!;
+
+        internal MainViewModel RefusingSelection { get; init; } = null!;
+
+        /// <summary>
         /// A query with a mistake in it, and one whose answer has to be qualified - the two things
         /// the line under the search box says, since 2026-09-23 (UX-GUI-002 and 009).
         /// </summary>
@@ -123,6 +131,7 @@ public static partial class Catalogue
         var plannedInBulk = Over(new Frozen(Specimens()), clock);
         var (mistaken, qualified, unelevated) = await PrepareSentencesAsync(clock).ConfigureAwait(false);
         var panels = await PreparePanelsAsync(clock).ConfigureAwait(false);
+        var (askingForName, refusingSelection) = await PrepareHeavyAsksAsync(clock).ConfigureAwait(false);
 
         // THE LOADING ONE IS STARTED AND NOT AWAITED HERE. Its read waits on the gate until the
         // sheet is done, which is the whole point of it: the model is in the state between asking
@@ -170,6 +179,8 @@ public static partial class Catalogue
             WithPlan = planned,
             WithRefusedPlan = plannedInVain,
             WithBulkPlan = plannedInBulk,
+            AskingForName = askingForName,
+            RefusingSelection = refusingSelection,
             Mistaken = mistaken,
             Qualified = qualified,
             Unelevated = unelevated
@@ -250,6 +261,37 @@ public static partial class Catalogue
         return (mistaken, qualified, unelevated);
     }
 
+    /// <summary>
+    /// The heavy ask in its two states: a stop of one critical entry, which asks for the name, and
+    /// a stop of a selection holding it, which refuses (backlog 475).
+    ///
+    /// <b>The critical entry is added for these two models only.</b> Putting it among the shared
+    /// specimens would move every other cell drawn over them - the list, the overview, the bulk
+    /// restart - and a catalogue whose cells change because a new one arrived is one nobody can
+    /// compare against yesterday's.
+    /// </summary>
+    private static async Task<(MainViewModel Typing, MainViewModel Refusing)> PrepareHeavyAsksAsync(IClock clock)
+    {
+        IReadOnlyList<ScmEntry> machine =
+        [
+            .. Specimens(),
+            Specimen("RpcSs", "Remote Procedure Call (RPC)", EntryType.SharedProcess, StartType.Automatic, EntryStatus.Running, @"NT AUTHORITY\NetworkService")
+        ];
+
+        var typing = new MainViewModel(new Frozen(machine), clock);
+        var refusing = new MainViewModel(new Frozen(machine), clock);
+
+        foreach (var model in new[] { typing, refusing })
+        {
+            await model.LoadAsync().ConfigureAwait(false);
+        }
+
+        await ShowPlanAsync(typing, ActionKind.Stop, "RpcSs").ConfigureAwait(false);
+        await ShowPlanAsync(refusing, ActionKind.Stop, "Spooler", "RpcSs").ConfigureAwait(false);
+
+        return (typing, refusing);
+    }
+
     private static async Task ShowPlanAsync(MainViewModel model, ActionKind kind, params string[] names)
     {
         var plan = await model.PlanAsync(new BulkAction(kind, names)).ConfigureAwait(false);
@@ -309,11 +351,7 @@ public static partial class Catalogue
             View(() => new DetailsView(), key: nameof(DetailsView) + " over a driver",
                 data: ready.ChoseDriver.Chosen),
 
-            View(() => new PlanView(),
-                data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
-
-            View(() => new PlanFooter(),
-                data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
+            .. PlanViews(ready),
 
             // The bar reads nothing - the window tells it how many entries are picked. THE THIRD
             // CELL IS THE BAR OVER SEVERAL, since 2026-09-16, and it borrows the "extreme" column
@@ -365,6 +403,27 @@ public static partial class Catalogue
                 Cell(each.Cells[4], limits)))
         ]);
     }
+
+    /// <summary>
+    /// The plan sheet's views - the sheet, its foot, and the heavy ask at the foot.
+    ///
+    /// <b>Out of <see cref="Views"/> on 2026-09-29</b>, when the third arrived and that method stood
+    /// one line under the share of its ceiling the shape guard counts as near. One subject, so one
+    /// place - and the next state of the sheet lands here rather than in the list of everything.
+    /// </summary>
+    private static Built[] PlanViews(Prepared ready) =>
+    [
+        View(() => new PlanView(),
+            data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
+
+        View(() => new PlanFooter(),
+            data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
+
+        // The heavy ask on its own, since 2026-09-29 (backlog 475): data is one critical entry
+        // asking for its name, wrong is a selection holding it, refused with no box.
+        View(() => new PlanConfirmation(),
+            data: ready.AskingForName.Planned, wrong: ready.RefusingSelection.Planned)
+    ];
 
     /// <summary>One view in up to five states, built and not yet measured.</summary>
     private sealed record Built(string Key, FrameworkElement?[] Cells);

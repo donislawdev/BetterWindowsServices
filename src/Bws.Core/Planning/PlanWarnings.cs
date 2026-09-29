@@ -97,7 +97,7 @@ public enum PlanWarningKind
     ///
     /// <b>What the wording has to carry is the glossary's distinction `P1`</b>: this is "you should
     /// not", which is a different sentence from "you cannot" and from "confirm that you mean it".
-    /// <b>The window adds the third of those on its own</b> - see <c>Planned.NeedsTyping</c>, owner's
+    /// <b>The window adds the third of those on its own</b> - see <c>Planned.AsksHeavily</c>, owner's
     /// decision of 2026-09-09 - and that is the window deciding how heavy a confirmation to ask
     /// for, not this warning changing what it says.
     /// </summary>

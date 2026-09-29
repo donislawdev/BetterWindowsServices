@@ -136,7 +136,9 @@ public sealed partial class Planned
         // heading-over-nothing fault of backlog 203 in its most expensive form: a box asking for a
         // name left standing over a plan that never wanted one would keep the button grey with no
         // way for anybody to work out why.
+        Raise(nameof(AsksHeavily));
         Raise(nameof(NeedsTyping));
+        Raise(nameof(RefusesSelection));
         Raise(nameof(TypeTheName));
         Raise(nameof(TypeToConfirm));
 

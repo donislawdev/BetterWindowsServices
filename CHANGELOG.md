@@ -41,6 +41,18 @@ is not part of this repository.
 - When a plan touches several entries this machine does not work without, the sheet names them all
   in one sentence instead of one sentence each. On a plan over a whole scope those sentences used
   to push every step off the sheet.
+- The plan for a large selection appears sooner. Working out what stopping or restarting it
+  involves asks Windows about each entry's dependents once instead of several times, and the
+  plan for stopping every service on the test machine appeared in about 100-170 ms instead of
+  about 185-275.
+
+### Fixed
+
+- A plan over a selection that includes an entry this machine does not work without - stopping
+  a whole scope, for example - asked for a name to be typed, and typing it changed nothing: the
+  button stayed off. Such a selection cannot be carried out, and the sheet now says so, with the
+  entries named above it and a sentence saying to deselect them or deal with each one on its own.
+  A plan for one such entry still asks for its name, as before.
 
 ## [0.3.0] - 2026-09-25
 

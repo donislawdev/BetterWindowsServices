@@ -107,7 +107,9 @@ public sealed partial class Planned
     }
 
     /// <summary>
-    /// Whether this plan asks for the entry's name to be typed before it may be carried out.
+    /// Whether this plan carries a warning heavy enough that the footer stops and asks - by the name
+    /// typed back on one entry, and by a refusal on a selection (<see cref="NeedsTyping"/>,
+    /// <see cref="RefusesSelection"/>).
     ///
     /// <b>Only where the effect reaches further than the one entry somebody named - the owner's
     /// decision of 2026-09-06, taken against making it universal.</b> `docs/11` 9.2 point 2 says
@@ -135,11 +137,32 @@ public sealed partial class Planned
     /// cost of the same property is that one arriving which does NOT mean yes would join too, so
     /// the list below is a decision each time rather than a default.
     /// </summary>
-    public bool NeedsTyping =>
+    public bool AsksHeavily =>
         Showing
         && _run is null
         && _plan is { } plan
         && plan.Warnings.Any(Heavy);
+
+    /// <summary>
+    /// Whether the entry's name has to be typed before this plan may be carried out - a heavy ask
+    /// about exactly one entry, so there is exactly one name that means "I read it".
+    /// </summary>
+    public bool NeedsTyping => AsksHeavily && Asked(_plan!) == 1;
+
+    /// <summary>
+    /// Whether this is a SELECTION carrying a heavy warning, which the footer refuses rather than
+    /// asks about - backlog 475, the owner's decision of 2026-09-29.
+    ///
+    /// <b>What stood here before was a dead end that said it was a door.</b> A stop over a whole
+    /// scope put the machine's critical entries in one plan, the box asked for the FIRST entry's
+    /// name, and <see cref="Confirmed"/> refused every plan about more than one entry - so the name
+    /// was typed and the button stayed grey for good. One name agreeing to several entries that
+    /// each take the machine down is exactly what that refusal was written against, so the refusal
+    /// stays and the box goes: the sentence says to deselect them or deal with each on its own,
+    /// where the one-entry box asks for that entry's name. The same answer the window already gives
+    /// a forcing ask over a selection, before any plan is built.
+    /// </summary>
+    public bool RefusesSelection => AsksHeavily && Asked(_plan!) > 1;
 
     /// <summary>
     /// Whether a warning is one of the three that make the ask heavy - the list that used to be
@@ -173,7 +196,7 @@ public sealed partial class Planned
     /// scope stood a sentence here for every plan touching such an entry and left no room for a
     /// single step. PlanWords.Describe over a list says what it gathers and what it does not.
     /// </summary>
-    public string Danger => !NeedsTyping || _plan is not { } plan
+    public string Danger => !AsksHeavily || _plan is not { } plan
         ? string.Empty
         : string.Join(Environment.NewLine, PlanWords.Describe(plan.Warnings.Where(Heavy)));
 
@@ -209,17 +232,22 @@ public sealed partial class Planned
     /// <b>A PLAN ASKING ABOUT MORE THAN ONE ENTRY CAN NEVER BE CONFIRMED, and that is a refusal
     /// rather than an oversight.</b> There is no single name to type for a plan that would end
     /// several processes, so accepting one name would be somebody agreeing to the first entry and
-    /// getting all of them. It is unreachable today, and since 2026-09-16 by a refusal rather than
-    /// by the absence of a door: the offer under a failure carries one name, the command line takes
-    /// one name, and the window's own Force stop and Force restart refuse a selection standing for
-    /// more than one entry before any plan is built - MainWindow.Preview, with section 15.6 of the
-    /// analysis as the reason. This is what happens if all of that ever stops being true: the
-    /// button stays dead and the tooltip says what is missing. **A hole that refuses beats a hole
-    /// that agrees.**
+    /// getting all of them. For a FORCING ask it is unreachable, since 2026-09-16 by a refusal
+    /// rather than by the absence of a door: the offer under a failure carries one name, the command
+    /// line takes one name, and the window's own Force stop and Force restart refuse a selection
+    /// standing for more than one entry before any plan is built - MainWindow.Preview, with section
+    /// 15.6 of the analysis as the reason.
+    ///
+    /// <b>For an ordinary stop it became reachable on 2026-09-09 and nobody saw it until backlog
+    /// 475</b> - a selection holding one of the critical entries carries a heavy warning since that
+    /// day. The button stayed dead as this paragraph promised, but the box asked for a name that
+    /// changed nothing. Since 2026-09-29 the footer says so instead of asking:
+    /// <see cref="RefusesSelection"/>. **A hole that refuses beats a hole that agrees** - and a
+    /// refusal has to say it is one.
     public bool Confirmed =>
-        !NeedsTyping
-        || (TypeTheName.Length > 0
-            && Asked(_plan!) == 1
+        !AsksHeavily
+        || (NeedsTyping
+            && TypeTheName.Length > 0
             && string.Equals(_typed.Trim(), TypeTheName, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>

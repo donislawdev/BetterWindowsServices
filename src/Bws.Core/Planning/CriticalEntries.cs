@@ -74,7 +74,7 @@ internal static class CriticalEntries
     /// <b>A warning rather than a refusal, on the owner's decision of 2026-09-06.</b> An
     /// administrator has the right to manage their own machine, which is the line `R2` of the
     /// specification already draws. The window makes its own decision about how heavy a
-    /// confirmation to ask for - see <c>Planned.NeedsTyping</c> - and that is the window's, not
+    /// confirmation to ask for - see <c>Planned.AsksHeavily</c> - and that is the window's, not
     /// this.
     /// </summary>
     internal static void AddWarnings(

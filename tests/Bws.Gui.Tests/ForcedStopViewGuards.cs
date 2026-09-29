@@ -152,11 +152,11 @@ public sealed class ForcedStopViewGuards
         var window = await ForcedSheet();
 
         var (shown, said, danger, warnings, style) = WpfHost.On(() => (
-            window.PlanPanel.Footer.PlanDanger.Visibility,
-            window.PlanPanel.Footer.PlanDanger.Text,
+            window.PlanPanel.Footer.Confirmation.PlanDanger.Visibility,
+            window.PlanPanel.Footer.Confirmation.PlanDanger.Text,
             Sheeted(window).Danger,
             Sheeted(window).Warnings,
-            window.PlanPanel.Footer.PlanDanger.Style));
+            window.PlanPanel.Footer.Confirmation.PlanDanger.Style));
 
         Assert.Equal(Visibility.Visible, shown);
         Assert.NotEqual(string.Empty, danger);
