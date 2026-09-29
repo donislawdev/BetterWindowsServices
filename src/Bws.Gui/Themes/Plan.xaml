@@ -61,6 +61,14 @@
         <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
         <Setter Property="Padding" Value="{StaticResource PadCell}" />
 
+        <!--
+            THE TOOLTIP IS HERE RATHER THAN ON THE BUTTON SINCE 2026-09-29, and so is the promise
+            that it shows while greyed. A disabled control serves no tooltip unless it is told to
+            (`docs/10`), and the grey state is the one that has something to explain.
+        -->
+        <Setter Property="ToolTip" Value="{DynamicResource gui.plan.close.hint}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -94,6 +102,18 @@
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Face" Property="Background"
                                     Value="{StaticResource SurfaceSelected}" />
+                        </Trigger>
+
+                        <!--
+                            GREY WHILE A RUN IS GOING (Planned.CanClose). The mark is already drawn
+                            in the subdued text colour, which is what every other button here turns
+                            to when greyed, so this one goes one step fainter - the edge the primary
+                            action wears when it is greyed. Inactive controls are outside the WCAG
+                            contrast rule, and the tooltip carries the reason.
+                        -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource SurfacePanelEdge}" />
+                            <Setter Property="ToolTip" Value="{DynamicResource gui.plan.blocked.running}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

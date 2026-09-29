@@ -235,6 +235,7 @@
   "gui.plan.notice.done.many": "Done. All {0} entries are where you asked.",
   "gui.plan.notice.partly.one": "The entry is not where you asked. What did not is below.",
   "gui.plan.notice.partly.many": "{0} of {1} entries are where you asked. What did not is below.",
+  "gui.plan.notice.nothingRun": "Nothing was carried out. The line at the bottom of the window says why.",
 
   "gui.plan.steps": "In this order",
   "gui.plan.step": "{0}. {1} {2} {3}",

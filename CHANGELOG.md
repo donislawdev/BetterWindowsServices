@@ -53,6 +53,19 @@ is not part of this repository.
   button stayed off. Such a selection cannot be carried out, and the sheet now says so, with the
   entries named above it and a sentence saying to deselect them or deal with each one on its own.
   A plan for one such entry still asks for its name, as before.
+- While a plan is being carried out, Escape and the close mark on the sheet no longer put the
+  sheet away. Putting it away used to let a second plan be carried out beside the first, after
+  which Interrupt and the guard against closing the window followed only the second one. The close
+  mark is greyed while the run goes on and says why. A preview or the details of a row asked for
+  during a run are refused, with the reason in the line at the bottom of the window.
+- A plan that could not be carried out at all no longer reports "Done. All 0 entries are where you
+  asked." The sheet says nothing was carried out.
+- The list is read again after a plan has run even when the window was in the middle of another
+  reading at that moment. The Startup type column used to keep showing the old value until F5.
+  F5 pressed while signatures are being verified is carried out once they are done, instead of
+  doing nothing.
+- After a reading of the list fails once and the next one works, the window says so straight away.
+  It used to go on saying it could not read the list until something on the machine changed.
 
 ## [0.3.0] - 2026-09-25
 

@@ -210,6 +210,16 @@ public partial class MainWindow
     /// </param>
     internal async Task<bool> Preview(ActionKind kind, StartSetting? to = null, bool alsoStop = false)
     {
+        // NOT WHILE A PLAN IS BEING CARRIED OUT, since 2026-09-29 - G-1, argued at
+        // Planned.CanClose. The sheet would refuse the new plan anyway, and this says so where a
+        // menu item can say anything at all: the status line, rule 8.
+        if (_model.Planned.Busy)
+        {
+            _model.Says.CouldNotDo(Texts.Of("gui.plan.blocked.running"));
+
+            return false;
+        }
+
         var picked = PickedRows();
         var names = Everything(picked);
 

@@ -533,7 +533,12 @@ public sealed class MainViewModelTests
 
         await first;
 
-        Assert.Equal(reads + 1, machine.FullReads);
+        // TWO, ONE AFTER THE OTHER, SINCE 2026-09-29 - G-5 of the external stability report. The
+        // second full reading used to be dropped, and that dropped the one the window asks for once
+        // a plan has run. It is owed now and starts when the first is back - which keeps what this
+        // test is about, because the one that looks later is still the one that finishes later. The
+        // tick is still turned away: ticks come every second and owe nothing.
+        Assert.Equal(reads + 2, machine.FullReads);
         Assert.Equal(0, machine.StatusReads);
     }
 

@@ -38,8 +38,26 @@ public sealed partial class Planned
     public bool Busy
     {
         get => _busy;
-        private set => Set(ref _busy, value);
+        private set
+        {
+            if (Set(ref _busy, value))
+            {
+                Raise(nameof(CanClose));
+            }
+        }
     }
+
+    /// <summary>
+    /// Whether the sheet may be put away - never while a run it carries is going on.
+    ///
+    /// <b>THE CLOSE MARK USED TO BE LIVE THROUGH A RUN, AND SO DID ESCAPE - G-1 OF THE EXTERNAL
+    /// STABILITY REPORT, 2026-09-29.</b> Putting the sheet away dropped the plan and lowered
+    /// <see cref="Busy"/> while the run went on underneath, so the button to carry out came back live
+    /// and a second run could start beside the first. The window's close guard and Interrupt then
+    /// followed whichever run had started last, and the first one's report landed under the second
+    /// one's plan. Interrupt is the way out of a run, and it is on the sheet for as long as one lasts.
+    /// </summary>
+    public bool CanClose => !Busy;
 
     /// <summary>
     /// Which step is happening, while it happens.
@@ -186,9 +204,12 @@ public sealed partial class Planned
     /// Three sentences on screen, all false, and the failure itself in the status line under them.
     ///
     /// <b>How bad that was is smaller than it looks, and saying so is the point of measuring
-    /// rather than reasoning.</b> <see cref="Show"/> and <see cref="Hide"/> both lower the flag,
+    /// rather than reasoning.</b> <see cref="Show"/> and <see cref="Hide"/> both lowered the flag,
     /// so Escape or a second plan already brought the panel back - what nothing did was tell the
-    /// person that, or stop the panel lying in the meantime.
+    /// person that, or stop the panel lying in the meantime. <b>Since 2026-09-29 neither of them
+    /// may touch a sheet whose run is going</b> (G-1, at <see cref="CanClose"/>), so this method is
+    /// now the ONLY way back out of a run that ended without a result, and the window calls it from
+    /// a finally for exactly that reason.
     ///
     /// <b>NOT Finished with an empty run, which was the other candidate and is the worse one.</b>
     /// That is what the one named refusal does, and there it is honest: a plan with problems never
