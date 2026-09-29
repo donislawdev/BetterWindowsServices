@@ -43,6 +43,16 @@ public partial class MainWindow
     {
         ArgumentNullException.ThrowIfNull(entry);
 
+        // THE SHEET KEEPS THE COLUMN WHILE ITS RUN IS GOING, since 2026-09-29 - G-1, argued at
+        // Planned.CanClose. It refuses to be put away, so opening the details beside it would put
+        // two panels in one column.
+        if (_model.Planned.Busy)
+        {
+            _model.Says.CouldNotDo(Texts.Of("gui.plan.blocked.running"));
+
+            return false;
+        }
+
         PointAt(entry);
 
         _model.Chosen.Row = entry;

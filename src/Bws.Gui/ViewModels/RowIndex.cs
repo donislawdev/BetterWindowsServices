@@ -38,7 +38,16 @@ internal sealed class RowIndex
     /// <summary>Every row, in the manager's order. What a query is applied to.</summary>
     public IReadOnlyList<EntryRow> Ordered => _order;
 
-    /// <summary>Rebuilds every row from a full reading, keeping the rows that already exist.</summary>
+    /// <summary>
+    /// Rebuilds every row from a full reading, keeping the rows that already exist.
+    ///
+    /// <b>One row per name, the first one the manager handed over, since 2026-09-29</b> - X-1 of
+    /// the external stability report. A listing read in two turns while services come and go (a
+    /// per-user family at logon) may in principle hand one name over twice - nobody has seen it,
+    /// and it cannot be ruled out from here. The second copy used to go into the order as the SAME
+    /// row object a second time, and the list's own reconciliation is built on every row being in
+    /// it once. A name is identity (`ADR-14`), so two copies of it are one entry.
+    /// </summary>
     public void Absorb(IReadOnlyList<ScmEntry> entries)
     {
         var now = _clock.Now;
@@ -47,7 +56,10 @@ internal sealed class RowIndex
 
         foreach (var entry in entries)
         {
-            seen.Add(entry.ServiceName);
+            if (!seen.Add(entry.ServiceName))
+            {
+                continue;
+            }
 
             if (_byName.TryGetValue(entry.ServiceName, out var row))
             {

@@ -371,8 +371,14 @@ public sealed partial class Planned : Checked
     /// <b>The count that decides is the number of entries, never the number that arrived.</b> A run
     /// of one that did not arrive reports zero arrived out of one, so keying on the first number
     /// would put "0 of 1 entries" back on the screen by a different route.
+    ///
+    /// <b>A run of nothing says so, since 2026-09-29</b> - G-2 of the external stability report. The
+    /// one refusal the window records as a run carries no runs at all, and 0 arrived of 0 read as
+    /// "Done. All 0 entries are where you asked."
     /// </summary>
-    private static string Reported(BulkRun run) => Arrived(run) == run.Runs.Count
+    private static string Reported(BulkRun run) =>
+        run.Runs.Count == 0 ? Texts.Of("gui.plan.notice.nothingRun")
+        : Arrived(run) == run.Runs.Count
         ? run.Runs.Count == 1
             ? Texts.Of("gui.plan.notice.done.one")
             : Texts.Of("gui.plan.notice.done.many", run.Runs.Count)
@@ -414,7 +420,10 @@ public sealed partial class Planned : Checked
     {
         ArgumentNullException.ThrowIfNull(plan);
 
-        if (!plan.IsRunnable && plan.Problems.Count == 0)
+        // NOT OVER A RUN THAT IS STILL GOING, since 2026-09-29 - G-1, argued at CanClose. The run's
+        // report is bound to the plan it was started from, and a new plan put here mid-run would
+        // take the button, the report and the way back away from it.
+        if (Busy || (!plan.IsRunnable && plan.Problems.Count == 0))
         {
             return false;
         }
@@ -464,10 +473,12 @@ public sealed partial class Planned : Checked
     /// as it was at one moment, so one held after the panel closed would be an answer about a machine
     /// that has moved on - and the next thing to open the panel would have to remember not to trust
     /// it. Escape asks this, and so does the button.
+    ///
+    /// <b>And it says no while a run is going</b> - G-1, argued at <see cref="CanClose"/>.
     /// </summary>
     internal bool Hide()
     {
-        if (!Showing)
+        if (!Showing || Busy)
         {
             return false;
         }

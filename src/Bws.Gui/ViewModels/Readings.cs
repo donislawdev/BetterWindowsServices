@@ -121,6 +121,18 @@ internal sealed partial class Readings
     private bool _failed;
 
     /// <summary>
+    /// A full reading somebody asked for while another was out, carried out once that one is back.
+    ///
+    /// <b>Owed rather than dropped since 2026-09-29</b> - G-5 of the external stability report. The
+    /// window asks for a reading after a plan has run, and a tick or a second pass still out at that
+    /// moment swallowed the ask: the start type column went on showing what the plan had just
+    /// changed until somebody pressed F5, and F5 itself did nothing while signatures were being
+    /// read. One reading owed, never a queue - the strongest of what was asked, because a fresh
+    /// look answers a keeping one too.
+    /// </summary>
+    private Relisting? _owed;
+
+    /// <summary>
     /// Whether any reading has ever come back with an answer. Raised once and never lowered.
     ///
     /// <b>Two versions of the empty state worked this out from something else and both were wrong
@@ -173,12 +185,16 @@ internal sealed partial class Readings
     /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks
     /// for afterwards.
     ///
-    /// A second call arriving while one is out is dropped rather than queued. Without that,
-    /// two presses of F5 send two readings and the one that <b>finished later</b> wins rather
-    /// than the one that <b>read later</b> - so the list can settle on the older of two
-    /// answers and say nothing about it. Nothing here corrupts, because every continuation
-    /// comes back to the interface thread, which is precisely why the hole was invisible: it
-    /// is a question of ordering rather than of two threads touching one field.
+    /// A second call arriving while one is out never runs BESIDE it. Without that, two presses of
+    /// F5 send two readings and the one that <b>finished later</b> wins rather than the one that
+    /// <b>read later</b> - so the list can settle on the older of two answers and say nothing
+    /// about it. Nothing here corrupts, because every continuation comes back to the interface
+    /// thread, which is precisely why the hole was invisible: it is a question of ordering rather
+    /// than of two threads touching one field.
+    ///
+    /// <b>It is OWED rather than dropped since 2026-09-29</b> (<see cref="_owed"/>), and the
+    /// argument above still holds: the owed reading starts after the one that was out has
+    /// finished, so the one that reads later is also the one that finishes later.
     /// </summary>
     /// <param name="how">
     /// Afresh for the first look and F5, keeping file answers after a plan - <see cref="Relisting"/>.
@@ -187,6 +203,8 @@ internal sealed partial class Readings
     {
         if (_reading)
         {
+            _owed = how == Relisting.Afresh || _owed == Relisting.Afresh ? Relisting.Afresh : Relisting.Keeping;
+
             return;
         }
 
@@ -200,6 +218,24 @@ internal sealed partial class Readings
         {
             _reading = false;
         }
+
+        await Owed().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// The reading asked for while another was out, if there is one - see <see cref="_owed"/>.
+    /// Nothing for a window that has gone, which nobody is reading for any more.
+    /// </summary>
+    private Task Owed()
+    {
+        if (_owed is not { } how || _gone)
+        {
+            return Task.CompletedTask;
+        }
+
+        _owed = null;
+
+        return LoadAsync(how);
     }
 
     /// <summary>
@@ -305,65 +341,92 @@ internal sealed partial class Readings
 
         try
         {
-            // Before asking what moved, because a question the window cannot answer yet is a worse
-            // thing to leave standing than a status that is one second old.
-            if (WantsMore())
-            {
-                // Keeping, on the owner's word of 2026-09-29: turning a column on is not F5, and the
-                // signatures already on screen were verified since the last one.
-                await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
-
-                return;
-            }
-
-            IReadOnlyList<ScmStatus> statuses;
-
-            try
-            {
-                statuses = await Task.Run(_catalog.ReadStatuses).ConfigureAwait(true);
-            }
-#pragma warning disable CA1031
-            // Same argument as above, and it earns its place here rather than inheriting it:
-            // this runs unattended once a second, so an exception nobody caught would take the
-            // window down while its owner was somewhere else entirely.
-            catch (Exception failure)
-            {
-                Fail(failure);
-
-                return;
-            }
-#pragma warning restore CA1031
-
-            if (_gone)
-            {
-                return;
-            }
-
-            Says.Incomplete = false;
-            _everRead = true;
-
-            switch (_index.Absorb(statuses))
-            {
-                case Freshening.CompositionChanged:
-                    // The unguarded one, because the guard above is already held. Calling the
-                    // public entry point here would find its own flag raised and quietly do
-                    // nothing, which is the sort of deadlock-by-politeness that looks like the
-                    // machine simply never installing anything. Keeping file answers: what was
-                    // installed or removed brings its own path, and that one is verified.
-                    await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
-                    break;
-
-                case Freshening.Moved:
-                    _settled();
-                    break;
-
-                default:
-                    break;
-            }
+            await Tick().ConfigureAwait(true);
         }
         finally
         {
             _reading = false;
+        }
+
+        // A full reading asked for while this tick was out is carried out now rather than lost -
+        // see _owed. After the flag is down, so it goes through the same door as any other.
+        await Owed().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// The tick itself, with the flag already held. Its own method since 2026-09-29, so that every
+    /// way out of it - three of them return early - still reaches the owed reading above.
+    /// </summary>
+    private async Task Tick()
+    {
+        // Before asking what moved, because a question the window cannot answer yet is a worse
+        // thing to leave standing than a status that is one second old.
+        if (WantsMore())
+        {
+            // Keeping, on the owner's word of 2026-09-29: turning a column on is not F5, and the
+            // signatures already on screen were verified since the last one.
+            await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
+
+            return;
+        }
+
+        IReadOnlyList<ScmStatus> statuses;
+
+        try
+        {
+            statuses = await Task.Run(_catalog.ReadStatuses).ConfigureAwait(true);
+        }
+#pragma warning disable CA1031
+        // Same argument as above, and it earns its place here rather than inheriting it:
+        // this runs unattended once a second, so an exception nobody caught would take the
+        // window down while its owner was somewhere else entirely.
+        catch (Exception failure)
+        {
+            Fail(failure);
+
+            return;
+        }
+#pragma warning restore CA1031
+
+        if (_gone)
+        {
+            return;
+        }
+
+        Says.Incomplete = false;
+        _everRead = true;
+
+        // A TICK THAT WORKS AFTER ONE THAT FAILED BRINGS THE WINDOW BACK, since 2026-09-29 -
+        // G-6 of the external stability report. Only a full reading used to lower the flag, so
+        // one failed tick left "could not read" in the status line, and an empty answer showed
+        // the failed face rather than "nothing matches", until something moved.
+        var recovered = _failed;
+        _failed = false;
+
+        switch (_index.Absorb(statuses))
+        {
+            case Freshening.CompositionChanged:
+                // The unguarded one, because the guard above is already held. Calling the
+                // public entry point here would find its own flag raised and quietly do
+                // nothing, which is the sort of deadlock-by-politeness that looks like the
+                // machine simply never installing anything. Keeping file answers: what was
+                // installed or removed brings its own path, and that one is verified.
+                await LoadEverything(Relisting.Keeping).ConfigureAwait(true);
+                break;
+
+            case Freshening.Moved:
+                _settled();
+                break;
+
+            default:
+                // Nothing moved, but the status line and the empty face still say the reading
+                // failed - _settled rewrites both.
+                if (recovered)
+                {
+                    _settled();
+                }
+
+                break;
         }
     }
 

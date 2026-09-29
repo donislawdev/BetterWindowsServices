@@ -91,10 +91,16 @@ public partial class MainWindow
     /// a statement about pixels, and the press that matters is the one arriving while a run is
     /// already going - from a second click, or from the keyboard, at the moment the first one has
     /// not yet reached the screen.
+    ///
+    /// <b>And the run itself is asked about, not only the panel, since 2026-09-29</b> - G-1 of the
+    /// external stability report. Until then the panel could be put away mid-run, which lowered the
+    /// flag this reads, and a second run started beside the first. The panel now refuses that
+    /// (Planned.CanClose), and this refuses independently, because the fields below belong to ONE
+    /// run and a second one would overwrite them.
     /// </summary>
     internal async Task<bool> CarryOut()
     {
-        if (!_model.Planned.CanCarryOut || _model.Planned.Plan is not { } plan)
+        if (_running is { IsCompleted: false } || !_model.Planned.CanCarryOut || _model.Planned.Plan is not { } plan)
         {
             return false;
         }
@@ -147,13 +153,6 @@ public partial class MainWindow
             _running = running;
 
             _model.Planned.Finished(await running.ConfigureAwait(true));
-
-            // Whatever moved, moved. Asking now rather than waiting up to a second means the list
-            // agrees with the panel by the time somebody looks up from it. KEEPING what is known
-            // about files since 2026-09-29 - the plan wrote none, `ADR-13`.
-            await _model.LoadKeepingAsync().ConfigureAwait(true);
-
-            return true;
         }
         catch (InvalidOperationException refusal)
         {
@@ -184,6 +183,20 @@ public partial class MainWindow
             // A no-op on every ordinary path, because Finished has already lowered the flag.
             _model.Planned.NoLongerRunning();
         }
+
+        // Whatever moved, moved. Asking now rather than waiting up to a second means the list
+        // agrees with the panel by the time somebody looks up from it. KEEPING what is known about
+        // files since 2026-09-29 - the plan wrote none, `ADR-13`.
+        //
+        // OUTSIDE THE TRY SINCE 2026-09-29 - G-2 of the external stability report. Inside it, an
+        // InvalidOperationException from refreshing the LIST landed in the catch meant for a refused
+        // PLAN, which recorded an empty run over the real one - so a run that had changed the
+        // machine was reported as "Done" over nothing, and its failures and way back were gone. A
+        // refresh that throws now goes to the window's own net and the report stays. It also runs
+        // after the fields above are cleared, so the run is over before the list is asked again.
+        await _model.LoadKeepingAsync().ConfigureAwait(true);
+
+        return true;
     }
 
     /// <summary>

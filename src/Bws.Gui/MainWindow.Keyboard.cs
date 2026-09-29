@@ -213,7 +213,16 @@ public partial class MainWindow
                 // innermost thing there is to back out of, and it is open only while the keyboard
                 // is in the box - so the press that closes it is the press somebody makes with a
                 // query they are still typing, which is the one Escape must not take away.
-                return _model.Suggesting.Close() || _model.Planned.Hide() || _model.Chosen.Hide() || _model.ClearQuery();
+                //
+                // A RUN THAT IS GOING TAKES THE PRESS AND DOES NOTHING WITH IT, since 2026-09-29 -
+                // G-1, argued at Planned.CanClose. The sheet refuses to go away, and without this the
+                // press would fall through that refusal to the query and empty it under a running
+                // plan. The sheet's own line already says a run is going, and Interrupt is on it.
+                return _model.Suggesting.Close()
+                    || _model.Planned.Busy
+                    || _model.Planned.Hide()
+                    || _model.Chosen.Hide()
+                    || _model.ClearQuery();
 
             default:
                 return false;

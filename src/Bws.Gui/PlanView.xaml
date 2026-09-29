@@ -152,13 +152,17 @@
                 <!--
                     NAMED SINCE 2026-09-07, because it is where the keyboard goes when a sheet that
                     can end a process opens without a box to type into. See PlanView.WayIn.
+
+                    GREYED WHILE A RUN IS GOING, SINCE 2026-09-29 - Planned.CanClose says why. Its
+                    two tooltips live in the style, because the one for the grey state comes from a
+                    trigger there, and a tooltip set here would outrank it.
                 -->
                 <Button Grid.Column="1"
                         x:Name="PlanCloseButton"
                         Style="{StaticResource PlanClose}"
                         AutomationProperties.AutomationId="planClose"
                         AutomationProperties.Name="{DynamicResource gui.plan.close}"
-                        ToolTip="{DynamicResource gui.plan.close.hint}"
+                        IsEnabled="{Binding CanClose}"
                         VerticalAlignment="Top"
                         Click="CloseRequested" />
             </Grid>
