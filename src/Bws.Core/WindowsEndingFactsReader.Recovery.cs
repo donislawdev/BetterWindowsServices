@@ -14,7 +14,7 @@ public sealed partial class WindowsEndingFactsReader
     /// Opens the entry for configuration and nothing else - the same right the listing already holds on
     /// every entry, so this can be refused only where the listing's start type is refused too.
     /// </summary>
-    public Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(string serviceName)
+    public Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName)
     {
         using var manager = PInvoke.OpenSCManager(
             lpMachineName: null!,
@@ -37,8 +37,8 @@ public sealed partial class WindowsEndingFactsReader
     /// An entry that went between the listing and this question is not a refusal - it will not die with
     /// anything, so it has no consequences to read. Every other number is the manager saying no.
     /// </summary>
-    private static Reading<IReadOnlyList<RecoveryAction>> Unanswered(int code) =>
+    private static Reading<IReadOnlyList<RecoveryItem>> Unanswered(int code) =>
         code == (int)WIN32_ERROR.ERROR_SERVICE_DOES_NOT_EXIST
-            ? Reading<IReadOnlyList<RecoveryAction>>.Absent()
-            : Reading<IReadOnlyList<RecoveryAction>>.Denied(code, ManagerTerms.Describe(code));
+            ? Reading<IReadOnlyList<RecoveryItem>>.Absent()
+            : Reading<IReadOnlyList<RecoveryItem>>.Denied(code, ManagerTerms.Describe(code));
 }

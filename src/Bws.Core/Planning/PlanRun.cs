@@ -267,6 +267,19 @@ public sealed record PlanRun
     /// there, beside the code it explains.
     /// </summary>
     public IReadOnlyList<ReversalStep> Reversal => NetEffect.Of(Results);
+
+    /// <summary>
+    /// The entries this run left down that Windows starts again by itself, and when - their recovery
+    /// lists said so when the plan was built. Empty unless a process was ended.
+    ///
+    /// <b>Here since 2026-09-30, backlog 501, and the property exists because a report can be true and
+    /// still leave somebody wrong.</b> Measured on the throwaway machine the day before: a forced stop
+    /// with a restart after 3000 ms reported the step succeeded, the run complete and exit code 0 - and
+    /// three seconds later the service was running. Waiting that long was ruled out (restarts of a minute
+    /// and two are common), so the report says it instead. A judgement about the run, decided once for both
+    /// interfaces, the way <see cref="OutranTheCeiling"/> is. <see cref="Aftermath.ComingBack"/> says who.
+    /// </summary>
+    public IReadOnlyList<RecoveryRestart> ComingBack => Aftermath.ComingBack(Plan, Results);
 }
 
 /// <summary>

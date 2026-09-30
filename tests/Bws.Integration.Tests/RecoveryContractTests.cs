@@ -26,28 +26,41 @@ public sealed class RecoveryContractTests
         Assert.Equal(ReadOutcome.Present, ours.Outcome);
 
         // By tokens rather than by labels: an action is "WORDS -- Delay = N", and the first of them shares
-        // its line with the FAILURE_ACTIONS label and a colon.
+        // its line with the FAILURE_ACTIONS label and a colon. The delay is compared as well since
+        // 2026-09-30 (backlog 501), when the plan started saying it - the number is the first run of digits
+        // after the equals sign, in milliseconds, whatever language the unit word is printed in.
         var theirs = CommandLineTool.ServiceControl("qfailure", "RpcSs", "5000").StandardOutput
             .Split('\n')
             .Where(line => line.Contains("-- Delay", StringComparison.Ordinal))
-            .Select(line => line[..line.IndexOf("--", StringComparison.Ordinal)])
-            .Select(before => before[(before.LastIndexOf(':') + 1)..].Trim())
+            .Select(line => Kind(line) + " " + Delay(line))
             .ToArray();
 
         string[] spoken =
         [
             .. ours.Value!
-                .Where(action => action is not (RecoveryAction.Nothing or RecoveryAction.Unnamed))
-                .Select(action => action switch
+                .Where(item => item.Action is not (RecoveryAction.Nothing or RecoveryAction.Unnamed))
+                .Select(item => (item.Action switch
                 {
                     RecoveryAction.RestartService => "RESTART",
                     RecoveryAction.RunProgram => "RUN PROCESS",
                     _ => "REBOOT"
-                })
+                }) + " " + (long)item.Delay.TotalMilliseconds)
         ];
 
         Assert.NotEmpty(theirs);
         Assert.Equal(theirs, spoken);
+    }
+
+    private static string Kind(string line)
+    {
+        var before = line[..line.IndexOf("--", StringComparison.Ordinal)];
+        return before[(before.LastIndexOf(':') + 1)..].Trim();
+    }
+
+    private static string Delay(string line)
+    {
+        var after = line[(line.IndexOf('=', StringComparison.Ordinal) + 1)..].TrimStart();
+        return new string([.. after.TakeWhile(char.IsAsciiDigit)]);
     }
 
     [Fact]

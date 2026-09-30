@@ -16,23 +16,25 @@ namespace Bws.Core;
 internal static partial class ScmDetailReader
 {
     /// <summary>
-    /// Every item of the entry's recovery list, in order, reduced to what the plan needs: which kind.
+    /// Every item of the entry's recovery list, in order, with the kind and the delay of each.
     ///
-    /// <b>The delays and the reset period are read and dropped on purpose.</b> Which item runs depends on
-    /// a failure count no call hands out, so the plan asks what is anywhere in the list, and a delay
-    /// changes nothing about whether a restart comes - only when. Phase 2 reads the rest for a person.
+    /// <b>The delays are kept since 2026-09-30 (backlog 501), and the reset period is still read and
+    /// dropped on purpose.</b> A delay changes nothing about whether a restart comes, only when - and
+    /// "when" is what a person reading "succeeded" needed to hear. The reset period only says when the
+    /// manager forgets earlier failures, and which item runs depends on a failure count no documented call
+    /// hands out, so it would decide nothing here. Phase 2 reads the rest for a person.
     ///
     /// <b>An entry with no recovery at all answers a structure with no items</b> - measured over 312
     /// services on 2026-09-30, the sizing call never came back empty - so this is an empty list rather
     /// than an absence. Absent stays for an answer with nothing in it at all.
     /// </summary>
-    internal static unsafe Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(SafeHandle service)
+    internal static unsafe Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(SafeHandle service)
     {
         if (!Sized(service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS, out var needed, out var refusal))
         {
             return refusal == 0
-                ? Reading<IReadOnlyList<RecoveryAction>>.Absent()
-                : Refused<IReadOnlyList<RecoveryAction>>(refusal);
+                ? Reading<IReadOnlyList<RecoveryItem>>.Absent()
+                : Refused<IReadOnlyList<RecoveryItem>>(refusal);
         }
 
         var buffer = new byte[needed];
@@ -45,7 +47,7 @@ internal static partial class ScmDetailReader
                     service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS,
                     new Span<byte>(pinned, buffer.Length), out _))
             {
-                return Refused<IReadOnlyList<RecoveryAction>>(Marshal.GetLastWin32Error());
+                return Refused<IReadOnlyList<RecoveryItem>>(Marshal.GetLastWin32Error());
             }
 
             return Items(pinned, buffer.Length);
@@ -61,11 +63,11 @@ internal static partial class ScmDetailReader
     /// a malformed one becomes "could not read" - which refuses - and never "nothing configured", which
     /// would let the plan through saying nothing.
     /// </summary>
-    private static unsafe Reading<IReadOnlyList<RecoveryAction>> Items(byte* block, int length)
+    private static unsafe Reading<IReadOnlyList<RecoveryItem>> Items(byte* block, int length)
     {
         if (length < sizeof(SERVICE_FAILURE_ACTIONSW))
         {
-            return Reading<IReadOnlyList<RecoveryAction>>.Absent();
+            return Reading<IReadOnlyList<RecoveryItem>>.Absent();
         }
 
         var header = (SERVICE_FAILURE_ACTIONSW*)block;
@@ -73,24 +75,25 @@ internal static partial class ScmDetailReader
 
         if (count == 0)
         {
-            return Reading<IReadOnlyList<RecoveryAction>>.Present([]);
+            return Reading<IReadOnlyList<RecoveryItem>>.Present([]);
         }
 
         var offset = (byte*)header->lpsaActions - block;
 
         if (offset < 0 || offset + ((long)count * sizeof(SC_ACTION)) > length)
         {
-            return Refused<IReadOnlyList<RecoveryAction>>((int)WIN32_ERROR.ERROR_INVALID_DATA);
+            return Refused<IReadOnlyList<RecoveryItem>>((int)WIN32_ERROR.ERROR_INVALID_DATA);
         }
 
-        var items = new RecoveryAction[count];
+        var items = new RecoveryItem[count];
 
         for (var index = 0; index < count; index++)
         {
-            items[index] = Kind(header->lpsaActions[index].Type);
+            var item = header->lpsaActions[index];
+            items[index] = new RecoveryItem(Kind(item.Type), TimeSpan.FromMilliseconds(item.Delay));
         }
 
-        return Reading<IReadOnlyList<RecoveryAction>>.Present(items);
+        return Reading<IReadOnlyList<RecoveryItem>>.Present(items);
     }
 
     /// <summary>

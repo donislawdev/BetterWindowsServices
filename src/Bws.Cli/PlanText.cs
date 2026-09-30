@@ -102,6 +102,8 @@ internal static partial class PlanText
                 Took((long)run!.Ceiling.TotalMilliseconds)));
         }
 
+        AddComingBack(text, run);
+
         if (plan.Warnings.Count > 0)
         {
             text.AppendLine();
