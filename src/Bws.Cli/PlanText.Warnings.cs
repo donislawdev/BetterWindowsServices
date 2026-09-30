@@ -77,21 +77,13 @@ internal static partial class PlanText
 
         PlanWarningKind.StartsAtNextBoot => Texts.Of("cli.plan.warning.startsAtNextBoot", warning.ServiceName),
 
-        // The line that makes the start possible, built the way the offer above builds its own - the
-        // window has a startup type action for this and a terminal has the command.
-        PlanWarningKind.DisabledCannotStart => Texts.Of(
-            "cli.plan.warning.disabledCannotStart", warning.ServiceName,
-            EquivalentCommand.For(new ServiceAction(
-                ActionKind.SetStartType, warning.ServiceName, To: StartSetting.Manual))),
-
-        PlanWarningKind.PausedCannotStart => Texts.Of("cli.plan.warning.pausedCannotStart", warning.ServiceName),
-
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // so a warning added without a sentence would not have been silent, which is survivable, but
         // would have said something confident and wrong about a machine, which is not. The window's
         // own switch had the same shape and was changed the same day. Since 2026-09-30 the refusal
-        // stands at the end of the next switch along, which names what an ending sets off.
-        _ => Aftermath(warning)
+        // stands at the end of a chain of switches along - the start in the plan first, then what an
+        // ending sets off.
+        _ => Starting(warning)
     };
 }

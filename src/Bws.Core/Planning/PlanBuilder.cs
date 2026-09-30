@@ -52,6 +52,9 @@ public sealed class PlanBuilder(
             return refused;
         }
 
+        // What is worked out below, which is not always what was asked for - AsPlanned says when. The
+        // plan still carries the ask itself, so the command it hands back is the one somebody typed.
+        var asked = AsPlanned(action, target);
         var warnings = new List<PlanWarning>();
         var steps = new List<PlanStep>();
 
@@ -60,15 +63,15 @@ public sealed class PlanBuilder(
         // down - setting a start type does not move the service at all, so the question does not
         // arise. Both end up with an empty list and they get there for different reasons. A setting
         // carrying a stop is the exception, and it asks exactly what a plain stop asks.
-        var blocking = action.Kind is ActionKind.Start
-            || (action.Kind == ActionKind.SetStartType && !StopsAlong(action, target))
+        var blocking = asked.Kind is ActionKind.Start
+            || (asked.Kind == ActionKind.SetStartType && !StopsAlong(asked, target))
             ? []
             : StoppingOrder(target, warnings);
 
         // Asking to stop one service is not asking to stop seven. Without the word, the
         // ones in the way are named and left alone, and the plan says plainly that the
         // manager will refuse the stop while they run.
-        var cascade = action.IncludeDependents ? blocking : [];
+        var cascade = asked.IncludeDependents ? blocking : [];
 
         // Found by looking at a real plan rather than by reasoning: stopping BFE on this
         // machine drags in WdNisDrv and wtd, both kernel drivers. Refusing a driver as the
@@ -103,12 +106,12 @@ public sealed class PlanBuilder(
             ending = decided;
         }
 
-        if (StuckDown(action.Kind, target, [.. cascade, .. ending?.Sharing ?? []]) is { Count: > 0 } cannotComeBack)
+        if (StuckDown(asked.Kind, target, [.. cascade, .. ending?.Sharing ?? []]) is { Count: > 0 } cannotComeBack)
         {
             return Refuse(action, PlanProblemKind.CannotComeBack, cannotComeBack);
         }
 
-        if (!action.IncludeDependents && blocking.Count > 0)
+        if (!asked.IncludeDependents && blocking.Count > 0)
         {
             warnings.Add(new PlanWarning(
                 PlanWarningKind.DependentsInTheWay,
@@ -116,9 +119,15 @@ public sealed class PlanBuilder(
                 [.. blocking.Select(entry => entry.ServiceName)]));
         }
 
-        AddSteps(steps, action, target, cascade, ending);
+        AddSteps(steps, asked, target, cascade, ending);
 
-        AddWarnings(warnings, target, action, cascade, ending);
+        AddWarnings(warnings, target, asked, cascade, ending);
+
+        if (asked != action)
+        {
+            // First, because it says what the whole plan is - every other sentence is about a step in it.
+            warnings.Insert(0, new PlanWarning(PlanWarningKind.RestartOnlyStarts, target.ServiceName));
+        }
 
         return new OperationPlan
         {
@@ -258,6 +267,10 @@ public sealed class PlanBuilder(
                 // machine on 2026-08-01 by pressing Ctrl+C during a restart, which left the
                 // service stopped - the plan had taken it down and then classified putting
                 // it back as forward progress to be abandoned.
+                //
+                // An entry read as stopped no longer reaches this arm since 2026-09-30 - it is
+                // planned as a start (AsPlanned) - and the runner gives back only what the run
+                // took down, so a restore after an interrupted or refused stop starts nothing.
                 AddStops(steps, cascade, target);
                 steps.Add(PlanSteps.Made(target, StepOperation.Start, StepReason.Restore));
 
@@ -314,6 +327,31 @@ public sealed class PlanBuilder(
                 .Where(entry => entry.StartType is { IsPresent: true, Value: StartType.Disabled })
                 .Select(entry => entry.ServiceName)]
             : [];
+
+    /// <summary>
+    /// The ask as it is worked out: a restart of an entry that is not running becomes a start, and every
+    /// other ask stays what it was.
+    ///
+    /// <b>The owner's decision of 2026-09-30</b> (stability report W-5), and it is the answer
+    /// <c>Restart-Service</c> gives - Microsoft's page for the cmdlet says a service already stopped is
+    /// started. Until then the plan was a stop the runner would find already done and a start that put the
+    /// entry back, and putting back is carried out even after an interruption - so Stop pressed before the
+    /// first step started a service that had been stopped all along. Planned as a start, it is a step
+    /// forward like any other, and Stop pressed before it starts nothing.
+    ///
+    /// <b>No dependants come down.</b> They stand in the way of stopping an entry, and this one is not
+    /// going to be stopped. The rules of a start apply whole: a disabled entry gets the warning a start of
+    /// it gets, where the restart used to refuse with a sentence about stopping it - false of an entry that
+    /// is not running.
+    ///
+    /// <b>Only Stopped as read for the preview.</b> An entry on its way down is still stopped by the plan,
+    /// the step waiting for it, and one whose state could not be read is read again by the runner before
+    /// anything is asked.
+    /// </summary>
+    private static ServiceAction AsPlanned(ServiceAction action, ScmEntry target) =>
+        action.Kind == ActionKind.Restart && target.Status == EntryStatus.Stopped
+            ? action with { Kind = ActionKind.Start }
+            : action;
 
     /// <summary>
     /// Whether a startup setting carries a stop of its own entry - somebody took the offer, and the

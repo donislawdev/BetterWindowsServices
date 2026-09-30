@@ -25,7 +25,7 @@ public enum StepOutcome
 /// <summary>
 /// Why a step was never attempted.
 ///
-/// Four quite different stories, and folding them into one word would be the empty-value
+/// Five quite different stories, and folding them into one word would be the empty-value
 /// mistake part 3 of 06-STRUKTURA-I-KONWENCJE is about: "skipped" alone cannot tell
 /// somebody whether the machine is where they wanted it or half-way to somewhere else.
 /// </summary>
@@ -51,7 +51,21 @@ public enum SkipReason
     /// the reason, not a failure. The neighbours are asked AFTER the entry itself since that day
     /// (stability report W-2), so that a polite stop which works leaves them running.
     /// </summary>
-    ProcessStays
+    ProcessStays,
+
+    /// <summary>
+    /// A step putting an entry back, not tried because this run never took that entry down - its stop
+    /// was interrupted, held back, refused, or found it already stopped.
+    ///
+    /// <b>A fifth story, added on the owner's decision of 2026-09-30</b> (stability report W-5). Until
+    /// that day every step putting something back ran whatever had happened before it, on the belief
+    /// that an entry never taken down would be found already in place. That held for an entry left
+    /// running and failed for one that was stopped all along: pressing Stop before the first step of a
+    /// restart started it, and so did an interrupted bulk restart and a dependant somebody else had
+    /// stopped in the meantime. "Already there" would be false here - the entry may well be stopped -
+    /// and "interrupted" would not say why nothing was started when the run was not interrupted.
+    /// </summary>
+    NothingToPutBack
 }
 
 /// <summary>

@@ -12,9 +12,10 @@ namespace Bws.Core.Planning;
 /// warning method stands near its ceilings, and the subject is its own - everything there is about
 /// what a plan does, and this is about a start the machine is known to turn down.
 ///
-/// <b>Only a plain start.</b> A restart of a disabled entry is refused outright before any warning
-/// is worked out (<c>PlanProblemKind.CannotComeBack</c>), and a restart of a paused one stops it first,
-/// which a paused service accepts.
+/// <b>Only a start - which since 2026-09-30 includes a restart of an entry read as stopped</b>, planned as
+/// a start (<c>PlanBuilder.AsPlanned</c>). A restart of a running disabled entry is refused outright before
+/// any warning is worked out (<c>PlanProblemKind.CannotComeBack</c>), and a restart of a paused one stops
+/// it first, which a paused service accepts.
 /// </summary>
 internal static class RefusedStartWarnings
 {

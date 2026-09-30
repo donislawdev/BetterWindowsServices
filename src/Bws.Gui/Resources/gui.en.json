@@ -276,6 +276,7 @@
   "gui.plan.warning.startsAtNextBoot": "{0} is stopped, and a startup type does not start it. It starts at the next restart of the machine.",
   "gui.plan.warning.disabledCannotStart": "{0} is disabled, and Windows refuses to start a disabled entry. Change its startup type first.",
   "gui.plan.warning.pausedCannotStart": "{0} is paused, and a start does not resume a paused service - Windows will refuse it.",
+  "gui.plan.warning.restartOnlyStarts": "{0} is not running, so restarting it only starts it.",
   "gui.plan.warning.recoveryRestarts.one": "Once the process behind {0} is ended, Windows starts {2} again by itself - its recovery actions say so. The stop may not last.",
   "gui.plan.warning.recoveryRestarts.many": "Once the process behind {0} is ended, Windows starts {1} entries again by itself - their recovery actions say so: {2}. The stop may not last.",
   "gui.plan.warning.recoveryRunsProgram.one": "Once the process behind {0} is ended, Windows runs the program named in the recovery actions of {2}.",
