@@ -1,0 +1,61 @@
+using Bws.Core;
+
+namespace Bws.Integration.Tests;
+
+/// <summary>
+/// The recovery list the plan that ends a process reads, put to the real manager and held against sc.exe.
+///
+/// <b>RpcSs is the specimen</b>, because every Windows since Vista ships it with "restart the computer" as its
+/// recovery - measured on the owner's machine on 2026-09-30, and it is the item the plan refuses on. The
+/// comparison is on what sc.exe can print: it prints no line for an item that does nothing, nor for the
+/// undocumented type the same measurement found on Schedule, so those two are left out of both sides.
+///
+/// <b>Critical processes are not a specimen here, and that is measured rather than skipped</b>: under a
+/// restricted token wininit.exe refuses the question with 5, so a test built on it would fail wherever the
+/// suite runs without elevation. The canary in tools/scm-probe/recovery-probe.ps1 carries that half.
+///
+/// Read-only. Nothing here opens anything with a right that could change it.
+/// </summary>
+public sealed class RecoveryContractTests
+{
+    [Fact]
+    public void The_recovery_list_of_RpcSs_reads_as_sc_exe_prints_it()
+    {
+        var ours = new WindowsEndingFactsReader().ReadRecovery("RpcSs");
+
+        Assert.Equal(ReadOutcome.Present, ours.Outcome);
+
+        // By tokens rather than by labels: an action is "WORDS -- Delay = N", and the first of them shares
+        // its line with the FAILURE_ACTIONS label and a colon.
+        var theirs = CommandLineTool.ServiceControl("qfailure", "RpcSs", "5000").StandardOutput
+            .Split('\n')
+            .Where(line => line.Contains("-- Delay", StringComparison.Ordinal))
+            .Select(line => line[..line.IndexOf("--", StringComparison.Ordinal)])
+            .Select(before => before[(before.LastIndexOf(':') + 1)..].Trim())
+            .ToArray();
+
+        string[] spoken =
+        [
+            .. ours.Value!
+                .Where(action => action is not (RecoveryAction.Nothing or RecoveryAction.Unnamed))
+                .Select(action => action switch
+                {
+                    RecoveryAction.RestartService => "RESTART",
+                    RecoveryAction.RunProgram => "RUN PROCESS",
+                    _ => "REBOOT"
+                })
+        ];
+
+        Assert.NotEmpty(theirs);
+        Assert.Equal(theirs, spoken);
+    }
+
+    [Fact]
+    public void A_service_that_is_not_there_has_no_recovery_rather_than_a_refused_one()
+    {
+        var ours = new WindowsEndingFactsReader().ReadRecovery("BwsNoSuchService-" + Guid.NewGuid().ToString("N"));
+
+        Assert.Equal(ReadOutcome.Absent, ours.Outcome);
+        Assert.Equal(0, ours.ErrorCode);
+    }
+}

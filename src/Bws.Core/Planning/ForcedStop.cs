@@ -29,8 +29,16 @@ internal static class ForcedStop
     /// halves of an identity are only worth anything together, so they travel together from the
     /// moment they are read. Nothing when nobody read it.
     /// </param>
+    /// <param name="Recovery">
+    /// What the manager does to the entry and each neighbour once the process is gone, read when the
+    /// plan was decided and carried to the warnings - since 2026-09-30, <see cref="Aftermath"/>.
+    /// </param>
     internal readonly record struct Ending(
-        int ProcessId, IReadOnlyList<ScmEntry> Sharing, bool Immediate, long? CreatedAt);
+        int ProcessId,
+        IReadOnlyList<ScmEntry> Sharing,
+        bool Immediate,
+        long? CreatedAt,
+        IReadOnlyList<Aftermath.Recovered> Recovery);
 
     internal static bool Asked(ActionKind kind) =>
         kind is ActionKind.ForceStop or ActionKind.ForceRestart;
@@ -50,6 +58,10 @@ internal static class ForcedStop
     /// Every running entry that depends on the target, whether or not the plan stops them - the plan
     /// stops them exactly when the ask carries <see cref="ServiceAction.IncludeDependents"/>.
     /// </param>
+    /// <param name="processes">
+    /// What to ask about the process and about what its ending sets off - <see cref="NobodyToAsk"/> when
+    /// the caller has nothing to ask, which builds the plan exactly as it was before any of it was read.
+    /// </param>
     internal static (PlanProblem? Refusal, Ending? Ending) Decide(
         IReadOnlyList<ScmEntry> entries,
         IScmCatalog catalog,
@@ -57,7 +69,7 @@ internal static class ForcedStop
         IReadOnlyList<ScmEntry> blocking,
         IReadOnlyList<PlanWarning> warnings,
         ServiceAction action,
-        EndingFacts facts)
+        IEndingFactsReader processes)
     {
         ThrowIfTheCourtesySkipsTheCascade(action);
 
@@ -67,6 +79,11 @@ internal static class ForcedStop
             // arrive here and PlanProblemKind.NoProcessToEnd says why they are one answer.
             return (Because(PlanProblemKind.NoProcessToEnd, target), null);
         }
+
+        // ASKED ONLY ONCE THERE IS A NUMBER, and only for this ask - three handle opens against one process
+        // while a plan is built is nothing, and asking the system about process zero to be told there is
+        // none would be a call made to learn something the line above already knows.
+        var facts = processes.Read(processId);
 
         // ASKED BEFORE ANYTHING ELSE IS WORKED OUT, AND THAT ORDER IS THE POINT OF RUNG FIVE. Every
         // question below this one is about what else comes down on the way. If the thing at the end
@@ -109,11 +126,7 @@ internal static class ForcedStop
             return (needed, null);
         }
 
-        return (null, new Ending(
-            processId,
-            sharing,
-            action.Immediate,
-            facts.Created.IsPresent ? facts.Created.Value : null));
+        return Aftermath.Weigh(processes, facts, target, sharing, action, processId);
     }
 
     /// <summary>
@@ -129,6 +142,10 @@ internal static class ForcedStop
     /// <b>Nothing read means nothing said.</b> A plan built with nobody to ask behaves exactly as
     /// it did before this existed: it names the process, it tries, and it finds out. That is a
     /// worse experience and an honest one - what it never does is claim to have checked.
+    ///
+    /// <b>A process that may be ended is still asked whether the machine survives it</b>, since
+    /// 2026-09-30 - the same reading, and the same place in the order, because a critical process is
+    /// the other thing at the end of the road that makes working out the road pointless.
     /// </summary>
     private static PlanProblem? Unreachable(EndingFacts facts, ScmEntry target, int processId)
     {
@@ -136,7 +153,7 @@ internal static class ForcedStop
 
         if (rights.Outcome == ReadOutcome.NotRead || (rights.IsPresent && rights.Value))
         {
-            return null;
+            return Aftermath.Critical(facts, target);
         }
 
         if (rights.Outcome == ReadOutcome.Absent)
@@ -393,5 +410,7 @@ internal static class ForcedStop
         {
             warnings.Add(new PlanWarning(PlanWarningKind.CriticalService, target.ServiceName, critical));
         }
+
+        Aftermath.AddWarnings(warnings, target, ending.Recovery);
     }
 }

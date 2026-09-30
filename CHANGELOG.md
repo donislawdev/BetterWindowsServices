@@ -106,6 +106,20 @@ is not part of this repository.
 - The window's reason for offering Force stop after a stop that was given up on no longer names a
   number of seconds that could be wrong. The line under a step being waited for says the limit is
   about progress.
+- A force stop is refused when the process is one Windows marks critical, or when a service living
+  in it has "restart the computer" among its recovery actions - ending such a process takes the whole
+  machine down. It is refused as well when those recovery actions cannot be read.
+- The preview of a force stop says when Windows will start a service living in the process again by
+  itself once the process is ended, when it will run a program named in a service's recovery
+  actions, and when a service has a recovery action of a kind the tool cannot name. In the JSON of a
+  plan these are the warnings `recoveryRestarts`, `recoveryRunsProgram` and `recoveryUnnamed`. Until
+  now `bws kill` reported such a service stopped while Windows was already starting it again.
+- A force stop whose service Windows starts again at once is reported straight away as the process
+  ended and the service running again, with its new process, instead of after the whole limit as
+  having run out of time. In the JSON of a run that step is `"outcome": "failed"` with `errorCode` 0.
+- Just before the process is ended, a force stop looks at it once more. If a service has started
+  inside it since the preview, or a running service outside it has started to depend on something
+  inside it, the process is not ended and the step says why.
 
 ## [0.3.0] - 2026-09-25
 

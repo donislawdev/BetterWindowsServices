@@ -18,7 +18,7 @@ namespace Bws.Core;
 /// the way its administrator set it up, rather than failing on a right we took for
 /// convenience.
 /// </summary>
-public sealed class WindowsScmControl : IScmControl
+public sealed partial class WindowsScmControl : IScmControl
 {
     public ControlAnswer Request(string serviceName, StepOperation operation) => operation switch
     {

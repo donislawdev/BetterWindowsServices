@@ -172,7 +172,32 @@ public enum PlanWarningKind
     /// nothing the reading does not already say. Resuming is a write of its own that this tool does not
     /// have, so the sentence names the system's way to do it.
     /// </summary>
-    PausedCannotStart
+    PausedCannotStart,
+
+    /// <summary>
+    /// Ending this process makes the manager start these entries again - their recovery lists say
+    /// "restart the service" somewhere. <see cref="PlanWarning.Related"/> names them, the entry first.
+    ///
+    /// <b>The warning a forced stop needed and never had, until 2026-09-30</b> (stability report W-3, the
+    /// owner's decision of 2026-09-29). Measured on the throwaway machine before the change: with a restart
+    /// at 3000 ms, <c>bws kill --force</c> reported the step succeeded, the run complete and exit code 0 -
+    /// and three seconds later the service was running again. A warning rather than a refusal, because the
+    /// administrator may want exactly that, and on the owner's machine 204 of 312 services carry this.
+    /// </summary>
+    RecoveryRestarts,
+
+    /// <summary>
+    /// Ending this process makes the manager run the program in one of these entries' recovery lists.
+    /// Measured 2026-09-30: the program ran after an ending. The same decision as the one above.
+    /// </summary>
+    RecoveryRunsProgram,
+
+    /// <summary>
+    /// One of these entries has a recovery item of a type this tool has no name for - Microsoft documents
+    /// four and <c>Schedule</c> carries a fifth. Said rather than guessed at, and never left out: the
+    /// owner's decision of 2026-09-30.
+    /// </summary>
+    RecoveryUnnamed
 }
 
 /// <summary>

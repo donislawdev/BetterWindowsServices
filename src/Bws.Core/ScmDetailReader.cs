@@ -30,7 +30,7 @@ namespace Bws.Core;
 /// walks off the end of an array. The walks moved to <see cref="ManagerBlocks"/>, which is also
 /// where they can be handed bytes by a test rather than needing a machine.
 /// </summary>
-internal static class ScmDetailReader
+internal static partial class ScmDetailReader
 {
     /// <summary>
     /// Whether an entry is marked to start late.

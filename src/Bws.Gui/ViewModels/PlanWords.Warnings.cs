@@ -105,8 +105,8 @@ internal static partial class PlanWords
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // a warning added without a sentence would have said something confident and wrong about a
         // machine rather than nothing at all. The terminal's own switch had the same shape and was
-        // changed the same day.
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
+        // changed the same day. Since 2026-09-30 the refusal stands at the end of the next switch
+        // along, which names what an ending sets off - this one is one fork under the ceiling.
+        _ => Aftermath(warning)
     };
 }

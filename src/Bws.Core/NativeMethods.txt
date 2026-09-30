@@ -125,6 +125,13 @@ PROCESS_ACCESS_RIGHTS
 // beside the call should know it is not missing.
 GetProcessTimes
 
+// Whether ending this process stops the whole machine, asked on the same narrow right as the time
+// above, since 2026-09-30 (stability report W-3, package B2). Windows answers a critical process that
+// dies with the stop error CRITICAL_PROCESS_DIED, so a plan that would end one is refused before it
+// exists. Counted that day over the 114 processes behind services on the owner's machine: four are
+// critical, and the question was refused zero times.
+IsProcessCritical
+
 // Who signed the file an entry runs, and whether the system trusts that signature.
 //
 // Read-only, and the whole block is about files rather than services - none of it can
@@ -208,6 +215,16 @@ SERVICE_DELAYED_AUTO_START_INFO
 // "@%SystemRoot%\system32\adpsvc.dll,-103" and call it a description. The ten it does not
 // resolve are unreadable rather than empty, which is a different answer and stays one.
 SERVICE_DESCRIPTIONW
+
+// What the manager does when an entry's process dies without saying it stopped - restart it, run a
+// program, restart the computer - at yet another level of the same call. Read for the plan that ends
+// a process and for nothing else since 2026-09-30 (stability report W-3, package B2): ending the
+// process is exactly the death that sets these off, measured on the throwaway machine that day. The
+// flag level beside it is deliberately NOT read - it only widens the actions to polite stops that
+// report an error, and it changed nothing about an ending in ten measured endings.
+SERVICE_FAILURE_ACTIONSW
+SC_ACTION
+SC_ACTION_TYPE
 SERVICE_TRIGGER_INFO
 SERVICE_TRIGGER
 WIN32_ERROR

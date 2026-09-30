@@ -90,8 +90,8 @@ internal static partial class PlanText
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // so a warning added without a sentence would not have been silent, which is survivable, but
         // would have said something confident and wrong about a machine, which is not. The window's
-        // own switch had the same shape and was changed the same day.
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
+        // own switch had the same shape and was changed the same day. Since 2026-09-30 the refusal
+        // stands at the end of the next switch along, which names what an ending sets off.
+        _ => Aftermath(warning)
     };
 }

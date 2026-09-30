@@ -274,6 +274,12 @@ line that asks for the same thing, and the way back afterwards.
   names them. `--dependents` stops the first kind as part of the plan, and a dependant that will not
   stop holds the process ending back. `--force` does not go with `--dependents`, because skipping the
   polite step would skip theirs too.
+- **Force stop says what Windows does once the process is gone.** A process Windows marks critical,
+  or a service whose recovery actions restart the computer, is refused - ending it takes the whole
+  machine down. A service Windows starts again by itself, or one whose recovery runs a program, is
+  named in the preview, because the stop may not last. Just before the process is ended the tool
+  looks at it once more, and ends nothing if a service moved into it or started depending on it
+  since the preview.
 - **Afterwards, the way back.** A report ends with what did not work and the commands that put things
   back - and the window offers *Copy all* over them.
 - **A start type change moves nothing on its own.** It changes what happens at the next boot, leaves

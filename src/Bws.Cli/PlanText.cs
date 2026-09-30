@@ -149,7 +149,11 @@ internal static partial class PlanText
         // Never without words: a refusal is only ever built from a code and the system's own
         // sentence for it, together. A start that fell over is not a refusal - the manager took the
         // request and the SERVICE stopped - so it says that, with the service's own exit code
-        // (stability report W-7, 2026-09-30).
+        // (stability report W-7, 2026-09-30). And an ending the manager undid at once is not a refusal
+        // either - the process died, and the sentence says that first (W-3, the same day).
+        StepOutcome.Failed when result.StartedAgain => Texts.Of(
+            "cli.run.outcome.startedAgain", result.ProcessId.Value, Took(result.Milliseconds)),
+
         StepOutcome.Failed => result.StoppedWhileStarting
             ? Texts.Of(
                 "cli.run.outcome.stoppedWhileStarting", result.Error!, result.ErrorCode, Took(result.Milliseconds))
@@ -257,8 +261,8 @@ internal static partial class PlanText
 
         PlanProblemKind.DependentsInTheWay or PlanProblemKind.NeighbourNeeded => StillRunning(problem),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
+        // What an ending sets off, and the refusal for a kind with no sentence, since 2026-09-30.
+        _ => Aftermath(problem)
     };
 
     /// <summary>
