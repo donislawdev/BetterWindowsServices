@@ -335,7 +335,7 @@ public sealed class PluralGuards
         .. panel.Steps.Select(line => line.Text),
         .. panel.Warnings.Select(line => line.Text),
         .. panel.Warnings.Select(line => line.Label),
-        .. panel.Problems,
+        .. panel.Problems.Select(line => line.Text),
         // BOTH HALVES OF A FAILURE SINCE 2026-09-07, because both reach a screen. The line became
         // an object when a way out arrived under it, and reading only the sentence would leave the
         // word on that button - the one press in this panel that leads to a process ending -

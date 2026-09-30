@@ -9,9 +9,9 @@ namespace Bws.Gui.Tests;
 /// The plan that sets a running entry to Disabled says it keeps running, and offers to stop it in
 /// the same plan - UX-GUI-006 and spec C4, the owner's variant O1 of 2026-09-24.
 ///
-/// <b>Asserted on what reaches the screen</b> - WarningLines and AlsoStopLines read the sheet's own
+/// <b>Asserted on what reaches the screen</b> - WarningLines and SentenceOffers read the sheet's own
 /// items, so a template that binds to nothing comes back empty rather than right from the model's
-/// side of it. The press itself is asked through the window's own door (AlsoStop), the way the
+/// side of it. The press itself is asked through the window's own door (TakeTheOffer), the way the
 /// forced stop's offer is in ForcedStopFixture. That the BUTTON reaches that door was measured on a
 /// live window by tools/gui-probe/screens.ps1 -AlsoStop, which presses it through automation.
 /// </summary>
@@ -32,7 +32,7 @@ public sealed class AlsoStopGuards
         Assert.Contains(Texts.Of("gui.plan.warning.keepsRunning", "W32Time"), warnings);
         Assert.Equal(
             [Texts.Of("gui.plan.offer.alsoStop.many", 2)],
-            WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+            WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         WpfHost.On(window.Close);
     }
@@ -47,7 +47,7 @@ public sealed class AlsoStopGuards
     {
         var window = await Opened(onlySpooler: true);
 
-        Assert.True(await WpfHost.On(() => window.AlsoStop()));
+        Assert.True(await WpfHost.On(() => window.TakeTheOffer(PlanOffer.AlsoStop)));
         WpfHost.Settled();
 
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
@@ -63,10 +63,10 @@ public sealed class AlsoStopGuards
                 "Print Spooler",
                 CellFaces.SettingLabel(StartSetting.Disabled)),
             WpfHost.On(() => model.Planned.CarryOutLabel));
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.Empty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         // And a second press has nothing to take: the sheet already stops.
-        Assert.False(await WpfHost.On(() => window.AlsoStop()));
+        Assert.False(await WpfHost.On(() => window.TakeTheOffer(PlanOffer.AlsoStop)));
 
         WpfHost.On(window.Close);
     }
@@ -81,16 +81,16 @@ public sealed class AlsoStopGuards
         var window = await Opened();
         var panel = WpfHost.On(() => ((MainViewModel)window.DataContext).Planned);
 
-        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         WpfHost.On(() => panel.Finished(Ran(panel)));
         WpfHost.Settled();
 
         Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.WarningLines.ToList()));
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.Empty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         // And no door behind the button either - a record takes no second question.
-        Assert.False(await WpfHost.On(() => window.AlsoStop()));
+        Assert.False(await WpfHost.On(() => window.TakeTheOffer(PlanOffer.AlsoStop)));
 
         WpfHost.On(window.Close);
     }
@@ -108,19 +108,19 @@ public sealed class AlsoStopGuards
         var window = await Opened(onlySpooler: true);
         var panel = WpfHost.On(() => ((MainViewModel)window.DataContext).Planned);
 
-        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         WpfHost.On(panel.Starting);
         WpfHost.Settled();
 
-        Assert.Empty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
-        Assert.False(await WpfHost.On(() => window.AlsoStop()));
+        Assert.Empty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
+        Assert.False(await WpfHost.On(() => window.TakeTheOffer(PlanOffer.AlsoStop)));
         Assert.Single(WpfHost.On(() => panel.Plan!.Plans.Single().Steps.ToList()));
 
         WpfHost.On(panel.NoLongerRunning);
         WpfHost.Settled();
 
-        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.AlsoStopLines.ToList()));
+        Assert.NotEmpty(WpfHost.On(() => window.PlanPanel.SentenceOffers.ToList()));
 
         WpfHost.On(window.Close);
     }
@@ -134,7 +134,7 @@ public sealed class AlsoStopGuards
     {
         var window = await Opened(onlySpooler: true);
 
-        await WpfHost.On(() => window.AlsoStop());
+        await WpfHost.On(() => window.TakeTheOffer(PlanOffer.AlsoStop));
         WpfHost.Settled();
 
         var handed = WpfHost.On(window.HandOverNow);

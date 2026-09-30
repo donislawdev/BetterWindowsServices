@@ -270,14 +270,14 @@ public sealed partial class Planned : Checked
     /// the ask heavy, which stand in the footer over the confirmation box as <see cref="Danger"/>
     /// since 2026-09-16 and are not repeated here.
     ///
-    /// <b>Lines rather than strings since 2026-09-24</b>, because one of them can carry the offer to
-    /// stop the entry too - <see cref="PlanWarningLine"/> says why, and why never on a record.
+    /// <b>Lines rather than strings since 2026-09-24</b>, because one of them can carry an offer that
+    /// builds the plan again - <see cref="PlanSentence"/> says which, and why never on a record.
     ///
     /// <b>Built once for each plan and each state of the offer, since 2026-09-28</b> - G-7 of the
     /// external performance report counted three builds on every showing, one for each binding that
     /// asks. Kept beside the plan and the offer it was built for, so it cannot outlive either.
     /// </summary>
-    public IReadOnlyList<PlanWarningLine> Warnings
+    public IReadOnlyList<PlanSentence> Warnings
     {
         get
         {
@@ -290,7 +290,7 @@ public sealed partial class Planned : Checked
 
             if (_warnings is not { } kept || !ReferenceEquals(kept.Plan, plan) || kept.Offered != offering)
             {
-                kept = (plan, offering, PlanWarningLine.Of([.. plan.Warnings.Where(warning => !Heavy(warning))], offering));
+                kept = (plan, offering, PlanSentence.Of([.. plan.Warnings.Where(warning => !Heavy(warning))], plan.Action.Kind, offering));
                 _warnings = kept;
             }
 
@@ -300,7 +300,7 @@ public sealed partial class Planned : Checked
 
     // "Offered" rather than "Offering" for the element, which DeadCodeGuards reads by name and would
     // take for a caller of ActionBar.Offering.
-    private (BulkPlan Plan, bool Offered, IReadOnlyList<PlanWarningLine> Lines)? _warnings;
+    private (BulkPlan Plan, bool Offered, IReadOnlyList<PlanSentence> Lines)? _warnings;
 
     /// <summary>
     /// The entries that get no plan at all, and why.
@@ -314,9 +314,13 @@ public sealed partial class Planned : Checked
     /// the whole of what changed here on 2026-08-25 - the list itself is unchanged, and so is the
     /// decision that put it on screen. How the gathering works and what it deliberately does not
     /// fold together is beside the code that does it.
-    public IReadOnlyList<string> Problems => _plan is not { } plan
+    ///
+    /// <b>Lines rather than strings since 2026-09-30</b>, for the offer under the one refusal a person
+    /// can answer from here - dependants in the way of ending a process (W-4, backlog 496). Built on
+    /// every read, as the strings were: a sheet of refusals has no run to rebuild it once a second.
+    public IReadOnlyList<PlanSentence> Problems => _plan is not { } plan
         ? []
-        : PlanWords.Describe(plan.Problems);
+        : PlanSentence.Of(plan.Problems, offering: _run is null && !Busy);
 
     /// <summary>
     /// The same thing from a terminal, one line per entry. `E5`.
@@ -351,8 +355,11 @@ public sealed partial class Planned : Checked
     /// <b>Only while nothing has been done, which is the same rule the rest of this property
     /// follows.</b> Once there is a result the sentence is a report, and a report opening with the
     /// reason somebody started would put the older of two facts first.
+    /// <b>And during a run it says which of the two asks the run is under, since 2026-09-30</b> -
+    /// until then pressing Interrupt left no trace on the sheet at all, and a picture of the sheet
+    /// after the press was the same file to the byte as one before it. <see cref="Underway"/> words it.
     public string Notice => !Showing ? string.Empty
-        : Busy ? Texts.Of("gui.plan.notice.running")
+        : Busy ? Underway.Notice
         : _run is not { } run
             ? _because.Length == 0
                 ? Texts.Of("gui.plan.notice.notYet")
@@ -375,9 +382,15 @@ public sealed partial class Planned : Checked
     /// <b>A run of nothing says so, since 2026-09-29</b> - G-2 of the external stability report. The
     /// one refusal the window records as a run carries no runs at all, and 0 arrived of 0 read as
     /// "Done. All 0 entries are where you asked."
+    ///
+    /// <b>A run that was stopped says so, since 2026-09-30</b> - it used to read like any run that
+    /// fell short, and "What did not is below" pointed at a list that never holds a step nobody tried.
+    /// The command line has said "This run was interrupted" for as long as it could be. Which of the
+    /// two asks it met is read off the steps - <see cref="Underway.Afterwards"/>.
     /// </summary>
     private static string Reported(BulkRun run) =>
         run.Runs.Count == 0 ? Texts.Of("gui.plan.notice.nothingRun")
+        : Underway.Afterwards(run, Arrived(run)) is { Length: > 0 } stopped ? stopped
         : Arrived(run) == run.Runs.Count
         ? run.Runs.Count == 1
             ? Texts.Of("gui.plan.notice.done.one")
@@ -446,7 +459,7 @@ public sealed partial class Planned : Checked
         _wayBack = (null, CommandBlock.None);
         _run = null;
         Busy = false;
-        Progress = string.Empty;
+        Underway.End();
         Showing = true;
 
         Raise(nameof(CanCarryOut));
@@ -496,7 +509,7 @@ public sealed partial class Planned : Checked
         // in the box for the next.
         Typed = string.Empty;
         Busy = false;
-        Progress = string.Empty;
+        Underway.End();
         Showing = false;
 
         Raise(nameof(CanCarryOut));

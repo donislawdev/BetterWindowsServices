@@ -24,7 +24,7 @@ public sealed class RunHoldsTheSheetGuards
     public async Task Escape_and_the_close_mark_leave_a_running_sheet_where_it_is()
     {
         var gate = new TaskCompletionSource<BulkRun>();
-        var window = await Ready(carriedOutBy: (_, _, _, _) => gate.Task);
+        var window = await Ready(carriedOutBy: (_, _, _, _, _) => gate.Task);
         var model = WpfHost.On(() => (MainViewModel)window.DataContext);
         var panel = model.Planned;
 
@@ -71,7 +71,7 @@ public sealed class RunHoldsTheSheetGuards
     {
         var gate = new TaskCompletionSource<BulkRun>();
         var starts = 0;
-        var window = await Ready(carriedOutBy: (_, _, _, _) =>
+        var window = await Ready(carriedOutBy: (_, _, _, _, _) =>
         {
             starts++;
 
@@ -134,7 +134,7 @@ public sealed class RunHoldsTheSheetGuards
         var gate = new TaskCompletionSource();
         using var stopping = new CancellationTokenSource();
         var starts = 0;
-        var window = await Ready(carriedOutBy: (plan, _, _, _) =>
+        var window = await Ready(carriedOutBy: (plan, _, _, _, _) =>
         {
             starts++;
 
@@ -154,7 +154,7 @@ public sealed class RunHoldsTheSheetGuards
     [Fact]
     public async Task A_run_that_carried_nothing_out_does_not_say_done()
     {
-        var window = await Ready(carriedOutBy: (_, _, _, _) =>
+        var window = await Ready(carriedOutBy: (_, _, _, _, _) =>
             Task.FromException<BulkRun>(new InvalidOperationException("A plan with problems.")));
 
         var panel = WpfHost.On(() => ((MainViewModel)window.DataContext).Planned);

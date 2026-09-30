@@ -11,7 +11,31 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Added
+
+- A plan run from the window can now be left undone, the way a second Ctrl+C leaves one in a
+  terminal. After Interrupt has been pressed and the run is still going three seconds later, a
+  "Leave the rest undone" button appears to its left: it stops watching the step in flight and puts
+  nothing back. It exists for a service that keeps reporting progress and never finishes, which
+  used to leave a window that could only be closed from the task manager. Pressing Interrupt twice
+  never reaches it.
+- When a stop or restart would be refused because other services running on this machine depend on
+  the one you picked, the plan offers "Also stop the 2 in the way" under the sentence naming them.
+  Pressing it builds the same plan again with those services stopped first, as `--dependents` does
+  in a terminal. A force stop refused for the same reason offers the same, and it is the way forward
+  from that sheet. Nothing is carried out until you press the button at the foot of the plan, and a
+  restart as administrator keeps the choice.
+
 ### Changed
+
+- Interrupt goes grey once pressed, and the line at the top of the plan says the run was
+  interrupted and is finishing the step in flight. Until now pressing it left no trace on the screen.
+- Closing the window while a plan is being carried out now shows the same thing as Interrupt and
+  says the window closes when the run has ended.
+- A run that was interrupted says so when it ends, and says when nothing was put back, instead of
+  reading like any run that fell short.
+- The line saying which step is running moved under the buttons at the foot of the plan, where it
+  has the whole width and no longer wraps beside them.
 
 - A minimised window no longer reads the list of services every second. It reads it again the
   moment it is restored, so the list is current as soon as it is on screen. A window started

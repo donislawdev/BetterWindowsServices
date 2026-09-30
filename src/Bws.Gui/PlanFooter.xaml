@@ -37,6 +37,10 @@
         safety: a verb that changes under a finger turns a double click into an instruction nobody
         gave. It appears to the LEFT, so the rectangle somebody aimed at never becomes something
         else - it becomes disabled.
+
+        THE SECOND WAY OF STOPPING FOLLOWS THE SAME RULE ONE STEP FURTHER, since 2026-09-30 (backlog
+        497): it appears to the left of Interrupt, only after Interrupt was pressed and has gone grey,
+        and only once the run has kept going for three seconds more. Underway says why each half.
     -->
     <Border BorderBrush="{StaticResource SurfacePanelEdge}"
             BorderThickness="{StaticResource BorderFooterRule}"
@@ -112,9 +116,15 @@
                 centred sheet growing moves everything in it by half a line. GUI rule 3: nothing on
                 this sheet may jump under a hand.
             -->
+            <!--
+                FOUR COLUMNS SINCE 2026-09-30: the box of seconds, the second way of stopping a run,
+                Interrupt, and the button that carries the plan out. The second way of stopping has a
+                column of its own so that appearing moves nothing to its right.
+            -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -189,7 +199,7 @@
                     narrow paragraph beside two buttons.
                 -->
                 <TextBlock Grid.Column="0"
-                           Grid.ColumnSpan="3"
+                           Grid.ColumnSpan="4"
                            Grid.Row="1"
                            x:Name="WaitingProblemLine"
                            AutomationProperties.AutomationId="planWaitingProblem"
@@ -198,32 +208,58 @@
                            Style="{StaticResource ProblemText}" />
 
                 <!--
-                    IT SHARES ITS CELL WITH THE BOX OF SECONDS AND IS DECLARED AFTER IT, SO IT LIES
-                    ON TOP - and until 2026-09-16 it lay there at all times, empty. A TextBlock takes
-                    the pointer over the whole of its rectangle, text or no text, so this line,
-                    stretched across the column, caught every click meant for the box under it: the
-                    owner could not type into the box on a start or restart plan, and the keyboard
-                    stayed on the close button. Measured by tools/gui-probe/plan-keys.ps1, settled by
-                    a hit test in WaitingBoxGuards. It goes when it has nothing to say - the rule the
-                    row beside it already follows - which is a repair of the cause rather than of the
-                    symptom (IsHitTestVisible would leave an invisible element on top of a control).
+                    WHICH STEP IS HAPPENING, IN THE ROW UNDER THE BUTTONS AND ACROSS ALL OF THEM
+                    SINCE 2026-09-30. It shared the first cell with the box of seconds, beside the
+                    buttons, and wrapped there already at about 308 px - a third button during a
+                    run would have left it half that. The row under the buttons is reserved at all
+                    times and says nothing during a run, because the box it speaks for is gone.
+
+                    AND IT STILL GOES WHEN IT HAS NOTHING TO SAY. Until 2026-09-16 it lay on top of
+                    the box of seconds at all times, empty, and a TextBlock takes the pointer over
+                    its whole rectangle - so it caught every click meant for the box (plan-keys.ps1,
+                    WaitingBoxGuards). It no longer covers the box, and the rule stays anyway.
                 -->
                 <TextBlock Grid.Column="0"
+                           Grid.ColumnSpan="4"
+                           Grid.Row="1"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"
-                           Text="{Binding Progress}"
+                           Text="{Binding Underway.Progress}"
                            TextWrapping="Wrap"
-                           VerticalAlignment="Center"
-                           Visibility="{Binding HasProgress, Converter={StaticResource WhenTrue}}"
+                           Visibility="{Binding Underway.HasProgress, Converter={StaticResource WhenTrue}}"
                            Style="{StaticResource SubduedText}" />
 
+                <!--
+                    THE SECOND WAY OF STOPPING A RUN - stop watching, put nothing back. Collapsed until
+                    it is offered, grey once pressed, so it appears once and never jumps. The style of
+                    Interrupt rather than a colour: a red fill on this window says "this changes your
+                    machine", and this changes nothing - it gives up putting things back.
+                -->
                 <Button Grid.Column="1"
+                        x:Name="AbandonButton"
+                        AutomationProperties.AutomationId="planAbandon"
+                        Content="{DynamicResource gui.plan.abandon}"
+                        ToolTip="{DynamicResource gui.plan.abandon.hint}"
+                        ToolTipService.ShowOnDisabled="True"
+                        Margin="{StaticResource MarginBetweenControls}"
+                        Visibility="{Binding Underway.OffersAbandoning, Converter={StaticResource WhenTrue}}"
+                        IsEnabled="{Binding Underway.CanAbandon}"
+                        Click="AbandonRequested" />
+
+                <!--
+                    GREY ONCE PRESSED SINCE 2026-09-30, and saying so on the tooltip - until then a
+                    press left no trace on the sheet at all. ShowOnDisabled for the reason the button
+                    beside it gives: WPF serves no tooltip to a disabled control otherwise.
+                -->
+                <Button Grid.Column="2"
                         x:Name="InterruptButton"
                         AutomationProperties.AutomationId="planInterrupt"
                         Content="{DynamicResource gui.plan.interrupt}"
-                        ToolTip="{DynamicResource gui.plan.interrupt.hint}"
+                        ToolTip="{Binding Underway.InterruptTip}"
+                        ToolTipService.ShowOnDisabled="True"
                         Margin="{StaticResource MarginBetweenControls}"
                         Visibility="{Binding Busy, Converter={StaticResource WhenTrue}}"
+                        IsEnabled="{Binding Underway.CanInterrupt}"
                         Click="InterruptRequested" />
 
                 <!--
@@ -250,7 +286,7 @@
                     automation name is bound as well as the content, so a probe reading this button
                     gets the label whichever way WPF derives a name for templated content.
                 -->
-                <Button Grid.Column="2"
+                <Button Grid.Column="3"
                         x:Name="CarryOutButton"
                         Style="{StaticResource DestructiveAction}"
                         AutomationProperties.AutomationId="planCarryOut"

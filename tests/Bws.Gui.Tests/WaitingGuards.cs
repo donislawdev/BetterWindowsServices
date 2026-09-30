@@ -256,13 +256,13 @@ public sealed class WaitingGuards
         panel.Show(Plan(StepOperation.Stop));
         panel.Starting();
 
-        panel.Announce(new PlanStep("Spooler", "Spooler", StepOperation.Stop, StepReason.Requested), 1);
-        var first = panel.Progress;
+        panel.Underway.Announce(new PlanStep("Spooler", "Spooler", StepOperation.Stop, StepReason.Requested), 1);
+        var first = panel.Underway.Progress;
 
-        panel.Announce(new PlanStep("Dnscache", "Dnscache", StepOperation.Stop, StepReason.Requested), 2);
+        panel.Underway.Announce(new PlanStep("Dnscache", "Dnscache", StepOperation.Stop, StepReason.Requested), 2);
 
-        Assert.NotEqual(first, panel.Progress);
-        Assert.Contains("Dnscache", panel.Progress, StringComparison.Ordinal);
+        Assert.NotEqual(first, panel.Underway.Progress);
+        Assert.Contains("Dnscache", panel.Underway.Progress, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -280,7 +280,7 @@ public sealed class WaitingGuards
     {
         TimeSpan? given = null;
 
-        var window = await PlanFixture.Ready(carriedOutBy: (plan, ceiling, _, _) =>
+        var window = await PlanFixture.Ready(carriedOutBy: (plan, ceiling, _, _, _) =>
         {
             given = ceiling;
             return Task.FromResult(new BulkRun { Plan = plan, Runs = [] });
@@ -306,7 +306,7 @@ public sealed class WaitingGuards
     {
         var asked = false;
 
-        var window = await PlanFixture.Ready(carriedOutBy: (plan, _, _, _) =>
+        var window = await PlanFixture.Ready(carriedOutBy: (plan, _, _, _, _) =>
         {
             asked = true;
             return Task.FromResult(new BulkRun { Plan = plan, Runs = [] });

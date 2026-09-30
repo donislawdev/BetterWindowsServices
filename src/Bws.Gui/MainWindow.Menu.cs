@@ -194,8 +194,9 @@ public partial class MainWindow
     /// <b>The cascade is NOT asked for, which matches the command line's own default and is a safety
     /// property rather than a preference.</b> Asking to stop one service is not asking to stop seven.
     /// What the plan does instead is name the ones in the way, in a warning, so `C2`'s promise about
-    /// saying what would be dragged in is kept without quietly widening what was asked. There is no
-    /// control for turning it on yet and that is open rather than decided.
+    /// saying what would be dragged in is kept without quietly widening what was asked. <b>Since
+    /// 2026-09-30 the sheet offers to ask again with them</b> - the owner's decision on W-4 of the
+    /// stability report - and that offer arrives here as <paramref name="dependents"/>, never a menu.
     /// </summary>
     /// <param name="kind">What was asked for, in the words a person used.</param>
     /// <param name="to">
@@ -208,7 +209,10 @@ public partial class MainWindow
     /// Whether the setting carries a stop - the offer under "keeps running" was taken, which asks
     /// this same question again over the same rows with this one word changed.
     /// </param>
-    internal async Task<bool> Preview(ActionKind kind, StartSetting? to = null, bool alsoStop = false)
+    /// <param name="dependents">
+    /// Whether the running dependants in the way are stopped first - the offer under them was taken.
+    /// </param>
+    internal async Task<bool> Preview(ActionKind kind, StartSetting? to = null, bool alsoStop = false, bool dependents = false)
     {
         // NOT WHILE A PLAN IS BEING CARRIED OUT, since 2026-09-29 - G-1, argued at
         // Planned.CanClose. The sheet would refuse the new plan anyway, and this says so where a
@@ -269,7 +273,8 @@ public partial class MainWindow
         // MainViewModel.PlanAsync. The whole listing selected and asked to stop was measured at
         // 224-240 ms, all of it round trips to the manager, and the owner's decision was that a
         // window not answering for that long is too much.
-        var plan = await _model.PlanAsync(new BulkAction(kind, names, To: to, AlsoStop: alsoStop)).ConfigureAwait(true);
+        var plan = await _model.PlanAsync(
+            new BulkAction(kind, names, IncludeDependents: dependents, To: to, AlsoStop: alsoStop)).ConfigureAwait(true);
 
         if (asked != _previews)
         {
@@ -290,7 +295,7 @@ public partial class MainWindow
         if (shown)
         {
             // The question behind the open sheet, for a restart as administrator to ask again.
-            _asked = (kind, to, alsoStop);
+            _asked = (kind, to, alsoStop, dependents);
 
             PlanPanel.TakeTheKeyboard();
         }
@@ -299,25 +304,78 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Takes up the offer under "keeps running": the same ask over the same rows, with the stop
-    /// riding on it - so the sheet on the screen becomes the same sheet with a second step.
+    /// Takes up an offer under a sentence of the plan: the same ask over the same rows with one word
+    /// changed - so the sheet on the screen becomes the same sheet with more steps.
     ///
     /// <b>THE SAME SHEET HERE, WHERE THE OFFER UNDER A FAILURE OPENS A NEW ONE, and the difference
     /// is the one <see cref="Force"/> names.</b> That sheet is a record of a run and may not grow a
     /// second question. This one has not run - it is still the question, and taking the offer
-    /// changes the question before anybody answers it. PlanWarningLine offers nothing on a record.
+    /// changes the question before anybody answers it. PlanSentence offers nothing on a record.
     ///
-    /// <b>Only from the shape the offer stands under</b>: a start type plan setting Disabled that
-    /// does not already stop. Anything else answers false and opens nothing.
+    /// <b>Only from the shape each offer stands under.</b> The stop rides on a start type plan
+    /// setting Disabled that does not already stop. The dependants join any other plan that did not
+    /// already ask for them - PlanSentence decides which plans offer it, and a startup setting is
+    /// not one of them. Anything else answers false and opens nothing.
     ///
     /// <b>And only while the sheet still offers it</b> - asked of the same lines that draw the
     /// button, so the door and the button cannot disagree. Until review of PR #17 the shape was
     /// the only check, and a press during a run rebuilt the plan under the run still going.
+    ///
+    /// <b>One door for both since 2026-09-30</b>, and that is the ceiling of methods on this window
+    /// asking rather than tidiness: a second offer would otherwise have been a second method.
+    ///
+    /// <b>THE DEPENDANTS ARE ASKED OVER THE NAMES OF THE PLAN ON THE SHEET, NOT OVER THE PICKED ROWS</b>
+    /// - found by the second analysis of its design. A forcing sheet opened from a failure
+    /// (<see cref="Force"/>) is about the entry that failed, which can be a dependant of the row that
+    /// was picked. Asked again over the picked rows, the offer would have built a plan for a different
+    /// entry than the one on the screen - the preview and the question parting company, which is the
+    /// worst fault this product can have. The first offer keeps going through Preview: a startup
+    /// setting is only ever opened from the picked rows.
     /// </summary>
-    internal async Task<bool> AlsoStop() =>
-        _asked is { Kind: ActionKind.SetStartType, To: StartSetting.Disabled, AlsoStop: false }
-            && _model.Planned.Warnings.Any(line => line.HasOffer)
-            && await Preview(ActionKind.SetStartType, StartSetting.Disabled, alsoStop: true).ConfigureAwait(true);
+    internal async Task<bool> TakeTheOffer(PlanOffer offer)
+    {
+        if (_asked is not { } asked
+            || _model.Planned.Plan is not { } shown
+            || !_model.Planned.Warnings.Concat(_model.Planned.Problems).Any(line => line.HasOffer && line.Offer == offer))
+        {
+            return false;
+        }
+
+        if (offer == PlanOffer.AlsoStop)
+        {
+            return asked is { Kind: ActionKind.SetStartType, To: StartSetting.Disabled, AlsoStop: false }
+                && await Preview(ActionKind.SetStartType, StartSetting.Disabled, alsoStop: true).ConfigureAwait(true);
+        }
+
+        if (offer != PlanOffer.InTheWay || asked.Dependents || shown.Action.IncludeDependents)
+        {
+            return false;
+        }
+
+        var again = shown.Action with { IncludeDependents = true };
+        var ticket = ++_previews;
+        var plan = await _model.PlanAsync(again).ConfigureAwait(true);
+
+        // The same counter every preview goes through, for the reason Force gives.
+        if (ticket != _previews)
+        {
+            return false;
+        }
+
+        var shownAs = again.ServiceNames.Count != 1 ? null : _model.Rows
+            .FirstOrDefault(row => string.Equals(row.ServiceName, again.ServiceNames[0], StringComparison.OrdinalIgnoreCase))
+            ?.DisplayName;
+
+        if (!_model.Planned.Show(plan, shownAs))
+        {
+            return false;
+        }
+
+        _asked = asked with { Dependents = true };
+        PlanPanel.TakeTheKeyboard();
+
+        return true;
+    }
 
     /// <summary>
     /// Takes up the offer under a failure: closes the sheet reporting it and opens a new one
@@ -379,7 +437,7 @@ public partial class MainWindow
 
         if (shown)
         {
-            _asked = (offer.Kind, null, false);
+            _asked = (offer.Kind, null, false, false);
 
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it

@@ -54,14 +54,13 @@ public sealed class DeadCodeGuards
         ["Bws.Gui.PlanView.FailureLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.OfferLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.WarningLines"] = ScreenSeam,
-        ["Bws.Gui.PlanView.AlsoStopLines"] = ScreenSeam,
+        ["Bws.Gui.PlanView.SentenceOffers"] = ScreenSeam,
         ["Bws.Gui.PlanView.WayBackLines"] = ScreenSeam,
         ["Bws.Gui.PlanView.ProblemsShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.WayBackShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.StepsShown"] = ScreenSeam,
         ["Bws.Gui.PlanView.CommandsShown"] = ScreenSeam,
         ["Bws.Gui.MainWindow.TakeThisAsARun"] = TimeSeam,
-        ["Bws.Gui.ViewModels.Planned.Clock"] = TimeSeam,
         ["Bws.Core.Querying.QueryParser.SyntaxVersion"] =
             "The version of the query syntax, raised from 1 to 2 when a bare word in the window changed meaning. " +
             "The query language document records it as a frozen contract with no reader today, which is a debt " +

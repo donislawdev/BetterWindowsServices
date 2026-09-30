@@ -464,7 +464,7 @@ public sealed class CarryingGuards
     [Fact]
     public async Task A_run_that_throws_leaves_the_panel_able_to_ask_again()
     {
-        var window = await Ready(carriedOutBy: (_, _, _, _) =>
+        var window = await Ready(carriedOutBy: (_, _, _, _, _) =>
             Task.FromException<BulkRun>(new InvalidCastException("nobody predicted this")));
 
         var panel = WpfHost.On(() => (Planned)window.PlanPanel.DataContext);
@@ -478,7 +478,7 @@ public sealed class CarryingGuards
 
         // Nothing is running, and nothing claims to be.
         Assert.False(panel.Busy);
-        Assert.Equal(string.Empty, panel.Progress);
+        Assert.Equal(string.Empty, panel.Underway.Progress);
 
         // Read off the window rather than off the model, which is why this class exists: a panel
         // that agrees with itself while the button stays grey is the fault this was about.

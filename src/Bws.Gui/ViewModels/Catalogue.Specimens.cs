@@ -171,14 +171,18 @@ public static partial class Catalogue
             "PlanLineTemplate" => (
                 new PlanLine(new NamedSentence("1. stop ", "Spooler", " (asked for)"), asked: true),
                 new PlanLine(new NamedSentence("2. stop ", LongName + " display name", ", which came along"), asked: false)),
-            "PlanSentenceTemplate" => ("Stopping this will stop the two entries that depend on it as well.", LongDescription),
             "PlanFailureTemplate" => (new PlanFailure("Windows refused to stop it: access is denied (5).", offer: null), new PlanFailure(LongDescription, offer: null)),
 
-            // The extreme carries the offer, because the button under a long sentence is the one
-            // shape of this template that can go wrong - it has to stay under its own sentence.
-            "PlanWarningTemplate" => (
-                PlanWarningLine.Of([new PlanWarning(PlanWarningKind.ReturnsAfterReboot, "Spooler", [])], offering: false)[0],
-                PlanWarningLine.Of([new PlanWarning(PlanWarningKind.KeepsRunning, LongName, [])], offering: true)[0]),
+            // One template for the warnings and the refusals since 2026-09-30. The extreme carries
+            // an offer under a long sentence naming long entries, because the button under such a
+            // sentence is the one shape of this template that can go wrong - it has to stay under
+            // its own sentence, and its label counts the names.
+            "PlanSentenceTemplate" => (
+                PlanSentence.Of([new PlanWarning(PlanWarningKind.ReturnsAfterReboot, "Spooler", [])], ActionKind.Stop, offering: false)[0],
+                PlanSentence.Of(
+                    [new PlanWarning(PlanWarningKind.DependentsInTheWay, LongName, [LongName + "One", LongName + "Two", LongName + "Three"])],
+                    ActionKind.Stop,
+                    offering: true)[0]),
             "PlanCommandTemplate" => ("bws stop Spooler --dry-run", "bws stop " + LongName + " --dependents --timeout 90 --json --timing --follow-network"),
 
             _ => null

@@ -47,11 +47,18 @@ public partial class PlanView : UserControl
     internal event EventHandler<ForceAsked>? ForceRequest;
 
     /// <summary>
-    /// Somebody took the offer under "keeps running": the same ask again, with the stop as a second
-    /// step. An event for the reason the one above gives - building a plan means asking the manager
+    /// Somebody asked a run already interrupted to stop watching and put nothing back. Passed on
+    /// unchanged, like the two presses above it.
+    /// </summary>
+    internal event EventHandler? AbandonRequest;
+
+    /// <summary>
+    /// Somebody took an offer under a sentence of the plan, and it carries which: the stop riding on
+    /// a startup setting, or the dependants in the way stopped first. The same ask again with one word
+    /// changed. An event for the reason the ones above give - building a plan means asking the manager
     /// off this thread, and that lives where every other preview is opened.
     /// </summary>
-    internal event EventHandler? AlsoStopRequest;
+    internal event EventHandler<OfferAsked>? OfferRequest;
 
     /// <summary>
     /// Somebody asked for one of the terminal commands, and it carries which one.
@@ -74,22 +81,33 @@ public partial class PlanView : UserControl
         // outside these two lines had to learn that the ask lives somewhere else now.
         Footer.CarryOutRequest += (_, _) => CarryOutRequest?.Invoke(this, EventArgs.Empty);
         Footer.InterruptRequest += (_, _) => InterruptRequest?.Invoke(this, EventArgs.Empty);
+        Footer.AbandonRequest += (_, _) => AbandonRequest?.Invoke(this, EventArgs.Empty);
 
-        // CAUGHT ON THE LIST RATHER THAN NAMED IN THE MARKUP, which is the other way this sheet
+        // CAUGHT ON THE LISTS RATHER THAN NAMED IN THE MARKUP, which is the other way this sheet
         // catches a press from a template - the failures name theirs in PlanView.xaml. This file's
         // markup stands at the size ceiling, so the handler is wired here and the markup carries
-        // only a name. Only a line that carries the offer has a button, so any press here is it.
-        WarningList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(AlsoStopRequested));
+        // only a name. Both lists draw PlanSentence with one template since 2026-09-30, and the
+        // line under the finger says which offer it is.
+        WarningList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(OfferRequested));
+        ProblemList.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(OfferRequested));
     }
 
-    private void AlsoStopRequested(object sender, RoutedEventArgs e)
+    private void OfferRequested(object sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource is not Button { Tag: PlanWarningLine { HasOffer: true } })
+        if (e.OriginalSource is not Button { Tag: PlanSentence { HasOffer: true } line })
         {
             return;
         }
 
-        AlsoStopRequest?.Invoke(this, EventArgs.Empty);
+        OfferRequest?.Invoke(this, new OfferAsked(line.Offer));
+    }
+
+    /// <summary>
+    /// Which offer was taken. A type for one value for the reason <see cref="ForceAsked"/> gives.
+    /// </summary>
+    internal sealed class OfferAsked(PlanOffer offer) : EventArgs
+    {
+        internal PlanOffer Offer { get; } = offer;
     }
 
     private void CloseRequested(object sender, RoutedEventArgs e) => Dismiss();
@@ -356,7 +374,7 @@ public partial class PlanView : UserControl
         [.. StepList.Items.OfType<PlanLine>().Select(line => line.Text)];
 
     /// <summary>The entries that got no plan, as they reach the screen.</summary>
-    internal IReadOnlyList<string> ProblemLines => [.. ProblemList.Items.OfType<string>()];
+    internal IReadOnlyList<string> ProblemLines => [.. ProblemList.Items.OfType<PlanSentence>().Select(line => line.Text)];
 
     /// <summary>
     /// The command lines, as they reach the screen - one box each up to twenty, one field past that
@@ -395,14 +413,16 @@ public partial class PlanView : UserControl
 
     /// <summary>What is worth knowing, as it reaches the screen.</summary>
     internal IReadOnlyList<string> WarningLines =>
-        [.. WarningList.Items.OfType<PlanWarningLine>().Select(line => line.Text)];
+        [.. WarningList.Items.OfType<PlanSentence>().Select(line => line.Text)];
 
     /// <summary>
-    /// The offer under those sentences, as it reaches the screen - read off the items for the reason
-    /// <see cref="OfferLines"/> gives about the failures.
+    /// The offers under the sentences of both lists - what is worth knowing and what was refused - as
+    /// they reach the screen, read off the items for the reason <see cref="OfferLines"/> gives about
+    /// the failures. Named for the first offer until 2026-09-30, when the second arrived.
     /// </summary>
-    internal IReadOnlyList<string> AlsoStopLines =>
-        [.. WarningList.Items.OfType<PlanWarningLine>().Where(line => line.HasOffer).Select(line => line.Label)];
+    internal IReadOnlyList<string> SentenceOffers =>
+        [.. WarningList.Items.OfType<PlanSentence>().Concat(ProblemList.Items.OfType<PlanSentence>())
+            .Where(line => line.HasOffer).Select(line => line.Label)];
 
     /// <summary>
     /// Whether the refusals section is on the screen at all, heading included.

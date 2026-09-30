@@ -108,7 +108,7 @@ public sealed class HandOverTests
     public void A_value_longer_than_this_program_writes_is_refused_before_it_is_decoded()
     {
         var names = string.Join(",", Enumerable.Range(0, 200).Select(index => $"\"Service{index:D12}\""));
-        var json = $$"""{"V":1,"Scope":"Services","Query":"{{new string('a', 4000)}}","Picked":[{{names}}]}""";
+        var json = $$"""{"V":2,"Scope":"Services","Query":"{{new string('a', 4000)}}","Picked":[{{names}}]}""";
         var value = Base64Url.EncodeToString(Encoding.UTF8.GetBytes(json));
 
         Assert.True(value.Length > HandOver.LongestArgument);
@@ -116,24 +116,30 @@ public sealed class HandOverTests
     }
 
     [Theory]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":1,"Scope":"3","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":1,"Scope":"Services, Drivers","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":1,"Scope":"services","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Picked":[]}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spool\ner"]}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":[""]}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Delete"}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","To":"Manual"}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType"}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot, System"}""")]
+    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":2,"Scope":"3","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":2,"Scope":"Services, Drivers","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":2,"Scope":"services","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Picked":[]}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spool\ner"]}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":[""]}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Delete"}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","To":"Manual"}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType"}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot, System"}""")]
     // A read-side type this window could never have offered, and the two shapes of a stop riding on
     // something it never rides on - since 2026-09-24, when the setting became four values and the
     // offer to stop arrived.
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot"}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Manual","Stop":true}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","Stop":true}""")]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":["Spooler"],"Stop":true}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot"}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Manual","Stop":true}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","Stop":true}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Stop":true}""")]
+    // The dependants beside a kind that cannot take them, and with no plan at all - since
+    // 2026-09-30, when the offer to stop them arrived (W-4). EquivalentCommand renders the switch
+    // for stop, restart and the two forcing kinds and nothing else.
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Start","Deps":true}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Disabled","Stop":true,"Deps":true}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Deps":true}""")]
     [InlineData("""[[[[[[[[[[]]]]]]]]]]""")]
     public void A_hand_over_this_program_could_not_have_written_is_refused_whole(string json)
     {
@@ -145,7 +151,7 @@ public sealed class HandOverTests
     [Fact]
     public void A_query_longer_than_the_box_would_hold_is_refused()
     {
-        var json = $$"""{"V":1,"Scope":"Services","Query":"{{new string('a', 5000)}}","Picked":[]}""";
+        var json = $$"""{"V":2,"Scope":"Services","Query":"{{new string('a', 5000)}}","Picked":[]}""";
 
         Assert.Equal((null, true), HandOver.Read([HandOver.Argument, Base64Url.EncodeToString(Encoding.UTF8.GetBytes(json))]));
     }

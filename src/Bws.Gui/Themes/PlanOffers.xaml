@@ -93,13 +93,28 @@
     </DataTemplate>
 
     <!--
-        A SENTENCE UNDER "WORTH KNOWING", AND UNDER THE ONE SAYING A DISABLED ENTRY KEEPS RUNNING, THE
-        OFFER TO STOP IT IN THE SAME PLAN. 2026-09-24, UX-GUI-006 and spec C4 - the owner chose to have
-        the press rebuild this sheet with the stop as a second step (PlanWarningLine says why one
-        offer per sheet, and why none on a record).
+        A SENTENCE OF THE PLAN - UNDER "WORTH KNOWING" AND UNDER "NOT INCLUDED, AND WHY" - AND UNDER A
+        FEW OF THEM AN OFFER THAT BUILDS THE PLAN AGAIN WITH ONE WORD CHANGED. The first offer came
+        2026-09-24 (UX-GUI-006, spec C4: the stop riding on Disabled), the second 2026-09-30 (W-4 and
+        backlog 496: the dependants in the way stopped first). PlanSentence says why one offer of each
+        kind per sheet, and why none on a record.
+
+        ONE TEMPLATE FOR BOTH LISTS SINCE 2026-09-30, AND GUI RULE 2 IS WHAT ASKED. Until then the
+        warnings had PlanWarningTemplate and the refusals a plain sentence template in PlanLines.xaml,
+        and the offer under a refusal would have been the third "sentence with a button under it" on
+        this sheet. So the line carries what differs - the button's name for instruments and its
+        tooltip - and this draws all of them. The name for instruments stays planAlsoStop for the
+        first offer, because tools/gui-probe/screens.ps1 finds it by that name.
 
         THE SHAPE IS PlanFailureTemplate'S, BECAUSE THE SITUATION IS: a sentence, and under a few of
         them a way to act on it, collapsed by default so a binding that fails shows no button.
+
+        THE SENTENCE NAMES ITS COLOUR, AND THAT IS A REPAIR OF 2026-09-02, not decoration. The implicit
+        TextBlock style sets a face and a size and no Foreground, so a sentence naming none is drawn in
+        the framework's black - 1.69 against this panel's #343434, where WCAG asks 4.5. The owner said
+        the panel was black text on grey, and a scan agreed: NOT ONE PIXEL in the band was brighter than
+        the background. An eye on the same picture read light grey, because antialiased edges are not
+        black - which is why the instrument settles it (`docs/11` section 8, Themes/Text.xaml).
 
         THE RED OUTLINE OF "Force stop...", THE OWNER'S CHOICE OF 2026-09-24 made on photographs of
         both. The quiet outline of "Copy" was built first, on the argument that red on this sheet
@@ -110,17 +125,17 @@
     -->
     <Style x:Key="PlanOfferButton" TargetType="Button" BasedOn="{StaticResource PlanForceButton}" />
 
-    <DataTemplate x:Key="PlanWarningTemplate">
+    <DataTemplate x:Key="PlanSentenceTemplate">
         <StackPanel Margin="{StaticResource MarginBetweenControls}">
             <TextBlock Text="{Binding Text}"
                        TextWrapping="Wrap"
                        Foreground="{StaticResource TextOnSurface}" />
 
             <Button Style="{StaticResource PlanOfferButton}"
-                    AutomationProperties.AutomationId="planAlsoStop"
+                    AutomationProperties.AutomationId="{Binding OfferId}"
                     AutomationProperties.Name="{Binding Label}"
                     Content="{Binding Label}"
-                    ToolTip="{DynamicResource gui.plan.offer.alsoStop.hint}"
+                    ToolTip="{Binding OfferHint}"
                     Tag="{Binding}" />
         </StackPanel>
     </DataTemplate>
