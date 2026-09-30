@@ -124,6 +124,19 @@ public sealed record StepResult
     /// </summary>
     public bool StoppedWhileStarting { get; init; }
 
+    /// <summary>
+    /// The process was ended, and the entry was seen in ANOTHER process before it was seen stopped -
+    /// the manager started it again at once, as a recovery list or a trigger tells it to.
+    ///
+    /// <b>A failed step with our own sentence, on the owner's decision of 2026-09-30</b> (stability report
+    /// W-3). Measured before the change: the step waited for Stopped, which with a restart at 0 ms showed
+    /// for 42-58 ms or not at all, and reported running out of time after the whole minute - while in the
+    /// same shape the manager marks the death 3-17 ms after the ending. Not in the machine readable output,
+    /// like the fact above - <c>error</c> carries the
+    /// sentence and <c>processId</c> the new process.
+    /// </summary>
+    public bool StartedAgain { get; init; }
+
     /// <summary>The entry is where the step wanted it, whether or not we had to do anything.</summary>
     public bool Arrived =>
         Outcome == StepOutcome.Succeeded

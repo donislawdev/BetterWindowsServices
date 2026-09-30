@@ -25,6 +25,59 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
 
     private readonly Dictionary<int, Reading<bool>> _rights = [];
     private readonly Dictionary<int, Reading<long>> _created = [];
+    private readonly Dictionary<int, Reading<bool>> _critical = [];
+    private readonly Dictionary<string, Reading<IReadOnlyList<RecoveryAction>>> _recovery = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Every entry whose recovery list was asked for, in order.</summary>
+    internal List<string> AskedRecovery { get; } = [];
+
+    /// <summary>Windows marks this process critical - ending it stops the machine.</summary>
+    internal FakeEndingFacts Critical(int processId)
+    {
+        _critical[processId] = Reading<bool>.Present(true);
+        return this;
+    }
+
+    /// <summary>Nobody could read whether this process is critical.</summary>
+    internal FakeEndingFacts CriticalUnreadable(int processId, int errorCode = 5)
+    {
+        _critical[processId] = Reading<bool>.Denied(errorCode, "Access is denied.");
+        return this;
+    }
+
+    /// <summary>What the manager does to this entry when its process dies, item by item.</summary>
+    internal FakeEndingFacts Recovering(string serviceName, params RecoveryAction[] actions)
+    {
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Present(actions);
+        return this;
+    }
+
+    /// <summary>The manager will not say what it does to this entry.</summary>
+    internal FakeEndingFacts RefusingRecovery(string serviceName, int errorCode = 5)
+    {
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Denied(errorCode, "Access is denied.");
+        return this;
+    }
+
+    /// <summary>
+    /// The entry has gone from the manager, which is what an entry uninstalled between the listing and the
+    /// question answers.
+    /// </summary>
+    internal FakeEndingFacts GoneFromTheManager(string serviceName)
+    {
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Absent();
+        return this;
+    }
+
+    public Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(string serviceName)
+    {
+        AskedRecovery.Add(serviceName);
+
+        // An entry nobody scripted has no recovery at all - the ordinary answer is a list with no items.
+        return _recovery.TryGetValue(serviceName, out var recovery)
+            ? recovery
+            : Reading<IReadOnlyList<RecoveryAction>>.Present([]);
+    }
 
     /// <summary>Every process this was asked about, in order, so a test can see it was asked once.</summary>
     internal List<int> Asked { get; } = [];
@@ -72,6 +125,7 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
             _rights.TryGetValue(processId, out var rights) ? rights : Reading<bool>.Present(true),
             _created.TryGetValue(processId, out var created)
                 ? created
-                : Reading<long>.Present(ATimeLikeAnyOther));
+                : Reading<long>.Present(ATimeLikeAnyOther),
+            _critical.TryGetValue(processId, out var critical) ? critical : Reading<bool>.Present(false));
     }
 }

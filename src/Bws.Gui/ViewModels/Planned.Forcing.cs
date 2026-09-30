@@ -176,6 +176,12 @@ public sealed partial class Planned
     /// 2026-09-16, so the box and the sentence over it can never disagree about which warnings
     /// they are about. Still a decision each time a kind is added, exactly as the paragraph above
     /// says.
+    ///
+    /// <b>Decided on 2026-09-30 for the three recovery warnings of a forced stop: NOT heavy</b>, the
+    /// owner's decision. A restart makes the effect smaller rather than larger - the service comes
+    /// back - and on the owner's machine 79 of 114 processes would carry it, so a typed name there
+    /// would become the ritual `docs/11` 9.2 warns about. The two recovery outcomes that do reach
+    /// past the entry, a computer restart and a critical process, are refusals and never get here.
     /// </summary>
     private static bool Heavy(PlanWarning warning) =>
         warning.Kind is PlanWarningKind.TerminationTakesWithIt

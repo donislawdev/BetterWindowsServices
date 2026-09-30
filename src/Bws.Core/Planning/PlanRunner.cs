@@ -320,9 +320,10 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         // KILLS WITH. This class checks that the ENTRY still names the same process, which is a
         // different question from whether the NUMBER still names the same process - Windows gives
         // numbers out again, and only something holding a handle can rule that out. So this half of
-        // the identity is carried rather than compared here. Backlog 323.
+        // the identity is carried rather than compared here. Backlog 323. And the process is read for
+        // who lives in it NOW before anything dies, since 2026-09-30 - Crowded says why.
         return holding.IsPresent && holding.Value == step.ProcessId
-            ? control.Terminate(holding.Value, step.ProcessCreatedAt)
+            ? Crowded(step) ?? control.Terminate(holding.Value, step.ProcessCreatedAt)
             : ControlAnswer.Refused(0, ProcessMoved);
     }
 

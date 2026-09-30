@@ -17,8 +17,14 @@ namespace Bws.Core.Planning;
 /// every caller that can reach a real machine should hand one over - both of the two in this
 /// product do. Without it a forced stop is planned exactly as it was before rung five of
 /// specification <c>C3</c> existed: the process is named, the plan is built, and a refusal is
-/// discovered by the step that meets it. <see cref="EndingFacts.NobodyAsked"/> is what that looks
-/// like from the inside, and it is a value with a name rather than a null threaded through.
+/// discovered by the step that meets it. <see cref="NobodyToAsk"/> is what that looks like from the
+/// inside, and it is an object with a name rather than a null threaded through.
+///
+/// <b>Asked only for the ask that ends a process, and only once there is a number</b> - the argument
+/// lives at the call in <see cref="ForcedStop.Decide"/> since 2026-09-30, when the questions grew from
+/// the process to what its ending sets off. The same handful against every running entry on every
+/// listing would be a cost on the path a person waits for, paid for facts that are different a second
+/// later - the argument the specification already makes about memory.
 /// </param>
 public sealed class PlanBuilder(
     IReadOnlyList<ScmEntry> entries,
@@ -87,7 +93,7 @@ public sealed class PlanBuilder(
         if (ForcedStop.Asked(action.Kind))
         {
             var (refusal, decided) = ForcedStop.Decide(
-                entries, catalog, target, blocking, warnings, action, Ask(target));
+                entries, catalog, target, blocking, warnings, action, processes ?? NobodyToAsk.Instance);
 
             if (refusal is { } why)
             {
@@ -524,26 +530,6 @@ public sealed class PlanBuilder(
     private ScmEntry? Find(string serviceName) =>
         entries.FirstOrDefault(entry =>
             string.Equals(entry.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>
-    /// What the process behind this entry will say about itself, asked once, for the one ask that
-    /// ends one.
-    ///
-    /// <b>ASKED HERE AND NOWHERE ELSE, AND ONLY FOR THAT ASK.</b> Two handle opens against one
-    /// process while a plan is built is nothing. The same two against every running entry on every
-    /// listing would be a cost on the path a person waits for, paid for a pair of facts that are
-    /// different a second later - which is the argument the specification already makes about
-    /// memory, and the reason memory is off unless somebody asks for it.
-    ///
-    /// <b>Not asked at all when there is no number to ask about.</b> An entry that is not running
-    /// has no process, and <see cref="ForcedStop.Decide"/> has a word for that already - asking
-    /// the operating system about process zero to be told so would be a call made to learn
-    /// something this class already knows.
-    /// </summary>
-    private EndingFacts Ask(ScmEntry target) =>
-        processes is not null && ProcessNeighbours.Endable(target) is { } endable
-            ? processes.Read(endable)
-            : EndingFacts.NobodyAsked();
 
     private static OperationPlan Refuse(
         ServiceAction action, PlanProblemKind kind, IReadOnlyList<string>? related = null) => new()

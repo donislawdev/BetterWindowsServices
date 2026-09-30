@@ -114,7 +114,12 @@ public sealed partial class PlanRunner
     private StepResult WaitFor(
         PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked)
     {
-        var watched = Watch(step.ServiceName, now => now == target || FellBack(target, now), timeout, halted);
+        var watched = Watch(
+            step.ServiceName,
+            now => now == target || FellBack(target, now),
+            timeout,
+            halted,
+            ended: step.Operation == StepOperation.Terminate ? step.ProcessId : null);
 
         // The last reading that worked rather than the one that ended it, because the point of both
         // is the step that gives up: by then the entry is where nobody can act on it, and the last
@@ -126,6 +131,12 @@ public sealed partial class PlanRunner
             Settled.Unreadable => Refused(step, watched.Last, Where(seen), Holding(seen), started),
             Settled.Over when Where(seen) == target =>
                 Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)),
+
+            // The only other way an ending's watch is over: the entry is held by a process that is not the
+            // one ended. Nothing falls back for a stop, so this arm and the next never meet.
+            Settled.Over when step.Operation == StepOperation.Terminate =>
+                Refused(step, ControlAnswer.Refused(0, CameBack), Where(seen), Holding(seen), started)
+                    with { StartedAgain = true },
 
             Settled.Over => StoppedAgain(step, seen, started),
             Settled.Halted when !asked =>
@@ -150,7 +161,14 @@ public sealed partial class PlanRunner
     /// moving. Until that day it was a wall across the whole step, and a service stopping honestly for
     /// seventy seconds was given up on at sixty.
     /// </summary>
-    private Watched Watch(string serviceName, Func<EntryStatus, bool> over, TimeSpan timeout, Func<bool> halted)
+    /// <param name="ended">
+    /// The process a step just ended, for that step and nothing else: a reading held by ANY OTHER process
+    /// is over as well, since 2026-09-30 (stability report W-3). Measured on the throwaway machine that
+    /// day: with a restart at 0 ms the entry showed Stopped for 42-58 ms or not at all, and watching only
+    /// for Stopped waited the whole minute over a service already running again.
+    /// </param>
+    private Watched Watch(
+        string serviceName, Func<EntryStatus, bool> over, TimeSpan timeout, Func<bool> halted, int? ended = null)
     {
         var pause = FirstLook;
         ControlAnswer? seen = null;
@@ -174,7 +192,7 @@ public sealed partial class PlanRunner
 
             seen = answer;
 
-            if (over(progress.Status))
+            if (over(progress.Status) || Elsewhere(progress, ended))
             {
                 return new Watched(Settled.Over, answer, seen);
             }
@@ -220,6 +238,15 @@ public sealed partial class PlanRunner
 
     private static bool FellBack(EntryStatus target, EntryStatus status) =>
         target == EntryStatus.Running && status == EntryStatus.Stopped;
+
+    /// <summary>
+    /// Held by a process, and not the one ended. Zero is the manager saying none - in the two traces printed
+    /// on 2026-09-30 a restarting entry sat in StartPending with no process for 31 and 45 ms while the
+    /// manager started one - so it is
+    /// watched on rather than read as the entry having come back.
+    /// </summary>
+    private static bool Elsewhere(ServiceProgress progress, int? ended) =>
+        ended is { } gone && progress.ProcessId != 0 && progress.ProcessId != (uint)gone;
 
     /// <summary>
     /// A start that ended in Stopped, with the service's own exit code as the number.

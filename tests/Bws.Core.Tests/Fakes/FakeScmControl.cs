@@ -20,7 +20,7 @@ namespace Bws.Core.Tests.Fakes;
 /// The ruler an entry made with <see cref="Arriving"/> keeps time by - the same one the runner
 /// under test is given. Only those entries need it.
 /// </param>
-internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
+internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
 {
     private readonly Dictionary<string, Behaviour> _entries = new(StringComparer.OrdinalIgnoreCase);
 
@@ -109,10 +109,26 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
                 // notice a death this double never modelled.
                 entry.Moving = false;
                 entry.AfterRequest = null;
+
+                if (entry.ComesBack is { } back)
+                {
+                    entry.AfterRequest = back;
+                    entry.Moving = true;
+                }
             }
         }
 
         return ControlAnswer.Done();
+    }
+
+    /// <summary>
+    /// An entry the manager starts again once its process dies - a recovery list saying "restart the
+    /// service" - handing out these readings after the ending, the last one repeating. Since 2026-09-30.
+    /// </summary>
+    internal FakeScmControl ComingBack(string serviceName, params ServiceProgress[] readings)
+    {
+        Entry(serviceName).ComesBack = new Queue<ServiceProgress>(readings);
+        return this;
     }
 
     /// <summary>Which process an entry runs in, for the tests that end one.</summary>
@@ -400,6 +416,9 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
         internal EntryStatus Status { get; set; } = EntryStatus.Running;
 
         internal Queue<ServiceProgress>? AfterRequest { get; set; }
+
+        /// <summary>What the entry says once its process has been ended, when the manager brings it back.</summary>
+        internal Queue<ServiceProgress>? ComesBack { get; set; }
 
         internal bool Moving { get; set; }
 

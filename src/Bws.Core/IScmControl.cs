@@ -164,4 +164,22 @@ public interface IScmControl
 
     /// <summary>Where the entry is now. The answer says whether it could be read at all.</summary>
     ControlAnswer Read(string serviceName);
+
+    /// <summary>
+    /// What every entry is doing and which process holds it, from one enumeration - asked by the step
+    /// that ends a process, immediately before it does.
+    ///
+    /// <b>The same question <see cref="IScmCatalog.ReadStatuses"/> answers, on this side of the seam since
+    /// 2026-09-30</b> (stability report W-6, package B2). The runner holds nothing else, and the check it
+    /// feeds - who lives in the process NOW against who the plan said would die - is worked out above
+    /// this line where a test can drive it. <b>A reading rather than an exception on failure</b>, because
+    /// here a failure is not a broken listing: it is a step that refuses and ends nothing.
+    /// </summary>
+    Reading<IReadOnlyList<ScmStatus>> ReadStatuses();
+
+    /// <summary>
+    /// The entries that depend on this one, whatever they are doing, asked of the manager - the same
+    /// question and the same answer as <see cref="IScmCatalog.ReadDependents"/>, for the same step.
+    /// </summary>
+    Reading<IReadOnlyList<string>> ReadDependents(string serviceName);
 }

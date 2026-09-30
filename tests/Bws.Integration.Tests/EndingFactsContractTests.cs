@@ -56,6 +56,10 @@ public sealed class EndingFactsContractTests
             CultureInfo.InvariantCulture);
 
         Assert.Equal(theirs, facts.Created.Value);
+
+        // A process that can be ended and is not one Windows needs - read, not assumed (2026-09-30).
+        Assert.Equal(ReadOutcome.Present, facts.Critical.Outcome);
+        Assert.False(facts.Critical.Value);
     }
 
     [Fact]
@@ -98,5 +102,7 @@ public sealed class EndingFactsContractTests
 
         Assert.Equal(ReadOutcome.Absent, facts.Created.Outcome);
         Assert.Equal(0, facts.Created.ErrorCode);
+
+        Assert.Equal(ReadOutcome.Absent, facts.Critical.Outcome);
     }
 }

@@ -403,7 +403,34 @@ public enum PlanProblemKind
     /// <c>--dependents</c> reaches what depends on the TARGET - these depend on something that merely
     /// lives beside it, so the only answer is to stop them first. The same decision of 2026-09-29.
     /// </summary>
-    NeighbourNeeded
+    NeighbourNeeded,
+
+    /// <summary>
+    /// Windows marks the process critical, and ending one stops the whole machine with
+    /// <c>CRITICAL_PROCESS_DIED</c>. Refused before anything is worked out, like
+    /// <see cref="ProcessCannotBeEnded"/>, on the owner's decision of 2026-09-30 (stability report W-3).
+    /// </summary>
+    ProcessIsCritical,
+
+    /// <summary>
+    /// An entry that dies with the process has "restart the computer" somewhere in its recovery list.
+    /// Related names them.
+    ///
+    /// <b>Anywhere rather than first, on the owner's decision of 2026-09-30</b>: the manager runs item N
+    /// for failure N since the machine started, and no call hands out N. On the owner's machine all seven
+    /// such services have it first, and all seven live in the four critical processes.
+    /// </summary>
+    RecoveryRestartsComputer,
+
+    /// <summary>
+    /// What ending the process sets off could not be read in full - whether it is critical, or the recovery
+    /// list of an entry that dies with it. Related names the entries whose list was refused.
+    ///
+    /// <b>The rule <see cref="CascadeUnreadable"/> holds for a forced stop</b>, the owner's decision of
+    /// 2026-09-30: the preview of the one step nobody can undo is not shown when it is known to be missing
+    /// a consequence.
+    /// </summary>
+    AftermathUnreadable
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>

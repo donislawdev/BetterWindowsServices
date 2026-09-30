@@ -103,6 +103,10 @@ internal static class CountedWords
         // depends on {0} and is still running" is the ONE half of a pair, and the placeholder before the
         // verb is a service name. The MANY half starts "These depend on", so no count ever stands here.
         "depends",
+        // One more on 2026-09-30, from the refusal of a forced stop over a critical process: "Windows
+        // marks the process {0} runs in as critical" - a service name, then the verb above, then a
+        // preposition that merely ends in s. Nothing here is counted.
+        "as",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

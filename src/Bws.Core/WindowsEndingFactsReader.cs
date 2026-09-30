@@ -7,9 +7,10 @@ using Windows.Win32.System.Threading;
 namespace Bws.Core;
 
 /// <summary>
-/// Asks a real process the two questions in <see cref="EndingFacts"/>.
+/// Asks a real process the three questions in <see cref="EndingFacts"/>, and the manager the one in
+/// <see cref="IEndingFactsReader.ReadRecovery"/> (the other half of this class, since 2026-09-30).
 ///
-/// <b>TWO HANDLES FOR TWO QUESTIONS, AND COMBINING THEM WOULD MAKE ONE OF THE ANSWERS A GUESS.</b>
+/// <b>A HANDLE PER QUESTION, AND COMBINING THE FIRST TWO WOULD MAKE ONE OF THE ANSWERS A GUESS.</b>
 /// A handle opened for several rights at once is refused when ANY of them is refused, so a single
 /// open asking for both would come back "no" without saying which right was missing - and the
 /// first question is precisely "is the right to end it there". Two opens cost two calls on one
@@ -31,10 +32,10 @@ namespace Bws.Core;
 /// on somebody's production server, and what makes a preview able to say "this cannot be done"
 /// without having tried.
 /// </summary>
-public sealed class WindowsEndingFactsReader : IEndingFactsReader
+public sealed partial class WindowsEndingFactsReader : IEndingFactsReader
 {
     public EndingFacts Read(int processId) =>
-        new(WhetherItCanBeEnded(processId), WhenItStarted(processId));
+        new(WhetherItCanBeEnded(processId), WhenItStarted(processId), WhetherItIsCritical(processId));
 
     /// <summary>
     /// Opens a handle carrying the right to end this process, and closes it.
@@ -80,6 +81,31 @@ public sealed class WindowsEndingFactsReader : IEndingFactsReader
         }
 
         return Reading<long>.Present(FileTimeOf(created));
+    }
+
+    /// <summary>
+    /// Whether Windows stops the whole machine when this process dies.
+    ///
+    /// <b>A third handle on the same narrow right as the creation time rather than a second question on
+    /// that one</b>, so that each answer keeps its own refusal and the reading above stays exactly the
+    /// code it was. One more open while a plan is built is nothing - counted on 2026-09-30 over the 114
+    /// processes behind services on the owner's machine, this question was refused zero times.
+    /// </summary>
+    private static Reading<bool> WhetherItIsCritical(int processId)
+    {
+        using var process = PInvoke.OpenProcess_SafeHandle(
+            PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION,
+            bInheritHandle: false,
+            (uint)processId);
+
+        if (process.IsInvalid)
+        {
+            return Refusal<bool>(Marshal.GetLastWin32Error());
+        }
+
+        return PInvoke.IsProcessCritical(process, out var critical)
+            ? Reading<bool>.Present(critical)
+            : Refusal<bool>(Marshal.GetLastWin32Error());
     }
 
     /// <summary>

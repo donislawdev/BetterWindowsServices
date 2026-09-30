@@ -184,8 +184,8 @@ internal static partial class PlanWords
             ? Texts.Of("gui.plan.problem.neighbourNeeded.one", problem.ServiceName, Listed(problem.Related))
             : Texts.Of("gui.plan.problem.neighbourNeeded.many", problem.ServiceName, Listed(problem.Related)),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
+        // What an ending sets off, and the refusal for a kind with no sentence, since 2026-09-30.
+        _ => Aftermath(problem)
     };
 
     internal static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);
@@ -306,6 +306,11 @@ internal static partial class PlanWords
             result.Step.ServiceName,
             result.ErrorCode,
             result.Error ?? string.Empty),
+
+        // NOT "WOULD NOT END", because the process did end (W-3, 2026-09-30) - the manager started the
+        // service again before anybody saw it stopped, and the new process is the thing to look at.
+        { StartedAgain: true } => Texts.Of(
+            "gui.plan.failure.startedAgain", result.Step.ServiceName, result.ProcessId.Value),
 
         _ => Texts.Of(
             "gui.plan.failure.refused",
