@@ -109,7 +109,7 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
       <ul class="points points-ok">
         <li><strong>Konfiguracja i stan są zgłaszane osobno.</strong> Dwa snapshoty z odstępem doby różnią się tym, co akurat działa, i prawie nic z tego nie jest dryfem - linią do przeczytania jest zmieniony typ uruchomienia.</li>
         <li><strong>To, czego nie dało się porównać, jest wypisane, a nie ukryte.</strong> Pole, którego jeden ze snapshotów nigdy nie odczytał, wychodzi jako <em>nieporównane</em> - więc różnica mówiąca <em>nic się nie zmieniło</em> znaczy, że nic się nie zmieniło w tym, co obie strony widziały.</li>
-        <li><strong><code>--exit-code</code> kończy kodem <code>5</code></strong>, gdy cokolwiek się różni - więc zadanie harmonogramu może zrobić snapshot przy wdrożeniu i wezwać kogoś pierwszej nocy, w której maszyna się rozjedzie.</li>
+        <li><strong><code>--exit-code</code> kończy kodem <code>5</code></strong>, gdy różni się konfiguracja - więc zadanie harmonogramu może zrobić snapshot przy wdrożeniu i wezwać kogoś pierwszej nocy, w której maszyna się rozjedzie.</li>
         <li><strong>Dwie maszyny, dwa pliki.</strong> Zrób snapshot na testowej i na produkcyjnej, a potem porównaj je gdziekolwiek.</li>
       </ul>
     </div>
@@ -155,7 +155,7 @@ Plan: stop Winmgmt  (2 steps)
 <span class="k">bws kill Spooler --dry-run</span>                        <span class="c">co zabrałoby zakończenie procesu</span>
 <span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">co da zdjęcie z automatu</span>
 <span class="k">bws snapshot create before.json</span>                   <span class="c">zamroź maszynę przed zmianą</span>
-<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co się zmieniło, 5 jeśli cokolwiek</span></code></pre>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co się zmieniło, 5 jeśli konfiguracja</span></code></pre>
     <a class="more" href="/pl/dokumentacja-cli/">Każda komenda, przełącznik i kod wyjścia</a>
   </div>
 </section>

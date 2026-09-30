@@ -44,6 +44,13 @@ public sealed class SilentCatchGuards
         ["src/Bws.Core/Querying/QueryPatterns.cs"] = 1,
         ["src/Bws.Core/Querying/QueryValues.cs"] = 1,
         ["src/Bws.Core/Snapshots/AtomicFile.cs"] = 2,
+
+        // 2026-09-30, stability report D-5, owner's decision that day: the monthly update number
+        // refused or unreadable becomes null in the snapshot's metadata - "not known" - and every
+        // comparison against that file says so in a line of its own. The failure reaches the person,
+        // the reason behind it does not. The key is readable by every account (an assessment, not a
+        // measurement), so the branch is expected to stay unreached.
+        ["src/Bws.Core/Snapshots/SystemFacts.cs"] = 1,
         ["src/Bws.Core/WindowsBinaryInspector.Publisher.cs"] = 1,
         ["src/Bws.Gui/Elevation.cs"] = 1,
         ["src/Bws.Gui/ListColumns.cs"] = 3,

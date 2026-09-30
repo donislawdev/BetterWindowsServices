@@ -171,18 +171,22 @@ public static class SnapshotJson
             return false;
         }
 
-        if (snapshot.Metadata.SchemaVersion != Snapshot.CurrentSchemaVersion)
+        if (snapshot.Metadata.SchemaVersion is < Snapshot.OldestSchemaVersionRead or > Snapshot.CurrentSchemaVersion)
         {
             // Said out loud rather than attempted. A file from a schema this build does not
             // know may be missing fields, or may mean something different by one it has - and
             // reading it anyway would produce a comparison that looks ordinary and is not.
+            //
+            // A RANGE SINCE 2026-09-30, where it used to be one number. Version five added two
+            // fields to the metadata and none to the entries, so a version four file is read with
+            // both as "not known" - Snapshot.CurrentSchemaVersion carries the argument.
             //
             // AHEAD OF THE CONTENT CHECK BELOW, and the order carries an argument: a rule about
             // what the entries may hold is a rule of THIS schema, so applying it to a document
             // written against another one would report a fault that may not be one there.
             failure =
                 $"The snapshot uses schema version {snapshot.Metadata.SchemaVersion} and this " +
-                $"build reads version {Snapshot.CurrentSchemaVersion}.";
+                $"build reads versions {Snapshot.OldestSchemaVersionRead} to {Snapshot.CurrentSchemaVersion}.";
 
             snapshot = null;
             return false;

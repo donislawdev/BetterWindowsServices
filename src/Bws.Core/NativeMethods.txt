@@ -225,6 +225,15 @@ SERVICE_DESCRIPTIONW
 SERVICE_FAILURE_ACTIONSW
 SC_ACTION
 SC_ACTION_TYPE
+
+// The language the service manager names things in, for the snapshot's metadata since
+// 2026-09-30 (stability report D-5, package E). NOT the caller's language: measured that day
+// with tools/scm-probe/language-probe.ps1, the manager handed back the same Polish display
+// names and descriptions whether the calling thread asked for en-US or pl-PL, while the
+// system's own error text changed with it. So the fact worth recording is the system's
+// preferred UI language, and this is the one call that answers it.
+GetSystemPreferredUILanguages
+MUI_LANGUAGE_NAME
 SERVICE_TRIGGER_INFO
 SERVICE_TRIGGER
 WIN32_ERROR

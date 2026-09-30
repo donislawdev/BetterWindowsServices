@@ -63,6 +63,35 @@ public sealed record SnapshotMetadata
     public required string Tool { get; init; }
 
     /// <summary>
+    /// Windows down to the monthly update, as in "10.0.26200.9550". Null when it is not known.
+    ///
+    /// <b>Beside <see cref="OperatingSystem"/> rather than instead of it, schema five, 2026-09-30.</b>
+    /// That field ends in ".0" where the update belongs, so two snapshots either side of a monthly
+    /// update read as taken on the same Windows - stability report D-5. Changing what the old field
+    /// says would be the quiet kind of break its row in docs/02 warns about, so the full number is
+    /// a field of its own.
+    ///
+    /// <b>Not required, and that is what lets a version four file still be read.</b> Such a file
+    /// has no such field, and it arrives as null - "not known", which a comparison says rather than
+    /// treating as "the same". <see cref="SystemFacts.OperatingSystemVersion"/> gives null as well
+    /// when the machine will not say, for the same reason.
+    /// </summary>
+    public string? OperatingSystemVersion { get; init; }
+
+    /// <summary>
+    /// The language the service manager names things in, as in "pl-PL". Null when it is not known.
+    ///
+    /// <b>The system's language, not the session's - measured, and then the owner's decision of
+    /// 2026-09-30.</b> <see cref="SystemFacts.NamesLanguage"/> carries the measurement. Two snapshots
+    /// whose managers name things in different languages differ on every translated display name and
+    /// description without anybody having changed anything, so a comparison of two such files leaves
+    /// those two fields out and says so.
+    ///
+    /// Not required, for the reason the field above gives.
+    /// </summary>
+    public string? NamesLanguage { get; init; }
+
+    /// <summary>
     /// Everything about the machine and the session, filled in from the machine itself.
     /// </summary>
     public static SnapshotMetadata Of(string? note, IClock clock)
@@ -93,7 +122,9 @@ public sealed record SnapshotMetadata
             // of "am I elevated" would be a second reader of one fact.
             Elevated = Session.IsElevated(),
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
-            Tool = CoreAssembly.Version
+            Tool = CoreAssembly.Version,
+            OperatingSystemVersion = SystemFacts.OperatingSystemVersion(),
+            NamesLanguage = SystemFacts.NamesLanguage()
         };
     }
 
@@ -178,8 +209,28 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// file written before today cannot be compared against one written after it. That is the
     /// same trade taken on 2026-08-25 and again on 08-26, and it is taken for the same reason: a
     /// diff that loads both and invents differences is worse than a file that says it is too old.
+    ///
+    /// <b>FOUR TO FIVE ON 2026-09-30, AND THIS IS THE FIRST BUMP THAT KEEPS READING THE VERSION
+    /// BEFORE IT</b> - stability report D-5, owner's decision. Two fields joined the METADATA, not the
+    /// entries: the Windows version down to the monthly update, and the language the manager names
+    /// things in. Neither is required, so a version four file deserialises with both as null, and
+    /// null is an honest "not known" there - nothing in an entry changed, so no comparison of a four
+    /// against a five can invent a difference out of the format. <see cref="OldestSchemaVersionRead"/>
+    /// says how far back this build reads.
+    ///
+    /// <b>The number moves anyway, and for the reader going the other way.</b> A build of 0.3.0 reads
+    /// only four, and the serialiser skips members it does not know - so without the bump an older
+    /// build would read a five as a four, drop both fields without a word and compare as though
+    /// nothing were missing. With it that build refuses the file by name.
     /// </summary>
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
+
+    /// <summary>
+    /// The oldest schema this build still reads. Four since 2026-09-30 - see the version five
+    /// paragraph above for why that one bump, unlike every earlier one, could keep reading its
+    /// predecessor.
+    /// </summary>
+    public const int OldestSchemaVersionRead = 4;
 
     /// <summary>
     /// Freezes a listing.
@@ -225,10 +276,11 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// <summary>
     /// Whether the entries are something a comparison can be run against.
     ///
-    /// Three questions, and all three are asked of the document rather than trusted from the
+    /// Four questions, and all four are asked of the document rather than trusted from the
     /// type. A required property does not reach the elements of a list, it does not reach a
     /// property spelled out with null after it, and nothing anywhere says a document holds each
-    /// service once.
+    /// service once. The fourth - a null among the names of fields nobody read - joined on
+    /// 2026-09-30, and it is the first question about the inside of an entry rather than its identity.
     ///
     /// <b>Names are compared without case, and that is a decision about what a snapshot is</b>
     /// rather than a detail of any one caller - owner's decision, 2026-08-03. Windows cannot hold
@@ -271,6 +323,19 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             if (entry.ServiceName is null)
             {
                 failure = $"Entry {index + 1} has no service name.";
+
+                return true;
+            }
+
+            // THE ELEMENTS OF ONE LIST, since 2026-09-30 - stability report D-3, measured: a copy of a
+            // real snapshot with `"notRead": [null]` in one entry ended `bws snapshot diff` with
+            // "Object reference not set to an instance of an object." and code 1. The comparison
+            // turns each name on this list into the field it speaks about, and a null name is not
+            // one. It is the only list whose elements are used that way - a null inside dependsOn
+            // or triggers is compared as "nothing", which is an answer.
+            if (entry.NotRead?.Any(field => field is null) == true)
+            {
+                failure = $"Entry {index + 1} ('{entry.ServiceName}') has an empty name in its list of fields nobody read.";
 
                 return true;
             }

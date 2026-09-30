@@ -21,9 +21,13 @@ internal static class DiffText
         // What makes the comparison less than exact goes first, not last. Somebody who reads
         // the differences before learning that one side was taken without elevation has
         // already believed something.
-        Caveats(text, diff.Caveats, diff.NeitherRead);
+        Caveats(text, diff);
 
-        if (!diff.Any && diff.Uncertain.Count == 0 && diff.NotFullyCompared.Count == 0)
+        // WHETHER THERE IS ANYTHING TO SHOW, which is not whether anything drifted - since
+        // 2026-09-30 those are two questions. An entry that differs only in running state does not
+        // count towards --exit-code any more and is still printed below, so asking Drifted here
+        // would print "No differences." over it.
+        if (!diff.Reported)
         {
             text.AppendLine(Texts.Of("cli.diff.same"));
 
@@ -50,41 +54,39 @@ internal static class DiffText
         return text.ToString();
     }
 
-    private static void Caveats(StringBuilder text, ComparisonCaveats caveats, IReadOnlyList<string> neitherRead)
+    /// <summary>
+    /// Every line that makes the comparison less than exact, and a blank line after them when there
+    /// were any.
+    ///
+    /// <b>Collected and then written, since 2026-09-30</b>, when three caveats and the count of
+    /// per-user copies joined the four there were. One condition per line of a table rather than a
+    /// flag set in eight branches - the shape a method pays for once it is long enough to be counted.
+    /// </summary>
+    private static void Caveats(StringBuilder text, SnapshotDiff diff)
     {
-        var said = false;
+        var caveats = diff.Caveats;
 
-        if (caveats.ElevationDiffers)
+        (bool Says, Func<string> Line)[] lines =
+        [
+            (caveats.ElevationDiffers, () => Texts.Of("cli.diff.caveat.elevation")),
+            (caveats.MachineDiffers, () => Texts.Of("cli.diff.caveat.machine")),
+            (caveats.OperatingSystemDiffers, () => Texts.Of("cli.diff.caveat.operatingSystem")),
+            (caveats.ToolVersionDiffers, () => Texts.Of("cli.diff.caveat.tool")),
+            (caveats.LanguageDiffers, () => Texts.Of("cli.diff.caveat.language")),
+            (caveats.AccountDiffers, () => Texts.Of("cli.diff.caveat.account")),
+            (caveats.NotKnown.Count > 0, () => Texts.Of("cli.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
+            (diff.NeitherRead.Count > 0, () => Texts.Of("cli.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead))),
+            (diff.LeftOut.Any, () => Texts.Of("cli.diff.caveat.instancesLeftOut", diff.LeftOut.Earlier, diff.LeftOut.Later))
+        ];
+
+        var said = lines.Where(line => line.Says).Select(line => line.Line()).ToList();
+
+        foreach (var line in said)
         {
-            text.AppendLine(Texts.Of("cli.diff.caveat.elevation"));
-            said = true;
+            text.AppendLine(line);
         }
 
-        if (caveats.MachineDiffers)
-        {
-            text.AppendLine(Texts.Of("cli.diff.caveat.machine"));
-            said = true;
-        }
-
-        if (caveats.OperatingSystemDiffers)
-        {
-            text.AppendLine(Texts.Of("cli.diff.caveat.operatingSystem"));
-            said = true;
-        }
-
-        if (caveats.ToolVersionDiffers)
-        {
-            text.AppendLine(Texts.Of("cli.diff.caveat.tool"));
-            said = true;
-        }
-
-        if (neitherRead.Count > 0)
-        {
-            text.AppendLine(Texts.Of("cli.diff.caveat.neitherRead", string.Join(", ", neitherRead)));
-            said = true;
-        }
-
-        if (said)
+        if (said.Count > 0)
         {
             text.AppendLine();
         }

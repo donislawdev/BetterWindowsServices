@@ -17,7 +17,7 @@ public sealed class SnapshotDiffTests
     {
         var diff = Between(Taken([Entry("Spooler"), Entry("BFE")]), Taken([Entry("Spooler"), Entry("BFE")]));
 
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
         Assert.Empty(diff.Added);
         Assert.Empty(diff.Removed);
         Assert.Empty(diff.Changed);
@@ -32,7 +32,7 @@ public sealed class SnapshotDiffTests
         var before = Taken([Entry("Spooler")]) with { Metadata = Metadata(elevated: true, at: 100) };
         var after = Taken([Entry("Spooler")]) with { Metadata = Metadata(elevated: true, at: 900) };
 
-        Assert.False(Between(before, after).Any);
+        Assert.False(Between(before, after).Drifted);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class SnapshotDiffTests
                 RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeSystemtimePrivilege"])
             }]));
 
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
         Assert.Empty(diff.Changed);
     }
 
@@ -76,7 +76,7 @@ public sealed class SnapshotDiffTests
                 DependsOn = Reading<IReadOnlyList<string>>.Present(["http", "RPCSS"])
             }]));
 
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class SnapshotDiffTests
                 DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"])
             }]));
 
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
         Assert.Equal("dependsOn", Assert.Single(Assert.Single(diff.Changed).Differences).Field);
     }
 
@@ -118,7 +118,7 @@ public sealed class SnapshotDiffTests
     {
         var diff = Between(Taken([Written(field, was)]), Taken([Written(field, now)]));
 
-        Assert.False(diff.Any, $"{field} was reported as changed from {was} to {now}.");
+        Assert.False(diff.Drifted, $"{field} was reported as changed from {was} to {now}.");
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class SnapshotDiffTests
             Taken([Written("account", "LocalSystem")]),
             Taken([Written("account", @"NT SERVICE\Spooler")]));
 
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
         Assert.Equal("account", Assert.Single(Assert.Single(diff.Changed).Differences).Field);
     }
 
@@ -144,7 +144,7 @@ public sealed class SnapshotDiffTests
             Taken([Entry("Spooler") with { BinaryHash = Reading<string>.Present(new string('a', 64)) }]),
             Taken([Entry("Spooler") with { BinaryHash = Reading<string>.Present(new string('A', 64)) }]));
 
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed class SnapshotDiffTests
 
         Assert.Equal("New", Assert.Single(diff.Added).ServiceName);
         Assert.Equal("Gone", Assert.Single(diff.Removed).ServiceName);
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public sealed class SnapshotDiffTests
             Taken([Entry("Spooler") with { ProcessId = Reading<int>.Present(1234) }]),
             Taken([Entry("Spooler") with { ProcessId = Reading<int>.Present(5678) }]));
 
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public sealed class SnapshotDiffTests
         Assert.Empty(diff.Removed);
 
         // And it is not drift, so a pipeline asking by exit code is not failed by it.
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
         Assert.True(diff.Caveats.ElevationDiffers);
     }
 
@@ -263,7 +263,7 @@ public sealed class SnapshotDiffTests
 
         Assert.Equal("Extra", Assert.Single(diff.Removed).ServiceName);
         Assert.Empty(diff.Uncertain);
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
     }
 
     [Fact]
@@ -281,7 +281,7 @@ public sealed class SnapshotDiffTests
         Assert.Equal("securityDescriptor", Assert.Single(entry.Incomparable));
         Assert.Empty(entry.Differences);
         Assert.Empty(diff.Changed);
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public sealed class SnapshotDiffTests
             Taken([Entry("LSM") with { SecurityDescriptor = Reading<string>.Denied(5, "Access is denied.") }]),
             Taken([Entry("LSM") with { SecurityDescriptor = Reading<string>.Denied(5, "Odmowa dostepu.") }]));
 
-        Assert.False(diff.Any);
+        Assert.False(diff.Drifted);
         Assert.Equal("securityDescriptor", Assert.Single(Assert.Single(diff.NotFullyCompared).Incomparable));
     }
 
@@ -323,7 +323,7 @@ public sealed class SnapshotDiffTests
         Assert.Equal("startType", Assert.Single(entry.Differences).Field);
         Assert.Equal("securityDescriptor", Assert.Single(entry.Incomparable));
         Assert.Empty(diff.NotFullyCompared);
-        Assert.True(diff.Any);
+        Assert.True(diff.Drifted);
     }
 
     [Fact]

@@ -41,8 +41,8 @@
 
 <span class="c"># co noc, z zadania harmonogramu</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
-<span class="c">#   0 - nic się nie różni
-#   5 - coś się różni, a drift.json mówi co
+<span class="c">#   0 - konfiguracja się nie rozjechała
+#   5 - konfiguracja się rozjechała, a drift.json mówi co
 #   3 - wykonało się i nie wszystko dało się odczytać, więc odpowiedź jest częściowa</span></code></pre>
     <p>Kod wyjścia <code>5</code> jest tym, co robi z tego audyt, a nie raport, którego nikt nie czyta: zadanie milczy, dopóki maszyna się nie rozjedzie, a tej nocy, w której się rozjedzie, ktoś zostaje wezwany.</p>
     <p class="note"><strong>Punkt odniesienia rób z sesji elewowanej.</strong> Bez praw administratora menedżer wymienia mniej wpisów i odmawia częściej. Snapshot zapisuje, czy konto, które go zrobiło, było administratorem, więc porównanie może to powiedzieć, zamiast zgłaszać jako usunięte wpisy, których nikt nie usunął - ale punkt odniesienia bez połowy maszyny nadal jest punktem odniesienia bez połowy maszyny.</p>

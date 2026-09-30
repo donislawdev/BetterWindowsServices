@@ -11,6 +11,14 @@ namespace Bws.Cli;
 /// Warnings carry their kind as well as their sentence. The sentence is for a person and
 /// may be reworded, the kind is for a script deciding whether to go ahead, and a script
 /// that had to match on English prose would break the first time the wording improved.
+///
+/// <b>EVERY ENUMERATED VALUE IS SPELLED THE WAY ITS ENUMERATION SPELLS IT, SINCE 2026-09-30</b> -
+/// rule 5 of docs/03, stability report round 2 point 8, owner's decision, a breaking change in 0.x.
+/// Until then action, operation, reason, outcome, skippedBecause and the warning kind went through
+/// a helper lowering the first letter, while status and startType in the SAME document went through
+/// ToString - so one result said "outcome": "succeeded" beside "status": "Running". A script had to
+/// know which field was in which convention, and the only place to learn it was this file. The
+/// snapshot made the same repair on 2026-08-26 and measured the direction then.
 /// </summary>
 /// <param name="StartType">
 /// The type a step of that kind writes, and null for every other step.
@@ -18,7 +26,7 @@ namespace Bws.Cli;
 /// <b>ADDED 2026-08-25, THE DAY THE COMMAND LINE LEARNED THE VERB, AND docs/02 SAID IT WOULD BE.</b>
 /// The kinds of step grew a fourth on that day and it could not reach this document, because the
 /// only interface that could ask for one was the window. A verb here means a plan can carry one, and
-/// a step reading only "setStartType" would leave out the whole of what it does.
+/// a step reading only "SetStartType" would leave out the whole of what it does.
 ///
 /// <b>Written as null rather than left out, like <see cref="StepResultJson.SkippedBecause"/> beside
 /// it.</b> A reader that has to tell "no start type is involved" from "the field is missing" is a
@@ -153,7 +161,7 @@ internal static class PlanJson
     {
         var shape = new PlanJsonShape
         {
-            Action = Camel(plan.Action.Kind.ToString()),
+            Action = plan.Action.Kind.ToString(),
             ServiceName = plan.Action.ServiceName,
             IncludeDependents = plan.Action.IncludeDependents,
             AlsoStop = plan.Action.AlsoStop,
@@ -164,8 +172,8 @@ internal static class PlanJson
                 .. plan.Steps.Select(step => new PlanStepJson(
                     step.ServiceName,
                     step.DisplayName,
-                    Camel(step.Operation.ToString()),
-                    Camel(step.Reason.ToString()),
+                    step.Operation.ToString(),
+                    step.Reason.ToString(),
                     Written(step),
                     Delayed(step)))
             ],
@@ -173,7 +181,7 @@ internal static class PlanJson
             Warnings =
             [
                 .. plan.Warnings.Select(warning => new PlanWarningJson(
-                    Camel(warning.Kind.ToString()),
+                    warning.Kind.ToString(),
                     warning.ServiceName,
                     warning.Related,
                     PlanText.Describe(warning)))
@@ -183,10 +191,10 @@ internal static class PlanJson
                 ? null
                 : [.. run.Results.Select(result => new StepResultJson(
                     result.Step.ServiceName,
-                    Camel(result.Step.Operation.ToString()),
-                    Camel(result.Step.Reason.ToString()),
-                    Camel(result.Outcome.ToString()),
-                    result.SkippedBecause is null ? null : Camel(result.SkippedBecause.Value.ToString()),
+                    result.Step.Operation.ToString(),
+                    result.Step.Reason.ToString(),
+                    result.Outcome.ToString(),
+                    result.SkippedBecause?.ToString(),
                     result.Status.ToString(),
 
                     // A number or nothing, the same shape the listing gives this field. Absent and
@@ -204,8 +212,6 @@ internal static class PlanJson
 
         return JsonSerializer.Serialize(shape, Options);
     }
-
-    private static string Camel(string name) => char.ToLowerInvariant(name[0]) + name[1..];
 
     /// <summary>
     /// The start type a step writes, in the words the machine readable listing already uses.

@@ -178,8 +178,9 @@ try
 
         // Only when asked. Every other code in the table answers "did the tool work", and
         // this is the one place where a code can also answer "what did it find" - which is a
-        // different question and a script has to opt into being told that way.
-        exit = options.ExitCodeOnDifference && difference.Any ? ExitCode.Differences : ExitCode.Ok;
+        // different question and a script has to opt into being told that way. What it finds is
+        // DRIFT since 2026-09-30 (stability report D-2): configuration, never running state alone.
+        exit = options.ExitCodeOnDifference && difference.Drifted ? ExitCode.Differences : ExitCode.Ok;
     }
     else if (options.Kind == CommandKind.SnapshotCreate)
     {

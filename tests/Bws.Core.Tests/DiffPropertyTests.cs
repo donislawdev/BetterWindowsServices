@@ -44,7 +44,7 @@ public sealed class DiffPropertyTests
             {
                 var diff = Compared(Machines.Taken(entries, at: 100), Machines.Taken(entries, at: 900));
 
-                return !diff.Any && diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
+                return !diff.Drifted && diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
             },
             iter: 5_000,
             print: entries => $"unchanged machine reported as changed: {Machines.Naming(entries)}");
@@ -218,7 +218,9 @@ public sealed class DiffPropertyTests
                     .Select(entry => entry with { ProcessId = Reading<int>.Present(moved) })
                     .ToList();
 
-                return !Compared(Machines.Taken(entries), Machines.Taken(rebooted)).Any;
+                var diff = Compared(Machines.Taken(entries), Machines.Taken(rebooted));
+
+                return diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
             },
             iter: 5_000);
     }
