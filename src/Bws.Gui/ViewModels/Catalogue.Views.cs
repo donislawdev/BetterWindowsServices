@@ -93,6 +93,15 @@ public static partial class Catalogue
         internal MainViewModel RefusingSelection { get; init; } = null!;
 
         /// <summary>
+        /// A run under way, the same run interrupted, and interrupted long enough for the second level
+        /// to be offered - since 2026-09-30 (backlog 497). Catalogue.Runs.cs says why they exist.
+        ///
+        /// <b>One member for the three, because the shape guard counted this type among those standing
+        /// near the ceiling of fields</b> when they arrived as three.
+        /// </summary>
+        internal (MainViewModel Running, MainViewModel Interrupted, MainViewModel Abandonable) Runs { get; init; }
+
+        /// <summary>
         /// A query with a mistake in it, and one whose answer has to be qualified - the two things
         /// the line under the search box says, since 2026-09-23 (UX-GUI-002 and 009).
         /// </summary>
@@ -132,6 +141,7 @@ public static partial class Catalogue
         var (mistaken, qualified, unelevated) = await PrepareSentencesAsync(clock).ConfigureAwait(false);
         var panels = await PreparePanelsAsync(clock).ConfigureAwait(false);
         var (askingForName, refusingSelection) = await PrepareHeavyAsksAsync(clock).ConfigureAwait(false);
+        var runs = await PrepareRunsAsync().ConfigureAwait(false);
 
         // THE LOADING ONE IS STARTED AND NOT AWAITED HERE. Its read waits on the gate until the
         // sheet is done, which is the whole point of it: the model is in the state between asking
@@ -181,6 +191,7 @@ public static partial class Catalogue
             WithBulkPlan = plannedInBulk,
             AskingForName = askingForName,
             RefusingSelection = refusingSelection,
+            Runs = runs,
             Mistaken = mistaken,
             Qualified = qualified,
             Unelevated = unelevated
@@ -418,6 +429,12 @@ public static partial class Catalogue
 
         View(() => new PlanFooter(),
             data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
+
+        // The same foot while a run goes, since 2026-09-30 (backlog 497): data is a run under way,
+        // loading is the same run interrupted and waiting on its step, extreme is the second level
+        // offered with the window waiting to close. Catalogue.Runs.cs builds them.
+        View(() => new PlanFooter(), key: nameof(PlanFooter) + " while a run goes",
+            data: ready.Runs.Running.Planned, loading: ready.Runs.Interrupted.Planned, extreme: ready.Runs.Abandonable.Planned),
 
         // The heavy ask on its own, since 2026-09-29 (backlog 475): data is one critical entry
         // asking for its name, wrong is a selection holding it, refused with no box.

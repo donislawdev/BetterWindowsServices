@@ -102,6 +102,7 @@ internal static class ForcedStopFixture
         BulkPlan plan,
         TimeSpan ceiling,
         CancellationToken stopping,
+        CancellationToken abandoning,
         Action<PlanStep, int> announce) =>
         Task.FromResult(new BulkRun
         {

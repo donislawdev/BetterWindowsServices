@@ -258,8 +258,9 @@ line that asks for the same thing, and the way back afterwards.
   *asked for*, or *would break otherwise*. Without `--dry-run` those same steps run in that same
   order. There is no second code path for the real thing.
 - **What comes down with it is in the plan.** The services that would break are steps of their own
-  (`--dependents` on the command line, always in the window), and a plan that would take down
-  something the machine needs says so in its warnings.
+  when you ask for them - `--dependents` on the command line, and in the window a button under the
+  plan's sentence naming them - and a plan that would take down something the machine needs says so
+  in its warnings.
 - **A refusal comes before the button.** A driver, a service the manager will not accept a stop for,
   a process the system protects - refused when the plan is built, with the reason, not after a wait.
   The window greys the button and says why beside it.

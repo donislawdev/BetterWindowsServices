@@ -52,6 +52,12 @@ public partial class MainWindow
     private CancellationTokenSource? _stopping;
 
     /// <summary>
+    /// Asks the run in progress to stop altogether and put nothing back - the second level, since
+    /// 2026-09-30 (backlog 497). Null when none is. Cancelled only when Underway agrees.
+    /// </summary>
+    private CancellationTokenSource? _abandoning;
+
+    /// <summary>
     /// How a plan is carried out: <see cref="Carrying.Out"/>, unless somebody handed this window
     /// another way.
     ///
@@ -72,7 +78,7 @@ public partial class MainWindow
     /// <b>Init rather than settable</b>, so a run cannot be swapped out from under a window that
     /// is already using one.
     /// </summary>
-    internal Func<BulkPlan, TimeSpan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>> CarriedOutBy
+    internal Func<BulkPlan, TimeSpan, CancellationToken, CancellationToken, Action<PlanStep, int>, Task<BulkRun>> CarriedOutBy
     {
         get;
         init;
@@ -106,15 +112,18 @@ public partial class MainWindow
         }
 
         using var stopping = new CancellationTokenSource();
+        using var abandoning = new CancellationTokenSource();
 
         _stopping = stopping;
+        _abandoning = abandoning;
 
         var watching = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromSeconds(1)
         };
 
-        watching.Tick += (_, _) => _model.Planned.Tick();
+        // The same tick moves the clock on the line and offers the second level once it is due.
+        watching.Tick += (_, _) => _model.Planned.Underway.Tick();
 
         try
         {
@@ -139,7 +148,7 @@ public partial class MainWindow
             // thread reach a bound property here rather than there. Built per run rather than kept,
             // because building it anywhere else would capture whatever thread happened to be there.
             var announce = new Progress<(PlanStep Step, int Number)>(
-                what => _model.Planned.Announce(what.Step, what.Number));
+                what => _model.Planned.Underway.Announce(what.Step, what.Number));
 
             // THE CEILING COMES FROM THE PANEL RATHER THAN FROM A CONSTANT, SINCE 2026-09-09 -
             // backlog 330. Read here, at the press, rather than held anywhere: the box is on the
@@ -148,6 +157,7 @@ public partial class MainWindow
                 plan,
                 TimeSpan.FromSeconds(_model.Planned.Waiting),
                 stopping.Token,
+                abandoning.Token,
                 (step, number) => ((IProgress<(PlanStep, int)>)announce).Report((step, number)));
 
             _running = running;
@@ -171,6 +181,7 @@ public partial class MainWindow
 
             _running = null;
             _stopping = null;
+            _abandoning = null;
 
             // AND THE PANEL STOPS SAYING A RUN IS UNDER WAY, WHICH UNTIL 2026-09-03 ONLY THE TWO
             // ENDINGS ABOVE DID - backlog 298. Both of them go through Finished, so anything else
@@ -239,8 +250,16 @@ public partial class MainWindow
     ///
     /// So the close is refused ONCE, the run is asked to stop, and the close is asked for again
     /// when it has. The steps that give back what earlier steps took still run, because that is what
-    /// asking to stop means here - the same first level the command line offers, and deliberately
-    /// not its second.
+    /// asking to stop means here - the same first level the command line offers.
+    ///
+    /// <b>AND THE SHEET SAYS SO, SINCE 2026-09-30 - backlog 497.</b> Until then this asked the first
+    /// level and waited with nothing on the screen changing, and since the step limit counts time
+    /// without progress, an entry reporting progress forever made that wait endless - the window
+    /// could only be ended from the task manager. The close now goes through the same door as the
+    /// Interrupt button, so the sheet shows the first level asked, says the window will close when
+    /// the run has ended, and offers the second level on the sheet after the same wait. A second
+    /// reach for the corner is not the second level - that is the same double-press Underway guards
+    /// against on the button.
     /// </summary>
     protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -260,6 +279,7 @@ public partial class MainWindow
         // Skipping it here is the ordinary shape of a cancelled close rather than a shortcut: the
         // event means "this window is closing", and after this line it is not.
         e.Cancel = true;
+        _model.Planned.Underway.Interrupt(closing: true);
         _stopping?.Cancel();
 
         await running.ConfigureAwait(true);
@@ -278,6 +298,28 @@ public partial class MainWindow
     /// Reached from two files, that story would be told in one and relied on in the other.
     ///
     /// Not async: cancelling is instant, and the waiting belongs to whoever is awaiting the run.
+    ///
+    /// <b>Both levels through one door since 2026-09-30</b> (backlog 497), and a flag rather than a
+    /// second method because the window stands on the ceiling of methods a type may have. The first
+    /// level is asked whatever the sheet says - the test seam hands this window runs with the sheet
+    /// idle, and stopping a run must never depend on a picture of it. The second is asked only when
+    /// Underway agrees, which is the whole of what keeps a press nobody meant from leaving a machine
+    /// with nothing put back.
     /// </summary>
-    internal void AskTheRunToStop() => _stopping?.Cancel();
+    /// <param name="leaveTheRestUndone">The second level: stop watching and put nothing back.</param>
+    internal void AskTheRunToStop(bool leaveTheRestUndone = false)
+    {
+        if (leaveTheRestUndone)
+        {
+            if (_model.Planned.Underway.Abandon())
+            {
+                _abandoning?.Cancel();
+            }
+
+            return;
+        }
+
+        _model.Planned.Underway.Interrupt(closing: false);
+        _stopping?.Cancel();
+    }
 }

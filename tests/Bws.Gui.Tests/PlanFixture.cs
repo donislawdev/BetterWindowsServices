@@ -68,9 +68,15 @@ internal static class PlanFixture
     /// <see cref="PlanViewGuards"/> uses, and for the reason written there: the reading happens
     /// before the model reaches the window, so nothing is read while bindings are live.
     /// </summary>
+    /// <param name="clock">
+    /// The sheet's own clock, for a guard about something that happens only after time passes - the
+    /// second way of stopping a run, since 2026-09-30. Without one the sheet keeps the real clock it
+    /// always had, so no older guard reads a different progress line.
+    /// </param>
     internal static async Task<MainWindow> Ready(
         bool elevated = true,
-        Func<BulkPlan, TimeSpan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
+        Func<BulkPlan, TimeSpan, CancellationToken, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null,
+        SteppedClock? clock = null)
     {
         var machine = new LiveMachine(
             Rows.Entry("Spooler", "Print Spooler"),
@@ -82,7 +88,7 @@ internal static class PlanFixture
         // would be true and every assertion below would pass without the code doing anything.
         var model = new MainViewModel(machine, new SteppedClock())
         {
-            Planned = new Planned { Elevated = elevated }
+            Planned = clock is null ? new Planned { Elevated = elevated } : new Planned { Elevated = elevated, Clock = clock }
         };
 
         await model.LoadAsync();

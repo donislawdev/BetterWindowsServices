@@ -142,7 +142,7 @@ internal static class WpfHost
     internal static MainWindow Window(
         MainViewModel model,
         bool seenTheOverview = true,
-        Func<BulkPlan, TimeSpan, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
+        Func<BulkPlan, TimeSpan, CancellationToken, CancellationToken, Action<PlanStep, int>, Task<BulkRun>>? carriedOutBy = null)
     {
         _ = Resources;
 

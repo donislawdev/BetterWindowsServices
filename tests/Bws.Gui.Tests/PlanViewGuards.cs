@@ -383,7 +383,7 @@ public sealed class PlanViewGuards
         Assert.True(read.Count(line => !string.IsNullOrWhiteSpace(line)) >= 5, "Too few lines were found on the panel, so nothing was measured.");
         Assert.Contains(WpfHost.On(() => model.Planned.Heading.Text), read);
         Assert.Contains(WpfHost.On(() => model.Planned.Steps[0].Text), read);
-        Assert.Contains(WpfHost.On(() => model.Planned.Problems[0]), read);
+        Assert.Contains(WpfHost.On(() => model.Planned.Problems[0].Text), read);
 
         Assert.True(
             thin.Count == 0,

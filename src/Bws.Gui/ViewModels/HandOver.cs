@@ -39,7 +39,12 @@ internal sealed record HandOver
     /// <summary>Longer than this and the argument is not one this program wrote. Also the budget the writer keeps under.</summary>
     internal const int LongestArgument = 8192;
 
-    private const int Version = 1;
+    /// <summary>
+    /// 2 since 2026-09-30, when <see cref="Dependents"/> arrived. A copy of the program without that
+    /// field would read a newer hand-over and quietly drop the dependants from the plan it asks
+    /// again - a different plan from the one on the screen - so a mismatched pair refuses instead.
+    /// </summary>
+    private const int Version = 2;
     private const int LongestQuery = 4096;
     private const int LongestName = 256;
 
@@ -71,6 +76,12 @@ internal sealed record HandOver
     public bool AlsoStop { get; init; }
 
     /// <summary>
+    /// Whether that plan also stopped the running dependants first - the offer under them had been
+    /// taken (W-4, 2026-09-30). Carried for the reason <see cref="AlsoStop"/> is.
+    /// </summary>
+    public bool Dependents { get; init; }
+
+    /// <summary>
     /// Whether the picked rows were too many to fit, so they and the plan over them were left out -
     /// the new window says so rather than showing a selection that looks complete (rule 8).
     /// </summary>
@@ -86,7 +97,7 @@ internal sealed record HandOver
 
         return whole.Length <= LongestArgument
             ? whole
-            : Write(this with { Picked = [], Asked = null, To = null, AlsoStop = false, PickedLeftBehind = true });
+            : Write(this with { Picked = [], Asked = null, To = null, AlsoStop = false, Dependents = false, PickedLeftBehind = true });
     }
 
     /// <summary>
@@ -128,6 +139,7 @@ internal sealed record HandOver
             Asked = handOver.Asked?.ToString(),
             To = handOver.To?.ToString(),
             Stop = handOver.AlsoStop,
+            Deps = handOver.Dependents,
             Left = handOver.PickedLeftBehind
         };
 
@@ -177,6 +189,7 @@ internal sealed record HandOver
             Asked = picked.Length > 0 ? asked : null,
             To = picked.Length > 0 ? to : null,
             AlsoStop = picked.Length > 0 && wire.Stop,
+            Dependents = picked.Length > 0 && wire.Deps,
             PickedLeftBehind = wire.Left
         };
     }
@@ -185,6 +198,8 @@ internal sealed record HandOver
     /// The plan that was open, checked: a kind that exists, a setting exactly when the kind is a
     /// start type plan - such a plan always has one and no other plan ever does - and a stop riding
     /// on it only beside Disabled, which is the one shape this window can have put on the screen.
+    /// The dependants only beside the four kinds that can take them (EquivalentCommand renders
+    /// --dependents for exactly those), never a start and never a startup setting.
     /// </summary>
     private static bool Plan(Wire wire, out ActionKind? asked, out StartSetting? to)
     {
@@ -193,7 +208,7 @@ internal sealed record HandOver
 
         if (wire.Asked is null)
         {
-            return wire.To is null && !wire.Stop;
+            return wire.To is null && !wire.Stop && !wire.Deps;
         }
 
         if (!Named(wire.Asked, out ActionKind kind))
@@ -205,10 +220,11 @@ internal sealed record HandOver
 
         if (kind != ActionKind.SetStartType)
         {
-            return wire.To is null && !wire.Stop;
+            return wire.To is null && !wire.Stop
+                && (!wire.Deps || kind is ActionKind.Stop or ActionKind.Restart or ActionKind.ForceStop or ActionKind.ForceRestart);
         }
 
-        if (!Named(wire.To, out StartSetting setting) || (wire.Stop && setting != StartSetting.Disabled))
+        if (wire.Deps || !Named(wire.To, out StartSetting setting) || (wire.Stop && setting != StartSetting.Disabled))
         {
             return false;
         }
@@ -251,6 +267,7 @@ internal sealed record HandOver
         public string? Asked { get; init; }
         public string? To { get; init; }
         public bool Stop { get; init; }
+        public bool Deps { get; init; }
         public bool Left { get; init; }
     }
 }

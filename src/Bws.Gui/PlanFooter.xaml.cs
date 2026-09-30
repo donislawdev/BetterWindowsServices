@@ -32,6 +32,12 @@ public partial class PlanFooter : UserControl
     /// <summary>Somebody asked a run in progress to stop before its next step.</summary>
     internal event EventHandler? InterruptRequest;
 
+    /// <summary>
+    /// Somebody asked a run already interrupted to stop watching and put nothing back - the second
+    /// level, since 2026-09-30 (backlog 497). Whether it may is Underway's answer, not this control's.
+    /// </summary>
+    internal event EventHandler? AbandonRequest;
+
     public PlanFooter() => InitializeComponent();
 
     /// <summary>
@@ -82,4 +88,7 @@ public partial class PlanFooter : UserControl
 
     private void InterruptRequested(object sender, RoutedEventArgs e) =>
         InterruptRequest?.Invoke(this, EventArgs.Empty);
+
+    private void AbandonRequested(object sender, RoutedEventArgs e) =>
+        AbandonRequest?.Invoke(this, EventArgs.Empty);
 }

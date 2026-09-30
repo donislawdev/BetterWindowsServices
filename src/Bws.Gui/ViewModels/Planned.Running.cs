@@ -11,28 +11,21 @@ namespace Bws.Gui.ViewModels;
 /// anybody presses anything. What is here is the only part that changes while a machine is being
 /// changed, and it is the part a person watches.
 ///
-/// <b>The two fields live here with the methods that move them</b>, which is the rule
+/// <b>The flag lives here with the methods that move it</b>, which is the rule
 /// MainWindow.Carrying.cs states in as many words: a field read from two files is a field with two
 /// stories. Everything that raises or lowers <see cref="Busy"/> is in this file, and that is what
 /// makes the list of ways out of it readable in one place - it is exactly three, and until
 /// 2026-09-03 an exception nobody predicted was a fourth way IN with no way out.
+///
+/// <b>What happens DURING a run moved to <see cref="ViewModels.Underway"/> on 2026-09-30</b> - the
+/// progress line and, new that day, the two ways of asking a run to stop (backlog 497). This type
+/// stood on the ceiling of methods, and the three methods below are where it hands over: each of
+/// them begins or ends the run over there.
 /// </summary>
 public sealed partial class Planned
 {
     private bool _busy;
-    private string _progress = string.Empty;
-
-    /// <summary>
-    /// What the step on screen was announced as, without the clock on the end of it.
-    ///
-    /// <b>Kept apart from <see cref="Progress"/> because the clock is rebuilt every second and the
-    /// sentence is not.</b> Appending to Progress itself would grow the line once a second, which
-    /// is the kind of fault that looks like a memory leak and reads like a stutter.
-    /// </summary>
-    private string _step = string.Empty;
-
-    /// <summary>When the step on screen was announced, or nothing when none is running.</summary>
-    private DateTimeOffset? _stepBegan;
+    private Underway? _underway;
 
     /// <summary>Whether a run is happening right now.</summary>
     public bool Busy
@@ -60,37 +53,13 @@ public sealed partial class Planned
     public bool CanClose => !Busy;
 
     /// <summary>
-    /// Which step is happening, while it happens.
+    /// The run as it goes: the step on screen and the two ways of asking it to stop.
     ///
-    /// <b>Empty except during a run.</b> A person watching a stop that takes half a minute has
-    /// nothing else to tell them the window is alive - and this window has measured half a minute on
-    /// a single step, so the line is not decoration.
+    /// <b>Made on first use rather than in an initialiser</b>, because it asks this sheet's clock, and
+    /// <see cref="Clock"/> is set by an initialiser that runs after any field initialiser would. The
+    /// clock is handed over as a question rather than a value for the same reason.
     /// </summary>
-    public string Progress
-    {
-        get => _progress;
-        private set
-        {
-            if (Set(ref _progress, value))
-            {
-                Raise(nameof(HasProgress));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Whether there is a step to report at all - what puts the line on the sheet and takes it
-    /// off again.
-    ///
-    /// <b>The line shares its grid cell with the box of seconds, and until 2026-09-16 it stood
-    /// there empty, on top, at all times.</b> A TextBlock takes the pointer over the whole of its
-    /// rectangle whether or not it has any text, so an empty sentence stretched across the column
-    /// was catching every click meant for the box under it - the owner could not type a number of
-    /// seconds into a start or restart plan, and nothing in the markup or the model was wrong.
-    /// Measured by tools/gui-probe/plan-keys.ps1 and held by WaitingBoxGuards. The line goes when
-    /// it has nothing to say, which is the rule the box of seconds already follows (backlog 203).
-    /// </summary>
-    public bool HasProgress => _progress.Length > 0;
+    public Underway Underway => _underway ??= new Underway(() => _clock, () => Raise(nameof(Notice)));
 
     /// <summary>
     /// A run has begun.
@@ -102,9 +71,10 @@ public sealed partial class Planned
     internal void Starting()
     {
         Busy = true;
-        Progress = string.Empty;
-        _step = string.Empty;
-        _stepBegan = null;
+
+        // THE LIMIT IS READ HERE, AT THE PRESS, for the line that quotes it - the box it comes from
+        // leaves the sheet in the line below, so nothing can change it for the rest of the run.
+        Underway.Begin(_stepsInPlan, Waiting);
 
         // The button goes quiet here, so what it says about itself has to move with it - otherwise
         // a person resting on a greyed button mid-run reads the sentence describing what it would
@@ -120,49 +90,13 @@ public sealed partial class Planned
         Raise(nameof(Waits));
         RaiseTheProblem();
 
-        // AND THE OFFER UNDER A WARNING, THE SAME FAULT A THIRD TIME, found by review of PR #17.
-        // Warnings offers only while nothing runs, but it too was told to look again only when the
+        // AND THE OFFERS UNDER A SENTENCE, THE SAME FAULT A THIRD TIME, found by review of PR #17.
+        // Both lists offer only while nothing runs, but they were told to look again only when the
         // run ended - so "Also stop it" stayed live for the whole run, and pressing it rebuilt the
-        // plan under a run still going. MainWindow.AlsoStop refuses on the same answer.
+        // plan under a run still going. MainWindow.TakeTheOffer refuses on the same answer.
         Raise(nameof(Warnings));
+        Raise(nameof(Problems));
     }
-
-    /// <summary>
-    /// A step is about to be attempted, with its place across the whole selection.
-    ///
-    /// <b>The number is the step's place in the plan, never a count of attempts</b>, and it arrives
-    /// that way from the runner for a reason written there: steps get skipped, and a counter of
-    /// attempts calls the sixth step the third one while somebody is trying to work out where a run
-    /// has got to.
-    /// </summary>
-    internal void Announce(PlanStep step, int number)
-    {
-        _step = Texts.Of(
-            "gui.plan.progress",
-            number,
-            _stepsInPlan,
-            PlanWords.Word(step.Operation),
-            step.ServiceName);
-
-        // THE CLOCK RESTARTS PER STEP, NOT PER RUN, because the ceiling is per step. A run of six
-        // steps may take six minutes without any one of them being near its limit, and a single
-        // number counting up towards sixty through all of it would be a number that means nothing.
-        _stepBegan = _clock.Now;
-
-        Tick();
-    }
-
-    /// <summary>
-    /// Rebuilds the line on screen from the step and how long it has been going.
-    ///
-    /// <b>Called from a timer while a run is under way</b> - the one <see cref="MainWindow.CarryOut"/>
-    /// starts, because the window owns the timer and this owns nothing but the sentence. Split from
-    /// it so that everything decided here can be checked without one.
-    /// </summary>
-    internal void Tick() =>
-        Progress = _stepBegan is not { } began
-            ? _step
-            : PlanWords.StillWaiting(_step, _clock.Now - began, Waiting);
 
     /// <summary>
     /// A run has ended, whether it finished or was interrupted.
@@ -177,8 +111,7 @@ public sealed partial class Planned
 
         _run = run;
         Busy = false;
-        Progress = string.Empty;
-        _stepBegan = null;
+        Underway.End();
 
         Raise(nameof(CanCarryOut));
         Raise(nameof(Notice));
@@ -224,6 +157,9 @@ public sealed partial class Planned
     /// asked to be as a skipped step. What it must not do is look untouched, which is why the
     /// failure reaches the status line through the window's own net rather than being swallowed
     /// here.
+    ///
+    /// <b>And the second way of stopping goes with it, since 2026-09-30</b> - a button offering to
+    /// abandon a run that is no longer there would be a way to abandon nothing.
     /// </summary>
     internal void NoLongerRunning()
     {
@@ -235,15 +171,15 @@ public sealed partial class Planned
         }
 
         Busy = false;
-        Progress = string.Empty;
-        _stepBegan = null;
+        Underway.End();
 
         Raise(nameof(CanCarryOut));
         Raise(nameof(CarryOutTip));
         Raise(nameof(Notice));
 
-        // The sheet is a question again rather than a record, so the offer Starting took away
-        // comes back with the button.
+        // The sheet is a question again rather than a record, so the offers Starting took away
+        // come back with the button.
         Raise(nameof(Warnings));
+        Raise(nameof(Problems));
     }
 }

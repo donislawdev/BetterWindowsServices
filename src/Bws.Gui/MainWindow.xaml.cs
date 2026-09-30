@@ -294,6 +294,9 @@ public partial class MainWindow : Window
         // with two stories. The wiring stays here, where every other event of this panel is wired.
         PlanPanel.InterruptRequest += (_, _) => AskTheRunToStop();
 
+        // The second level through the same door - which asks Underway before it cancels anything.
+        PlanPanel.AbandonRequest += (_, _) => AskTheRunToStop(leaveTheRestUndone: true);
+
         // The clipboard rather than the panel, for the reason beside CopyRequest over there: only
         // the window can say a copy was refused, because only the window owns the status line.
         PlanPanel.CopyRequest += (_, asked) => Put(asked.Command);
@@ -303,10 +306,11 @@ public partial class MainWindow : Window
         // asks the manager and that moved off this thread on 2026-09-03.
         PlanPanel.ForceRequest += async (_, asked) => await Force(asked.Failure).ConfigureAwait(true);
 
-        // THE OFFER UNDER "KEEPS RUNNING" - spec C4, the owner's variant O1 of 2026-09-24. The same
-        // question asked again with the stop riding on it, so the sheet that answers is this one
-        // with a second step rather than a second sheet somebody has to remember to open.
-        PlanPanel.AlsoStopRequest += async (_, _) => await AlsoStop().ConfigureAwait(true);
+        // THE OFFERS UNDER A SENTENCE OF THE PLAN - "keeps running" (spec C4, the owner's variant O1
+        // of 2026-09-24) and dependants in the way (W-4, 2026-09-30). The same question asked again
+        // with one word changed, so the sheet that answers is this one rather than a second sheet
+        // somebody has to remember to open.
+        PlanPanel.OfferRequest += async (_, asked) => await TakeTheOffer(asked.Offer).ConfigureAwait(true);
     }
 
     /// <summary>

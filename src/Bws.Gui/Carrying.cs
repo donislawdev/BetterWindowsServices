@@ -48,11 +48,17 @@ internal static class Carrying
     /// </summary>
     /// <param name="stopping">
     /// Asks the run to stop going forward. The steps that give back what earlier steps took are
-    /// still carried out, which is the whole difference between this and closing the window.
+    /// still carried out.
+    /// </param>
+    /// <param name="abandoning">
+    /// Asks the run to stop altogether and put nothing back - the command line's second Ctrl+C.
     ///
-    /// Only the first of the command line's two levels is offered. The second - stop and put nothing
-    /// back - exists there because the alternative was somebody killing the process, and a killed
-    /// process reports nothing. A window has no such person: closing it asks for this one and waits.
+    /// <b>This said "only the first of the two levels is offered" until 2026-09-30</b>, on the
+    /// argument that a window has nobody reaching for the task manager: closing it asked for the
+    /// first level and waited. Package C of the stability report took that argument away - the step
+    /// limit counts time without progress, so an entry reporting progress forever is watched
+    /// forever, and the window then had nothing left to wait for (backlog 497). What guards the
+    /// second level against a press nobody meant is Underway's rule, not this method.
     /// </param>
     /// <param name="announce">
     /// Called before each step that is really attempted, with its place across the whole selection.
@@ -62,7 +68,11 @@ internal static class Carrying
     /// often enough to pass a test and throws on a collection.
     /// </param>
     internal static Task<BulkRun> Out(
-        BulkPlan plan, TimeSpan ceiling, CancellationToken stopping, Action<PlanStep, int> announce) =>
+        BulkPlan plan,
+        TimeSpan ceiling,
+        CancellationToken stopping,
+        CancellationToken abandoning,
+        Action<PlanStep, int> announce) =>
         Task.Run(
             () =>
             {
@@ -73,7 +83,7 @@ internal static class Carrying
                 // one.
                 var runner = new BulkRunner(new PlanRunner(new WindowsScmControl(), new SystemClock()));
 
-                return runner.Run(plan, ceiling, stopping, abandonment: default, starting: announce);
+                return runner.Run(plan, ceiling, stopping, abandoning, starting: announce);
             },
             CancellationToken.None);
 }

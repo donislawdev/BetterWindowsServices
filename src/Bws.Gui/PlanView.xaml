@@ -259,7 +259,7 @@
 
                         <ItemsControl x:Name="WarningList" AutomationProperties.AutomationId="planWarnings"
                                       ItemsSource="{Binding Warnings}"
-                                      ItemTemplate="{StaticResource PlanWarningTemplate}" />
+                                      ItemTemplate="{StaticResource PlanSentenceTemplate}" />
                     </StackPanel>
 
                     <StackPanel x:Name="ProblemSection"

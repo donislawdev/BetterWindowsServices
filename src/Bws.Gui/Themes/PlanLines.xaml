@@ -74,27 +74,11 @@
     </DataTemplate>
 
     <!--
-        ONE SENTENCE IN A LIST OF THEM: a warning, a refusal, or something that did not work.
-
-        IT NAMED NO COLOUR UNTIL 2026-09-02 AND WAS THEREFORE DRAWN IN SYSTEM BLACK. The implicit
-        TextBlock style sets a face and a size and no Foreground, so a TextBlock that names neither
-        gets the framework's default - which is black. On this panel's #343434 that is a contrast
-        ratio of **1.69**, against the 4.5 WCAG asks. The owner's words were that the panel is black
-        text on grey and that nothing is visible in it, and a scan of the capture agreed exactly:
-        in the band holding this sentence NOT ONE PIXEL was brighter than the background.
-
-        MY OWN EYE READ THE SAME PICTURE AS LIGHT GREY, WHICH IS WHY THIS IS WRITTEN DOWN. The
-        glyphs are black and their antialiased edges are not, so at a glance the mass reads as grey
-        - `docs/11` already records that at these ratios you cannot tell "the colour is not
-        arriving" from "the colour arrives and nobody sees it". The instrument settles it, not the
-        eye, and the same fault is recorded beside HeadingText in Themes/Text.xaml from 2026-09-01.
+        THE PLAIN SENTENCE TEMPLATE THAT STOOD HERE WENT TO PlanOffers.xaml ON 2026-09-30, where it is
+        one template with the warnings' - a refusal can carry an offer since that day. The lesson it
+        carried went with it: a sentence naming no Foreground is drawn in system black, 1.69 on this
+        panel's surface, and the owner saw it before any instrument did.
     -->
-    <DataTemplate x:Key="PlanSentenceTemplate">
-        <TextBlock Text="{Binding}"
-                   TextWrapping="Wrap"
-                   Foreground="{StaticResource TextOnSurface}"
-                   Margin="{StaticResource MarginBetweenControls}" />
-    </DataTemplate>
 
     <!--
         A COMMAND LINE, IN THE FIXED WIDTH FACE. `docs/03` part 4 asks for it wherever two
