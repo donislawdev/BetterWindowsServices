@@ -38,7 +38,7 @@
   "exit.usage": "The command line was wrong. A mistyped command is offered the one you probably meant.",
   "exit.incomplete": "The plan was good, it ran, and something in it did not get where it was going - the manager refused, or the session had no rights to it.",
   "exit.interrupted": "Somebody stopped the run by hand. Non-zero even when every step still arrived, so a wrapper does not treat an interrupted run as clean.",
-  "exit.differences": "A comparison ran and found differences. Only with <code>--exit-code</code>, because drift is what this tool is for finding, and finding it is not a failure.",
+  "exit.differences": "A comparison ran and found the configuration drifted - an entry added or removed, or one set up differently. Running state alone is not drift. Only with <code>--exit-code</code>, because drift is what this tool is for finding, and finding it is not a failure.",
 
   "switch.query": "Narrow the listing with the query language.",
   "switch.signatures": "Read who signed each binary and whether Windows trusts it. Several seconds over a whole machine, so it is off unless asked - and a query about signatures turns it on by itself.",
@@ -52,7 +52,7 @@
   "switch.components": "On <code>license</code>, turn the notice into every component inside this executable with its version, its licence and where it came from. The same set the bill of materials published beside the download carries, because both are rendered from one register.",
   "switch.json": "The same document, machine readable, on standard output.",
   "switch.note": "What the snapshot was taken for, kept inside the file.",
-  "switch.exit-code": "End with code 5 when anything differs. Off by default, so a script that only wants the differences printed is not tripped by finding some.",
+  "switch.exit-code": "End with code 5 when the configuration differs - an entry added or removed, or one set up differently. Running state alone does not count. Off by default, so a script that only wants the differences printed is not tripped by finding some.",
   "switch.live": "Compare the file against this machine as it is now, rather than against a second file.",
   "switch.timing": "How long each part of the read took, on standard error.",
   "switch.dry-run": "Print the plan and change nothing. It is the same plan an execution runs - there is no second code path for the real thing.",

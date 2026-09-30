@@ -97,6 +97,19 @@ internal static class SnapshotFiles
     {
         refusal = null;
 
+        // A FOLDER IS NEVER WRITTEN OVER, WITH OR WITHOUT --force, since 2026-09-30 - stability report
+        // D-6, measured: `bws snapshot create <an existing folder>` spent 1545 ms reading signatures and
+        // then ended with "Access to the path is denied." and code 2, because File.Exists says no for a
+        // folder and the refusal came only from the write. Asked here, the courtesy check before the
+        // expensive work says it in a second's less time and in words about what was typed. Writing
+        // INTO the folder under a worked-out name would be a new feature rather than this repair.
+        if (Directory.Exists(target))
+        {
+            refusal = Texts.Of("cli.snapshot.isFolder", target);
+
+            return false;
+        }
+
         if (!File.Exists(target))
         {
             return true;

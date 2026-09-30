@@ -97,8 +97,8 @@ There is no command lst. Did you mean list?</code></pre>
 
 <span class="c"># every night, from a scheduled task</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
-<span class="c">#   0 - nothing differs
-#   5 - something differs, and drift.json says what
+<span class="c">#   0 - no configuration drift
+#   5 - the configuration drifted, and drift.json says what
 #   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
     <p>The window is the other half of the same engine: <code>{{archive_window}}</code> holds it, and <a href="/download/">the download page</a> says what each archive is.</p>
   </div>

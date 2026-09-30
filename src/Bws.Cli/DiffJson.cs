@@ -20,7 +20,14 @@ internal static class DiffJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+
+        // KEYS camelCase, VALUES the way the enumeration spells them - rule 5 of docs/03, which the
+        // snapshot has followed since 2026-08-26 and this document did not until 2026-09-30
+        // (stability report D-6 and round 2 point 8, owner's decision, a breaking change in 0.x). Until then the naming
+        // policy was handed to the converter as well, so "group" said "configuration" while every
+        // value in the snapshot beside it said "OwnProcess" and "Running". A script reading both
+        // had to know which document was in which convention.
+        Converters = { new JsonStringEnumConverter() },
 
         // Characters as themselves. Display names on this machine are translated, and a
         // pipeline comparing them against anything would otherwise be comparing escapes.
@@ -30,18 +37,22 @@ internal static class DiffJson
     internal static string Render(SnapshotDiff diff) =>
         JsonSerializer.Serialize(
             new DiffDocument(
-                diff.Any,
+                diff.Drifted,
                 new CaveatsDocument(
                     diff.Caveats.ElevationDiffers,
                     diff.Caveats.MachineDiffers,
                     diff.Caveats.OperatingSystemDiffers,
-                    diff.Caveats.ToolVersionDiffers),
+                    diff.Caveats.ToolVersionDiffers,
+                    diff.Caveats.LanguageDiffers,
+                    diff.Caveats.AccountDiffers,
+                    diff.Caveats.NotKnown),
                 [.. diff.Added.Select(Presence)],
                 [.. diff.Removed.Select(Presence)],
                 [.. diff.Uncertain.Select(Presence)],
                 [.. diff.Changed.Select(Changed)],
                 [.. diff.NotFullyCompared.Select(Changed)],
-                diff.NeitherRead),
+                diff.NeitherRead,
+                new LeftOutDocument(diff.LeftOut.Earlier, diff.LeftOut.Later)),
             Options);
 
     private static PresenceDocument Presence(EntryPresence entry) =>
@@ -58,12 +69,18 @@ internal static class DiffJson
     /// <param name="Differs">
     /// One boolean so a step does not have to add four lists up to find out whether anything
     /// was found. It answers the same question --exit-code answers, for whoever is reading
-    /// the document rather than the code.
+    /// the document rather than the code - and since 2026-09-30 that question is about
+    /// CONFIGURATION: an entry that differs only in running state is still under
+    /// <paramref name="Changed"/> and no longer makes this true (stability report D-2).
     /// </param>
     /// <param name="NotFullyCompared">
     /// Nothing differed, and something could not be looked at. Apart from
     /// <paramref name="Changed"/> on purpose: a step that treated these as drift would fail
     /// over one snapshot having been taken without elevation.
+    /// </param>
+    /// <param name="InstancesLeftOut">
+    /// Per-user session copies neither side was compared on, counted per side. Added 2026-09-30
+    /// (D-1) - an addition, so nothing a script already reads changes.
     /// </param>
     private sealed record DiffDocument(
         bool Differs,
@@ -73,13 +90,25 @@ internal static class DiffJson
         IReadOnlyList<PresenceDocument> Uncertain,
         IReadOnlyList<ChangedDocument> Changed,
         IReadOnlyList<ChangedDocument> NotFullyCompared,
-        IReadOnlyList<string> NeitherRead);
+        IReadOnlyList<string> NeitherRead,
+        LeftOutDocument InstancesLeftOut);
 
+    /// <param name="NotKnown">
+    /// Metadata one of the two files does not carry, as the field names the file uses - a
+    /// version four snapshot names both fields version five added. A flag beside a name here is
+    /// false because nobody could tell, not because the two agree. The three fields after the
+    /// first four were added 2026-09-30 (D-5), so nothing a script already reads changed type.
+    /// </param>
     private sealed record CaveatsDocument(
         bool ElevationDiffers,
         bool MachineDiffers,
         bool OperatingSystemDiffers,
-        bool ToolVersionDiffers);
+        bool ToolVersionDiffers,
+        bool LanguageDiffers,
+        bool AccountDiffers,
+        IReadOnlyList<string> NotKnown);
+
+    private sealed record LeftOutDocument(int Earlier, int Later);
 
     private sealed record PresenceDocument(string ServiceName, string DisplayName);
 

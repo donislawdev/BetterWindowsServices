@@ -48,14 +48,14 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
 <section class="band band-tight">
   <div class="wrap">
     <h2>The exit code is the point</h2>
-    <p><code>--exit-code</code> ends with <code>5</code> when anything differs. Not a failure - drift is what this tool is for finding, and finding it is not a failure - which is why it has a number of its own rather than borrowing the one that means something went wrong.</p>
+    <p><code>--exit-code</code> ends with <code>5</code> when the configuration differs - an entry added or removed, or one set up differently. A service that only stopped or started by itself is reported and does not count, and neither do the per-user copies Windows makes for each signed-in session, which are left out and counted. Not a failure - drift is what this tool is for finding, and finding it is not a failure - which is why it has a number of its own rather than borrowing the one that means something went wrong.</p>
 <pre><code><span class="c"># the day the machine goes into service</span>
 <span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
 
 <span class="c"># every night, from a scheduled task</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
-<span class="c">#   0 - nothing differs
-#   5 - something differs, and drift.json says what
+<span class="c">#   0 - no configuration drift
+#   5 - the configuration drifted, and drift.json says what
 #   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
     <p>That is the whole mechanism: a baseline taken when the machine was known good, and a question asked every night. The first night it answers <code>5</code>, somebody finds out on the first night rather than on the morning something breaks.</p>
   </div>

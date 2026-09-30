@@ -38,8 +38,8 @@ public sealed class PlanContractTests
         var refuses = OneRunningService(takesAStop: false);
         var takes = OneRunningService(takesAStop: true);
 
-        Assert.Contains(PlanWarnings(refuses), kind => kind == "doesNotAcceptStop");
-        Assert.DoesNotContain(PlanWarnings(takes), kind => kind == "doesNotAcceptStop");
+        Assert.Contains(PlanWarnings(refuses), kind => kind == "DoesNotAcceptStop");
+        Assert.DoesNotContain(PlanWarnings(takes), kind => kind == "DoesNotAcceptStop");
     }
 
     private static string OneRunningService(bool takesAStop)
@@ -180,8 +180,8 @@ public sealed class PlanContractTests
         Assert.True(document.GetProperty("completed").GetBoolean());
         Assert.False(document.GetProperty("cancelled").GetBoolean());
 
-        Assert.Equal("skipped", result.GetProperty("outcome").GetString());
-        Assert.Equal("alreadyThere", result.GetProperty("skippedBecause").GetString());
+        Assert.Equal("Skipped", result.GetProperty("outcome").GetString());
+        Assert.Equal("AlreadyThere", result.GetProperty("skippedBecause").GetString());
         Assert.Equal("Stopped", result.GetProperty("status").GetString());
 
         // And the machine agrees, according to something that is not us.

@@ -34,7 +34,9 @@ internal static class OutboundRegisters
             ["KERNEL32.dll"] =
                 "Process handles and what can be asked of them without opening a process for " +
                 "reading: OpenProcess, GetProcessTimes, TerminateProcess, and the handle types " +
-                "underneath all of the above. The window binds it too since 2026-09-23, for " +
+                "underneath all of the above. Since 2026-09-30 also GetSystemPreferredUILanguages, " +
+                "which a snapshot asks once for the language the service manager names things in - " +
+                "a local answer about this machine, nothing leaves it. The window binds it too since 2026-09-23, for " +
                 "CloseHandle alone, which the generator declares as the release function of a " +
                 "handle type the shell interfaces name - declared and never called.",
 

@@ -49,7 +49,7 @@ public sealed class PlanDocumentGuards
         });
 
         Assert.Equal(JsonValueKind.Null, document.GetProperty("processId").ValueKind);
-        Assert.Equal("earlierStepFailed", document.GetProperty("skippedBecause").GetString());
+        Assert.Equal("EarlierStepFailed", document.GetProperty("skippedBecause").GetString());
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public sealed class PlanDocumentGuards
         // AND THE POLITE STEP IS STILL WRITTEN AS THE STEP THAT GAVE UP. The verdict changed, the
         // record of what happened did not - a document that tidied the timeout away would hide the
         // one line that says why a process was ended.
-        Assert.Equal("timedOut", document.GetProperty("results")[0].GetProperty("outcome").GetString());
+        Assert.Equal("TimedOut", document.GetProperty("results")[0].GetProperty("outcome").GetString());
     }
 
     private static JsonElement Rendered(StepResult result) =>

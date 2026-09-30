@@ -82,7 +82,7 @@ public sealed class DiffContractTests
 
             var configuration = document.GetProperty("changed").EnumerateArray()
                 .SelectMany(entry => entry.GetProperty("differences").EnumerateArray())
-                .Where(difference => difference.GetProperty("group").GetString() == "configuration")
+                .Where(difference => difference.GetProperty("group").GetString() == "Configuration")
                 .Select(difference => difference.GetProperty("field").GetString())
                 .ToArray();
 
@@ -90,6 +90,16 @@ public sealed class DiffContractTests
                 configuration.Length == 0,
                 "A snapshot compared against the machine it was just taken from reported " +
                 $"configuration drift: {string.Join(", ", configuration)}");
+
+            // And the one boolean a pipeline reads says the same, whatever started or stopped in the
+            // minute between - since 2026-09-30 it answers about configuration only (D-2). Until
+            // then this test could not ask it, for the reason the comment at the top gives.
+            Assert.False(document.GetProperty("differs").GetBoolean());
+
+            // Both sides were written by this build on this machine, so both know the Windows update
+            // and the language the manager names things in (D-5). A build that stopped reading
+            // either would land here as "not known" rather than as silence.
+            Assert.Empty(document.GetProperty("caveats").GetProperty("notKnown").EnumerateArray());
 
             // And the comparison really had something to compare. Every assertion above is
             // satisfied by two empty snapshots agreeing perfectly, so the count comes from
@@ -145,6 +155,57 @@ public sealed class DiffContractTests
                 File.Delete(file);
             }
         }
+    }
+
+    /// <summary>
+    /// Code 5 is drift, and running state is not drift - stability report D-2, owner's decision of
+    /// 2026-09-30. Until then a nightly <c>--exit-code</c> ended with 5 over an entry that had only
+    /// stopped by itself.
+    ///
+    /// <b>Nothing in the suite ran the exit code at all before this</b>, so the change of its meaning
+    /// had nothing to redden. One real snapshot and two copies edited in one field each, so the only
+    /// thing that differs between the two runs is which group the field belongs to.
+    /// </summary>
+    [Fact]
+    public void The_exit_code_answers_about_configuration_and_never_about_running_state_alone()
+    {
+        var original = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"bws-exitcode-{Guid.NewGuid():N}.json");
+        var stateOnly = original.Replace(".json", "-state.json", StringComparison.Ordinal);
+        var setUp = original.Replace(".json", "-setup.json", StringComparison.Ordinal);
+
+        try
+        {
+            Assert.Equal(0, CommandLineTool.Run("snapshot", "create", original).ExitCode);
+
+            File.WriteAllText(stateOnly, Edited(original, ("status", "Running", "Stopped")));
+            File.WriteAllText(setUp, Edited(original, ("startType", "Manual", "Disabled")));
+
+            var state = CommandLineTool.Run("snapshot", "diff", original, stateOnly, "--exit-code");
+
+            Assert.Equal(0, state.ExitCode);
+            Assert.Contains("Stopped", state.StandardOutput, StringComparison.Ordinal);
+
+            Assert.Equal(5, CommandLineTool.Run("snapshot", "diff", original, setUp, "--exit-code").ExitCode);
+        }
+        finally
+        {
+            foreach (var file in new[] { original, stateOnly, setUp }.Where(File.Exists))
+            {
+                File.Delete(file);
+            }
+        }
+    }
+
+    /// <summary>The snapshot with one field of the first entry holding the given value changed.</summary>
+    private static string Edited(string path, (string Field, string From, string To) change)
+    {
+        var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+        var entry = document["entries"]!.AsArray()
+            .First(candidate => candidate![change.Field]?.GetValue<string>() == change.From)!;
+
+        entry[change.Field] = change.To;
+
+        return document.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
     /// <summary>A path inside the temporary directory, which is where a stray file would do least harm.</summary>

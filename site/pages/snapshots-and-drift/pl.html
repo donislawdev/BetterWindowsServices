@@ -48,14 +48,14 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
 <section class="band band-tight">
   <div class="wrap">
     <h2>Kod wyjścia jest tu sednem</h2>
-    <p><code>--exit-code</code> kończy kodem <code>5</code>, gdy cokolwiek się różni. To nie jest porażka - dryf jest tym, czego to narzędzie szuka, a znalezienie go nie jest porażką - i dlatego ma własny numer, zamiast pożyczać ten, który znaczy, że coś poszło źle.</p>
+    <p><code>--exit-code</code> kończy kodem <code>5</code>, gdy różni się konfiguracja - wpis doszedł albo zniknął, albo jest ustawiony inaczej. Usługa, która tylko sama się zatrzymała albo uruchomiła, jest w raporcie i się nie liczy, podobnie jak kopie per-użytkownik, które Windows robi dla każdej zalogowanej sesji - te są pomijane i policzone. To nie jest porażka - dryf jest tym, czego to narzędzie szuka, a znalezienie go nie jest porażką - i dlatego ma własny numer, zamiast pożyczać ten, który znaczy, że coś poszło źle.</p>
 <pre><code><span class="c"># w dniu, w którym maszyna wchodzi do pracy</span>
 <span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
 
 <span class="c"># co noc, z zadania harmonogramu</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
-<span class="c">#   0 - nic się nie różni
-#   5 - coś się różni, a drift.json mówi co
+<span class="c">#   0 - konfiguracja się nie rozjechała
+#   5 - konfiguracja się rozjechała, a drift.json mówi co
 #   3 - wykonało się i nie wszystko dało się odczytać, więc odpowiedź jest częściowa</span></code></pre>
     <p>To cały mechanizm: punkt odniesienia wzięty, gdy maszyna była dobra, i pytanie zadawane co noc. Pierwszej nocy, w której odpowiedź brzmi <code>5</code>, ktoś się o tym dowiaduje - zamiast rano tego dnia, w którym coś przestanie działać.</p>
   </div>

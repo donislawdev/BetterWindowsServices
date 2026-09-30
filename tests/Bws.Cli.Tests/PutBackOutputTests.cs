@@ -41,8 +41,8 @@ public sealed class PutBackOutputTests
 
         var document = JsonDocument.Parse(PlanJson.Render(run)).RootElement;
 
-        Assert.Equal("nothingToPutBack", document.GetProperty("results")[0].GetProperty("skippedBecause").GetString());
-        Assert.Equal("restartOnlyStarts", document.GetProperty("warnings")[0].GetProperty("kind").GetString());
+        Assert.Equal("NothingToPutBack", document.GetProperty("results")[0].GetProperty("skippedBecause").GetString());
+        Assert.Equal("RestartOnlyStarts", document.GetProperty("warnings")[0].GetProperty("kind").GetString());
     }
 
     private static StepResult Skipped(SkipReason reason) => new()

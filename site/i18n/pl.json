@@ -38,7 +38,7 @@
   "exit.usage": "Wiersz poleceń był zły. Przy literówce w komendzie program podpowiada tę, o którą prawdopodobnie chodziło.",
   "exit.incomplete": "Plan był dobry, wykonał się, a coś w nim nie dotarło tam, gdzie miało - menedżer odmówił albo sesja nie miała do tego praw.",
   "exit.interrupted": "Ktoś zatrzymał przebieg ręcznie. Niezerowy nawet wtedy, gdy każdy krok i tak dotarł, żeby skrypt nadrzędny nie potraktował przerwanego przebiegu jako czystego.",
-  "exit.differences": "Porównanie wykonało się i znalazło różnice. Tylko z <code>--exit-code</code>, bo dryf jest tym, czego to narzędzie szuka, a znalezienie go nie jest porażką.",
+  "exit.differences": "Porównanie wykonało się i znalazło dryf konfiguracji - wpis doszedł albo zniknął, albo jest ustawiony inaczej. Sam stan pracy nie jest dryfem. Tylko z <code>--exit-code</code>, bo dryf jest tym, czego to narzędzie szuka, a znalezienie go nie jest porażką.",
 
   "switch.query": "Zawęża listę językiem zapytań.",
   "switch.signatures": "Czyta, kto podpisał każdy plik i czy Windows temu podpisowi ufa. Kilka sekund na całej maszynie, więc jest wyłączone, dopóki nie poprosisz - a zapytanie o podpisy włącza to samo.",
@@ -52,7 +52,7 @@
   "switch.components": "Przy <code>license</code> zamienia notę w pełną listę: każdy składnik wewnątrz tego pliku wykonywalnego, z wersją, licencją i adresem źródeł. Ten sam zestaw, który niesie spis składników publikowany obok pobrania, bo oba powstają z jednego rejestru.",
   "switch.json": "Ten sam dokument, czytelny dla maszyny, na wyjściu standardowym.",
   "switch.note": "Po co snapshot został zrobiony - zapisane w środku pliku.",
-  "switch.exit-code": "Kończy kodem 5, gdy cokolwiek się różni. Domyślnie wyłączone, żeby skrypt, który chce tylko zobaczyć różnice, nie wywracał się na tym, że je znalazł.",
+  "switch.exit-code": "Kończy kodem 5, gdy różni się konfiguracja - wpis doszedł albo zniknął, albo jest ustawiony inaczej. Sam stan pracy się nie liczy. Domyślnie wyłączone, żeby skrypt, który chce tylko zobaczyć różnice, nie wywracał się na tym, że je znalazł.",
   "switch.live": "Porównuje plik z tą maszyną w jej obecnym stanie, zamiast z drugim plikiem.",
   "switch.timing": "Ile trwała każda część odczytu, na wyjściu błędów.",
   "switch.dry-run": "Drukuje plan i nie zmienia niczego. To ten sam plan, który wykonuje się przy wykonaniu - nie ma drugiej ścieżki kodu dla wersji prawdziwej.",

@@ -121,7 +121,7 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
       <ul class="points points-ok">
         <li><strong>Configuration and running state are reported apart.</strong> Two snapshots taken a day apart differ in what happens to be running and almost none of it is drift - the start type that changed is the line to read.</li>
         <li><strong>What could not be compared is listed, not hidden.</strong> A field one snapshot never read comes out as <em>not compared</em>, so a diff that says <em>nothing changed</em> means nothing changed in what both sides could see.</li>
-        <li><strong><code>--exit-code</code> ends with <code>5</code> when anything differs</strong>, so a scheduled task can take a snapshot at deployment and page somebody the first night the machine drifts.</li>
+        <li><strong><code>--exit-code</code> ends with <code>5</code> when the configuration differs</strong>, so a scheduled task can take a snapshot at deployment and page somebody the first night the machine drifts.</li>
         <li><strong>Two machines, two files.</strong> Take a snapshot on staging and one on production, and diff them anywhere.</li>
       </ul>
     </div>
@@ -167,7 +167,7 @@ Plan: stop Winmgmt  (2 steps)
 <span class="k">bws kill Spooler --dry-run</span>                        <span class="c">what ending its process would take with it</span>
 <span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">what taking it off automatic would do</span>
 <span class="k">bws snapshot create before.json</span>                   <span class="c">freeze the machine before a change</span>
-<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">what has changed since, 5 if anything has</span></code></pre>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">what has changed since, 5 if the setup has</span></code></pre>
     <a class="more" href="/cli-reference/">Every command, switch and exit code</a>
   </div>
 </section>

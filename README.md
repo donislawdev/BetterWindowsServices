@@ -134,7 +134,7 @@ bws stop Winmgmt --dry-run --dependents           what stopping it would take do
 bws kill Spooler --dry-run                        what ending its process would take with it
 bws start-type Spooler manual --dry-run           what taking it off automatic would do
 bws snapshot create before.json                   freeze the machine before a change
-bws snapshot diff before.json --live --exit-code  what has changed since, 5 if anything has
+bws snapshot diff before.json --live --exit-code  what has changed since, 5 if the setup has
 ```
 
 A preview is the plan, printed:
@@ -237,8 +237,11 @@ session had no rights to it, comes out as *not compared* under its entry, and th
 those entries, so a diff that says *nothing changed* means nothing changed in what both sides
 could see.
 
-`--exit-code` ends with `5` when anything differs, so a scheduled task can take a snapshot at
-deployment and page somebody the first night the machine drifts. Compare two files instead of a
+`--exit-code` ends with `5` when the configuration differs - an entry added or removed, or one set
+up differently - so a scheduled task can take a snapshot at deployment and page somebody the first
+night the machine drifts. A service that only stopped or started by itself is reported and does
+not count, and neither do the per-user copies Windows makes for each signed-in session: those are
+left out of the comparison and counted in a line of their own. Compare two files instead of a
 file and the machine to answer *what did the Tuesday patch do*, or *why does staging differ from
 production* - take one on each and diff them anywhere.
 

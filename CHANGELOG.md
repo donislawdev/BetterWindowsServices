@@ -33,6 +33,40 @@ is not part of this repository.
 
 ### Changed
 
+- **Breaking for scripts reading `--json`:** every word-valued field in the JSON of a plan and of a
+  comparison is now spelled the way the listing and the snapshot spell theirs - `"outcome":
+  "Succeeded"` beside `"status": "Running"`, where one result used to say `"succeeded"` beside
+  `"Running"`. Field names are unchanged. What changed:
+
+  | Field | Before | Now |
+  |---|---|---|
+  | `action` | `stop`, `start`, `restart`, `setStartType`, `forceStop`, `forceRestart` | `Stop`, `Start`, `Restart`, `SetStartType`, `ForceStop`, `ForceRestart` |
+  | `operation` | `stop`, `start`, `setStartType`, `terminate` | `Stop`, `Start`, `SetStartType`, `Terminate` |
+  | `reason` | `requested`, `cascade`, `sharesTheProcess`, `restore`, `escalation` | `Requested`, `Cascade`, `SharesTheProcess`, `Restore`, `Escalation` |
+  | `outcome` | `succeeded`, `failed`, `timedOut`, `skipped` | `Succeeded`, `Failed`, `TimedOut`, `Skipped` |
+  | `skippedBecause` | `alreadyThere`, `earlierStepFailed`, `cancelled`, `processStays`, `nothingToPutBack` | `AlreadyThere`, `EarlierStepFailed`, `Cancelled`, `ProcessStays`, `NothingToPutBack` |
+  | `kind` of a warning | `cascade`, `dependentsInTheWay`, `sharedProcess` and the rest | `Cascade`, `DependentsInTheWay`, `SharedProcess` and the rest - the first letter raised on every one |
+  | `group` in `snapshot diff --json` | `configuration`, `runningState` | `Configuration`, `RunningState` |
+
+  PowerShell compares text without case by default, so `$step.outcome -eq 'succeeded'` keeps
+  working. A comparison that is case-sensitive - `-ceq`, `jq`, most other languages - needs the new
+  spelling.
+- `snapshot diff --exit-code` ends with 5 only when the configuration differs: an entry added or
+  removed, or one set up differently. A service that only stopped or started by itself between the
+  two snapshots is still reported, under "Changed" and marked as running state, and no longer makes
+  a nightly check fail. `"differs"` in `--json` answers the same way.
+- Per-user service copies - the ones Windows makes for each signed-in session, named like
+  `CDPUserSvc_1036d1` - are left out of a comparison on both sides and counted in one line at the
+  top, and in `"instancesLeftOut"` in `--json`. They come and go with the people signed in, so they
+  used to appear as added and removed every time. The template they are made from is still compared.
+- A snapshot now records Windows down to the monthly update (`operatingSystemVersion`, for example
+  `10.0.26200.9550`) and the language the service manager names things in (`namesLanguage`). The
+  comparison says when the two were taken on different updates, when they were taken by different
+  accounts, and when the names are in different languages - and then leaves display names and
+  descriptions out, instead of reporting every translated one as changed. Snapshots are now schema
+  version 5. Files written by 0.3.0 (version 4) are still read and compared, with a line saying they
+  do not record the update or the language. A file written by this version is refused by 0.3.0.
+
 - The warning that Windows starts a service again once its process is ended now says when, beside
   every name: "Spooler (5 s later)", or "W32Time (60 s or 120 s later)" when the recovery actions
   name several delays - which of them applies depends on how often the service has failed, and
@@ -111,7 +145,7 @@ is not part of this repository.
   those only if the entry did not stop. A service sharing the process that refused to stop used to
   make the plan skip the entry's own polite stop and end the process at once, and when the entry
   would have stopped on its own, the others had been stopped for nothing. In the JSON of a run, the
-  steps not needed are reported with `"skippedBecause": "processStays"`, and the run still counts as
+  steps not needed are reported with `"skippedBecause": "ProcessStays"`, and the run still counts as
   completed.
 - The preview of a force stop names a critical service arriving with `--dependents`, a service
   sharing the process that does not accept a stop, and one that is disabled and could not be
@@ -146,11 +180,11 @@ is not part of this repository.
 - The preview of a force stop says when Windows will start a service living in the process again by
   itself once the process is ended, when it will run a program named in a service's recovery
   actions, and when a service has a recovery action of a kind the tool cannot name. In the JSON of a
-  plan these are the warnings `recoveryRestarts`, `recoveryRunsProgram` and `recoveryUnnamed`. Until
+  plan these are the warnings `RecoveryRestarts`, `RecoveryRunsProgram` and `RecoveryUnnamed`. Until
   now `bws kill` reported such a service stopped while Windows was already starting it again.
 - A force stop whose service Windows starts again at once is reported straight away as the process
   ended and the service running again, with its new process, instead of after the whole limit as
-  having run out of time. In the JSON of a run that step is `"outcome": "failed"` with `errorCode` 0.
+  having run out of time. In the JSON of a run that step is `"outcome": "Failed"` with `errorCode` 0.
 - Just before the process is ended, a force stop looks at it once more. If a service has started
   inside it since the preview, or a running service outside it has started to depend on something
   inside it, the process is not ended and the step says why.
@@ -158,15 +192,21 @@ is not part of this repository.
   not running. A run now starts again only what it stopped itself: after an interruption, after a
   stop that was refused, and for a dependent somebody else stopped between the preview and the
   run, the step says "not started, this run never stopped it" and `skippedBecause` in the JSON of
-  a run is `nothingToPutBack`. The same goes for a restart of a whole selection interrupted half
+  a run is `NothingToPutBack`. The same goes for a restart of a whole selection interrupted half
   way. A service stopped by somebody else after the preview of its own restart is left stopped,
   and the run says it did not end where the plan wanted it.
 - Restarting a service that is not running only starts it, from the window and with
   `bws restart`, and the preview says so - one step and the warning "is not running, so
-  restarting it only starts it" (`restartOnlyStarts` in the JSON). Until now the preview showed a
+  restarting it only starts it" (`RestartOnlyStarts` in the JSON). Until now the preview showed a
   stop and a start. A disabled service that is not running is no longer refused with a sentence
   about stopping it - the plan warns that Windows will refuse to start it, the same as a plan to
   start it.
+- `snapshot diff` on a snapshot with an empty name in an entry's list of fields nobody read says
+  which entry is damaged and ends with code 2, instead of "Object reference not set to an instance
+  of an object." and code 1.
+- `snapshot create` given a folder instead of a file name says so at once and ends with code 2. It
+  used to verify every signature on the machine first and then answer "Access to the path is
+  denied."
 
 ## [0.3.0] - 2026-09-25
 

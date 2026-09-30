@@ -39,19 +39,6 @@ public sealed record ChangedEntry(
     IReadOnlyList<string> Incomparable);
 
 /// <summary>
-/// What makes this comparison less than exact, as facts rather than sentences.
-///
-/// Facts because the core does not write anything a person reads - `ADR-3` keeps it from
-/// knowing an interface exists, and rule 13 keeps user-facing wording out of code entirely.
-/// Whoever displays this turns the flags into words in their own language.
-/// </summary>
-public sealed record ComparisonCaveats(
-    bool ElevationDiffers,
-    bool MachineDiffers,
-    bool OperatingSystemDiffers,
-    bool ToolVersionDiffers);
-
-/// <summary>
 /// What changed between two snapshots.
 ///
 /// The engine behind all three comparisons `D2` asks for. Two of them - snapshot against
@@ -78,7 +65,7 @@ public sealed record ComparisonCaveats(
 /// this against a real pair rather than from reading it. An elevated snapshot compared with
 /// a restricted one put five entries under "changed" that had nothing changed about them -
 /// only a security descriptor one side was refused. The summary then read "5 changed, 0
-/// differences", and <see cref="Any"/> was true, so --exit-code would have failed a pipeline
+/// differences", and what is now <see cref="Drifted"/> was true, so --exit-code would have failed a pipeline
 /// over a comparison that found nothing. That is the same false alarm the whole handling of
 /// missing entries exists to prevent, arriving through the exit code instead.
 /// </param>
@@ -97,6 +84,10 @@ public sealed record ComparisonCaveats(
 /// would be the same admission eight hundred times, the shape this project already met when a
 /// listing threatened to answer "I do not know" about every entry it had.
 /// </param>
+/// <param name="LeftOut">
+/// The per-user session copies neither side was compared on - see <see cref="InstancesLeftOut"/>.
+/// Matched by the role the type bits give an entry, never by the shape of its name.
+/// </param>
 public sealed record SnapshotDiff(
     IReadOnlyList<EntryPresence> Added,
     IReadOnlyList<EntryPresence> Removed,
@@ -104,7 +95,8 @@ public sealed record SnapshotDiff(
     IReadOnlyList<ChangedEntry> NotFullyCompared,
     IReadOnlyList<string> NeitherRead,
     IReadOnlyList<EntryPresence> Uncertain,
-    ComparisonCaveats Caveats)
+    ComparisonCaveats Caveats,
+    InstancesLeftOut LeftOut)
 {
     /// <summary>Identity, not a value - it is how the two sides are matched at all.</summary>
     private const string Identity = "serviceName";
@@ -127,13 +119,41 @@ public sealed record SnapshotDiff(
     private const string State = "status";
 
     /// <summary>
-    /// Whether anything actually differs.
+    /// The two fields a person reads in their own language, left out of every entry when the two
+    /// managers name things in different languages (<see cref="ComparisonCaveats.LanguageDiffers"/>).
+    /// </summary>
+    private static readonly string[] Translated = ["description", "displayName"];
+
+    /// <summary>
+    /// Whether the machine drifted: an entry added or removed, or one set up differently.
+    ///
+    /// <b>CONFIGURATION ONLY SINCE 2026-09-30 - stability report D-2, owner's decision, a change of
+    /// meaning under an unchanged exit code.</b> Until then this was <c>Any</c>, and an entry that
+    /// differed only in what it was doing at the two moments counted - so a nightly
+    /// <c>--exit-code</c> paged somebody over a service that had stopped by itself, which contradicts
+    /// the decision of 2026-08-01 this file opens with: running state is not drift. It is still
+    /// reported, under <see cref="Changed"/>, and it no longer decides anything.
     ///
     /// Deliberately not counting what could not be compared, and not counting the entries
     /// only one side could see. Both of those are admissions about the comparison rather
     /// than findings about the machine, and this is the answer --exit-code gives a pipeline.
+    ///
+    /// <b>Its readers had a second question hidden in them, found before the change rather than
+    /// after it.</b> The text report asked this to decide whether to say "no differences", and
+    /// with the new meaning that sentence would have hidden an entry that differed only in state.
+    /// It asks <see cref="Reported"/> now.
     /// </summary>
-    public bool Any => Added.Count > 0 || Removed.Count > 0 || Changed.Count > 0;
+    public bool Drifted =>
+        Added.Count > 0
+        || Removed.Count > 0
+        || Changed.Any(entry => entry.Differences.Any(difference => difference.Group == DifferenceGroup.Configuration));
+
+    /// <summary>
+    /// Whether there is anything at all to put in front of a person - a difference of either kind,
+    /// something one side could not see, or something one side never read.
+    /// </summary>
+    public bool Reported =>
+        Added.Count > 0 || Removed.Count > 0 || Changed.Count > 0 || Uncertain.Count > 0 || NotFullyCompared.Count > 0;
 
     /// <summary>
     /// Compares two snapshots, or says why one of them is not something to compare.
@@ -204,13 +224,20 @@ public sealed record SnapshotDiff(
 
     private static SnapshotDiff Between(Snapshot before, Snapshot after)
     {
+        var caveats = ComparisonCaveats.Between(before.Metadata, after.Metadata);
+        var elevationDiffers = caveats.ElevationDiffers;
+
+        // Not looked at on any entry, rather than named against each - the caveat says it once.
+        var ignored = caveats.LanguageDiffers ? Translated : [];
+
+        var earlier = Kept(before.Entries, out var leftOutEarlier);
+        var later = Kept(after.Entries, out var leftOutLater);
+
         // Case-insensitively, because that is how Windows treats a service name, so two
         // spellings are the same service rather than two. What used to stand here was a note
         // saying nothing checked for two entries matching this way - the caller above now does.
-        var left = before.Entries.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
-        var right = after.Entries.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
-
-        var elevationDiffers = before.Metadata.Elevated != after.Metadata.Elevated;
+        var left = earlier.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
+        var right = later.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
 
         var added = new List<EntryPresence>();
         var removed = new List<EntryPresence>();
@@ -219,11 +246,11 @@ public sealed record SnapshotDiff(
         var partial = new List<ChangedEntry>();
         var neitherRead = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var entry in Ordered(after.Entries))
+        foreach (var entry in Ordered(later))
         {
             if (left.TryGetValue(entry.ServiceName, out var was))
             {
-                var difference = Compare(was, entry, neitherRead);
+                var difference = Compare(was, entry, neitherRead, ignored);
 
                 if (difference is not null)
                 {
@@ -243,7 +270,7 @@ public sealed record SnapshotDiff(
             }
         }
 
-        foreach (var entry in Ordered(before.Entries).Where(entry => !right.ContainsKey(entry.ServiceName)))
+        foreach (var entry in Ordered(earlier).Where(entry => !right.ContainsKey(entry.ServiceName)))
         {
             if (Invisible(elevationDiffers, blind: after.Metadata.Elevated))
             {
@@ -262,11 +289,30 @@ public sealed record SnapshotDiff(
             partial,
             [.. neitherRead.OrderBy(field => field, StringComparer.Ordinal)],
             [.. uncertain.OrderBy(entry => entry.ServiceName, StringComparer.Ordinal)],
-            new ComparisonCaveats(
-                elevationDiffers,
-                !string.Equals(before.Metadata.Machine, after.Metadata.Machine, StringComparison.OrdinalIgnoreCase),
-                !string.Equals(before.Metadata.OperatingSystem, after.Metadata.OperatingSystem, StringComparison.Ordinal),
-                !string.Equals(before.Metadata.Tool, after.Metadata.Tool, StringComparison.Ordinal)));
+            caveats,
+            new InstancesLeftOut(leftOutEarlier, leftOutLater));
+    }
+
+    /// <summary>
+    /// The entries a comparison looks at: everything but the per-user session copies, and how many
+    /// of those there were.
+    ///
+    /// <b>By the role, never by the name</b> - stability report D-1, owner's decision of 2026-09-30.
+    /// A copy's name carries a session suffix, and a rule reading that shape would take a real
+    /// service whose name happens to end the same way for one. The role comes from the type bits the
+    /// manager hands over with every entry (docs/03, "Rola per-uzytkownik"), and it is spelled the
+    /// way the enumeration spells it, like every value in the file. The template the copies are made
+    /// from is not a copy and is compared field by field as before.
+    /// </summary>
+    private static List<EntryDocument> Kept(IReadOnlyList<EntryDocument> entries, out int leftOut)
+    {
+        var kept = entries
+            .Where(entry => !string.Equals(entry.PerUserRole, nameof(PerUserRole.Instance), StringComparison.Ordinal))
+            .ToList();
+
+        leftOut = entries.Count - kept.Count;
+
+        return kept;
     }
 
     /// <summary>
@@ -279,7 +325,12 @@ public sealed record SnapshotDiff(
     /// </summary>
     private static bool Invisible(bool elevationDiffers, bool blind) => elevationDiffers && !blind;
 
-    private static ChangedEntry? Compare(EntryDocument before, EntryDocument after, HashSet<string> neitherRead)
+    /// <param name="ignored">
+    /// Fields not looked at on this entry at all, because a caveat about the whole comparison already
+    /// says why - never listed as incomparable here, which would repeat that sentence on every row.
+    /// </param>
+    private static ChangedEntry? Compare(
+        EntryDocument before, EntryDocument after, HashSet<string> neitherRead, string[] ignored)
     {
         var was = SnapshotJson.Document(before);
         var now = SnapshotJson.Document(after);
@@ -312,7 +363,7 @@ public sealed record SnapshotDiff(
 
         foreach (var field in was.Select(property => property.Key)
                      .Union(now.Select(property => property.Key), StringComparer.Ordinal)
-                     .Where(Comparable)
+                     .Where(field => Comparable(field) && !ignored.Contains(field, StringComparer.Ordinal))
                      .OrderBy(field => field, StringComparer.Ordinal))
         {
             if (skip.Contains(field))

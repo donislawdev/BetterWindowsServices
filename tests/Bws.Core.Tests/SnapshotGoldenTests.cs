@@ -32,20 +32,27 @@ namespace Bws.Core.Tests;
 /// </summary>
 public sealed class SnapshotGoldenTests
 {
-    private const string Kept = "snapshot-schema-4.json";
+    private const string Kept = "snapshot-schema-5.json";
+
+    /// <summary>
+    /// The copy kept before schema five, 2026-09-29. Not written by this build any more and still read
+    /// by it - the one bump that kept reading its predecessor - so it stays as the specimen of an
+    /// older file somebody already has on disk.
+    /// </summary>
+    private const string KeptBefore = "snapshot-schema-4.json";
 
     [Fact]
     public void The_file_is_written_byte_for_byte_as_the_kept_copy()
     {
         var written = SnapshotJson.Render(Frozen());
-        var kept = KeptText();
+        var kept = KeptText(Kept);
 
         if (string.Equals(written, kept, StringComparison.Ordinal))
         {
             return;
         }
 
-        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-4.actual.json");
+        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-5.actual.json");
         File.WriteAllText(actual, written, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         Assert.Fail(
@@ -59,7 +66,7 @@ public sealed class SnapshotGoldenTests
     {
         // Reading loses nothing that writing produced. Without this the kept copy could hold a
         // field the reader drops on the floor, and the comparison of two snapshots would never see it.
-        var kept = KeptText();
+        var kept = KeptText(Kept);
 
         Assert.True(SnapshotJson.TryRead(kept, out var snapshot, out var failure), failure);
         Assert.Equal(kept, SnapshotJson.Render(snapshot!));
@@ -72,8 +79,39 @@ public sealed class SnapshotGoldenTests
         // an old file and calling the difference a fault. The file name carries the number so
         // the bump has to touch both.
         Assert.True(
-            Snapshot.CurrentSchemaVersion == 4,
+            Snapshot.CurrentSchemaVersion == 5,
             $"The schema is now {Snapshot.CurrentSchemaVersion}. Keep a new copy named for it beside {Kept}.");
+    }
+
+    /// <summary>
+    /// A file written by 0.3.0 still reads, and compares against one written now with nothing
+    /// invented - stability report D-5, owner's decision of 2026-09-30.
+    ///
+    /// <b>The two kept copies hold the same entries</b>, so everything the comparison reports is
+    /// about the format rather than the machine: the two fields version five added are "not known"
+    /// rather than different, and the one per-user session copy in the catalogue is left out on
+    /// each side and counted (D-1).
+    /// </summary>
+    [Fact]
+    public void A_version_four_file_is_read_and_says_what_it_does_not_know()
+    {
+        Assert.True(SnapshotJson.TryRead(KeptText(KeptBefore), out var older, out var failure), failure);
+
+        Assert.Equal(4, older!.Metadata.SchemaVersion);
+        Assert.Null(older.Metadata.OperatingSystemVersion);
+        Assert.Null(older.Metadata.NamesLanguage);
+
+        Assert.True(SnapshotJson.TryRead(KeptText(Kept), out var newer, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(older, newer!, out var diff, out failure), failure);
+
+        // Not "nothing reported" - the catalogue holds refused fields on purpose, and those are named
+        // as not fully compared on any pair. What must be empty is anything claiming a change.
+        Assert.False(diff.Drifted);
+        Assert.Empty(diff.Changed);
+        Assert.Equal(["operatingSystemVersion", "namesLanguage"], diff.Caveats.NotKnown);
+        Assert.False(diff.Caveats.OperatingSystemDiffers);
+        Assert.False(diff.Caveats.LanguageDiffers);
+        Assert.Equal(new InstancesLeftOut(1, 1), diff.LeftOut);
     }
 
     // Without the second of the two names that differ only in case. The manager compares names
@@ -90,14 +128,16 @@ public sealed class SnapshotGoldenTests
         {
             Metadata = new SnapshotMetadata
             {
-                SchemaVersion = 4,
+                SchemaVersion = 5,
                 Machine = "GOLDEN",
                 OperatingSystem = "Microsoft Windows NT 10.0.26100.0",
                 TakenAt = new DateTimeOffset(2026, 9, 29, 12, 0, 0, TimeSpan.FromHours(2)),
                 TakenBy = @"EXAMPLE\operator",
                 Elevated = true,
                 Note = "before the change",
-                Tool = "0.3.0"
+                Tool = "0.3.0",
+                OperatingSystemVersion = "10.0.26100.4000",
+                NamesLanguage = "en-US"
             }
         };
 
@@ -109,10 +149,10 @@ public sealed class SnapshotGoldenTests
     /// would get, so it has to fail here rather than be skipped over quietly. The line endings
     /// survive a checkout because .gitattributes marks the folder as not text.
     /// </summary>
-    private static string KeptText()
+    private static string KeptText(string name)
     {
-        using var stream = typeof(SnapshotGoldenTests).Assembly.GetManifestResourceStream(Kept)
-            ?? throw new InvalidOperationException($"{Kept} is not embedded in the test assembly.");
+        using var stream = typeof(SnapshotGoldenTests).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"{name} is not embedded in the test assembly.");
         using var reader = new StreamReader(
             stream,
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),

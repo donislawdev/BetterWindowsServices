@@ -113,7 +113,16 @@ public sealed class SnapshotContractTests : IDisposable
         // Written as the literal rather than as the constant, which is the point of pinning it: a
         // test reading Snapshot.CurrentSchemaVersion agrees with any value that constant takes,
         // including one somebody moved without meaning to.
-        Assert.Equal(4, metadata.GetProperty("schemaVersion").GetInt32());
+        //
+        // FIVE SINCE 2026-09-30, stability report D-5: the Windows version down to the monthly update
+        // and the language the manager names things in joined the metadata. The first bump that kept
+        // reading the version before it - a four still compares, with both fields "not known".
+        Assert.Equal(5, metadata.GetProperty("schemaVersion").GetInt32());
+        Assert.StartsWith(
+            $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}.{Environment.OSVersion.Version.Build}.",
+            metadata.GetProperty("operatingSystemVersion").GetString()!,
+            StringComparison.Ordinal);
+        Assert.NotEmpty(metadata.GetProperty("namesLanguage").GetString()!);
         Assert.Equal("before the deployment", metadata.GetProperty("note").GetString());
         Assert.Equal(Environment.MachineName, metadata.GetProperty("machine").GetString());
         Assert.NotEmpty(metadata.GetProperty("takenBy").GetString()!);

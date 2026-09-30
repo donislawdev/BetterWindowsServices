@@ -41,8 +41,8 @@
 
 <span class="c"># every night, from a scheduled task</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
-<span class="c">#   0 - nothing differs
-#   5 - something differs, and drift.json says what
+<span class="c">#   0 - no configuration drift
+#   5 - the configuration drifted, and drift.json says what
 #   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
     <p>Exit code <code>5</code> is what makes this an audit rather than a report nobody reads: the task is silent until the machine drifts, and the night it does, somebody is paged.</p>
     <p class="note"><strong>Take the baseline from an elevated session.</strong> Without administrator rights the manager lists fewer entries and refuses more of what it lists. The snapshot records whether the account that took it was an administrator, so the comparison can say that rather than reporting entries as removed that nobody removed - but a baseline missing half the machine is still a baseline missing half the machine.</p>
