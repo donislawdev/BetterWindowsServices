@@ -20,19 +20,28 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
     /// Runs every step, in order.
     /// </summary>
     /// <param name="timeout">
-    /// The longest we will watch any one step. A cap rather than the deadline - the entry's
-    /// own wait hint usually decides first, and this stops a plan hanging a terminal when an
-    /// entry keeps reporting progress forever.
+    /// How long any one step may go WITHOUT PROGRESS - its check point not rising and its state not
+    /// changing - before it is given up on. The entry's own wait hint usually decides first.
+    ///
+    /// <b>Counted from the last progress since 2026-09-30, on the owner's decision of 2026-09-29</b>
+    /// (stability report W-1). Until then it was the longest any step was watched at all, which gave
+    /// up on a service that took seventy honest seconds to stop - and a restart then asked a service
+    /// still stopping to start, was refused, and left it stopped. The price is said out loud rather
+    /// than hidden: an entry that reports progress forever is now watched forever. The terminal gets
+    /// out of that with a second Ctrl+C, and the window has no way out yet (backlog 497).
     /// </param>
     /// <param name="cancellation">
     /// Stop going forward. The steps that put things back are still carried out.
     ///
-    /// Checked between steps, not during one. A step already asked for is watched to its
-    /// end, because a service told to stop does not un-stop, and reporting a step we stopped
-    /// looking at would be a claim about something nobody saw.
+    /// Checked between steps, and while a step is waiting to be ASKED - an entry still on its way
+    /// somewhere when the step reaches it. A step already asked for is watched to its end, because a
+    /// service told to stop does not un-stop, and reporting a step we stopped looking at would be a
+    /// claim about something nobody saw.
     /// </param>
     /// <param name="abandonment">
-    /// Stop altogether, putting nothing back.
+    /// Stop altogether, putting nothing back - between steps and, since 2026-09-30, while a step is
+    /// being watched (stability report W-11). A step abandoned after it was asked for reports that
+    /// the watching ended rather than that it failed, because the entry may still arrive.
     ///
     /// Separate from <paramref name="cancellation"/> because they are different asks and the
     /// second one is expensive: it is how somebody ends up with half a cascade down. It
@@ -101,7 +110,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
 
             starting?.Invoke(step, index + 1);
 
-            var result = RunStep(step, timeout);
+            var result = RunStep(step, timeout, new Halt(cancellation, abandonment));
 
             results.Add(result);
 
@@ -196,7 +205,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         return !(holding.IsPresent && holding.Value == ending.ProcessId);
     }
 
-    private StepResult RunStep(PlanStep step, TimeSpan timeout)
+    private StepResult RunStep(PlanStep step, TimeSpan timeout, Halt halt)
     {
         // THE RULER RATHER THAN THE WALL CLOCK, SINCE 2026-09-03 - backlog 299. Everything below
         // asks how long, never what time, and two readings of a wall clock across a machine
@@ -227,13 +236,24 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             return Skipped(step, SkipReason.AlreadyThere, target, Holding(before), Elapsed(started));
         }
 
+        // AN ENTRY ALREADY ON ITS WAY IS WAITED FOR BEFORE ANYTHING IS ASKED, since 2026-09-30 - Settle
+        // says how. Not for an ending: that step exists for the entry stuck in StopPending, and waiting
+        // for it to finish stopping would be the one wrong answer there.
+        if (step.Operation != StepOperation.Terminate
+            && Settle(step, target, before, timeout, started, halt) is { } settled)
+        {
+            return settled;
+        }
+
         // ENDING A PROCESS DOES NOT GO THROUGH THE MANAGER, so it is not a Request - and the reading
-        // taken four lines up is the whole reason this sits here rather than anywhere else. It is
-        // the freshest answer available about where the entry is and what is holding it, taken
-        // immediately before anything happens.
+        // taken above is the whole reason this sits here rather than anywhere else. It is the freshest
+        // answer available about where the entry is and what is holding it, taken immediately before
+        // anything happens.
+        var asking = clock.Elapsed;
         var request = step.Operation == StepOperation.Terminate
             ? End(step, before)
             : control.Request(step.ServiceName, step.Operation);
+        var answered = Elapsed(asking);
 
         if (!request.Worked)
         {
@@ -245,13 +265,15 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
 
             if (after.Worked && after.Progress!.Value.Status == target)
             {
-                return Skipped(step, SkipReason.AlreadyThere, target, Holding(after), Elapsed(started));
+                return Skipped(step, SkipReason.AlreadyThere, target, Holding(after), Elapsed(started))
+                    with { Answered = answered };
             }
 
-            return Refused(step, request, Where(after), Holding(after), started);
+            return Refused(step, request, Where(after), Holding(after), started) with { Answered = answered };
         }
 
-        return WaitFor(step, target, timeout, started);
+        return WaitFor(step, target, timeout, started, () => halt.Asked, asked: true)
+            with { Answered = answered };
     }
 
     /// <summary>

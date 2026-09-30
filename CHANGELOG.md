@@ -88,6 +88,24 @@ is not part of this repository.
 - After a stop refused because other running services depend on the entry, or because of missing
   rights, the window no longer offers Force stop, which could not help with either.
 - The equivalent command of a force stop planned with its dependents includes `--dependents`.
+- Restarting a service that takes longer than the limit to stop no longer leaves it stopped. The
+  limit - `--timeout`, and "Wait up to" on the plan sheet - now counts time without progress: a
+  service that keeps reporting progress is watched for as long as it takes, and one that sits still
+  is given up on once the limit has passed since it last moved. The start that brings a service
+  back waits for it to finish stopping instead of being refused while it is still stopping.
+- A stop asked of a service that is already stopping waits for it instead of failing, and a start
+  asked of one still stopping waits for it to stop first and then starts it.
+- A service that stops again while starting is reported at once as not started, with its exit code
+  and what Windows says about it, instead of after the whole limit as having run out of time.
+- The plan to start a disabled service warns that Windows will refuse it, and says how to change
+  the startup type first. The plan to start a paused service warns that a start does not resume it.
+- The second Ctrl+C during `bws stop`, `start`, `restart` or `kill` takes effect while a step is
+  still being waited for, instead of only after it.
+- The note under a run that says the manager took longer than `--timeout` to answer appears only
+  when the manager really did, not for a step that simply kept making progress.
+- The window's reason for offering Force stop after a stop that was given up on no longer names a
+  number of seconds that could be wrong. The line under a step being waited for says the limit is
+  about progress.
 
 ## [0.3.0] - 2026-09-25
 

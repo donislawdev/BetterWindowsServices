@@ -87,18 +87,21 @@
   "cli.plan.warning.alreadyThere": "{0} is already in that state, so nothing would change.",
   "cli.plan.warning.keepsRunning": "{0} is running, and a start type does not stop it. It keeps running until it is stopped or the machine restarts. To stop it in the same plan: {1}",
   "cli.plan.warning.startsAtNextBoot": "{0} is stopped, and a start type does not start it. It starts at the next restart of the machine.",
+  "cli.plan.warning.disabledCannotStart": "{0} is disabled, and Windows refuses to start a disabled entry. To make it startable first: {1}",
+  "cli.plan.warning.pausedCannotStart": "{0} is paused, and a start does not resume a paused service - Windows will refuse it. To resume it instead: sc.exe continue {0}",
 
   "cli.run.progress": "[{0}/{1}] {2} {3} ...",
   "cli.run.interrupted": "Interrupted. Finishing the step in flight, then putting back what was taken down. Another Ctrl+C leaves it as it is.",
   "cli.run.abandoned": "Leaving the rest undone. The report still follows, so you can see what was changed. Another Ctrl+C ends this without it.",
   "cli.run.wasInterrupted": "This run was interrupted. Steps that were never attempted say so above.",
-  "cli.run.outranTheCeiling": "{0} took {1}, longer than the --timeout of {2}. That switch caps how long this tool waits once the manager has accepted a request. It cannot cap the manager's own answer, and here the manager took that long to answer - which it does when a service never reports itself to it.",
+  "cli.run.outranTheCeiling": "{0}: the manager took {1} to answer the request, longer than the --timeout of {2}. That switch limits how long this tool waits without progress once the manager has accepted a request. It cannot cap the manager's own answer, which takes this long when a service never reports itself to it.",
 
   "cli.run.putBack.heading": "To put the machine back the way this run found it, in this order:",
   "cli.run.putBack.line": "  {0}",
 
   "cli.run.outcome.succeeded": "done in {0}",
   "cli.run.outcome.failed": "refused: {0} (error {1})",
+  "cli.run.outcome.stoppedWhileStarting": "did not start - it stopped again after {2}, exit code {1}: {0}",
   "cli.run.outcome.timedOut": "gave up after {0}, still {1}",
   "cli.run.outcome.timedOut.process": "gave up after {0}, still {1}, held by process {2}",
   "cli.run.outcome.alreadyThere": "already there, nothing to do",

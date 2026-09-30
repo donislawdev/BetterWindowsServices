@@ -25,8 +25,8 @@ public interface IClock
     /// <summary>
     /// A count that only ever goes forward, for measuring how long something took.
     ///
-    /// <b>Added 2026-09-03 for backlog 299.</b> A plan step is watched for up to a minute -
-    /// <c>Carrying.Ceiling</c> - and the machines this project tests on are virtual ones,
+    /// <b>Added 2026-09-03 for backlog 299.</b> A plan step is watched for as long as its entry
+    /// keeps moving - <c>StepCeiling</c> - and the machines this project tests on are virtual ones,
     /// which is exactly the family where the wall clock jumps on resume. Two readings of
     /// <see cref="Now"/> across such a jump give a deadline that has already passed, a step
     /// reported as timed out that was fine, and a <c>milliseconds</c> figure in the machine

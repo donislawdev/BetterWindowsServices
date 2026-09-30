@@ -57,7 +57,7 @@
   "switch.timing": "How long each part of the read took, on standard error.",
   "switch.dry-run": "Print the plan and change nothing. It is the same plan an execution runs - there is no second code path for the real thing.",
   "switch.dependents": "Put the services that would break into the plan as steps of their own.",
-  "switch.timeout": "How long to wait for one step to reach the state it asked for, counted from the moment the manager accepts the request. Sixty seconds unless you say otherwise. Running out is the end of watching rather than a failure, and the report says where the entry was left.",
+  "switch.timeout": "How long one step may go without progress before it is given up on, counted again every time the service reports progress. Sixty seconds unless you say otherwise. A service that keeps reporting progress is watched for as long as it takes. Running out is the end of watching rather than a failure, and the report says where the entry was left.",
 
   "field.name": "the service name, the one Windows identifies it by",
   "field.display": "the display name, as this Windows spells it",

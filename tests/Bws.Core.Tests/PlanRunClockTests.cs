@@ -22,14 +22,22 @@ public sealed class PlanRunClockTests
     [Fact]
     public void A_clock_jumping_forward_does_not_give_up_on_a_service_that_is_still_working()
     {
-        // The entry keeps its side of the Win32 promise: the check point rises every time it is
-        // asked, so it has earned every second it is taking. An hour arrives on the wall clock
-        // while it does, which is what resuming a suspended machine looks like from in here.
+        // The entry keeps its side of the Win32 promise: the check point rises well inside the five
+        // seconds it asked for, so it has earned every second it is taking. An hour arrives on the
+        // wall clock while it does, which is what resuming a suspended machine looks like from in here.
+        //
+        // NOT A RISE AT EVERY LOOK, SINCE 2026-09-30, and that is the point of the repeats. From that
+        // day the limit counts from the last progress, and both ends of that comparison would come from
+        // the same clock - so an entry moving at every look gave a wall clock nothing to break, and
+        // the mutation reading the wall clock survived. Two looks with no rise between them, an hour
+        // apart on the wall and milliseconds apart on the ruler, are where the fault lives.
         var control = new FakeScmControl()
             .At("Spooler", EntryStatus.Running)
             .Reaching(
                 "Spooler",
                 new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5), ProcessId: 4812),
+                new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(5), ProcessId: 4812),
+                new ServiceProgress(EntryStatus.StopPending, 2, TimeSpan.FromSeconds(5), ProcessId: 4812),
                 new ServiceProgress(EntryStatus.StopPending, 2, TimeSpan.FromSeconds(5), ProcessId: 4812),
                 new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 

@@ -30,10 +30,15 @@ public static class StepCeiling
 {
     /// <summary>
     /// A minute, which is what both interfaces use when nobody says otherwise - `E1` of the
-    /// specification uses the number in its own example. It is a cap on the watching rather than a
-    /// deadline: an entry that keeps reporting progress is given the time it asks for, and this
-    /// only stops a plan sitting on a screen forever when the entry never finishes what it keeps
-    /// saying it is doing.
+    /// specification uses the number in its own example.
+    ///
+    /// <b>A minute WITHOUT PROGRESS since 2026-09-30, and this sentence said so before the code did.</b>
+    /// It read "an entry that keeps reporting progress is given the time it asks for" while the runner
+    /// gave up at a minute whatever the entry reported - the stability report caught the two
+    /// disagreeing (W-1), and a restart of a service taking seventy seconds to stop left it stopped.
+    /// The owner's decision of 2026-09-29 made the code match the sentence: the minute starts again
+    /// every time the entry's check point rises or its state changes. The price is that an entry
+    /// reporting progress forever is watched forever - PlanRunner.Run says where the way out is.
     /// </summary>
     public static readonly TimeSpan Default = TimeSpan.FromSeconds(60);
 

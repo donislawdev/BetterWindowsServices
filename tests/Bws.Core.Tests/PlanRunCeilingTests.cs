@@ -26,8 +26,8 @@ public sealed class PlanRunCeilingTests
     [Fact]
     public void A_step_that_ran_past_the_ceiling_is_named()
     {
-        // The measured case, in the numbers it actually had.
-        var run = RunWith(Ceiling(1), Step(StepOutcome.Failed, milliseconds: 30_450));
+        // The measured case, in the numbers it actually had - all of it inside the start call.
+        var run = RunWith(Ceiling(1), Step(StepOutcome.Failed, milliseconds: 30_450, answered: 30_450));
 
         var outran = Assert.Single(run.OutranTheCeiling);
         Assert.Equal(30_450, outran.Milliseconds);
@@ -59,9 +59,21 @@ public sealed class PlanRunCeilingTests
         // Not only refusals. If the manager held a stop past the ceiling and it then worked,
         // the command still outran what was asked for, and the person waiting deserves the
         // same sentence. Built rather than captured - no machine has shown this yet.
-        var run = RunWith(Ceiling(1), Step(StepOutcome.Succeeded, milliseconds: 4_000));
+        var run = RunWith(Ceiling(1), Step(StepOutcome.Succeeded, milliseconds: 4_000, answered: 3_900));
 
         Assert.Single(run.OutranTheCeiling);
+    }
+
+    [Fact]
+    public void A_step_that_kept_making_progress_past_the_ceiling_is_not_named()
+    {
+        // THE CASE THAT MOVED THIS ONTO THE ANSWER, 2026-09-30. The ceiling counts time without
+        // progress from that day, so a stop reporting progress for ninety seconds under a limit of
+        // sixty is the limit working - and read off the whole step it would have told somebody the
+        // manager took ninety seconds to answer, which it did not.
+        var run = RunWith(Ceiling(60), Step(StepOutcome.Succeeded, milliseconds: 90_000, answered: 5));
+
+        Assert.Empty(run.OutranTheCeiling);
     }
 
     [Fact]
@@ -71,17 +83,18 @@ public sealed class PlanRunCeilingTests
         // somebody looking for a single slow entry that is not the whole story.
         var run = RunWith(
             Ceiling(1),
-            Step(StepOutcome.Failed, milliseconds: 30_450),
+            Step(StepOutcome.Failed, milliseconds: 30_450, answered: 30_450),
             Step(StepOutcome.Succeeded, milliseconds: 200),
-            Step(StepOutcome.Failed, milliseconds: 30_100));
+            Step(StepOutcome.Failed, milliseconds: 30_100, answered: 30_100));
 
         Assert.Equal(2, run.OutranTheCeiling.Count);
     }
 
     private static TimeSpan Ceiling(int seconds) => TimeSpan.FromSeconds(seconds);
 
-    private static StepResult Step(StepOutcome outcome, long milliseconds) => new()
+    private static StepResult Step(StepOutcome outcome, long milliseconds, long answered = 0) => new()
     {
+        Answered = answered,
         Step = new PlanStep("Any", "Any", StepOperation.Start, StepReason.Requested),
         Outcome = outcome,
         SkippedBecause = null,

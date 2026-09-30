@@ -148,7 +148,31 @@ public enum PlanWarningKind
     /// as well is not proposed - that would be this tool adding an ask nobody specified. Only where
     /// the state was read as stopped. Added 2026-09-24.
     /// </summary>
-    StartsAtNextBoot
+    StartsAtNextBoot,
+
+    /// <summary>
+    /// The plan starts an entry read as Disabled and stopped - and the manager refuses to start a
+    /// disabled entry.
+    ///
+    /// <b>A warning rather than a refusal, on the owner's decision of 2026-09-30</b> (stability report
+    /// W-8), and the line is the one <see cref="DoesNotAcceptStop"/> holds: we say what we already
+    /// read and the manager stays the authority on what it accepts. Refusing is kept for taking down
+    /// something that could not be put back, which a start is not. Measured before the change on
+    /// 2026-09-29: <c>bws start</c> on a disabled entry of this machine gave a plan of one step, no
+    /// warning and exit code 0.
+    /// </summary>
+    DisabledCannotStart,
+
+    /// <summary>
+    /// The plan starts an entry read as Paused or pausing - and a start does not resume a paused
+    /// service, so the manager refuses it.
+    ///
+    /// <b>The same line as <see cref="DisabledCannotStart"/>, added the same day</b> (stability report
+    /// W-7), and checked against it before either was written: both say what was read and predict
+    /// nothing the reading does not already say. Resuming is a write of its own that this tool does not
+    /// have, so the sentence names the system's way to do it.
+    /// </summary>
+    PausedCannotStart
 }
 
 /// <summary>

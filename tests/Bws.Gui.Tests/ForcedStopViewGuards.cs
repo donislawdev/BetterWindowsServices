@@ -97,7 +97,7 @@ public sealed class ForcedStopViewGuards
         // THE REASON CAME ACROSS, which is the only thing left saying what happened before - the
         // sheet that knew it is gone by now.
         Assert.StartsWith(
-            Bws.Gui.Texts.Of("gui.plan.because.timedOut", 60),
+            Bws.Gui.Texts.Of("gui.plan.because.timedOut"),
             WpfHost.On(() => window.PlanPanel.Notice.Text),
             StringComparison.Ordinal);
 

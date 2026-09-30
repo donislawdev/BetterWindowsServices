@@ -100,6 +100,30 @@ public sealed record StepResult
     /// <summary>How long this step took, waiting included.</summary>
     public required long Milliseconds { get; init; }
 
+    /// <summary>
+    /// How long the manager took to answer the request itself, before any watching - zero for a step
+    /// that asked nothing.
+    ///
+    /// <b>Here since 2026-09-30 because <see cref="PlanRun.OutranTheCeiling"/> could no longer be read
+    /// off <see cref="Milliseconds"/>.</b> The limit counts time WITHOUT PROGRESS from that day, so a
+    /// step reporting progress for three minutes under a limit of one is ordinary, and the one thing
+    /// the limit still cannot reach is the manager sitting on the request. Not in the machine readable
+    /// output - it feeds a sentence, not a field anybody asked for.
+    /// </summary>
+    public long Answered { get; init; }
+
+    /// <summary>
+    /// The entry was on its way to Running and fell back to Stopped - the service stopped while it was
+    /// starting. <see cref="ErrorCode"/> is then the service's own exit code rather than the manager's
+    /// refusal, and the two interfaces word it that way.
+    ///
+    /// <b>A fact rather than a sentence, since 2026-09-30</b> (stability report W-7): the failed step's
+    /// other fields cannot tell it apart from a start the manager refused, which also leaves the entry
+    /// Stopped with an error number. Not in the machine readable output, on the owner's decision of that
+    /// day - the number travels in <c>errorCode</c> and the words in <c>error</c>.
+    /// </summary>
+    public bool StoppedWhileStarting { get; init; }
+
     /// <summary>The entry is where the step wanted it, whether or not we had to do anything.</summary>
     public bool Arrived =>
         Outcome == StepOutcome.Succeeded
@@ -125,7 +149,9 @@ public sealed record PlanRun
     public required bool Cancelled { get; init; }
 
     /// <summary>
-    /// The longest any one step was to be watched for, as asked for by whoever ran this.
+    /// How long any one step could go without progress before it was given up on, as asked for by
+    /// whoever ran this. Until 2026-09-30 it was the longest any one step was watched for at all - the
+    /// owner's decision of 2026-09-29 (stability report W-1) made it count from the last progress.
     ///
     /// Here rather than left with the caller because it is half of the evidence this record
     /// exists to hold: what came of a step is only readable next to what it was given.
@@ -133,28 +159,30 @@ public sealed record PlanRun
     public required TimeSpan Ceiling { get; init; }
 
     /// <summary>
-    /// Steps that took longer than the ceiling and did not end by our giving up.
+    /// Steps where the manager alone took longer than the ceiling to answer the request.
     ///
     /// <b>This is a real case and it surprises people, which is why it is a property rather
-    /// than something a reader is left to spot.</b> <c>--timeout</c> caps how long this tool
-    /// waits <i>after</i> the manager accepts a request. It cannot cap the manager's own
+    /// than something a reader is left to spot.</b> <c>--timeout</c> governs the watching
+    /// <i>after</i> the manager accepts a request. It cannot cap the manager's own
     /// answer, and the manager does not always answer quickly: measured on Windows Server
     /// 2025 on 2026-08-04, <c>StartService</c> for a service that never reports itself took
     /// <b>30 375-30 450 ms across three runs</b> before coming back with error 1053. So
     /// <c>bws start X --timeout 1</c> ran for half a minute, reported the truth, and looked
     /// like a switch that did nothing.
     ///
-    /// <b>The test carries no threshold on purpose.</b> A step that ended in
-    /// <see cref="StepOutcome.TimedOut"/> reached the ceiling because the ceiling worked, and
-    /// its own line already says "gave up after". Any other step that ran past the ceiling
-    /// spent that time somewhere the ceiling does not reach, and that is the whole of what
-    /// there is to say. Picking a multiple of the ceiling instead would have been a number
-    /// with no reason behind it.
+    /// <b>READ OFF <see cref="StepResult.Answered"/> SINCE 2026-09-30, AND UNTIL THEN OFF THE WHOLE
+    /// STEP.</b> The whole step used to be the right measure, because the ceiling capped the whole
+    /// watch and anything over it had to have been spent in the manager. From that day the ceiling
+    /// counts time without progress, so a stop reporting progress for ninety seconds under a limit of
+    /// sixty is the limit working - and the old measure would have told somebody the manager took
+    /// ninety seconds to answer, which it did not.
+    ///
+    /// <b>The test carries no threshold on purpose.</b> An answer longer than the ceiling was
+    /// spent somewhere the ceiling does not reach, and that is the whole of what there is to say.
+    /// Picking a multiple of the ceiling instead would have been a number with no reason behind it.
     /// </summary>
     public IReadOnlyList<StepResult> OutranTheCeiling =>
-        [.. Results.Where(result =>
-            result.Outcome != StepOutcome.TimedOut
-            && result.Milliseconds > Ceiling.TotalMilliseconds)];
+        [.. Results.Where(result => result.Answered > Ceiling.TotalMilliseconds)];
 
     /// <summary>
     /// Every entry ended up where the plan wanted it.

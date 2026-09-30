@@ -176,6 +176,41 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
     }
 
     /// <summary>
+    /// An entry already on its way somewhere when the run begins - somebody else asked - that gets
+    /// there <paramref name="after"/> from now, and until then says <paramref name="meanwhile"/>. Where
+    /// it is going follows from the pending state it is in: stopping ends in Stopped, anything else in
+    /// Running.
+    ///
+    /// <b>Added 2026-09-30 for stability report W-1 and W-7.</b> Until then every entry here moved only
+    /// when this tool asked it to, so the one shape the report was about - a step meeting an entry
+    /// still stopping - could not be written down at all.
+    /// </summary>
+    internal FakeScmControl OnItsWay(string serviceName, TimeSpan after, ServiceProgress meanwhile)
+    {
+        var ruler = clock
+            ?? throw new InvalidOperationException("An entry on its way needs the clock the runner is given.");
+
+        var entry = Entry(serviceName);
+        entry.Arrival = new Arrival(ruler, after, meanwhile);
+        entry.Moving = true;
+        entry.AskedAt = ruler.Elapsed;
+        entry.Heading = meanwhile.Status == EntryStatus.StopPending ? EntryStatus.Stopped : EntryStatus.Running;
+        entry.Status = meanwhile.Status;
+        return this;
+    }
+
+    /// <summary>
+    /// An entry whose manager sits on every request for <paramref name="by"/> before answering it -
+    /// the shape measured on Windows Server 2025, where one start took half a minute to come back.
+    /// </summary>
+    internal FakeScmControl SlowToAnswer(string serviceName, TimeSpan by)
+    {
+        _ = clock ?? throw new InvalidOperationException("A slow answer needs the clock the runner is given.");
+        Entry(serviceName).AnswersAfter = by;
+        return this;
+    }
+
+    /// <summary>
     /// How many times anybody asked where an entry is, every entry counted.
     ///
     /// For the one question the other lists cannot answer: whether looking sooner turned into
@@ -205,16 +240,17 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
 
         var entry = Entry(serviceName);
 
-        if (entry.RequestRefusedWith is { } refused)
+        if (entry.AnswersAfter is { } slow)
         {
-            if (entry.BecomesOnRefusal is { } becomes)
-            {
-                entry.Status = becomes;
-            }
-
-            return ControlAnswer.Refused(refused, $"refused with {refused}");
+            clock!.Wait(slow);
         }
 
+        if (Refusal(entry, operation) is { } refused)
+        {
+            return refused;
+        }
+
+        entry.AskedAgain();
         entry.Moving = true;
 
         if (entry.Arrival is { } arrival)
@@ -233,6 +269,35 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
         }
 
         return ControlAnswer.Done();
+    }
+
+    /// <summary>
+    /// What the manager says no to before anything moves: an entry told to refuse, and - since
+    /// 2026-09-30 - an entry still on its way somewhere, as a real manager refuses a stop to an entry
+    /// already stopping and a start to one still stopping. Before that day nothing here was ever on its
+    /// way when it was asked. Its own method because the shape guard counts the forks of a test method.
+    /// </summary>
+    private static ControlAnswer? Refusal(Behaviour entry, StepOperation operation)
+    {
+        if (entry.RequestRefusedWith is { } refused)
+        {
+            if (entry.BecomesOnRefusal is { } becomes)
+            {
+                entry.Status = becomes;
+            }
+
+            return ControlAnswer.Refused(refused, $"refused with {refused}");
+        }
+
+        if (entry.Moving
+            && entry.Arrival is { } onItsWay
+            && onItsWay.Clock.Elapsed - entry.AskedAt < onItsWay.After)
+        {
+            var code = operation == StepOperation.Stop ? CannotAcceptControl : AlreadyRunning;
+            return ControlAnswer.Refused(code, $"refused with {code}");
+        }
+
+        return null;
     }
 
     public ControlAnswer Read(string serviceName)
@@ -286,6 +351,12 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
     /// </summary>
     internal const uint FakeProcess = 4812;
 
+    /// <summary>ERROR_SERVICE_CANNOT_ACCEPT_CTRL - what a stop to an entry already stopping gets.</summary>
+    internal const int CannotAcceptControl = 1061;
+
+    /// <summary>ERROR_SERVICE_ALREADY_RUNNING - what a start to an entry that is not stopped gets.</summary>
+    internal const int AlreadyRunning = 1056;
+
     private static uint Held(Behaviour entry) =>
         entry.Status == EntryStatus.Stopped ? 0 : (uint)entry.ProcessId;
 
@@ -310,6 +381,21 @@ internal sealed class FakeScmControl(IClock? clock = null) : IScmControl
         internal int ProcessId { get; set; } = (int)FakeProcess;
 
         internal int? ConfigureRefusedWith { get; set; }
+
+        internal TimeSpan? AnswersAfter { get; set; }
+
+        /// <summary>
+        /// A SECOND REQUEST AFTER THE SCRIPT HAS PLAYED OUT starts from where the entry stands, rather
+        /// than handing out the last reading of the FIRST request's journey for ever - so a restart of
+        /// an entry scripted to stop slowly can be put back. Since 2026-09-30.
+        /// </summary>
+        internal void AskedAgain()
+        {
+            if (Moving && AfterRequest is { Count: 1 })
+            {
+                AfterRequest = null;
+            }
+        }
 
         internal EntryStatus Status { get; set; } = EntryStatus.Running;
 

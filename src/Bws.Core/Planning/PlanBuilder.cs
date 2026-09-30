@@ -510,6 +510,7 @@ public sealed class PlanBuilder(
 
         // The same pitfall from the other side - UX-GUI-006 and spec C4.
         StartTypeWarnings.Add(warnings, target, action);
+        RefusedStartWarnings.Add(warnings, target, action);
 
         // THE TWO SENTENCES ONLY A FORCING ASK PRODUCES, and neither of them is the shared process
         // warning above - that one does not fire for these kinds at all, because it says the

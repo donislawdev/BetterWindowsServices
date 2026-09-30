@@ -318,7 +318,7 @@ public sealed partial class Planned
             return null;
         }
 
-        return new Escalation(kind, result.Step.ServiceName, Label(kind), Because(run, result));
+        return new Escalation(kind, result.Step.ServiceName, Label(kind), Because(result));
     }
 
     /// <summary>
@@ -348,20 +348,21 @@ public sealed partial class Planned
         : Texts.Of("gui.plan.offer.forceRestart");
 
     /// <summary>
-    /// Why the next sheet is open, in one sentence, read off the run rather than assumed.
+    /// Why the next sheet is open, in one sentence, read off the step rather than assumed.
     ///
-    /// <b>The number of seconds comes from the run's own ceiling and is never written down
-    /// here.</b> The window pins its ceiling to the command line's sixty seconds so that "it worked
-    /// from the terminal" cannot be a true sentence about the same entry - and a wording that
-    /// spelled sixty out would keep saying it after somebody moved that pin.
+    /// <b>NO NUMBER OF SECONDS SINCE 2026-09-30, AND THE ONE THAT STOOD HERE WAS OFTEN FALSE.</b> The
+    /// sentence said "gave up after" the run's ceiling, while a step also gives up when the entry
+    /// breaks its own promise - after two seconds, say - and from that day the ceiling counts time
+    /// without progress, so a stop can give up after three minutes. What is true in every one of those
+    /// cases is that the entry stopped making progress, and that is what it says now.
     ///
     /// <b>Two sentences, because giving up and being refused are different things.</b> The manager
     /// took the first request and we stopped watching - it declined the second outright. Telling
     /// somebody the first failed would be a claim about something nobody saw, which is the
     /// distinction <see cref="StepOutcome"/> draws and this carries onto a screen.
     /// </summary>
-    private static string Because(PlanRun run, StepResult result) =>
+    private static string Because(StepResult result) =>
         result.Outcome == StepOutcome.TimedOut
-            ? Texts.Of("gui.plan.because.timedOut", (int)run.Ceiling.TotalSeconds)
+            ? Texts.Of("gui.plan.because.timedOut")
             : Texts.Of("gui.plan.because.refused");
 }
