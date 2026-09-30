@@ -18,8 +18,10 @@ public sealed class AftermathSentenceTests
     [InlineData(PlanWarningKind.RecoveryUnnamed, "cli.plan.warning.recoveryUnnamed")]
     public void Each_warning_has_its_own_sentence_in_both_numbers(PlanWarningKind kind, string key)
     {
+        // The fourth argument is the bare name the restart sentence quotes in its command since backlog 501 -
+        // the other two sentences have no fourth place and ignore it.
         Assert.Equal(
-            Texts.Of($"{key}.one", "Spooler", 1, "Spooler"),
+            Texts.Of($"{key}.one", "Spooler", 1, "Spooler", "Spooler"),
             PlanText.Describe(new PlanWarning(kind, "Spooler", ["Spooler"])));
 
         Assert.Equal(

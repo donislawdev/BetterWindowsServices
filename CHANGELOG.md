@@ -25,8 +25,18 @@ is not part of this repository.
   in a terminal. A force stop refused for the same reason offers the same, and it is the way forward
   from that sheet. Nothing is carried out until you press the button at the foot of the plan, and a
   restart as administrator keeps the choice.
+- After a plan that ended a process - `bws kill`, or Force stop in the window - the report says which
+  services Windows will start again by itself and how long after the ending, as their recovery
+  actions say (`sc.exe qfailure` shows them). The step that ended the process is reported done the
+  moment it happens, and a service set to restart after a minute was back a minute later with nothing
+  on screen saying so. A forced restart that started everything again itself adds nothing.
 
 ### Changed
+
+- The warning that Windows starts a service again once its process is ended now says when, beside
+  every name: "Spooler (5 s later)", or "W32Time (60 s or 120 s later)" when the recovery actions
+  name several delays - which of them applies depends on how often the service has failed, and
+  Windows does not say. With `--json` this is in the `message` of the warning. No field was added.
 
 - Interrupt goes grey once pressed, and the line at the top of the plan says the run was
   interrupted and is finishing the step in flight. Until now pressing it left no trace on the screen.

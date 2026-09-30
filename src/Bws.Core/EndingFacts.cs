@@ -79,13 +79,32 @@ public readonly record struct EndingFacts(Reading<bool> CanBeEnded, Reading<long
 }
 
 /// <summary>
-/// One thing the manager does when an entry's process dies without the entry saying it stopped.
+/// One item of an entry's recovery list, as the manager keeps it: what it does, and how long after the
+/// failure it does it.
+///
+/// <b>The delay is kept since 2026-09-30, backlog 501, and until that day it was read and dropped.</b>
+/// A restart after a minute is a different sentence from one at once - the step that ended the process
+/// reports success, the run reports complete, and the service is back a minute later with nobody told.
+/// The plan now says when, and so does the report after a run. Measured on the owner's machine before the
+/// change: of 204 services with a restart in the list, 123 name more than one delay, so the sentence names
+/// every one of them rather than guessing which comes.
+/// </summary>
+/// <param name="Action">What this item does.</param>
+/// <param name="Delay">
+/// How long the manager waits after the failure before doing it - Microsoft's <c>SC_ACTION.Delay</c>, in
+/// milliseconds there. Zero is an ordinary value: five services on that machine restart at once.
+/// </param>
+public readonly record struct RecoveryItem(RecoveryAction Action, TimeSpan Delay);
+
+/// <summary>
+/// What one item of the recovery list does when an entry's process dies without the entry saying it
+/// stopped - the kind of an item, <see cref="RecoveryItem"/> carries it with its delay.
 ///
 /// <b>Read for the plan that ends a process and for nothing else, since 2026-09-30</b> (stability
 /// report W-3). Ending a process IS that death - measured on the throwaway machine that day, the
 /// restart came in ten endings of ten with the flag that widens these actions switched off. The
-/// full recovery list with its delays belongs to phase 2 of the plan, in the listing and the details,
-/// and none of this is in the machine readable output.
+/// full recovery list belongs to phase 2 of the plan, in the listing and the details, and none of this
+/// is in the machine readable output.
 ///
 /// <b>Which item of the list runs is not knowable from outside.</b> The manager counts failures since
 /// the machine started and runs item N for failure N, repeating the last - and no call hands out the
@@ -150,7 +169,7 @@ public interface IEndingFactsReader
     /// and the plan refuses on that: a casualty list whose consequences are known to be missing is
     /// the same shape as one known to be short.
     /// </summary>
-    Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(string serviceName);
+    Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName);
 }
 
 /// <summary>
@@ -166,6 +185,6 @@ internal sealed class NobodyToAsk : IEndingFactsReader
 
     public EndingFacts Read(int processId) => EndingFacts.NobodyAsked();
 
-    public Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(string serviceName) =>
-        Reading<IReadOnlyList<RecoveryAction>>.NotRead();
+    public Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName) =>
+        Reading<IReadOnlyList<RecoveryItem>>.NotRead();
 }

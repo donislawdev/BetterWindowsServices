@@ -364,7 +364,7 @@ public sealed partial class Planned : Checked
             ? _because.Length == 0
                 ? Texts.Of("gui.plan.notice.notYet")
                 : Texts.Of("gui.plan.notice.because", _because, Texts.Of("gui.plan.notice.notYet"))
-            : Reported(run);
+            : PlanWords.ThenComingBack(Reported(run), run);
 
     /// <summary>
     /// How a finished run reads, in the singular and in the plural.

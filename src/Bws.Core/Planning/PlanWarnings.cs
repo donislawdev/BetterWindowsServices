@@ -225,4 +225,33 @@ public sealed record PlanWarning(PlanWarningKind Kind, string ServiceName, IRead
         : this(kind, serviceName, [])
     {
     }
+
+    /// <summary>
+    /// When each entry in <see cref="Related"/> comes back, for <see cref="PlanWarningKind.RecoveryRestarts"/>
+    /// and empty for every other kind - the way <see cref="PlanProblem.ProcessId"/> is zero for every
+    /// refusal but one. Built from the same reading as the names, in the same order.
+    ///
+    /// <b>Here rather than on the step that ends the process, since 2026-09-30 (backlog 501)</b>, because
+    /// the sentence before the run is made from the warning alone, and the line after it
+    /// (<see cref="PlanRun.ComingBack"/>) can read the warning off the plan it ran. A copy on the step
+    /// would be a second answer that nothing in the run itself uses.
+    ///
+    /// <b>Not in the machine readable output</b> - the owner's decision of that day. The delays reach a
+    /// script only inside the sentence.
+    /// </summary>
+    public IReadOnlyList<RecoveryRestart> Restarts { get; init; } = [];
 }
+
+/// <summary>
+/// An entry the manager starts again by itself once its process is ended, and the delays its recovery
+/// list names for that - every different one, in the order of the list.
+///
+/// <b>Every delay rather than one, and that is the documented behaviour rather than caution.</b> The
+/// manager counts failures since the machine started and runs item N for failure N, repeating the last,
+/// and forgets the count after the reset period (<c>SERVICE_FAILURE_ACTIONSW</c> on learn.microsoft.com,
+/// read 2026-09-30). The page names no call that hands the count out, so which of these delays applies is
+/// not known from outside, and the sentence says "60 s or 120 s later".
+/// </summary>
+/// <param name="ServiceName">The entry, by the name the manager knows it by.</param>
+/// <param name="After">Never empty - an entry without a restart in its list is not one of these.</param>
+public sealed record RecoveryRestart(string ServiceName, IReadOnlyList<TimeSpan> After);

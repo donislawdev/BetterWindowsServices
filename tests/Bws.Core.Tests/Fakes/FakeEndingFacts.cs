@@ -26,7 +26,7 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
     private readonly Dictionary<int, Reading<bool>> _rights = [];
     private readonly Dictionary<int, Reading<long>> _created = [];
     private readonly Dictionary<int, Reading<bool>> _critical = [];
-    private readonly Dictionary<string, Reading<IReadOnlyList<RecoveryAction>>> _recovery = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Reading<IReadOnlyList<RecoveryItem>>> _recovery = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Every entry whose recovery list was asked for, in order.</summary>
     internal List<string> AskedRecovery { get; } = [];
@@ -45,17 +45,21 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
         return this;
     }
 
-    /// <summary>What the manager does to this entry when its process dies, item by item.</summary>
-    internal FakeEndingFacts Recovering(string serviceName, params RecoveryAction[] actions)
+    /// <summary>What the manager does to this entry when its process dies, item by item, each at once.</summary>
+    internal FakeEndingFacts Recovering(string serviceName, params RecoveryAction[] actions) =>
+        Recovering(serviceName, [.. actions.Select(action => new RecoveryItem(action, TimeSpan.Zero))]);
+
+    /// <summary>The same with the delay of each item, for the sentences that say when (backlog 501).</summary>
+    internal FakeEndingFacts Recovering(string serviceName, params RecoveryItem[] items)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Present(actions);
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Present(items);
         return this;
     }
 
     /// <summary>The manager will not say what it does to this entry.</summary>
     internal FakeEndingFacts RefusingRecovery(string serviceName, int errorCode = 5)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Denied(errorCode, "Access is denied.");
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Denied(errorCode, "Access is denied.");
         return this;
     }
 
@@ -65,18 +69,18 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
     /// </summary>
     internal FakeEndingFacts GoneFromTheManager(string serviceName)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryAction>>.Absent();
+        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Absent();
         return this;
     }
 
-    public Reading<IReadOnlyList<RecoveryAction>> ReadRecovery(string serviceName)
+    public Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName)
     {
         AskedRecovery.Add(serviceName);
 
         // An entry nobody scripted has no recovery at all - the ordinary answer is a list with no items.
         return _recovery.TryGetValue(serviceName, out var recovery)
             ? recovery
-            : Reading<IReadOnlyList<RecoveryAction>>.Present([]);
+            : Reading<IReadOnlyList<RecoveryItem>>.Present([]);
     }
 
     /// <summary>Every process this was asked about, in order, so a test can see it was asked once.</summary>

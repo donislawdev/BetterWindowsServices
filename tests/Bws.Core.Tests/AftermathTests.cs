@@ -33,6 +33,29 @@ public sealed class AftermathTests
     }
 
     [Fact]
+    public void The_restart_warning_carries_every_delay_once_in_the_order_of_the_list()
+    {
+        // Backlog 501. 60 s twice and 120 s once is two delays, a program is not a restart, and a neighbour
+        // with no restart at all is not named - the names and the delays come from one reading.
+        var facts = new FakeEndingFacts()
+            .Recovering(
+                "Netlogon",
+                new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromSeconds(60)),
+                new RecoveryItem(RecoveryAction.RunProgram, TimeSpan.FromSeconds(5)),
+                new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromSeconds(120)),
+                new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromSeconds(60)),
+                new RecoveryItem(RecoveryAction.Nothing, TimeSpan.Zero))
+            .Recovering("SessionEnv", new RecoveryItem(RecoveryAction.Nothing, TimeSpan.FromSeconds(30)));
+
+        var warning = Warning(Forced(Sharing(), facts), PlanWarningKind.RecoveryRestarts);
+
+        var restart = Assert.Single(warning.Restarts);
+        Assert.Equal("Netlogon", restart.ServiceName);
+        Assert.Equal([TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(120)], restart.After);
+        Assert.Equal(["Netlogon"], warning.Related);
+    }
+
+    [Fact]
     public void A_neighbour_that_sets_a_program_off_is_named_and_the_entry_is_asked_first()
     {
         var facts = new FakeEndingFacts().Recovering("SessionEnv", RecoveryAction.Nothing, RecoveryAction.RunProgram);
