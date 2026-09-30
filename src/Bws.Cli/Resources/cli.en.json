@@ -89,6 +89,7 @@
   "cli.plan.warning.startsAtNextBoot": "{0} is stopped, and a start type does not start it. It starts at the next restart of the machine.",
   "cli.plan.warning.disabledCannotStart": "{0} is disabled, and Windows refuses to start a disabled entry. To make it startable first: {1}",
   "cli.plan.warning.pausedCannotStart": "{0} is paused, and a start does not resume a paused service - Windows will refuse it. To resume it instead: sc.exe continue {0}",
+  "cli.plan.warning.restartOnlyStarts": "{0} is not running, so restarting it only starts it.",
   "cli.plan.warning.recoveryRestarts.one": "Once the process behind {0} is ended, Windows starts {2} again by itself - its recovery actions say so. The stop may not last. See them with sc.exe qfailure {2}",
   "cli.plan.warning.recoveryRestarts.many": "Once the process behind {0} is ended, Windows starts {1} entries again by itself - their recovery actions say so: {2}. The stop may not last. See them with sc.exe qfailure",
   "cli.plan.warning.recoveryRunsProgram.one": "Once the process behind {0} is ended, Windows runs the program named in the recovery actions of {2}. See it with sc.exe qfailure {2}",
@@ -115,6 +116,7 @@
   "cli.run.outcome.earlierStepFailed": "not tried, an earlier step did not work",
   "cli.run.outcome.cancelled": "not tried, the run was interrupted",
   "cli.run.outcome.processStays": "not needed, the process it lives in is not being ended",
+  "cli.run.outcome.nothingToPutBack": "not started, this run never stopped it",
 
   "cli.run.took.milliseconds": "{0} ms",
   "cli.run.took.seconds": "{0} s",

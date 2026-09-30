@@ -86,12 +86,8 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             cancelled |= cancellation.IsCancellationRequested;
             abandoned |= abandonment.IsCancellationRequested;
 
-            var because = Held(step.Reason, abandoned, cancelled, forwardFailed, cascadeFailed);
-
-            if (because is null && step.Reason == StepReason.SharesTheProcess && Stays(plan))
-            {
-                because = SkipReason.ProcessStays;
-            }
+            var because = Held(step.Reason, abandoned, cancelled, forwardFailed, cascadeFailed)
+                ?? Unneeded(step, plan, results);
 
             if (because is { } skipped)
             {
@@ -140,9 +136,10 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
     ///
     /// <b>Putting things back is not part of the forward path and does not stop when the forward path
     /// does.</b> Those steps exist to give back what earlier steps took, and abandoning them would
-    /// leave the machine trimmed by a plan that failed - the one outcome nobody asked for. Anything
-    /// that was never taken down is found already in place and reported as such, so this costs
-    /// nothing when it is not needed.
+    /// leave the machine trimmed by a plan that failed - the one outcome nobody asked for. <b>What
+    /// was never taken down is not given back at all, since 2026-09-30</b> - <see cref="Unneeded"/>
+    /// says why. This comment used to say such an entry would be found already in place, which was
+    /// true of an entry left running and false of one stopped all along (stability report W-5).
     ///
     /// <b>THE STEPS STANDING BEHIND THE ENTRY'S OWN STOP NEED THE OPPOSITE TREATMENT.</b> The ending
     /// of a process and, since 2026-09-29, the neighbours asked on the way to it exist for the case
@@ -172,6 +169,27 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             ? SkipReason.EarlierStepFailed
             : null;
     }
+
+    /// <summary>
+    /// Why a step nothing held back is still not worth trying - or nothing when it is.
+    ///
+    /// <b>Two answers, one question: the plan wanted this step only on the way to something that is not
+    /// going to happen.</b> A neighbour is asked to stop only so its process can be ended, and
+    /// <see cref="Stays"/> says when it will not be. A step putting an entry back exists only to give
+    /// back what the run took, and <see cref="NetEffect.TookDown"/> says when it took nothing.
+    ///
+    /// <b>The second arrived on the owner's decision of 2026-09-30</b> (stability report W-5). Until then
+    /// every step putting something back was tried, so Stop pressed before the first step of a restart
+    /// started a service that had been stopped all along - and an interrupted bulk restart and a
+    /// dependant somebody else had stopped in the meantime did the same. Asked from what the run itself
+    /// recorded, so it costs no reading of the machine.
+    /// </summary>
+    private SkipReason? Unneeded(PlanStep step, OperationPlan plan, List<StepResult> results) => step.Reason switch
+    {
+        StepReason.SharesTheProcess when Stays(plan) => SkipReason.ProcessStays,
+        StepReason.Restore when !NetEffect.TookDown(results, step.ServiceName) => SkipReason.NothingToPutBack,
+        _ => null
+    };
 
     /// <summary>
     /// Whether the process a plan ends is going to stay, asked just before a neighbour would be told

@@ -97,16 +97,13 @@ internal static partial class PlanWords
 
         PlanWarningKind.StartsAtNextBoot => Texts.Of("gui.plan.warning.startsAtNextBoot", warning.ServiceName),
 
-        PlanWarningKind.DisabledCannotStart => Texts.Of("gui.plan.warning.disabledCannotStart", warning.ServiceName),
-
-        PlanWarningKind.PausedCannotStart => Texts.Of("gui.plan.warning.pausedCannotStart", warning.ServiceName),
-
         // NAMED ARMS AND A REFUSAL, SINCE 2026-09-06, AND THE WILDCARD THAT WAS HERE IS WHY. Every
         // kind but one used to fall through to "is already in that state, so nothing would change" -
         // a warning added without a sentence would have said something confident and wrong about a
         // machine rather than nothing at all. The terminal's own switch had the same shape and was
-        // changed the same day. Since 2026-09-30 the refusal stands at the end of the next switch
-        // along, which names what an ending sets off - this one is one fork under the ceiling.
-        _ => Aftermath(warning)
+        // changed the same day. Since 2026-09-30 the refusal stands at the end of a chain of switches
+        // along - the start in the plan first, then what an ending sets off - and this one gave its
+        // two arms about a start to the first of them rather than growing to the ceiling.
+        _ => Starting(warning)
     };
 }

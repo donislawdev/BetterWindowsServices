@@ -120,6 +120,19 @@ is not part of this repository.
 - Just before the process is ended, a force stop looks at it once more. If a service has started
   inside it since the preview, or a running service outside it has started to depend on something
   inside it, the process is not ended and the step says why.
+- Stop pressed before the first step of a restart, or Ctrl+C, no longer starts a service that was
+  not running. A run now starts again only what it stopped itself: after an interruption, after a
+  stop that was refused, and for a dependent somebody else stopped between the preview and the
+  run, the step says "not started, this run never stopped it" and `skippedBecause` in the JSON of
+  a run is `nothingToPutBack`. The same goes for a restart of a whole selection interrupted half
+  way. A service stopped by somebody else after the preview of its own restart is left stopped,
+  and the run says it did not end where the plan wanted it.
+- Restarting a service that is not running only starts it, from the window and with
+  `bws restart`, and the preview says so - one step and the warning "is not running, so
+  restarting it only starts it" (`restartOnlyStarts` in the JSON). Until now the preview showed a
+  stop and a start. A disabled service that is not running is no longer refused with a sentence
+  about stopping it - the plan warns that Windows will refuse to start it, the same as a plan to
+  start it.
 
 ## [0.3.0] - 2026-09-25
 

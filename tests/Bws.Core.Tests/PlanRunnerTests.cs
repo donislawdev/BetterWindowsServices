@@ -225,9 +225,10 @@ public sealed class PlanRunnerTests
         Assert.False(run.Completed);
         Assert.Equal(StepOutcome.Failed, Outcome(run, "MRxSmb20", StepOperation.Stop));
 
-        // Its own start gives it back, so it is tried rather than abandoned - and finds
-        // nothing to do, because the stop that failed left it running.
-        Assert.Equal(SkipReason.AlreadyThere, Result(run, "MRxSmb20", StepOperation.Start).SkippedBecause);
+        // Its own start is not tried, because the stop that failed never took it down. Until
+        // 2026-09-30 it was tried and found the entry running - the same machine, and a
+        // reason that only held because the entry happened to be running (stability report W-5).
+        Assert.Equal(SkipReason.NothingToPutBack, Result(run, "MRxSmb20", StepOperation.Start).SkippedBecause);
 
         foreach (var name in (string[])["LanmanWorkstation", "Netlogon", "SessionEnv"])
         {
@@ -273,8 +274,9 @@ public sealed class PlanRunnerTests
 
         Assert.Equal(StepOutcome.Failed, Outcome(run, "LanmanWorkstation", StepOperation.Stop));
 
-        // Nothing after it went down, so there is nothing to put back and the restores find
-        // their work done. What matters is that they were reached at all.
+        // Nothing after it went down, so the restores of those have nothing to put back - and
+        // say so - while the two dependants that did go down come back. What matters is that
+        // no restore was held back by the failure itself.
         Assert.All(
             run.Results.Where(result => result.Step.Reason == StepReason.Restore),
             result => Assert.NotEqual(SkipReason.EarlierStepFailed, result.SkippedBecause));
@@ -333,8 +335,10 @@ public sealed class PlanRunnerTests
             starting: (_, number) => announced.Add(number));
 
         // Three and four are missing, because the forward path stopped at the refusal, and
-        // the numbers that follow do not close the gap. That is the whole point.
-        Assert.Equal([1, 2, 5, 6, 7, 8], announced);
+        // five to seven since 2026-09-30, because what they would put back was never taken
+        // down - Netlogon refused and the two behind it were not tried. The one number left
+        // after the gap does not close it. That is the whole point.
+        Assert.Equal([1, 2, 8], announced);
     }
 
     [Fact]

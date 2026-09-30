@@ -197,7 +197,19 @@ public enum PlanWarningKind
     /// four and <c>Schedule</c> carries a fifth. Said rather than guessed at, and never left out: the
     /// owner's decision of 2026-09-30.
     /// </summary>
-    RecoveryUnnamed
+    RecoveryUnnamed,
+
+    /// <summary>
+    /// A restart of an entry read as Stopped, planned as a start - there is nothing to stop, so all it
+    /// does is start it.
+    ///
+    /// <b>The owner's decision of 2026-09-30</b> (stability report W-5), the answer <c>Restart-Service</c>
+    /// gives as well. Said because the plan no longer shows the stop somebody expects of a restart, and a
+    /// plan shorter than expected with no word about it reads as a plan that forgot something. Measured
+    /// before the change: <c>bws restart AxInstSV --dry-run</c> on a stopped entry of this machine showed a
+    /// stop and a start "put back" and said nothing about the entry not running.
+    /// </summary>
+    RestartOnlyStarts
 }
 
 /// <summary>

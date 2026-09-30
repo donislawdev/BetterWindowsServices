@@ -124,6 +124,26 @@ public static class NetEffect
     }
 
     /// <summary>
+    /// Whether these results took the entry down - asked by a step that puts the entry back, before it is
+    /// tried.
+    ///
+    /// <b>HERE RATHER THAN IN THE RUNNER BECAUSE IT IS THE WAY BACK'S OWN QUESTION, and two answers to it
+    /// would be two things that have to agree</b> - the argument this file was made for. On the owner's
+    /// decision of 2026-09-30 (stability report W-5) a step putting something back gives back only what the
+    /// run took: a stop that arrived or timed out, or an ending that took the entry with its process. Until
+    /// then every such step ran, and an entry that was stopped all along was started by a restart nobody
+    /// let begin.
+    ///
+    /// <b>One case counts here and not in the way back:</b> an ending after which Windows started the entry
+    /// again at once (<see cref="StepResult.StartedAgain"/>). The process was ended, so the entry WAS taken
+    /// down - the step putting it back reads it, finds it running and says so. For the way back the same
+    /// entry ended where it began, which is why <see cref="Of"/> does not count it.
+    /// </summary>
+    internal static bool TookDown(IEnumerable<StepResult> results, string serviceName) =>
+        Tally(results, endingCounts: true).Moves.TryGetValue(serviceName, out var moved)
+        && moved.Last is StepOperation.Stop or StepOperation.Terminate;
+
+    /// <summary>
     /// Where each entry was first and last moved, and what each startup setting was before and after -
     /// the two tallies <see cref="Of"/> turns into lines.
     ///
@@ -131,10 +151,14 @@ public static class NetEffect
     /// (stability report W-10) and Of went past the length the shape guard calls close to its ceiling.
     /// The seam is the one the method already had: counting what happened, then saying what undoes it.
     /// </summary>
+    /// <param name="endingCounts">
+    /// Count an ending that Windows answered by starting the entry again at once - <see cref="TookDown"/>
+    /// asks with it, <see cref="Of"/> without.
+    /// </param>
     private static (
         Dictionary<string, (StepOperation First, StepOperation Last, int When)> Moves,
         Dictionary<string, (StartSetting? From, StartSetting? To, int When)> Settings)
-        Tally(IEnumerable<StepResult> results)
+        Tally(IEnumerable<StepResult> results, bool endingCounts = false)
     {
         var moves = new Dictionary<string, (StepOperation First, StepOperation Last, int When)>(
             StringComparer.OrdinalIgnoreCase);
@@ -166,7 +190,9 @@ public static class NetEffect
                 foundStopped.Add(result.Step.ServiceName);
             }
 
-            if (result.Outcome != StepOutcome.Succeeded && result.Outcome != StepOutcome.TimedOut)
+            if (result.Outcome != StepOutcome.Succeeded
+                && result.Outcome != StepOutcome.TimedOut
+                && !(endingCounts && result.StartedAgain))
             {
                 continue;
             }
