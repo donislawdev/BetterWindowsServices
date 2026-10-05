@@ -31,4 +31,4 @@
 # licence was unstated. It analyses the source tree in CI and is never linked into anything this
 # project ships, so it creates no distribution obligation - see THIRD-PARTY-NOTICES.md for what
 # does.
-semgrep==1.177.0
+semgrep==1.178.0
