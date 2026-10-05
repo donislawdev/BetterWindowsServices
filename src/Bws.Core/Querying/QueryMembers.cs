@@ -60,6 +60,13 @@ public static class QueryMembers
     /// then clicked the chip for it has the member twice through no fault of their own, and a
     /// chip that turned off while leaving one behind would be a control that visibly does not
     /// work.
+    ///
+    /// <b>One value out of a list, not the list, since 2026-10-05.</b> Somebody who typed
+    /// <c>status:running,stopped</c> sees both chips lit, and turning Stopped off used to cut the
+    /// whole member - so Running went dark with it and the line was empty (stability report Q-5).
+    /// Now only the values asked about leave, each with one comma, and the rest of the member
+    /// stays character for character. The whole member still goes when nothing in it would be
+    /// left to say.
     /// </summary>
     public static string Without(string? text, string field, string value, bool negated)
     {
@@ -76,55 +83,118 @@ public static class QueryMembers
             return text;
         }
 
-        var doomed = new List<Range>();
+        var cuts = new List<Cut>();
 
         for (var index = 0; index < members.Count; index++)
         {
-            if (Is(text[spans[index]], field, value, negated))
+            if (!Is(text[spans[index]], field, value, negated))
             {
-                doomed.Add(spans[index]);
+                continue;
             }
+
+            var (start, length) = spans[index].GetOffsetAndLength(text.Length);
+            var whole = new Cut(start, start + length, Whole: true);
+
+            cuts.AddRange(ValuesOut(members[index], start + length, value) ?? [whole]);
         }
 
-        if (doomed.Count == 0)
-        {
-            return text;
-        }
-
-        // Backwards, so that cutting one span does not move the ones not yet cut.
+        // Backwards, so that cutting one span does not move the ones not yet cut. The cuts come
+        // in the order they stand in the line and never overlap - ValuesOut says why.
         var left = text;
 
-        for (var index = doomed.Count - 1; index >= 0; index--)
+        for (var index = cuts.Count - 1; index >= 0; index--)
         {
-            var (start, length) = doomed[index].GetOffsetAndLength(left.Length);
-            var end = start + length;
-
-            // THE CUT SWALLOWS ONE GAP AND ONLY THE ONE IT MADE. Removing just the member leaves
-            // the space in front of it and the space behind it side by side, so the line grows a
-            // double gap every time a chip is turned off. Taking the gap in front - or the one
-            // behind, when the member was first - closes the hole and leaves every other
-            // character where the person put it, tabs and all.
-            //
-            // The alternative was collapsing whitespace across the whole line afterwards, which
-            // is two lines shorter and quietly reformats text somebody is looking at.
-            while (start > 0 && char.IsWhiteSpace(left[start - 1]))
-            {
-                start--;
-            }
-
-            if (start == 0)
-            {
-                while (end < left.Length && char.IsWhiteSpace(left[end]))
-                {
-                    end++;
-                }
-            }
-
-            left = left[..start] + left[end..];
+            left = Remove(left, cuts[index]);
         }
 
         return left;
     }
+
+    /// <summary>
+    /// The cuts that take this value out of a member's list, or null when the member has nothing
+    /// left without it and goes whole.
+    ///
+    /// <b>Each value leaves with the comma after it, and the ones after the last value that stays
+    /// leave with the comma before it</b> - otherwise <c>status:a,b</c> without <c>b</c> would keep
+    /// a trailing comma, and two neighbours leaving together would both claim the comma between
+    /// them. Read through <see cref="QueryValueList"/>, the same cut the parser makes, so a comma
+    /// inside a pattern is never mistaken for one between values.
+    /// </summary>
+    private static List<Cut>? ValuesOut(ScannedText member, int end, string value)
+    {
+        var body = member.StartsWithSpecial('!') ? member.Slice(1) : member;
+        var colon = body.IndexOfSpecial(':');
+
+        if (colon <= 0)
+        {
+            return null;
+        }
+
+        var list = body.Slice(colon + 1);
+        var parts = QueryValueList.Of(list);
+        var spelling = QuerySpelling.Normalise(value);
+        var going = parts.Select(part => QuerySpelling.Normalise(list.Slice(part).Text) == spelling).ToArray();
+
+        if (!parts.Where((part, at) => !going[at]).Any(part => part.End.Value > part.Start.Value))
+        {
+            return null;
+        }
+
+        // Where each value begins in the line as written, and one more past the end - so the
+        // value at `at` runs to starts[at + 1] - 1, the comma after it or the end of the member.
+        int[] starts =
+        [
+            .. parts.Select((part, at) => 1 + (at == 0 ? body.WrittenAt[colon] : list.WrittenAt[part.Start.Value - 1])),
+            end + 1
+        ];
+
+        var lastKept = Array.FindLastIndex(going, gone => !gone);
+        var cuts = new List<Cut>();
+
+        for (var at = 0; at < going.Length; at++)
+        {
+            if (going[at])
+            {
+                cuts.Add(at < lastKept
+                    ? new Cut(starts[at], starts[at + 1], Whole: false)
+                    : new Cut(starts[at] - 1, starts[at + 1] - 1, Whole: false));
+            }
+        }
+
+        return cuts;
+    }
+
+    /// <summary>
+    /// The line without one cut.
+    ///
+    /// <b>A WHOLE MEMBER SWALLOWS ONE GAP AND ONLY THE ONE IT MADE.</b> Removing just the member
+    /// leaves the space in front of it and the space behind it side by side, so the line grows a
+    /// double gap every time a chip is turned off. Taking the gap in front - or the one behind,
+    /// when the member was first - closes the hole and leaves every other character where the
+    /// person put it, tabs and all. A value cut out of a list makes no gap, so it takes none.
+    ///
+    /// The alternative was collapsing whitespace across the whole line afterwards, which is two
+    /// lines shorter and quietly reformats text somebody is looking at.
+    /// </summary>
+    private static string Remove(string left, Cut cut)
+    {
+        var (start, end) = (cut.Start, cut.End);
+
+        while (cut.Whole && start > 0 && char.IsWhiteSpace(left[start - 1]))
+        {
+            start--;
+        }
+
+        while (cut.Whole && start == 0 && end < left.Length && char.IsWhiteSpace(left[end]))
+        {
+            end++;
+        }
+
+        return left[..start] + left[end..];
+    }
+
+    /// <summary>Characters to take out of the line, and whether they were a whole member.</summary>
+    private readonly record struct Cut(int Start, int End, bool Whole);
 
     /// <summary>
     /// Whether the text already carries this member, on this side - for one question about one

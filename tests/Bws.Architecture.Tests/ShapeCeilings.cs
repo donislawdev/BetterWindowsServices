@@ -65,8 +65,11 @@ internal static class ShapeCeilings
     /// </summary>
     internal const int DepthNear = 3;
 
-    /// <summary>Twenty-four at 3 levels or more.</summary>
-    internal const int MethodsNearDeepest = 24;
+    /// <summary>
+    /// Twenty-three at 3 levels or more. Twenty-four until 2026-10-05, when cutting a chip's member
+    /// out of a line moved its whitespace loops into a method of their own (QueryMembers.Remove).
+    /// </summary>
+    internal const int MethodsNearDeepest = 23;
 
     /// <summary>
     /// 9 parameters, Sentences.Admissions - the window's sentence about what it admitted, built from

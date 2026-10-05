@@ -149,7 +149,7 @@
   "gui.suggest.field.mismatch": "whether it disagrees with its own startup type",
   "gui.suggest.word.any": "has a value at all",
   "gui.suggest.word.none": "has no value",
-  "gui.suggest.word.unreadable": "could not be read",
+  "gui.suggest.word.unreadable": "could not be read, or was never read",
 
   "gui.filter.toggle": "Filters",
   "gui.filter.toggle.hint": "Show or hide the filters. Two in one row show both, and rows narrow each other - Running with Automatic is what is running and set to start automatically. Each one writes what it stands for into the search box, so what is on stays on either way and can be read and edited in the query.",
@@ -451,8 +451,9 @@
   "gui.query.badPattern": "The expression /{0}/ could not be read. {1}",
   "gui.query.unclosedQuote": "A quote is opened and never closed, starting at: {0}",
   "gui.query.badNumber": "{1} expects a number like 1234, >1000, <500, >=100 or 100-200. It got: {0}",
-  "gui.query.emptyTerm": "{0} says nothing. A ! needs something after it, and a word needs something in it.",
+  "gui.query.emptyTerm": "{0} says nothing. A ! needs something after it, a field needs a value after its colon, and quotes or slashes need something between them.",
   "gui.query.patternTooComplex": "The wildcard starting {0} has too many parts to build. Use fewer * and ? characters.",
+  "gui.query.unclosedPattern": "{0} opens an expression with / and never closes it. End it with a second /, or to search for the slash itself write \\/ or put the word in quotes.",
   "gui.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "gui.column.publisher": "Publisher",

@@ -32,9 +32,11 @@
         <h3>Człony</h3>
         <ul class="prose-list">
           <li>Człony rozdziela spacja i wszystkie muszą pasować - nie ma słowa <code>and</code>, bo nic innego nie mogłoby to znaczyć.</li>
+          <li>Jedynym wyjątkiem jest to samo pole wpisane dwa razy: <code>status:running status:stopped</code> znaczy jedno albo drugie, bo tak piszą dwa zaznaczone filtry. Dwie granice liczby dalej zawężają - <code>pid:&gt;1000 pid:&lt;2000</code> to przedział między nimi.</li>
           <li><code>!</code> przed członem neguje go: <code>!status:running</code>.</li>
           <li>Przecinek wewnątrz pola znaczy <em>albo</em>: <code>start:manual,disabled</code>.</li>
           <li>Cudzysłowy chronią wszystko ze spacjami i dwukropkami: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Ścieżka wklejona tak, jak jest - <code>C:\Windows\System32\svchost.exe</code> - jest szukana, a nie czytana jako pole o nazwie C.</li>
         </ul>
       </div>
       <div>
@@ -43,7 +45,7 @@
           <li><code>name:spool</code> pasuje do wszystkiego, co <em>zawiera</em> ten tekst - domyślnie, bo tego ludzie oczekują od pola wyszukiwania.</li>
           <li><code>name:=spooler</code> to dopasowanie dokładne.</li>
           <li><code>name:spool*</code> przyjmuje symbole wieloznaczne, <code>*</code> i <code>?</code>.</li>
-          <li><code>name:/^Sql.*/</code> to wyrażenie regularne.</li>
+          <li><code>name:/^Sql.*/</code> to wyrażenie regularne i między ukośnikami pisze się je tak, jak wyrażenia regularne: <code>\?</code>, <code>\\</code> i przecinek znaczą to, co tam. Ukośnik, który się nie zamyka, jest błędem - żeby szukać samego ukośnika, napisz <code>\/</code> albo użyj cudzysłowu.</li>
           <li>Wielkość liter jest ignorowana, także poza ASCII - polska nazwa wyświetlana pasuje niezależnie od tego, jak ją wpiszesz.</li>
         </ul>
       </div>

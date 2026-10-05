@@ -107,6 +107,9 @@ internal static class CountedWords
         // marks the process {0} runs in as critical" - a service name, then the verb above, then a
         // preposition that merely ends in s. Nothing here is counted.
         "as",
+        // One more on 2026-10-05, from the pattern that never closes: "{0} opens an expression with /
+        // and never closes it". The placeholder is the text somebody typed, never a count.
+        "opens",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
         "ms", "this", "process"

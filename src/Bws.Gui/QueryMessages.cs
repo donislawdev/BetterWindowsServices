@@ -45,6 +45,10 @@ internal static class QueryMessages
         QueryProblemKind.PatternTooComplex => Texts.Of(
             "gui.query.patternTooComplex", Excerpt(problem.Text)),
 
+        // Its own sentence rather than the one for a bad expression: the engine never saw this,
+        // and what somebody needs is the way to close it - or to search for the slash itself.
+        QueryProblemKind.UnclosedPattern => Texts.Of("gui.query.unclosedPattern", problem.Text),
+
         _ => Texts.Of("gui.query.badNumber", problem.Text, problem.Field!)
     };
 

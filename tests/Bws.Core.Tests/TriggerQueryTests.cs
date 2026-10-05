@@ -40,21 +40,33 @@ public sealed class TriggerQueryTests
     }
 
     [Fact]
-    public void Nobody_having_looked_is_a_state_the_language_cannot_ask_about()
+    public void Nobody_having_looked_is_asked_for_with_the_question_mark()
     {
-        // Pinned as a test because it is a gap, not a behaviour anybody chose.
-        //
-        // 07-JEZYK-ZAPYTAN says all four states of a field must be expressible and then
-        // gives three words: none for absent, any for present, and ? for refused. Each of
-        // the three answers correctly here and each of them correctly says no, so an entry
-        // nobody read answers none of them and cannot be asked for at all.
-        //
-        // The behaviour is right and the language is short. Which of the two to change is
-        // the owner's call, and until it is made this test keeps the gap from being
-        // rediscovered as a bug.
-        Assert.DoesNotContain("TriggersUnknown", Match("trigger:none"));
-        Assert.DoesNotContain("TriggersUnknown", Match("trigger:any"));
-        Assert.DoesNotContain("TriggersUnknown", Match("trigger:?"));
+        // A GAP UNTIL 2026-10-05, pinned here under the name
+        // Nobody_having_looked_is_a_state_the_language_cannot_ask_about. 07-JEZYK-ZAPYTAN says
+        // all four states of a field must be expressible and gave three words, ? meaning refused
+        // only - so an entry nobody read answered no to all three and could not be asked for at
+        // all. The owner closed it on 2026-09-30 by widening ? rather than adding a fourth word:
+        // both states that have no answer are one question.
+        Assert.Contains("TriggersUnknown", Match("trigger:?"));
+        Assert.DoesNotContain("AsusUpdateCheck", Match("trigger:?"));
+    }
+
+    [Theory]
+    [InlineData("trigger:none")]
+    [InlineData("trigger:any")]
+    public void None_and_any_do_not_answer_for_a_field_nobody_read(string query)
+    {
+        // Stability report Q-4. Whether a field nobody read is empty is the very thing nobody
+        // knows, and until 2026-10-05 these two said a confident no - the entry left the answer
+        // without being counted among the ones it is unsure about, while every other kind of
+        // value counted it. The exclusion is the half that hurt most: !trigger:any kept the
+        // entry with nothing to say the keeping was a guess.
+        var match = QueryParser.Parse(query).Query!.Match(Specimens.TriggersNotRead);
+        var excluded = QueryParser.Parse("!" + query).Query!.Match(Specimens.TriggersNotRead);
+
+        Assert.Equal(new QueryMatch(Matched: false, Unreadable: true, TooCostly: false), match);
+        Assert.Equal(new QueryMatch(Matched: true, Unreadable: true, TooCostly: false), excluded);
     }
 
     [Fact]
