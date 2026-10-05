@@ -349,4 +349,33 @@ public sealed class ListingContractTests
             Assert.NotEqual("Unknown", CommandLineTool.Text(entry, "entryType"));
         }
     }
+
+    /// <summary>
+    /// Asking who depends on each entry has its own line under --timing, and is not counted as
+    /// filtering - stability report C-4, 2026-10-05. The pass had no stopwatch, so its whole cost
+    /// stood under "filtered in". The comparison of the two numbers is what catches that coming
+    /// back: filtering eight hundred entries with no query costs a few milliseconds, and a call to
+    /// the manager per entry costs hundreds.
+    /// </summary>
+    [Fact]
+    public void Asking_who_depends_on_what_is_timed_apart_from_filtering()
+    {
+        var run = CommandLineTool.Run("list", "--required-by", "--timing");
+
+        Assert.Equal(0, run.ExitCode);
+
+        var asked = Milliseconds(run.StandardError, @"Asked who depends on each entry in (\d+) ms");
+        var filtered = Milliseconds(run.StandardError, @"filtered in (\d+) ms");
+
+        Assert.True(filtered < asked, $"Filtering took {filtered} ms and asking {asked} ms:{Environment.NewLine}{run.StandardError}");
+    }
+
+    private static long Milliseconds(string said, string pattern)
+    {
+        var found = System.Text.RegularExpressions.Regex.Match(said, pattern, System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        Assert.True(found.Success, $"No line matching '{pattern}' in:{Environment.NewLine}{said}");
+
+        return long.Parse(found.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
 }

@@ -40,19 +40,25 @@ internal static class ShapeCeilings
     internal const int LongestMethod = 68;
 
     /// <summary>
-    /// Thirteen at 48 lines of code or more. Fourteen until 2026-10-05, when BinaryPathResolver.Resolve
-    /// handed its prefix walk to a method of its own (stability report R-3) and left the crowd.
+    /// Twelve at 48 lines of code or more. Fourteen until 2026-10-05, when BinaryPathResolver.Resolve
+    /// handed its prefix walk to a method of its own (stability report R-3) and left the crowd, and
+    /// thirteen until later that day, when Execution.Report did the same with its timing lines (C-4).
     /// </summary>
-    internal const int MethodsNearLongest = 13;
+    internal const int MethodsNearLongest = 12;
 
     /// <summary>
-    /// 23 forks, shared by PlanBuilder.AddWarnings and EntryDocument.From. Execution.Report is next
-    /// at 21. The entry point and CommandLine.Read stand far above and are named exemptions.
+    /// 23 forks, EntryDocument.From. Catalogue.Make is next at 22 - measured 2026-10-05, when this
+    /// sentence still named PlanBuilder.AddWarnings at 23 and Execution.Report at 21, and the guard's
+    /// own list said 20 and nothing. The entry point and CommandLine.Read stand far above and are
+    /// named exemptions.
     /// </summary>
     internal const int MostComplexMethod = 23;
 
-    /// <summary>Five at 17 forks or more.</summary>
-    internal const int MethodsNearMostComplex = 5;
+    /// <summary>
+    /// Four at 17 forks or more. Five until 2026-10-05, when Execution.Report handed its timing lines
+    /// to a method of its own (stability report C-4) and left the crowd.
+    /// </summary>
+    internal const int MethodsNearMostComplex = 4;
 
     /// <summary>
     /// 4 levels, shared by the command line's top-level statements and QueryScanner.TryScan - a
@@ -176,7 +182,8 @@ internal static class ShapeCeilings
     internal static readonly ShapeExemption[] Exemptions =
     [
         new("Bws.Cli.CommandLine.Read", ShippedLength,
-            "221 lines of code, over three times the length ceiling of 68. Backlog 24 has asked for it to be split since " +
+            "221 lines of code when this entry was written and a few more since 2026-10-05 (`--` and the verb after " +
+            "snapshot, stability report C-4), over three times the length ceiling of 68. Backlog 24 has asked for it to be split since " +
             "2026-08-02, and the analyser before this said so too. Split, not exempted for ever."),
         new("Bws.Cli.CommandLine.Read", ShippedBranching,
             "50 forks, over twice the branching ceiling of 23. The same method, the same backlog row."),

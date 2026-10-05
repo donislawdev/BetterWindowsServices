@@ -34,6 +34,9 @@ public sealed class OutputChannelGuards
     private static readonly Regex DataChannel = new(
         @"\bConsole\.Out\.", RegexOptions.Compiled, Sources.Ceiling);
 
+    private static readonly Regex Serialiser = new(
+        @"\bJsonSerializer\.Serialize\b", RegexOptions.Compiled, Sources.Ceiling);
+
     [Fact]
     public void No_shipped_source_file_writes_without_naming_the_channel()
     {
@@ -64,11 +67,32 @@ public sealed class OutputChannelGuards
             Environment.NewLine + string.Join(Environment.NewLine, writers));
     }
 
-    private static List<string> Offenders(Regex pattern)
+    /// <summary>
+    /// Every JSON document the command line prints is serialised in one place.
+    ///
+    /// <b>The place is AsciiJson, and what it guards is the console's code page</b> (stability
+    /// report C-1, 2026-10-05). It escapes every character outside ASCII, which is what keeps
+    /// <c>bws list --json &gt; file</c> a UTF-8 file on a console set to 852. A renderer that called
+    /// the serialiser itself would print letters outside ASCII again, and on an English machine its
+    /// output would look exactly right - so the shape is held here rather than trusted.
+    /// </summary>
+    [Fact]
+    public void Every_json_document_of_the_command_line_is_serialised_in_one_place()
+    {
+        var callers = Offenders(Serialiser, Path.Combine("src", "Bws.Cli"));
+
+        Assert.True(
+            callers is [{ } only] && only.StartsWith("AsciiJson.cs:", StringComparison.Ordinal),
+            "The command line serialises JSON in AsciiJson and nowhere else, so that nothing it "
+            + "prints carries a letter a console code page can break. Found:"
+            + Environment.NewLine + string.Join(Environment.NewLine, callers));
+    }
+
+    private static List<string> Offenders(Regex pattern, string under = "src")
     {
         var found = new List<string>();
 
-        foreach (var file in ShippedSourceFiles())
+        foreach (var file in ShippedSourceFiles(under))
         {
             var lines = File.ReadAllLines(file);
 
@@ -93,9 +117,9 @@ public sealed class OutputChannelGuards
         return found;
     }
 
-    private static IEnumerable<string> ShippedSourceFiles() =>
+    private static IEnumerable<string> ShippedSourceFiles(string under) =>
         Directory
-            .EnumerateFiles(Path.Combine(SourceTree.Root(), "src"), "*.cs", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(SourceTree.Root(), under), "*.cs", SearchOption.AllDirectories)
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 }

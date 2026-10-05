@@ -77,8 +77,14 @@ internal static class ListingTable
         return Layout(rows);
     }
 
+    /// <remarks>
+    /// <b>Every cell through <see cref="Printable"/>, since 2026-10-05</b> (stability report C-4).
+    /// Cells are the one thing this tool prints that does not go through a sentence, so the door in
+    /// Texts does not reach them - and a tab or a line break in a display name is exactly what turns
+    /// one row into two. Before the widths are counted, so a column is as wide as what is shown.
+    /// </remarks>
     private static string[] Row(string[] cells, params string?[] extras) =>
-        [.. cells, .. extras.Where(extra => extra is not null).Select(extra => extra!)];
+        [.. cells.Concat(extras.Where(extra => extra is not null).Select(extra => extra!)).Select(Printable.Of)];
 
     /// <summary>
     /// What the entry's process is holding, and how many entries that answer covers.

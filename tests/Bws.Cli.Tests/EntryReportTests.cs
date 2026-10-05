@@ -146,34 +146,5 @@ public sealed class EntryReportTests
         Assert.Contains("Start", report, StringComparison.Ordinal);
     }
 
-    private static ScmEntry Entry => new()
-    {
-        ServiceName = "Spooler",
-        DisplayName = "Print Spooler",
-        Description = Reading<string>.Present("Spools print jobs."),
-        EntryType = EntryType.OwnProcess,
-        PerUserRole = PerUserRole.None,
-        Status = EntryStatus.Running,
-        ProcessId = Reading<int>.Present(1234),
-        AcceptsStop = Reading<bool>.Present(true),
-        StartType = Reading<StartType>.Present(Core.StartType.Automatic),
-        DelayedAuto = Reading<bool>.Present(false),
-        Account = Reading<string>.Present("LocalSystem"),
-        DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"]),
-        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
-        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
-        BinaryPath = Reading<string>.Present(@"C:\Windows\System32\spoolsv.exe"),
-        BinaryFile = Reading<string>.Present(@"C:\Windows\System32\spoolsv.exe"),
-        BinaryOnDisk = Reading<bool>.Present(true),
-        Signature = Reading<BinarySignature>.Present(
-            new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows")),
-        FileVersion = Reading<string>.Present("10.0.26100.1"),
-        BinaryHash = Reading<string>.Present("abc123"),
-        RequiredPrivileges = Reading<IReadOnlyList<string>>.Present(["SeTcbPrivilege"]),
-        SidType = Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
-        SecurityDescriptor = Reading<string>.Present("O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)"),
-        ErrorControl = Reading<ErrorControl>.Present(Core.ErrorControl.Normal),
-        LoadOrderGroup = Reading<string>.Present("SpoolerGroup"),
-        Memory = Reading<ProcessMemory>.Present(new ProcessMemory(18_000_000, 20_000_000, 1))
-    };
+    private static ScmEntry Entry => Entries.Full;
 }

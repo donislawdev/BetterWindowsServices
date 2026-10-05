@@ -125,6 +125,56 @@ public sealed class EquivalentCommandTests
             EquivalentCommand.For(new ReversalStep("Spooler", StepOperation.Stop)));
     }
 
+    /// <summary>
+    /// How a name is written so that a shell hands the command line exactly that name - stability
+    /// report W-12, owner's decision 2026-10-05. Bare when nothing in it needs protecting, double
+    /// quotes when cmd and PowerShell both keep it whole that way, single quotes with each mark doubled
+    /// when PowerShell would still read something inside double quotes. That the command line reads
+    /// each of these back as the name is asked in its own tests, through the same reader as a real
+    /// command line.
+    /// </summary>
+    [Theory]
+    [InlineData("Spooler", "Spooler")]
+    [InlineData("Microsoft.Office_x-1", "Microsoft.Office_x-1")]
+    [InlineData("AMD Crash Defender Service", "\"AMD Crash Defender Service\"")]
+    [InlineData("a&b", "\"a&b\"")]
+    [InlineData("it's here", "\"it's here\"")]
+    [InlineData("MSSQL$SQLEXPRESS", "'MSSQL$SQLEXPRESS'")]
+    [InlineData("tick`tock", "'tick`tock'")]
+    [InlineData("50%", "'50%'")]
+    [InlineData("a\"b", "'a\"b'")]
+    [InlineData("$it's", "'$it''s'")]
+    [InlineData("", "\"\"")]
+    public void A_name_is_quoted_only_as_much_as_a_shell_needs(string name, string typed)
+    {
+        Assert.Equal(typed, EquivalentCommand.Typed(name));
+    }
+
+    [Fact]
+    public void A_typographic_quote_mark_is_a_quote_mark_to_PowerShell()
+    {
+        var right = char.ConvertFromUtf32(0x2019);
+        var closing = char.ConvertFromUtf32(0x201D);
+
+        // A right double mark would end a double quoted word, so the word goes in single quotes - and
+        // the right single mark inside it is doubled like an apostrophe. Measured on pwsh 7.6.6.
+        Assert.Equal("'a" + right + right + "b" + closing + "'", EquivalentCommand.Typed("a" + right + "b" + closing));
+    }
+
+    [Fact]
+    public void A_name_that_begins_with_a_dash_comes_after_the_switches_and_the_end_of_them()
+    {
+        Assert.Equal(
+            "bws stop --dependents -- -odd",
+            EquivalentCommand.For(new ServiceAction(ActionKind.Stop, "-odd", IncludeDependents: true)));
+        Assert.Equal(
+            "bws start-type --stop -- \"-odd one\" disabled",
+            EquivalentCommand.For(new ServiceAction(ActionKind.SetStartType, "-odd one", To: StartSetting.Disabled, AlsoStop: true)));
+        Assert.Equal(
+            "bws stop \"AMD Crash Defender Service\" --dependents",
+            EquivalentCommand.For(new ServiceAction(ActionKind.Stop, "AMD Crash Defender Service", IncludeDependents: true)));
+    }
+
     // -- fixtures --------------------------------------------------------------------------
 
     private static BulkPlan Bulk(ActionKind kind, IReadOnlyList<string> names)

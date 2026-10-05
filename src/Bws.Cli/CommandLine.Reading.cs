@@ -67,38 +67,52 @@ internal sealed partial record CommandLine
         var version = false;
         string? badVerb = null;
 
+        // EVERY WORD AFTER `--` IS A NAME, SINCE 2026-10-05 (stability report C-4). Windows lets a
+        // service be called "-anything", and until then such an entry could not be named here at all:
+        // the word was read as a switch nobody has. The convention is the one every command line on
+        // every platform shares, so it needs no switch table entry of its own.
+        var namesOnly = false;
+
+        // THE WORD AFTER "snapshot" IS THE FIRST ONE THAT IS NOT A SWITCH, SINCE 2026-10-05 (C-4).
+        // It used to be the very next word, whatever it was, so `bws snapshot --help` answered "there
+        // is no snapshot --help" with code 2, and `bws snapshot --json create` was refused although
+        // `bws --json list` has always worked.
+        var snapshotVerbDue = false;
+
         for (var index = 0; index < arguments.Length; index++)
         {
             var argument = arguments[index];
+
+            if (!namesOnly && string.Equals(argument, "--", StringComparison.Ordinal)) { namesOnly = true; continue; }
 
             // Asked before anything else and outside the option OptionSurface.Surface, because these two are
             // questions about the tool rather than options belonging to a verb. Putting them in
             // the table of what each verb accepts would make "bws --help" require a verb, which
             // is the opposite of what somebody typing it wants.
-            if (Arguments.Matches(argument, "--help") || Arguments.Matches(argument, "-h")) { help = true; continue; }
-            if (Arguments.Matches(argument, "--version")) { version = true; continue; }
+            if (!namesOnly && (Arguments.Matches(argument, "--help") || Arguments.Matches(argument, "-h"))) { help = true; continue; }
+            if (!namesOnly && Arguments.Matches(argument, "--version")) { version = true; continue; }
 
-            if (!argument.StartsWith('-'))
+            if (namesOnly || !argument.StartsWith('-'))
             {
                 if (kind == CommandKind.None)
                 {
-                    // "snapshot" is a noun, not a verb, so it needs the word after it. E1
-                    // puts create, diff and restore under it, and only the first is built.
-                    if (Arguments.Matches(argument, "snapshot"))
+                    // "snapshot" is a noun, not a verb, so it needs a word after it. E1 puts
+                    // create, diff and restore under it, and the first two are built.
+                    if (snapshotVerbDue)
                     {
-                        var next = index + 1 < arguments.Length ? arguments[index + 1] : string.Empty;
+                        snapshotVerbDue = false;
 
-                        if (Arguments.Matches(next, "create"))
+                        if (Arguments.Matches(argument, "create"))
                         {
                             kind = CommandKind.SnapshotCreate;
-                            index++;
+                            badSubcommand = null;
                             continue;
                         }
 
-                        if (Arguments.Matches(next, "diff"))
+                        if (Arguments.Matches(argument, "diff"))
                         {
                             kind = CommandKind.SnapshotDiff;
-                            index++;
+                            badSubcommand = null;
                             continue;
                         }
 
@@ -107,13 +121,16 @@ internal sealed partial record CommandLine
                         // and calling it an option sends somebody to check their spelling of
                         // a word they spelled correctly. The same mistake this tool already
                         // made once, with a switch given without its value.
-                        badSubcommand = next;
+                        badSubcommand = argument;
+                        continue;
+                    }
 
-                        if (next.Length > 0)
-                        {
-                            index++;
-                        }
-
+                    // Empty until a word arrives, so that "bws snapshot" with nothing after it is
+                    // answered as a noun missing its verb - the answer it has always had.
+                    if (Arguments.Matches(argument, "snapshot"))
+                    {
+                        snapshotVerbDue = true;
+                        badSubcommand = string.Empty;
                         continue;
                     }
 

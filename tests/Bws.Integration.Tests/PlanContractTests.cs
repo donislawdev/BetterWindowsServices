@@ -100,6 +100,25 @@ public sealed class PlanContractTests
         Assert.False(string.IsNullOrWhiteSpace(run.StandardError));
     }
 
+    /// <summary>
+    /// The two refusals that come after the reading still say what the reading has to admit -
+    /// stability report C-3, 2026-10-05. Both returned before the admissions, so a session without
+    /// administrator rights heard "there is no entry called X" without hearing that the manager shows
+    /// it fewer entries. --timing is asked for because it travels the same path as that sentence and
+    /// prints on every machine, elevated or not - so this holds on a developer's elevated session too.
+    /// </summary>
+    [Theory]
+    [InlineData("show", "NoSuchServiceAnywhere", "--timing")]
+    [InlineData("stop", "NoSuchServiceAnywhere", "--dry-run", "--timing")]
+    public void A_refusal_after_the_reading_still_says_what_the_reading_has_to_admit(params string[] line)
+    {
+        var run = CommandLineTool.Run(line);
+
+        Assert.Equal(2, run.ExitCode);
+        Assert.Equal(string.Empty, run.StandardOutput.Trim());
+        Assert.Contains("Read ", run.StandardError, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_driver_is_refused_without_the_word_dry_run()
     {

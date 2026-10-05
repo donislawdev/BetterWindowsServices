@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Text;
+
 namespace Bws.Core.Planning;
 
 /// <summary>
@@ -70,12 +73,19 @@ public static class EquivalentCommand
     /// </summary>
     private const string AlsoStop = "--stop";
 
+    /// <summary>
+    /// Where the switches end and every word after is a name, however it begins.
+    ///
+    /// The command line has accepted it since 2026-10-05 (stability report C-4), and this class
+    /// writes it only before a name that begins with a dash - the one name that would otherwise be
+    /// read as a switch nobody has.
+    /// </summary>
+    private const string EndOfSwitches = "--";
+
     /// <summary>What somebody would type to ask for this, on one line.</summary>
     public static string For(ServiceAction action)
     {
         ArgumentNullException.ThrowIfNull(action);
-
-        var command = $"{Tool} {Verb(action.Kind)} {action.ServiceName}";
 
         if (action.Kind == ActionKind.SetStartType)
         {
@@ -84,15 +94,15 @@ public static class EquivalentCommand
             // "bws start-type Spooler" is not a shorter way of saying this, it is a line the tool
             // refuses. The word comes from the same table the command line reads it back with, so
             // the two cannot drift apart.
-            var word = StartTypeWords.Of(action.To);
+            //
+            // Unreachable without a word through For(BulkPlan), which filters on Renders. A caller
+            // arriving here directly is one that skipped asking, and a start type with no word is
+            // exactly the ask this tool declines to carry out - so a line naming it would be worse
+            // than no line.
+            var word = StartTypeWords.Of(action.To)
+                ?? throw new ArgumentOutOfRangeException(nameof(action), action.To, NoWordForThatType);
 
-            return word is null
-                // Unreachable through For(BulkPlan), which filters on Renders. A caller arriving
-                // here directly is one that skipped asking, and a start type with no word is
-                // exactly the ask this tool declines to carry out - so a line naming it would be
-                // worse than no line.
-                ? throw new ArgumentOutOfRangeException(nameof(action), action.To, NoWordForThatType)
-                : action.AlsoStop ? $"{command} {word} {AlsoStop}" : $"{command} {word}";
+            return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);
         }
 
         // ONLY WHERE THE TOOL TAKES IT, AND LEAVING THAT OUT WAS A REAL FAULT CAUGHT BY WRITING THE
@@ -141,8 +151,88 @@ public static class EquivalentCommand
             switches.Add(Force);
         }
 
-        return switches.Count == 0 ? command : $"{command} {string.Join(' ', switches)}";
+        return Line(Verb(action.Kind), action.ServiceName, value: null, switches);
     }
+
+    /// <summary>
+    /// A service name the way somebody would type it, so that the shell hands the command line
+    /// exactly that name.
+    ///
+    /// <b>Stability report W-12, owner's decision 2026-10-05.</b> The name went out bare until that
+    /// day, so <c>bws start AMD Crash Defender Service</c> - a real entry on the owner's machine -
+    /// reached the command line as four words and was refused, and on a SQL Server machine
+    /// <c>MSSQL$SQLEXPRESS</c> reached it as <c>MSSQL</c>, because PowerShell reads <c>$SQLEXPRESS</c>
+    /// as a variable that is not there.
+    ///
+    /// <b>No one spelling works in both shells, and the rule follows from that.</b> A name of letters,
+    /// digits, dots, underscores and dashes goes bare. Anything else goes in double quotes, which cmd
+    /// and PowerShell both read as one word. A name holding a character PowerShell still reads inside
+    /// double quotes - the dollar, the backtick and its double quote marks - or the percent sign cmd
+    /// reads there, goes in single quotes, with each single quote mark doubled, which is how
+    /// PowerShell writes one inside. So every line works in PowerShell, and a line without those
+    /// characters works in cmd too. Measured on pwsh 7.6.6 the same day: <c>'a''b c'</c> arrives as
+    /// <c>a'b c</c>, and <c>--</c> reaches the program. Windows PowerShell 5.1 NOT MEASURED.
+    ///
+    /// <b>PowerShell counts the typographic quote marks as quote marks</b>, so they are in both sets
+    /// below - built from numbers, because a published file carries ASCII only. Measured on pwsh
+    /// 7.6.6 the same day: each of the four single marks doubled inside single quotes arrives as one,
+    /// and a right double mark inside double quotes ends the string, which is a parse error.
+    /// </summary>
+    public static string Typed(string serviceName)
+    {
+        ArgumentNullException.ThrowIfNull(serviceName);
+
+        if (serviceName.Length > 0 && serviceName.All(character => char.IsLetterOrDigit(character) || character is '.' or '_' or '-'))
+        {
+            return serviceName;
+        }
+
+        if (serviceName.AsSpan().IndexOfAny(ReadInsideDoubleQuotes) < 0)
+        {
+            return $"\"{serviceName}\"";
+        }
+
+        var quoted = new StringBuilder(serviceName.Length + 4).Append('\'');
+
+        foreach (var character in serviceName)
+        {
+            quoted.Append(character);
+
+            if (SingleQuoteMarks.Contains(character))
+            {
+                quoted.Append(character);
+            }
+        }
+
+        return quoted.Append('\'').ToString();
+    }
+
+    /// <summary>
+    /// One line: the tool, the verb, the name and its value, and the switches - or, for a name that
+    /// begins with a dash, the switches first and the name after <see cref="EndOfSwitches"/>.
+    ///
+    /// <b>Switches move in front rather than staying behind, and the command line is why:</b> every
+    /// word after <c>--</c> is a name to it, so a switch left at the end would arrive as one more name
+    /// and the line would be refused.
+    /// </summary>
+    private static string Line(string verb, string serviceName, string? value, IReadOnlyList<string> switches)
+    {
+        string[] words = value is null ? [Typed(serviceName)] : [Typed(serviceName), value];
+
+        string[] parts = serviceName.StartsWith('-')
+            ? [Tool, verb, .. switches, EndOfSwitches, .. words]
+            : [Tool, verb, .. words, .. switches];
+
+        return string.Join(' ', parts);
+    }
+
+    /// <summary>The dollar, the backtick, the percent sign and the four double quote marks of PowerShell.</summary>
+    private static readonly SearchValues<char> ReadInsideDoubleQuotes =
+        SearchValues.Create(['$', '`', '%', '"', (char)0x201C, (char)0x201D, (char)0x201E]);
+
+    /// <summary>The five single quote marks of PowerShell, each of which a single quoted word doubles.</summary>
+    private static readonly SearchValues<char> SingleQuoteMarks =
+        SearchValues.Create(['\'', (char)0x2018, (char)0x2019, (char)0x201A, (char)0x201B]);
 
     /// <summary>
     /// Whether there is a line to hand somebody for this ask at all.
@@ -215,14 +305,11 @@ public static class EquivalentCommand
     {
         ArgumentNullException.ThrowIfNull(step);
 
-        var command = $"{Tool} {Verb(step.Operation)} {step.ServiceName}";
-        var word = StartTypeWords.Of(step.To);
-
         // Asked as "is there a word" rather than "is this that operation", so that the two answers
         // cannot disagree. NetEffect refuses to build a start type step without a type, so the two
         // conditions mean the same thing today - and if they ever stop meaning the same thing, this
         // one is the one that keeps an unnameable type out of a line that names it.
-        return word is null ? command : $"{command} {word}";
+        return Line(Verb(step.Operation), step.ServiceName, StartTypeWords.Of(step.To), []);
     }
 
     /// <summary>

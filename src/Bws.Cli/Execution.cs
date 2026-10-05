@@ -66,6 +66,10 @@ internal static class Execution
 
         Console.CancelKeyPress += pressed;
 
+        // CLOSING THE WINDOW IS THE FIRST CTRL+C, SINCE 2026-10-05 (stability report W-11). Declared
+        // after the two sources, so it is let go before them - WindowClose carries the rest.
+        using var closed = new WindowClose(interruption);
+
         try
         {
             return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
@@ -73,8 +77,13 @@ internal static class Execution
                 timeout,
                 interruption.Token,
                 abandonment.Token,
-                starting: (step, number) => Console.Error.WriteLine(
-                    PlanText.Progress(step, number, plan.Steps.Count)));
+                starting: (step, number) =>
+                {
+                    if (!closed.Happened)
+                    {
+                        Console.Error.WriteLine(PlanText.Progress(step, number, plan.Steps.Count));
+                    }
+                });
         }
         finally
         {
@@ -103,8 +112,11 @@ internal static class Execution
     /// thread with nothing to catch it ends the process, at the exact moment somebody is waiting to
     /// be told what the run did. The catch is narrow rather than broad - this is the one thing that
     /// can be wrong here, and anything else arriving is news.
+    ///
+    /// Internal since 2026-10-05, when a closed window learned to do what a press does (WindowClose)
+    /// and met the same narrow race from a thread Windows chooses.
     /// </summary>
-    private static void Stop(CancellationTokenSource source)
+    internal static void Stop(CancellationTokenSource source)
     {
         try
         {
@@ -146,14 +158,7 @@ internal static class Execution
     /// treat an ordinary lack of permissions as a broken tool. Staying quiet about it is the
     /// other way to get this wrong, and the worse one.
     /// </summary>
-    internal static void Report(
-        IReadOnlyList<ScmEntry> entries,
-        QueryResult? result,
-        CommandLine options,
-        long readMilliseconds,
-        long totalMilliseconds,
-        long inspected,
-        long measured)
+    internal static void Report(IReadOnlyList<ScmEntry> entries, QueryResult? result, CommandLine options, Spent spent)
     {
         // THE WIDEST ADMISSION FIRST, AND UNTIL 2026-09-09 IT WAS THE ONE THIS TOOL NEVER MADE.
         //
@@ -222,38 +227,57 @@ internal static class Execution
                 : Texts.Of("cli.warning.queryTooCostly.many", result.TooCostly));
         }
 
-        if (!options.Timing)
+        if (options.Timing)
         {
-            return;
+            Timing(entries, result, spent);
         }
+    }
 
+    /// <summary>
+    /// Where the milliseconds went, one line per pass that ran.
+    ///
+    /// <b>Its own method since 2026-10-05</b>, when the pass asking who depends on what got a line
+    /// of its own and Report stood two lines under the length ceiling.
+    /// </summary>
+    private static void Timing(IReadOnlyList<ScmEntry> entries, QueryResult? result, Spent spent)
+    {
         // E4a asks this switch for the time spent reading, which is the part that belongs to
         // us. On a write command the rest of the clock is mostly the services taking their own
         // time, and reporting that as though it were ours would be a measurement of the wrong
         // thing wearing our label.
         // FOUR KEYS RATHER THAN TWO SINCE 2026-09-01 - backlog 207. The noun follows the count of
         // entries in both sentences, so a machine holding one read "Read 1 entries in 12 ms".
-        var filtering = totalMilliseconds - readMilliseconds - inspected - measured;
+        var filtering = spent.Total - spent.Read - spent.Inspected - spent.Measured - spent.Asked;
 
         Console.Error.WriteLine((result is null, entries.Count == 1) switch
         {
-            (true, true) => Texts.Of("cli.info.timingRead.one", entries.Count, readMilliseconds),
-            (true, false) => Texts.Of("cli.info.timingRead.many", entries.Count, readMilliseconds),
-            (false, true) => Texts.Of("cli.info.timing.one", entries.Count, readMilliseconds, filtering),
-            (false, false) => Texts.Of("cli.info.timing.many", entries.Count, readMilliseconds, filtering)
+            (true, true) => Texts.Of("cli.info.timingRead.one", entries.Count, spent.Read),
+            (true, false) => Texts.Of("cli.info.timingRead.many", entries.Count, spent.Read),
+            (false, true) => Texts.Of("cli.info.timing.one", entries.Count, spent.Read, filtering),
+            (false, false) => Texts.Of("cli.info.timing.many", entries.Count, spent.Read, filtering)
         });
 
-        if (inspected > 0)
+        // Each only when it happened. A line reporting zero milliseconds spent on signatures
+        // would invite the reading that they were checked and found instantly, which is the
+        // opposite of what a run without them means.
+        //
+        // THE THIRD ONE ARRIVED 2026-10-05 (stability report C-4). Asking the manager who depends on
+        // each entry had no stopwatch of its own, so on a listing its whole cost was printed under
+        // "filtered" - a true number beside a sentence about something else, the mistake the other
+        // two lines were split off to end.
+        if (spent.Inspected > 0)
         {
-            // Only when it happened. A line reporting zero milliseconds spent on signatures
-            // would invite the reading that they were checked and found instantly, which is
-            // the opposite of what a run without them means.
-            Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
+            Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", spent.Inspected));
         }
 
-        if (measured > 0)
+        if (spent.Measured > 0)
         {
-            Console.Error.WriteLine(Texts.Of("cli.info.timingMeasured", measured));
+            Console.Error.WriteLine(Texts.Of("cli.info.timingMeasured", spent.Measured));
+        }
+
+        if (spent.Asked > 0)
+        {
+            Console.Error.WriteLine(Texts.Of("cli.info.timingAsked", spent.Asked));
         }
 
         if (result is not null)
@@ -267,3 +291,18 @@ internal static class Execution
         }
     }
 }
+
+/// <summary>
+/// Where the milliseconds of one run went, for --timing.
+///
+/// <b>One record rather than five numbers in a row, since 2026-10-05</b>, when the fifth arrived and
+/// Report would otherwise have taken eight parameters - five of them longs, which is the shape where
+/// two of them change places and nothing complains. Each pass the run did not make stays at zero,
+/// and a zero is never printed.
+/// </summary>
+/// <param name="Read">Reading the manager's list.</param>
+/// <param name="Total">The whole run, from before the reading to after the last pass.</param>
+/// <param name="Inspected">Verifying signatures and hashing files.</param>
+/// <param name="Measured">Reading what each process holds in memory.</param>
+/// <param name="Asked">Asking the manager, entry by entry, who depends on it.</param>
+internal sealed record Spent(long Read, long Total, long Inspected = 0, long Measured = 0, long Asked = 0);

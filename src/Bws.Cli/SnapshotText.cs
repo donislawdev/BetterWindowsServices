@@ -16,7 +16,13 @@ internal static class SnapshotText
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        WriteIndented = true,
+
+        // The path a snapshot went to is the one string here that can hold letters outside ASCII,
+        // and the encoder that stood here by default already escaped them - along with every
+        // apostrophe. Through AsciiJson since 2026-10-05 like every other document, so the receipt
+        // and the listing spell the same path the same way.
+        Encoder = AsciiJson.Encoder
     };
 
     /// <summary>
@@ -32,7 +38,7 @@ internal static class SnapshotText
 
         if (asJson)
         {
-            return JsonSerializer.Serialize(
+            return AsciiJson.Serialize(
                 new SnapshotReceipt(
                     full,
                     snapshot.Entries.Count,

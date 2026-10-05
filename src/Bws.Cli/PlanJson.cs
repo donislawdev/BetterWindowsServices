@@ -150,7 +150,13 @@ internal static class PlanJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.Never
+        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+
+        // Display names and the manager's own sentences can hold letters outside ASCII. The
+        // default encoder that stood here escaped them already, together with every apostrophe
+        // and ampersand - through AsciiJson since 2026-10-05, so this document and the listing
+        // spell the same name the same way.
+        Encoder = AsciiJson.Encoder
     };
 
     internal static string Render(OperationPlan plan) => Render(plan, run: null);
@@ -210,7 +216,7 @@ internal static class PlanJson
             Cancelled = run?.Cancelled
         };
 
-        return JsonSerializer.Serialize(shape, Options);
+        return AsciiJson.Serialize(shape, Options);
     }
 
     /// <summary>

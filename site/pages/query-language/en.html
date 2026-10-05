@@ -39,7 +39,7 @@
         <ul class="prose-list">
           <li>Terms are separated by spaces and all of them must match - there is no <code>and</code> keyword because there is nothing else it could mean.</li>
           <li>The same field written twice is the one exception: <code>status:running status:stopped</code> means either, because that is what ticking two filters writes. Two bounds on a number still narrow - <code>pid:&gt;1000 pid:&lt;2000</code> is the range between them.</li>
-          <li><code>!</code> in front of a term negates it: <code>!status:running</code>.</li>
+          <li><code>!</code> in front of a term negates it: <code>!status:running</code>. In a batch file with <code>setlocal EnableDelayedExpansion</code>, cmd eats that <code>!</code> without a word and the query quietly means something else - write <code>^!</code> inside the quotes there.</li>
           <li>A comma inside a field is <em>or</em>: <code>start:manual,disabled</code>.</li>
           <li>Quotes protect anything with spaces or colons: <code>account:"NT SERVICE\McmSvc"</code>.</li>
           <li>A path pasted as it is - <code>C:\Windows\System32\svchost.exe</code> - is searched for, not read as a field called C.</li>

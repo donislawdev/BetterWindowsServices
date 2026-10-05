@@ -489,6 +489,20 @@ bws --version
 Data goes to standard output and everything else to standard error, so `bws list --json | jq`
 works and a warning never lands in your JSON.
 
+Every JSON document is plain ASCII: a letter outside it, a Polish one for instance, is written as a
+six character escape that every JSON reader turns back into the letter. That keeps
+`bws list --json > file.json` a valid UTF-8 file and `| ConvertFrom-Json` right whatever code page
+the console is set to. In the text a person reads, a character that would move the terminal rather
+than print - a tab, a line break, an escape sequence, a direction override - is shown as its code
+point, `<U+001B>`, so a snapshot from another machine cannot rewrite your screen.
+
+`--` ends the switches, so a service whose name begins with a dash can still be named:
+`bws show -- -odd`. The command lines this tool hands you - in the window, and after a run to put
+things back - are written for PowerShell. A name with a space goes in double quotes, which cmd reads
+the same way, and a name PowerShell would expand inside them, `MSSQL$SQLEXPRESS` for one, goes in
+single quotes. In a batch file with delayed expansion turned on, cmd eats the `!` of a query such as
+`"start:auto !status:running"` without a word - write it `^!` there.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -503,6 +517,12 @@ works and a warning never lands in your JSON.
 Ctrl+C has three levels, each saying what the next one costs: the first stops going forward and
 still puts back what was taken, the second leaves things as they are and still prints the report,
 the third ends the process.
+
+Closing the console window counts as the first Ctrl+C. Windows gives a program five seconds after
+that, and in them this one stops going forward and puts back what it took down - a request already
+handed to Windows is carried out either way. Signing out and shutting down end the program without
+any warning it could act on, and a dropped remote session may too, so run a long plan where the
+session will last.
 
 ## The window
 
