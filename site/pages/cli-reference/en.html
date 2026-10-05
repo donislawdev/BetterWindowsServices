@@ -83,8 +83,11 @@ There is no command lst. Did you mean list?</code></pre>
   <div class="wrap">
     <h2>Exit codes</h2>
     <p>{{exit_code_count}} endings, and every one of them is a different thing for a script to do. Data goes to standard output and everything else to standard error, so <code>bws list --json | jq</code> works and a warning never lands in your JSON.</p>
+    <p>Every JSON document is plain ASCII: a letter outside it is written as a six character escape that every JSON reader turns back into the letter, so <code>bws list --json &gt; file.json</code> is valid UTF-8 and <code>| ConvertFrom-Json</code> reads it right whatever code page the console is set to. In the text a person reads, a character that would move the terminal rather than print - a tab, a line break, an escape sequence, a direction override - is shown as its code point, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> ends the switches, so a service whose name begins with a dash can still be named: <code>bws show -- -odd</code>. The command lines the tool hands you are written for PowerShell: a name with a space goes in double quotes, which cmd reads the same way, and a name PowerShell would expand inside them, such as <code>MSSQL$SQLEXPRESS</code>, goes in single quotes.</p>
     {{table:exit-codes}}
     <p class="note"><strong>Ctrl+C has three levels, each saying what the next one costs.</strong> The first stops going forward and still puts back what was taken, the second leaves things as they are and still prints the report, the third ends the process. A run stopped by hand ends with <code>4</code> even when every step still arrived.</p>
+    <p class="note"><strong>Closing the console window counts as the first Ctrl+C.</strong> Windows gives a program five seconds after that, and in them this one stops going forward and puts back what it took down. Signing out and shutting down end it without any warning it could act on, and a dropped remote session may too.</p>
   </div>
 </section>
 

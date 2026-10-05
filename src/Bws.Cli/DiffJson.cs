@@ -29,13 +29,16 @@ internal static class DiffJson
         // had to know which document was in which convention.
         Converters = { new JsonStringEnumConverter() },
 
-        // Characters as themselves. Display names on this machine are translated, and a
-        // pipeline comparing them against anything would otherwise be comparing escapes.
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        // ESCAPES SINCE 2026-10-05 (stability report C-1). What stood here said a pipeline would
+        // otherwise be "comparing escapes", and that was never true: every JSON parser hands back
+        // the character an escape names, so a step comparing display names compares the names
+        // either way. What escapes do change is the bytes, and those are the half a console code
+        // page could break - AsciiJson carries the measurement.
+        Encoder = AsciiJson.Encoder
     };
 
     internal static string Render(SnapshotDiff diff) =>
-        JsonSerializer.Serialize(
+        AsciiJson.Serialize(
             new DiffDocument(
                 diff.Drifted,
                 new CaveatsDocument(

@@ -141,6 +141,120 @@ public sealed class EquivalentCommandBridgeGuards
         Assert.Equal(type, WriteCommands.Named(word));
     }
 
+    /// <summary>
+    /// A name that needs quoting, typed the way the core writes it, reaches this tool as that name.
+    ///
+    /// <b>Stability report W-12, owner's decision 2026-10-05.</b> The line is cut the way PowerShell
+    /// cuts it - measured on pwsh 7.6.6 that day: a word in double quotes arrives whole, a word in
+    /// single quotes arrives whole with each doubled quote mark made one, <c>--</c> reaches the
+    /// program - and then read by the same reader that reads a real command line. Every switch has to
+    /// survive too, which is what catches a switch written after <c>--</c>.
+    /// </summary>
+    [Theory]
+    [InlineData("AMD Crash Defender Service")]
+    [InlineData("MSSQL$SQLEXPRESS")]
+    [InlineData("it's here")]
+    [InlineData("50% off")]
+    [InlineData("a\"b")]
+    [InlineData("-leading")]
+    [InlineData("-leading $and space")]
+    [InlineData("typographic 0x2019 0x201D")]
+    public void A_name_that_needs_quoting_reaches_this_tool_as_itself(string name)
+    {
+        name = name.Replace("0x2019", char.ConvertFromUtf32(0x2019), StringComparison.Ordinal)
+            .Replace("0x201D", char.ConvertFromUtf32(0x201D), StringComparison.Ordinal);
+
+        foreach (var action in new[]
+        {
+            new ServiceAction(ActionKind.Stop, name, IncludeDependents: true),
+            new ServiceAction(ActionKind.SetStartType, name, To: StartSetting.Disabled, AlsoStop: true),
+            new ServiceAction(ActionKind.ForceRestart, name, Immediate: true)
+        })
+        {
+            var line = EquivalentCommand.For(action);
+            var read = CommandLine.Read([.. new PowerShellWords().Of(line).Skip(1)]);
+
+            Assert.True(read.ServiceName == name, $"'{line}' reached this tool as the name '{read.ServiceName}'.");
+            Assert.True(read.Rejected.Count == 0 && read.Extra.Count == 0, $"'{line}' left words this tool refuses.");
+            Assert.Equal(action.IncludeDependents, read.Dependents);
+            Assert.Equal(action.AlsoStop, read.Setting.AlsoStop);
+            Assert.Equal(action.Immediate, read.Force);
+        }
+    }
+
+    /// <summary>
+    /// Words the way PowerShell hands them to a program, for the two quoted forms the core writes and
+    /// nothing else - a model of the measurement in the summary above, not a shell.
+    /// </summary>
+    private sealed class PowerShellWords
+    {
+        private readonly List<string> _words = [];
+        private readonly System.Text.StringBuilder _word = new();
+        private char? _quote;
+
+        internal List<string> Of(string line)
+        {
+            for (var index = 0; index < line.Length; index++)
+            {
+                if (_quote is null)
+                {
+                    Outside(line[index]);
+                }
+                else if (Closes(line, ref index))
+                {
+                    _quote = null;
+                }
+                else
+                {
+                    _word.Append(line[index]);
+                }
+            }
+
+            _words.Add(_word.ToString());
+            return _words;
+        }
+
+        private void Outside(char character)
+        {
+            if (character == ' ')
+            {
+                _words.Add(_word.ToString());
+                _word.Clear();
+            }
+            else if (character == '"' || SingleMark(character))
+            {
+                _quote = character;
+            }
+            else
+            {
+                _word.Append(character);
+            }
+        }
+
+        /// <summary>
+        /// Whether the character at the index ends the quoted word. Inside single quotes a doubled mark
+        /// is one character rather than an end - the index moves to the second of the pair, which is kept.
+        /// </summary>
+        private bool Closes(string line, ref int index)
+        {
+            if (_quote == '"' || !SingleMark(line[index]))
+            {
+                return _quote == '"' && line[index] == '"';
+            }
+
+            if (index + 1 < line.Length && SingleMark(line[index + 1]))
+            {
+                index++;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool SingleMark(char character) =>
+            character is '\'' or (char)0x2018 or (char)0x2019 or (char)0x201A or (char)0x201B;
+    }
+
     private static CommandKind Verb(ActionKind kind) => kind switch
     {
         ActionKind.Stop => CommandKind.Stop,

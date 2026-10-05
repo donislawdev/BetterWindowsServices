@@ -76,8 +76,11 @@ There is no command lst. Did you mean list?</code></pre>
   <div class="wrap">
     <h2>Kody wyjścia</h2>
     <p>{{exit_code_count}} zakończeń, a każde z nich jest dla skryptu czymś innym. Dane idą na wyjście standardowe, a cała reszta na wyjście błędów, więc <code>bws list --json | jq</code> działa, a ostrzeżenie nigdy nie ląduje w JSON-ie.</p>
+    <p>Każdy dokument JSON jest czystym ASCII: litera spoza niego idzie jako sześcioznakowa ucieczka, którą każdy czytnik JSON zamienia z powrotem na literę, więc <code>bws list --json &gt; plik.json</code> jest poprawnym UTF-8, a <code>| ConvertFrom-Json</code> czyta go dobrze przy każdej stronie kodowej konsoli. W tekście dla człowieka znak, który zamiast się wydrukować przestawiłby terminal - tabulator, koniec linii, sekwencja ucieczki, zmiana kierunku tekstu - jest pokazany jako swój numer, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> kończy przełączniki, więc usługę o nazwie zaczynającej się od łącznika da się nazwać: <code>bws show -- -dziwna</code>. Polecenia, które narzędzie podaje do skopiowania, są pisane dla PowerShella: nazwa ze spacją idzie w cudzysłowie, który cmd czyta tak samo, a nazwa, którą PowerShell rozwinąłby w cudzysłowie, na przykład <code>MSSQL$SQLEXPRESS</code>, w apostrofach.</p>
     {{table:exit-codes}}
     <p class="note"><strong>Ctrl+C ma trzy poziomy, a każdy mówi, ile kosztuje następny.</strong> Pierwszy przestaje iść naprzód i nadal oddaje to, co zabrał, drugi zostawia rzeczy jak są i nadal drukuje raport, trzeci kończy proces. Przebieg zatrzymany ręcznie kończy się kodem <code>4</code> nawet wtedy, gdy każdy krok i tak dotarł.</p>
+    <p class="note"><strong>Zamknięcie okna konsoli liczy się jak pierwsze Ctrl+C.</strong> Windows daje programowi po nim pięć sekund, a ten w tym czasie przestaje iść naprzód i oddaje to, co zabrał. Wylogowanie i zamknięcie systemu kończą go bez ostrzeżenia, na które mógłby zareagować, a zerwana sesja zdalna może tak samo.</p>
   </div>
 </section>
 

@@ -31,8 +31,29 @@ is not part of this repository.
   moment it happens, and a service set to restart after a minute was back a minute later with nothing
   on screen saying so. A forced restart that started everything again itself adds nothing.
 
+- `--` ends the switches, so a service whose name begins with a dash can be named:
+  `bws show -- -odd`.
+- `--timing` gives asking which services depend on each entry a line of its own - "Asked who depends
+  on each entry in N ms" - on `list --required-by`, `show`, `snapshot create` and
+  `snapshot diff --live`. On a listing that time used to be counted as filtering.
+
 ### Changed
 
+- Every `--json` document is now plain ASCII. A letter outside it is written as a six character
+  escape that every JSON reader turns back into the letter, so `bws list --json > file.json` is a
+  valid UTF-8 file on a console set to code page 852, where it used to hold bytes no UTF-8 reader
+  accepts, and `| ConvertFrom-Json` keeps working whatever the code page. The values are the same
+  once read. A script that searched the raw text for a letter outside ASCII has to read the JSON
+  instead. The plan and the snapshot receipt stop escaping the apostrophe and the ampersand. The
+  snapshot file itself is unchanged.
+- The command lines the tool hands you - on the window's plan sheet, the line to put things back
+  after a run, the hint when a disabled service is started - quote a service name that needs it:
+  double quotes for a space, single quotes for a name PowerShell would expand inside them, such as
+  `MSSQL$SQLEXPRESS`. They are written for PowerShell. A name that begins with a dash comes after
+  `--`.
+- In the text a person reads - the listing, `show`, `snapshot diff`, a plan - a control character or
+  a direction override inside a name, a path, a description or a value from a snapshot file is shown
+  as its code point, `<U+001B>`, instead of reaching the terminal.
 - **Breaking for scripts reading `--json`:** every word-valued field in the JSON of a plan and of a
   comparison is now spelled the way the listing and the snapshot spell theirs - `"outcome":
   "Succeeded"` beside `"status": "Running"`, where one result used to say `"succeeded"` beside
@@ -130,6 +151,14 @@ is not part of this repository.
 
 ### Fixed
 
+- Closing the console window while a plan runs counts as the first Ctrl+C: the tool stops going
+  forward and puts back what it took down, in the five seconds Windows gives a program after the
+  window closes. A restart closed between its stop and its start used to leave the service stopped.
+- `bws snapshot --help` shows the help instead of "There is no snapshot --help", and
+  `bws snapshot --json create` works the way `bws --json list` always has.
+- `bws show` with a name the session was not shown, and a plan refused before it runs, now say that
+  the session has no administrator rights when it has none. A service hidden from such a session used
+  to be reported as simply not existing.
 - A service whose program sits in a folder only the system may open no longer shows as "file
   missing" when the tool runs without administrator rights. Whether the file is there, its
   signature, its version and its hash are reported as refused ("no access") instead of missing, and

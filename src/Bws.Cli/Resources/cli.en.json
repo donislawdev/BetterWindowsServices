@@ -202,6 +202,7 @@
   "cli.show.nameMissing": "show needs the name of an entry. Example: bws show Spooler",
   "cli.info.timingInspected": "Verified signatures in {0} ms.",
   "cli.info.timingMeasured": "Read process memory in {0} ms.",
+  "cli.info.timingAsked": "Asked who depends on each entry in {0} ms.",
 
   "cli.cell.noAccess": "(no access)",
   "cli.cell.unreadable": "(could not be read)",

@@ -23,17 +23,17 @@ internal static class ListingJson
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
 
-        // Display names as themselves. The default encoder escapes everything outside
-        // ASCII, so on this machine every Polish name came out as a row of ł and
-        // friends - valid JSON that no person reading a terminal can check against
-        // services.msc. Found while building the snapshot, where the same default made the
-        // file unreadable in a diff, and fixed in both because one of them printing names
-        // and the other printing escapes would be a difference with no reason behind it.
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        // ESCAPES SINCE 2026-10-05, AND FOR TWO MONTHS BEFORE THAT THIS LINE ARGUED THE OPPOSITE.
+        // Display names were written as themselves, so that somebody reading the terminal could
+        // check them against services.msc - and the console wrote them in its own code page, so
+        // the same names reached a file as bytes no UTF-8 reader accepts. AsciiJson carries the
+        // measurement that settled it. The snapshot keeps its names as themselves, because it is a
+        // file written in UTF-8 and never passes through a console.
+        Encoder = AsciiJson.Encoder
     };
 
     internal static string Render(IReadOnlyList<ScmEntry> entries) =>
-        JsonSerializer.Serialize(entries.Select(EntryDocument.From).ToList(), Options);
+        AsciiJson.Serialize(entries.Select(EntryDocument.From).ToList(), Options);
 
     /// <summary>
     /// One entry on its own, for the verb that is about one entry.
@@ -46,5 +46,5 @@ internal static class ListingJson
     /// the same facts, which is the thing this file exists to avoid.
     /// </summary>
     internal static string One(ScmEntry entry) =>
-        JsonSerializer.Serialize(EntryDocument.From(entry), Options);
+        AsciiJson.Serialize(EntryDocument.From(entry), Options);
 }

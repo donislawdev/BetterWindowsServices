@@ -270,8 +270,10 @@ internal static class Refusals
         // typed - and this is the third shape of it.
         if (asked.Word.Length == 0)
         {
+            // The name the way it would have to be typed, because the sentence offers a line to type
+            // (stability report W-12) - the same rule as every other line this tool hands out.
             Console.Error.WriteLine(Texts.Of(
-                "cli.missingStartType", serviceName, string.Join(", ", StartTypeWords.All)));
+                "cli.missingStartType", EquivalentCommand.Typed(serviceName), string.Join(", ", StartTypeWords.All)));
 
             return ExitCode.Usage;
         }

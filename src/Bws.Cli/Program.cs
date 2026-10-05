@@ -106,6 +106,10 @@ try
     // until it was pulled out.
     long measured = 0;
 
+    // And the third pass, which had no number of its own until 2026-10-05 and so did exactly what
+    // the line above describes (stability report C-4).
+    long asked = 0;
+
     // Every command produces its text, and exactly one place puts text on the data channel.
     // Not tidiness: it is what makes "could anything else have reached standard output"
     // answerable by looking, and a guard in the architecture tests holds it to one.
@@ -138,7 +142,9 @@ try
             // The same third family, and for the same sentence: the file on the other side has
             // it. Left out, every entry lands in "neitherRead" - which is not a difference, so a
             // comparison reports none while the field goes uncompared.
+            before2 = stopwatch.ElapsedMilliseconds;
             entries = RequiredByPass.Fill(entries, catalog!);
+            asked = stopwatch.ElapsedMilliseconds - before2;
 
             after = Snapshot.Of(entries, note: null, new SystemClock());
         }
@@ -171,6 +177,7 @@ try
                     ? Texts.Of("cli.info.timingRead.one", entries.Count, read)
                     : Texts.Of("cli.info.timingRead.many", entries.Count, read));
                 Console.Error.WriteLine(Texts.Of("cli.info.timingInspected", inspected));
+                Console.Error.WriteLine(Texts.Of("cli.info.timingAsked", asked));
             }
 
             Console.Error.WriteLine(Texts.Of("cli.info.timingCompared", stopwatch.ElapsedMilliseconds));
@@ -224,7 +231,9 @@ try
         // AND WHO DEPENDS ON EACH ENTRY, EVERY TIME, on the argument above and for a small fraction
         // of the price - RequiredByPass carries the measurement. No switch here: one taken without it
         // would compare against one that has it as though every service had lost its dependents.
+        before = stopwatch.ElapsedMilliseconds;
         entries = RequiredByPass.Fill(entries, catalog!);
+        asked = stopwatch.ElapsedMilliseconds - before;
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
         var target = SnapshotFiles.Target(options.Path, snapshot.Metadata);
@@ -278,7 +287,7 @@ try
             ? SnapshotText.Render(snapshot, target, asJson: true)
             : SnapshotText.Render(snapshot, target, asJson: false);
 
-        Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected, measured: 0);
+        Execution.Report(entries, result: null, options, new Spent(read, stopwatch.ElapsedMilliseconds, inspected, Asked: asked));
     }
     else if (options.Kind == CommandKind.Show)
     {
@@ -290,10 +299,15 @@ try
         // name only. A display name is translated into the language of the machine - rule 3 of
         // CLAUDE.md - so accepting one here would make a runbook work on one Windows and not on
         // another, quietly.
+        // AND WHAT THE READING HAS TO ADMIT TO, SINCE 2026-10-05 (stability report C-3). Without
+        // administrator rights the manager hands over fewer entries, so "there is no entry called X"
+        // was said firmly about an entry this session may simply not have been shown. The refusal
+        // first, because it is the answer, and the admission after it, because it qualifies it.
         if (found is null)
         {
             stopwatch.Stop();
             Console.Error.WriteLine(Texts.Of("cli.show.noSuchEntry", options.ServiceName));
+            Execution.Report(entries, result: null, options, new Spent(read, stopwatch.ElapsedMilliseconds));
 
             return ExitCode.Usage;
         }
@@ -324,7 +338,9 @@ try
         // AND WHO STANDS ON IT, ALWAYS, ON THE SAME ARGUMENT AS THE LINE ABOVE: over the machine
         // this is a call per entry, over one entry it is one call - and "what breaks if I stop
         // this" is the question somebody typing `show` actually has.
+        before = stopwatch.ElapsedMilliseconds;
         found = RequiredByPass.Fill([found], catalog!)[0];
+        asked = stopwatch.ElapsedMilliseconds - before;
 
         stopwatch.Stop();
 
@@ -345,7 +361,7 @@ try
         //
         // result: null, like the write commands: there is no query here, so there is nothing to
         // say about how many of how many matched.
-        Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected, measured);
+        Execution.Report(entries, result: null, options, new Spent(read, stopwatch.ElapsedMilliseconds, inspected, measured, asked));
     }
     else if (options.IsWrite)
     {
@@ -355,6 +371,9 @@ try
             .Build(new ServiceAction(
                 options.Action, options.ServiceName, options.Dependents, wanted, options.Force, options.Setting.AlsoStop));
 
+        // The admissions follow the refusal here too, since 2026-10-05 (stability report C-3): a
+        // plan refused because a process cannot be ended is very often a session without the rights
+        // to end it, and the sentence that says so was the one this path skipped.
         if (!plan.IsRunnable)
         {
             stopwatch.Stop();
@@ -363,6 +382,8 @@ try
             {
                 Console.Error.WriteLine(PlanText.Describe(problem));
             }
+
+            Execution.Report(entries, result: null, options, new Spent(read, stopwatch.ElapsedMilliseconds));
 
             return ExitCode.Usage;
         }
@@ -434,7 +455,9 @@ try
         // two passes above: they build their own reader, and offline is the run with no manager.
         if (catalog is not null && (options.RequiredBy || needs.HasFlag(ExtraRead.RequiredBy)))
         {
+            var before = stopwatch.ElapsedMilliseconds;
             entries = RequiredByPass.Fill(entries, catalog);
+            asked = stopwatch.ElapsedMilliseconds - before;
         }
 
         var result = parsed.Query!.Filter(entries);
@@ -444,7 +467,7 @@ try
             ? ListingJson.Render(result.Entries)
             : ListingTable.Render(result.Entries);
 
-        Execution.Report(entries, result, options, read, stopwatch.ElapsedMilliseconds, inspected, measured);
+        Execution.Report(entries, result, options, new Spent(read, stopwatch.ElapsedMilliseconds, inspected, measured, asked));
     }
 
     if (options.IsWrite)
@@ -453,7 +476,7 @@ try
         // owed on every command. It used to be said only when listing, which meant a plan
         // built on entries whose configuration was refused looked exactly like one built on
         // a complete reading.
-        Execution.Report(entries, result: null, options, read, stopwatch.ElapsedMilliseconds, inspected: 0, measured: 0);
+        Execution.Report(entries, result: null, options, new Spent(read, stopwatch.ElapsedMilliseconds));
     }
 
     Output.Data(data);

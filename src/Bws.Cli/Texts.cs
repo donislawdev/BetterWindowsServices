@@ -34,9 +34,22 @@ internal static class Texts
     /// down until 2026-08-03: a terminal writes into pipes, where a thousands separator that
     /// appears on one install and not on another is something a script has to cope with. A window
     /// shows text to the person sitting at it, and there the machine's culture reads better.
+    ///
+    /// <b>EVERY TEXT VALUE GOES THROUGH <see cref="Printable"/> ON THE WAY IN, SINCE 2026-10-05</b>
+    /// (stability report C-4). This is the one door a name, a path, a description, a value from a
+    /// snapshot file or a sentence from the manager walks through into a line a person reads - the
+    /// report of `show`, the comparison and the plan all build their lines here - so a control
+    /// character in any of them is written out here rather than handed to the terminal. Checked on
+    /// the day it was added: no value passed here is meant to break a line. Five templates break
+    /// lines on purpose and none of them is ever passed as a value to another, so a caller that
+    /// wanted to hand a whole paragraph in as an argument would find its line breaks written out -
+    /// which is the right failure, visible at once, rather than the old one, invisible until a
+    /// hostile file arrived.
     /// </remarks>
     internal static string Of(string key, params object[] values) =>
-        string.Format(CultureInfo.InvariantCulture, Of(key), values);
+        string.Format(CultureInfo.InvariantCulture, Of(key), [.. values.Select(Shown)]);
+
+    private static object Shown(object value) => value is string text ? Printable.Of(text) : value;
 
     private static Dictionary<string, string> Load()
     {

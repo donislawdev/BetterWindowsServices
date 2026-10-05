@@ -135,11 +135,9 @@ public sealed class PublicSurfaceGuards
             "one sentence of a localised refusal, quoted to show why a message is carried "
             + "beside its number instead of being compared as words",
 
-        ["src/Bws.Cli/ListingJson.cs"] =
-            "names a character that a wrong console encoding turns every localised name into",
-
         ["src/Bws.Core/Snapshots/SnapshotJson.cs"] =
-            "the same character, for the same reason, on the writing side",
+            "names a character that an escaping encoder turns every localised name into, on the "
+            + "side that writes the file",
 
         ["tests/Bws.Core.Tests/SnapshotDiffTests.cs"] =
             "a localised refusal quoted to show two machines answering the same question in "

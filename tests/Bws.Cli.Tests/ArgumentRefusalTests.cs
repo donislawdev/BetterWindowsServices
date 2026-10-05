@@ -128,5 +128,42 @@ public sealed class ArgumentRefusalTests
         // this from being a parser that stopped rejecting anything.
         Assert.Equal(["--nope"], CommandLine.Read(["list", "--nope"]).Rejected);
     }
+
+    /// <summary>
+    /// After <c>--</c> every word is a name, however it begins - stability report C-4, 2026-10-05.
+    /// Windows lets a service be called "-anything", and such an entry could not be named here at all.
+    /// The second half is what keeps this from being a reader that stopped knowing switches.
+    /// </summary>
+    [Fact]
+    public void After_the_end_of_the_switches_a_word_that_begins_with_a_dash_is_a_name()
+    {
+        var read = CommandLine.Read(["show", "--json", "--", "-odd"]);
+
+        Assert.Equal("-odd", read.ServiceName);
+        Assert.True(read.Json);
+        Assert.Empty(read.Rejected);
+        Assert.Null(Refusals.Answer(read));
+
+        Assert.Equal(["-odd"], CommandLine.Read(["show", "-odd"]).Rejected);
+        Assert.False(CommandLine.Read(["show", "--", "--help"]).Help);
+    }
+
+    /// <summary>
+    /// The word after "snapshot" is the first one that is not a switch - C-4, 2026-10-05. It used to
+    /// be the very next word, so `bws snapshot --help` was "there is no snapshot --help" with code 2,
+    /// while `bws --json list` has always worked.
+    /// </summary>
+    [Fact]
+    public void Snapshot_finds_its_verb_past_a_switch_and_still_names_a_wrong_one()
+    {
+        Assert.True(CommandLine.Read(["snapshot", "--help"]).Help);
+        Assert.Equal(CommandKind.SnapshotCreate, CommandLine.Read(["snapshot", "--json", "create"]).Kind);
+        Assert.Null(Answer("snapshot", "--json", "create", "x.json"));
+
+        Assert.Equal("restore", CommandLine.Read(["snapshot", "restore", "baseline.json"]).BadSubcommand);
+        Assert.Equal(string.Empty, CommandLine.Read(["snapshot"]).BadSubcommand);
+        Assert.Equal(ExitCode.Usage, Answer("snapshot", "--json"));
+    }
+
     private static int? Answer(params string[] arguments) => Refusals.Answer(CommandLine.Read(arguments));
 }

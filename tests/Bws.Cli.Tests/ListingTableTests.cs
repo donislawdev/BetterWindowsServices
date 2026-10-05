@@ -391,33 +391,5 @@ public sealed class ListingTableTests
         return column;
     }
 
-    private static ScmEntry Entry(string name, string displayName) => new()
-    {
-        ServiceName = name,
-        DisplayName = displayName,
-        Description = Reading<string>.Present(name + " description"),
-        EntryType = EntryType.OwnProcess,
-        PerUserRole = PerUserRole.None,
-        Status = EntryStatus.Running,
-        ProcessId = Reading<int>.Present(1234),
-        AcceptsStop = Reading<bool>.Present(true),
-        StartType = Reading<StartType>.Present(Core.StartType.Automatic),
-        DelayedAuto = Reading<bool>.Present(false),
-        Account = Reading<string>.Present("LocalSystem"),
-        DependsOn = Reading<IReadOnlyList<string>>.Absent(),
-        RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
-        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
-        BinaryPath = Reading<string>.Present(@"C:\Windows\System32\svchost.exe"),
-        BinaryFile = Reading<string>.Present(@"C:\Windows\System32\svchost.exe"),
-        BinaryOnDisk = Reading<bool>.Present(true),
-        Signature = Reading<BinarySignature>.NotRead(),
-        FileVersion = Reading<string>.NotRead(),
-        BinaryHash = Reading<string>.NotRead(),
-        RequiredPrivileges = Reading<IReadOnlyList<string>>.Absent(),
-        SidType = Reading<ServiceSidType>.Absent(),
-        SecurityDescriptor = Reading<string>.Absent(),
-        ErrorControl = Reading<ErrorControl>.Present(Core.ErrorControl.Normal),
-        LoadOrderGroup = Reading<string>.Absent(),
-        Memory = Reading<ProcessMemory>.NotRead()
-    };
+    private static ScmEntry Entry(string name, string displayName) => Entries.Plain(name, displayName);
 }
