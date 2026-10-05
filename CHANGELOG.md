@@ -42,7 +42,9 @@ is not part of this repository.
 - Every `--json` document is now plain ASCII. A letter outside it is written as a six character
   escape that every JSON reader turns back into the letter, so `bws list --json > file.json` is a
   valid UTF-8 file on a console set to code page 852, where it used to hold bytes no UTF-8 reader
-  accepts, and `| ConvertFrom-Json` keeps working whatever the code page. The values are the same
+  accepts, and `| ConvertFrom-Json` keeps working whatever the code page. On such a console a
+  description holding a typographic quote mark used to break the document outright - Windows wrote
+  the mark as a plain double quote, which ended the string early. The values are the same
   once read. A script that searched the raw text for a letter outside ASCII has to read the JSON
   instead. The plan and the snapshot receipt stop escaping the apostrophe and the ampersand. The
   snapshot file itself is unchanged.
