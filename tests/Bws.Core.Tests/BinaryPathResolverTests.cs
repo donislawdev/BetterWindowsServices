@@ -165,7 +165,7 @@ public sealed class BinaryPathResolverTests
             "Any",
             isDriver: false,
             elsewhere,
-            candidate => candidate.Equals(expected, StringComparison.OrdinalIgnoreCase),
+            candidate => Reading<bool>.Present(candidate.Equals(expected, StringComparison.OrdinalIgnoreCase)),
             NetworkPaths.Follow);
 
         Assert.Equal(expected, resolved.File);
@@ -251,11 +251,20 @@ public sealed class BinaryPathResolverTests
     }
 
     [Theory]
-    // Two backslashes and local, both of them. The device namespace is a way of naming
-    // things on this machine that skips path parsing, and treating it as remote would stop
-    // the tool answering about files that are right here.
+    // Two backslashes and local: the device namespace before a drive letter or a volume. It is
+    // a way of naming things on this machine that skips path parsing, and treating it as remote
+    // would stop the tool answering about files that are right here.
     [InlineData(@"\\?\C:\Tools\agent.exe", false)]
-    [InlineData(@"\\.\PhysicalDrive0", false)]
+    [InlineData(@"\\.\C:\Tools\agent.exe", false)]
+    [InlineData(@"\\?\Volume{00000000-0000-0000-0000-000000000000}\Tools\agent.exe", false)]
+    // EVERYTHING ELSE IN THE DEVICE NAMESPACE IS NOT LOCAL, since 2026-10-05 - the owner's decision
+    // on stability report R-2. The first three reached a share and answered "local" until that day -
+    // listing the shapes that stay is a list that is finished, listing the ones that leave is not.
+    // The fourth is the price, said rather than discovered: a device is no longer called local.
+    [InlineData(@"\\.\UNC\server\share\agent.exe", true)]
+    [InlineData(@"\\?\GLOBALROOT\Device\Mup\server\share\agent.exe", true)]
+    [InlineData(@"\\.\GLOBALROOT\Device\Mup\server\share\agent.exe", true)]
+    [InlineData(@"\\.\PhysicalDrive0", true)]
     // A share, in both spellings.
     [InlineData(@"\\server\share\agent.exe", true)]
     [InlineData(@"\\?\UNC\server\share\agent.exe", true)]
@@ -275,7 +284,7 @@ public sealed class BinaryPathResolverTests
     [InlineData(@"//server\share\agent.exe", true)]
     [InlineData("//?/UNC/server/share/agent.exe", true)]
     [InlineData("//?/C:/Tools/agent.exe", false)]
-    [InlineData("//./PhysicalDrive0", false)]
+    [InlineData("//./UNC/server/share/agent.exe", true)]
     [InlineData("C:/WINDOWS/System32/spoolsv.exe", false)]
     public void What_counts_as_leaving_this_machine(string path, bool leaves)
     {
@@ -330,6 +339,7 @@ public sealed class BinaryPathResolverTests
         // backwards and is not. Every case above is about resolving a path, and answering
         // them under the production default would make each one silently a test about the
         // network rule instead. The two tests that are about that rule name it explicitly.
-        return BinaryPathResolver.Resolve(command, serviceName, isDriver, Windows, present.Contains, networkPaths);
+        return BinaryPathResolver.Resolve(
+            command, serviceName, isDriver, Windows, name => Reading<bool>.Present(present.Contains(name)), networkPaths);
     }
 }

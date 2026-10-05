@@ -251,6 +251,7 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
             ServiceName = enumerated.ServiceName,
             DisplayName = enumerated.DisplayName,
             EntryType = enumerated.EntryType,
+            RecognizerDriver = enumerated.RecognizerDriver,
             PerUserRole = enumerated.PerUserRole,
             Status = enumerated.Status,
 

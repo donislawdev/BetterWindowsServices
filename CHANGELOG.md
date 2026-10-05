@@ -130,6 +130,31 @@ is not part of this repository.
 
 ### Fixed
 
+- A service whose program sits in a folder only the system may open no longer shows as "file
+  missing" when the tool runs without administrator rights. Whether the file is there, its
+  signature, its version and its hash are reported as refused ("no access") instead of missing, and
+  a snapshot taken that way leaves those fields out of a comparison instead of reporting them as
+  changed. In `--json`,
+  `binaryOnDisk` is then `null` and named under `unreadable` with the reason, where it used to be
+  `false`.
+- A driver whose path holds a space and no quotes is looked for under that whole path. A file
+  called `C:\Program.exe` used to be taken for it, and the signature and hash then described that
+  file instead of the driver.
+- A driver path written in the kernel's own form (`\Device\...`) is no longer looked for under
+  `C:\Device\`, and a service written as a bare file name (`agent.exe -run`) is looked for where
+  Windows looks: System32 first, then System, the Windows folder and the folders on the machine's
+  PATH.
+- Three more ways of writing a path that leads to another machine - `\\.\UNC\...`,
+  `\\?\GLOBALROOT\...` and `\??\UNC\...` - are no longer followed unless `--follow-network` is
+  given. A path starting `\\?\` or `\\.\` is followed only when it names a drive letter or a
+  volume. As before, such a file is reported as not read, never as missing.
+- A file listed only in an older catalogue, one that names its files by SHA-1, is no longer
+  reported as not signed.
+- "No access" is said only when Windows refused access. Any other failed reading - a service
+  removed while it was being read, for example - says "could not be read", and `bws show` gives
+  the error code beside it as before.
+- A listing no longer fails as a whole when the service manager's answer grows between asking how
+  much room it needs and handing it over. It asks again, up to three times.
 - A backslash inside a regular expression now reaches it. `name:/a\?/` matched every entry, because
   the question mark lost its backslash before the expression was read, and `path:/C:\\Windows/`
   matched nothing.

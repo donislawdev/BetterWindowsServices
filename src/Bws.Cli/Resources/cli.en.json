@@ -166,6 +166,7 @@
   "cli.show.line": "  {0}  {1}",
   "cli.show.absent": "none",
   "cli.show.denied": "(no access, code {0})",
+  "cli.show.unreadable": "(could not be read, code {0})",
   "cli.show.notRead": "(not read)",
   "cli.show.yes": "yes",
   "cli.show.no": "no",
@@ -203,6 +204,7 @@
   "cli.info.timingMeasured": "Read process memory in {0} ms.",
 
   "cli.cell.noAccess": "(no access)",
+  "cli.cell.unreadable": "(could not be read)",
   "cli.cell.status.running": "Running",
   "cli.cell.status.stopped": "Stopped",
   "cli.cell.status.paused": "Paused",

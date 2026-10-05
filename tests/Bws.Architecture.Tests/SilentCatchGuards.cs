@@ -40,7 +40,9 @@ public sealed class SilentCatchGuards
     {
         ["src/Bws.Cli/Execution.cs"] = 1,
         ["src/Bws.Cli/SnapshotFiles.cs"] = 2,
-        ["src/Bws.Core/BinaryPathResolver.cs"] = 1,
+        // Moved, not added: the machine's environment block left BinaryPathResolver for a file of its
+        // own on 2026-10-05 (stability report R-3), taking its one catch with it.
+        ["src/Bws.Core/ManagerEnvironment.cs"] = 1,
         ["src/Bws.Core/Querying/QueryPatterns.cs"] = 1,
         ["src/Bws.Core/Querying/QueryValues.cs"] = 1,
         ["src/Bws.Core/Snapshots/AtomicFile.cs"] = 2,

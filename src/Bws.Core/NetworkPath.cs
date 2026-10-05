@@ -49,18 +49,29 @@ public enum NetworkPaths
 /// </summary>
 public static class NetworkPath
 {
-    private const string DeviceNamespace = @"\\?\";
-    private const string LocalDeviceNamespace = @"\\.\";
-    private const string DeviceUnc = @"\\?\UNC\";
+    private const string VolumeName = "Volume{";
 
     /// <summary>
-    /// Whether reaching this path means reaching off this machine.
+    /// Whether reaching this path means reaching off this machine - or cannot be told apart
+    /// from it without asking the system, which is the question being avoided.
     ///
-    /// <b>Two shapes start with two backslashes and are local</b>, which is why this is a
-    /// method rather than a <c>StartsWith</c> at each call site. <c>\\?\C:\x</c> and
-    /// <c>\\.\PhysicalDrive0</c> are the Win32 device namespace - a way of naming things on
-    /// this machine that skips path parsing - and treating them as remote would stop the
-    /// tool answering about files that are right here.
+    /// <b>The Win32 device namespace is LOCAL ONLY BEFORE A DRIVE LETTER OR A VOLUME, since
+    /// 2026-10-05</b> - the owner's decision on stability report R-2. <c>\\?\C:\x</c> and
+    /// <c>\\?\Volume{...}\x</c> name a file on this machine and skip path parsing, and calling
+    /// them remote would stop the tool answering about files that are right here. Until that day
+    /// the rule was the other way round - everything after <c>\\?\</c> or <c>\\.\</c> was local
+    /// except <c>\\?\UNC\</c> - and three spellings walked through it to a share:
+    /// <c>\\.\UNC\host\share</c>, <c>\\?\GLOBALROOT\Device\Mup\host\share</c> and the same with
+    /// a dot. Listing the shapes that leave is a list nobody can finish, because the object
+    /// manager holds more names than this code will ever know. Listing the two that stay is a
+    /// list that is already finished. A name in between - a device, a pipe, GLOBALROOT pointing
+    /// at a local volume - comes back as not read, which is honest about a path nobody looked
+    /// at, and <see cref="NetworkPaths.Follow"/> reads it.
+    ///
+    /// The cost, said rather than discovered: <c>\\.\PhysicalDrive0</c> answered "local" until
+    /// that day and now does not. No service on the machine this was written on has a launch
+    /// path beginning with two backslashes at all - 0 of 787, counted that day with
+    /// tools/scm-probe/scm-probe.ps1.
     ///
     /// <b>What this cannot see, stated rather than left to be discovered:</b> a drive letter
     /// mapped to a share. <c>Z:\service.exe</c> is indistinguishable from a local path
@@ -94,13 +105,14 @@ public static class NetworkPath
             return false;
         }
 
-        if (value.StartsWith(DeviceUnc, StringComparison.OrdinalIgnoreCase))
-        {
-            // The device namespace spelling of a share. Same destination, longer name.
-            return true;
-        }
+        // \\?\ and \\.\ - the device namespace. Anything else after two backslashes is a share.
+        var deviceNamespace = value.Length > 3 && (value[2] is '?' or '.') && value[3] == '\\';
 
-        return !value.StartsWith(DeviceNamespace, StringComparison.Ordinal)
-            && !value.StartsWith(LocalDeviceNamespace, StringComparison.Ordinal);
+        return !deviceNamespace || !NamesALocalVolume(value.AsSpan(4));
     }
+
+    /// <summary>A drive letter and its colon, or a volume by its identifier - nothing else.</summary>
+    private static bool NamesALocalVolume(ReadOnlySpan<char> name) =>
+        (name.Length >= 2 && char.IsAsciiLetter(name[0]) && name[1] == ':')
+        || name.StartsWith(VolumeName, StringComparison.OrdinalIgnoreCase);
 }

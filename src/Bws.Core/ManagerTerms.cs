@@ -139,6 +139,23 @@ internal static class ManagerTerms
     }
 
     /// <summary>
+    /// Whether the manager counts this entry among its drivers although <see cref="EntryType"/>
+    /// has no kind for it - a file system recognizer, 0x8, which the SDK's SERVICE_DRIVER mask
+    /// lists beside the kernel and file system kinds.
+    ///
+    /// <b>A separate answer rather than a fifth driver kind, by the owner's decision of
+    /// 2026-10-05</b> (stability report R-7). A new value of <see cref="Core.EntryType"/> would
+    /// reach the JSON, the query language and the snapshot for an entry no measured machine has:
+    /// the owner's carries Fs_Rec in the registry with type 0x8, and the manager answers 1060 for
+    /// it. What the bit has to change is what the reading does - the default file under
+    /// System32\drivers, and no question about a delayed start - and that needs no new name.
+    ///
+    /// The adapter bit, 0x4, is not here on purpose: SERVICE_DRIVER leaves it out.
+    /// </summary>
+    internal static bool IsRecognizerDriver(ENUM_SERVICE_TYPE type) =>
+        type.HasFlag(ENUM_SERVICE_TYPE.SERVICE_RECOGNIZER_DRIVER);
+
+    /// <summary>
     /// How hard the system takes a failure to start during boot.
     ///
     /// Anything the metadata does not name comes back Unknown rather than being folded into

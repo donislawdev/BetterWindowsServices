@@ -175,4 +175,44 @@ public sealed class ManagerBlockTests
             pinned.Free();
         }
     }
+
+    /// <summary>
+    /// <b>Stability report R-4, 2026-10-05.</b> The account, launch command and load order group of
+    /// a configuration were read with <c>PWSTR.ToString()</c> - unbounded - while the comment on the
+    /// bounded reader said every other reading in that file was bounded. A field pointing outside the
+    /// block is now refused for that field alone, with ERROR_INVALID_DATA, and the fields beside it
+    /// read as before.
+    ///
+    /// QUERY_SERVICE_CONFIGW on a 64 bit machine: three words and padding, then the launch command at
+    /// 16, the group at 24, the tag at 32, the dependencies at 40, the account at 48 and the display
+    /// name at 56 - sixty four bytes, with the account's text written after them.
+    /// </summary>
+    [Fact]
+    public void A_configuration_field_pointing_outside_the_block_is_refused_and_its_neighbours_are_read()
+    {
+        const int ConfigurationLength = 64;
+        var buffer = new byte[ConfigurationLength + 32];
+        var pinned = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+
+        try
+        {
+            var address = pinned.AddrOfPinnedObject().ToInt64();
+
+            BitConverter.TryWriteBytes(buffer.AsSpan(4), 2u);
+            BitConverter.TryWriteBytes(buffer.AsSpan(16), address - 4096);
+            BitConverter.TryWriteBytes(buffer.AsSpan(48), address + ConfigurationLength);
+            System.Text.Encoding.Unicode.GetBytes("LocalSystem").CopyTo(buffer, ConfigurationLength);
+
+            var configuration = ManagerBlocks.ReadConfigurationBuffer(buffer);
+
+            Assert.Equal(ReadOutcome.Denied, configuration.BinaryPath.Outcome);
+            Assert.Equal(13, configuration.BinaryPath.ErrorCode);
+            Assert.Equal("LocalSystem", configuration.Account.Value);
+            Assert.Equal(ReadOutcome.Absent, configuration.LoadOrderGroup.Outcome);
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
 }

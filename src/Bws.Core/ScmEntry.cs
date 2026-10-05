@@ -369,7 +369,15 @@ public sealed record ScmEntry
     /// </summary>
     public required Reading<ProcessMemory> Memory { get; init; }
 
-    public bool IsDriver => EntryType is EntryType.KernelDriver or EntryType.FileSystemDriver;
+    /// <summary>
+    /// A driver <see cref="EntryType"/> has no kind for, so it reads Unknown there - see
+    /// <see cref="ManagerTerms.IsRecognizerDriver"/> for why that is the owner's decision rather
+    /// than a gap. Internal because it travels nowhere: not to the JSON, not to the snapshot, not
+    /// to the query language, where <c>type:driver</c> still means the two named kinds.
+    /// </summary>
+    internal bool RecognizerDriver { get; init; }
+
+    public bool IsDriver => EntryType is EntryType.KernelDriver or EntryType.FileSystemDriver || RecognizerDriver;
 
     /// <summary>
     /// The single most useful derived fact in the whole tool: the entry is supposed to

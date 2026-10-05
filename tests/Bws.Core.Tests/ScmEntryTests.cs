@@ -182,6 +182,14 @@ public sealed class ScmEntryTests
         {
             EntryType = EntryType.SharedProcess
         } is { IsDriver: true });
+
+        // A recognizer, 0x8: Unknown as a kind - the owner's decision of 2026-10-05 keeps it out of
+        // the JSON - and a driver all the same, so no plan treats it as a service (stability R-7).
+        Assert.True(Entry(EntryStatus.Running, Reading<StartType>.Absent()) with
+        {
+            EntryType = EntryType.Unknown,
+            RecognizerDriver = true
+        } is { IsDriver: true });
     }
 
     /// <summary>Automatic and stopped, which is the only shape the triggers are consulted for.</summary>

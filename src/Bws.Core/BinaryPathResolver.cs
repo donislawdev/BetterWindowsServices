@@ -13,11 +13,24 @@ namespace Bws.Core;
 /// which is the obvious first attempt, reported 785 of those 825 as missing - the arguments
 /// and the relative paths see to that. Anything built on top would have called almost the
 /// whole machine broken.
+///
+/// <b>DRIVERS AND SERVICES ARE READ BY DIFFERENT CODE, AND SINCE 2026-10-05 THIS SAYS SO</b>
+/// (stability report R-3). The manager hands a service's command to CreateProcess, which splits it
+/// at spaces and searches for a bare name. The kernel takes a driver's path as one file name, with
+/// no arguments, relative to <c>\SystemRoot\</c> when it is not rooted - knowledge about Windows,
+/// not a measurement and not a Microsoft page. Until that day a driver went through the command
+/// line rules too, and the one driver on the owner's machine with an unquoted space in its path
+/// (<c>\??\C:\Program Files\...\x.sys</c>, counted with tools/scm-probe/scm-probe.ps1) resolved
+/// correctly only because no <c>C:\Program.exe</c> existed. Planting one would have made the
+/// signature and the hash describe that file instead - in an audit tool.
 /// </summary>
 public static class BinaryPathResolver
 {
     private const string ObjectPrefix = @"\??\";
     private const string SystemRootPrefix = @"\SystemRoot\";
+    private const string ObjectShare = @"UNC\";
+    private const string Win32Device = @"\\?\";
+    private const string Win32GlobalRoot = @"\\?\GLOBALROOT";
 
     private static readonly string[] ExecutableExtensions =
         [".exe", ".sys", ".dll", ".com", ".bat", ".cmd"];
@@ -33,20 +46,26 @@ public static class BinaryPathResolver
     /// <param name="File">Absolute path, or null when the entry names nothing to resolve.</param>
     /// <param name="OnDisk">
     /// Whether that file is there. A <see cref="Reading{T}"/> rather than a bool because there
-    /// are now three answers, not two: it is there, it is not, and <b>nobody looked</b> - the
-    /// last of those for a path on another machine when the caller did not ask to go off this
-    /// one. Collapsing "did not look" into "not there" would be rule 8 broken in the field
-    /// where it costs most: an audit tool reporting a file as missing when it never checked.
+    /// are four answers, not two: it is there, it is not, <b>nobody looked</b> - for a path on
+    /// another machine when the caller did not ask to go off this one - and, since 2026-10-05,
+    /// <b>the system would not say</b>, for a file this token may not read (stability report
+    /// R-1, <see cref="FileOnDisk"/>). Collapsing either of the last two into "not there" would
+    /// be rule 8 broken in the field where it costs most: an audit tool reporting a file as
+    /// missing when it never found out.
     /// </param>
     public readonly record struct ResolvedBinary(string? File, Reading<bool> OnDisk);
 
     /// <param name="command">The launch command exactly as the manager returns it.</param>
     /// <param name="serviceName">Needed only for a driver that names no file of its own.</param>
-    /// <param name="isDriver">Drivers have a default the manager applies for them.</param>
+    /// <param name="isDriver">
+    /// Drivers have a default the manager applies for them, and their path is one file name
+    /// rather than a command line.
+    /// </param>
     /// <param name="windowsDirectory">What a relative path and <c>\SystemRoot\</c> are relative to.</param>
     /// <param name="exists">
-    /// Asks whether a candidate is on disk. Handed in rather than called directly, so the
-    /// rules above can be tested without a file system arranged to suit them.
+    /// Asks whether a candidate is on disk, with a refusal as the third answer. Handed in rather
+    /// than called directly, so the rules above can be tested without a file system arranged to
+    /// suit them.
     /// </param>
     /// <param name="networkPaths">
     /// Whether a path on another machine may be asked about at all. Skipping is the default
@@ -58,28 +77,22 @@ public static class BinaryPathResolver
         string serviceName,
         bool isDriver,
         string windowsDirectory,
-        Func<string, bool> exists,
+        Func<string, Reading<bool>> exists,
         NetworkPaths networkPaths)
     {
         // No default value on the parameter above, on purpose. A default would let a new call
         // site reach off the machine by saying nothing, which is exactly how the behaviour
         // this replaces went unnoticed for six slices.
-        bool OffLimits(string candidate) =>
-            networkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(candidate);
+        var asking = new Asking(exists, networkPaths, isDriver, windowsDirectory);
 
         if (string.IsNullOrWhiteSpace(command))
         {
             // A driver that names no file runs the one the manager assumes for it. Anything
             // else naming no file leaves us with nothing to resolve, and saying so is better
             // than inventing a path in order to report it missing.
-            if (!isDriver)
-            {
-                return new ResolvedBinary(null, Reading<bool>.Absent());
-            }
-
-            var assumed = Path.Combine(windowsDirectory, "System32", "drivers", serviceName + ".sys");
-
-            return Settle(assumed, exists, OffLimits);
+            return isDriver
+                ? asking.Settle(Path.Combine(windowsDirectory, "System32", "drivers", serviceName + ".sys"))
+                : new ResolvedBinary(null, Reading<bool>.Absent());
         }
 
         var trimmed = command.Trim();
@@ -89,291 +102,276 @@ public static class BinaryPathResolver
             // Quotes settle it. Whoever wrote them said where the file name ends, which is
             // the entire reason quoting an image path is worth doing.
             var close = trimmed.IndexOf('"', 1);
-            var quoted = Absolute(close > 0 ? trimmed[1..close] : trimmed[1..], windowsDirectory);
 
-            return Settle(quoted, exists, OffLimits);
+            return asking.Settle(close > 0 ? trimmed[1..close] : trimmed[1..]);
         }
 
-        // No quotes and possibly spaces, so where the file name ends is genuinely ambiguous.
-        // Every prefix is tried, shortest first, and the first one on disk is the answer.
-        //
-        // Cutting at the first space is the obvious alternative and it is wrong: it turned
-        // both of the entries on the machine with this shape into "C:\Program" and reported
-        // files that are there as missing.
-        //
-        // NOT MEASURED: whether the manager resolves such a command in exactly this order.
-        // It only decides anything when two prefixes both exist, which no entry on the
-        // machine does, and finding out would mean planting a file and starting a service.
-        // Naming the ambiguity as a finding of its own is C5 of the specification, and is
-        // deliberately not done here.
-        string? executableLooking = null;
-        var lookedAway = false;
-
-        // Ordinal by construction: searching for a character has no cultural reading, and
-        // the overload taking a start index has no comparison parameter to pass one to.
-        for (var space = trimmed.IndexOf(' ', StringComparison.Ordinal); ;
-             space = trimmed.IndexOf(' ', space + 1))
-        {
-            var candidate = Absolute(space < 0 ? trimmed : trimmed[..space], windowsDirectory);
-
-            // Off this machine, and nobody asked to go there. Every prefix of one command
-            // shares a root, so this is the same answer each time round - but it is asked per
-            // candidate rather than once, because Absolute can turn a candidate into
-            // something else entirely, and a rule that holds "by construction" is the kind
-            // that stops holding when somebody adds a seventh path shape.
-            if (OffLimits(candidate))
-            {
-                lookedAway = true;
-            }
-            else if (AsWindowsWouldTryIt(candidate).FirstOrDefault(exists) is { } found)
-            {
-                return new ResolvedBinary(found, Reading<bool>.Present(true));
-            }
-
-            executableLooking ??= HasExecutableExtension(candidate) ? candidate : null;
-
-            if (space < 0)
-            {
-                break;
-            }
-        }
-
-        // Nothing on disk, so the answer is going to be "missing" whatever we pick, and the
-        // point of picking well is that a person can check it. The prefix that ends in an
-        // executable extension is the one they meant. Falling back to the whole string keeps
-        // us from returning a truncated path, which would read as a different mistake.
-        //
-        // Unless nobody looked, in which case "missing" would be a claim about a disk this
-        // process never touched. Which prefix is the file cannot be settled without looking
-        // either, so the readable guess comes back with the disk question unanswered.
-        return new ResolvedBinary(
-            executableLooking ?? Absolute(trimmed, windowsDirectory),
-            lookedAway ? Reading<bool>.NotRead() : Reading<bool>.Present(false));
+        // A driver's path is the whole string - see the class summary. Only a service's command
+        // has arguments to cut off and a name to search for.
+        return isDriver ? asking.Settle(trimmed) : asking.Walk(trimmed);
     }
 
     /// <summary>
-    /// One candidate, looked for the way Windows would look for it, and only when it is
-    /// allowed to be asked about at all.
+    /// One question about one entry, carried through every candidate it produces. A struct rather
+    /// than five parameters on every method below, because the five are the same for all of them.
     /// </summary>
-    private static ResolvedBinary Settle(string candidate, Func<string, bool> exists, Func<string, bool> offLimits)
+    private readonly record struct Asking(
+        Func<string, Reading<bool>> Exists,
+        NetworkPaths NetworkPaths,
+        bool IsDriver,
+        string WindowsDirectory)
     {
-        if (offLimits(candidate))
+        /// <summary>
+        /// A name with no doubt about where it ends: the places it can mean, tried in order.
+        /// </summary>
+        internal ResolvedBinary Settle(string written)
         {
-            return new ResolvedBinary(candidate, Reading<bool>.NotRead());
+            var found = Look(written, out var lookedAway);
+
+            return found ?? new ResolvedBinary(
+                Places(written).First(),
+                lookedAway ? Reading<bool>.NotRead() : Reading<bool>.Present(false));
         }
 
-        return AsWindowsWouldTryIt(candidate).FirstOrDefault(exists) is { } found
-            ? new ResolvedBinary(found, Reading<bool>.Present(true))
-            : new ResolvedBinary(candidate, Reading<bool>.Present(false));
+        /// <summary>
+        /// No quotes and possibly spaces, so where the file name ends is genuinely ambiguous.
+        /// Every prefix is tried, shortest first, and the first one that answers is the answer.
+        ///
+        /// Cutting at the first space is the obvious alternative and it is wrong: it turned both
+        /// of the entries on the machine with this shape into "C:\Program" and reported files
+        /// that are there as missing. The order is CreateProcess's own, from its documentation:
+        /// <c>c:\program.exe</c> first, the whole name last.
+        ///
+        /// <b>A REFUSED CANDIDATE ENDS THE WALK, since 2026-10-05</b> (stability report R-1). A
+        /// refusal comes back only for a name that exists - measured that day, see
+        /// <see cref="FileOnDisk"/> - so it is the file CreateProcess would reach first, and
+        /// walking past it to a longer one this token can read would name a file Windows does not
+        /// run.
+        /// </summary>
+        internal ResolvedBinary Walk(string trimmed)
+        {
+            string? executableLooking = null;
+            var lookedAway = false;
+
+            // Ordinal by construction: searching for a character has no cultural reading, and
+            // the overload taking a start index has no comparison parameter to pass one to.
+            for (var space = trimmed.IndexOf(' ', StringComparison.Ordinal); ;
+                 space = trimmed.IndexOf(' ', space + 1))
+            {
+                var written = space < 0 ? trimmed : trimmed[..space];
+
+                if (Look(written, out var away) is { } found)
+                {
+                    return found;
+                }
+
+                lookedAway |= away;
+                executableLooking ??= HasExecutableExtension(written) ? Places(written).First() : null;
+
+                if (space < 0)
+                {
+                    break;
+                }
+            }
+
+            // Nothing on disk, so the answer is going to be "missing" whatever we pick, and the
+            // point of picking well is that a person can check it. The prefix that ends in an
+            // executable extension is the one they meant. Falling back to the whole string keeps
+            // us from returning a truncated path, which would read as a different mistake.
+            //
+            // Unless nobody looked, in which case "missing" would be a claim about a disk this
+            // process never touched. Which prefix is the file cannot be settled without looking
+            // either, so the readable guess comes back with the disk question unanswered.
+            return new ResolvedBinary(
+                executableLooking ?? Places(trimmed).First(),
+                lookedAway ? Reading<bool>.NotRead() : Reading<bool>.Present(false));
+        }
+
+        /// <summary>
+        /// Every name one written candidate can mean, asked in order. Null when none of them is
+        /// there or refuses, with <paramref name="lookedAway"/> saying whether one was skipped for
+        /// being off this machine - every place is asked about on its own, because a bare name
+        /// searched along PATH can meet a share among local directories.
+        /// </summary>
+        private ResolvedBinary? Look(string written, out bool lookedAway)
+        {
+            lookedAway = false;
+
+            foreach (var place in Places(written))
+            {
+                var offLimits = NetworkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(place);
+                lookedAway |= offLimits;
+
+                if (!offLimits && Answered(place) is { } found)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The first name for one place that is there or refuses - a refusal is an answer, see
+        /// <see cref="Walk"/> - or null when every name Windows would try is absent.
+        /// </summary>
+        private ResolvedBinary? Answered(string place)
+        {
+            foreach (var name in AsWindowsWouldTryIt(place))
+            {
+                var answer = Exists(name);
+
+                if (answer.Outcome != ReadOutcome.Present || answer.Value)
+                {
+                    return new ResolvedBinary(name, answer);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The names Windows will actually try for one candidate.
+        ///
+        /// <b>CreateProcess appends .exe when the name it is handed carries no extension</b>, and
+        /// services are launched through it. So <c>C:\WINDOWS\system32\svchost -k TSLicensing</c>
+        /// runs <c>svchost.exe</c>, and every prefix of that command is a name with no extension.
+        ///
+        /// Found 2026-08-04 on Windows Server 2025, which has exactly one entry written this way -
+        /// <c>TermServLicensing</c>, and it is <b>Running</b> while we called its file missing.
+        /// That is a false audit finding, not a cosmetic one. <b>The CreateProcess documentation
+        /// says .exe is not appended when the name contains a path</b> - read 2026-10-05 - and that
+        /// running entry says it is. The measurement wins.
+        ///
+        /// Only .exe, and only when there is no extension at all, because that is the whole of
+        /// what CreateProcess does. A name ending .bat or .com is taken as written, and a name
+        /// ending in something that is not an extension at all - a version number, say - counts
+        /// as having one and gets nothing appended. <b>Never for a driver</b>: the kernel loads the
+        /// name it is given.
+        /// </summary>
+        private IEnumerable<string> AsWindowsWouldTryIt(string place)
+        {
+            yield return place;
+
+            if (!IsDriver && Path.GetExtension(place).Length == 0)
+            {
+                yield return place + ".exe";
+            }
+        }
+
+        /// <summary>
+        /// One written candidate, turned into the paths that can be looked for - one, except for
+        /// a service naming no directory at all, which CreateProcess searches for.
+        ///
+        /// The order of these tests is not interchangeable. A path beginning with a single
+        /// backslash is rooted as far as the platform is concerned, so asking "is it rooted"
+        /// first would let <c>\SystemRoot\System32\drivers\x.sys</c> through untouched and it
+        /// would be looked for on a drive it is not on.
+        /// </summary>
+        private IEnumerable<string> Places(string written)
+        {
+            var value = written.Trim();
+
+            if (value.Contains('%', StringComparison.Ordinal))
+            {
+                value = ManagerEnvironment.Expand(value, WindowsDirectory);
+            }
+
+            if (value.StartsWith(ObjectPrefix, StringComparison.Ordinal))
+            {
+                return [FromTheObjectNamespace(value[ObjectPrefix.Length..])];
+            }
+
+            if (value.StartsWith(SystemRootPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return [Path.Combine(WindowsDirectory, value[SystemRootPrefix.Length..])];
+            }
+
+            if (value.StartsWith('\\'))
+            {
+                return [Rooted(value)];
+            }
+
+            if (value.Length > 1 && value[1] == ':')
+            {
+                return [value];
+            }
+
+            // Relative. A driver's path is relative to \SystemRoot\, and so, as far as anything
+            // measured says, is a service's that names a directory - 0 of the second on the
+            // owner's machine, and services.exe's current directory, which CreateProcess would
+            // use, is NOT CHECKED.
+            return IsDriver || value.Contains('\\', StringComparison.Ordinal) || value.Contains('/', StringComparison.Ordinal)
+                ? [Path.Combine(WindowsDirectory, value)]
+                : SearchedFor(value);
+        }
+
+        /// <summary>
+        /// A path starting with a backslash and not one of the two prefixes above.
+        ///
+        /// Two backslashes is a share or the device namespace, already absolute. One is rooted on
+        /// no stated drive: for a service that is the drive CreateProcess's caller is on, which is
+        /// the one Windows is on. <b>For a driver it is a name in the kernel's object namespace</b>
+        /// - <c>\Device\HarddiskVolume3\x.sys</c> - and until 2026-10-05 became
+        /// <c>C:\Device\...</c>, a confident "missing" about a file that may well be there. Its
+        /// Win32 spelling is the same name under <c>\\?\GLOBALROOT</c>, which
+        /// <see cref="NetworkPath"/> will not follow without being asked, because GLOBALROOT can
+        /// lead to a share as easily as to a disk.
+        /// </summary>
+        private string Rooted(string value)
+        {
+            if (value.StartsWith(@"\\", StringComparison.Ordinal))
+            {
+                return value;
+            }
+
+            return IsDriver
+                ? Win32GlobalRoot + value
+                : Path.Combine(Path.GetPathRoot(WindowsDirectory) ?? @"C:\", value[1..]);
+        }
+
+        /// <summary>
+        /// Where CreateProcess looks for a name with no directory, in its documented order
+        /// (learn.microsoft.com, CreateProcessW, read 2026-10-05): the directory the parent was
+        /// loaded from, the parent's current directory, System32, System, the Windows directory,
+        /// then PATH. The parent is services.exe, loaded from System32. Its current directory is
+        /// NOT CHECKED, and believed to be System32 too - which would leave this order as written.
+        /// 0 entries on the owner's machine have this shape, counted that day.
+        /// </summary>
+        private IEnumerable<string> SearchedFor(string name)
+        {
+            yield return Path.Combine(WindowsDirectory, "System32", name);
+            yield return Path.Combine(WindowsDirectory, "System", name);
+            yield return Path.Combine(WindowsDirectory, name);
+
+            foreach (var directory in ManagerEnvironment.SearchPath(WindowsDirectory))
+            {
+                yield return Path.Combine(directory, name);
+            }
+        }
     }
 
     /// <summary>
-    /// The names Windows will actually try for one candidate.
+    /// What follows <c>\??\</c> - the kernel's own prefix for the names a Win32 path can reach.
     ///
-    /// <b>CreateProcess appends .exe when the name it is handed carries no extension</b>, and
-    /// services are launched through it. So <c>C:\WINDOWS\system32\svchost -k TSLicensing</c>
-    /// runs <c>svchost.exe</c>, and every prefix of that command is a name with no extension.
-    ///
-    /// Found 2026-08-04 on Windows Server 2025, which has exactly one entry written this way -
-    /// <c>TermServLicensing</c>, and it is <b>Running</b> while we called its file missing.
-    /// That is a false audit finding, not a cosmetic one: the whole point of this tool is that
-    /// "this service lost its binary" means something. The machine this project was written
-    /// against has no entry of this shape, so nothing here could have seen it, and the guard
-    /// that asks the closest question - is there a <i>longer</i> reading of the command on
-    /// disk - was green throughout, because the reading that answers is the same length.
-    ///
-    /// Only .exe, and only when there is no extension at all, because that is the whole of
-    /// what CreateProcess does. A name ending .bat or .com is taken as written, and a name
-    /// ending in something that is not an extension at all - a version number, say - counts
-    /// as having one and gets nothing appended.
+    /// A drive letter is returned as an ordinary path, exactly as before 2026-10-05, so the
+    /// <c>binaryFile</c> of the four entries on the owner's machine written this way is what older
+    /// snapshots hold. <b>Anything else used to be cut loose and joined to the Windows directory</b>
+    /// - stability report R-2: <c>\??\UNC\host\share\x.sys</c> became a relative
+    /// <c>UNC\host\...</c>, looked for under C:\WINDOWS and reported missing. Now a share is a share,
+    /// and every other name keeps its meaning under the Win32 device prefix, where
+    /// <see cref="NetworkPath"/> decides whether it may be read.
     /// </summary>
-    private static IEnumerable<string> AsWindowsWouldTryIt(string candidate)
+    private static string FromTheObjectNamespace(string rest)
     {
-        yield return candidate;
-
-        if (Path.GetExtension(candidate).Length == 0)
+        if (rest.StartsWith(ObjectShare, StringComparison.OrdinalIgnoreCase))
         {
-            yield return candidate + ".exe";
-        }
-    }
-
-    /// <summary>
-    /// One candidate, turned into a path that can be looked for.
-    ///
-    /// The order of these tests is not interchangeable. A path beginning with a single
-    /// backslash is rooted as far as the platform is concerned, so asking "is it rooted"
-    /// first would let <c>\SystemRoot\System32\drivers\x.sys</c> through untouched and it
-    /// would be looked for on a drive it is not on.
-    /// </summary>
-    private static string Absolute(string candidate, string windowsDirectory)
-    {
-        var value = candidate.Trim();
-
-        if (value.Contains('%', StringComparison.Ordinal))
-        {
-            value = ExpandAsTheManagerWould(value, windowsDirectory);
+            return @"\\" + rest[ObjectShare.Length..];
         }
 
-        if (value.StartsWith(ObjectPrefix, StringComparison.Ordinal))
-        {
-            // The kernel's own way of naming a path. What follows is an ordinary one.
-            return value[ObjectPrefix.Length..];
-        }
-
-        if (value.StartsWith(SystemRootPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return Path.Combine(windowsDirectory, value[SystemRootPrefix.Length..]);
-        }
-
-        if (value.StartsWith(@"\\", StringComparison.Ordinal))
-        {
-            // A share. Left alone: it is already absolute, and joining it to anything would
-            // produce a path that names nothing.
-            return value;
-        }
-
-        if (value.StartsWith('\\'))
-        {
-            // Rooted, but on no stated drive. The one it means is the one Windows is on.
-            return Path.Combine(Path.GetPathRoot(windowsDirectory) ?? @"C:\", value[1..]);
-        }
-
-        return value.Length > 1 && value[1] == ':'
-            ? value
-            : Path.Combine(windowsDirectory, value);
+        return rest.Length > 1 && rest[1] == ':' ? rest : Win32Device + rest;
     }
 
     private static bool HasExecutableExtension(string path) =>
         ExecutableExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Expands <c>%NAME%</c> the way the manager does, which is not the way this process does.
-    ///
-    /// <para>
-    /// <c>Environment.ExpandEnvironmentVariables</c>, which stood here until 2026-09-08, reads
-    /// the block this process started with - and that block is the machine's with the signed-in
-    /// user's laid over the top. A service gets no such layer. Measured on the machine this was
-    /// written against: <c>TEMP</c> is the Windows directory's own for the machine and a folder
-    /// inside the signed-in account's profile for the user, so one entry would have resolved to
-    /// two different files for two people, and their snapshots would have differed with nothing
-    /// on the machine having changed. That is a false drift, which is the one failure this tool
-    /// exists to not produce.
-    ///
-    /// <i>Said in words rather than shown as two paths, and not for brevity:</i> a profile path
-    /// written out carries the account name of whoever wrote the line, and
-    /// <c>PublicSurfaceGuards.No_shape_that_belongs_to_a_person_is_written_into_a_published_file</c>
-    /// refuses that shape in anything the repository publishes. It refused this comment on the day
-    /// it was written, with a placeholder standing where the name would go - which is the guard
-    /// being right rather than fussy, because the next person to edit the line would have had a
-    /// real path in front of them to copy.
-    /// </para>
-    /// <para>
-    /// <b>Reading only the machine's block is not the fix, and this is the part worth keeping.</b>
-    /// Measured the same day across 786 entries carrying a launch command: 270 hold a percent
-    /// sign, and the names in them are <c>%SystemRoot%</c> 264 times, <c>%windir%</c> 3,
-    /// <c>%ProgramFiles%</c> 2 and <c>%ProgramData%</c> 1. Of those four, <b>only windir is in
-    /// the machine's block</b> - the system injects the rest into every process instead. So the
-    /// obvious correction would have left a third of the machine unresolved, and it would have
-    /// looked like the tool had lost the files.
-    /// </para>
-    /// <para>
-    /// Hence three rules rather than one argument changed. The Windows directory answers for
-    /// itself, because the caller already hands it in and the <c>\SystemRoot\</c> branch above
-    /// has always used it - the two spellings of one idea now agree. Any other name prefers the
-    /// machine's value, which is what a service would see. Falling back to this process is right
-    /// for what is left, because a name absent from the machine's block is one the system gives
-    /// every process alike. A name that resolves to nothing stays as written, exactly as the
-    /// framework left it.
-    /// </para>
-    /// </summary>
-    private static string ExpandAsTheManagerWould(string value, string windowsDirectory)
-    {
-        var built = new System.Text.StringBuilder(value.Length);
-        var at = 0;
-
-        while (at < value.Length)
-        {
-            var opened = value.IndexOf('%', at);
-            var closed = opened < 0 ? -1 : value.IndexOf('%', opened + 1);
-
-            if (closed < 0)
-            {
-                // An odd percent sign is a character in a file name, not a variable opening.
-                built.Append(value, at, value.Length - at);
-                break;
-            }
-
-            built.Append(value, at, opened - at);
-
-            var name = value[(opened + 1)..closed];
-            built.Append(ValueTheManagerWouldSee(name, windowsDirectory) ?? value[opened..(closed + 1)]);
-
-            at = closed + 1;
-        }
-
-        return built.ToString();
-    }
-
-    /// <param name="name">
-    /// May be empty, from a literal <c>%%</c>. Asking the framework for a variable of no name
-    /// throws, so that case is answered here rather than reached.
-    /// </param>
-    private static string? ValueTheManagerWouldSee(string name, string windowsDirectory)
-    {
-        if (name.Length == 0)
-        {
-            return null;
-        }
-
-        if (name.Equals("SystemRoot", StringComparison.OrdinalIgnoreCase)
-            || name.Equals("windir", StringComparison.OrdinalIgnoreCase))
-        {
-            return windowsDirectory;
-        }
-
-        return MachineEnvironment.Value.TryGetValue(name, out var onTheMachine)
-            ? onTheMachine
-            : Environment.GetEnvironmentVariable(name);
-    }
-
-    /// <summary>
-    /// The machine's own environment, read once for the life of the process.
-    ///
-    /// <para>
-    /// Read once because the alternative is a registry open per variable per entry, and a full
-    /// listing resolves several hundred of them from <see cref="System.Threading.Tasks.Parallel"/>
-    /// loops. Reading once also makes a listing self-consistent: an environment edited midway
-    /// through cannot make two entries in one snapshot disagree about the same variable.
-    /// </para>
-    /// <para>
-    /// An unreadable machine block is not an error to report. Under a restricted token the read
-    /// can be refused, and the honest answer there is the process's own block - the same one this
-    /// code used before, so a refusal costs the correction and nothing else. It must not cost the
-    /// listing.
-    /// </para>
-    /// </summary>
-    private static readonly Lazy<Dictionary<string, string>> MachineEnvironment = new(() =>
-    {
-        var read = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            var block = Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Machine);
-
-            foreach (var key in block.Keys)
-            {
-                if (key is string name && block[name] is string value)
-                {
-                    read[name] = value;
-                }
-            }
-        }
-        catch (Exception e) when (e is System.Security.SecurityException or UnauthorizedAccessException)
-        {
-            // Left empty on purpose. Every lookup then falls through to this process, which is
-            // where every lookup went before this method existed.
-        }
-
-        return read;
-    });
 }

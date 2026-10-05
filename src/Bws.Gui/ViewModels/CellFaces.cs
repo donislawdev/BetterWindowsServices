@@ -119,7 +119,7 @@ internal static class CellFaces
         {
             ReadOutcome.Present => TypeLabel(entry.StartType.Value),
             ReadOutcome.Absent => string.Empty,
-            ReadOutcome.Denied => Texts.Of("gui.cell.noAccess"),
+            ReadOutcome.Denied => Refused(entry.StartType.ErrorCode),
             _ => Texts.Of("gui.cell.notRead")
         };
 
@@ -204,10 +204,18 @@ internal static class CellFaces
         {
             ReadOutcome.Present => show(reading.Value!),
             ReadOutcome.Absent => string.Empty,
-            ReadOutcome.Denied => Texts.Of("gui.cell.noAccess"),
+            ReadOutcome.Denied => Refused(reading.ErrorCode),
             _ => Texts.Of("gui.cell.notRead")
         };
     }
+
+    /// <summary>
+    /// The word for a reading that failed. "No access" only when it was one - until 2026-10-05 it
+    /// was said for every failure, including a service gone in the middle of being read (stability
+    /// report R-7, see <see cref="AccessDenied"/>).
+    /// </summary>
+    private static string Refused(int errorCode) =>
+        errorCode == AccessDenied.Code ? Texts.Of("gui.cell.noAccess") : Texts.Of("gui.cell.unreadable");
 
     /// <summary>
     /// What the entry is technically. Always present - it comes out of the enumeration itself

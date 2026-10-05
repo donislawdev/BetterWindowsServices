@@ -25,6 +25,10 @@ namespace Bws.Core;
 /// <paramref name="Status"/> beside it. The four states are put on it one layer up, where a
 /// stopped entry becomes an absence rather than a no.
 /// </param>
+/// <param name="RecognizerDriver">
+/// A driver <see cref="EntryType"/> has no kind for - see <see cref="ManagerTerms.IsRecognizerDriver"/>.
+/// Last and defaulted, so every reading built before 2026-10-05 still means what it meant.
+/// </param>
 internal readonly record struct EnumeratedEntry(
     string ServiceName,
     string DisplayName,
@@ -32,10 +36,11 @@ internal readonly record struct EnumeratedEntry(
     PerUserRole PerUserRole,
     EntryStatus Status,
     uint ProcessId,
-    bool AcceptsStop)
+    bool AcceptsStop,
+    bool RecognizerDriver = false)
 {
     internal bool IsDriver =>
-        EntryType is Core.EntryType.KernelDriver or Core.EntryType.FileSystemDriver;
+        EntryType is Core.EntryType.KernelDriver or Core.EntryType.FileSystemDriver || RecognizerDriver;
 }
 
 /// <summary>
@@ -95,7 +100,7 @@ internal readonly record struct ScmConfiguration(
             enumerated.ServiceName,
             enumerated.IsDriver,
             windowsDirectory,
-            File.Exists,
+            FileOnDisk.Ask,
             networkPaths);
 
         return resolved.File is null

@@ -94,6 +94,32 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     private bool OffLimits(string file) =>
         networkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(file);
 
+    /// <summary>
+    /// The answer for a file that is not there to be read, or null when it is - asked once, for all
+    /// three readings below.
+    ///
+    /// <b>Absent is a fact about the machine, not about our permissions.</b> The listing already
+    /// knows it and says so in its own field, and repeating it as a refusal here would turn one
+    /// honest answer into two contradictory ones. <b>A refusal is the opposite case and until
+    /// 2026-10-05 it came back as absent too</b> - <c>File.Exists</c> says false for a file it may
+    /// not look at, so the signature, version and hash of a file behind a SYSTEM-only directory read
+    /// as "no file" under an ordinary token. Stability report R-1, and <see cref="FileOnDisk"/> has
+    /// the measurement.
+    ///
+    /// Handed the answer rather than the path so a test can ask it about a refusal: no process this
+    /// project's tests run in can be refused a file it just made, elevated or not (tried 2026-10-05
+    /// with an explicit deny entry - the attributes were still read).
+    /// </summary>
+    internal static Reading<T>? Unreachable<T>(Reading<bool> onDisk)
+    {
+        if (onDisk.Outcome == ReadOutcome.Denied)
+        {
+            return Reading<T>.Denied(onDisk.ErrorCode, onDisk.Reason ?? string.Empty);
+        }
+
+        return onDisk.Value ? null : Reading<T>.Absent();
+    }
+
     public Reading<BinarySignature> ReadSignature(string file)
     {
         if (OffLimits(file))
@@ -101,12 +127,9 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             return Reading<BinarySignature>.NotRead();
         }
 
-        if (!File.Exists(file))
+        if (Unreachable<BinarySignature>(FileOnDisk.Ask(file)) is { } unreachable)
         {
-            // A fact about the machine, not about our permissions. The listing already knows
-            // this and says so in its own field - repeating it as a refusal here would turn
-            // one honest answer into two contradictory ones.
-            return Reading<BinarySignature>.Absent();
+            return unreachable;
         }
 
         try
@@ -174,9 +197,9 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             return Reading<string>.NotRead();
         }
 
-        if (!File.Exists(file))
+        if (Unreachable<string>(FileOnDisk.Ask(file)) is { } unreachable)
         {
-            return Reading<string>.Absent();
+            return unreachable;
         }
 
         try
@@ -205,9 +228,9 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             return Reading<string>.NotRead();
         }
 
-        if (!File.Exists(file))
+        if (Unreachable<string>(FileOnDisk.Ask(file)) is { } unreachable)
         {
-            return Reading<string>.Absent();
+            return unreachable;
         }
 
         try
@@ -262,7 +285,35 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     /// that catalogue. The hash doubles as the member tag, spelled out in hex, which is how
     /// the verification finds the right entry inside the catalogue.
     /// </summary>
-    private unsafe Reading<BinarySignature> ThroughCatalogue(string file)
+    private Reading<BinarySignature> ThroughCatalogue(string file)
+    {
+        if (ThroughCatalogue(file, "SHA256") is { } bySha256)
+        {
+            return bySha256;
+        }
+
+        // ASKED AGAIN WITH SHA-1 BEFORE ANYTHING IS CALLED UNSIGNED, since 2026-10-05 - stability
+        // report R-6. A catalogue lists its members by hash, and an older one lists them by SHA-1,
+        // so a file only such a catalogue names is not found by the question above and came back
+        // NotSigned: confident, and wrong about a signed file. NO SPECIMEN ON THE OWNER'S MACHINE,
+        // measured that day with tools/signature-probe/catalogue-algorithms.ps1: the SHA-1 context
+        // works there and finds inbox drivers, and the one file this tool calls NotSigned is in no
+        // catalogue under either. It costs one more hash per file no SHA-256 catalogue lists - one
+        // file there.
+        //
+        // Only a verdict counts. A machine that will not hash with SHA-1, or a catalogue that cannot
+        // be read once found, gets the answer this gave before that day rather than a refusal for
+        // every unsigned file: the question that decides was answered above, this one only rescues.
+        return ThroughCatalogue(file, "SHA1") is { Outcome: ReadOutcome.Present } bySha1
+            ? bySha1
+            : Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
+    }
+
+    /// <summary>
+    /// One catalogue question asked with one hash algorithm. Null when no catalogue lists the file
+    /// under it, which is not yet an answer - see the method above.
+    /// </summary>
+    private unsafe Reading<BinarySignature>? ThroughCatalogue(string file, string algorithm)
     {
         // One context per file, and a context held per worker instead was measured on 2026-09-29
         // (tools/signature-probe/auto-cache.ps1, variant "held"). Acquiring and releasing is almost
@@ -270,7 +321,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         // one thread. Held per worker, the catalogue path took 894-1041 ms of wall clock at two
         // processors against 1017-1287, which is two or three percent of the 4247-4877 ms pass and
         // smaller than that pass's own spread. Not worth a context whose lifetime spans calls.
-        if (!PInvoke.CryptCATAdminAcquireContext2(out var admin, null, "SHA256", null))
+        if (!PInvoke.CryptCATAdminAcquireContext2(out var admin, null, algorithm, null))
         {
             var error = Marshal.GetLastWin32Error();
 
@@ -319,10 +370,9 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
 
             if (catalogue == 0)
             {
-                // No catalogue lists this file and it carries nothing of its own. Now, and
-                // only now, is "nobody signed this" the honest answer.
-                return Reading<BinarySignature>.Present(
-                    new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
+                // No catalogue lists this file under this algorithm, and it carries nothing of its
+                // own. "Nobody signed this" is the honest answer only once both have been asked.
+                return null;
             }
 
             try

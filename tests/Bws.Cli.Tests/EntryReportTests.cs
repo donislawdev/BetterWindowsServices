@@ -42,6 +42,20 @@ public sealed class EntryReportTests
     }
 
     [Fact]
+    public void Only_a_refusal_of_access_is_called_no_access()
+    {
+        // Stability report R-7, owner's decision 2026-10-05: every failure printed "no access" until
+        // that day, 1060 included - a service gone between the listing and the question about it.
+        // The listing's cell and the report say it the same way, so both are asked here.
+        var gone = Entry with { SecurityDescriptor = Reading<string>.Denied(1060, "Gone.") };
+        var refused = Entry with { SecurityDescriptor = Reading<string>.Denied(AccessDenied.Code, "Access is denied.") };
+
+        Assert.Contains("(could not be read, code 1060)", EntryReport.Render(gone, full: false), StringComparison.Ordinal);
+        Assert.Contains("(no access, code 5)", EntryReport.Render(refused, full: false), StringComparison.Ordinal);
+        Assert.Contains("(could not be read)", ListingTable.Render([gone with { StartType = Reading<StartType>.Denied(1060, "Gone.") }]), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_field_nobody_asked_about_is_printed_too()
     {
         // Not-read is not empty either. It means this build never went and looked, which is a

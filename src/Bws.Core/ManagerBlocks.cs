@@ -159,7 +159,21 @@ internal static class ManagerBlocks
     /// What the ENTRY should then be is a real question and it has its own row rather than a guess
     /// made here.
     /// </summary>
-    private static unsafe string NameInside(PWSTR text, byte* buffer, int length)
+    private static unsafe string NameInside(PWSTR text, byte* buffer, int length) =>
+        Bounded(text, buffer, length) ?? string.Empty;
+
+    /// <summary>
+    /// The text a structure in the block points at, read no further than the block - empty for a
+    /// pointer to nothing, and <b>null for a pointer that lands outside</b>, which the caller turns
+    /// into an answer of its own.
+    ///
+    /// <b>The sentence above saying every other reading here is bounded was not true until
+    /// 2026-10-05</b> - stability report R-4. The account, launch command and load order group of a
+    /// configuration, and the description read beside it, still went through <c>PWSTR.ToString()</c>.
+    /// A configuration field that points outside is now a refusal with ERROR_INVALID_DATA rather than
+    /// an empty name, because unlike a name in a list it has a fourth state to say it with.
+    /// </summary>
+    internal static unsafe string? Bounded(PWSTR text, byte* buffer, int length)
     {
         var cursor = text.Value;
 
@@ -172,7 +186,7 @@ internal static class ManagerBlocks
 
         if (offset < 0 || offset >= length)
         {
-            return string.Empty;
+            return null;
         }
 
         var remaining = new ReadOnlySpan<char>(
@@ -295,7 +309,8 @@ internal static class ManagerBlocks
                     // changes with the entry's state rather than with its configuration, which
                     // is why it stays out of the snapshot: two snapshots differing here would be
                     // saying what the status field already said.
-                    AcceptsStop: (status.dwControlsAccepted & PInvoke.SERVICE_ACCEPT_STOP) != 0));
+                    AcceptsStop: (status.dwControlsAccepted & PInvoke.SERVICE_ACCEPT_STOP) != 0,
+                    RecognizerDriver: ManagerTerms.IsRecognizerDriver(status.dwServiceType)));
             }
         }
 
@@ -321,18 +336,16 @@ internal static class ManagerBlocks
         {
             var configuration = *(QUERY_SERVICE_CONFIGW*)start;
 
-            var account = configuration.lpServiceStartName.ToString();
+            var account = Bounded(configuration.lpServiceStartName, start, buffer.Length);
             var dependencies = ManagerBlocks.ReadMultiString(
                 configuration.lpDependencies, start, buffer.Length);
-            var binaryPath = configuration.lpBinaryPathName.ToString();
-            var loadOrderGroup = configuration.lpLoadOrderGroup.ToString();
+            var binaryPath = Bounded(configuration.lpBinaryPathName, start, buffer.Length);
+            var loadOrderGroup = Bounded(configuration.lpLoadOrderGroup, start, buffer.Length);
 
             return new ScmConfiguration(
                 StartType: Reading<StartType>.Present(ManagerTerms.StartType(configuration.dwStartType)),
                 DelayedAuto: Reading<bool>.Absent(),
-                Account: string.IsNullOrEmpty(account)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(account),
+                Account: Field(account, blank: string.IsNullOrEmpty(account)),
 
                 // Declaring nothing is ordinary rather than missing information: 129 of 339
                 // services on the machine this was measured on declare no dependency at all.
@@ -346,9 +359,7 @@ internal static class ManagerBlocks
                 // 29 of 825 entries name nothing at all, all of them drivers, and for those
                 // the manager applies a default of its own. Absent says that, and the file
                 // question is answered from the default rather than left blank.
-                BinaryPath: string.IsNullOrWhiteSpace(binaryPath)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(binaryPath),
+                BinaryPath: Field(binaryPath, blank: string.IsNullOrWhiteSpace(binaryPath)),
 
                 // Both worked out from the value above, once it is known which entry it is.
                 BinaryFile: Reading<string>.NotRead(),
@@ -364,9 +375,29 @@ internal static class ManagerBlocks
 
                 // Most entries belong to no group, which is a fact about them rather than
                 // something we failed to read.
-                LoadOrderGroup: string.IsNullOrEmpty(loadOrderGroup)
-                    ? Reading<string>.Absent()
-                    : Reading<string>.Present(loadOrderGroup));
+                LoadOrderGroup: Field(loadOrderGroup, blank: string.IsNullOrEmpty(loadOrderGroup)));
         }
     }
+
+    /// <summary>
+    /// One text field of a configuration: outside the block is a refusal (see <see cref="Bounded"/>),
+    /// blank is a fact about the entry, anything else is the value.
+    /// </summary>
+    /// <param name="blank">
+    /// Asked by the caller because the fields do not agree on it: a launch command of spaces names
+    /// nothing, an account of spaces is not a shape anybody has measured and is kept as written.
+    /// </param>
+    private static Reading<string> Field(string? text, bool blank)
+    {
+        if (text is null)
+        {
+            return OutsideTheBlock<string>();
+        }
+
+        return blank ? Reading<string>.Absent() : Reading<string>.Present(text);
+    }
+
+    /// <summary>A pointer the manager handed back that lands outside the block it came in.</summary>
+    internal static Reading<T> OutsideTheBlock<T>() =>
+        Reading<T>.Denied((int)WIN32_ERROR.ERROR_INVALID_DATA, ManagerTerms.Describe((int)WIN32_ERROR.ERROR_INVALID_DATA));
 }

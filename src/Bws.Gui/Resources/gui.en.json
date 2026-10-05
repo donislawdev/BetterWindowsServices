@@ -468,6 +468,7 @@
   "gui.cell.memoryShared": "{0} (shared by {1})",
   "gui.cell.unknown": "unknown",
   "gui.cell.noAccess": "no access",
+  "gui.cell.unreadable": "could not be read",
   "gui.cell.notRead": "not read",
   "gui.cell.held": "Windows spells it {0}. A query with account: matches that spelling, not the name shown here.",
   "gui.cell.account.localSystem": "Local System",

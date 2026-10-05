@@ -214,8 +214,11 @@ internal static class ListingTable
         ReadOutcome.Present => show(reading.Value!),
 
         // Deliberately not blank and deliberately not a dash. Both of those read as
-        // "nothing here", which is the one meaning this cell must never carry.
-        ReadOutcome.Denied => Texts.Of("cli.cell.noAccess"),
+        // "nothing here", which is the one meaning this cell must never carry. "No access" only
+        // when it is one - see AccessDenied, stability report R-7.
+        ReadOutcome.Denied => reading.ErrorCode == AccessDenied.Code
+            ? Texts.Of("cli.cell.noAccess")
+            : Texts.Of("cli.cell.unreadable"),
 
         _ => Nothing
     };

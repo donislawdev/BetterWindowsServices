@@ -292,7 +292,12 @@ internal static partial class ScmDetailReader
             // without a machine - the shape that matters most is the one the system reports by NOT
             // failing, and a rule reachable only through this method could never be tested for the
             // ten entries it applies to.
-            return ServiceDescription.Of(((SERVICE_DESCRIPTIONW*)start)->lpDescription.ToString());
+            //
+            // Read no further than the block since 2026-10-05 (stability report R-4) - see
+            // ManagerBlocks.Bounded for the three answers a pointer can give.
+            return ManagerBlocks.Bounded(((SERVICE_DESCRIPTIONW*)start)->lpDescription, start, buffer.Length) is { } text
+                ? ServiceDescription.Of(text)
+                : ManagerBlocks.OutsideTheBlock<string>();
         }
     }
 
