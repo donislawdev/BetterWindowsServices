@@ -96,5 +96,5 @@
 
   "reserved.any": "there is a value, whatever it is",
   "reserved.none": "there is genuinely no value - the entry has none",
-  "reserved.unreadable": "the tool could not read this field, which is a question <code>services.msc</code> cannot even ask"
+  "reserved.unreadable": "the tool could not read this field, or has not read it, which is a question <code>services.msc</code> cannot even ask"
 }

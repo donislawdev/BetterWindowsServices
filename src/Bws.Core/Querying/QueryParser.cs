@@ -57,8 +57,15 @@ public static class QueryParser
     /// syntax may grow and may not change meaning, and when a saved query starts carrying
     /// this number it will be able to keep behaving the way it did on the day it was
     /// written, including which fields a bare word searched back then.
+    ///
+    /// <b>3 since 2026-10-05</b>, because three spellings changed meaning on that day: an escape
+    /// inside a pattern now reaches the pattern (<c>name:/a\?/</c>), two one-sided bounds on the
+    /// same number narrow instead of widening (<c>pid:&gt;1000 pid:&lt;2000</c>), and <c>?</c>
+    /// also finds a field nobody read while <c>none</c> and <c>any</c> no longer answer for one.
+    /// Owner's decision, the same rule as the move from 1 to 2. No saved query carries the number
+    /// yet, so nothing behaves differently because of it - it is the record that the meaning moved.
     /// </summary>
-    public const int SyntaxVersion = 2;
+    public const int SyntaxVersion = 3;
 
     /// <summary>
     /// An empty query means everything, which has to be said out loud because the
@@ -205,18 +212,30 @@ public static class QueryParser
     /// without the condition the member would be passed over and the list would jump to everything.
     /// It also keeps <c>status:,st</c> a mistake, which is stricter than it needs to be and costs
     /// nobody anything.
+    ///
+    /// <b>A pattern that has not closed yet, since 2026-10-05.</b> Every pattern is unclosed for
+    /// the keystrokes between its two slashes, and it became a mistake that day - so the last
+    /// member being typed is passed over while its only problem is that. The closing quote is not
+    /// asked of it: a quote inside a pattern keeps a space away from the scanner and closes
+    /// nothing, so <c>display:/"Print Spooler"</c> is still on its way to the slash.
     /// </summary>
     private static bool StillBeingTyped(
         string query, ScannedText member, bool last, List<QueryProblem> problems, int before)
     {
-        if (!last || char.IsWhiteSpace(query[^1]) || query[^1] == '"' || problems.Count - before != 1)
+        if (!last || char.IsWhiteSpace(query[^1]) || problems.Count - before != 1)
         {
             return false;
         }
 
         var problem = problems[before];
 
-        if (problem.Kind != QueryProblemKind.UnknownValue
+        if (problem.Kind == QueryProblemKind.UnclosedPattern)
+        {
+            return true;
+        }
+
+        if (query[^1] == '"'
+            || problem.Kind != QueryProblemKind.UnknownValue
             || problem.Text.Length == 0
             || !member.Text.EndsWith(":" + problem.Text, StringComparison.Ordinal))
         {
@@ -250,6 +269,21 @@ public static class QueryParser
     /// right, the command line was right, and the parity guard between them agreed - because all of
     /// those read the values. Only <see cref="Query.Carries"/> reads the spellings, and only the
     /// chips ask it.
+    ///
+    /// <b>ONE-SIDED BOUNDS ARE NOT FOLDED, SINCE 2026-10-05.</b> The argument above is about values
+    /// that contradict each other when both are required - two statuses, two start types, two
+    /// process ids. Two bounds do not: <c>pid:&gt;1000 pid:&lt;2000</c> has eleven answers on the
+    /// owner's machine, and folded into an alternative it had a hundred and twenty one, every
+    /// entry above a thousand (stability report Q-3). Against a public page saying all of the
+    /// members must match. So a member of a number or size field made of nothing but bounds stays
+    /// a member of its own and narrows, the way every member does. Owner's decision, 2026-09-30,
+    /// and for the mixed case on 2026-10-05: <c>pid:4 pid:&gt;1000</c> is nothing, because the bound
+    /// is a member like any other.
+    ///
+    /// <b>The comma is not touched.</b> It is the language's own word for "or", so
+    /// <c>pid:&lt;100,&gt;60000</c> still asks for both ends outside a range - the one question two
+    /// bounds can ask that a range cannot. No chip writes a bound: the menus offer values of
+    /// enumerations only.
     /// </summary>
     private static List<QueryTerm> Fold(List<QueryTerm> terms)
     {
@@ -259,8 +293,9 @@ public static class QueryParser
         foreach (var term in terms)
         {
             // Bare words stay separate: two of them mean "contains both", and exclusions
-            // are already absolute, so neither gains anything from being merged.
-            if (term.Field is null || term.Negated)
+            // are already absolute, so neither gains anything from being merged. Bounds stay
+            // separate because they narrow - see above.
+            if (term.Field is null || term.Negated || term.Values.All(value => value.IsOpenComparison))
             {
                 folded.Add(term);
                 continue;
@@ -322,6 +357,22 @@ public static class QueryParser
             : new QueryTerm { Values = [free], Negated = negated, Written = [body.Text] };
     }
 
+    /// <summary>
+    /// Whether the colon is the one in a drive letter - <c>C:\</c> or <c>C:/</c> - rather than the
+    /// one that names a field.
+    ///
+    /// <b>Until 2026-10-05 a pasted path was a mistake about a field called C</b>, while the README
+    /// says a bare word searches the path (stability report Q-6). One letter, a colon and a
+    /// separator is how every local path on Windows begins, and no field and no alias has a name
+    /// of one letter - <c>DrivePathQueryTests</c> holds that, because the day one did, this rule
+    /// would take its values for paths.
+    /// </summary>
+    private static bool IsDrivePath(ScannedText body, int colon) =>
+        colon == 1
+        && char.IsAsciiLetter(body.Text[0])
+        && body.Length > 2
+        && body.Text[2] is '\\' or '/';
+
     private static QueryTerm? ReadMember(ScannedText member, List<QueryProblem> problems)
     {
         var negated = member.StartsWithSpecial('!');
@@ -367,7 +418,7 @@ public static class QueryParser
         // No field name means no field. A member that merely contains a colon, or opens
         // with one, is a bare word: paths and times have colons in them and none of that
         // is an attempt to name a field.
-        if (colon <= 0)
+        if (colon <= 0 || IsDrivePath(body, colon))
         {
             return ReadBareWord(body, negated, problems);
         }
@@ -389,8 +440,9 @@ public static class QueryParser
 
         var values = new List<IQueryValue>();
         var written = new List<string>();
+        var list = body.Slice(colon + 1);
 
-        foreach (var part in body.Slice(colon + 1).SplitOnSpecial(','))
+        foreach (var part in QueryValueList.Of(list).Select(list.Slice))
         {
             if (part.Length == 0)
             {

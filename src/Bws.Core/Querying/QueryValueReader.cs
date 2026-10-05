@@ -63,7 +63,7 @@ internal static class QueryValueReader
         // and a one-character wildcard on its own is not a query anybody writes.
         if (value.Text == QueryFields.Unreadable)
         {
-            return new OutcomeValue(ReadOutcome.Denied);
+            return new UnansweredValue();
         }
 
         return QuerySpelling.Normalise(value.Text) switch
@@ -84,23 +84,9 @@ internal static class QueryValueReader
             return null;
         }
 
-        if (value.Length >= 2 && value.IsSpecial(0, '/') && value.IsSpecial(value.Length - 1, '/'))
+        if (value.StartsWithSpecial('/'))
         {
-            var pattern = value.Text[1..^1];
-
-            if (!QueryPatterns.TryPattern(pattern, out var compiled, out var failure))
-            {
-                problems.Add(new QueryProblem
-                {
-                    Kind = QueryProblemKind.BadPattern,
-                    Text = pattern,
-                    Detail = failure
-                });
-
-                return null;
-            }
-
-            return new TextValue(TextOperator.Pattern, pattern, compiled);
+            return ReadPattern(value, problems);
         }
 
         if (value.StartsWithSpecial('='))
@@ -137,6 +123,58 @@ internal static class QueryValueReader
         }
 
         return new TextValue(TextOperator.Contains, value.Text, null);
+    }
+
+    /// <summary>
+    /// A value that opens with a bare slash: a pattern, or a mistake, and never text.
+    ///
+    /// <b>Until 2026-10-05 an opening slash without a closing one fell through to text</b>, so
+    /// <c>name:/^sql</c> with the last slash forgotten searched for the five characters
+    /// <c>/^sql</c> and answered with an empty list and a code of success - which reads as "there
+    /// are none" (stability report Q-6). It is a mistake now, and the sentence says how to search
+    /// for the slash itself. The price is said out loud because it is real: 9 of 777 entries on
+    /// the owner's machine carry an argument like <c>/svc</c> in their command line, and searching
+    /// for one costs a retry with <c>\/svc</c> or quotes. Owner's decision, 2026-10-05.
+    ///
+    /// <b>An empty pair of slashes is refused for the reason an empty pair of quotes is</b> - it
+    /// is closed, it says nothing, and as a pattern it matched every entry on the machine.
+    ///
+    /// <b>The escapes go back in before the engine sees it</b> - see <see cref="ScannedText.Escaped"/>.
+    /// Every character the scanner can disarm is one a regular expression escapes the same way, so
+    /// putting the backslash back changes exactly <c>\?</c>, <c>\*</c> and <c>\\</c>, the three
+    /// that were broken.
+    /// </summary>
+    private static IQueryValue? ReadPattern(ScannedText value, List<QueryProblem> problems)
+    {
+        if (!QueryValueList.Closes(value, 0, value.Length))
+        {
+            problems.Add(new QueryProblem { Kind = QueryProblemKind.UnclosedPattern, Text = value.Text });
+
+            return null;
+        }
+
+        if (value.Length == 2)
+        {
+            problems.Add(new QueryProblem { Kind = QueryProblemKind.EmptyTerm, Text = value.Text });
+
+            return null;
+        }
+
+        var pattern = value.WithEscapes(1, value.Length - 2);
+
+        if (!QueryPatterns.TryPattern(pattern, out var compiled, out var failure))
+        {
+            problems.Add(new QueryProblem
+            {
+                Kind = QueryProblemKind.BadPattern,
+                Text = pattern,
+                Detail = failure
+            });
+
+            return null;
+        }
+
+        return new TextValue(TextOperator.Pattern, pattern, compiled);
     }
 
     private static IQueryValue? ReadSymbolValue(QueryField field, ScannedText value, List<QueryProblem> problems)

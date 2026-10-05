@@ -320,9 +320,11 @@ display name, the account and the launch path. A field narrows it:
 
 Text fields match *contains* by default, `name:=spooler` is exact, `name:spool*` takes wildcards,
 and `name:/^Sql.*/` is a regular expression. `!` negates a term, a comma is *or* inside a field,
-and quotes protect anything with spaces or colons: `account:"NT SERVICE\McmSvc"`. Every field
-accepts `none`, `any` and `?` - the last one finds the entries where the tool could not read that
-field, which is a question `services.msc` cannot even ask.
+and quotes protect anything with spaces or colons: `account:"NT SERVICE\McmSvc"`. The same field
+written twice means either, the way two ticked filters do - except two bounds on a number, which
+narrow: `pid:>1000 pid:<2000`. Every field accepts `none`, `any` and `?` - the last one finds the
+entries where the tool could not read that field, or has not read it, which is a question
+`services.msc` cannot even ask.
 
 A mistyped value is an error with the nearest valid value suggested, never an empty result that
 looks like an answer. And a query that would narrow nothing is refused on the command line, so a

@@ -94,7 +94,21 @@ public enum QueryProblemKind
     /// and an exit code outside the table. See <c>QueryPatterns.TryWildcard</c> for why this is
     /// refused rather than handed to the engine that would accept it.
     /// </summary>
-    PatternTooComplex
+    PatternTooComplex,
+
+    /// <summary>
+    /// A value that opens a pattern with a bare slash and never closes it.
+    ///
+    /// <b>Added 2026-10-05, because until then it was not a mistake but a search for text</b>:
+    /// <c>name:/^sql</c> looked for the five characters <c>/^sql</c> and came back empty with a
+    /// code of success (stability report Q-6). Its own kind rather than <see cref="BadPattern"/>,
+    /// because the engine never saw it and has nothing to say - the sentence a person needs is
+    /// how to close it, or how to search for the slash itself.
+    ///
+    /// While somebody is typing the last member it is passed over, the same as <c>status:</c>:
+    /// every pattern is unclosed for the keystrokes between its two slashes.
+    /// </summary>
+    UnclosedPattern
 }
 
 /// <summary>

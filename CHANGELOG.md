@@ -113,8 +113,33 @@ is not part of this repository.
   involves asks Windows about each entry's dependents once instead of several times, and the
   plan for stopping every service on the test machine appeared in about 100-170 ms instead of
   about 185-275.
+- In a query, two bounds on the same number now narrow: `pid:>1000 pid:<2000` is the range
+  between them, where it used to mean either and matched everything above 1000. The same goes for
+  `memory`. The same field written twice with values is still either - `status:running
+  status:stopped`, `pid:4 pid:8` - and a comma still means or, so `pid:<100,>60000` asks for both
+  ends outside a range.
+- `?` in a query now also finds a field the tool has not read, not only one it was refused - a
+  signature on a network share when network paths are not followed, for example. `none` and `any`
+  no longer give a confident no about such a field: the entry is counted among the ones the answer
+  is unsure about, the way every other value counts it.
+- A value that opens with `/` and never closes - `name:/^sql` with the last slash forgotten - is now
+  a mistake that says how to close it, where it used to search for the text with the slash in it
+  and answer with an empty list. To search for a slash, write `\/svc` or `"/svc"`. While you are
+  still typing it in the window, the member is left out rather than marked. An empty `//` is a
+  mistake too, where it used to match every entry.
 
 ### Fixed
+
+- A backslash inside a regular expression now reaches it. `name:/a\?/` matched every entry, because
+  the question mark lost its backslash before the expression was read, and `path:/C:\\Windows/`
+  matched nothing.
+- A comma inside a regular expression no longer cuts it in two: `name:/^w{2,}/` works.
+  `name:/a/,/b/` is still two expressions.
+- A path pasted into the search - `C:\Windows\System32\svchost.exe` - is searched for instead of
+  being refused as a field called C.
+- Turning a filter off in the window when the box holds `status:running,stopped` takes only that
+  value out and leaves `status:running`. It used to empty the box, and the Running filter went dark
+  with it.
 
 - A plan over a selection that includes an entry this machine does not work without - stopping
   a whole scope, for example - asked for a name to be typed, and typing it changed nothing: the

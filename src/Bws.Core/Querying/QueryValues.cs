@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Bws.Core.Querying;
@@ -46,6 +45,13 @@ internal readonly record struct Verdict(bool Matched, bool Unreadable, bool TooC
 internal interface IQueryValue
 {
     Verdict Test(QueryField field, ScmEntry entry);
+
+    /// <summary>
+    /// Whether this value only bounds a quantity from one side - <c>&gt;</c>, <c>&gt;=</c>,
+    /// <c>&lt;</c>, <c>&lt;=</c>. Asked by <c>QueryParser.Fold</c>, because two bounds written
+    /// as two members narrow rather than widen. Every other kind of value answers no.
+    /// </summary>
+    bool IsOpenComparison => false;
 }
 
 internal static class QueryValue
@@ -65,21 +71,51 @@ internal static class QueryValue
     ///
     /// The enumeration fields have always done this - <c>FieldSymbols.Nothing</c> carries
     /// "incomplete" for exactly this case - so <c>signed:no</c> reported itself as partial while
-    /// <c>publisher:x</c> beside it did not. The three value kinds here now agree with them.
+    /// <c>publisher:x</c> beside it did not. The three value kinds here now agree with them - and
+    /// the reserved words did not until 2026-10-05, which is the story at <see cref="OutcomeValue"/>.
     /// </summary>
     internal static bool Unanswerable(QueryField field, ScmEntry entry) =>
         field.OutcomeOf(entry) is ReadOutcome.Denied or ReadOutcome.NotRead;
 }
 
 /// <summary>
-/// The reserved words: <c>none</c>, <c>any</c> and <c>?</c>. They ask about the reading
-/// itself rather than about the value, which is how the four states a field can be in
-/// stay expressible instead of only the two that have a value.
+/// Two of the reserved words: <c>none</c> and <c>any</c>. They ask about the reading itself
+/// rather than about the value, which is how the four states a field can be in stay
+/// expressible instead of only the two that have a value.
+///
+/// <b>UNTIL 2026-10-05 THESE WERE THE ONE KIND OF VALUE THAT DID NOT AGREE WITH THE OTHERS</b>,
+/// and the comment on <see cref="QueryValue.Unanswerable"/> claimed they all did. On an entry
+/// whose field was refused or never read, <c>trigger:any</c> said a confident no - so the entry
+/// left the result without being counted among the ones the answer is unsure about, and
+/// <c>!trigger:any</c> kept it with full confidence (stability report Q-4). Whether a field nobody
+/// could read is empty is exactly the question nobody could answer, so it is answered as unsure,
+/// the way every other value answers it. Owner's decision, 2026-09-30.
 /// </summary>
 internal sealed class OutcomeValue(ReadOutcome wanted) : IQueryValue
 {
     public Verdict Test(QueryField field, ScmEntry entry) =>
-        Verdict.Of(field.OutcomeOf(entry) == wanted);
+        QueryValue.Unanswerable(field, entry)
+            ? Verdict.CouldNotRead
+            : Verdict.Of(field.OutcomeOf(entry) == wanted);
+}
+
+/// <summary>
+/// The third reserved word, <c>?</c>: the field has no answer - refused, or never read.
+///
+/// <b>Refused only, until 2026-10-05.</b> A field nobody read - a trigger list on a listing that
+/// never asked for one, a signature on a share with <c>--follow-network</c> off - answered no to
+/// <c>none</c>, to <c>any</c> and to <c>?</c> at once, so the window's chip for "could not check"
+/// left those entries out and nothing in the language could find them. Owner's decision,
+/// 2026-09-30: both states that have no answer are one question, and three reserved words stay
+/// three.
+///
+/// <b>Never unsure itself</b>, because whether a field was answered is the one thing about it
+/// that is always known.
+/// </summary>
+internal sealed class UnansweredValue : IQueryValue
+{
+    public Verdict Test(QueryField field, ScmEntry entry) =>
+        Verdict.Of(QueryValue.Unanswerable(field, entry));
 }
 
 internal enum TextOperator
@@ -208,6 +244,20 @@ internal enum NumberOperator
     Range
 }
 
+internal static class NumberOperators
+{
+    /// <summary>
+    /// Whether this comparison bounds a quantity from one side only. An exact value and a closed
+    /// range each pick out values of their own, a bound does not - which is the whole difference
+    /// <c>QueryParser.Fold</c> needs.
+    /// </summary>
+    internal static bool IsOpen(NumberOperator operation) =>
+        operation is NumberOperator.Greater
+            or NumberOperator.GreaterOrEqual
+            or NumberOperator.Less
+            or NumberOperator.LessOrEqual;
+}
+
 /// <summary>
 /// A value compared against a number. The range is closed at both ends, matching how the
 /// port ranges in networking tools read, because that is where people have seen this
@@ -215,6 +265,8 @@ internal enum NumberOperator
 /// </summary>
 internal sealed class NumberValue(NumberOperator operation, int low, int high) : IQueryValue
 {
+    public bool IsOpenComparison => NumberOperators.IsOpen(operation);
+
     public Verdict Test(QueryField field, ScmEntry entry)
     {
         if (QueryValue.Unanswerable(field, entry))
@@ -253,6 +305,8 @@ internal sealed class NumberValue(NumberOperator operation, int low, int high) :
 /// </summary>
 internal sealed class SizeValue(NumberOperator operation, long low, long high) : IQueryValue
 {
+    public bool IsOpenComparison => NumberOperators.IsOpen(operation);
+
     public Verdict Test(QueryField field, ScmEntry entry)
     {
         if (QueryValue.Unanswerable(field, entry))
@@ -278,66 +332,5 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
             NumberOperator.LessOrEqual => value <= low,
             _ => value >= low && value <= high
         });
-    }
-}
-
-/// <summary>
-/// Reads a quantity of bytes written with a unit.
-///
-/// The unit is required, and that is the whole design. <c>memory:&gt;500</c> read as bytes
-/// would match every running service on the machine while looking exactly like a filter
-/// that worked, and read as megabytes it would be this code guessing at what somebody meant.
-/// Refusing it costs one retry and a message naming the forms that work.
-/// </summary>
-internal static class QuerySizes
-{
-    /// <summary>
-    /// Powers of 1024, because that is what Windows means when it writes MB. Task Manager,
-    /// the file properties dialog and <c>Get-Process</c> all divide by 1024, so matching the
-    /// disk-drive meaning of the word would put us at odds with everything a person could
-    /// check us against.
-    /// </summary>
-    private static readonly (string Suffix, long Multiplier)[] Units =
-    [
-        ("KB", 1024L),
-        ("MB", 1024L * 1024),
-        ("GB", 1024L * 1024 * 1024),
-        ("TB", 1024L * 1024 * 1024 * 1024),
-
-        // Last, so that the two-letter suffixes are tried first - otherwise every one of
-        // them would match here on its final character and be read as a count of bytes.
-        ("B", 1L)
-    ];
-
-    internal static bool TryRead(string text, out long bytes)
-    {
-        bytes = 0;
-
-        foreach (var (suffix, multiplier) in Units)
-        {
-            if (!text.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var number = text[..^suffix.Length];
-
-            if (!long.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out var quantity))
-            {
-                return false;
-            }
-
-            // A quantity large enough to overflow is a mistake worth reporting rather than
-            // silently wrapping into a small number that matches everything.
-            if (quantity > long.MaxValue / multiplier)
-            {
-                return false;
-            }
-
-            bytes = quantity * multiplier;
-            return true;
-        }
-
-        return false;
     }
 }

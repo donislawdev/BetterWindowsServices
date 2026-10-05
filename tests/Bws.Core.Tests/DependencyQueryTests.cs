@@ -76,14 +76,15 @@ public sealed class DependencyQueryTests
         Assert.Empty(unpaid.Entries);
         Assert.Equal(Specimens.All.Count, unpaid.Unreadable);
 
-        // AND NOT THROUGH THE QUESTION MARK, which is worth pinning because it is the obvious
-        // guess and it is wrong: `?` asks what could not be READ - a refusal - and "nobody looked"
-        // is a different state. QueryValueReader maps the word to ReadOutcome.Denied and only
-        // that, so this stays empty until something is actually refused.
-        Assert.Empty(MatchOver("requiredby:?", Specimens.All));
+        // AND THROUGH THE QUESTION MARK, SINCE 2026-10-05. Until then `?` asked about a refusal
+        // only, this line pinned it as empty, and "nobody looked" was the one state the language
+        // had no word for. The owner widened `?` to both states that have no answer (stability
+        // report Q-4), so before the pass every entry is one of them - and after it, none is.
+        Assert.Equal(Specimens.All.Count, MatchOver("requiredby:?", Specimens.All).Count);
 
         var filled = RequiredByPass.Fill(Specimens.All, catalog);
 
+        Assert.Empty(MatchOver("requiredby:?", filled));
         Assert.Contains("RemoteAccess", MatchOver("requiredby:spooler", filled));
 
         // And the entry that is depended ON does not match a question about who depends on

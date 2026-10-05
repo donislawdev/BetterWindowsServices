@@ -31,6 +31,38 @@ namespace Bws.Core.Querying;
 /// </param>
 internal sealed record ScannedText(string Text, bool[] Literal, IReadOnlyList<int>? Blanks = null)
 {
+    /// <summary>
+    /// Which characters arrived through a backslash, as opposed to through quotes or bare.
+    ///
+    /// <b>Added 2026-10-05 for one reader, the pattern between slashes</b>, and the reason is that
+    /// a pattern speaks a second language with its own escapes. <c>name:/a\?/</c> means a literal
+    /// question mark to anybody who has written a regular expression - and the scanner, which
+    /// takes the backslash away before the value is read, turned it into <c>a?</c>, which matches
+    /// every entry on the machine. <c>path:/C:\\Windows/</c> went the other way: the doubled
+    /// backslash became one, and <c>\W</c> is a character class. Stability report Q-1, measured
+    /// at 800 of 800 and 0 of 307.
+    ///
+    /// <b>Literal cannot answer this</b>, because it is also true of every quoted character, and a
+    /// quote inside a pattern only protects a space from the scanner - <c>display:/"Print Spooler"/</c>
+    /// has never meant a pattern with quotes in it.
+    /// </summary>
+    internal bool[] Escaped { get; init; } = new bool[Text.Length];
+
+    /// <summary>
+    /// Where each character stood in the text that was scanned - for an escaped one, the character
+    /// after the backslash.
+    ///
+    /// <b>Added 2026-10-05 so that one value can be taken out of a list without reprinting it.</b>
+    /// Turning a chip off in <c>status:running,stopped</c> used to cut the whole member, so the
+    /// chip still lit for running went dark too (stability report Q-5). Cutting one value needs
+    /// the positions of the colon and the commas in the text as WRITTEN, and a second scanner in
+    /// QueryMembers finding them again is the duplicated rule this file exists to avoid.
+    ///
+    /// The default is a text that stands where it was written, which is the honest answer for one
+    /// nobody scanned.
+    /// </summary>
+    internal int[] WrittenAt { get; init; } = [.. Enumerable.Range(0, Text.Length)];
+
     internal int Length => Text.Length;
 
     /// <summary>
@@ -75,31 +107,44 @@ internal sealed record ScannedText(string Text, bool[] Literal, IReadOnlyList<in
         new(
             Text.Substring(start, length),
             Literal[start..(start + length)],
-            Blanks?.Where(at => at >= start && at <= start + length).Select(at => at - start).ToArray());
+            Blanks?.Where(at => at >= start && at <= start + length).Select(at => at - start).ToArray())
+        {
+            Escaped = Escaped[start..(start + length)],
+            WrittenAt = WrittenAt[start..(start + length)]
+        };
 
     internal ScannedText Slice(int start) => Slice(start, Text.Length - start);
+
+    internal ScannedText Slice(Range range)
+    {
+        var (start, length) = range.GetOffsetAndLength(Text.Length);
+
+        return Slice(start, length);
+    }
 
     /// <summary>True when nothing in this text was quoted or escaped.</summary>
     internal bool IsBare() => Array.TrueForAll(Literal, literal => !literal);
 
-    /// <summary>Splits on one separator, ignoring the ones that were quoted or escaped.</summary>
-    internal List<ScannedText> SplitOnSpecial(char separator)
+    /// <summary>
+    /// A run of this text with every backslash an escape took away put back in front of its
+    /// character - what a pattern between slashes has to be compiled from. Quotes are not put
+    /// back, because inside a pattern they only ever kept a space away from the scanner.
+    /// </summary>
+    internal string WithEscapes(int start, int length)
     {
-        var parts = new List<ScannedText>();
-        var start = 0;
+        var written = new StringBuilder(length + 4);
 
-        for (var index = 0; index <= Text.Length; index++)
+        for (var index = start; index < start + length; index++)
         {
-            if (index != Text.Length && !IsSpecial(index, separator))
+            if (Escaped[index])
             {
-                continue;
+                written.Append('\\');
             }
 
-            parts.Add(Slice(start, index - start));
-            start = index + 1;
+            written.Append(Text[index]);
         }
 
-        return parts;
+        return written.ToString();
     }
 }
 
@@ -154,9 +199,7 @@ internal static class QueryScanner
         spans = [];
         unclosedQuoteAt = -1;
 
-        var text = new StringBuilder();
-        var literal = new List<bool>();
-        var blanks = new List<int>();
+        var text = new Collected();
         var quoting = false;
         var quoteStartedAt = -1;
         var quotedFrom = 0;
@@ -183,7 +226,7 @@ internal static class QueryScanner
                     // purpose" is a different sentence from "somebody has not typed it yet".
                     if (text.Length == quotedFrom)
                     {
-                        blanks.Add(text.Length);
+                        text.Blanks.Add(text.Length);
                     }
                 }
                 else
@@ -200,22 +243,20 @@ internal static class QueryScanner
                 && index + 1 < query.Length
                 && Special.Contains(query[index + 1], StringComparison.Ordinal))
             {
-                text.Append(query[index + 1]);
-                literal.Add(true);
+                text.Append(query[index + 1], literal: true, escaped: true, at: index + 1);
                 index++;
                 continue;
             }
 
             if (!quoting && char.IsWhiteSpace(character))
             {
-                Flush(members, spans, text, literal, blanks, startedAt, index);
+                Flush(members, spans, text, startedAt, index);
                 startedAt = -1;
                 quotedFrom = 0;
                 continue;
             }
 
-            text.Append(character);
-            literal.Add(quoting);
+            text.Append(character, literal: quoting, escaped: false, at: index);
         }
 
         if (quoting)
@@ -224,28 +265,22 @@ internal static class QueryScanner
             return false;
         }
 
-        Flush(members, spans, text, literal, blanks, startedAt, query.Length);
+        Flush(members, spans, text, startedAt, query.Length);
         return true;
     }
 
     private static void Flush(
-        List<ScannedText> members,
-        List<Range> spans,
-        StringBuilder text,
-        List<bool> literal,
-        List<int> blanks,
-        int startedAt,
-        int endedAt)
+        List<ScannedText> members, List<Range> spans, Collected text, int startedAt, int endedAt)
     {
         // Nothing typed, so there is no member. An empty pair of quotes is not nothing typed:
         // it is a member that was finished and says nothing, and dropping it here is how
         // `bws list --query '""'` used to answer with the whole machine and a code of success.
-        if (text.Length == 0 && blanks.Count == 0)
+        if (text.Length == 0 && text.Blanks.Count == 0)
         {
             return;
         }
 
-        members.Add(new ScannedText(text.ToString(), [.. literal], blanks.Count == 0 ? null : [.. blanks]));
+        members.Add(text.ToScanned());
 
         // One span per member and in the same order, because the two lists are read by index.
         // A member that got here without a start would be a member made of no characters, which
@@ -253,7 +288,48 @@ internal static class QueryScanner
         spans.Add(new Range(startedAt, endedAt));
 
         text.Clear();
-        literal.Clear();
-        blanks.Clear();
+    }
+
+    /// <summary>
+    /// The member being read, a character at a time, with what the scanner knows about each one.
+    ///
+    /// A type of its own since 2026-10-05, when two more facts per character arrived - whether it
+    /// came through a backslash and where it stood. Five parallel lists handed to Flush one by
+    /// one would have been a signature as wide as the facts, and a sixth fact would widen it again.
+    /// </summary>
+    private sealed class Collected
+    {
+        private readonly StringBuilder _text = new();
+        private readonly List<bool> _literal = [];
+        private readonly List<bool> _escaped = [];
+        private readonly List<int> _writtenAt = [];
+
+        internal List<int> Blanks { get; } = [];
+
+        internal int Length => _text.Length;
+
+        internal void Append(char character, bool literal, bool escaped, int at)
+        {
+            _text.Append(character);
+            _literal.Add(literal);
+            _escaped.Add(escaped);
+            _writtenAt.Add(at);
+        }
+
+        internal ScannedText ToScanned() =>
+            new(_text.ToString(), [.. _literal], Blanks.Count == 0 ? null : [.. Blanks])
+            {
+                Escaped = [.. _escaped],
+                WrittenAt = [.. _writtenAt]
+            };
+
+        internal void Clear()
+        {
+            _text.Clear();
+            _literal.Clear();
+            _escaped.Clear();
+            _writtenAt.Clear();
+            Blanks.Clear();
+        }
     }
 }

@@ -96,5 +96,5 @@
 
   "reserved.any": "jest jakaś wartość, obojętnie jaka",
   "reserved.none": "wartości naprawdę nie ma - wpis jej nie ma",
-  "reserved.unreadable": "narzędzie nie zdołało odczytać tego pola, czyli pytanie, którego <code>services.msc</code> nie umie nawet zadać"
+  "reserved.unreadable": "narzędzie nie zdołało odczytać tego pola albo go nie odczytało, czyli pytanie, którego <code>services.msc</code> nie umie nawet zadać"
 }
