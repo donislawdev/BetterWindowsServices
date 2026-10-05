@@ -132,3 +132,19 @@ public readonly record struct Reading<T>
     /// </summary>
     public T? ValueOr(T? fallback) => IsPresent ? Value : fallback;
 }
+
+/// <summary>
+/// The one refusal that is about permission, as against every other way a reading can fail.
+///
+/// <b>Added 2026-10-05 for stability report R-7, owner's decision that day:</b> the command line and
+/// the window said "no access" for EVERY refusal - for 1060, a service gone between the listing and
+/// the question, for 122, and from R-1 on for a disk failure that is not a refusal at all. They now say
+/// it only for this code, and "could not be read" for the rest. A single number rather than a list,
+/// because <see cref="Reading{T}.Denied"/> already brings a managed failure's HResult down to the
+/// Win32 code - so 5 is the only way this refusal can arrive.
+/// </summary>
+public static class AccessDenied
+{
+    /// <summary>ERROR_ACCESS_DENIED.</summary>
+    public const int Code = 5;
+}

@@ -39,8 +39,11 @@ internal static class ShapeCeilings
     /// </summary>
     internal const int LongestMethod = 68;
 
-    /// <summary>Fourteen at 48 lines of code or more.</summary>
-    internal const int MethodsNearLongest = 14;
+    /// <summary>
+    /// Thirteen at 48 lines of code or more. Fourteen until 2026-10-05, when BinaryPathResolver.Resolve
+    /// handed its prefix walk to a method of its own (stability report R-3) and left the crowd.
+    /// </summary>
+    internal const int MethodsNearLongest = 13;
 
     /// <summary>
     /// 23 forks, shared by PlanBuilder.AddWarnings and EntryDocument.From. Execution.Report is next

@@ -244,7 +244,7 @@ public sealed class ParserPropertyTests
                     serviceName: "Probe",
                     isDriver: false,
                     windowsDirectory: @"C:\Windows",
-                    exists: _ => false,
+                    exists: _ => Reading<bool>.Present(false),
                     networkPaths: NetworkPaths.Follow);
 
                 _ = BinaryPathResolver.Resolve(
@@ -252,7 +252,7 @@ public sealed class ParserPropertyTests
                     serviceName: "Probe",
                     isDriver: true,
                     windowsDirectory: @"C:\Windows",
-                    exists: _ => true,
+                    exists: _ => Reading<bool>.Present(true),
 
                     // Follow, so that arbitrary text is put through the whole resolver rather
                     // than through the branch that returns early for anything starting with

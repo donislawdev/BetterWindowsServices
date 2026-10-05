@@ -154,7 +154,9 @@ internal static class EntryReport
     {
         ReadOutcome.Present => told.Text,
         ReadOutcome.Absent => Texts.Of("cli.show.absent"),
-        ReadOutcome.Denied => Texts.Of("cli.show.denied", told.Code),
+        ReadOutcome.Denied => told.Code == AccessDenied.Code
+            ? Texts.Of("cli.show.denied", told.Code)
+            : Texts.Of("cli.show.unreadable", told.Code),
         _ => Texts.Of("cli.show.notRead")
     };
 

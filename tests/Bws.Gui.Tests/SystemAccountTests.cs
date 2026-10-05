@@ -74,6 +74,17 @@ public sealed class SystemAccountTests
     /// account, and never as the name of one.
     /// </summary>
     [Fact]
+    public void A_reading_that_failed_for_any_reason_but_access_does_not_say_no_access()
+    {
+        // Stability report R-7, owner's decision 2026-10-05. 1060 is a service gone between the
+        // listing and the question about it, and until that day the cell called it "no access".
+        var gone = EntryRow.Of(Rows.Entry("Spooler") with { Account = Reading<string>.Denied(1060, "Gone.") });
+
+        Assert.Equal(Texts.Of("gui.cell.unreadable"), gone["account"]);
+        Assert.NotEqual(Texts.Of("gui.cell.noAccess"), gone["account"]);
+    }
+
+    [Fact]
     public void A_reading_with_no_value_says_so_and_holds_nothing()
     {
         var denied = EntryRow.Of(Rows.Entry("Spooler") with { Account = Reading<string>.Denied(5, "Access is denied.") });

@@ -21,12 +21,16 @@ namespace Bws.Core;
 /// </summary>
 public sealed partial class WindowsScmCatalog
 {
+    /// <summary>How many turns in a row may make no progress before the listing gives up. Three.</summary>
+    private const int StalledTurnsAskedAgain = 3;
+
     // A list rather than a sequence, because the caller needs a count before it starts and an
     // index while it runs. It was already building one internally - the sequence was hiding
     // that behind a type that promised less than it delivered.
     private static List<EnumeratedEntry> Enumerate(SafeHandle manager)
     {
         uint resume = 0;
+        var stalled = 0;
         var results = new List<EnumeratedEntry>(capacity: 1024);
 
         while (true)
@@ -93,21 +97,67 @@ public sealed partial class WindowsScmCatalog
             // answers in one or two turns. What earns the check is the asymmetry: three lines
             // against a hang on somebody's server, in the only place here where the condition
             // to continue is a number a different process chose.
-            if (returned == 0 && resume == before)
+            //
+            // A FEW TURNS WITHOUT PROGRESS ARE ASKED AGAIN BEFORE ANYTHING IS THROWN, since
+            // 2026-10-05 - stability report R-5, and the owner's decision that day to do it here
+            // and nowhere else. An entry that grows between the size above and the reading - a
+            // display name changed in between - can leave the block one record short, and the
+            // manager then hands over nothing and does not move. Throwing there lost the whole
+            // listing for a race the next turn wins, because every turn asks the size again.
+            // Whether the race really produces this shape is NOT CHECKED. The ceiling stays: a
+            // manager that never makes progress still ends in the exception, three turns later.
+            var next = After(returned, before, resume, ref stalled);
+
+            if (next == Turn.GiveUp)
             {
                 throw new Win32Exception(
                     (int)WIN32_ERROR.ERROR_INVALID_DATA,
                     "The service control manager stopped making progress through its own listing.");
             }
 
-            // A resume handle of zero means the manager has nothing left to hand over.
-            if (resume == 0)
+            if (next == Turn.Done)
             {
                 break;
             }
         }
 
         return results;
+    }
+
+    /// <summary>What the listing does after one turn. Apart from the loop so a test can ask it.</summary>
+    internal enum Turn
+    {
+        Onwards,
+        AskAgain,
+        Done,
+        GiveUp
+    }
+
+    /// <summary>
+    /// The decision at the foot of every turn, with no call into the manager in it.
+    ///
+    /// <b>Asking again comes before "done", and that order is the whole point.</b> On the first turn
+    /// the resume handle is zero before and after, so a stalled first turn tested for "nothing left"
+    /// first would return an empty listing under a code of success - the failure rule 8 forbids, in
+    /// the one place where it would cost every entry at once.
+    /// </summary>
+    /// <param name="stalled">Turns in a row without progress, carried from one call to the next.</param>
+    internal static Turn After(uint returned, uint before, uint after, ref int stalled)
+    {
+        stalled = returned == 0 && after == before ? stalled + 1 : 0;
+
+        if (stalled > StalledTurnsAskedAgain)
+        {
+            return Turn.GiveUp;
+        }
+
+        if (stalled > 0)
+        {
+            return Turn.AskAgain;
+        }
+
+        // A resume handle of zero means the manager has nothing left to hand over.
+        return after == 0 ? Turn.Done : Turn.Onwards;
     }
 
     /// <summary>
