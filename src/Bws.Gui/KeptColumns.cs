@@ -44,6 +44,9 @@ internal sealed class KeptColumns
     /// </summary>
     private bool _switching;
 
+    /// <summary>Whether <see cref="Leave"/> has been called - nothing more is written.</summary>
+    private bool _left;
+
     internal KeptColumns(PreferencesFile file)
     {
         _file = file;
@@ -112,11 +115,49 @@ internal sealed class KeptColumns
 
         _layouts = changed;
 
+        Write(says);
+    }
+
+    /// <summary>
+    /// Puts the layout on disk, unless the file there is one this window promised to leave alone or
+    /// this window has already handed itself over.
+    ///
+    /// <b>The one door every write here goes through, since 2026-10-05 - G-3 of the external
+    /// stability report.</b> There were two, both unconditional, and the sentence the window says
+    /// at startup about a file from another schema - "it was left alone" - was true until the first
+    /// column changed or the window closed. <see cref="LayoutReading.LeftAlone"/> says which files.
+    ///
+    /// <b>The layout in memory still follows the grid</b>, because moving between the three lists
+    /// reads from it - only the file stops being written, which is what the sentence promises.
+    /// </summary>
+    private void Write(Says says)
+    {
+        if (_reading.LeftAlone || _left)
+        {
+            return;
+        }
+
         if (_file.Write(_layouts) is { } trouble)
         {
             says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
         }
     }
+
+    /// <summary>
+    /// Writes down what the grid looks like now, outside every event - for the moment just before
+    /// this window starts its replacement. G-7 of the external stability report of 2026-09-29.
+    /// </summary>
+    internal void KeepNow(DataGrid grid, Says says) => Keep(grid, says);
+
+    /// <summary>
+    /// This window has started its replacement, so nothing it does from here on is written.
+    ///
+    /// <b>The replacement reads the same file while this one is closing</b>, and until 2026-10-05
+    /// the write on Closing was the last thing this window did - racing a read in another process.
+    /// <see cref="KeepNow"/> runs first, before the replacement exists, so nothing is lost by
+    /// stopping here: between that write and this call nobody can touch a column.
+    /// </summary>
+    internal void Leave() => _left = true;
 
     /// <summary>
     /// Moves the kept layout to another scope, and hands back what the grid should look like there.
@@ -259,6 +300,14 @@ internal sealed class KeptColumns
                 : Texts.Of("gui.layout.unreadableStays", why));
         }
 
+        // A file nobody could open is not called unreadable and is not said to have stayed where a
+        // move failed, because no move was tried - G-3. What it shares with the two sentences above
+        // is the promise that this window writes nothing over it, and Write keeps that promise.
+        if (_reading.Unopened is { } closed)
+        {
+            said.Add(Texts.Of("gui.layout.unopened", closed));
+        }
+
         if (Plan.Ignored.Count > 0)
         {
             said.Add(Texts.Of("gui.layout.ignored", Listed(Plan.Ignored)));
@@ -318,10 +367,7 @@ internal sealed class KeptColumns
         // services.
         _layouts = _layouts.With(_scope, Harvested(grid));
 
-        if (_file.Write(_layouts) is { } trouble)
-        {
-            says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
-        }
+        Write(says);
     }
 
     /// <summary>

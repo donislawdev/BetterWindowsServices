@@ -111,13 +111,15 @@ internal sealed class PreferencesFile
 
             content = ReadText(Where);
         }
+        // NOT OPENED RATHER THAN UNREADABLE, SINCE 2026-10-05 - G-3. Nobody has seen these bytes, so
+        // nothing here may say they are not a layout, and nothing may write over them.
         catch (IOException problem)
         {
-            return new LayoutReading { Unreadable = problem.Message };
+            return new LayoutReading { Unopened = problem.Message };
         }
         catch (UnauthorizedAccessException problem)
         {
-            return new LayoutReading { Unreadable = problem.Message };
+            return new LayoutReading { Unopened = problem.Message };
         }
         catch (DecoderFallbackException problem)
         {

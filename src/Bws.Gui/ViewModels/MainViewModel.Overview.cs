@@ -89,7 +89,7 @@ public sealed partial class MainViewModel : Checked
     /// numbers, now also flipping the placeholder off.
     /// </remarks>
     public IReadOnlyList<OverviewLine> Overview =>
-        _showingOverview ? ViewModels.Overview.Of(_index.Ordered, counted: !_readings.FirstLook) : [];
+        _showingOverview ? ViewModels.Overview.Of(_index.Ordered, counted: _readings.EverRead) : [];
 
     /// <summary>
     /// The same lines as <see cref="Overview"/>, grouped the way the screen draws them - each
@@ -123,6 +123,17 @@ public sealed partial class MainViewModel : Checked
     public void Ask(OverviewLine line)
     {
         ArgumentNullException.ThrowIfNull(line);
+
+        // ON A LIST THAT CAN ANSWER IT - G-9 of the external stability report. Every number on this
+        // screen is counted over every row, and each line carries its own `!type:driver`, so asked
+        // from the Drivers tab the list behind the overview came up empty under a card that had just
+        // said three. Moved to the list of everything only when the line asks for what the list on
+        // screen leaves out, which is the question Scopes.AsksElsewhere already answers for the
+        // sentence about the scope.
+        if (Scopes.AsksElsewhere(Scope, Bws.Core.Querying.QueryAsTyped.Of(line.Query)))
+        {
+            Scope = EntryScope.Everything;
+        }
 
         QueryText = line.Query;
 

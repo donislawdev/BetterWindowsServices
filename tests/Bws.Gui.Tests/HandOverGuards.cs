@@ -106,6 +106,72 @@ public sealed class HandOverGuards
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// G-7 of the external stability report: a new window very often opens under the pointer, and a
+    /// list being pointed at refuses to rearrange itself (`A10`). The take-over then changed the scope
+    /// and the query without changing the list, looked for the picks among the rows the window opened
+    /// on, and called a driver that was right there "no longer in the list".
+    /// </summary>
+    [Fact]
+    public async Task The_hand_over_lands_even_with_the_pointer_resting_on_the_list()
+    {
+        var (window, model) = await Opened();
+
+        WpfHost.On(() => model.Interacting = true);
+
+        var carried = new HandOver { Scope = EntryScope.Drivers, Query = "", Picked = ["disk"] };
+
+        await WpfHost.On(() => window.TakeOverAsync(carried, refused: false));
+
+        Assert.Equal(["disk"], WpfHost.On(() => model.Rows.Select(row => row.ServiceName).ToArray()));
+        Assert.Equal(["disk"], WpfHost.On(() => window.Entries.SelectedItems.OfType<EntryRow>().Select(row => row.ServiceName).ToArray()));
+        Assert.DoesNotContain(Texts.Of("gui.handOver.gone.one", 1), WpfHost.On(() => model.Says.Problem), StringComparison.Ordinal);
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// A query too long to carry crosses as nothing, and the new window says so (owner's decision
+    /// 2026-10-05, G-7) - an empty box with no word about it would look like the search was never typed.
+    /// </summary>
+    [Fact]
+    public async Task A_query_left_behind_is_said()
+    {
+        var (window, model) = await Opened();
+
+        var carried = new HandOver { Scope = EntryScope.Services, Query = "", Picked = ["Spooler"], QueryLeftBehind = true };
+
+        await WpfHost.On(() => window.TakeOverAsync(carried, refused: false));
+
+        Assert.Contains(Texts.Of("gui.handOver.queryLeftBehind"), WpfHost.On(() => model.Says.Problem), StringComparison.Ordinal);
+        Assert.Equal(["Spooler"], WpfHost.On(() => window.Entries.SelectedItems.OfType<EntryRow>().Select(row => row.ServiceName).ToArray()));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// Backlog 504, owner's decision 2026-10-05: a forcing sheet opened from a failure is about the
+    /// entry that failed, which need not be a picked row. The hand-over used to carry the picked
+    /// rows with the forcing ask, so the window after the restart asked to end the process of a
+    /// different entry from the one on the screen - quietly.
+    /// </summary>
+    [Fact]
+    public async Task A_sheet_opened_from_a_failure_hands_over_the_entry_it_is_about()
+    {
+        var window = await PlanFixture.Ready();
+        var failure = new PlanFailure("the stop gave up", new Escalation(ActionKind.ForceStop, "Dnscache", "End its process", "It did not stop."));
+
+        Assert.True(await WpfHost.On(() => window.Force(failure)));
+        WpfHost.Settled();
+
+        var handed = WpfHost.On(() => window.HandOverNow());
+
+        Assert.Equal(["Dnscache"], handed.Picked);
+        Assert.Equal(ActionKind.ForceStop, handed.Asked);
+
+        WpfHost.On(window.Close);
+    }
+
     private static async Task<(MainWindow Window, MainViewModel Model)> Opened()
     {
         var model = new MainViewModel(

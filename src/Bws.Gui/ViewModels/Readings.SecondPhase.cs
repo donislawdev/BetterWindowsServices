@@ -71,18 +71,21 @@ internal sealed partial class Readings
         // asked for again a second later - see the argument on _tried.
         _tried |= wanted;
 
-        _filling = true;
-
-        // Said before the work rather than after it, or the one state this announces would be
-        // announced only once it had stopped being true - the same argument as the reading above.
-        // The sentence only, since 2026-09-28: the entries have not moved since the reading that
-        // handed them here narrowed and showed them (G-11, _announce).
-        _announce();
-
         IReadOnlyList<ScmEntry> filled;
 
+        // INSIDE THE TRY SINCE 2026-10-05 - G-9 of the external stability report. Flag and sentence
+        // stood before it, so a sentence that threw would leave the window "still filling" for good,
+        // with nothing left to take that back: the catch below is what puts the flag down.
         try
         {
+            _filling = true;
+
+            // Said before the work rather than after it, or the one state this announces would be
+            // announced only once it had stopped being true - the same argument as the reading above.
+            // The sentence only, since 2026-09-28: the entries have not moved since the reading that
+            // handed them here narrowed and showed them (G-11, _announce).
+            _announce();
+
             filled = await Task.Run(() => Fill(entries, wanted)).ConfigureAwait(true);
         }
 #pragma warning disable CA1031

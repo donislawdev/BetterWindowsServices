@@ -15,7 +15,30 @@ namespace Bws.Gui;
 /// </summary>
 public partial class SearchRow : UserControl
 {
-    public SearchRow() => InitializeComponent();
+    public SearchRow()
+    {
+        InitializeComponent();
+
+        // Whatever takes the keyboard from the box - a chip reached with Tab or clicked, a row of the
+        // list - finds the model already holding what the box says. See Commit.
+        QueryBox.LostKeyboardFocus += (_, _) => Commit();
+    }
+
+    /// <summary>
+    /// Hands the text in the box to the model now rather than when the box would have.
+    ///
+    /// <b>The binding waits 400 ms after the last key</b>, so a list over eight hundred rows is
+    /// narrowed once per burst of typing rather than once per character. The price, found by G-9 of
+    /// the external stability report of 2026-09-29: anything that READS the query inside those
+    /// 400 ms reads the one from before the last few keys - a chip writing its member into the old
+    /// text, Escape finding the box empty and doing nothing, a restart carrying a shorter query. So
+    /// the window asks for the text before each of those, and the delay stays for typing.
+    ///
+    /// The one piece of plumbing in this row, and it is about the binding rather than about what
+    /// the text means.
+    /// </summary>
+    internal void Commit() =>
+        QueryBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
 
     /// <summary>
     /// The field itself, so the window can put the caret in it and listen for typing.

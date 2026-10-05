@@ -218,6 +218,12 @@ public partial class MainWindow
                 // G-1, argued at Planned.CanClose. The sheet refuses to go away, and without this the
                 // press would fall through that refusal to the query and empty it under a running
                 // plan. The sheet's own line already says a run is going, and Interrupt is on it.
+                //
+                // THE BOX FIRST HANDS OVER WHAT IT SAYS, since 2026-10-05 - G-9. Pressed inside the
+                // 400 ms the box waits after typing, Escape found the model's query still empty,
+                // did nothing, and the text arrived a moment later. SearchRow.Commit says more.
+                Search.Commit();
+
                 return _model.Suggesting.Close()
                     || _model.Planned.Busy
                     || _model.Planned.Hide()

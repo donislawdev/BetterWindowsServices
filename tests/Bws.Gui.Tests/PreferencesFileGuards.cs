@@ -151,8 +151,12 @@ public sealed class PreferencesFileGuards : IDisposable
 
         var reading = file.Read();
 
+        // Not opened rather than unreadable since 2026-10-05 (G-3): nobody saw these bytes, so
+        // nothing may call them broken or write over them.
         Assert.Null(reading.Layouts);
-        Assert.NotNull(reading.Unreadable);
+        Assert.NotNull(reading.Unopened);
+        Assert.Null(reading.Unreadable);
+        Assert.True(reading.LeftAlone);
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Bws.Gui;
 
@@ -32,7 +34,7 @@ internal static class ButtonMenu
     /// </summary>
     internal static bool OpenUnder(Button button)
     {
-        if (button?.ContextMenu is not { } menu)
+        if (button?.ContextMenu is not { } menu || Tucked(button))
         {
             return false;
         }
@@ -42,5 +44,33 @@ internal static class ButtonMenu
         menu.IsOpen = true;
 
         return true;
+    }
+
+    /// <summary>
+    /// Whether the button, or anything it stands inside, is put away - G-9 of the external stability
+    /// report of 2026-09-29. The overview collapses the row holding Help and the row holding the
+    /// columns button, and F1 there opened the help menu under a button that was not on screen, at
+    /// whatever position a collapsed element has. A shortcut whose button is away now does nothing
+    /// and leaves the key to whatever else wants it.
+    ///
+    /// <b>Asked of the Visibility each element SETS rather than of IsVisible</b>, which is false for
+    /// every element of a window that has not been shown yet - a window built and never shown is
+    /// what every test of these menus holds. <b>Up the logical tree first</b>, because a part of the
+    /// window in its own file has no visual parent until its template is applied, and the logical
+    /// one is there from the moment the markup is read. <b>The window itself is not asked</b>: it
+    /// is Collapsed until it is shown, which the first run of these tests found - and a shortcut
+    /// cannot reach a window nobody has shown anyway.
+    /// </summary>
+    private static bool Tucked(DependencyObject element)
+    {
+        for (var at = element; at is not null and not Window; at = LogicalTreeHelper.GetParent(at) ?? (at is Visual ? VisualTreeHelper.GetParent(at) : null))
+        {
+            if (at is UIElement { Visibility: not Visibility.Visible })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

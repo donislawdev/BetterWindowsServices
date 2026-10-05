@@ -309,8 +309,10 @@ public sealed class Chosen : Observable
     /// <summary>
     /// The panel's own reading, while one is out - finished otherwise. Kept rather than started and
     /// walked away from, which BackgroundWorkGuards forbids: the tests and the component catalogue
-    /// await it, and it cannot fault, because the readings keep every failure as a sentence about
-    /// the entry it happened to - see <see cref="Notice"/>.
+    /// await it, and it is not meant to fault, because the readings keep every failure as a sentence
+    /// about the entry it happened to - see <see cref="Notice"/>. <b>Nothing in the product awaits
+    /// it</b> (G-4 of the external stability report), so a fault nobody foresaw reaches the window
+    /// only through Mishaps, and only once the collector finds the task.
     /// </summary>
     internal Task CatchingUp { get; private set; } = Task.CompletedTask;
 

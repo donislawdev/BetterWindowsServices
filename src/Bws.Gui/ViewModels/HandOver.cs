@@ -43,8 +43,10 @@ internal sealed record HandOver
     /// 2 since 2026-09-30, when <see cref="Dependents"/> arrived. A copy of the program without that
     /// field would read a newer hand-over and quietly drop the dependants from the plan it asks
     /// again - a different plan from the one on the screen - so a mismatched pair refuses instead.
+    /// 3 since 2026-10-05, when <see cref="QueryLeftBehind"/> arrived, for the same reason: an older
+    /// copy would open an empty box and say nothing about the query it was not given.
     /// </summary>
-    private const int Version = 2;
+    private const int Version = 3;
     private const int LongestQuery = 4096;
     private const int LongestName = 256;
 
@@ -88,17 +90,41 @@ internal sealed record HandOver
     public bool PickedLeftBehind { get; init; }
 
     /// <summary>
-    /// The argument's value. If the picked rows do not fit the budget, they and the plan are left
-    /// behind and the hand-over says so - the list and the query still cross.
+    /// Whether the query was too long to carry, so it was left behind whole - the new window opens
+    /// with an empty box and says why (rule 8). Owner's decision 2026-10-05, G-7 of the external
+    /// stability report: a query cut short would be a different question, so it does not cross at
+    /// all rather than crossing in part.
+    /// </summary>
+    public bool QueryLeftBehind { get; init; }
+
+    /// <summary>
+    /// The argument's value, always one the reading side accepts.
+    ///
+    /// <b>Until 2026-10-05 that was not true, and a long query lost everything.</b> The query was
+    /// never held to <see cref="LongestQuery"/>, which the reading side checks - so 4097 characters
+    /// pasted into the box crossed and the new window refused the whole hand-over, list, picks and
+    /// plan. And a query of Polish letters, six characters each once escaped, could blow the budget
+    /// with nothing picked at all, which the one fallback here did not cover.
+    ///
+    /// <b>The picks before the query, when only one of them fits.</b> The picks and the plan over
+    /// them are what somebody restarted to carry out, and a list with an empty box still holds every
+    /// row they picked. The query goes first only when keeping it is what does not fit.
     /// </summary>
     internal string Encode()
     {
-        var whole = Write(this);
+        var carried = Query.Length <= LongestQuery ? this : this with { Query = string.Empty, QueryLeftBehind = true };
+        var withoutQuery = carried with { Query = string.Empty, QueryLeftBehind = carried.QueryLeftBehind || carried.Query.Length > 0 };
+        var withoutPicks = carried with { Picked = [], Asked = null, To = null, AlsoStop = false, Dependents = false, PickedLeftBehind = true };
 
-        return whole.Length <= LongestArgument
-            ? whole
-            : Write(this with { Picked = [], Asked = null, To = null, AlsoStop = false, Dependents = false, PickedLeftBehind = true });
+        return Fitting(carried)
+            ?? Fitting(withoutQuery)
+            ?? Fitting(withoutPicks)
+            ?? Write(withoutPicks with { Query = string.Empty, QueryLeftBehind = withoutQuery.QueryLeftBehind });
     }
+
+    /// <summary>The argument for this hand-over, or nothing when it is over the budget.</summary>
+    private static string? Fitting(HandOver handOver) =>
+        Write(handOver) is { Length: <= LongestArgument } written ? written : null;
 
     /// <summary>
     /// What the program was started with: nothing handed over, a hand-over, or a hand-over refused -
@@ -140,7 +166,8 @@ internal sealed record HandOver
             To = handOver.To?.ToString(),
             Stop = handOver.AlsoStop,
             Deps = handOver.Dependents,
-            Left = handOver.PickedLeftBehind
+            Left = handOver.PickedLeftBehind,
+            QLeft = handOver.QueryLeftBehind
         };
 
         return Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(wire));
@@ -173,6 +200,7 @@ internal sealed record HandOver
         if (wire.V != Version
             || !Named(wire.Scope, out EntryScope scope)
             || wire.Query is not { Length: <= LongestQuery } query
+            || (wire.QLeft && query.Length > 0)
             || wire.Picked is not { } picked
             || !picked.All(IsName)
             || !Plan(wire, out var asked, out var to))
@@ -190,7 +218,8 @@ internal sealed record HandOver
             To = picked.Length > 0 ? to : null,
             AlsoStop = picked.Length > 0 && wire.Stop,
             Dependents = picked.Length > 0 && wire.Deps,
-            PickedLeftBehind = wire.Left
+            PickedLeftBehind = wire.Left,
+            QueryLeftBehind = wire.QLeft
         };
     }
 
@@ -269,5 +298,6 @@ internal sealed record HandOver
         public bool Stop { get; init; }
         public bool Deps { get; init; }
         public bool Left { get; init; }
+        public bool QLeft { get; init; }
     }
 }

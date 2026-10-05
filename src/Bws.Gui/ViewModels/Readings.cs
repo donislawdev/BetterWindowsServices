@@ -443,6 +443,14 @@ internal sealed partial class Readings
     /// </summary>
     internal bool FirstLook => _reading && !_everRead;
 
+    /// <summary>
+    /// Whether any reading has ever arrived - the rows the window holds are a listing, not the empty
+    /// index it starts with. The machine overview counts only then (G-9 of the external stability
+    /// report): asked of FirstLook, a first reading that FAILED let it count an empty index and show
+    /// six zeroes that looked exactly like a machine with nothing wrong on it.
+    /// </summary>
+    internal bool EverRead => _everRead;
+
 
     /// <summary>
     /// The window has gone, so nothing that comes back is worth putting anywhere.

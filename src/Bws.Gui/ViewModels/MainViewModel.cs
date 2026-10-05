@@ -401,8 +401,8 @@ public sealed partial class MainViewModel : Checked
     /// report. That changes whether the list is still being filled and nothing else, and it used to
     /// be said by recutting the scope and running the query again over entries shown a moment before.
     ///
-    /// <b>Silent after a query with a mistake in it</b>, exactly as Apply is: Apply leaves before this
-    /// sentence then, so the end of the pass would never take back a "still filling" said here.
+    /// <b>Silent after a query with a mistake in it</b>, exactly as Apply is: Apply keeps no answer
+    /// then, so the end of the pass would never take back a "still filling" said here.
     /// </summary>
     private void SayTheAnswer()
     {
@@ -430,24 +430,24 @@ public sealed partial class MainViewModel : Checked
         // text reaches it there is no later.
         var parsed = AsTyped().Parsed;
 
-        if (!parsed.IsValid)
+        // A QUERY WITH A MISTAKE IN IT IS SAID AND THE LAST ONE THAT COULD BE READ GOES ON ANSWERING,
+        // since 2026-10-05 - G-9 of the external stability report. This used to leave here, before
+        // the list was touched, and that was right for the keystroke and wrong for everything else
+        // that comes through this method: a tick that found a service gone, and a move to another
+        // scope, both changed nothing on screen for as long as a typo stood in the box. The list
+        // still "shows the answer to the last query that could be read" - over the machine as it is.
+        if (parsed.IsValid)
+        {
+            AboutTheQuery(string.Empty);
+            _query = parsed.Query!;
+        }
+        else
         {
             // Every complaint, not the first one. Two mistakes in one query is ordinary while
             // somebody is typing, and fixing one to be told about the next is a poor trade for
             // a shorter line.
             AboutTheQuery(string.Join(" ", parsed.Problems.Select(QueryMessages.Of)));
-            _answered = null;
-
-            // The chips read the TEXT, so they follow it even though the list does not - UX-GUI-002.
-            // Leaving before this kept Running and Manual lit over `stat:runing`, a query that was
-            // no longer in the box.
-            _filters.Rethink();
-
-            return;
         }
-
-        AboutTheQuery(string.Empty);
-        _query = parsed.Query!;
 
         // AGAINST THE WHOLE LISTING RATHER THAN AGAINST WHAT THE QUERY LEFT, which is why it is
         // asked here and not after the narrowing. A row leaves the visible list on almost every
@@ -496,13 +496,17 @@ public sealed partial class MainViewModel : Checked
         // The last argument is which screen has the middle of the window, and only one sentence
         // under there asks about it - backlog 263. Passed rather than read out of this class by
         // Sentences, because that class has never been allowed to know a window exists.
-        _answered = (narrowed, rolled.Instances);
+        //
+        // NOTHING behind a query with a mistake, which is the silence SayTheAnswer describes: the
+        // line under the box belongs to the mistake then, and to the answer only once it reads.
+        _answered = parsed.IsValid ? (narrowed, rolled.Instances) : null;
         SayTheAnswer();
 
         TellTheList();
 
         // The controls read the query again, all of them - see FilterBar.Rethink for why every
-        // one rather than the one that was clicked.
+        // one rather than the one that was clicked. The chips read the TEXT, so they follow it even
+        // when the list answers an earlier one - UX-GUI-002, `stat:runing` with Running still lit.
         _filters.Rethink();
     }
 

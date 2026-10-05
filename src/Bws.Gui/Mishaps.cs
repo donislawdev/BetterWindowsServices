@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Threading;
 using Bws.Gui.ViewModels;
 
 namespace Bws.Gui;
@@ -26,11 +25,29 @@ namespace Bws.Gui;
 /// vanishes with a person's query, their selection and an unrun plan in it, and says nothing - so
 /// this is a trade rather than a free win, and it was made deliberately.
 ///
-/// <b>What is deliberately NOT here: a handler on AppDomain.UnhandledException.</b> It cannot stop
-/// the process, and in a windowed program there is usually no console for it to write to, so it
-/// would be machinery that looks like a safety net and is not one. What it would cover -
-/// a throw on a thread of its own - is already held down by BackgroundWorkGuards, which is why
-/// every background piece in this window is awaited and therefore comes back to the dispatcher.
+/// <b>WHEN THE PROCESS HAS TO END, IT SAYS WHY FIRST - owner's decision 2026-10-05, G-4 of the
+/// external stability report of 2026-09-29.</b> Three ways a failure reaches no window, and until
+/// that day all three ended in silence or worse:
+///
+/// - <b>A throw before the window has loaded.</b> The window is Application.MainWindow from its
+///   constructor onwards and sets its model as DataContext early in it, so a throw from the rest of
+///   the constructor was "told" to a window that would never be shown - marked handled, and a
+///   process with no window was left running, waiting for a window to close that never opened. Now
+///   a window that has not loaded is nobody to tell (<see cref="Listening"/>).
+/// - <b>A throw on a thread of its own.</b> This file used to say a handler for that would be
+///   machinery that looks like a safety net and is not one, because it cannot stop the process and
+///   there is no console. Both halves are true and neither is the point: it cannot keep the process,
+///   but it can SAY something before the process goes, in the one place a windowed program has left.
+///   Through ExceptionHandling.SetUnhandledExceptionHandler rather than AppDomain, which
+///   LayeringGuards keeps out of this assembly - measured 2026-10-05 on .NET 10.0.12: called on the
+///   throwing thread, and answering false lets the process end as it would have.
+/// - <b>A task nobody awaited.</b> This file also said every background piece in this window is
+///   awaited. The details panel's own reading is not - Chosen keeps it for the tests and starts the
+///   next one only when it is done - so a fault there vanished. It now reaches the line under the
+///   list, late: the runtime reports such a task only when the collector finds it.
+///
+/// <b>One box.</b> The window has no dialogs, and this is the exception for the one news a window
+/// cannot carry - that there is no window. <see cref="Ending"/> says why it is shown only once.
 ///
 /// <b>BroadCatchGuards does not see this file, and that is worth knowing before trusting its
 /// count.</b> That guard finds the places that catch everything by looking for the analyser
@@ -49,29 +66,94 @@ namespace Bws.Gui;
 internal static class Mishaps
 {
     /// <summary>
-    /// Puts the net under the application. Called once, from <see cref="App.OnStartup"/>.
+    /// Puts the net under the application and under the process. Called once, from
+    /// <see cref="App.OnStartup"/>.
+    ///
+    /// <b>The process half is here and not in the overload a test calls</b>, because there can be
+    /// only one such handler per process, and a test host that took it would end with a box on the
+    /// screen of whoever ran the tests.
     /// </summary>
     internal static void Arm(Application application)
     {
-        ArgumentNullException.ThrowIfNull(application);
+        Arm(application, Ending);
 
-        application.DispatcherUnhandledException += Caught;
-    }
+        System.Runtime.ExceptionServices.ExceptionHandling.SetUnhandledExceptionHandler(failure =>
+        {
+            Ending(failure);
 
-    private static void Caught(object sender, DispatcherUnhandledExceptionEventArgs failure)
-    {
-        failure.Handled = Told(Looking(), failure.Exception);
+            return false;
+        });
     }
 
     /// <summary>
-    /// The window's own model, or nothing when there is no window yet.
-    ///
-    /// <b>The only line here that needs a running application</b>, which is why it is on its own:
-    /// everything the decision below does can then be checked by a test, and this cannot be. See
-    /// <see cref="Told"/> for what "nothing" means at the moment it happens.
+    /// The application half, with what happens when nobody can be told handed in - so a test can
+    /// arm the real dispatcher without being shown a box.
     /// </summary>
-    private static MainViewModel? Looking() =>
-        Application.Current?.MainWindow?.DataContext as MainViewModel;
+    internal static void Arm(Application application, Action<Exception> last)
+    {
+        ArgumentNullException.ThrowIfNull(application);
+
+        application.DispatcherUnhandledException += (_, failure) =>
+            failure.Handled = Decided(Listening(Application.Current?.MainWindow), failure.Exception, last);
+
+        // Late and on the collector's thread, so it goes back to the dispatcher to be said - and
+        // only said: a task found unobserved at collection is no reason to end anything, so with no
+        // window to tell it is left where it was found.
+        TaskScheduler.UnobservedTaskException += (_, failure) =>
+        {
+            failure.SetObserved();
+
+            _ = application.Dispatcher.BeginInvoke(
+                new Action(() => Told(Listening(application.MainWindow), failure.Exception)));
+        };
+    }
+
+    /// <summary>
+    /// Says it in the window, or - when there is no window to say it in - hands it to what ends the
+    /// process, and answers whether the window carries on.
+    /// </summary>
+    internal static bool Decided(MainViewModel? model, Exception failure, Action<Exception> last)
+    {
+        ArgumentNullException.ThrowIfNull(last);
+
+        if (Told(model, failure))
+        {
+            return true;
+        }
+
+        last(failure);
+
+        return false;
+    }
+
+    /// <summary>
+    /// The window's own model, or nothing when there is no window that has finished arriving.
+    ///
+    /// <b>LOADED, AND NOT MERELY THERE - since 2026-10-05, G-4.</b> A window is MainWindow from its
+    /// constructor onwards and carries its model early in it, so "there is a model" was true of a
+    /// window whose constructor had just thrown and that would never be shown. Telling that window
+    /// marked the failure handled and left a process with nothing on screen.
+    /// </summary>
+    internal static MainViewModel? Listening(Window? window) =>
+        window is { IsLoaded: true, DataContext: MainViewModel model } ? model : null;
+
+    /// <summary>
+    /// The last thing the process says: one box with every cause.
+    ///
+    /// <b>One failure does not arrive here twice, and that was measured rather than assumed</b>
+    /// (2026-10-05, .NET 10.0.12, a file-based program in the session's scratch folder): the
+    /// handler for threads is called for a throw on a worker thread and NOT for one escaping the
+    /// main thread - which is where a dispatcher failure nobody handled goes. So the dispatcher half
+    /// says it itself, and the threads half covers the rest.
+    /// </summary>
+    private static void Ending(Exception failure)
+    {
+        MessageBox.Show(
+            Texts.Of("gui.mishap.ending", string.Join(" ", Bws.Core.Causes.Of(failure))),
+            Texts.Of("gui.window.title"),
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+    }
 
     /// <summary>
     /// Says what went wrong where the window already says what went wrong, and answers whether
@@ -82,7 +164,8 @@ internal static class Mishaps
     /// window still on screen pretending everything worked. There is one moment where that is the
     /// case and it is not hypothetical: a throw during startup, before the window exists, which is
     /// the shape a broken language file used to have. Nothing can be told to a window that is not
-    /// there, so this says no and the runtime ends the process as it did before.
+    /// there, so this says no - and <see cref="Decided"/> hands the failure to the box that is the
+    /// last thing the process says, since 2026-10-05.
     ///
     /// <b>Through Says rather than through a dialog</b>, because this window has no dialogs at all
     /// and one that appeared only for the worst news would be a control a person meets once. The

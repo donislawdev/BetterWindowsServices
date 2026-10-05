@@ -54,6 +54,44 @@ public sealed class SecondPassSettingOutTests
         Assert.Equal(2, rethought);
     }
 
+    /// <summary>
+    /// G-9 of the external stability report: the flag went up and the sentence was said BEFORE the
+    /// try, so a sentence that threw left the list "still filling" for good - the catch that puts
+    /// the flag down was never reached. Asked of the readings directly, because the window's own
+    /// sentence has no way to throw on purpose.
+    /// </summary>
+    [Fact]
+    public async Task A_sentence_that_throws_on_setting_out_does_not_leave_the_list_filling()
+    {
+        var said = 0;
+        var says = new Says();
+
+        var readings = new Readings(
+            new LiveMachine(Rows.Entry("Spooler") with { BinaryFile = Reading<string>.Present(File) }),
+            new RowIndex(new SteppedClock()),
+            () => says,
+            () => { },
+            () => { },
+            () => Announced(ref said),
+            new Recording(() => { }),
+            wanted: () => Bws.Core.Querying.ExtraRead.Signatures);
+
+        await readings.LoadAsync(Relisting.Afresh);
+
+        Assert.Equal(1, said);
+        Assert.False(readings.Filling);
+        Assert.Contains("the sentence threw", says.Problem, StringComparison.Ordinal);
+    }
+
+    /// <summary>A sentence that throws the first time it is said.</summary>
+    private static void Announced(ref int said)
+    {
+        if (said++ == 0)
+        {
+            throw new InvalidOperationException("the sentence threw");
+        }
+    }
+
     private sealed class Recording(Action asked) : IBinaryInspector
     {
         public Reading<BinarySignature> ReadSignature(string file)

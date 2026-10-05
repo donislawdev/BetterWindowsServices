@@ -83,6 +83,9 @@ public sealed class PlanConfirmationGuards
     [Fact]
     public void The_section_is_not_a_stop_on_the_way_to_the_box()
     {
+        // The window's resources first, for the reason at Drawn below - backlog 503.
+        _ = WpfHost.Resources;
+
         var (focusable, tabStop) = WpfHost.On(() =>
         {
             var view = new PlanConfirmation();
@@ -156,6 +159,13 @@ public sealed class PlanConfirmationGuards
         var panel = new Planned { Elevated = true };
 
         panel.Show(plan);
+
+        // THE WINDOW'S RESOURCES BEFORE THE CONTROL, AND WITHOUT THIS LINE THE CLASS WAS GREEN ONLY
+        // BECAUSE OF ITS NEIGHBOURS - backlog 503. PlanConfirmation.xaml names theme resources with
+        // StaticResource, resolved as the markup is read, and nothing here merged them: alone, or
+        // in a narrow run, three of its tests failed on PanelBlockRefused. WpfHost.Window does the
+        // same thing for the same reason.
+        _ = WpfHost.Resources;
 
         var view = WpfHost.On(() => new PlanConfirmation { DataContext = panel });
 

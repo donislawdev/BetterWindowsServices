@@ -71,7 +71,7 @@ public sealed class MishapGuards
     public void The_handler_finds_the_window_and_the_window_lives_through_what_it_catches()
     {
         var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
-        var window = WpfHost.Window(model);
+        var window = Loaded(model);
         var was = WpfHost.On(() => Application.Current.MainWindow);
 
         try
@@ -79,7 +79,10 @@ public sealed class MishapGuards
             WpfHost.On(() =>
             {
                 Application.Current.MainWindow = window;
-                Mishaps.Arm(Application.Current);
+
+                // The overload with the last word handed in: the other one takes the process-wide
+                // handler and would end a failing test host with a box on the screen.
+                Mishaps.Arm(Application.Current, _ => { });
             });
 
             // Where the handler goes looking, asked of the running application rather than of the
@@ -104,7 +107,70 @@ public sealed class MishapGuards
         }
         finally
         {
-            WpfHost.On(() => Application.Current.MainWindow = was);
+            WpfHost.On(() =>
+            {
+                Application.Current.MainWindow = was;
+                window.Close();
+            });
         }
+    }
+
+    /// <summary>
+    /// G-4 of the external stability report: a window is MainWindow and carries its model from
+    /// early in its constructor, so a throw from the rest of that constructor was told to a window
+    /// that would never be shown - marked handled, and the process stayed with nothing on screen.
+    /// A window counts only once it has loaded.
+    /// </summary>
+    [Fact]
+    public void A_window_that_has_not_loaded_is_nobody_to_tell()
+    {
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+        var built = WpfHost.Window(model);
+
+        Assert.Null(WpfHost.On(() => Mishaps.Listening(built)));
+
+        var shown = Loaded(model);
+
+        Assert.Same(model, WpfHost.On(() => Mishaps.Listening(shown)));
+
+        WpfHost.On(shown.Close);
+    }
+
+    /// <summary>
+    /// With nobody to tell, the failure goes to the last word - the box before the process ends, in
+    /// the product - and the answer stays "not handled", so the process does end. With a window, the
+    /// last word is never reached. Owner's decision 2026-10-05.
+    /// </summary>
+    [Fact]
+    public void With_nobody_to_tell_the_failure_goes_to_the_last_word_and_only_then()
+    {
+        var heard = new List<Exception>();
+        var failure = new InvalidOperationException("the constructor threw");
+
+        Assert.False(Mishaps.Decided(null, failure, heard.Add));
+        Assert.Same(failure, Assert.Single(heard));
+
+        var model = new MainViewModel(new LiveMachine(Rows.Entry("Spooler")), new SteppedClock());
+
+        Assert.True(Mishaps.Decided(model, new InvalidOperationException("a click threw"), heard.Add));
+        Assert.Single(heard);
+    }
+
+    /// <summary>A window shown off screen and settled, so it has loaded the way a person's does.</summary>
+    private static MainWindow Loaded(MainViewModel model)
+    {
+        var window = WpfHost.Window(model);
+
+        WpfHost.On(() =>
+        {
+            window.WindowStyle = WindowStyle.None;
+            window.ShowInTaskbar = false;
+            window.Left = -4000;
+            window.Show();
+        });
+
+        WpfHost.Settled();
+
+        return window;
     }
 }
