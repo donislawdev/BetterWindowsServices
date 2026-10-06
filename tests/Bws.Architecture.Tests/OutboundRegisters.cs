@@ -81,7 +81,10 @@ internal static class OutboundRegisters
 
             ["USER32.dll"] =
                 "DestroyMenu, declared by the generator as the release function of HMENU, which " +
-                "IShellBrowser names in its signatures. Declared and never called.",
+                "IShellBrowser names in its signatures. Declared and never called. Since 2026-10-06 " +
+                "also MessageBox, called: the box an elevated window shows when it refuses to start " +
+                "because the folder its native libraries came from cannot be trusted - security " +
+                "report S-1, said before anything of WPF exists. A box on this desktop, nothing more.",
 
             ["COMCTL32.dll"] =
                 "DestroyPropertySheetPage, declared by the generator as the release function of " +

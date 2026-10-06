@@ -112,6 +112,23 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
+  <!--
+    WHERE THOSE LIBRARIES ARE UNPACKED WHEN THE WINDOW RUNS AS ADMINISTRATOR - security report S-1,
+    the owner's decisions of 2026-10-06. The host unpacks them before Main into a folder under the
+    temporary directory, which others can write to, and loads them from there - so an elevated window
+    whose libraries are anywhere but <drive of Windows>\ProgramData\BetterWindowsServices starts once
+    more with them there, in a folder made with a list only administrators can change and examined at
+    every such start. Bws.Core's Unpacking and AdministratorsFolder carry the rule, Program.cs the start.
+
+    App.xaml IS THEREFORE A PAGE AND NOT THE APPLICATION DEFINITION. That is what stops WPF writing a
+    Main that constructs the application on its first line, which measured that day is already what
+    loads the first library from the folder - the decision has to come before it.
+  -->
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
   <ItemGroup>
     <!--
       WithCulture=false is load-bearing here for the same reason it is in Bws.Cli: MSBuild

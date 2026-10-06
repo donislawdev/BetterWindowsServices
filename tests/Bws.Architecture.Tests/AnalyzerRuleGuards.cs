@@ -98,10 +98,16 @@ public sealed class AnalyzerRuleGuards
     /// CA1031 - catching everything - is also held file by file in <see cref="BroadCatchGuards"/>,
     /// which says WHERE each one is allowed. This says HOW MANY, which that guard cannot: a second
     /// broad catch in a file already on its list passes it and moves this count.
+    ///
+    /// IL3000 arrived on 2026-10-06 with security report S-1, the owner's decision: the window asks
+    /// whether it is a single-file bundle, and the one documented answer is that an assembly inside the
+    /// bundle has an empty Location - which is exactly what the analyser warns about. Program.Bundled
+    /// carries the argument and the two ways refused instead.
     /// </summary>
     private static readonly Dictionary<string, int> Escapes = new(StringComparer.Ordinal)
     {
         ["#pragma warning disable CA1031"] = 10,
+        ["[SuppressMessage] IL3000"] = 1,
     };
 
     /// <summary>

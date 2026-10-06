@@ -325,6 +325,15 @@ is not part of this repository.
 
 ### Security
 
+- **With administrator rights, the window loads its native libraries only from a folder only
+  administrators can change.** The few libraries of the Windows user interface framework that the
+  window unpacks before it starts used to be loaded from a folder under the account's temporary
+  folder, which other programs can write to. An elevated window now keeps them in
+  `ProgramData\BetterWindowsServices` on the Windows drive, a folder it creates with permissions only
+  administrators can change and checks at every start, and starts itself a second time to load them
+  from there. When that folder cannot be created, can be changed by others or is a link, the window
+  does not start and says in a box which folder and what to do. Without administrator rights nothing
+  changes.
 - **`bws snapshot create --force` replaces only a snapshot.** A file at that path that this version
   cannot read as a snapshot - another program's file, a snapshot from a newer version, anything too
   large or unreadable - is refused with code 2, with or without `--force`, and left exactly where it

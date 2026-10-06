@@ -32,3 +32,8 @@ _SVGIO
 IShellFolderViewDual
 IShellDispatch2
 CoCreateInstance
+//
+// The refusal to start, since 2026-10-06 - security report S-1. When the folder WPF's native half came
+// from cannot be trusted, the window says why before anything of WPF exists, so it cannot be WPF's own
+// box. User32's, found in System32 only, like every import this generator writes.
+MessageBox

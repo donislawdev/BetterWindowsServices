@@ -107,6 +107,24 @@ public sealed class DeadCodeScanTests
     }
 
     [Fact]
+    public void A_static_main_keeps_its_type_and_what_it_calls_alive_and_an_instance_one_does_not()
+    {
+        var found = Unreached(
+            """
+            internal static class Entry
+            {
+                [System.STAThread]
+                private static int Main(string[] args) => Helper.Answer(args.Length);
+            }
+            internal static class Helper { internal static int Answer(int count) => count; }
+            internal sealed class Lonely { public int Main() => 1; }
+            """,
+            string.Empty);
+
+        Assert.Equal(["Lonely"], found);
+    }
+
+    [Fact]
     public void Markup_and_an_attribute_each_keep_a_name_alive()
     {
         var found = Unreached(

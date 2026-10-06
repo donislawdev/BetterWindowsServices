@@ -1,7 +1,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Bws.Core;
 using Bws.Gui.ViewModels;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace Bws.Gui;
 
@@ -39,6 +43,15 @@ namespace Bws.Gui;
 /// <b>The attribute rather than a lower floor, because it says WHICH code cannot be run.</b> A floor
 /// two tenths lower says nothing about where the hole is, and the next slice would inherit the room
 /// without meeting this argument.
+///
+/// <b>SINCE 2026-10-06 IT ALSO STARTS THE PROGRAM AGAIN FOR SECURITY REPORT S-1, AND SAYS SO WHEN IT
+/// WILL NOT START AT ALL.</b> An elevated window whose native libraries were unpacked where others can
+/// change them starts once more with them somewhere only administrators can (<see cref="Again"/>), and
+/// one that cannot be made safe says why in a box (<see cref="Refuse"/>). Both are "start this program
+/// again, or say why not", which is what this file was already allowed to do - so they live here rather
+/// than in a third file named in LayeringGuards, which the owner's word of that day allowed but did not
+/// ask for. The argument for leaving the file out of coverage holds for both: one starts a process, the
+/// other puts a box on the screen that waits for a person.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal static class Elevation
@@ -94,5 +107,66 @@ internal static class Elevation
         {
             return Texts.Of("gui.elevate.failed", failed.Message);
         }
+    }
+
+    /// <summary>What the process ends with when it refused to start. Nothing reads it but a script.</summary>
+    private const int Refused = 1;
+
+    /// <summary>
+    /// Starts this program once more, with its native libraries unpacked into the administrators'
+    /// folder - security report S-1, <see cref="Unpacking"/>. Null means it started, and the caller
+    /// then ends: the owner's decision of 2026-10-06 was that this process does not wait.
+    ///
+    /// <b>Without the shell, and that is the difference from <see cref="Restart"/>.</b> The rights are
+    /// already the right ones, so the child takes this token as it is, the same arguments word for
+    /// word, and the host's variable set in its environment alone - this process's own is not touched.
+    /// </summary>
+    internal static FolderCheck? Again(IReadOnlyList<string> arguments, string home)
+    {
+        if (Environment.ProcessPath is not { } program)
+        {
+            return FolderCheck.Failed(home, UnpackingFault.NotStarted);
+        }
+
+        try
+        {
+            var start = new ProcessStartInfo(program) { UseShellExecute = false };
+
+            foreach (var argument in arguments)
+            {
+                start.ArgumentList.Add(argument);
+            }
+
+            start.Environment[Unpacking.BaseVariable] = home;
+
+            using var started = Process.Start(start);
+
+            return started is null ? FolderCheck.Failed(home, UnpackingFault.NotStarted) : null;
+        }
+        catch (Win32Exception failed)
+        {
+            return FolderCheck.Failed(home, UnpackingFault.NotStarted, failed.Message);
+        }
+    }
+
+    /// <summary>
+    /// Says why the program did not start, in a box of user32's rather than WPF's, and answers the code
+    /// the process ends with.
+    ///
+    /// <b>Not WPF, and that is the point of the box rather than a preference.</b> It is shown when the
+    /// folder WPF's native half came from could not be trusted, and constructing a WPF application is
+    /// already what loads the first library from there. The only other box in this program
+    /// (<see cref="Mishaps"/>) is WPF's, because by the time it is needed the window has been allowed
+    /// to start.
+    /// </summary>
+    internal static int Refuse(string sentence)
+    {
+        _ = PInvoke.MessageBox(
+            HWND.Null,
+            sentence,
+            Texts.Of("gui.window.title"),
+            MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+
+        return Refused;
     }
 }
