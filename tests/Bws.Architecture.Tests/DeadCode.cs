@@ -62,11 +62,21 @@ internal static class DeadCode
     ///   GetEnumerator          a foreach calls it.
     ///   GetAwaiter             an await calls it.
     ///   Deconstruct            a deconstructing assignment calls it.
+    ///   Main                   the runtime calls a program's entry point - and names the type holding it,
+    ///                          which DeadCodeScan.MentionEntryPoints records. Needed from 2026-10-06, when
+    ///                          the window got a Main of its own (security report S-1). Until then WPF
+    ///                          wrote it into obj, and the terminal's is top-level statements, which are
+    ///                          mentions outside any definition and so roots already.
     /// </summary>
     internal static readonly HashSet<string> CalledByContract = new(StringComparer.Ordinal)
     {
         "Convert", "ConvertBack", "GetErrors", "HasErrors", "Dispose", "DisposeAsync", "GetEnumerator", "GetAwaiter", "Deconstruct",
+        "Main",
     };
+
+    /// <summary>A static method called Main - what the runtime starts a program from.</summary>
+    internal static bool IsEntryPoint(MethodDeclarationSyntax method) =>
+        method.Identifier.ValueText == "Main" && method.Modifiers.Any(SyntaxKind.StaticKeyword);
 
     /// <summary>
     /// The pure half: life spreads from the roots to a fixed point, and whatever it never reaches is
@@ -178,6 +188,7 @@ internal sealed class DeadCodeScan
         var shipped = product.ToList();
         shipped.ForEach(file => scan.Define(file.File, file.Root));
         shipped.ForEach(file => scan.Mention(file.Root, fromTests: false));
+        shipped.ForEach(file => scan.MentionEntryPoints(file.Root));
         foreach (var root in tests)
         {
             scan.Mention(root, fromTests: true);
@@ -238,6 +249,23 @@ internal sealed class DeadCodeScan
             {
                 Add(name.Identifier.ValueText + "Attribute", site);
             }
+        }
+    }
+
+    /// <summary>
+    /// The runtime names the type holding a program's entry point, and nothing in the source does - so
+    /// that type is mentioned from a root here, and what Main calls is alive through it.
+    /// </summary>
+    private void MentionEntryPoints(SyntaxNode root)
+    {
+        var holders = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Where(DeadCode.IsEntryPoint)
+            .Select(method => method.Parent)
+            .OfType<BaseTypeDeclarationSyntax>();
+
+        foreach (var holder in holders)
+        {
+            Add(holder.Identifier.ValueText, DeadCode.Root);
         }
     }
 
