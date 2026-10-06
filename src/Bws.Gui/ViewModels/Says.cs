@@ -270,6 +270,15 @@ public sealed class Says : Observable
     internal bool Elevated { get; init; } = Session.IsElevated();
 
     /// <summary>
+    /// The .NET settings in this process's environment that can load code into the window or make
+    /// it write files - security report S-2, said only when <see cref="Elevated"/> is, by
+    /// <see cref="Sentences.Rights"/>. Read once for the reason Elevated is: the environment of a
+    /// running process is fixed at its start. Settable so a test can hand it a list without
+    /// changing the environment of the process every other test runs in.
+    /// </summary>
+    internal IReadOnlyList<string> RuntimeSettings { get; init; } = Session.RuntimeSettingsFromEnvironment(extractsNatives: true);
+
+    /// <summary>
     /// The same fact the other way round, because markup can only ask for what is public and can
     /// only test for a value it is given.
     ///
@@ -304,7 +313,8 @@ public sealed class Says : Observable
         _partial = answer.Unreadable > 0 || answer.TooCostly > 0;
 
         Admit(Sentences.Admissions(
-            needs, held, answer.Unreadable, answer.TooCostly, Elevated, have, filling, folded, listOnScreen));
+            needs, held, answer.Unreadable, answer.TooCostly, Sentences.Rights(Elevated, RuntimeSettings),
+            have, filling, folded, listOnScreen));
     }
 
     /// <summary>

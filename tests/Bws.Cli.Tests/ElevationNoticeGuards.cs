@@ -65,4 +65,25 @@ public sealed class ElevationNoticeGuards
     [Fact]
     public void The_one_command_that_says_it_better_is_left_to_say_it() =>
         Assert.False(Execution.AdmitsNotElevated(elevated: false, CommandKind.SnapshotCreate));
+
+    /// <summary>
+    /// Security report S-2: with administrator rights, the .NET settings in the environment that
+    /// can load code into the process are named on the error channel, each one.
+    /// </summary>
+    [Fact]
+    public void An_elevated_session_names_the_runtime_settings_it_carries() =>
+        Assert.Equal(
+            Texts.Of("cli.warning.runtimeSettings", "CORECLR_ENABLE_PROFILING, DOTNET_EnableEventPipe"),
+            Execution.RuntimeSettingsWarning(elevated: true, ["CORECLR_ENABLE_PROFILING", "DOTNET_EnableEventPipe"]));
+
+    /// <summary>
+    /// The even claims: nothing to name is nothing said, and without rights nothing is said either -
+    /// the settings reach no further than the account that set them.
+    /// </summary>
+    [Fact]
+    public void Nothing_is_said_without_rights_or_without_settings()
+    {
+        Assert.Null(Execution.RuntimeSettingsWarning(elevated: true, []));
+        Assert.Null(Execution.RuntimeSettingsWarning(elevated: false, ["CORECLR_ENABLE_PROFILING"]));
+    }
 }

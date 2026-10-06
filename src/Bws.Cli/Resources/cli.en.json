@@ -292,6 +292,7 @@
   "cli.query.badSize": "{1} expects a size with a unit, like 500MB, >1GB, <100MB or 100MB-1GB. It got: {0}",
 
   "cli.warning.notElevated": "This session does not have administrator rights. The manager lists fewer entries for such a session and refuses more of what it does list, so this is not the whole machine - and nothing here can say what is missing from it.",
+  "cli.warning.runtimeSettings": "This session has administrator rights, and its environment sets .NET options that can load code into this process or make it write files: {0}. If you did not set them yourself, find out where they came from before going on.",
   "cli.warning.configurationRefused.many": "Configuration was refused for {0} of {1} entries. Run elevated to read them.",
   "cli.warning.configurationRefused.one": "Configuration was refused for {0} of {1} entries. Run elevated to read it.",
   "cli.warning.delayRefused.many": "The delayed start setting was refused for {0} entries, so they are shown without it.",

@@ -153,6 +153,33 @@ internal static class Execution
         !elevated && kind != CommandKind.SnapshotCreate;
 
     /// <summary>
+    /// Says on the error channel which .NET settings in the environment can load code into this
+    /// process or make it write files, when it runs with administrator rights - security report S-2.
+    /// Nothing is said otherwise, and the exit code is never touched: this is an admission, not a
+    /// refusal, by the owner's decision of 2026-10-06.
+    /// </summary>
+    internal static void AdmitRuntimeSettings()
+    {
+        if (RuntimeSettingsWarning(Session.IsElevated(), Session.RuntimeSettingsFromEnvironment(extractsNatives: false)) is { } warning)
+        {
+            Console.Error.WriteLine(warning);
+        }
+    }
+
+    /// <summary>
+    /// The sentence <see cref="AdmitRuntimeSettings"/> prints, or null when there is nothing to say.
+    ///
+    /// <b>Only with administrator rights.</b> Without them the same settings reach no further than
+    /// the account that set them already reaches, and a line on every command of an ordinary session
+    /// would teach people to skip the one that matters. Split from the printing for the reason
+    /// <see cref="AdmitsNotElevated"/> gives: a guard has to be able to hand it both answers.
+    /// </summary>
+    internal static string? RuntimeSettingsWarning(bool elevated, IReadOnlyList<string> set) =>
+        elevated && set.Count > 0
+            ? Texts.Of("cli.warning.runtimeSettings", string.Join(", ", set))
+            : null;
+
+    /// <summary>
     /// Everything the run has to admit to, on the error channel, with the exit code left
     /// alone. A partial answer is not a failure, and reporting it as one would make scripts
     /// treat an ordinary lack of permissions as a broken tool. Staying quiet about it is the

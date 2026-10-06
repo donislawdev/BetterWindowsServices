@@ -25,7 +25,7 @@ public sealed class AnswerLineTests
     {
         var admitted = Sentences.Admissions(
             needs: Bws.Core.Querying.ExtraRead.Memory, held: true, unreadable: 0, tooCostly: 0,
-            elevated: false, have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 1,
+            rights: Sentences.Rights(elevated: false, settings: []), have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 1,
             listOnScreen: true);
 
         var rights = Texts.Of("gui.status.notElevated");
@@ -48,7 +48,7 @@ public sealed class AnswerLineTests
     {
         var admitted = Sentences.Admissions(
             needs: Bws.Core.Querying.ExtraRead.None, held: false, unreadable: 0, tooCostly: 0,
-            elevated: false, have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 0,
+            rights: Sentences.Rights(elevated: false, settings: []), have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 0,
             listOnScreen: true);
 
         Assert.Equal(Texts.Of("gui.status.notElevated"), admitted.RightsPiece);

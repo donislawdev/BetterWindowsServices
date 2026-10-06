@@ -366,6 +366,17 @@ A tool that quietly fails to cover something is worse than one that says what it
   follow that setting.
 - **Certificate revocation is not checked.** It would need to reach the network, and this tool
   never does.
+- **The window unpacks part of the Windows user interface framework before it starts.** As one
+  file it carries a few native libraries that Windows can only load from disk, and on the first
+  start of each version it writes them to a `.net` folder under the temporary folder Windows gives
+  the account running it. An elevated window loads them from there. On a machine where people you
+  do not trust can write to that folder, set `DOTNET_BUNDLE_EXTRACT_BASE_DIR` to a folder only
+  administrators can write to before running the window elevated. The command line carries no such
+  libraries and unpacks nothing.
+- **An elevated session names the .NET settings it inherits rather than refusing them.** A
+  profiler, a trace or dump switch, or a diagnostic port set in the environment cannot be switched
+  off from inside a .NET program, so with administrator rights both halves list any they find.
+  Startup hooks are switched off outright.
 
 **Things Windows does that this tool reports as they are:**
 
