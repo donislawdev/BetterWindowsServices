@@ -26,6 +26,12 @@ internal readonly record struct Narrowed
 
     /// <summary>How many the expression ran out of time on, so they were never judged at all.</summary>
     public required int TooCostly { get; init; }
+
+    /// <summary>
+    /// How many rows were judged on a publisher their signature does not vouch for - read, and
+    /// not believed. Since 2026-10-06, security report S-6.
+    /// </summary>
+    public required int Unvouched { get; init; }
 }
 
 internal static class Narrowing
@@ -48,6 +54,7 @@ internal static class Narrowing
         var selected = new List<EntryRow>(everything.Count);
         var unreadable = 0;
         var tooCostly = 0;
+        var unvouched = 0;
 
         foreach (var row in everything)
         {
@@ -67,8 +74,13 @@ internal static class Narrowing
             {
                 tooCostly++;
             }
+
+            if (match.Unvouched)
+            {
+                unvouched++;
+            }
         }
 
-        return new Narrowed { Selected = selected, Unreadable = unreadable, TooCostly = tooCostly };
+        return new Narrowed { Selected = selected, Unreadable = unreadable, TooCostly = tooCostly, Unvouched = unvouched };
     }
 }

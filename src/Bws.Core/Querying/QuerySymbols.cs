@@ -157,6 +157,19 @@ internal static class QuerySymbols
             : ReadOutcome.Present;
 
     /// <summary>
+    /// Whether there is a publisher name and the signature beside it does not vouch for it.
+    ///
+    /// <b>A name, not merely a verdict other than trusted.</b> An unsigned file has no publisher,
+    /// so <c>publisher:microsoft</c> on it is a certain no - nobody signed it, so Microsoft did
+    /// not. Making that unsure as well would put every unsigned file on the machine into the
+    /// admission and teach people to ignore it.
+    /// </summary>
+    internal static bool PublisherUnvouched(ScmEntry entry) =>
+        entry.Signature.IsPresent
+        && entry.Signature.Value!.Publisher is not null
+        && !entry.Signature.Value.VouchesForPublisher;
+
+    /// <summary>
     /// Whether the file the entry runs is on disk.
     ///
     /// An entry naming no file at all reports neither symbol and is not incomplete: there

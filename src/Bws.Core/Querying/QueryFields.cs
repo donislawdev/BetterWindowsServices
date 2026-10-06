@@ -277,7 +277,8 @@ public static class QueryFields
             Kind = QueryFieldKind.Text,
             Needs = ExtraRead.Signatures,
             OutcomeOf = QuerySymbols.PublisherOutcome,
-            TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null
+            TextOf = entry => entry.Signature.IsPresent ? entry.Signature.Value!.Publisher : null,
+            Unvouched = QuerySymbols.PublisherUnvouched
         },
 
         new QueryField

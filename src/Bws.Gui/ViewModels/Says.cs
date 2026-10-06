@@ -310,10 +310,12 @@ public sealed class Says : Observable
     {
         // An entry the expression ran out of time on was never checked either, and the line under
         // the box says so - the review of PR #11 found the middle still saying "nothing matches".
-        _partial = answer.Unreadable > 0 || answer.TooCostly > 0;
+        // A publisher nobody vouches for was not checked in the sense that matters, so it counts
+        // too: "Nothing that could be checked" is the true sentence over it (security report S-6).
+        _partial = answer.Unreadable > 0 || answer.TooCostly > 0 || answer.Unvouched > 0;
 
         Admit(Sentences.Admissions(
-            needs, held, answer.Unreadable, answer.TooCostly, Sentences.Rights(Elevated, RuntimeSettings),
+            needs, held, answer, Sentences.Rights(Elevated, RuntimeSettings),
             have, filling, folded, listOnScreen));
     }
 

@@ -176,6 +176,10 @@ internal static class EntryReport
     /// A signature that was read and names nobody is absent here rather than present and empty -
     /// an unsigned file has no publisher, and printing a blank beside the word would be the empty
     /// cell this tool spends its rules avoiding.
+    ///
+    /// A name the signature does not vouch for carries "(not verified)", the window's words for
+    /// the same thing - on its own line it would otherwise read as a fact two lines below
+    /// "Tampered" (security report S-6, 2026-10-06). The JSON keeps the bare name.
     /// </summary>
     private static Told Publisher(ScmEntry entry)
     {
@@ -188,9 +192,14 @@ internal static class EntryReport
 
         var publisher = signature.Value!.Publisher;
 
-        return string.IsNullOrEmpty(publisher)
-            ? new Told(ReadOutcome.Absent, string.Empty, 0)
-            : new Told(ReadOutcome.Present, publisher, 0);
+        if (string.IsNullOrEmpty(publisher))
+        {
+            return new Told(ReadOutcome.Absent, string.Empty, 0);
+        }
+
+        return signature.Value.VouchesForPublisher
+            ? new Told(ReadOutcome.Present, publisher, 0)
+            : new Told(ReadOutcome.Present, Texts.Of("cli.show.publisherNotVerified", publisher), 0);
     }
 
     private static string YesOrNo(bool value) => Texts.Of(value ? "cli.show.yes" : "cli.show.no");

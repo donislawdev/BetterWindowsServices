@@ -63,4 +63,23 @@ public enum SignatureStatus
 /// as well when the file is signed but the signer could not be read back - those two are
 /// told apart by <see cref="Status"/>.
 /// </param>
-public sealed record BinarySignature(SignatureStatus Status, int ResultCode, string? Publisher);
+public sealed record BinarySignature(SignatureStatus Status, int ResultCode, string? Publisher)
+{
+    /// <summary>
+    /// Whether the verdict vouches for <see cref="Publisher"/> - which only a trusted one does.
+    ///
+    /// <b>The name is read back without walking the chain</b> (WindowsBinaryInspector.Publisher.cs
+    /// says so and says why), so beside any other verdict it is only what the certificate claims.
+    /// A Microsoft file changed after it was signed keeps a real Microsoft certificate and a
+    /// hash that no longer matches, and the name on it is still "Microsoft Windows". Until
+    /// 2026-10-06 nothing told the two apart, so <c>!publisher:microsoft</c> - the audit question
+    /// the field exists for - left out the one file that answer was most needed for (security
+    /// report S-6).
+    ///
+    /// <b>One rule in one place</b>, read by the query, the window and the command line, because
+    /// three copies of "trusted means vouched for" would drift the first time a verdict is added.
+    /// Revoked is not trusted either, though it cannot arrive while revocation stays unchecked.
+    /// The name itself is untouched - a snapshot still carries it, owner's decision the same day.
+    /// </summary>
+    public bool VouchesForPublisher => Status == SignatureStatus.Trusted;
+}

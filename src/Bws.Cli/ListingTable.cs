@@ -136,6 +136,11 @@ internal static class ListingTable
     ///
     /// An unsigned file shows the status alone. There is no publisher to put in brackets
     /// and an empty pair of them would read as a name nobody could work out.
+    ///
+    /// A name the signature does not vouch for says so inside the brackets, although the
+    /// verdict stands right beside it - "Tampered (Microsoft Windows)" reads as a Microsoft
+    /// file, and one rule for every place a name appears is simpler than an exception for the
+    /// one cell where the verdict happens to be near (security report S-6, 2026-10-06).
     /// </summary>
     private static string SignatureCell(ScmEntry entry)
     {
@@ -157,9 +162,9 @@ internal static class ListingTable
         // ListingJson is where that is asserted.
         var status = SignatureWords.Of(signature.Status);
 
-        return signature.Publisher is null
-            ? status
-            : Texts.Of("cli.cell.signedBy", status, signature.Publisher);
+        return signature.Publisher is null ? status
+            : signature.VouchesForPublisher ? Texts.Of("cli.cell.signedBy", status, signature.Publisher)
+            : Texts.Of("cli.cell.signedByNotVerified", status, signature.Publisher);
     }
 
     /// <summary>

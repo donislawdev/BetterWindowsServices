@@ -235,29 +235,62 @@ internal static class Execution
                 : Texts.Of("cli.warning.delayRefused.many", delayUnknown));
         }
 
-        if (result is not null && result.Unreadable > 0)
+        if (result is not null)
         {
-            // The query asked about something that could not be read on some entries. They
-            // were judged anyway, because a filter has to decide, so the result is an answer
-            // built partly on what we failed to find out and has to say so.
-            Console.Error.WriteLine(result.Unreadable == 1
-                ? Texts.Of("cli.warning.queryIncomplete.one", result.Unreadable)
-                : Texts.Of("cli.warning.queryIncomplete.many", result.Unreadable));
-        }
-
-        if (result is not null && result.TooCostly > 0)
-        {
-            // An expression that ran out of time never answered. Showing the shorter list
-            // without a word would be the silent absence of results the language forbids.
-            Console.Error.WriteLine(result.TooCostly == 1
-                ? Texts.Of("cli.warning.queryTooCostly.one", result.TooCostly)
-                : Texts.Of("cli.warning.queryTooCostly.many", result.TooCostly));
+            foreach (var admission in QueryAdmissions(result))
+            {
+                Console.Error.WriteLine(admission);
+            }
         }
 
         if (options.Timing)
         {
             Timing(entries, result, spent);
         }
+    }
+
+    /// <summary>
+    /// What a query has to say about its own answer, one sentence per reservation, in the order
+    /// they are printed.
+    ///
+    /// <b>Its own method since 2026-10-06</b>, when security report S-6 brought a third reservation
+    /// and Report stood too near the length ceiling to take it. Returning the sentences rather than
+    /// printing them is also what lets a test ask - until that day nothing held these lines at all,
+    /// because they went straight to the error channel.
+    /// </summary>
+    internal static IReadOnlyList<string> QueryAdmissions(QueryResult result)
+    {
+        var admissions = new List<string>();
+
+        if (result.Unreadable > 0)
+        {
+            // The query asked about something that could not be read on some entries. They
+            // were judged anyway, because a filter has to decide, so the result is an answer
+            // built partly on what we failed to find out and has to say so.
+            admissions.Add(result.Unreadable == 1
+                ? Texts.Of("cli.warning.queryIncomplete.one", result.Unreadable)
+                : Texts.Of("cli.warning.queryIncomplete.many", result.Unreadable));
+        }
+
+        if (result.Unvouched > 0)
+        {
+            // Read, and not believed: a publisher the signature does not vouch for. Its own line,
+            // because "could not be read" would send somebody after rights that change nothing.
+            admissions.Add(result.Unvouched == 1
+                ? Texts.Of("cli.warning.queryUnvouched.one", result.Unvouched)
+                : Texts.Of("cli.warning.queryUnvouched.many", result.Unvouched));
+        }
+
+        if (result.TooCostly > 0)
+        {
+            // An expression that ran out of time never answered. Showing the shorter list
+            // without a word would be the silent absence of results the language forbids.
+            admissions.Add(result.TooCostly == 1
+                ? Texts.Of("cli.warning.queryTooCostly.one", result.TooCostly)
+                : Texts.Of("cli.warning.queryTooCostly.many", result.TooCostly));
+        }
+
+        return admissions;
     }
 
     /// <summary>

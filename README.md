@@ -308,8 +308,8 @@ display name, the account and the launch path. A field narrows it:
 | `type` | kind of entry | `driver`, `ownProcess`, `sharedProcess` |
 | `account` | the account it runs as, as the manager spells it | text, e.g. `localsystem` |
 | `file` | whether the file it runs is on disk | `present`, `missing` |
-| `signed` | what Windows thinks of the file's signature | `yes`, `no`, `trusted`, `notSigned`, `expired`, `revoked`, `tampered` |
-| `publisher` | who signed the file | text |
+| `signed` | what Windows thinks of the file's signature, without checking revocation | `yes`, `no`, `trusted`, `notSigned`, `expired`, `revoked`, `tampered` |
+| `publisher` | who signed the file - proven only by a `trusted` signature | text |
 | `mismatch` | configuration and state that disagree | `stopped` (should run, does not), `running` (disabled, runs anyway) |
 | `trigger` | starts on a condition | `network`, `device`, `ip`, `domain`, `firewall`, `policy`, and the actions `start`, `stop` |
 | `peruser` | per-user service family | `yes`, `no`, `template`, `instance` |
@@ -325,6 +325,12 @@ written twice means either, the way two ticked filters do - except two bounds on
 narrow: `pid:>1000 pid:<2000`. Every field accepts `none`, `any` and `?` - the last one finds the
 entries where the tool could not read that field, or has not read it, which is a question
 `services.msc` cannot even ask.
+
+A publisher is only proven by a trusted signature. Beside any other verdict the name is what the
+certificate claims - a Microsoft file changed after it was signed still carries a Microsoft
+certificate - so the window and `bws` show it as *(not verified)*, and `publisher:` counts such an
+entry as unsure rather than matching it or leaving it out: `!publisher:microsoft` keeps the changed
+file and says so.
 
 A mistyped value is an error with the nearest valid value suggested, never an empty result that
 looks like an answer. And a query that would narrow nothing is refused on the command line, so a
@@ -365,7 +371,8 @@ A tool that quietly fails to cover something is worse than one that says what it
   theme. Checked rather than assumed: it keeps its own colours and stays readable, and it does not
   follow that setting.
 - **Certificate revocation is not checked.** It would need to reach the network, and this tool
-  never does.
+  never does. So *Trusted* means the chain was valid on this machine, not that nobody revoked the
+  certificate since.
 - **The window unpacks part of the Windows user interface framework before it starts.** As one
   file it carries a few native libraries that Windows can only load from disk, and on the first
   start of each version it writes them to a `.net` folder under the temporary folder Windows gives

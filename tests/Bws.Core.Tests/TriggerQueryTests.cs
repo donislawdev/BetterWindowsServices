@@ -65,8 +65,8 @@ public sealed class TriggerQueryTests
         var match = QueryParser.Parse(query).Query!.Match(Specimens.TriggersNotRead);
         var excluded = QueryParser.Parse("!" + query).Query!.Match(Specimens.TriggersNotRead);
 
-        Assert.Equal(new QueryMatch(Matched: false, Unreadable: true, TooCostly: false), match);
-        Assert.Equal(new QueryMatch(Matched: true, Unreadable: true, TooCostly: false), excluded);
+        Assert.Equal(new QueryMatch(Matched: false, Unreadable: true, TooCostly: false, Unvouched: false), match);
+        Assert.Equal(new QueryMatch(Matched: true, Unreadable: true, TooCostly: false, Unvouched: false), excluded);
     }
 
     [Fact]
