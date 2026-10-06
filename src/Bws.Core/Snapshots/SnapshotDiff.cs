@@ -119,12 +119,6 @@ public sealed record SnapshotDiff(
     private const string State = "status";
 
     /// <summary>
-    /// The two fields a person reads in their own language, left out of every entry when the two
-    /// managers name things in different languages (<see cref="ComparisonCaveats.LanguageDiffers"/>).
-    /// </summary>
-    private static readonly string[] Translated = ["description", "displayName"];
-
-    /// <summary>
     /// Whether the machine drifted: an entry added or removed, or one set up differently.
     ///
     /// <b>CONFIGURATION ONLY SINCE 2026-09-30 - stability report D-2, owner's decision, a change of
@@ -228,7 +222,7 @@ public sealed record SnapshotDiff(
         var elevationDiffers = caveats.ElevationDiffers;
 
         // Not looked at on any entry, rather than named against each - the caveat says it once.
-        var ignored = caveats.LanguageDiffers ? Translated : [];
+        var ignored = caveats.FieldsNotCompared();
 
         var earlier = Kept(before.Entries, out var leftOutEarlier);
         var later = Kept(after.Entries, out var leftOutLater);

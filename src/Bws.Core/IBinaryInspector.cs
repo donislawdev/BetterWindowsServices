@@ -17,42 +17,39 @@ namespace Bws.Core;
 public interface IBinaryInspector
 {
     /// <summary>
-    /// Who signed the file and whether the system trusts it.
+    /// The signature, the version and the hash of one file, from ONE opening of it.
     ///
-    /// Absent when the path names nothing on disk, denied when it is there and cannot be
-    /// opened. Those are different facts and the caller must be able to tell them apart:
-    /// the first is about the machine, the second is about our permissions.
+    /// <b>One question rather than three, since 2026-10-06 - package SB, security report S-5.</b>
+    /// Three questions were three openings, and a file replaced between two of them came back with
+    /// the verdict of one file beside the hash of another. See <see cref="FileInspection"/>.
+    ///
+    /// <list type="bullet">
+    /// <item><b>Signature</b> - who signed the file and whether the system trusts it.</item>
+    /// <item><b>Version</b> - the version the file claims for itself. Absent for a file with no
+    /// version resource, which is ordinary rather than broken - plenty of drivers ship without one.</item>
+    /// <item><b>Hash</b> - SHA-256, lower case hexadecimal. What a snapshot compares when it wants to
+    /// know whether the file itself changed. The signature answers a different question - who vouched
+    /// for it - and a binary replaced by another one from the same publisher passes that unchanged.</item>
+    /// </list>
+    ///
+    /// Absent when the path names nothing on disk, denied when it is there and cannot be opened, not
+    /// read when nobody may look (another machine, or a path that is not a file on a disk). Those are
+    /// different facts and the caller must be able to tell them apart: the first is about the machine,
+    /// the second about our permissions, the third about what we chose not to touch.
     /// </summary>
-    Reading<BinarySignature> ReadSignature(string file);
-
-    /// <summary>
-    /// The version the file claims for itself, from its own version resource.
-    ///
-    /// Absent for a file carrying no version resource at all, which is ordinary rather than
-    /// broken - plenty of drivers ship without one.
-    /// </summary>
-    Reading<string> ReadFileVersion(string file);
-
-    /// <summary>
-    /// SHA-256 of the file, lower case hexadecimal.
-    ///
-    /// What a snapshot compares when it wants to know whether the file itself changed. The
-    /// signature answers a different question - who vouched for it - and a binary replaced
-    /// by another one from the same publisher passes that check unchanged.
-    ///
-    /// Absent when the path names nothing on disk, denied when it is there and unreadable.
-    /// </summary>
-    Reading<string> ReadHash(string file);
+    FileInspection Inspect(string file);
 
     /// <summary>
     /// The inspector ONE pass of the second phase asks through - backlog 468, 2026-09-29.
     ///
     /// <b>Whatever an inspector remembers between files lives as long as one pass and no longer.</b>
-    /// The Windows one keeps the publisher of every catalogue it has opened, and the window holds
-    /// one inspector for its whole life - so a catalogue replaced under the same name went on
-    /// showing its old publisher until the window closed, F5 or no F5. Since the same day F5 is
-    /// promised to verify everything again (`ADR-13`, the owner's S-1 decision), which a memory
-    /// older than the F5 would quietly break.
+    /// The Windows one kept the publisher of every catalogue it had opened until 2026-10-06, and the
+    /// window holds one inspector for its whole life - so a catalogue replaced under the same name
+    /// went on showing its old publisher until the window closed, F5 or no F5. Since the same day F5
+    /// is promised to verify everything again (`ADR-13`, the owner's S-1 decision), which a memory
+    /// older than the F5 would quietly break. Since package SB the publisher comes out of each
+    /// verification's own state and the Windows inspector remembers nothing - the seam stays, because
+    /// the promise it keeps does not depend on which memory a later version adds.
     ///
     /// <b>This rather than the caller clearing the memory</b>, because a pass is several threads
     /// asking at once and the details panel can ask about one entry while a pass is out. A fresh

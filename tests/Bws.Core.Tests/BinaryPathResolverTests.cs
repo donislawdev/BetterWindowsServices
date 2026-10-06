@@ -321,9 +321,11 @@ public sealed class BinaryPathResolverTests
         var inspector = new WindowsBinaryInspector();
         const string onAShare = @"\\bws-test-no-such-host\share\agent.exe";
 
-        Assert.Equal(ReadOutcome.NotRead, inspector.ReadSignature(onAShare).Outcome);
-        Assert.Equal(ReadOutcome.NotRead, inspector.ReadFileVersion(onAShare).Outcome);
-        Assert.Equal(ReadOutcome.NotRead, inspector.ReadHash(onAShare).Outcome);
+        var inspection = inspector.Inspect(onAShare);
+
+        Assert.Equal(ReadOutcome.NotRead, inspection.Signature.Outcome);
+        Assert.Equal(ReadOutcome.NotRead, inspection.Version.Outcome);
+        Assert.Equal(ReadOutcome.NotRead, inspection.Hash.Outcome);
     }
 
     private static BinaryPathResolver.ResolvedBinary Resolve(

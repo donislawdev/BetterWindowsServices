@@ -33,6 +33,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Golden\snapshot-schema-4.json" LogicalName="snapshot-schema-4.json" />
     <EmbeddedResource Include="Golden\snapshot-schema-5.json" LogicalName="snapshot-schema-5.json" />
+    <EmbeddedResource Include="Golden\snapshot-schema-6.json" LogicalName="snapshot-schema-6.json" />
   </ItemGroup>
 
   <ItemGroup>

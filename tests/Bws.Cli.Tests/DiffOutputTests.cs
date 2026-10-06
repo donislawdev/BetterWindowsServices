@@ -57,7 +57,7 @@ public sealed class DiffOutputTests
     {
         var diff = Of(changed: []) with
         {
-            Caveats = new ComparisonCaveats(false, false, false, false, true, true, ["operatingSystemVersion", "namesLanguage"])
+            Caveats = new ComparisonCaveats(false, false, false, false, true, true, false, ["operatingSystemVersion", "namesLanguage"])
         };
 
         var text = DiffText.Render(diff);
@@ -75,10 +75,27 @@ public sealed class DiffOutputTests
             caveats.GetProperty("notKnown").EnumerateArray().Select(name => name.GetString()));
     }
 
+    [Fact]
+    public void The_caveat_of_schema_six_is_said_and_written_last()
+    {
+        var diff = Of(changed: []) with
+        {
+            Caveats = new ComparisonCaveats(false, false, false, false, false, false, true, [])
+        };
+
+        Assert.Contains(Texts.Of("cli.diff.caveat.fileVersion"), DiffText.Render(diff), StringComparison.Ordinal);
+
+        // Last, so a script reading the document by position before 2026-10-06 still finds what it found.
+        var caveats = Document(diff).GetProperty("caveats");
+
+        Assert.True(caveats.GetProperty("fileVersionSourceDiffers").GetBoolean());
+        Assert.Equal("fileVersionSourceDiffers", caveats.EnumerateObject().Last().Name);
+    }
+
     private static SnapshotDiff Of(IReadOnlyList<ChangedEntry> changed, InstancesLeftOut? leftOut = null) =>
         new(
             [], [], changed, [], [], [],
-            new ComparisonCaveats(false, false, false, false, false, false, []),
+            new ComparisonCaveats(false, false, false, false, false, false, false, []),
             leftOut ?? new InstancesLeftOut(0, 0));
 
     private static ChangedEntry Changed(DifferenceGroup group) =>

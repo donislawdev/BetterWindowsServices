@@ -117,7 +117,11 @@ public sealed class SnapshotContractTests : IDisposable
         // FIVE SINCE 2026-09-30, stability report D-5: the Windows version down to the monthly update
         // and the language the manager names things in joined the metadata. The first bump that kept
         // reading the version before it - a four still compares, with both fields "not known".
-        Assert.Equal(5, metadata.GetProperty("schemaVersion").GetInt32());
+        //
+        // SIX SINCE 2026-10-06, package SB: nothing in the shape changed, the source of fileVersion did -
+        // the file's own resource instead of a language file beside it. A five against a six does not
+        // compare file versions and says so once, which is the whole reason the number moved.
+        Assert.Equal(6, metadata.GetProperty("schemaVersion").GetInt32());
         Assert.StartsWith(
             $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}.{Environment.OSVersion.Version.Build}.",
             metadata.GetProperty("operatingSystemVersion").GetString()!,

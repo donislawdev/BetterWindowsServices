@@ -31,8 +31,8 @@ public sealed class TamperedSignatureTests : IDisposable
         var source = typeof(object).Assembly.Location;
         var inspector = new WindowsBinaryInspector();
 
-        var before = inspector.ReadSignature(Copied(source, "unchanged.dll", change: false));
-        var after = inspector.ReadSignature(Copied(source, "changed.dll", change: true));
+        var before = inspector.Inspect(Copied(source, "unchanged.dll", change: false)).Signature;
+        var after = inspector.Inspect(Copied(source, "changed.dll", change: true)).Signature;
 
         // The canary. Unless the untouched copy comes back trusted, whatever the changed one says is
         // about the specimen rather than about the change.

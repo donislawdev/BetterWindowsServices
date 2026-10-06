@@ -50,7 +50,7 @@ public sealed class NativeCallGuards
         ["WinVerifyTrust"] =
             "The SECOND of two calls, the one carrying WTD_STATEACTION_CLOSE. The verdict came " +
             "from the first, whose result IS read, and this one exists to let go of the state " +
-            "that call left behind. Both are in Ask, four lines apart."
+            "that call left behind. Both are in Ask, the second in its finally."
     };
 
     [Fact]

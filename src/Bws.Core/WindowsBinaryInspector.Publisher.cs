@@ -1,85 +1,81 @@
-using System.Security.Cryptography.X509Certificates;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace Bws.Core;
 
 /// <summary>
-/// Who signed a file, read back out of the certificate.
+/// Who signed a file, read back out of the verification that just ran.
 ///
 /// <b>Split out of WindowsBinaryInspector.cs on 2026-09-02 because the size ratchet said so, and
 /// the seam is a subject rather than a line count.</b> Everything left in that file answers
 /// WHETHER a file is trusted, which is a question for WinTrust and comes back as a verdict. This
-/// answers WHO signed it, which is a question for the certificate store and comes back as a name.
-/// The two share a file only because they are usually asked together.
+/// answers WHO signed it, which comes back as a name. The two share a type only because they are
+/// asked together.
 ///
-/// <b>Partial rather than a new type, so no caller moved</b> - the cache of publishers is a field
-/// of the inspector and reaching it from another type would have meant handing it around.
+/// <b>OUT OF THE VERIFICATION STATE SINCE 2026-10-06 - package SB, the owner's decision that day.</b>
+/// Until then the standard library read the certificate out of the file by its path, which was a
+/// SECOND OPENING - the name could come from a different file than the verdict beside it - and for a
+/// catalogue-signed file it opened the catalogue again, behind a cache of catalogue publishers that
+/// had to be kept from going stale between passes (backlog 468). The call doing it,
+/// <c>X509Certificate.CreateFromSignedFile</c>, is obsolete since .NET 9 (SYSLIB0057). The state is
+/// the very signature WinTrust verified, for an embedded signature and a catalogue alike. Measured
+/// that day with tools/security-probe/one-handle.ps1: the name is there for Trusted AND for Tampered,
+/// the same name the old call gave.
 /// </summary>
 public sealed partial class WindowsBinaryInspector
 {
     /// <summary>
-    /// Who signed the catalogue, read back from the catalogue file.
+    /// The simple display name of the first signer's certificate, or null when the state holds none.
     ///
-    /// <b>The only thing that is remembered, and until 2026-08-03 every file was.</b> The two
-    /// callers are not alike, which is the whole of this split. A binary carrying its own
-    /// signature is asked about exactly once per run - the second pass fixes the set of distinct
-    /// files before it asks anything - so remembering the answer saves nothing and only creates a
-    /// way for it to go stale. Catalogues are shared between many binaries, so remembering those
-    /// is the case the cache was written for.
+    /// <b>Read through the fields of the provider data rather than through
+    /// WTHelperGetProvSignerFromChain, and that is a choice with a reason.</b> The generator hands the
+    /// provider data back in one shape and that helper wants it in another - the two differ only in a
+    /// union holding one pointer, but crossing between them is a cast nobody should have to trust.
+    /// The helper's whole work for the first signer is to index two arrays at zero, and element zero
+    /// sits at the start of an array whatever size Windows gives its elements, so reading the fields
+    /// asks for nothing the helper would not have read itself.
     ///
-    /// <b>What the stale answer looked like</b>, in a tool whose reason to exist is noticing that
-    /// a file changed: the verdict and the hash are worked out afresh every time and the
-    /// publisher was not, so a binary replaced between two readings inside one process reported a
-    /// new hash beside the old signer. No process lives long enough for that today. The second
-    /// phase of `ADR-13` - signatures read in the background while the window stays open - is a
-    /// process that does.
-    ///
-    /// The standard library reads the certificate out of a signed file without walking the
-    /// chain, which is exactly right here: the chain was already walked by the verification
-    /// above, and its verdict is carried separately. This call only answers "whose name is
-    /// on it".
+    /// <b>Null rather than a state of its own</b>, as before: the verdict beside it already says
+    /// whether there is a signature at all, so a signature whose certificate holds no readable name is
+    /// "signed, and we could not put a name to it" rather than an invented one. CERT_NAME_SIMPLE_DISPLAY_TYPE
+    /// is what <c>X509NameType.SimpleName</c> asked for, so the names did not change with the source.
     /// </summary>
-    private string? CataloguePublisher(string catalogue) =>
-        _publishers.GetOrAdd(catalogue, ReadPublisher);
-
-    private static string? ReadPublisher(string file)
+    private static unsafe string? Signer(HANDLE state)
     {
-        try
-        {
-            // CreateFromSignedFile, not the certificate loader. The loader reads a file that
-            // IS a certificate - what is needed here is the certificate embedded inside a
-            // signed binary, which is a different question about a different kind of file.
-            //
-            // Getting that wrong is silent: the loader throws on a signed executable, the
-            // throw is caught below, and every file on the machine comes back trusted with
-            // nobody's name against it. It shipped that way for one build and an integration
-            // test caught it, which is the only thing that would have.
-            // Both handles released, and the inner one was leaking. The extractor returns a
-            // certificate holding a native context, the constructor beside it copies from that
-            // certificate rather than taking it over, and nothing was disposing the original -
-            // so every signed file left one native handle to a finaliser. Over 544 distinct
-            // files in one snapshot that is 544 of them.
-            //
-            // Found by an analyser on 2026-08-02, not by a test. No test could see it: the
-            // answers were right, the run finished, and the only symptom was handles going
-            // back later than they should have.
-#pragma warning disable SYSLIB0057
-            using var signed = X509Certificate.CreateFromSignedFile(file);
-            using var certificate = new X509Certificate2(signed);
-#pragma warning restore SYSLIB0057
+        var provider = PInvoke.WTHelperProvDataFromStateData(state);
 
-            var name = certificate.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
-
-            return string.IsNullOrWhiteSpace(name) ? null : name;
-        }
-#pragma warning disable CA1031
-        // Null rather than a state of its own, and broad for the same reason as above. The
-        // verdict beside it already says whether there is a signature at all, so a file
-        // whose certificate will not parse reads as "trusted, and we could not put a name
-        // to it" - which is what happened, rather than an invented one.
-        catch (Exception)
+        if (provider == null || provider->csSigners == 0 || provider->pasSigners == null)
         {
             return null;
         }
-#pragma warning restore CA1031
+
+        var signer = provider->pasSigners;
+
+        if (signer->csCertChain == 0 || signer->pasCertChain == null || signer->pasCertChain->pCert == null)
+        {
+            return null;
+        }
+
+        var certificate = signer->pasCertChain->pCert;
+
+        // Asked for its size first, through the return value: the count includes the terminating
+        // null, so one means an empty name.
+        var size = PInvoke.CertGetNameString(certificate, PInvoke.CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, null, default, 0);
+
+        if (size <= 1)
+        {
+            return null;
+        }
+
+        var name = new char[size];
+
+        fixed (char* text = name)
+        {
+            size = PInvoke.CertGetNameString(certificate, PInvoke.CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, null, text, (uint)name.Length);
+        }
+
+        var written = size <= 1 ? string.Empty : new string(name, 0, (int)size - 1);
+
+        return string.IsNullOrWhiteSpace(written) ? null : written;
     }
 }

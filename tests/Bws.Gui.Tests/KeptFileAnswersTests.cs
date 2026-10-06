@@ -116,16 +116,15 @@ public sealed class KeptFileAnswersTests
     {
         internal ConcurrentQueue<string> Asked { get; } = [];
 
-        public Reading<BinarySignature> ReadSignature(string file)
+        private Reading<BinarySignature> ReadSignature(string file)
         {
             Asked.Enqueue(file);
 
             return Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, 0, "Someone"));
         }
 
-        public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("1.0.0.0");
-
-        public Reading<string> ReadHash(string file) => Reading<string>.Present(new string('a', 64));
+        public FileInspection Inspect(string file) =>
+            new(ReadSignature(file), Reading<string>.Present("1.0.0.0"), Reading<string>.Present(new string('a', 64)));
     }
 
     private sealed class CountingMemory : IProcessMemoryReader

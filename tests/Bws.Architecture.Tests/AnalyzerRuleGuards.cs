@@ -91,7 +91,9 @@ public sealed class AnalyzerRuleGuards
     /// Every way the code steps around the compiler, counted by rule, measured 2026-09-23. Exact,
     /// like every number the shape guards hold: fewer means lower it, more means somebody decided
     /// to silence something and this is where that decision is written down. CA1031 went from ten
-    /// to eleven on 2026-09-24: the details panel's own reading, argued in BroadCatchGuards.
+    /// to eleven on 2026-09-24: the details panel's own reading, argued in BroadCatchGuards. It went
+    /// back to ten on 2026-10-06 (package SB), when the publisher stopped reading the file and with
+    /// it went its catch - and the one SYSLIB0057, the obsolete call that read it, went too.
     ///
     /// CA1031 - catching everything - is also held file by file in <see cref="BroadCatchGuards"/>,
     /// which says WHERE each one is allowed. This says HOW MANY, which that guard cannot: a second
@@ -99,8 +101,7 @@ public sealed class AnalyzerRuleGuards
     /// </summary>
     private static readonly Dictionary<string, int> Escapes = new(StringComparer.Ordinal)
     {
-        ["#pragma warning disable CA1031"] = 11,
-        ["#pragma warning disable SYSLIB0057"] = 1,
+        ["#pragma warning disable CA1031"] = 10,
     };
 
     /// <summary>

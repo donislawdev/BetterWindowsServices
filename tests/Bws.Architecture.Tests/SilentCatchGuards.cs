@@ -53,7 +53,6 @@ public sealed class SilentCatchGuards
         // the reason behind it does not. The key is readable by every account (an assessment, not a
         // measurement), so the branch is expected to stay unreached.
         ["src/Bws.Core/Snapshots/SystemFacts.cs"] = 1,
-        ["src/Bws.Core/WindowsBinaryInspector.Publisher.cs"] = 1,
         ["src/Bws.Gui/Elevation.cs"] = 1,
         ["src/Bws.Gui/ListColumns.cs"] = 3,
         ["src/Bws.Gui/PreferencesFile.cs"] = 2,

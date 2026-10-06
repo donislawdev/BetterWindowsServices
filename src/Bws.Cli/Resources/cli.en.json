@@ -272,6 +272,7 @@
   "cli.diff.caveat.tool": "The two snapshots were written by different versions of this tool.",
   "cli.diff.caveat.language": "The service manager names things in a different language on each side, so display names and descriptions were not compared.",
   "cli.diff.caveat.account": "The two snapshots were taken by different accounts. What one account may read, the other may be refused.",
+  "cli.diff.caveat.fileVersion": "One snapshot was written before this tool read each file's version from the file itself - older versions could take it from a language file beside it - so file versions were not compared.",
   "cli.diff.caveat.notKnown": "At least one of the snapshots does not record these - it was written before they were, or the machine would not say - so they could not be checked: {0}",
   "cli.diff.caveat.instancesLeftOut": "Per-user session copies come and go with the people signed in, so they are not compared - earlier snapshot: {0}, later snapshot: {1}.",
   "cli.diff.caveat.neitherRead": "Neither snapshot holds these fields, so no entry was compared on them: {0}",

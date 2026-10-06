@@ -39,6 +39,15 @@ is not part of this repository.
 
 ### Changed
 
+- **The file version is the one the file carries itself**, the same one Explorer shows on its
+  Details tab. It used to be read the way Windows reads it for display in the user's language, which
+  for many Windows files gave a version taken from elsewhere - on the machine this was built on,
+  127 files and 382 services, among them every service in `svchost.exe` (10.0.26100.8875 where the
+  file says 10.0.26100.8737). **Snapshot files are now schema 6** for this reason alone - nothing
+  else in them changed. A comparison between a schema 6 file and an older one does not compare file
+  versions and says so in one line, and `snapshot diff --json` carries it as
+  `"fileVersionSourceDiffers": true`, the last field of `caveats`. Older versions of the tool refuse a
+  schema 6 file by name.
 - Every `--json` document is now plain ASCII. A letter outside it is written as a six character
   escape that every JSON reader turns back into the letter, so `bws list --json > file.json` is a
   valid UTF-8 file on a console set to code page 852, where it used to hold bytes no UTF-8 reader
@@ -346,6 +355,18 @@ is not part of this repository.
 - What *Trusted* does not mean is said where the fields are described - the window's suggestions,
   the query language page and the README: revocation is not checked, so it means the chain was valid
   on this machine, not that nobody revoked the certificate since.
+- The signature, publisher, version and hash of a service's file now come from one opening of the
+  file, held so that nobody can change, rename or delete it until all four are read. They used to
+  come from up to five separate openings, so a file replaced in between could get one file's verdict
+  beside another file's hash. A file another program holds open for writing is now "not read" in all
+  three fields with the reason, where only the hash used to say so. The publisher is now the signer
+  of the signature Windows actually verified - on the machine this was built on, four drivers
+  changed from a vendor's or a test certificate's name to "Microsoft Windows Hardware Compatibility
+  Publisher", which is what `Get-AuthenticodeSignature` reports for them. Reading the signatures
+  this way is also faster - 17 to 25 percent on that machine.
+- A launch path that names a named pipe, a mailslot, a device or a `GLOBALROOT` object is never
+  opened, with `--follow-network` or without it - its signature, version and hash say "not read".
+  `--follow-network` still lets the tool read a file on a share.
 
 ## [0.3.0] - 2026-09-25
 

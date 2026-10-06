@@ -27,6 +27,14 @@ namespace Bws.Core.Snapshots;
 /// own display language was NOT measured, and two accounts on one machine are where it would show.
 /// Compared without case, because Windows compares account names that way.
 /// </param>
+/// <param name="FileVersionSourceDiffers">
+/// One side read file versions from the file itself and the other did not - schema six against an
+/// older one. File versions are then not compared on any entry, because 382 of 801 entries on the
+/// machine this was written on would differ without anybody having changed anything: until schema
+/// six the version could come from a language file beside the binary (package SB, 2026-10-06, the
+/// owner's decision). Decided by the schema number, which both files always carry, so it is never
+/// "not known".
+/// </param>
 /// <param name="NotKnown">
 /// Metadata fields at least one of the two files does not carry, so the caveat each one feeds could
 /// not be decided either way - camelCase names, as they are written in the file. A version four
@@ -40,8 +48,39 @@ public sealed record ComparisonCaveats(
     bool ToolVersionDiffers,
     bool LanguageDiffers,
     bool AccountDiffers,
+    bool FileVersionSourceDiffers,
     IReadOnlyList<string> NotKnown)
 {
+    /// <summary>
+    /// The first schema whose file versions come from the file itself - see
+    /// <see cref="Snapshot.CurrentSchemaVersion"/>, the paragraph on five to six.
+    /// </summary>
+    internal const int OwnFileVersionSince = 6;
+
+    /// <summary>
+    /// The two fields a person reads in their own language, left out of every entry when the two
+    /// managers name things in different languages (<see cref="LanguageDiffers"/>).
+    /// </summary>
+    private static readonly string[] Translated = ["description", "displayName"];
+
+    /// <summary>
+    /// The field left out of every entry when one side read file versions from the file itself and
+    /// the other did not (<see cref="FileVersionSourceDiffers"/>).
+    /// </summary>
+    private static readonly string[] VersionedDifferently = ["fileVersion"];
+
+    /// <summary>
+    /// The entry fields no comparison under these caveats looks at, said once by the caveat rather
+    /// than against each entry. <b>Here since 2026-10-06</b> rather than in SnapshotDiff, where the
+    /// first of the two lists lived: which fields a caveat takes out of the comparison is part of
+    /// what the caveat means, and the second list would have pushed that file over its size ratchet.
+    /// </summary>
+    internal string[] FieldsNotCompared() =>
+    [
+        .. LanguageDiffers ? Translated : [],
+        .. FileVersionSourceDiffers ? VersionedDifferently : []
+    ];
+
     /// <summary>The field name of <see cref="SnapshotMetadata.OperatingSystemVersion"/> in the file.</summary>
     internal const string VersionField = "operatingSystemVersion";
 
@@ -78,6 +117,7 @@ public sealed record ComparisonCaveats(
             !string.Equals(before.Tool, after.Tool, StringComparison.Ordinal),
             Disagree(before.NamesLanguage, after.NamesLanguage, StringComparison.OrdinalIgnoreCase),
             !string.Equals(before.TakenBy, after.TakenBy, StringComparison.OrdinalIgnoreCase),
+            (before.SchemaVersion >= OwnFileVersionSince) != (after.SchemaVersion >= OwnFileVersionSince),
             notKnown);
     }
 

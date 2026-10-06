@@ -160,13 +160,34 @@ CryptCATAdminReleaseCatalogContext
 CryptCATCatalogInfoFromContext
 CATALOG_INFO
 
-// Who the signer is does NOT need anything here, and that is worth saying rather than
-// leaving as an absence. The obvious route reads the certificate back out of the state the
-// verification leaves behind, which costs four more functions and a struct that CsWin32
-// hands over in two incompatible shapes. The standard library already reads a certificate
-// out of a signed file, and for a catalogue-signed binary the signer is whoever signed the
-// catalogue - whose path the calls above already produced. Same answer, four fewer entries
-// on this list.
+// Who the signer is, read out of the state the verification leaves behind - since 2026-10-06,
+// package SB (security report S-5). Until that day this block said the opposite: the standard
+// library read the certificate out of the file by path, which was four fewer entries here. It was
+// also a SECOND OPENING of the file, so the name could come from a different file than the verdict
+// beside it, and the call doing it is obsolete since .NET 9 (SYSLIB0057). The state is the
+// signature that was just verified, for an embedded signature and a catalogue alike, and it was
+// measured carrying the name for Trusted and for Tampered (tools/security-probe/one-handle.ps1).
+WTHelperProvDataFromStateData
+WTHelperGetProvSignerFromChain
+WTHelperGetProvCertFromChain
+CertGetNameString
+CERT_NAME_SIMPLE_DISPLAY_TYPE
+
+// One open handle carries the whole inspection, since the same day: what it is (a file on a disk,
+// not a pipe or a device) and where it really is (no reparse points left in the path), so the one
+// question that still needs a path - the version - asks the file the handle holds.
+GetFileType
+GetFinalPathNameByHandle
+
+// The version the file carries in its OWN resource, asked with no flags - since the same day, the
+// owner's decision. System.Diagnostics.FileVersionInfo asks with FILE_VER_GET_LOCALISED, which takes
+// the version from a language file when Windows finds one, and on the machine this was written on
+// that put a version no file carries on 127 of 530 service binaries - measured with
+// tools/security-probe/version-doors.ps1, against what Explorer's Details tab shows.
+GetFileVersionInfoSizeEx
+GetFileVersionInfoEx
+VerQueryValue
+VS_FIXEDFILEINFO
 
 // Constants and structures for the calls above.
 SC_MANAGER_CONNECT

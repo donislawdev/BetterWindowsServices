@@ -74,6 +74,7 @@ internal static class DiffText
             (caveats.ToolVersionDiffers, () => Texts.Of("cli.diff.caveat.tool")),
             (caveats.LanguageDiffers, () => Texts.Of("cli.diff.caveat.language")),
             (caveats.AccountDiffers, () => Texts.Of("cli.diff.caveat.account")),
+            (caveats.FileVersionSourceDiffers, () => Texts.Of("cli.diff.caveat.fileVersion")),
             (caveats.NotKnown.Count > 0, () => Texts.Of("cli.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
             (diff.NeitherRead.Count > 0, () => Texts.Of("cli.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead))),
             (diff.LeftOut.Any, () => Texts.Of("cli.diff.caveat.instancesLeftOut", diff.LeftOut.Earlier, diff.LeftOut.Later))

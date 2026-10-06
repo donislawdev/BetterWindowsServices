@@ -88,7 +88,9 @@ public sealed class SecondPassKeepTests
     public void The_windows_inspector_starts_every_pass_empty()
     {
         // The only thing a fresh instance can promise without a real catalogue behind it: it IS a
-        // fresh instance, so the publisher memory of the one before it does not come along.
+        // fresh instance, so whatever the one before it remembered does not come along. Since
+        // 2026-10-06 the Windows inspector remembers nothing (the publisher comes out of each
+        // verification's state), and this holds the promise for whatever a later version adds.
         var inspector = new WindowsBinaryInspector();
 
         Assert.NotSame(inspector, inspector.ForOnePass());
@@ -109,13 +111,7 @@ public sealed class SecondPassKeepTests
     {
         internal int Passes { get; private set; }
 
-        public Reading<BinarySignature> ReadSignature(string file) =>
-            throw new InvalidOperationException("Asked the window's own inspector rather than one for this pass.");
-
-        public Reading<string> ReadFileVersion(string file) =>
-            throw new InvalidOperationException("Asked the window's own inspector rather than one for this pass.");
-
-        public Reading<string> ReadHash(string file) =>
+        public FileInspection Inspect(string file) =>
             throw new InvalidOperationException("Asked the window's own inspector rather than one for this pass.");
 
         public IBinaryInspector ForOnePass()

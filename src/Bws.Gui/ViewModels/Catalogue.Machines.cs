@@ -87,13 +87,10 @@ public static partial class Catalogue
     /// </summary>
     private sealed class Vouching : IBinaryInspector
     {
-        public Reading<BinarySignature> ReadSignature(string file) =>
-            Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows"));
-
-        public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("10.0.26100.1");
-
-        public Reading<string> ReadHash(string file) =>
-            Reading<string>.Present("5574acc33b33ab8fbd7e45b14b0d8425fd67df867a7c6d09417ea4ea096d0d57");
+        public FileInspection Inspect(string file) => new(
+            Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.Trusted, 0, "Microsoft Windows")),
+            Reading<string>.Present("10.0.26100.1"),
+            Reading<string>.Present("5574acc33b33ab8fbd7e45b14b0d8425fd67df867a7c6d09417ea4ea096d0d57"));
     }
 
     /// <summary>A memory reader that answers at once, for the same reason as <see cref="Vouching"/>.</summary>

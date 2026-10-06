@@ -48,7 +48,13 @@ internal sealed class FakeBinaryInspector : IBinaryInspector
     /// <summary>Every file the version was asked about, repeats included. Unordered, as above.</summary>
     internal ConcurrentQueue<string> VersionsAsked { get; } = [];
 
-    public Reading<BinarySignature> ReadSignature(string file)
+    /// <summary>
+    /// One inspection, which this double answers as the three questions it used to be asked - so the
+    /// counters above keep meaning what they meant: one entry each per inspection of a file.
+    /// </summary>
+    public FileInspection Inspect(string file) => new(ReadSignature(file), ReadFileVersion(file), ReadHash(file));
+
+    private Reading<BinarySignature> ReadSignature(string file)
     {
         SignaturesAsked.Enqueue(file);
 
@@ -60,7 +66,7 @@ internal sealed class FakeBinaryInspector : IBinaryInspector
                 new BinarySignature(SignatureStatus.Trusted, 0, $"Publisher of {Path.GetFileName(file)}"));
     }
 
-    public Reading<string> ReadFileVersion(string file)
+    private Reading<string> ReadFileVersion(string file)
     {
         VersionsAsked.Enqueue(file);
 
@@ -72,7 +78,7 @@ internal sealed class FakeBinaryInspector : IBinaryInspector
     /// <summary>Every file the hash was asked about, repeats included. Unordered, as above.</summary>
     internal ConcurrentQueue<string> HashesAsked { get; } = [];
 
-    public Reading<string> ReadHash(string file)
+    private Reading<string> ReadHash(string file)
     {
         HashesAsked.Enqueue(file);
 

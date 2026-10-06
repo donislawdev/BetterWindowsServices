@@ -64,7 +64,7 @@ public sealed class MachineDocumentValueGuards
 
         var diff = new SnapshotDiff(
             [], [], [new ChangedEntry("Spooler", "Print Spooler", differences, [])], [], [], [],
-            new ComparisonCaveats(false, false, false, false, false, false, []),
+            new ComparisonCaveats(false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0));
 
         var written = JsonDocument.Parse(DiffJson.Render(diff)).RootElement

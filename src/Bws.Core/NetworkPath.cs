@@ -111,8 +111,12 @@ public static class NetworkPath
         return !deviceNamespace || !NamesALocalVolume(value.AsSpan(4));
     }
 
-    /// <summary>A drive letter and its colon, or a volume by its identifier - nothing else.</summary>
-    private static bool NamesALocalVolume(ReadOnlySpan<char> name) =>
+    /// <summary>
+    /// A drive letter and its colon, or a volume by its identifier - nothing else. Internal since
+    /// 2026-10-06 because <see cref="FileShape"/> asks the same question about the same namespace,
+    /// and one rule in two places is one rule that will be changed in one of them.
+    /// </summary>
+    internal static bool NamesALocalVolume(ReadOnlySpan<char> name) =>
         (name.Length >= 2 && char.IsAsciiLetter(name[0]) && name[1] == ':')
         || name.StartsWith(VolumeName, StringComparison.OrdinalIgnoreCase);
 }

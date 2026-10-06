@@ -222,8 +222,18 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// only four, and the serialiser skips members it does not know - so without the bump an older
     /// build would read a five as a four, drop both fields without a word and compare as though
     /// nothing were missing. With it that build refuses the file by name.
+    ///
+    /// <b>FIVE TO SIX ON 2026-10-06, AND NOTHING IN THE SHAPE CHANGED - THE MEANING OF ONE FIELD DID.</b>
+    /// Package SB, the owner's decision that day: <c>fileVersion</c> is the version the file carries in
+    /// its own resource, where until then it could come from a language file beside the binary - on the
+    /// machine this was written on, 382 of 801 entries said a version no file carries, and Explorer said
+    /// otherwise. The bump is what lets a comparison tell the two apart: a six against an older file does
+    /// not compare file versions at all and says so once (<see cref="ComparisonCaveats.FileVersionSourceDiffers"/>),
+    /// instead of reporting hundreds of changes on a machine nobody touched. And an older build, which
+    /// cannot know any of this, refuses a six by name rather than comparing two different questions.
+    /// Four and five are still read - nothing in them is missing, only differently sourced.
     /// </summary>
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     /// <summary>
     /// The oldest schema this build still reads. Four since 2026-09-30 - see the version five

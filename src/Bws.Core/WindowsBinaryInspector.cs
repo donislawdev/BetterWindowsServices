@@ -1,11 +1,11 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using Microsoft.Win32.SafeHandles;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.Security.Cryptography.Catalog;
 using Windows.Win32.Security.WinTrust;
+using Windows.Win32.Storage.FileSystem;
 
 namespace Bws.Core;
 
@@ -23,6 +23,16 @@ namespace Bws.Core;
 /// itself trusts 189. Stopping at the first step would report those 189 as unsigned, which
 /// is a confident wrong answer about a third of the machine.
 ///
+/// <b>ONE OPENING PER FILE SINCE 2026-10-06 - package SB, security report S-5.</b> Until that day
+/// the signature, the publisher, the version and the hash each opened the file by its path, up to
+/// five times, so a file replaced between two of them came back with the verdict of one file and
+/// the hash of another. Now one handle is opened without write or delete sharing and held for the
+/// whole inspection: WinTrust verifies THAT handle, the catalogue hash and SHA-256 are read from it,
+/// the publisher comes out of the verification's own state, and the version - the one question
+/// Windows answers only by path - is asked through the handle's final path. Five premises behind
+/// that were measured before it was written, all with the answer the design needed:
+/// tools/security-probe/one-handle.ps1.
+///
 /// Read-only throughout. Nothing here opens anything for writing or changes any state.
 /// </summary>
 /// <param name="networkPaths">
@@ -38,6 +48,19 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     private const int NoSignature = unchecked((int)0x800B0100);
 
     /// <summary>
+    /// How much of the file is read at a time for SHA-256. Below the large object threshold so a
+    /// buffer from the shared pool never lands there, and large enough that a file of a few
+    /// megabytes is a handful of reads rather than hundreds.
+    /// </summary>
+    private const int HashChunk = 1 << 16;
+
+    /// <summary>
+    /// Room for a final path on the first try. Longer paths are asked for again at the size Windows
+    /// reports, so this is a guess about the common case and not a limit.
+    /// </summary>
+    private const int FinalPathGuess = 512;
+
+    /// <summary>
     /// Windows asks for this rather than a window handle when nothing may be shown. Zero
     /// would also do with the interface suppressed, but this is what the documentation says
     /// and it is what the measurement above was taken with.
@@ -45,58 +68,27 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     private static readonly HWND NoWindow = new(-1);
 
     /// <summary>
-    /// Publishers already read, keyed by the CATALOGUE the certificate came out of.
+    /// A fresh inspector, for one pass of the second phase - see <see cref="IBinaryInspector.ForOnePass"/>.
     ///
-    /// It bounds a worst case rather than fixing a measured one, and that distinction is
-    /// worth keeping straight. A binary carrying its own signature is asked about once
-    /// anyway, so this only ever helps files signed by catalogue, which share a smaller
-    /// number of catalogues between them.
-    ///
-    /// <b>That sentence was true and the code did not follow it until 2026-08-03</b>, when this
-    /// held every file rather than every catalogue - buying nothing for the binaries and giving
-    /// their publisher a way to go stale inside a long-lived process. See
-    /// <see cref="CataloguePublisher"/>.
-    ///
-    /// <b>Measured and NOT shown to help here.</b> Seven runs with it and five without, on
-    /// a machine with 810 entries over 544 distinct files: with it 4675-6823 ms, without it
-    /// 5087-5792 ms. The spread between runs of the same build is larger than the gap
-    /// between builds, so nothing in that data says the cache is worth anything on this
-    /// machine. It stays because the number of catalogues is a property of the machine and
-    /// not of this code - somewhere with five hundred files behind five catalogues it saves
-    /// four hundred and ninety five file reads, and removing it would be fitting this
-    /// project to the one machine it happens to be measured on.
-    ///
-    /// Concurrent because the interface will read this from background threads once there
-    /// is an interface. Cheap insurance against a bug that would only ever appear under
-    /// load, in a thread nobody is watching.
-    ///
-    /// <b>ONE PASS LONG SINCE 2026-09-29, and until then as long as the window</b> - backlog 468.
-    /// The window holds one inspector for its whole life, so a catalogue replaced under the same
-    /// name showed its old publisher until it closed. Every pass now asks through
-    /// <see cref="ForOnePass"/>, which starts this empty. Whether Windows ever replaces a catalogue
-    /// under the same name is NOT CHECKED - what made it matter is that F5 is promised to verify
-    /// everything again, and a memory older than the F5 would break that promise quietly.
-    /// </summary>
-    private readonly ConcurrentDictionary<string, string?> _publishers = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// A fresh inspector with nothing remembered, for one pass of the second phase - see
-    /// <see cref="IBinaryInspector.ForOnePass"/>. It costs one empty dictionary.
+    /// <b>This one remembers nothing since 2026-10-06</b>, when the cache of catalogue publishers left
+    /// with the second opening that filled it - the publisher comes out of each verification's own
+    /// state now. A fresh instance costs nothing and keeps the promise true whatever a later version
+    /// decides to remember, which is why it stays rather than handing out itself.
     /// </summary>
     public IBinaryInspector ForOnePass() => new WindowsBinaryInspector(networkPaths);
 
     /// <summary>
     /// Whether this file is one nobody asked us to reach for.
     ///
-    /// Checked before <c>File.Exists</c> in all three readings below, and the order matters:
-    /// the existence check is itself the network call being avoided.
+    /// Checked before anything asks the disk, and the order matters: the existence check is itself
+    /// the network call being avoided.
     /// </summary>
     private bool OffLimits(string file) =>
         networkPaths == NetworkPaths.Skip && NetworkPath.LeavesThisMachine(file);
 
     /// <summary>
     /// The answer for a file that is not there to be read, or null when it is - asked once, for all
-    /// three readings below.
+    /// three fields of the inspection.
     ///
     /// <b>Absent is a fact about the machine, not about our permissions.</b> The listing already
     /// knows it and says so in its own field, and repeating it as a refusal here would turn one
@@ -120,20 +112,100 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         return onDisk.Value ? null : Reading<T>.Absent();
     }
 
-    public Reading<BinarySignature> ReadSignature(string file)
+    public FileInspection Inspect(string file)
     {
-        if (OffLimits(file))
+        // A path that is not a file on a disk is not opened at all, with --follow-network or without
+        // it - the owner's decision on the rest of security report S-4. See FileShape.
+        if (OffLimits(file) || !FileShape.NamesAFile(file))
         {
-            return Reading<BinarySignature>.NotRead();
+            return FileInspection.NotRead;
         }
 
-        if (Unreachable<BinarySignature>(FileOnDisk.Ask(file)) is { } unreachable)
+        if (Unreachable<string>(FileOnDisk.Ask(file)) is { } unreachable)
         {
-            return unreachable;
+            return FileInspection.Alike(unreachable);
         }
+
+        SafeFileHandle? handle = null;
 
         try
         {
+            // READ SHARING ONLY - nobody may write the file, rename it or delete it while this handle is
+            // open, and measured with tools/security-probe/one-handle.ps1 on 2026-10-06, nobody may rename
+            // a folder above it either (refused 5). That is what makes one opening mean one file. The
+            // price is the other direction: a file somebody already holds open for writing refuses us
+            // (32), and then all three fields say so with the number - the owner's decision that day.
+            // Until then only the hash said it, and the signature beside it was read by path anyway.
+            handle = File.OpenHandle(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            return Inspect(file, handle);
+        }
+        catch (Exception failure) when (handle is null && (failure is IOException or UnauthorizedAccessException
+                                                              or ArgumentException or NotSupportedException))
+        {
+            // Only the OPENING is answered here - the filter on the handle says so. Everything after it
+            // answers for itself, field by field, below.
+            return FileInspection.Alike(Reading<string>.Denied(failure.HResult, failure.Message));
+        }
+        finally
+        {
+            handle?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// The three answers, all from the one handle.
+    ///
+    /// <b>The second fence of S-4 is the first line.</b> The shape of the path said "a file", and this
+    /// asks the handle what it really is - a drive letter some session mapped to something other than
+    /// a disk would get this far and no further.
+    ///
+    /// Internal rather than private so a test can hand it a handle and a path that name DIFFERENT
+    /// files - the one shape in which "every field comes from the handle" can be seen to hold.
+    /// </summary>
+    internal FileInspection Inspect(string file, SafeFileHandle handle)
+    {
+        if (PInvoke.GetFileType(handle) != FILE_TYPE.FILE_TYPE_DISK)
+        {
+            return FileInspection.NotRead;
+        }
+
+        var where = FinalPath(handle);
+
+        return new FileInspection(
+            Signature(where.Outcome == ReadOutcome.Present ? where.Value! : file, handle),
+            Version(where),
+            Hash(handle));
+    }
+
+    /// <summary>
+    /// The signature of the file the HANDLE holds - the path beside it is what WinTrust asks for
+    /// alongside, and it is the handle's own final path whenever Windows could give one.
+    ///
+    /// <b>The handle matters most where that path could not be had</b>: then the path is the one the
+    /// entry names, which the open handle does not pin (a junction on the way is not a folder above
+    /// the file), and only <c>hFile</c> keeps the verdict about the file that was opened. Internal so a
+    /// test can hand it the path of one file and the handle of another - at the level of
+    /// <see cref="Inspect(string, SafeFileHandle)"/> the two always name the same file, and a guard
+    /// there could not tell whether the handle was passed at all. Found by the mutation registry on
+    /// 2026-10-06, the day this was written.
+    ///
+    /// THE HANDLE IS HELD OPEN WHILE WINDOWS USES IT, since 2026-09-02, backlog 306, and lent here
+    /// since 2026-10-06 because the signature is the only question that hands Windows the raw handle -
+    /// two WinTrust structures take it, and taking one out of a SafeHandle without this pair is what
+    /// the documentation for that type forbids. The argument for it sits in our own obj directory
+    /// rather than in somebody's manual: the generator this project uses does exactly this in every
+    /// wrapper it emits for a SafeHandle parameter, AddRef before the call and Release in a finally.
+    /// </summary>
+    internal Reading<BinarySignature> Signature(string file, SafeFileHandle handle)
+    {
+        var held = false;
+
+        try
+        {
+            handle.DangerousAddRef(ref held);
+            var raw = (HANDLE)handle.DangerousGetHandle();
+
             // The file's own signature is asked about first, and that ordering is a decision
             // rather than an accident. A file can carry both - an embedded signature and an
             // entry in a catalogue - and the two can name different signers. Measured on
@@ -147,16 +219,11 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             // elsewhere would report differences that are about the two catalogue stores
             // rather than about the services. That is the same false-difference failure
             // ADR-14 exists to prevent, one layer down.
-            var embedded = Verify(file);
+            var embedded = Verify(file, raw);
 
-            if (embedded != NoSignature)
-            {
-                // Read rather than remembered. This file is asked about once in a run, so a
-                // cache would be a way to be wrong later and never a way to be quicker.
-                return Settle(embedded, networkPaths, () => ReadPublisher(file));
-            }
-
-            return ThroughCatalogue(file);
+            return embedded is { Outcome: ReadOutcome.Present, Value.ResultCode: NoSignature }
+                ? ThroughCatalogue(file, handle, raw)
+                : embedded;
         }
 #pragma warning disable CA1031
         // Broad on purpose, and it is not the silence rule 8 forbids: the failure becomes a
@@ -170,15 +237,10 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         // third one loses all 809 other entries and ends the run with exit code 1, on
         // somebody's production server, because of one bad file.
         //
-        // One of five broad catches in the project, and four of them are in this file: the
-        // signature, the version, the hash and the publisher, each of which opens a file
-        // nobody here chose. The fifth is the entry point of the tool.
-        //
-        // The count was written as "exactly two" and stayed there through three more being
-        // added, which is what a number in a comment does - nothing counts it. If a sixth
-        // appears outside this file, that is worth a question rather than a line: every one
-        // here exists because a machine's own binaries cannot be enumerated for the ways
-        // they might be malformed, and that argument does not travel far.
+        // Three of them are in this file - the signature, the version and the hash - and
+        // BroadCatchGuards counts them and every other one in the project. This comment used to
+        // carry that count itself, wrote "exactly two" and stayed there through three more being
+        // added, which is what a number in a comment does. The guard is what counts.
         catch (Exception failure)
         {
             // HResult rather than GetLastWin32Error: by the time an exception has been
@@ -188,28 +250,44 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             return Reading<BinarySignature>.Denied(failure.HResult, failure.Message);
         }
 #pragma warning restore CA1031
+        finally
+        {
+            if (held)
+            {
+                handle.DangerousRelease();
+            }
+        }
     }
 
-    public Reading<string> ReadFileVersion(string file)
+    /// <summary>
+    /// The version, asked through the FINAL path of the handle rather than through the path the
+    /// entry names - and of the file itself, never of a language file beside it (see
+    /// WindowsBinaryInspector.Version.cs).
+    ///
+    /// <b>Windows reads a version resource only by path</b>, so this is the one answer that cannot
+    /// come from the handle itself. The final path is the next best thing and was measured to be as
+    /// good, 2026-10-06, tools/security-probe/one-handle.ps1: it has no reparse point left in it, and
+    /// while the handle is open the folders on it refuse to be renamed and the file refuses to be
+    /// replaced - so the path cannot lead anywhere but to the file the handle holds. The path the
+    /// entry names would not do: a junction on the way is not a folder ABOVE the file in the file
+    /// system's sense, so the open handle does not hold it still.
+    ///
+    /// <b>What the first version of this paragraph got wrong, kept because it is the lesson.</b> It
+    /// said the version "reads the same through <c>\\?\C:\...</c> as through <c>C:\...</c>", measured on
+    /// dotnet.exe - a file with no language file beside it, so the one specimen that could not show
+    /// the difference. With the framework's FileVersionInfo the two paths gave different versions on
+    /// 64 files of this machine. Asked with no flags, as now, they give the same one.
+    /// </summary>
+    private static Reading<string> Version(Reading<string> where)
     {
-        if (OffLimits(file))
+        if (where.Outcome != ReadOutcome.Present)
         {
-            return Reading<string>.NotRead();
-        }
-
-        if (Unreachable<string>(FileOnDisk.Ask(file)) is { } unreachable)
-        {
-            return unreachable;
+            return where;
         }
 
         try
         {
-            var version = FileVersionInfo.GetVersionInfo(file).FileVersion;
-
-            // Plenty of drivers carry no version resource at all. Ordinary, not missing.
-            return string.IsNullOrWhiteSpace(version)
-                ? Reading<string>.Absent()
-                : Reading<string>.Present(version);
+            return OwnVersion(where.Value!);
         }
 #pragma warning disable CA1031
         // Same reasoning as above: one file with a version resource nobody can parse must
@@ -221,30 +299,15 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
 #pragma warning restore CA1031
     }
 
-    public Reading<string> ReadHash(string file)
+    private static Reading<string> Hash(SafeFileHandle handle)
     {
-        if (OffLimits(file))
-        {
-            return Reading<string>.NotRead();
-        }
-
-        if (Unreachable<string>(FileOnDisk.Ask(file)) is { } unreachable)
-        {
-            return unreachable;
-        }
-
         try
         {
-            using var stream = File.OpenRead(file);
-
-            // Streamed rather than read whole. The files here run to hundreds of megabytes
-            // between them and one of them alone can be large, and there is no reason for any
-            // of it to be in memory at once.
-            return Reading<string>.Present(Convert.ToHexStringLower(SHA256.HashData(stream)));
+            return Reading<string>.Present(Sha256(handle));
         }
 #pragma warning disable CA1031
-        // Same reasoning as the two above: a file that cannot be opened - locked, on a
-        // disconnected disk, gone since the listing - costs its own answer and not the run.
+        // Same reasoning as the two above: a file that cannot be read to the end - a disk that
+        // went away, a read the platform refuses - costs its own answer and not the run.
         catch (Exception failure)
         {
             return Reading<string>.Denied(failure.HResult, failure.Message);
@@ -253,208 +316,101 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
     }
 
     /// <summary>
-    /// The signature the file carries itself, if any.
+    /// SHA-256 of everything behind the handle, read at explicit offsets.
     ///
-    /// The state has to be opened and closed with two calls rather than one. The first
-    /// verifies and leaves the working data behind, the second releases it - skipping the
-    /// second leaks for the life of the process, which on a run touching several hundred
-    /// files is not a rounding error.
+    /// <b>Offsets rather than a stream, and that is a decision about somebody else's side effect.</b>
+    /// WinVerifyTrust moves the handle's file pointer itself - measured 2026-10-06, it stood at zero
+    /// after a call that was handed it at the end - and code resting on where another call left the
+    /// pointer is code that breaks when that call changes. Streamed rather than read whole: the files
+    /// here run to hundreds of megabytes between them, and none of it needs to be in memory at once.
     /// </summary>
-    private unsafe int Verify(string file)
+    private static string Sha256(SafeFileHandle handle)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = ArrayPool<byte>.Shared.Rent(HashChunk);
+
+        try
+        {
+            int read;
+
+            for (long offset = 0; (read = RandomAccess.Read(handle, buffer, offset)) > 0; offset += read)
+            {
+                hash.AppendData(buffer, 0, read);
+            }
+
+            return Convert.ToHexStringLower(hash.GetHashAndReset());
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Where the handle really points, with every reparse point on the way resolved. With a drive
+    /// letter when the volume has one, and by the volume's identifier when it does not - a volume
+    /// mounted only on a folder still has a file on it worth a version.
+    /// </summary>
+    private static Reading<string> FinalPath(SafeFileHandle handle) =>
+        FinalPath(handle, GETFINALPATHNAMEBYHANDLE_FLAGS.VOLUME_NAME_DOS) is { Outcome: ReadOutcome.Present } onADrive
+            ? onADrive
+            : FinalPath(handle, GETFINALPATHNAMEBYHANDLE_FLAGS.VOLUME_NAME_GUID);
+
+    /// <summary>
+    /// One spelling of the final path. ASKED THROUGH THE RETURN VALUE, the lesson of backlog 303:
+    /// zero is a failure and only then is the last error read. A number at least as large as the
+    /// room offered is the size wanted, terminating null included, and it is asked once more at that
+    /// size - a path that is still longer the second time is refused with a definite code rather
+    /// than with whatever the thread's last error happens to hold.
+    /// </summary>
+    private static Reading<string> FinalPath(SafeFileHandle handle, GETFINALPATHNAMEBYHANDLE_FLAGS volume)
+    {
+        var buffer = new char[FinalPathGuess];
+        var length = PInvoke.GetFinalPathNameByHandle(handle, buffer, volume);
+
+        if (length >= buffer.Length)
+        {
+            buffer = new char[length];
+            length = PInvoke.GetFinalPathNameByHandle(handle, buffer, volume);
+        }
+
+        if (length == 0)
+        {
+            var error = Marshal.GetLastWin32Error();
+
+            return Reading<string>.Denied(error, ManagerTerms.Describe(error));
+        }
+
+        return length >= buffer.Length
+            ? Reading<string>.Denied(
+                (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER,
+                ManagerTerms.Describe((int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER))
+            : Reading<string>.Present(new string(buffer, 0, (int)length));
+    }
+
+    /// <summary>
+    /// The signature the file carries itself, if any - verified on the HANDLE.
+    ///
+    /// <b>The path beside the handle is there because the structure will not take NULL</b>, and
+    /// measured 2026-10-06 it is not what gets verified: handed the path of a changed copy and the
+    /// handle of an unchanged one, WinVerifyTrust answered trusted, and the other way round it
+    /// answered bad digest (tools/security-probe/one-handle.ps1, P1).
+    /// </summary>
+    private unsafe Reading<BinarySignature> Verify(string file, HANDLE raw)
     {
         fixed (char* path = file)
         {
             var info = new WINTRUST_FILE_INFO
             {
                 cbStruct = (uint)sizeof(WINTRUST_FILE_INFO),
-                pcwszFilePath = path
+                pcwszFilePath = path,
+                hFile = raw
             };
 
             var data = Request(WINTRUST_DATA_UNION_CHOICE.WTD_CHOICE_FILE);
             data.pFile = &info;
 
             return Ask(ref data);
-        }
-    }
-
-    /// <summary>
-    /// The signature the catalogues carry on the file's behalf.
-    ///
-    /// Three steps and none of them is optional: hash the file the way the catalogue system
-    /// hashes it, find a catalogue listing that hash, then verify the file as a member of
-    /// that catalogue. The hash doubles as the member tag, spelled out in hex, which is how
-    /// the verification finds the right entry inside the catalogue.
-    /// </summary>
-    private Reading<BinarySignature> ThroughCatalogue(string file)
-    {
-        if (ThroughCatalogue(file, "SHA256") is { } bySha256)
-        {
-            return bySha256;
-        }
-
-        // ASKED AGAIN WITH SHA-1 BEFORE ANYTHING IS CALLED UNSIGNED, since 2026-10-05 - stability
-        // report R-6. A catalogue lists its members by hash, and an older one lists them by SHA-1,
-        // so a file only such a catalogue names is not found by the question above and came back
-        // NotSigned: confident, and wrong about a signed file. NO SPECIMEN ON THE OWNER'S MACHINE,
-        // measured that day with tools/signature-probe/catalogue-algorithms.ps1: the SHA-1 context
-        // works there and finds inbox drivers, and the one file this tool calls NotSigned is in no
-        // catalogue under either. It costs one more hash per file no SHA-256 catalogue lists - one
-        // file there.
-        //
-        // Only a verdict counts. A machine that will not hash with SHA-1, or a catalogue that cannot
-        // be read once found, gets the answer this gave before that day rather than a refusal for
-        // every unsigned file: the question that decides was answered above, this one only rescues.
-        return ThroughCatalogue(file, "SHA1") is { Outcome: ReadOutcome.Present } bySha1
-            ? bySha1
-            : Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
-    }
-
-    /// <summary>
-    /// One catalogue question asked with one hash algorithm. Null when no catalogue lists the file
-    /// under it, which is not yet an answer - see the method above.
-    /// </summary>
-    private unsafe Reading<BinarySignature>? ThroughCatalogue(string file, string algorithm)
-    {
-        // One context per file, and a context held per worker instead was measured on 2026-09-29
-        // (tools/signature-probe/auto-cache.ps1, variant "held"). Acquiring and releasing is almost
-        // free - what a fresh context costs is its FIRST catalogue lookup, about 1 ms per file on
-        // one thread. Held per worker, the catalogue path took 894-1041 ms of wall clock at two
-        // processors against 1017-1287, which is two or three percent of the 4247-4877 ms pass and
-        // smaller than that pass's own spread. Not worth a context whose lifetime spans calls.
-        if (!PInvoke.CryptCATAdminAcquireContext2(out var admin, null, algorithm, null))
-        {
-            var error = Marshal.GetLastWin32Error();
-
-            return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
-        }
-
-        try
-        {
-            using var handle = File.OpenHandle(file);
-
-            uint size = 0;
-
-            // ASKED THROUGH THE RETURN VALUE, the sixth and last place in this project that decided
-            // on the reported size alone. Backlog 303, and the argument in full is at
-            // WindowsScmCatalog.Enumerate: Windows does not clear the last error on success, so a
-            // size of zero read as a failure carries whatever the previous call on this thread left
-            // behind. This one runs 544 times per listing, once per distinct file.
-            var probed = PInvoke.CryptCATAdminCalcHashFromFileHandle2(admin, handle, ref size, default);
-            var probeError = Marshal.GetLastWin32Error();
-
-            if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
-            {
-                return Reading<BinarySignature>.Denied(probeError, ManagerTerms.Describe(probeError));
-            }
-
-            if (size == 0)
-            {
-                // Asked for no room and did not fail. A file always hashes to something, so this
-                // is not a shape the system produces - refused with a definite code rather than
-                // with a stale one, because there is nothing true to say about it.
-                return Reading<BinarySignature>.Denied(
-                    (int)WIN32_ERROR.ERROR_INVALID_DATA,
-                    ManagerTerms.Describe((int)WIN32_ERROR.ERROR_INVALID_DATA));
-            }
-
-            var hash = new byte[size];
-
-            if (!PInvoke.CryptCATAdminCalcHashFromFileHandle2(admin, handle, ref size, hash))
-            {
-                var error = Marshal.GetLastWin32Error();
-
-                return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
-            }
-
-            var catalogue = PInvoke.CryptCATAdminEnumCatalogFromHash(admin, hash);
-
-            if (catalogue == 0)
-            {
-                // No catalogue lists this file under this algorithm, and it carries nothing of its
-                // own. "Nobody signed this" is the honest answer only once both have been asked.
-                return null;
-            }
-
-            try
-            {
-                return VerifyAgainst(catalogue, admin, file, handle, hash);
-            }
-            finally
-            {
-                PInvoke.CryptCATAdminReleaseCatalogContext(admin, catalogue, 0);
-            }
-        }
-        finally
-        {
-            PInvoke.CryptCATAdminReleaseContext(admin, 0);
-        }
-    }
-
-    private unsafe Reading<BinarySignature> VerifyAgainst(
-        nint catalogue, nint admin, string file, SafeHandle handle, byte[] hash)
-    {
-        var found = new CATALOG_INFO { cbStruct = (uint)sizeof(CATALOG_INFO) };
-
-        if (!PInvoke.CryptCATCatalogInfoFromContext(catalogue, ref found, 0))
-        {
-            var error = Marshal.GetLastWin32Error();
-
-            return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
-        }
-
-        var cataloguePath = found.wszCatalogFile.ToString();
-        var memberTag = Convert.ToHexString(hash);
-
-        // THE HANDLE IS HELD OPEN WHILE SOMEBODY ELSE USES IT, since 2026-09-02. Backlog 306.
-        // The raw handle below is handed to WinTrust, which does its own work with it, and taking
-        // one out of a SafeHandle without this pair is what the documentation for that type
-        // forbids. It was not a fault in practice - the caller keeps the SafeHandle in a `using`,
-        // so nothing could close it in between - but that made the correctness a property of how
-        // the compiler decides a local is still live, rather than of anything written here.
-        //
-        // THE ARGUMENT FOR IT SITS IN OUR OWN obj DIRECTORY rather than in somebody's manual: the
-        // generator this project uses does exactly this in every wrapper it emits for a SafeHandle
-        // parameter, AddRef before the call and Release in a finally.
-        var held = false;
-
-        try
-        {
-            handle.DangerousAddRef(ref held);
-
-            fixed (char* cataloguePointer = cataloguePath)
-            fixed (char* memberPointer = memberTag)
-            fixed (char* filePointer = file)
-            fixed (byte* hashPointer = hash)
-            {
-                var info = new WINTRUST_CATALOG_INFO
-                {
-                    cbStruct = (uint)sizeof(WINTRUST_CATALOG_INFO),
-                    pcwszCatalogFilePath = cataloguePointer,
-                    pcwszMemberTag = memberPointer,
-                    pcwszMemberFilePath = filePointer,
-                    hMemberFile = (HANDLE)handle.DangerousGetHandle(),
-                    pbCalculatedFileHash = hashPointer,
-                    cbCalculatedFileHash = (uint)hash.Length,
-                    hCatAdmin = admin
-                };
-
-                var data = Request(WINTRUST_DATA_UNION_CHOICE.WTD_CHOICE_CATALOG);
-                data.pCatalog = &info;
-
-                var result = Ask(ref data);
-
-                // The signer of a catalogue-signed file is whoever signed the catalogue. That
-                // is the same answer Explorer gives, and reading it from the catalogue file
-                // keeps four more functions out of the interop list.
-                return Settle(result, networkPaths, () => CataloguePublisher(cataloguePath));
-            }
-        }
-        finally
-        {
-            if (held)
-            {
-                handle.DangerousRelease();
-            }
         }
     }
 
@@ -491,6 +447,7 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         // it is worse - the calls queue behind each other, and the catalogue path took 1380-1497 ms
         // of wall clock at sixteen processors against 347-403, and 1141-1442 against 1017-1287 at
         // two. A process-wide cache would also outlive a pass unless flushed, which ADR-13 forbids.
+        // And since 2026-10-06 VERIFY is what leaves the state the publisher is read out of.
         dwStateAction = WINTRUST_DATA_STATE_ACTION.WTD_STATEACTION_VERIFY,
 
         // WTD_CACHE_ONLY_URL_RETRIEVAL confines the chain engine to what this machine already
@@ -519,18 +476,33 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
             : WINTRUST_DATA_PROVIDER_FLAGS.WTD_CACHE_ONLY_URL_RETRIEVAL
     };
 
-    private static unsafe int Ask(ref WINTRUST_DATA data)
+    /// <summary>
+    /// Verifies, settles the answer WHILE THE STATE IS STILL OPEN, and lets go of the state.
+    ///
+    /// The state has to be opened and closed with two calls rather than one. The first verifies and
+    /// leaves the working data behind, the second releases it - skipping the second leaks for the
+    /// life of the process, which on a run touching several hundred files is not a rounding error.
+    /// Since 2026-10-06 the answer is settled between the two, because the publisher is read out of
+    /// that working data (WindowsBinaryInspector.Publisher.cs) and is gone once it is released.
+    /// </summary>
+    private unsafe Reading<BinarySignature> Ask(ref WINTRUST_DATA data)
     {
         var action = PInvoke.WINTRUST_ACTION_GENERIC_VERIFY_V2;
 
         fixed (WINTRUST_DATA* pointer = &data)
         {
             var result = PInvoke.WinVerifyTrust(NoWindow, ref action, pointer);
+            var state = pointer->hWVTStateData;
 
-            data.dwStateAction = WINTRUST_DATA_STATE_ACTION.WTD_STATEACTION_CLOSE;
-            PInvoke.WinVerifyTrust(NoWindow, ref action, pointer);
-
-            return result;
+            try
+            {
+                return Settle(result, networkPaths, () => Signer(state));
+            }
+            finally
+            {
+                pointer->dwStateAction = WINTRUST_DATA_STATE_ACTION.WTD_STATEACTION_CLOSE;
+                PInvoke.WinVerifyTrust(NoWindow, ref action, pointer);
+            }
         }
     }
 }

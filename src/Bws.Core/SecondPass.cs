@@ -144,21 +144,21 @@ public static class SecondPass
     /// has is worth more over ten years than something that manages its own threads to reach
     /// the same number.
     /// </summary>
-    private static Dictionary<string, Answer> Ask(
+    private static Dictionary<string, FileInspection> Ask(
         List<string> files, IBinaryInspector inspector, int degreeOfParallelism)
     {
-        var answers = new Answer[files.Count];
+        var answers = new FileInspection[files.Count];
 
+        // ONE QUESTION PER FILE, NOT THREE, since 2026-10-06 - package SB. Three questions were three
+        // openings of the file, and a file replaced between them got one file's verdict beside
+        // another's hash. See IBinaryInspector.Inspect.
         Parallel.For(
             0,
             files.Count,
             new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism },
-            index => answers[index] = new Answer(
-                inspector.ReadSignature(files[index]),
-                inspector.ReadFileVersion(files[index]),
-                inspector.ReadHash(files[index])));
+            index => answers[index] = inspector.Inspect(files[index]));
 
-        var byFile = new Dictionary<string, Answer>(files.Count, StringComparer.OrdinalIgnoreCase);
+        var byFile = new Dictionary<string, FileInspection>(files.Count, StringComparer.OrdinalIgnoreCase);
 
         for (var index = 0; index < files.Count; index++)
         {
@@ -167,10 +167,6 @@ public static class SecondPass
 
         return byFile;
     }
-
-    /// <summary>What was learned about one file, kept together so an entry is filled in one move.</summary>
-    private readonly record struct Answer(
-        Reading<BinarySignature> Signature, Reading<string> Version, Reading<string> Hash);
 
     /// <summary>
     /// A fresh listing, with the answers an earlier reading already had about the SAME FILES.
@@ -196,13 +192,13 @@ public static class SecondPass
         ArgumentNullException.ThrowIfNull(fresh);
         ArgumentNullException.ThrowIfNull(earlier);
 
-        var known = new Dictionary<string, Answer>(StringComparer.OrdinalIgnoreCase);
+        var known = new Dictionary<string, FileInspection>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var entry in earlier)
         {
             if (entry.BinaryFile.Outcome == ReadOutcome.Present && Answered(entry))
             {
-                known.TryAdd(entry.BinaryFile.Value!, new Answer(entry.Signature, entry.FileVersion, entry.BinaryHash));
+                known.TryAdd(entry.BinaryFile.Value!, new FileInspection(entry.Signature, entry.FileVersion, entry.BinaryHash));
             }
         }
 
@@ -226,7 +222,7 @@ public static class SecondPass
     /// <summary>Whether a pass - this one or an earlier one kept by <see cref="Keep"/> - already answered for this entry.</summary>
     private static bool Answered(ScmEntry entry) => entry.Signature.Outcome != ReadOutcome.NotRead;
 
-    private static ScmEntry Fill(ScmEntry entry, Dictionary<string, Answer> answers)
+    private static ScmEntry Fill(ScmEntry entry, Dictionary<string, FileInspection> answers)
     {
         switch (entry.BinaryFile.Outcome)
         {
