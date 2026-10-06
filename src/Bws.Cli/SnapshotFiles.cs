@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using Bws.Core;
 using Bws.Core.Snapshots;
 
 namespace Bws.Cli;
@@ -68,31 +67,32 @@ internal static class SnapshotFiles
                 + metadata.TakenAt.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".json";
 
     /// <summary>
-    /// Whether this file may be written over, and what had to happen first if so.
+    /// Whether this file may be written over.
     ///
-    /// <b>Two things, and the second is `ADR-18` finally getting a caller.</b> Nothing may
-    /// replace an existing file without being told to - that has held since 2026-08-02 for a
-    /// named file and, until 2026-08-03, not at all for the name this tool works out itself.
+    /// <b>Nothing may replace an existing file without being told to</b> - that has held since
+    /// 2026-08-02 for a named file and, since 2026-08-03, for the name this tool works out itself.
     ///
-    /// And when it IS told to, what it replaces decides how. A readable snapshot is replaced,
-    /// because that is what somebody asking for --force means. Anything else is <b>moved aside
-    /// first</b>: `ADR-18` asks for quarantine rather than deletion on the grounds that a
-    /// corrupt snapshot is sometimes the only remaining trace of what was there, and destroying
-    /// evidence is a poor thing for an audit tool to do. <c>AtomicFile.Quarantine</c> has
-    /// existed and been tested since S5a and had no caller in the product at all, which made the
-    /// promise look kept while nothing kept it.
+    /// <b>AND ONLY A SNAPSHOT IS EVER REPLACED, WITH --force OR WITHOUT IT, SINCE 2026-10-06 -
+    /// security report S-8, owner's decision, a change to the frozen meaning of the switch.</b> Until
+    /// that day --force replaced any file at all and moved one it could not read into quarantine
+    /// first. The file was not lost, but it was gone from its place: a mistyped variable in a script
+    /// running as administrator or as SYSTEM took a configuration file away from the program that
+    /// reads it, and the run ended with code 0. Now everything that is not a snapshot this build reads
+    /// - another program's file, a snapshot from a schema this build does not know, one that is too
+    /// large or will not open - is refused in words and left exactly where it was. For evidence that
+    /// is better than quarantine ever was: the file is not even renamed.
     ///
-    /// <b>Only here, and deliberately not when a file is READ.</b> Moving somebody's file
-    /// because they mistyped a path to `snapshot diff` would make a read-only command
-    /// destructive, which is a worse fault than the one being fixed. Writing is the moment
-    /// `ADR-18` is about - it is the moment the evidence would otherwise be lost.
-    /// </summary>
+    /// <b>Asked before the signatures and again on the name that will be written</b>, as it always
+    /// was. The second ask is also what catches a file that became something else in the second the
+    /// signatures took.
+    ///
     /// <b>A decision and nothing else - it moves nothing and writes nothing.</b> That split is
     /// what makes this the single place the rule lives, and the mutation runner is what asked
     /// for it: the check was in two places, one early for the courtesy above and one late for
     /// the worked-out name, and taking either one away changed no outcome because the other
     /// still refused. Two gates for one rule means no single mutation can prove the rule, which
     /// the runner reported as MISSED and was right to.
+    /// </summary>
     internal static bool MayWrite(string target, bool force, out string? refusal)
     {
         refusal = null;
@@ -115,6 +115,13 @@ internal static class SnapshotFiles
             return true;
         }
 
+        if (WhyNotASnapshot(target) is { } why)
+        {
+            refusal = why + " " + Texts.Of("cli.snapshot.notReplaced");
+
+            return false;
+        }
+
         if (!force)
         {
             refusal = Texts.Of("cli.snapshot.fileExists", target);
@@ -126,69 +133,42 @@ internal static class SnapshotFiles
     }
 
     /// <summary>
-    /// Moves aside what is about to be written over, when losing it would lose something.
+    /// Why what is already at this path is not a snapshot this build reads, or nothing when it is one.
     ///
-    /// <b>`ADR-18` finally getting a caller.</b> A readable snapshot is replaced, because that is
-    /// what somebody asking for <c>--force</c> means and keeping a copy of every one would fill
-    /// their directory with files they never asked for. Anything else is kept: `ADR-18` asks for
-    /// quarantine rather than deletion on the grounds that a corrupt snapshot is sometimes the
-    /// only remaining trace of what was there, and destroying evidence is a poor thing for an
-    /// audit tool to do. <c>AtomicFile.Quarantine</c> had existed and been tested since S5a with
-    /// no caller in the product at all, which made the promise look kept while nothing kept it.
+    /// <b>The same four sentences <see cref="Load"/> says about a file somebody points
+    /// <c>snapshot diff</c> at</b>, because it is the same question about the same kind of file: too
+    /// large to be one, not UTF-8, could not be read, or read and not a snapshot - with the reason the
+    /// reader gave, which is what tells somebody holding a snapshot from a newer build why theirs is
+    /// refused.
     ///
-    /// <b>Called just before the write and nowhere near a read.</b> Moving somebody's file
-    /// because they mistyped a path to <c>snapshot diff</c> would make a read-only command
-    /// destructive, which is a worse fault than the one being fixed. And late rather than early,
-    /// so a run that falls over while verifying signatures has not already moved anything.
+    /// <b>THE SIZE IS ASKED BEFORE A BYTE IS READ, and until 2026-10-06 it was not.</b> The question
+    /// was asked by reading the whole file into one string - measured that day with the shipped 0.3.0:
+    /// <c>snapshot create</c> over a 1.5 GB file with --force ended after 4045 ms with code 1 and "Insufficient
+    /// memory to continue the execution of the program." <see cref="Load"/> had the ceiling since
+    /// backlog 308(c), and this read beside it did not.
     /// </summary>
-    /// <param name="quarantined">Where the old file went, or null when nothing was moved.</param>
-    internal static bool KeepWhatCannotBeRead(string target, out string? quarantined, out string? refusal)
-    {
-        quarantined = null;
-        refusal = null;
-
-        // Read to find out what it is, and nothing is said about the failure - the question here
-        // is only "is this a snapshot", and a file that is not one is about to be replaced
-        // anyway. What matters is that it is kept.
-        if (!File.Exists(target) || Readable(target))
-        {
-            return true;
-        }
-
-        try
-        {
-            quarantined = AtomicFile.Quarantine(target, new SystemClock());
-
-            return true;
-        }
-        catch (Exception stuck) when (stuck is IOException or UnauthorizedAccessException)
-        {
-            // Could not be moved, so it must not be written over either. Anything else would
-            // destroy the file this branch exists to preserve.
-            refusal = Texts.Of("cli.snapshot.cannotQuarantine", target, stuck.Message);
-
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Whether what is already at this path is a snapshot this build can read.
-    ///
-    /// Quiet on purpose, unlike <see cref="Load"/>. Nobody asked to read this file - it is being
-    /// asked about only to decide whether replacing it loses anything.
-    /// </summary>
-    private static bool Readable(string path)
+    private static string? WhyNotASnapshot(string path)
     {
         try
         {
-            return SnapshotJson.TryRead(ReadText(path), out _, out _);
+            if (new FileInfo(path).Length > Biggest)
+            {
+                return Texts.Of("cli.diff.tooBig", path, Biggest / (1024 * 1024));
+            }
+
+            return SnapshotJson.TryRead(ReadText(path), out _, out var failure)
+                ? null
+                : Texts.Of("cli.diff.notASnapshot", path, failure ?? string.Empty);
+        }
+
+        // Ahead of the clause below for the reason Load gives: a decoder failure IS an ArgumentException.
+        catch (DecoderFallbackException)
+        {
+            return Texts.Of("cli.diff.notUtf8", path);
         }
         catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            // Cannot be read at all - and that now includes "is not UTF-8", because the reader
-            // below refuses rather than substitutes. Which is the strongest possible case for
-            // keeping the file rather than writing over it.
-            return false;
+            return Texts.Of("cli.diff.cannotRead", path, unreadable.Message);
         }
     }
 

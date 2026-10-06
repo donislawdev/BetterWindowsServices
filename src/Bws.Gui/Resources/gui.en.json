@@ -107,6 +107,8 @@
   "gui.layout.otherSchema": "The kept column layout was written against schema version {0} and this program reads version {1}, so it was left alone and the usual columns are shown. Changes to the columns in this window will not be saved over it.",
   "gui.layout.carriedForward": "The kept column layout was written against schema version {0} and has been carried forward to version {1}. Your columns are as you left them, and the file will be saved in the newer shape the next time you change one.",
   "gui.layout.notKept": "The column layout was not saved, so this window will open the way it did last time. {0}",
+  "gui.layout.notKeptAsAdministrator": "This window runs as administrator, and programs in your account that run without those rights can change where and what it would save, so it saves nothing into your profile. To keep a layout, arrange the columns in a window started without administrator rights.",
+  "gui.layout.unreadableLeftAsAdministrator": "The kept column layout could not be read, so the usual columns are shown. This window runs as administrator and moves nothing in your profile, so the file was left where it is. {0}",
   "gui.layout.tooBig": "The file holding the column layout is larger than {0} KB, so it is not one this window wrote.",
   "gui.layout.noProfile": "Windows names no application data folder for this account, so there is nowhere to keep the layout.",
 
@@ -211,7 +213,8 @@
   "gui.status.holding": "The list is holding still while you use it, so nothing joins or leaves under your cursor. It settles when you move away, or on F5.",
 
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
-  "gui.status.runtimeSettings": "Running as administrator, and the environment sets .NET options that can load code into this window or make it write files: {0}. If you did not set them yourself, close the window and find out where they came from.",
+  "gui.status.besideNotRead": "Running as administrator, so the translation beside the program was not read and the window is in English: {0}. A file beside the program is only as trustworthy as the folder it lies in.",
+  "gui.status.runtimeSettings":"Running as administrator, and the environment sets .NET options that can load code into this window or make it write files: {0}. If you did not set them yourself, close the window and find out where they came from.",
   "gui.status.couldNotDo": "That did not happen. {0}",
 
   "gui.menu.startType": "Set startup type",

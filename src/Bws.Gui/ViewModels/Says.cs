@@ -279,6 +279,14 @@ public sealed class Says : Observable
     internal IReadOnlyList<string> RuntimeSettings { get; init; } = Session.RuntimeSettingsFromEnvironment(extractsNatives: true);
 
     /// <summary>
+    /// The language file beside the program this administrator session did not read, or nothing -
+    /// security report S-9, said by <see cref="Sentences.Rights"/>. Asked once at start, because that
+    /// is when the strings were built. Settable so a test can hand it a path without a file beside the
+    /// test host.
+    /// </summary>
+    internal string? BesideNotRead { get; init; } = Texts.BesideNotRead();
+
+    /// <summary>
     /// The same fact the other way round, because markup can only ask for what is public and can
     /// only test for a value it is given.
     ///
@@ -315,7 +323,7 @@ public sealed class Says : Observable
         _partial = answer.Unreadable > 0 || answer.TooCostly > 0 || answer.Unvouched > 0;
 
         Admit(Sentences.Admissions(
-            needs, held, answer, Sentences.Rights(Elevated, RuntimeSettings),
+            needs, held, answer, Sentences.Rights(Elevated, RuntimeSettings, BesideNotRead),
             have, filling, folded, listOnScreen));
     }
 

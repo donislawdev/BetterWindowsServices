@@ -203,7 +203,7 @@ public sealed class SnapshotContractTests : IDisposable
     }
 
     [Fact]
-    public void An_existing_file_is_not_overwritten_without_being_told()
+    public void A_file_that_is_not_a_snapshot_is_never_replaced_even_when_told()
     {
         // The one place this tool writes a file, and until 2026-08-02 it replaced whatever was
         // at the path without a word and ended with code 0. Found while reading a security
@@ -226,29 +226,20 @@ public sealed class SnapshotContractTests : IDisposable
         // where is a message somebody has to go and work out for themselves.
         Assert.Contains(target, refused.StandardError, StringComparison.Ordinal);
 
-        // The other half, without which this passes on a build that refuses always. A switch
-        // that turns nothing on is the same silence from the opposite side.
+        // AND --force CHANGES NOTHING ABOUT IT, SINCE 2026-10-06 - security report S-8, owner's
+        // decision, a change to the frozen meaning of the switch. Until then this half asserted code 0
+        // and the file moved into quarantine under another name: kept, but gone from where the program
+        // that owns it looks. A mistyped variable in a script running as administrator did exactly
+        // that to somebody else's file. Now it is refused in words and not even renamed.
         var forced = CommandLineTool.Run("snapshot", "create", target, "--force");
 
-        Assert.Equal(0, forced.ExitCode);
-        Assert.NotEqual(mine, File.ReadAllText(target));
+        Assert.Equal(2, forced.ExitCode);
+        Assert.Equal(mine, File.ReadAllText(target));
+        Assert.Single(Directory.GetFiles(_directory));
+        Assert.Contains(Sentences.Of("cli.snapshot.notReplaced"), forced.StandardError, StringComparison.Ordinal);
 
-        // AND WHAT WAS THERE IS STILL THERE, under another name. `ADR-18` asks for quarantine
-        // rather than deletion on the grounds that a corrupt snapshot is sometimes the only
-        // remaining trace of what was there - and until 2026-08-03 AtomicFile.Quarantine existed,
-        // was tested, and had no caller in the product at all, which made the promise look kept
-        // while nothing kept it.
-        var kept = Directory
-            .GetFiles(_directory)
-            .Where(file => !string.Equals(file, target, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        Assert.Single(kept);
-        Assert.Equal(mine, File.ReadAllText(kept[0]));
-
-        // Named on the error channel, because a file moved somewhere nobody was told about is
-        // barely better than one that was deleted.
-        Assert.Contains(Path.GetFileName(kept[0]), forced.StandardError, StringComparison.Ordinal);
+        // The half that keeps this from passing on a build that refuses always is the test below:
+        // a snapshot IS replaced with --force.
     }
 
     // NOT marked as running anywhere, although what they are about - how bytes are decoded - has

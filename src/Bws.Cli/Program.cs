@@ -249,20 +249,16 @@ try
         // of a file restored from a backup, and of a machine fast enough to finish twice inside
         // a second. So the one command in this tool that overwrites anything had a way round its
         // own guard, on the path a person takes when they have not thought about the file name.
-        if (!SnapshotFiles.MayWrite(target, options.Force, out var refusal)
-            || !SnapshotFiles.KeepWhatCannotBeRead(target, out var quarantined, out refusal))
+        //
+        // NOTHING IS MOVED ASIDE HERE ANY MORE, since 2026-10-06 - security report S-8. A file this
+        // build cannot read as a snapshot used to go into quarantine so it could be replaced, and now
+        // MayWrite refuses it instead and leaves it where it is.
+        if (!SnapshotFiles.MayWrite(target, options.Force, out var refusal))
         {
             stopwatch.Stop();
             Console.Error.WriteLine(refusal);
 
             return ExitCode.Usage;
-        }
-
-        // Said before the write rather than after, because it is the sentence somebody needs in
-        // order to find the file again if this run is not what they meant.
-        if (quarantined is not null)
-        {
-            Console.Error.WriteLine(Texts.Of("cli.snapshot.quarantined", target, quarantined));
         }
 
         try

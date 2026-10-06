@@ -325,6 +325,22 @@ is not part of this repository.
 
 ### Security
 
+- **`bws snapshot create --force` replaces only a snapshot.** A file at that path that this version
+  cannot read as a snapshot - another program's file, a snapshot from a newer version, anything too
+  large or unreadable - is refused with code 2, with or without `--force`, and left exactly where it
+  is. It used to be moved aside under a new name so the snapshot could take its place, which took the
+  file away from whatever reads it, and a mistyped path in a script running as administrator ended
+  with code 0. The refusal now comes before signatures are read, and a very large file there no
+  longer ends the command with an out of memory error.
+- A window started as administrator under User Account Control writes nothing into your profile: it
+  reads the kept column layout as before, but does not save it, create its folder or move a damaged
+  file aside, and says so in the line under the list the first time a change would have been saved.
+  Programs in your account that run without administrator rights can change where that folder is and
+  what is in it. The built-in Administrator account and a machine with User Account Control turned
+  off save the layout as before.
+- With administrator rights, the window does not read a language file placed beside the program and
+  opens in English, saying so in the line under the list when such a file is there. A file beside the
+  program is only as safe as the folder it lies in, and its sentences include the plan's warnings.
 - A launch command naming `%ProgramFiles%`, `%ProgramData%` or another variable no longer reads
   it from the environment of whoever runs the tool. That environment is the account's own, and an
   elevated window or console inherits it, so a variable set there could make the tool describe,
