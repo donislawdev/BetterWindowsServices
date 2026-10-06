@@ -227,6 +227,47 @@ public sealed class ScopeTests
         return model;
     }
 
+    /// <summary>
+    /// G-9 of the external stability report: a query with a mistake in it left Apply before the list
+    /// was touched, so for as long as a typo stood in the box the list ignored the scope switch and
+    /// the machine alike. It still shows the answer to the last query that could be read - over the
+    /// list and the machine as they are now.
+    /// </summary>
+    [Fact]
+    public async Task A_typo_in_the_box_does_not_freeze_the_list_against_the_scope()
+    {
+        var model = new MainViewModel(new LiveMachine(Entry("Spooler"), Driver("disk")), new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "stat:runing";
+
+        Assert.False(model.AsTyped().Parsed.IsValid);
+
+        model.Scope = EntryScope.Drivers;
+
+        Assert.Equal(["disk"], model.Rows.Select(row => row.ServiceName));
+    }
+
+    /// <summary>The other road through the same method: a tick that found the machine changed.</summary>
+    [Fact]
+    public async Task A_typo_in_the_box_does_not_freeze_the_list_against_the_machine()
+    {
+        var machine = new LiveMachine(Entry("Spooler"), Entry("W32Time"));
+        var model = new MainViewModel(machine, new SteppedClock());
+
+        await model.LoadAsync();
+
+        model.QueryText = "spool";
+        model.QueryText = "spool stat:runing";
+
+        machine.Install(Entry("SpoolerHelper"));
+
+        await model.RefreshAsync();
+
+        Assert.Equal(["Spooler", "SpoolerHelper"], model.Rows.Select(row => row.ServiceName).Order(StringComparer.Ordinal));
+    }
+
     private static ScmEntry Stopped(string name) => Rows.Stopped(name);
 
     private static ScmEntry Driver(string name) => Rows.Driver(name);

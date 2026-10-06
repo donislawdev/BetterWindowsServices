@@ -17,8 +17,13 @@ public partial class MainWindow
     /// <summary>
     /// The plan that is open, as it was asked for - remembered at the moment it opens, because the
     /// sheet itself keeps the answer and not the question.
+    ///
+    /// <b>Over is the entry the plan is about when that is NOT the picked rows</b> - a forcing sheet
+    /// opened from a failure, which can be about a dependant of the row somebody picked. Backlog
+    /// 504, owner's decision 2026-10-05: the hand-over carries that name, so the window after a
+    /// restart asks the same question rather than the same kind of question about another entry.
     /// </summary>
-    private (ActionKind Kind, StartSetting? To, bool AlsoStop, bool Dependents)? _asked;
+    private (ActionKind Kind, StartSetting? To, bool AlsoStop, bool Dependents, IReadOnlyList<string>? Over)? _asked;
 
     /// <summary>
     /// The first reading, and everything that has to wait for it. Out of the constructor since
@@ -57,16 +62,26 @@ public partial class MainWindow
     /// for a guard, because the button that uses it may never be pressed in a test - a press is a
     /// UAC prompt and a closed host.
     /// </summary>
-    internal HandOver HandOverNow() => new()
+    internal HandOver HandOverNow()
     {
-        Scope = _model.Scope,
-        Query = _model.QueryText,
-        Picked = [.. PickedRows().Select(row => row.ServiceName)],
-        Asked = _model.Planned.Showing ? _asked?.Kind : null,
-        To = _model.Planned.Showing ? _asked?.To : null,
-        AlsoStop = _model.Planned.Showing && _asked?.AlsoStop == true,
-        Dependents = _model.Planned.Showing && _asked?.Dependents == true
-    };
+        // WHAT IS IN THE BOX RATHER THAN WHAT THE MODEL HAS HEARD SO FAR - G-9 of the external
+        // stability report. The box hands its text over 400 ms after the last key, so a restart
+        // pressed straight after typing would carry the query from before the last few characters.
+        Search.Commit();
+
+        var showing = _model.Planned.Showing;
+
+        return new()
+        {
+            Scope = _model.Scope,
+            Query = _model.QueryText,
+            Picked = showing && _asked?.Over is { } over ? [.. over] : [.. PickedRows().Select(row => row.ServiceName)],
+            Asked = showing ? _asked?.Kind : null,
+            To = showing ? _asked?.To : null,
+            AlsoStop = showing && _asked?.AlsoStop == true,
+            Dependents = showing && _asked?.Dependents == true
+        };
+    }
 
     /// <summary>
     /// Puts back what the window this one replaced was showing, after the first reading - the rows
@@ -93,6 +108,13 @@ public partial class MainWindow
             return;
         }
 
+        // THE HOLD IS LET GO FOR THE LENGTH OF THE TAKE-OVER - G-7 of the external stability report.
+        // A new window very often opens under the pointer, and the list then refuses to rearrange
+        // itself (`A10`) - so the scope and the query below changed nothing on screen and the picks
+        // were looked for among the rows of the list the window opened on. This is the window's
+        // first content rather than a list moving under somebody's hand, which is what the hold is for.
+        _model.Interacting = false;
+
         _model.ShowingOverview = false;
         _model.Scope = carried.Scope;
         _model.QueryText = carried.Query;
@@ -102,9 +124,17 @@ public partial class MainWindow
             _model.Says.AboutTheHandOver(Texts.Of("gui.handOver.pickedLeftBehind"));
         }
 
+        if (carried.QueryLeftBehind)
+        {
+            _model.Says.AboutTheHandOver(Texts.Of("gui.handOver.queryLeftBehind"));
+        }
+
         var wanted = new HashSet<string>(carried.Picked, StringComparer.OrdinalIgnoreCase);
         var found = PickAgain(wanted);
         var gone = wanted.Count - found;
+
+        // And back to whatever the pointer and the keyboard say now, the way ListReleased asks.
+        _model.Interacting = Entries.IsMouseOver || Entries.IsKeyboardFocusWithin;
 
         if (gone > 0)
         {

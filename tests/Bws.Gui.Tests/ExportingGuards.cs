@@ -33,7 +33,7 @@ public sealed class ExportingGuards
     {
         var rows = new[] { EntryRow.Of(Rows.Entry("Spooler", "Print Spooler")) };
 
-        var text = Exporting.AsCsv(["serviceName", "displayName"], rows);
+        var text = Exporting.AsCsv(["serviceName", "displayName"], rows, ",");
 
         var lines = text.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
 
@@ -58,7 +58,7 @@ public sealed class ExportingGuards
     [Fact]
     public void A_list_narrowed_to_nothing_writes_a_heading_and_no_rows()
     {
-        var text = Exporting.AsCsv(["serviceName"], []);
+        var text = Exporting.AsCsv(["serviceName"], [], ",");
 
         Assert.Equal(Bws.Gui.Texts.Of("gui.column.name") + Environment.NewLine, text);
     }
@@ -75,13 +75,13 @@ public sealed class ExportingGuards
     {
         var awkward = Rows.Entry("Spooler", "Prints, \"quickly\"\r\nand quietly");
 
-        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(awkward)]);
+        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(awkward)], ",");
 
         Assert.Contains("\"Prints, \"\"quickly\"\"\r\nand quietly\"", text, StringComparison.Ordinal);
 
         // And nothing that does not need it is quoted, because a file where every field is wrapped
         // is one nobody can read in a text editor.
-        Assert.DoesNotContain("\"Spooler\"", Exporting.AsCsv(["serviceName"], [EntryRow.Of(awkward)]), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Spooler\"", Exporting.AsCsv(["serviceName"], [EntryRow.Of(awkward)], ","), StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public sealed class ExportingGuards
     [InlineData("@SUM(A1)")]
     public void A_value_a_spreadsheet_would_evaluate_is_made_inert(string dangerous)
     {
-        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", dangerous))]);
+        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", dangerous))], ",");
 
         Assert.Contains("'" + dangerous, text, StringComparison.Ordinal);
     }
@@ -115,7 +115,7 @@ public sealed class ExportingGuards
         // The half that must not be bought with the one above. Nearly every value in this file is
         // ordinary, and a file where they all carried a stray apostrophe would be a file nobody
         // could paste anywhere.
-        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", "Print Spooler"))]);
+        var text = Exporting.AsCsv(["displayName"], [EntryRow.Of(Rows.Entry("Spooler", "Print Spooler"))], ",");
 
         Assert.Contains("Print Spooler", text, StringComparison.Ordinal);
         Assert.DoesNotContain("'Print Spooler", text, StringComparison.Ordinal);
@@ -341,5 +341,63 @@ public sealed class ExportingGuards
     {
         Assert.Contains("1 entry to", Exporting.Wrote(1, "drivers.csv"), StringComparison.Ordinal);
         Assert.Contains("0 entries to", Exporting.Wrote(0, "drivers.csv"), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// G-8 of the external stability report, owner's decision in round 2: the separator Windows names
+    /// for this person, because a double click splits the file by exactly that. A culture built here
+    /// rather than the machine's, so the test says the same on a Polish desk and on the CI runner.
+    /// </summary>
+    [Fact]
+    public void The_file_is_split_the_way_windows_says_and_a_value_holding_the_separator_is_quoted()
+    {
+        var polish = Listing(";");
+
+        Assert.Equal(";", Exporting.Separator(polish));
+
+        var text = Exporting.AsCsv(
+            ["serviceName", "displayName"],
+            [EntryRow.Of(Rows.Entry("Spooler", "Prints; queues, waits"))],
+            Exporting.Separator(polish));
+
+        Assert.Equal("Spooler;\"Prints; queues, waits\"", text.Split("\r\n")[1]);
+    }
+
+    /// <summary>A setting the format cannot carry - nothing, a quote, a line break - falls back to the comma.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("\"")]
+    [InlineData("\n")]
+    public void A_separator_the_format_cannot_carry_falls_back_to_the_comma(string listed)
+    {
+        Assert.Equal(",", Exporting.Separator(Listing(listed)));
+    }
+
+    /// <summary>
+    /// The second half of G-8, owner's decision 2026-10-05: the file keeps one row per row on screen,
+    /// and the sentence says how many per-user copies went in folded, so the count of rows and the
+    /// count of entries under the list do not seem to disagree.
+    /// </summary>
+    [Fact]
+    public void The_sentence_says_how_many_copies_went_in_folded()
+    {
+        var template = EntryRow.Of(Rows.Entry("CDPUserSvc"));
+
+        Assert.Equal(Exporting.Wrote(1, "services.csv"), Exporting.Done([template], "services.csv"));
+
+        template.StandsAlsoFor([EntryRow.Of(Rows.Entry("CDPUserSvc_1a")), EntryRow.Of(Rows.Entry("CDPUserSvc_2b"))]);
+
+        Assert.Equal(
+            Exporting.Wrote(1, "services.csv") + " " + Bws.Gui.Texts.Of("gui.export.folded.many", 2),
+            Exporting.Done([template], "services.csv"));
+    }
+
+    private static System.Globalization.CultureInfo Listing(string separator)
+    {
+        var culture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.InvariantCulture.Clone();
+
+        culture.TextInfo.ListSeparator = separator;
+
+        return culture;
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Bws.Gui.ViewModels;
@@ -34,22 +35,65 @@ internal static class Exporting
     ///
     /// <b>Lines end the way the standard says and the way Windows reads</b>, which is the same
     /// answer for once.
+    ///
+    /// <b>The separator is handed in, and the window hands in <see cref="Separator"/></b> - a
+    /// comma until 2026-10-05, which a spreadsheet on a machine whose list separator is a semicolon
+    /// opened as one column of whole lines.
     /// </summary>
-    internal static string AsCsv(IReadOnlyList<string> columns, IReadOnlyList<EntryRow> rows)
+    internal static string AsCsv(IReadOnlyList<string> columns, IReadOnlyList<EntryRow> rows, string separator)
     {
         ArgumentNullException.ThrowIfNull(columns);
         ArgumentNullException.ThrowIfNull(rows);
 
         var text = new StringBuilder();
 
-        Line(text, columns.Select(id => Columns.Of(id) is { } known ? Texts.Of(known.LabelKey) : id));
+        Line(text, columns.Select(id => Columns.Of(id) is { } known ? Texts.Of(known.LabelKey) : id), separator);
 
         foreach (var row in rows)
         {
-            Line(text, columns.Select(id => row[id]));
+            Line(text, columns.Select(id => row[id]), separator);
         }
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// The list separator this person's Windows uses - a semicolon on this project's own machine
+    /// (pl-PL, measured 2026-09-30) and a comma under English settings. G-8 of the external stability
+    /// report, owner's decision in round 2: the file is opened by a double click far more often than
+    /// through an import dialog, and a double click splits by the separator Windows names.
+    ///
+    /// <b>A comma when the setting is something a file of this shape cannot carry</b> - nothing at
+    /// all, or a quote or a line break, which are the three things quoting itself is made of.
+    /// </summary>
+    internal static string Separator(CultureInfo culture)
+    {
+        ArgumentNullException.ThrowIfNull(culture);
+
+        var listed = culture.TextInfo.ListSeparator;
+
+        return listed.Length == 0 || listed.Any(character => character is '"' or '\r' or '\n') ? "," : listed;
+    }
+
+    /// <summary>
+    /// What the window says once the file is written, including the per-user copies that went in
+    /// folded under their template's row - G-8 of the external stability report, owner's decision
+    /// 2026-10-05. The file keeps one row per row on screen, and the sentence says what that row
+    /// stood for, so the count here and the count under the list do not seem to disagree.
+    /// </summary>
+    internal static string Done(IReadOnlyList<EntryRow> rows, string file)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+
+        var wrote = Wrote(rows.Count, file);
+        var folded = rows.Sum(row => row.Instances.Count);
+
+        return folded switch
+        {
+            0 => wrote,
+            1 => wrote + " " + Texts.Of("gui.export.folded.one", folded),
+            _ => wrote + " " + Texts.Of("gui.export.folded.many", folded)
+        };
     }
 
     /// <summary>
@@ -84,9 +128,9 @@ internal static class Exporting
             ? Texts.Of("gui.export.done.one", rows, file)
             : Texts.Of("gui.export.done.many", rows, file);
 
-    private static void Line(StringBuilder text, IEnumerable<string> values)
+    private static void Line(StringBuilder text, IEnumerable<string> values, string separator)
     {
-        text.AppendJoin(',', values.Select(value => Quoted(Inert(value))));
+        text.AppendJoin(separator, values.Select(value => Quoted(Inert(value), separator)));
         text.Append("\r\n");
     }
 
@@ -129,10 +173,13 @@ internal static class Exporting
     /// <b>Only when it has to be, rather than always.</b> Both are legal and the difference reaches
     /// a person: a file where every field is quoted is unreadable in a text editor, and this one is
     /// opened by hand at least as often as by a program.
+    ///
+    /// <b>The separator in use, not a comma</b>, since the separator stopped being one everywhere -
+    /// a semicolon inside a description is the value cut in two on a Polish machine.
     /// </summary>
-    private static string Quoted(string value)
+    private static string Quoted(string value, string separator)
     {
-        if (!value.Contains(',', StringComparison.Ordinal)
+        if (!value.Contains(separator, StringComparison.Ordinal)
             && !value.Contains('"', StringComparison.Ordinal)
             && !value.Contains('\n', StringComparison.Ordinal)
             && !value.Contains('\r', StringComparison.Ordinal))

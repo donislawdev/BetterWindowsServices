@@ -108,7 +108,7 @@ public sealed class HandOverTests
     public void A_value_longer_than_this_program_writes_is_refused_before_it_is_decoded()
     {
         var names = string.Join(",", Enumerable.Range(0, 200).Select(index => $"\"Service{index:D12}\""));
-        var json = $$"""{"V":2,"Scope":"Services","Query":"{{new string('a', 4000)}}","Picked":[{{names}}]}""";
+        var json = $$"""{"V":3,"Scope":"Services","Query":"{{new string('a', 4000)}}","Picked":[{{names}}]}""";
         var value = Base64Url.EncodeToString(Encoding.UTF8.GetBytes(json));
 
         Assert.True(value.Length > HandOver.LongestArgument);
@@ -116,30 +116,30 @@ public sealed class HandOverTests
     }
 
     [Theory]
-    [InlineData("""{"V":1,"Scope":"Services","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":2,"Scope":"3","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":2,"Scope":"Services, Drivers","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":2,"Scope":"services","Query":"","Picked":[]}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Picked":[]}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spool\ner"]}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":[""]}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Delete"}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","To":"Manual"}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType"}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot, System"}""")]
+    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":3,"Scope":"3","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":3,"Scope":"Services, Drivers","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":3,"Scope":"services","Query":"","Picked":[]}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Picked":[]}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spool\ner"]}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":[""]}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Delete"}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","To":"Manual"}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType"}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot, System"}""")]
     // A read-side type this window could never have offered, and the two shapes of a stop riding on
     // something it never rides on - since 2026-09-24, when the setting became four values and the
     // offer to stop arrived.
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot"}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Manual","Stop":true}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","Stop":true}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Stop":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Boot"}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Manual","Stop":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Stop","Stop":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Stop":true}""")]
     // The dependants beside a kind that cannot take them, and with no plan at all - since
     // 2026-09-30, when the offer to stop them arrived (W-4). EquivalentCommand renders the switch
     // for stop, restart and the two forcing kinds and nothing else.
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Start","Deps":true}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Disabled","Stop":true,"Deps":true}""")]
-    [InlineData("""{"V":2,"Scope":"Services","Query":"","Picked":["Spooler"],"Deps":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"Start","Deps":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Asked":"SetStartType","To":"Disabled","Stop":true,"Deps":true}""")]
+    [InlineData("""{"V":3,"Scope":"Services","Query":"","Picked":["Spooler"],"Deps":true}""")]
     [InlineData("""[[[[[[[[[[]]]]]]]]]]""")]
     public void A_hand_over_this_program_could_not_have_written_is_refused_whole(string json)
     {
@@ -148,10 +148,67 @@ public sealed class HandOverTests
         Assert.Equal((null, true), HandOver.Read([HandOver.Argument, value]));
     }
 
+    /// <summary>
+    /// G-7 of the external stability report, owner's decision 2026-10-05: a query longer than the
+    /// reading side takes used to cross anyway, and the new window refused the WHOLE hand-over over
+    /// it. Now the query stays behind whole and says so, and the picks and the plan still cross.
+    /// </summary>
+    [Fact]
+    public void A_query_longer_than_the_reading_side_takes_stays_behind_and_the_rest_crosses()
+    {
+        var (carried, refused) = HandOver.Read([HandOver.Argument, Sent(new string('a', 4097)).Encode()]);
+
+        Assert.False(refused);
+        Assert.NotNull(carried);
+        Assert.Equal(string.Empty, carried.Query);
+        Assert.True(carried.QueryLeftBehind);
+        Assert.Equal(["Spooler"], carried.Picked);
+        Assert.Equal(ActionKind.Stop, carried.Asked);
+    }
+
+    /// <summary>
+    /// Short enough in characters and too long once written: a letter outside ASCII is six characters
+    /// inside the argument. The picks are what somebody restarted to act on, so the query goes and
+    /// they stay - and the first version of Encode, which only knew how to drop the picks, wrote an
+    /// argument over the budget that the new window refused whole.
+    /// </summary>
+    [Fact]
+    public void A_query_too_long_once_written_goes_before_the_picks_do()
+    {
+        var letters = new string((char)0x142, 4000);
+        var value = Sent(letters).Encode();
+
+        Assert.True(value.Length <= HandOver.LongestArgument);
+
+        var (carried, _) = HandOver.Read([HandOver.Argument, value]);
+
+        Assert.NotNull(carried);
+        Assert.True(carried.QueryLeftBehind);
+        Assert.False(carried.PickedLeftBehind);
+        Assert.Equal(["Spooler"], carried.Picked);
+    }
+
+    /// <summary>The flag and a query together is a hand-over this program never writes.</summary>
+    [Fact]
+    public void A_query_both_carried_and_left_behind_is_refused()
+    {
+        var json = """{"V":3,"Scope":"Services","Query":"spool","Picked":[],"QLeft":true}""";
+
+        Assert.Equal((null, true), HandOver.Read([HandOver.Argument, Base64Url.EncodeToString(Encoding.UTF8.GetBytes(json))]));
+    }
+
+    private static HandOver Sent(string query) => new()
+    {
+        Scope = EntryScope.Services,
+        Query = query,
+        Picked = ["Spooler"],
+        Asked = ActionKind.Stop
+    };
+
     [Fact]
     public void A_query_longer_than_the_box_would_hold_is_refused()
     {
-        var json = $$"""{"V":2,"Scope":"Services","Query":"{{new string('a', 5000)}}","Picked":[]}""";
+        var json = $$"""{"V":3,"Scope":"Services","Query":"{{new string('a', 5000)}}","Picked":[]}""";
 
         Assert.Equal((null, true), HandOver.Read([HandOver.Argument, Base64Url.EncodeToString(Encoding.UTF8.GetBytes(json))]));
     }

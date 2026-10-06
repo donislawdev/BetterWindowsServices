@@ -57,6 +57,24 @@ public sealed class HelpMenuGuards
     }
 
     /// <summary>
+    /// G-9 of the external stability report: the overview puts the row holding Help away, and F1
+    /// there opened the menu under a button that was not on screen. A key whose button is away
+    /// opens nothing and is handed back, so the press is not swallowed by a menu nobody sees.
+    /// </summary>
+    [Fact]
+    public void F1_on_the_overview_opens_no_menu_under_a_button_that_is_put_away()
+    {
+        var window = WpfHost.Window();
+
+        WpfHost.On(() => ((ViewModels.MainViewModel)window.DataContext).ShowingOverview = true);
+
+        Assert.False(WpfHost.On(() => window.Act(Shortcut.Help, out _)));
+        Assert.False(WpfHost.On(() => window.Scope.Help.ContextMenu!.IsOpen));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
     /// The page is the project's own, over https, and the button says before it is pressed that the
     /// tool itself connects to nothing - the one moment a person could feel `ADR-19` was broken is
     /// the moment a browser appears.

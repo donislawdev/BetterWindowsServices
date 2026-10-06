@@ -295,7 +295,7 @@ public partial class MainWindow
         if (shown)
         {
             // The question behind the open sheet, for a restart as administrator to ask again.
-            _asked = (kind, to, alsoStop, dependents);
+            _asked = (kind, to, alsoStop, dependents, null);
 
             PlanPanel.TakeTheKeyboard();
         }
@@ -437,7 +437,10 @@ public partial class MainWindow
 
         if (shown)
         {
-            _asked = (offer.Kind, null, false, false);
+            // The entry from the failure rides along, because it need not be the picked row - and a
+            // restart as administrator from this sheet has to ask about it rather than about that
+            // row. Backlog 504.
+            _asked = (offer.Kind, null, false, false, [offer.ServiceName]);
 
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it

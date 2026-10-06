@@ -165,7 +165,10 @@ internal static class Texts
 
         try
         {
-            return File.Exists(file) ? File.OpenRead(file) : null;
+            // READ WHOLE, HERE, SINCE 2026-10-05 - G-9. Handed over as an open file, the reading
+            // itself happened later inside Merge, where a share going away mid-file threw an
+            // IOException nothing caught. Here the two catches below already answer for it.
+            return File.Exists(file) ? new MemoryStream(File.ReadAllBytes(file)) : null;
         }
         catch (IOException)
         {
@@ -229,6 +232,15 @@ internal static class Texts
 
         using (document)
         {
+            // A FILE THAT PARSES AND IS NOT AN OBJECT IS NOT A LANGUAGE EITHER - G-9 of the external
+            // stability report of 2026-09-29. `[]` or a bare string beside the executable parsed
+            // cleanly, and EnumerateObject on it threw from this static initialiser, which is the
+            // window that never appears the comment above was written to prevent.
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return;
+            }
+
             foreach (var property in document.RootElement.EnumerateObject())
             {
                 // Anything that is not a plain string describes the file rather than being

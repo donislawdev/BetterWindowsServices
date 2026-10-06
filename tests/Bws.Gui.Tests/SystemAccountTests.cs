@@ -119,7 +119,7 @@ public sealed class SystemAccountTests
             Account = Reading<string>.Present(@"NT AUTHORITY\NetworkService")
         });
 
-        var text = Exporting.AsCsv(["serviceName", "account"], [row]);
+        var text = Exporting.AsCsv(["serviceName", "account"], [row], ",");
 
         Assert.Contains("Spooler,Network Service", text, StringComparison.Ordinal);
         Assert.DoesNotContain("NetworkService", text, StringComparison.Ordinal);

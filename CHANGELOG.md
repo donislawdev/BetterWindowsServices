@@ -153,6 +153,31 @@ is not part of this repository.
 
 ### Fixed
 
+- The window no longer writes over a column layout file it said it left alone. A file from a newer
+  version, a damaged file that could not be moved aside, and a file another program held open while
+  the window started are now left exactly as they are, the window says that changes to the columns
+  will not be saved over them, and nothing it does afterwards writes to them. Before, the first
+  column moved - or simply closing the window - replaced them with the default layout. A file that
+  could not be opened is no longer described as one that could not be moved.
+- Export separates the values with the list separator set in your Windows region settings, so a
+  double click opens the file in columns where that separator is a semicolon, and a value holding
+  the separator is quoted. The sentence after the export also says how many per-user copies went in
+  folded into their template's row.
+- Restarting as administrator with a very long search no longer loses everything else: the search
+  stays behind and the new window says so, while the list, the picked entries and the open plan come
+  back. A plan opened from a failure - a force stop offered after a stop gave up - comes back about
+  the service that failed, where it used to come back about the row you had picked. And the new
+  window finds the picked entries even when it opens under the mouse pointer.
+- A search with a mistake in it no longer freezes the list: switching between services and drivers,
+  and services appearing or going away, show up under the last search that could be read.
+- Escape straight after typing empties the search box, and a restart as administrator carries the
+  search as it stands in the box rather than as it stood a moment before.
+- The machine overview shows placeholders rather than zeroes when the first reading failed, and a
+  number clicked there from the Drivers tab opens the list that holds what it counted.
+- F1 on the machine overview no longer opens the help menu under a button that is not on screen.
+- A failure the window cannot recover from before it has appeared ends the program with a message
+  naming the cause, where it used to leave a program running with no window. A language file beside
+  the program that is not a JSON object leaves the window in English rather than stopping it.
 - Closing the console window while a plan runs counts as the first Ctrl+C: the tool stops going
   forward and puts back what it took down, in the five seconds Windows gives a program after the
   window closes. A restart closed between its stop and its start used to leave the service stopped.

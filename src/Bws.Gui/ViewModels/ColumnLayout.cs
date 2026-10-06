@@ -478,6 +478,18 @@ internal sealed record LayoutReading
     /// <summary>Why the file is not a layout at all. The file is moved aside when this is set.</summary>
     internal string? Unreadable { get; init; }
 
+    /// <summary>
+    /// Why the file could not even be opened - held by something else, or not readable by this
+    /// account. G-3 of the external stability report of 2026-09-29.
+    ///
+    /// <b>Not <see cref="Unreadable"/>, and until then it was.</b> Unreadable means the bytes were
+    /// read and are not a layout, so moving them aside is the honest answer. This means nobody has
+    /// seen the bytes at all - the file may be a perfectly good layout that an antivirus scanner
+    /// happened to hold for a moment - so it is neither moved nor overwritten, and the sentence the
+    /// window says about it does not claim a move that nobody attempted.
+    /// </summary>
+    internal string? Unopened { get; init; }
+
     /// <summary>Where the unreadable file went, when it could be moved at all.</summary>
     internal string? MovedAside { get; init; }
 
@@ -495,4 +507,23 @@ internal sealed record LayoutReading
     /// something on their disk without saying so.
     /// </summary>
     internal int? CarriedForwardFrom { get; init; }
+
+    /// <summary>
+    /// Whether the file on disk must not be written over for as long as this window is open - G-3
+    /// of the external stability report of 2026-09-29.
+    ///
+    /// <b>Three ways in, and the sentence for each one already promised this before anything kept
+    /// the promise.</b> Another schema says "left alone". A file that is not a layout and could not
+    /// be moved aside is still the only copy of whatever somebody had. One that could not be opened
+    /// may be a good layout that was held for a moment. Until 2026-10-05 the first change to a column
+    /// - or simply closing the window - wrote the default layout over all three.
+    ///
+    /// <b>For the whole session rather than until something changes</b>, because nothing in this
+    /// window learns more about the file than it did at startup, and a write that waits for a
+    /// better moment is still a write over something nobody has read.
+    /// </summary>
+    internal bool LeftAlone =>
+        OtherSchemaVersion is not null
+        || Unopened is not null
+        || (Unreadable is not null && MovedAside is null);
 }

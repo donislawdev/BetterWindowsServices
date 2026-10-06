@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Data;
@@ -75,7 +76,7 @@ public partial class MainWindow
     internal string? WriteShownTo(string path)
     {
         var rows = InTheOrderOnScreen();
-        var text = Exporting.AsCsv(ShownColumns(), rows);
+        var text = Exporting.AsCsv(ShownColumns(), rows, Exporting.Separator(CultureInfo.CurrentCulture));
 
         string? trouble;
 
@@ -96,7 +97,7 @@ public partial class MainWindow
 
         if (trouble is null)
         {
-            _model.Says.Did(Exporting.Wrote(rows.Count, Path.GetFileName(path)));
+            _model.Says.Did(Exporting.Done(rows, Path.GetFileName(path)));
         }
         else
         {

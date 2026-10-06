@@ -534,9 +534,12 @@ how big it is. The search box takes the query language and suggests as you type 
 writes the highlighted word. The filter
 buttons write into the box. *Columns* chooses what the list shows, a right-click on a column heading
 narrows the list to that value or puts the column away, and the layout you leave is the layout it
-opens in. A row's menu previews every operation before offering it, and copies the name or
+opens in - unless the file holding it is one the window cannot use, from a newer version or held
+by another program, which it then says, leaves alone and saves nothing over. A row's menu previews
+every operation before offering it, and copies the name or
 everything about the entry, display name and description included. *Export...* writes the rows on screen, in the columns
-you have on and the order you sorted them into, to a CSV file. Ctrl+C over the list copies
+you have on and the order you sorted them into, to a CSV file separated the way your Windows region
+settings separate lists, so a double click opens it in columns. Ctrl+C over the list copies
 everything about the chosen entry. Escape backs out of the innermost thing first. *Donate*, at the
 right end of the row above the search box, opens the project's support page in your browser - and
 in a window running as administrator it asks the desktop to open it, so the browser does not get

@@ -163,6 +163,22 @@ public sealed class LanguageGuards
         Assert.Equal("one 1 and 2", Texts.Formatted("one {0} and {1}", 1, 2));
     }
 
+    /// <summary>
+    /// G-9 of the external stability report: a file that parses and is not an object - an array, a
+    /// bare string - threw from the static initialiser, so the window never appeared. It is no
+    /// language, and English stands.
+    /// </summary>
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("\"just a string\"")]
+    [InlineData("42")]
+    public void A_language_file_that_is_not_an_object_leaves_english_standing(string json)
+    {
+        var strings = Texts.Assemble("de", Only("en", @"{""a"": ""English""}"), Only("de", json));
+
+        Assert.Equal("English", strings["a"]);
+    }
+
     private static Func<string, Stream?> None => _ => null;
 
     private static Func<string, Stream?> Only(string code, string json) =>
