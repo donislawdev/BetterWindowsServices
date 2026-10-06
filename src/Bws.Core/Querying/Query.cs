@@ -12,7 +12,13 @@ namespace Bws.Core.Querying;
 /// <paramref name="Unreadable"/> because the way out of it is different: one calls for
 /// more permissions, the other for a cheaper expression.
 /// </param>
-public readonly record struct QueryMatch(bool Matched, bool Unreadable, bool TooCostly);
+/// <param name="Unvouched">
+/// Whether the answer rests on a publisher the signature does not vouch for. Separate from
+/// both above, and for the same reason they are separate from each other: the field was
+/// read, so the way out is to look at the signature, not to ask for more rights. Since
+/// 2026-10-06, security report S-6.
+/// </param>
+public readonly record struct QueryMatch(bool Matched, bool Unreadable, bool TooCostly, bool Unvouched);
 
 /// <summary>
 /// The entries a query selected, and how much of that answer is trustworthy.
@@ -28,7 +34,12 @@ public readonly record struct QueryMatch(bool Matched, bool Unreadable, bool Too
 /// How many entries an expression ran out of time on. Above zero, those entries were
 /// never really judged, and a quiet absence of results would be the worst way to report it.
 /// </param>
-public sealed record QueryResult(IReadOnlyList<ScmEntry> Entries, int Unreadable, int TooCostly);
+/// <param name="Unvouched">
+/// How many entries were judged on a publisher their signature does not vouch for. Above
+/// zero, the result may hold a file that only claims a signer, or miss one - which in an
+/// audit is the Microsoft file somebody changed after it was signed.
+/// </param>
+public sealed record QueryResult(IReadOnlyList<ScmEntry> Entries, int Unreadable, int TooCostly, int Unvouched);
 
 /// <summary>
 /// A query that has been read and compiled, ready to be run against entries.
@@ -128,12 +139,13 @@ public sealed class Query
     {
         if (IsEmpty)
         {
-            return new QueryResult(entries, Unreadable: 0, TooCostly: 0);
+            return new QueryResult(entries, Unreadable: 0, TooCostly: 0, Unvouched: 0);
         }
 
         var selected = new List<ScmEntry>(entries.Count);
         var unreadable = 0;
         var tooCostly = 0;
+        var unvouched = 0;
 
         foreach (var entry in entries)
         {
@@ -153,9 +165,14 @@ public sealed class Query
             {
                 tooCostly++;
             }
+
+            if (match.Unvouched)
+            {
+                unvouched++;
+            }
         }
 
-        return new QueryResult(selected, unreadable, tooCostly);
+        return new QueryResult(selected, unreadable, tooCostly, unvouched);
     }
 
     /// <summary>
@@ -172,6 +189,7 @@ public sealed class Query
         var matched = true;
         var unreadable = false;
         var tooCostly = false;
+        var unvouched = false;
 
         foreach (var term in _terms)
         {
@@ -181,17 +199,19 @@ public sealed class Query
 
             unreadable |= verdict.Unreadable;
             tooCostly |= verdict.TooCostly;
+            unvouched |= verdict.Unvouched;
 
             // An exclusion wins over anything that let the entry through. Somebody writes
             // an exclusion when they genuinely do not want to see the thing.
             //
             // An exclusion about a field nobody could read does not exclude, which is the
             // honest reading: there is no way to tell whether it applies. The entry stays
-            // and the result reports itself as partial.
+            // and the result reports itself as partial. The same holds for a publisher the
+            // signature does not vouch for - security report S-6 is exactly this line.
             matched &= term.Negated ? !verdict.Matched : verdict.Matched;
         }
 
-        return new QueryMatch(matched, unreadable, tooCostly);
+        return new QueryMatch(matched, unreadable, tooCostly, unvouched);
     }
 
     private static Verdict AnyValue(QueryField field, IReadOnlyList<IQueryValue> values, ScmEntry entry)

@@ -132,6 +132,18 @@ internal sealed class QueryField
     /// </summary>
     internal Func<ScmEntry, IReadOnlyList<string>?>? TextsOf { get; init; }
 
+    /// <summary>
+    /// Text fields only: whether the text this entry holds was read but nobody vouches for it.
+    /// Null for every field whose text is the machine's own answer, which today is all of them
+    /// but <c>publisher</c>.
+    ///
+    /// <b>Asked by the text values and by nothing else</b>, and that split is the rule rather
+    /// than an omission. <c>any</c>, <c>none</c> and <c>?</c> ask about the reading, and the
+    /// reading went fine - there IS a name. Only a question about what the name says rests on
+    /// believing it. Security report S-6, owner's decision 2026-10-06.
+    /// </summary>
+    internal Func<ScmEntry, bool>? Unvouched { get; init; }
+
     /// <summary>Enumeration fields only.</summary>
     internal Func<ScmEntry, FieldSymbols>? SymbolsOf { get; init; }
 

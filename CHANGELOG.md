@@ -328,6 +328,24 @@ is not part of this repository.
   make it write files - a profiler, a trace or dump switch, a diagnostic port, and for the window
   the folder its native libraries are unpacked to. A program cannot switch those off for itself,
   so it says they are there.
+- A publisher name is only taken at its word beside a *Trusted* signature. Beside any other verdict
+  it is what the certificate claims - a Microsoft file changed after it was signed still carries a
+  Microsoft certificate - so it is now shown as "Microsoft Windows (not verified)" in the window's
+  Publisher column, its details panel and its export, in `bws show`, and in the listing's signature
+  cell ("Tampered (Microsoft Windows, not verified)"). A query such as `!publisher:microsoft` used to
+  leave exactly that file out with full confidence. It now keeps it, `publisher:microsoft` leaves it
+  out, and both say in a line of their own how many entries were judged on a publisher their
+  signature does not prove. `publisher:any`, `none` and `?` answer as before. The JSON and the
+  snapshot file still carry the name as the certificate gives it.
+- A file that carries its own signature and was changed after it was signed is now reported as
+  *Tampered*. It used to come back as *Not signed*, because the tool asked Windows with a setting
+  under which a file whose bytes no longer match its signature counts as having none - so
+  `signed:tampered` never found anything, and comparing two snapshots showed *Trusted* becoming
+  *Not signed*. `signed:no` found the file either way. Verdicts on files nobody changed are the same
+  as before.
+- What *Trusted* does not mean is said where the fields are described - the window's suggestions,
+  the query language page and the README: revocation is not checked, so it means the chain was valid
+  on this machine, not that nobody revoked the certificate since.
 
 ## [0.3.0] - 2026-09-25
 

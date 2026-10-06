@@ -15,6 +15,9 @@ namespace Bws.Gui.Tests;
 /// </summary>
 public sealed class AnswerLineTests
 {
+    /// <summary>An answer that admits nothing - every count zero.</summary>
+    private static readonly Narrowed Nothing = new() { Selected = [], Unreadable = 0, TooCostly = 0, Unvouched = 0 };
+
     /// <summary>
     /// The four kinds of sentence, each in its own piece, and the whole line in the order it has
     /// always been said - rights, reservations, footing - because that is what every other test in
@@ -24,7 +27,7 @@ public sealed class AnswerLineTests
     public void Rights_reservations_and_footing_are_three_pieces_of_one_admission()
     {
         var admitted = Sentences.Admissions(
-            needs: Bws.Core.Querying.ExtraRead.Memory, held: true, unreadable: 0, tooCostly: 0,
+            needs: Bws.Core.Querying.ExtraRead.Memory, held: true, answer: Nothing,
             rights: Sentences.Rights(elevated: false, settings: []), have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 1,
             listOnScreen: true);
 
@@ -47,7 +50,7 @@ public sealed class AnswerLineTests
     public void The_rights_sentence_takes_no_trailing_space_when_nothing_follows_it()
     {
         var admitted = Sentences.Admissions(
-            needs: Bws.Core.Querying.ExtraRead.None, held: false, unreadable: 0, tooCostly: 0,
+            needs: Bws.Core.Querying.ExtraRead.None, held: false, answer: Nothing,
             rights: Sentences.Rights(elevated: false, settings: []), have: Bws.Core.Querying.ExtraRead.None, filling: false, folded: 0,
             listOnScreen: true);
 

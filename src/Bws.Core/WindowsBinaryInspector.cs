@@ -502,10 +502,21 @@ public sealed partial class WindowsBinaryInspector(NetworkPaths networkPaths = N
         // cleared: 797 entries, 790 Trusted, 3 NotSigned and 790 publishers WITH the flag and
         // WITHOUT it, identical. So the fetch that was happening changed no answer here. It
         // is still a fetch, and it still went to a third party.
+        //
+        // NO WTD_SAFER_FLAG BESIDE IT SINCE 2026-10-06, and that is worth the paragraph, because it
+        // stood here from the first slice with no reason written down anywhere. Microsoft's page on
+        // WINTRUST_DATA documents it in two words: "Not supported." Measured that day with
+        // tools/security-probe/tampered-copy.ps1 on copies of three files carrying their own
+        // signature (dotnet.exe, msedge.exe, git.exe), one byte changed in each: WITH the flag
+        // WinVerifyTrust answers 0x800B0100, no signature at all, and WITHOUT it 0x80096010, a bad
+        // digest - which is what Get-AuthenticodeSignature reports as HashMismatch. So a file changed
+        // after it was signed went on to the catalogues, was found in none, and came back NotSigned.
+        // Tampered, the one verdict that means somebody changed the file, never arrived for a file
+        // with its own signature. It does now, and its publisher arrives beside it with nobody
+        // vouching for it - security report S-6 made that safe earlier the same day.
         dwProvFlags = networkPaths == NetworkPaths.Follow
-            ? WINTRUST_DATA_PROVIDER_FLAGS.WTD_SAFER_FLAG
-            : WINTRUST_DATA_PROVIDER_FLAGS.WTD_SAFER_FLAG
-              | WINTRUST_DATA_PROVIDER_FLAGS.WTD_CACHE_ONLY_URL_RETRIEVAL
+            ? default
+            : WINTRUST_DATA_PROVIDER_FLAGS.WTD_CACHE_ONLY_URL_RETRIEVAL
     };
 
     private static unsafe int Ask(ref WINTRUST_DATA data)

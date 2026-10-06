@@ -55,6 +55,62 @@ internal static class Sentences
         : string.Empty;
 
     /// <summary>
+    /// What this answer could not judge, one sentence per reservation that has a count.
+    ///
+    /// <b>Its own method since 2026-10-06</b>, when security report S-6 brought a third reservation
+    /// and <see cref="Admissions"/> stepped into the crowd standing near the length ceiling. The seam
+    /// was already there: everything here is about the three counts the answer carries, and nothing
+    /// else in that method reads them.
+    /// </summary>
+    /// <param name="unread">The second phase families the query needs and nobody has read yet.</param>
+    private static IEnumerable<string> Unjudged(Narrowed answer, ExtraRead unread)
+    {
+        // Suppressed while a family the query needs has not been read, and this is a choice
+        // rather than an oversight. Both cases arrive as one count, and the sentence below says
+        // the machine refused - which for an unread family would turn "nobody looked" into "you
+        // were not allowed", the one distinction this project spends most of its rules keeping
+        // apart. The sentence before it in Admissions already says what happened.
+        //
+        // WHILE, NOT WHENEVER, SINCE 2026-09-23 - UX-GUI-001 of the audit that day. The test was
+        // `needs == ExtraRead.None`, which held the sentence back for every query needing a
+        // second phase family INCLUDING AFTER THE PASS HAD RUN, when what is left unread is what
+        // the machine refused. Measured on a window without administrator rights: memory:>100MB
+        // answered "nothing matches" with 103 running services refused - and a shown Memory
+        // column, which sets needs too, silenced the sentence for questions about any other field.
+        // The command line has always said it on any count (Execution.cs), so this is also where
+        // the two interfaces stopped disagreeing about the same answer.
+        //
+        // A SINGULAR BESIDE EACH PLURAL, backlog 207, and these two are the pair a person really
+        // meets: one entry judged on a field nobody could read is an ordinary answer on a machine
+        // where one service refuses its configuration. Written out rather than picking a key into a
+        // variable - a key travelling as a variable is invisible to TextKeyGuards.
+        if (answer.Unreadable > 0 && unread == ExtraRead.None)
+        {
+            yield return answer.Unreadable == 1
+                ? Texts.Of("gui.status.partial.one", answer.Unreadable)
+                : Texts.Of("gui.status.partial.many", answer.Unreadable);
+        }
+
+        // NOT HELD BACK WHILE THE SIGNATURES ARE BEING READ, unlike the sentence above. That one is
+        // held because "nobody looked" and "you were not allowed" arrive as one count. This count
+        // holds only signatures already read and not trusted, so it is true at every moment of the
+        // pass and only grows - security report S-6, 2026-10-06.
+        if (answer.Unvouched > 0)
+        {
+            yield return answer.Unvouched == 1
+                ? Texts.Of("gui.status.unvouched.one", answer.Unvouched)
+                : Texts.Of("gui.status.unvouched.many", answer.Unvouched);
+        }
+
+        if (answer.TooCostly > 0)
+        {
+            yield return answer.TooCostly == 1
+                ? Texts.Of("gui.status.tooCostly.one", answer.TooCostly)
+                : Texts.Of("gui.status.tooCostly.many", answer.TooCostly);
+        }
+    }
+
+    /// <summary>
     /// Everything this answer is not, in sentences.
     ///
     /// The order is deliberate: what was never read comes first, because it is the sentence
@@ -84,8 +140,13 @@ internal static class Sentences
     /// something, and the sentence travels whole rather than as a second parameter because this
     /// method already stands at the ceiling of the shape guard's parameter count.
     /// </param>
+    /// <param name="answer">
+    /// What the query could not judge - its three reservation counts. Two numbers stood here until
+    /// 2026-10-06, and security report S-6 brought a third: one more parameter would have crossed
+    /// the shape guard's ceiling, and the counts already travel together as one value.
+    /// </param>
     internal static Admitted Admissions(
-        ExtraRead needs, bool held, int unreadable, int tooCostly, string rights,
+        ExtraRead needs, bool held, Narrowed answer, string rights,
         ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
         // THREE PLACES RATHER THAN ONE LINE, SINCE 2026-09-23 - UX-GUI-009 of the audit that day.
@@ -125,38 +186,7 @@ internal static class Sentences
                 : Texts.Of("gui.query.unreadMemory"));
         }
 
-        // Suppressed while a family the query needs has not been read, and this is a choice
-        // rather than an oversight. Both cases arrive as one count, and the sentence below says
-        // the machine refused - which for an unread family would turn "nobody looked" into "you
-        // were not allowed", the one distinction this project spends most of its rules keeping
-        // apart. The sentence above already says what happened.
-        //
-        // WHILE, NOT WHENEVER, SINCE 2026-09-23 - UX-GUI-001 of the audit that day. The test was
-        // `needs == ExtraRead.None`, which held the sentence back for every query needing a
-        // second phase family INCLUDING AFTER THE PASS HAD RUN, when what is left unread is what
-        // the machine refused. Measured on a window without administrator rights: memory:>100MB
-        // answered "nothing matches" with 103 running services refused - and a shown Memory
-        // column, which sets needs too, silenced the sentence for questions about any other field.
-        // The command line has always said it on any count (Execution.cs), so this is also where
-        // the two interfaces stopped disagreeing about the same answer.
-        //
-        // A SINGULAR BESIDE EACH PLURAL, backlog 207, and these two are the pair a person really
-        // meets: one entry judged on a field nobody could read is an ordinary answer on a machine
-        // where one service refuses its configuration. Written out rather than picking a key into a
-        // variable, for the reason given three paragraphs above about TextKeyGuards.
-        if (unreadable > 0 && (needs & ~have) == ExtraRead.None)
-        {
-            notes.Add(unreadable == 1
-                ? Texts.Of("gui.status.partial.one", unreadable)
-                : Texts.Of("gui.status.partial.many", unreadable));
-        }
-
-        if (tooCostly > 0)
-        {
-            notes.Add(tooCostly == 1
-                ? Texts.Of("gui.status.tooCostly.one", tooCostly)
-                : Texts.Of("gui.status.tooCostly.many", tooCostly));
-        }
+        notes.AddRange(Unjudged(answer, unread: needs & ~have));
 
         // THE COUNT ABOVE THE LIST AND THE NUMBER OF ROWS IN IT NO LONGER AGREE, AND THIS IS THE
         // ONLY THING THAT SAYS SO. `A11` folds a session's copy under the template it came from,

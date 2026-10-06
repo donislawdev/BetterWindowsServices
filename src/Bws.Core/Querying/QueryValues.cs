@@ -15,18 +15,30 @@ namespace Bws.Core.Querying;
 /// Carrying the reservations as separate flags rather than ranking them means combining
 /// two verdicts never needs a precedence rule, and a precedence rule is where this would
 /// otherwise go quietly wrong.
+///
+/// <b>A third reservation since 2026-10-06, for the same reason the second one exists</b>: a
+/// publisher nobody vouches for was read perfectly well, so "could not be read" would send
+/// somebody off to find administrator rights that change nothing. The way out is the signature
+/// column, and a different way out is a different flag (security report S-6).
 /// </summary>
-internal readonly record struct Verdict(bool Matched, bool Unreadable, bool TooCostly)
+internal readonly record struct Verdict(bool Matched, bool Unreadable, bool TooCostly, bool Unvouched)
 {
-    internal static readonly Verdict Match = new(Matched: true, Unreadable: false, TooCostly: false);
+    internal static readonly Verdict Match = new(Matched: true, Unreadable: false, TooCostly: false, Unvouched: false);
 
-    internal static readonly Verdict NoMatch = new(Matched: false, Unreadable: false, TooCostly: false);
+    internal static readonly Verdict NoMatch = new(Matched: false, Unreadable: false, TooCostly: false, Unvouched: false);
 
     /// <summary>No, and the no rests on a field nobody was allowed to read.</summary>
-    internal static readonly Verdict CouldNotRead = new(Matched: false, Unreadable: true, TooCostly: false);
+    internal static readonly Verdict CouldNotRead = new(Matched: false, Unreadable: true, TooCostly: false, Unvouched: false);
 
     /// <summary>No, and nothing was really checked, because the expression ran out of time.</summary>
-    internal static readonly Verdict RanOutOfTime = new(Matched: false, Unreadable: false, TooCostly: true);
+    internal static readonly Verdict RanOutOfTime = new(Matched: false, Unreadable: false, TooCostly: true, Unvouched: false);
+
+    /// <summary>
+    /// No, and the no rests on a name the signature beside it does not vouch for. Not a match
+    /// and not a certain no either - under an exclusion the entry stays, which is the point:
+    /// <c>!publisher:microsoft</c> keeps the Microsoft file somebody changed after it was signed.
+    /// </summary>
+    internal static readonly Verdict NotVouchedFor = new(Matched: false, Unreadable: false, TooCostly: false, Unvouched: true);
 
     internal static Verdict Of(bool matched) => matched ? Match : NoMatch;
 
@@ -38,7 +50,8 @@ internal readonly record struct Verdict(bool Matched, bool Unreadable, bool TooC
     internal Verdict Or(Verdict other) => new(
         Matched || other.Matched,
         Unreadable || other.Unreadable,
-        TooCostly || other.TooCostly);
+        TooCostly || other.TooCostly,
+        Unvouched || other.Unvouched);
 }
 
 /// <summary>One value inside a member, already compiled and ready to be asked about entries.</summary>
@@ -140,6 +153,13 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
         if (QueryValue.Unanswerable(field, entry))
         {
             return Verdict.CouldNotRead;
+        }
+
+        // After the question about the reading, never before it: a refused signature has no name
+        // to doubt, and its own reservation says the truer thing.
+        if (field.Unvouched?.Invoke(entry) == true)
+        {
+            return Verdict.NotVouchedFor;
         }
 
         if (field.TextsOf is not null)

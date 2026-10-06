@@ -392,11 +392,19 @@ internal static class CellFaces
     ///
     /// An unsigned file has no publisher, and that is Absent rather than empty - the signature was
     /// read and there is genuinely nobody, which is not the same as nobody having looked.
+    ///
+    /// <b>A name the signature does not vouch for never stands bare, since 2026-10-06</b> - security
+    /// report S-6. This column is often on while the signature column is off, so "Microsoft Windows"
+    /// beside a file somebody changed after it was signed would read as a fact. The mark goes after
+    /// the name, so sorting by this column still groups by who the certificate names. The details
+    /// panel and the export read this same cell, so all three say it at once.
     /// </summary>
     public static string PublisherLabel(Reading<BinarySignature> reading) =>
         reading.IsPresent && reading.Value!.Publisher is null
             ? string.Empty
-            : Say(reading, signature => signature.Publisher!);
+            : Say(reading, signature => signature.VouchesForPublisher
+                ? signature.Publisher!
+                : Texts.Of("gui.cell.publisherNotVerified", signature.Publisher!));
 
     /// <summary>
     /// What a process is holding, in megabytes with one decimal.

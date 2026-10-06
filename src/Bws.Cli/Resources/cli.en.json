@@ -190,6 +190,7 @@
   "cli.show.binaryOnDisk": "File is on disk",
   "cli.show.signature": "Signature",
   "cli.show.publisher": "Publisher",
+  "cli.show.publisherNotVerified": "{0} (not verified)",
   "cli.show.fileVersion": "File version",
   "cli.show.binaryHash": "File hash",
   "cli.show.loadOrderGroup": "Load order group",
@@ -234,6 +235,7 @@
   "cli.cell.startTrigger": "{0}, on trigger",
   "cli.cell.startFileMissing": "{0}, file missing",
   "cli.cell.signedBy": "{0} ({1})",
+  "cli.cell.signedByNotVerified": "{0} ({1}, not verified)",
   "cli.subcommandMissing": "snapshot needs a word after it. There is: {0}.",
   "cli.unknownSubcommand": "There is no snapshot {0}. There is: {1}.",
 
@@ -299,6 +301,8 @@
   "cli.warning.delayRefused.one": "The delayed start setting was refused for {0} entry, so that one is shown without it.",
   "cli.warning.queryIncomplete.many": "{0} entries were judged on a field that could not be read. This result may be missing entries, or holding ones that do not belong.",
   "cli.warning.queryIncomplete.one": "{0} entry was judged on a field that could not be read. This result may be missing an entry, or holding one that does not belong.",
+  "cli.warning.queryUnvouched.many": "{0} entries were judged on a publisher their signature does not prove. This result may be missing entries, or holding ones that do not belong.",
+  "cli.warning.queryUnvouched.one": "{0} entry was judged on a publisher its signature does not prove. This result may be missing an entry, or holding one that does not belong.",
   "cli.warning.queryTooCostly.many": "The expression ran out of time on {0} entries, so they were never checked. Try a simpler one.",
   "cli.warning.queryTooCostly.one": "The expression ran out of time on {0} entry, so it was never checked. Try a simpler one.",
 
