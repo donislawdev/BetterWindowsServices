@@ -209,6 +209,7 @@
   "gui.status.holding": "The list is holding still while you use it, so nothing joins or leaves under your cursor. It settles when you move away, or on F5.",
 
   "gui.status.notElevated": "Running without administrator rights, so Windows hands over fewer entries than it has.",
+  "gui.status.runtimeSettings": "Running as administrator, and the environment sets .NET options that can load code into this window or make it write files: {0}. If you did not set them yourself, close the window and find out where they came from.",
   "gui.status.couldNotDo": "That did not happen. {0}",
 
   "gui.menu.startType": "Set startup type",

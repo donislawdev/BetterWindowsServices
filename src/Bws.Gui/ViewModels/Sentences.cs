@@ -31,6 +31,30 @@ internal static class Sentences
     // for into the text, which is what `A5` asks of every chip.
 
     /// <summary>
+    /// What the line under the list says about the session itself, before anything about the query.
+    ///
+    /// <para>
+    /// <b>Without administrator rights:</b> that the list is short. The sentence existed in the
+    /// language file from the beginning and reached no screen until 2026-08-05, which made it the
+    /// shape rule 8 forbids: the window knew the list was short and said nothing. Measured on this
+    /// machine: without elevation the manager enumerates 807 entries where an elevated session sees
+    /// 810, and five more refuse their security descriptor. Somebody reading a count has to know that
+    /// before anything else, because every other sentence here is about a list they think is complete.
+    /// </para>
+    /// <para>
+    /// <b>With them, since 2026-10-06:</b> which .NET settings in the environment can load code into
+    /// this window or make it write files - security report S-2, named rather than refused by the
+    /// owner's decision that day, and in the same red place because it is the same kind of fact: about
+    /// the process, not the query. Empty when there are none, which is the ordinary case.
+    /// </para>
+    /// </summary>
+    /// <param name="settings">What <c>Session.RuntimeSettingsFromEnvironment</c> found.</param>
+    internal static string Rights(bool elevated, IReadOnlyList<string> settings) =>
+        !elevated ? Texts.Of("gui.status.notElevated")
+        : settings.Count > 0 ? Texts.Of("gui.status.runtimeSettings", string.Join(", ", settings))
+        : string.Empty;
+
+    /// <summary>
     /// Everything this answer is not, in sentences.
     ///
     /// The order is deliberate: what was never read comes first, because it is the sentence
@@ -54,8 +78,14 @@ internal static class Sentences
     /// Whether the list is the thing in the middle of the window. False while the machine overview
     /// has it, which REPLACES the list rather than sitting over it - so there are no rows at all.
     /// </param>
+    /// <param name="rights">
+    /// What <see cref="Rights"/> says about this session - a sentence or empty. A boolean stood here
+    /// until 2026-10-06, and an elevated session had nothing to say. Security report S-2 gave it
+    /// something, and the sentence travels whole rather than as a second parameter because this
+    /// method already stands at the ceiling of the shape guard's parameter count.
+    /// </param>
     internal static Admitted Admissions(
-        ExtraRead needs, bool held, int unreadable, int tooCostly, bool elevated,
+        ExtraRead needs, bool held, int unreadable, int tooCostly, string rights,
         ExtraRead have, bool filling, int folded, bool listOnScreen)
     {
         // THREE PLACES RATHER THAN ONE LINE, SINCE 2026-09-23 - UX-GUI-009 of the audit that day.
@@ -67,15 +97,8 @@ internal static class Sentences
         // Admitted.Notice gives them back in.
         var notes = new List<string>();
 
-        // FIRST, BECAUSE IT IS A FACT ABOUT THE WHOLE LIST RATHER THAN ABOUT THIS QUERY.
-        //
-        // <b>The sentence existed in the language file from the beginning and reached no screen
-        // until 2026-08-05</b>, which made it the shape rule 8 forbids: the window knew the list
-        // was short and said nothing. Measured on this machine: without elevation the manager
-        // enumerates 807 entries where an elevated session sees 810, and five more refuse their
-        // security descriptor. Somebody reading a count has to know that before anything else,
-        // because every other sentence here is about a list they think is complete.
-        var rights = elevated ? string.Empty : Texts.Of("gui.status.notElevated");
+        // The rights sentence comes first and arrives composed - Rights says what it holds and why it
+        // leads.
 
         // THREE ANSWERS RATHER THAN TWO, SINCE 2026-08-18 - backlog 21, the second half of
         // `ADR-13`. "Nobody has looked" and "this is being looked at right now" are not the same

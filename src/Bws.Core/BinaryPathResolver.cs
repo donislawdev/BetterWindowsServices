@@ -192,10 +192,17 @@ public static class BinaryPathResolver
         /// there or refuses, with <paramref name="lookedAway"/> saying whether one was skipped for
         /// being off this machine - every place is asked about on its own, because a bare name
         /// searched along PATH can meet a share among local directories.
+        ///
+        /// <b>Or whether the candidate names a variable nobody here can answer for</b>, since
+        /// 2026-10-06 (security report S-3). It is still looked for under its literal name, and a
+        /// file found there is the answer - but nothing found is not "missing", because the
+        /// manager may know the variable this code does not. <see cref="ManagerEnvironment.Unresolved"/>
+        /// says why the process's own environment is no longer asked instead.
         /// </summary>
         private ResolvedBinary? Look(string written, out bool lookedAway)
         {
-            lookedAway = false;
+            lookedAway = written.Contains('%', StringComparison.Ordinal)
+                && ManagerEnvironment.Unresolved(written, WindowsDirectory);
 
             foreach (var place in Places(written))
             {

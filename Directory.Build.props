@@ -41,6 +41,31 @@
   </PropertyGroup>
 
   <!--
+    No startup hooks, in any process this repository builds - security report S-2, 2026-10-06.
+
+    The runtime runs every assembly named in DOTNET_STARTUP_HOOKS before Main. This tool is meant
+    to run with administrator rights, and an elevated process inherits the environment of the
+    account that started it - measured that day: every value in the account's own environment
+    was present in an elevated process. So anything able to set a variable for that account could
+    have had code run inside the elevated tool before a line of ours. Nothing here uses a startup
+    hook, so switching the feature off costs nothing the product has.
+
+    THE SWITCH IS WHAT IS ASSERTED, NOT THIS LINE. StartupHookGuards asks the runtime of the test
+    host - which is built from this same file - whether the switch is on, rather than reading the
+    property back from here. Set here rather than in the two shipped projects because a setting
+    that has to be repeated is a setting that is one day repeated wrongly, and the test projects
+    carrying it too is what lets a running process be asked.
+
+    WHAT THIS DOES NOT CLOSE, said so nobody assumes otherwise: a CoreCLR profiler is loaded from
+    the environment as well, and Microsoft's own table for it has no runtimeconfig.json setting at
+    all. That is why Session.RuntimeSettingsFromEnvironment exists - the tool cannot switch those
+    off, so an elevated process names them instead.
+  -->
+  <PropertyGroup>
+    <StartupHookSupport>false</StartupHookSupport>
+  </PropertyGroup>
+
+  <!--
     A documentation file, written and never shipped.
 
     Written because the compiler reports an unnecessary using directive (IDE0005) during a build

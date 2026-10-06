@@ -46,6 +46,10 @@ try
         return mistyped;
     }
 
+    // Before anything is read or written, so the line stands above whatever the command says. After
+    // help, version and a mistyped command, because none of those does anything worth warning about.
+    Execution.AdmitRuntimeSettings();
+
     // Never null where the verb needs one: Refusals has already turned back both a missing word
     // and one that names no start type, so what is left here is a value. Read again rather than
     // carried out of that block, because a refusal handing back a value as well as a code would

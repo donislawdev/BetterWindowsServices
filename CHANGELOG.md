@@ -314,6 +314,21 @@ is not part of this repository.
   used to verify every signature on the machine first and then answer "Access to the path is
   denied."
 
+### Security
+
+- A launch command naming `%ProgramFiles%`, `%ProgramData%` or another variable no longer reads
+  it from the environment of whoever runs the tool. That environment is the account's own, and an
+  elevated window or console inherits it, so a variable set there could make the tool describe,
+  sign-check and hash a different file from the one Windows starts. Those names now come from
+  Windows itself, the machine's own variables are read as written, and a name the tool cannot
+  answer for leaves the file "not read" rather than "missing".
+- Neither program runs code named in `DOTNET_STARTUP_HOOKS` any more.
+- With administrator rights, the window (in the line under the list) and the command line (on the
+  error output) name any .NET setting in the environment that can load code into the program or
+  make it write files - a profiler, a trace or dump switch, a diagnostic port, and for the window
+  the folder its native libraries are unpacked to. A program cannot switch those off for itself,
+  so it says they are there.
+
 ## [0.3.0] - 2026-09-25
 
 ### Added

@@ -51,5 +51,14 @@ administrative.
 - **The `--follow-network` switch reaching a network path when explicitly asked.** It is off
   by default for exactly this reason, and turning it on is a deliberate act.
 
+**Code running as the same account without elevation**, trying to reach the elevated tool, is
+handled as defence in depth rather than as a promise. Microsoft does not treat User Account Control
+as a security boundary, so neither does this project - but the tool is meant to run elevated on
+servers, and what is cheap to close is closed. Reports in this area are welcome. Two things are
+known and not closed, and are described in the README under *Honest limits*: the window unpacks
+native libraries to the account's temporary folder before it starts, and a .NET profiler or
+diagnostic setting in the account's environment is named by an elevated session rather than
+refused, because a program cannot switch those off for itself.
+
 A fuller version of the same boundary, including what the project deliberately does not
 protect, is kept with the project's own documentation.
