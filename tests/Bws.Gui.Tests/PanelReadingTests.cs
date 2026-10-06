@@ -275,7 +275,7 @@ public sealed class PanelReadingTests
 
         internal void Release() => _gate.Set();
 
-        public Reading<BinarySignature> ReadSignature(string file)
+        private Reading<BinarySignature> ReadSignature(string file)
         {
             Interlocked.Increment(ref _asked);
             _gate.Wait(TimeSpan.FromSeconds(10));
@@ -285,9 +285,8 @@ public sealed class PanelReadingTests
                 : Answer;
         }
 
-        public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("1.0.0.0");
-
-        public Reading<string> ReadHash(string file) => Reading<string>.Present(new string('a', 64));
+        public FileInspection Inspect(string file) =>
+            new(ReadSignature(file), Reading<string>.Present("1.0.0.0"), Reading<string>.Present(new string('a', 64)));
     }
 
     /// <summary>A memory reader whose figure says which process it was read for, and which can hold its second answer.</summary>

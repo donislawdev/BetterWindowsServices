@@ -48,7 +48,8 @@ internal static class DiffJson
                     diff.Caveats.ToolVersionDiffers,
                     diff.Caveats.LanguageDiffers,
                     diff.Caveats.AccountDiffers,
-                    diff.Caveats.NotKnown),
+                    diff.Caveats.NotKnown,
+                    diff.Caveats.FileVersionSourceDiffers),
                 [.. diff.Added.Select(Presence)],
                 [.. diff.Removed.Select(Presence)],
                 [.. diff.Uncertain.Select(Presence)],
@@ -102,6 +103,11 @@ internal static class DiffJson
     /// false because nobody could tell, not because the two agree. The three fields after the
     /// first four were added 2026-09-30 (D-5), so nothing a script already reads changed type.
     /// </param>
+    /// <param name="FileVersionSourceDiffers">
+    /// Added 2026-10-06 (package SB, schema six) and LAST rather than beside the other flags, so the
+    /// document only grew at its end. True when one side is schema six and the other older: file
+    /// versions were then not compared on any entry.
+    /// </param>
     private sealed record CaveatsDocument(
         bool ElevationDiffers,
         bool MachineDiffers,
@@ -109,7 +115,8 @@ internal static class DiffJson
         bool ToolVersionDiffers,
         bool LanguageDiffers,
         bool AccountDiffers,
-        IReadOnlyList<string> NotKnown);
+        IReadOnlyList<string> NotKnown,
+        bool FileVersionSourceDiffers);
 
     private sealed record LeftOutDocument(int Earlier, int Later);
 

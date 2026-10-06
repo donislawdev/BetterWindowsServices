@@ -1,0 +1,1309 @@
+{
+  "entries": [
+    {
+      "account": null,
+      "binaryFile": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\u0202073.inf_amd64_3c7f18bc022bf004\\B026184\\amdkmdag.sys",
+      "binaryHash": null,
+      "binaryOnDisk": false,
+      "binaryPath": "\\SystemRoot\\System32\\DriverStore\\FileRepository\\u0202073.inf_amd64_3c7f18bc022bf004\\B026184\\amdkmdag.sys",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": null,
+      "displayName": "amduw23g-202073-df09ebb6",
+      "entryType": "KernelDriver",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)",
+      "serviceName": "amduw23g-202073-df09ebb6",
+      "sidType": null,
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Disabled",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Informacje o aplikacji",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1234,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "Appinfo",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Running",
+      "triggers": [
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        },
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        },
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        },
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        },
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        },
+        {
+          "action": "Start",
+          "kind": "NetworkEndpoint"
+        }
+      ]
+    },
+    {
+      "account": null,
+      "binaryFile": "C:\\WINDOWS\\system32\\drivers\\AppvStrm.sys",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "\\SystemRoot\\system32\\drivers\\AppvStrm.sys",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "AppvStrm",
+      "entryType": "FileSystemDriver",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "AppvStrm",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "AsusUpdateCheck",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)",
+      "serviceName": "AsusUpdateCheck",
+      "sidType": null,
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": null,
+      "binaryFile": "C:\\WINDOWS\\System32\\drivers\\Beep.sys",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": null,
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": null,
+      "displayName": "Beep",
+      "entryType": "KernelDriver",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)",
+      "serviceName": "Beep",
+      "sidType": null,
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "System",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "NT AUTHORITY\\LocalService",
+      "binaryFile": "C:\\WINDOWS\\system32\\svchost.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\system32\\svchost.exe -k LocalServiceNoNetworkFirewall -p",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RpcSs"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Podstawowy aparat filtrowania",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 4296,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeAuditPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPLORCWDWO;;;SY)(A;;CCLCSWRPLORCWDWO;;;BA)(A;;CCLCLO;;;BU)",
+      "serviceName": "BFE",
+      "sidType": "Restricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": true,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Usługa inteligentnego transferu w tle",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 18044,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "BITS",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": null,
+      "binaryFile": "C:\\WINDOWS\\System32\\drivers\\bthmodem.sys",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "\\SystemRoot\\System32\\drivers\\bthmodem.sys",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Sterownik komunikacyjny modemu Bluetooth",
+      "entryType": "KernelDriver",
+      "errorControl": "Normal",
+      "fileVersion": null,
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "BTHMODEM",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": null,
+        "resultCode": -2146762496,
+        "status": "NotSigned"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Usługa użytkownika platformy podłączonych urządzeń",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "Template",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "CDPUserSvc",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": null,
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Usługa użytkownika platformy podłączonych urządzeń_21aaa4",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "Instance",
+      "processId": 5984,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "CDPUserSvc_21aaa4",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "Keeps files, settings and mail in step between this device and the service.\r\nIf this service is stopped, anything that depends on it explicitly will fail to start, and content will stop being kept up to date until the service is started again. Stopping it does not remove anything already on this device.",
+      "displayName": "Contoso Sync Host",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1234,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "ContosoSyncHost",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\Program Files\\Contoso\\VPN\\v4.4.1\\ContosoVPN.TunnelService.exe",
+      "binaryHash": null,
+      "binaryOnDisk": false,
+      "binaryPath": "\"C:\\Program Files\\Contoso\\VPN\\v4.4.1\\ContosoVPN.TunnelService.exe\" \"C:\\Program Files\\Contoso\\VPN\\v4.4.1\\ServiceData\\Tunnel\\ContosoVPN.conf\" \"udp\"",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "ContosoVPN Tunnel",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "ContosoVPN Tunnel",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Program uruchamiający proces serwera DCOM",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1900,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeAssignPrimaryTokenPrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeCreateGlobalPrivilege",
+        "SeDebugPrivilege",
+        "SeImpersonatePrivilege",
+        "SeIncreaseQuotaPrivilege",
+        "SeTcbPrivilege",
+        "SeBackupPrivilege",
+        "SeRestorePrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPWPDTLORCWDWO;;;SY)(A;;CCLCSWRPWPDTLORCWDWO;;;BA)(A;;CCLCLO;;;BU)",
+      "serviceName": "DcomLaunch",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\Program Files (x86)\\Fabrikam\\Fabrikam Game Launcher Core\\GameElevationService.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\Program Files (x86)\\Fabrikam\\Fabrikam Game Launcher Core\\GameElevationService.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Fabrikam Game Elevation Service",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "GameElevationService",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Automatic, and nobody could tell whether it is delayed",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "HalfRead",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Stopped",
+      "triggers": null,
+      "unreadable": {
+        "delayedAuto": {
+          "errorCode": 5,
+          "message": "access denied"
+        }
+      }
+    },
+    {
+      "account": null,
+      "binaryFile": null,
+      "binaryHash": null,
+      "binaryOnDisk": null,
+      "binaryPath": null,
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Nothing about this one could be read",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": null,
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": null,
+      "serviceName": "Locked",
+      "sidType": null,
+      "signature": null,
+      "startType": null,
+      "status": "Stopped",
+      "triggers": null,
+      "unreadable": {
+        "account": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "binaryFile": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "binaryOnDisk": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "binaryPath": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "delayedAuto": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "requiredPrivileges": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "securityDescriptor": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "sidType": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "signature": {
+          "errorCode": 5,
+          "message": "access denied"
+        },
+        "startType": {
+          "errorCode": 5,
+          "message": "access denied"
+        }
+      }
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\system32\\svchost.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\system32\\svchost.exe -k DcomLaunch -p",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Menedżer sesji lokalnej",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1388,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": null,
+      "serviceName": "LSM",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null,
+      "unreadable": {
+        "securityDescriptor": {
+          "errorCode": 5,
+          "message": "access denied"
+        }
+      }
+    },
+    {
+      "account": "NT SERVICE\\McmSvc",
+      "binaryFile": "C:\\WINDOWS\\system32\\svchost.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\system32\\svchost.exe -k McmSvc -p -s McmSvc",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Usługa zarządzania łącznością mobilną",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": null,
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRRC;;;LS)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLORC;;;IU)(A;;CCLCSWLOCRRC;;;SU)",
+      "serviceName": "McmSvc",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "NT SERVICE\\OpenVPNService",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "OpenVPNService",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "OpenVPNService",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Disabled",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": null,
+      "binaryHash": null,
+      "binaryOnDisk": null,
+      "binaryPath": null,
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Names no file at all",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": null,
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "PathLess",
+      "sidType": "Unrestricted",
+      "signature": null,
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Plug and Play",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1900,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "PlugPlay",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": null,
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Nothing needs to be running first",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "PlugPlayNoDeps",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Usługa PushToInstall systemu Windows",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 17452,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "PushToInstall",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "StartPending",
+      "triggers": null
+    },
+    {
+      "account": "localSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RpcSS",
+        "Bfe",
+        "RasMan",
+        "Http",
+        "+NetBIOSGroup"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Routing i dostęp zdalny",
+      "entryType": "SharedProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "RemoteAccess",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Disabled",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Bufor wydruku",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 4268,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "Spooler",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    },
+    {
+      "account": "NT AUTHORITY\\NetworkService",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": true,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Ochrona oprogramowania",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "sppsvc",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Stopped",
+      "triggers": [
+        {
+          "action": "Start",
+          "kind": "Custom"
+        },
+        {
+          "action": "Start",
+          "kind": "CustomSystemStateChange"
+        }
+      ]
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": null,
+      "displayName": "Microsoft IPv6 Protocol Driver",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1234,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "Tcpip6",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null,
+      "unreadable": {
+        "description": {
+          "errorCode": 1332,
+          "message": "The resource could not be found."
+        }
+      }
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": null,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "Nobody asked yet",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "triggers",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": null,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "TriggersUnknown",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Manual",
+      "status": "Stopped",
+      "triggers": null
+    },
+    {
+      "account": "LocalSystem",
+      "binaryFile": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "binaryHash": null,
+      "binaryOnDisk": true,
+      "binaryPath": "C:\\WINDOWS\\System32\\spoolsv.exe",
+      "delayedAuto": false,
+      "dependsOn": [
+        "RPCSS"
+      ],
+      "description": "This service spools print jobs and handles interaction with the printer. If you turn off this service, you won't be able to print or see your printers.",
+      "displayName": "First twin",
+      "entryType": "OwnProcess",
+      "errorControl": "Normal",
+      "fileVersion": "10.0.26100.1",
+      "loadOrderGroup": null,
+      "notRead": [
+        "requiredBy",
+        "binaryHash"
+      ],
+      "perUserRole": "None",
+      "processId": 1234,
+      "requiredBy": null,
+      "requiredPrivileges": [
+        "SeTcbPrivilege",
+        "SeImpersonatePrivilege",
+        "SeAuditPrivilege",
+        "SeChangeNotifyPrivilege",
+        "SeAssignPrimaryTokenPrivilege",
+        "SeLoadDriverPrivilege"
+      ],
+      "securityDescriptor": "O:SYG:SYD:(A;;CCLCSWLOCRRC;;;AU)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;SY)",
+      "serviceName": "Twin",
+      "sidType": "Unrestricted",
+      "signature": {
+        "publisher": "Microsoft Windows",
+        "resultCode": 0,
+        "status": "Trusted"
+      },
+      "startType": "Automatic",
+      "status": "Running",
+      "triggers": null
+    }
+  ],
+  "metadata": {
+    "elevated": true,
+    "machine": "GOLDEN",
+    "namesLanguage": "en-US",
+    "note": "before the change",
+    "operatingSystem": "Microsoft Windows NT 10.0.26100.0",
+    "operatingSystemVersion": "10.0.26100.4000",
+    "schemaVersion": 6,
+    "takenAt": "2026-09-29T12:00:00+02:00",
+    "takenBy": "EXAMPLE\\operator",
+    "tool": "0.3.0"
+  }
+}

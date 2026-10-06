@@ -94,15 +94,14 @@ public sealed class SecondPassSettingOutTests
 
     private sealed class Recording(Action asked) : IBinaryInspector
     {
-        public Reading<BinarySignature> ReadSignature(string file)
+        private Reading<BinarySignature> ReadSignature()
         {
             asked();
 
             return Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, 0, "Someone"));
         }
 
-        public Reading<string> ReadFileVersion(string file) => Reading<string>.Present("1.0.0.0");
-
-        public Reading<string> ReadHash(string file) => Reading<string>.Present(new string('a', 64));
+        public FileInspection Inspect(string file) =>
+            new(ReadSignature(), Reading<string>.Present("1.0.0.0"), Reading<string>.Present(new string('a', 64)));
     }
 }

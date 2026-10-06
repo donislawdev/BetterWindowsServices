@@ -38,10 +38,6 @@ public sealed class ConcurrencyGuards
             "the processor count, the work set is fixed before it starts, and the order of the " +
             "result is restored afterwards - all three of those are tested.",
 
-        ["WindowsBinaryInspector.cs"] =
-            "The publisher cache the pass above reads from several threads at once. A plain " +
-            "dictionary here would be the quiet kind of race: right on most runs.",
-
         ["RequiredByPass.cs"] =
             "Asking who depends on each entry several entries at a time, added 2026-09-29 (S-5 of " +
             "the external performance report). One at a time it measured 155-167 ms over 797 " +

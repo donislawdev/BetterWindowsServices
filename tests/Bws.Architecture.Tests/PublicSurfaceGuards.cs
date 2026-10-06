@@ -146,6 +146,11 @@ public sealed class PublicSurfaceGuards
         ["tests/Bws.Integration.Tests/SnapshotContractTests.cs"] =
             "an accented word written to a file on purpose, to prove the encoding survives",
 
+        ["tests/Bws.Core.Tests/Golden/snapshot-schema-6.json"] =
+            "the kept copy of the snapshot file since schema six, 2026-10-06 - the same specimens and "
+            + "shape as the copy below with the schema number moved, so the same reason: display names "
+            + "written as themselves, not escaped",
+
         ["tests/Bws.Core.Tests/Golden/snapshot-schema-5.json"] =
             "the kept copy of the snapshot file since schema five, 2026-09-30 - the same specimens as "
             + "the copy below and two more lines of metadata, so the same reason: display names written "

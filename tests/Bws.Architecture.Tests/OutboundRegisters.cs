@@ -52,6 +52,17 @@ internal static class OutboundRegisters
                 "names ADR-19 as the reason - what that switch does NOT cover is measured by " +
                 "the runtime probe rather than argued about here.",
 
+            ["CRYPT32.dll"] =
+                "CertGetNameString, since 2026-10-06 (package SB): the publisher's name read out of " +
+                "the certificate WinVerifyTrust left in its own state, instead of opening the file " +
+                "a second time. It formats a name from a certificate already in memory - nothing " +
+                "here fetches, and the chain it came from was built under WTD_CACHE_ONLY_URL_RETRIEVAL.",
+
+            ["VERSION.dll"] =
+                "GetFileVersionInfoSizeEx, GetFileVersionInfoEx and VerQueryValue, since 2026-10-06 " +
+                "(package SB): the version a file carries in its own resource, asked with no flags so " +
+                "no language file is consulted. Reads a local file the inspection already holds open.",
+
             ["dwmapi.dll"] =
                 "DwmSetWindowAttribute: telling the window manager that the title bar above this " +
                 "window is a dark one. It was the whole of what the window touched in the " +

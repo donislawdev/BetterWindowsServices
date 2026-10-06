@@ -38,10 +38,11 @@ internal static class SizeCeilings
     internal const int LongestShippedFile = 289;
 
     /// <summary>
-    /// Eight at 203 or more: Columns, PlanBuilder, CommandLine.Reading, Program, WindowsBinaryInspector,
-    /// Suggesting, QueryFields and Catalogue.Views.
+    /// Seven at 203 or more: Columns, PlanBuilder, CommandLine.Reading, Program, Suggesting, QueryFields
+    /// and Catalogue.Views. WindowsBinaryInspector left the eight on 2026-10-06 (package SB), when the
+    /// catalogue walk moved to WindowsBinaryInspector.Catalogue.cs and the raw handle to the signature.
     /// </summary>
-    internal const int ShippedFilesNearLongest = 8;
+    internal const int ShippedFilesNearLongest = 7;
 
     /// <summary>
     /// 176 lines of markup, Themes/Controls.xaml, since 2026-09-29 - PlanView.xaml stood on 178 and

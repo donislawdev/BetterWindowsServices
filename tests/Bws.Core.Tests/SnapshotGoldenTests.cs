@@ -32,7 +32,14 @@ namespace Bws.Core.Tests;
 /// </summary>
 public sealed class SnapshotGoldenTests
 {
-    private const string Kept = "snapshot-schema-5.json";
+    private const string Kept = "snapshot-schema-6.json";
+
+    /// <summary>
+    /// The copy kept before schema six, 2026-10-06 - the same shape and the same entries, with file
+    /// versions that an older build could have taken from a language file. Still read, so it stays as
+    /// the specimen of the file most people hold.
+    /// </summary>
+    private const string KeptFive = "snapshot-schema-5.json";
 
     /// <summary>
     /// The copy kept before schema five, 2026-09-29. Not written by this build any more and still read
@@ -52,7 +59,7 @@ public sealed class SnapshotGoldenTests
             return;
         }
 
-        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-5.actual.json");
+        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-6.actual.json");
         File.WriteAllText(actual, written, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         Assert.Fail(
@@ -79,7 +86,7 @@ public sealed class SnapshotGoldenTests
         // an old file and calling the difference a fault. The file name carries the number so
         // the bump has to touch both.
         Assert.True(
-            Snapshot.CurrentSchemaVersion == 5,
+            Snapshot.CurrentSchemaVersion == 6,
             $"The schema is now {Snapshot.CurrentSchemaVersion}. Keep a new copy named for it beside {Kept}.");
     }
 
@@ -114,6 +121,46 @@ public sealed class SnapshotGoldenTests
         Assert.Equal(new InstancesLeftOut(1, 1), diff.LeftOut);
     }
 
+    /// <summary>
+    /// A file written before schema six still reads, and its file versions are not compared with one
+    /// written now - package SB, the owner's decision of 2026-10-06. Until six the version could come
+    /// from a language file beside the binary, so comparing the two would report changes on a machine
+    /// nobody touched (382 of 801 entries on the machine this was decided on).
+    /// </summary>
+    [Fact]
+    public void A_version_five_file_is_read_and_its_file_versions_are_not_compared()
+    {
+        // One file version moved in the older copy, the way a language file would have moved it.
+        var five = MovedVersion(KeptText(KeptFive));
+
+        Assert.True(SnapshotJson.TryRead(five, out var older, out var failure), failure);
+        Assert.True(SnapshotJson.TryRead(KeptText(Kept), out var newer, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(older!, newer!, out var diff, out failure), failure);
+
+        Assert.True(diff.Caveats.FileVersionSourceDiffers);
+        Assert.False(diff.Drifted);
+        Assert.Empty(diff.Changed);
+
+        // The canary: the same moved version between two sixes IS a difference, so the lines above
+        // say something about the caveat and nothing about the edit.
+        var six = five.Replace("\"schemaVersion\": 5", "\"schemaVersion\": 6", StringComparison.Ordinal);
+
+        Assert.True(SnapshotJson.TryRead(six, out var olderSix, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(olderSix!, newer!, out var plain, out failure), failure);
+        Assert.False(plain.Caveats.FileVersionSourceDiffers);
+        Assert.True(plain.Drifted);
+    }
+
+    private static string MovedVersion(string text)
+    {
+        const string field = "\"fileVersion\": \"";
+        var at = text.IndexOf(field, StringComparison.Ordinal);
+
+        Assert.True(at >= 0, "The kept copy holds no file version to move.");
+
+        return string.Concat(text.AsSpan(0, at + field.Length), "9.9.9.9-", text.AsSpan(at + field.Length));
+    }
+
     // Without the second of the two names that differ only in case. The manager compares names
     // without case, so no machine produces that pair, and the reader refuses a file holding it
     // (Snapshot.BrokenEntries) - a kept copy with both would pin a state that cannot be read back.
@@ -128,7 +175,7 @@ public sealed class SnapshotGoldenTests
         {
             Metadata = new SnapshotMetadata
             {
-                SchemaVersion = 5,
+                SchemaVersion = 6,
                 Machine = "GOLDEN",
                 OperatingSystem = "Microsoft Windows NT 10.0.26100.0",
                 TakenAt = new DateTimeOffset(2026, 9, 29, 12, 0, 0, TimeSpan.FromHours(2)),
