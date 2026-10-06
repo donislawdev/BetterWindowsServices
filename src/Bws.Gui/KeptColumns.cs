@@ -295,9 +295,7 @@ internal sealed class KeptColumns
 
         if (_reading.Unreadable is { } why)
         {
-            said.Add(_reading.MovedAside is { } aside
-                ? Texts.Of("gui.layout.unreadable", why, aside)
-                : Texts.Of("gui.layout.unreadableStays", why));
+            said.Add(Unreadable(why));
         }
 
         // A file nobody could open is not called unreadable and is not said to have stayed where a
@@ -325,6 +323,19 @@ internal sealed class KeptColumns
 
         return said.Count == 0 ? null : string.Join(" ", said);
     }
+
+    /// <summary>
+    /// The sentence about a file that is not a layout, in the three ways it can have ended.
+    ///
+    /// <b>The third since 2026-10-06 - security report S-7.</b> An administrator window under User
+    /// Account Control does not TRY to move the file (<see cref="PreferencesFile.LeavesTheProfileAlone"/>),
+    /// and the sentence for a move that failed says "could not be moved" and "this will happen again" -
+    /// a claim about an attempt nobody made.
+    /// </summary>
+    private string Unreadable(string why) =>
+        _reading.MovedAside is { } aside ? Texts.Of("gui.layout.unreadable", why, aside)
+        : _file.LeavesTheProfileAlone ? Texts.Of("gui.layout.unreadableLeftAsAdministrator", why)
+        : Texts.Of("gui.layout.unreadableStays", why);
 
     /// <summary>
     /// Ties the layout to the window, so that it follows what somebody does to it.

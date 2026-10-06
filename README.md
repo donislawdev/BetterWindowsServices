@@ -432,8 +432,11 @@ describes the whole machine.
   with fewer entries visible and the tool saying so.
 
 The window keeps one file of its own, the layout you left the list in, under
-`%APPDATA%\BetterWindowsServices`. A snapshot goes where you tell `bws snapshot create` to put it,
-and into the current directory when you do not.
+`%APPDATA%\BetterWindowsServices`. A window started as administrator under User Account Control
+reads that file and writes nothing there, because programs in your account that run without
+administrator rights can change where that folder is and what is in it - arrange the columns in an
+ordinary window to keep them. A snapshot goes where you tell `bws snapshot create` to put it, and
+into the current directory when you do not.
 
 ---
 
@@ -495,7 +498,7 @@ bws --version
 | `--follow-network` | let the tool look at a launch path on another machine. Off by default for safety: one unreachable share costs twenty one seconds and the connection authenticates as you |
 | `--json` | the same document, machine readable, on standard output |
 | `--timing` | how long each part of the read took, on standard error |
-| `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, write over a file that is already there |
+| `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, replace a snapshot that is already there - a file that is not a snapshot is never replaced |
 | `--restart` | on `kill`, bring the entry back once the process is gone, with everything that shared it |
 | `--stop` | on `start-type`, and only beside `disabled`, stop the entry in the same plan once the setting is written. A startup type changes the next boot and nothing now, so without it a running entry set to disabled keeps running |
 | `--exit-code` | on `snapshot diff`, end with 5 when anything differs |

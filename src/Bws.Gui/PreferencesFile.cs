@@ -48,7 +48,7 @@ internal sealed class PreferencesFile
     private readonly string _directory;
 
     internal PreferencesFile()
-        : this(InTheProfile())
+        : this(InTheProfile(), Session.IsElevatedWithTwin())
     {
     }
 
@@ -58,7 +58,40 @@ internal sealed class PreferencesFile
     /// A seam of the same kind as <see cref="ViewModels.Says.Elevated"/>: the working answer is
     /// the one a person gets, and a test cannot be asked to write into the account it runs as.
     /// </summary>
-    internal PreferencesFile(string directory) => _directory = directory;
+    internal PreferencesFile(string directory)
+        : this(directory, leavesTheProfileAlone: false)
+    {
+    }
+
+    /// <summary>The same, with the answer about the session handed in rather than asked.</summary>
+    internal PreferencesFile(string directory, bool leavesTheProfileAlone)
+    {
+        _directory = directory;
+        LeavesTheProfileAlone = leavesTheProfileAlone;
+    }
+
+    /// <summary>
+    /// Whether this window creates, writes and moves nothing in the profile - security report S-7,
+    /// owner's decision of 2026-10-06. True in an administrator window under User Account Control
+    /// (<see cref="Session.IsElevatedWithTwin"/>), where a session of the same account WITHOUT
+    /// elevation shares the profile.
+    ///
+    /// <para>
+    /// <b>Why nothing at all rather than checking the path first, which is what the report proposed.</b>
+    /// Two measurements of 2026-10-06 (<c>docs/PROJEKT-PACZKA-SD-20261006.md</c>): the folder is
+    /// named by the account's own HKCU User Shell Folders, which that account holds with full control,
+    /// and <c>GetFolderPath(ApplicationData)</c> follows the process environment, which an elevated
+    /// process inherits from the account. So the place itself is chosen by the half with fewer rights,
+    /// and moving it needs no reparse point for a check to find - and a check before a write leaves the
+    /// moment between them open anyway.
+    /// </para>
+    /// <para>
+    /// <b>The file is still READ</b>, as hostile input like any other - the megabyte ceiling and the
+    /// strict decoder below. Reading changes nothing on anybody's disk, and the window opens with the
+    /// columns its person arranged in an ordinary window.
+    /// </para>
+    /// </summary>
+    internal bool LeavesTheProfileAlone { get; }
 
     /// <summary>Where the file is, whether or not anything is there.</summary>
     internal string Where => Path.Combine(_directory, Name);
@@ -156,6 +189,14 @@ internal sealed class PreferencesFile
     {
         ArgumentNullException.ThrowIfNull(layout);
 
+        // FIRST, and before the folder is created: CreateDirectory is a write too, into the place this
+        // rule exists not to trust. The sentence goes to the line under the list, through the same
+        // door every other reason a layout was not kept goes through.
+        if (LeavesTheProfileAlone)
+        {
+            return Texts.Of("gui.layout.notKeptAsAdministrator");
+        }
+
         if (_directory.Length == 0)
         {
             return Texts.Of("gui.layout.noProfile");
@@ -200,9 +241,22 @@ internal sealed class PreferencesFile
         return reader.ReadToEnd();
     }
 
-    /// <summary>Moves the unreadable file out of the way, and says where it went, or nothing.</summary>
+    /// <summary>
+    /// Moves the unreadable file out of the way, and says where it went, or nothing.
+    ///
+    /// <b>Nothing at all in a window that leaves the profile alone</b> - a move is a write into the
+    /// folder <see cref="LeavesTheProfileAlone"/> exists not to trust, and the name it moves is a name
+    /// somebody else may have put there. The file stays, nothing is written over it (it is then
+    /// <c>LayoutReading.LeftAlone</c>), and <c>KeptColumns.Trouble</c> says why in its own sentence
+    /// rather than claiming a move that failed.
+    /// </summary>
     private string? Aside()
     {
+        if (LeavesTheProfileAlone)
+        {
+            return null;
+        }
+
         try
         {
             return AtomicFile.Quarantine(Where, new SystemClock());

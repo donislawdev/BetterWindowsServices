@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using Bws.Core;
 
 namespace Bws.Gui;
 
@@ -104,7 +105,78 @@ internal static class Texts
     }
 
     private static Dictionary<string, string> Load() =>
-        Assemble(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, Beside);
+        Assemble(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, BesideFor(Session.IsElevated()));
+
+    /// <summary>
+    /// Where a session looks for a language beside the program - nowhere, when it has administrator
+    /// rights. Security report S-9, owner's decision of 2026-10-06.
+    ///
+    /// <para>
+    /// <b>Why.</b> The file is read only when nothing is built in for the machine's language, and the
+    /// only language built in is English (<c>Bws.Gui.csproj</c>), so on every other Windows the window
+    /// asks for <c>languages\gui.&lt;code&gt;.json</c> beside itself at each start - and the words it
+    /// would take from there include the plan's warnings and the confirmations in front of what cannot
+    /// be undone. A release's signature covers the executable, not the folder beside it, and that
+    /// folder is wherever the person put the program: Downloads, a shared tools share.
+    /// </para>
+    /// <para>
+    /// <b>Every administrator session, not only one under User Account Control</b> - and that is a
+    /// different line from the one the layout file draws on purpose (rule 12 put to it). Who can write
+    /// into a profile depends on the token: only the account itself. Who can write beside the program
+    /// depends on where the program lies, and the token says nothing about that.
+    /// </para>
+    /// <para>
+    /// <b>No cost today, said rather than assumed:</b> no translation exists beyond the English built
+    /// in, so this only ever stops a file somebody dropped there. A translation shipped later is built
+    /// in, and <see cref="Assemble"/> reads the built-in one first - this does not touch it.
+    /// </para>
+    /// </summary>
+    internal static Func<string, Stream?> BesideFor(bool elevated)
+    {
+        if (elevated)
+        {
+            return static _ => null;
+        }
+
+        return Beside;
+    }
+
+    /// <summary>
+    /// The language file beside the program this session would have read and did not, or nothing -
+    /// for the line under the list, because a window that quietly opens in English while a translation
+    /// lies next to it is the silence rule 8 forbids.
+    /// </summary>
+    internal static string? BesideNotRead() =>
+        BesideNotRead(Session.IsElevated(), CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, File.Exists);
+
+    /// <summary>The same question with every fact handed in, which is what a test can do.</summary>
+    internal static string? BesideNotRead(
+        bool elevated, string wanted, Func<string, Stream?> embedded, Func<string, bool> exists)
+    {
+        ArgumentNullException.ThrowIfNull(embedded);
+        ArgumentNullException.ThrowIfNull(exists);
+
+        if (!elevated || string.Equals(wanted, Fallback, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        // A language built in wins over the file anyway (Assemble), so nothing was given up.
+        using (var built = embedded(wanted))
+        {
+            if (built is not null)
+            {
+                return null;
+            }
+        }
+
+        var file = BesidePath(wanted);
+
+        return exists(file) ? file : null;
+    }
+
+    private static string BesidePath(string code) =>
+        Path.Combine(AppContext.BaseDirectory, "languages", "gui." + code + Suffix);
 
     /// <summary>
     /// Builds the strings for one language code, from whatever the two lookups can find.
@@ -160,8 +232,7 @@ internal static class Texts
     /// </summary>
     private static Stream? Beside(string code)
     {
-        var file = Path.Combine(
-            AppContext.BaseDirectory, "languages", "gui." + code + Suffix);
+        var file = BesidePath(code);
 
         try
         {

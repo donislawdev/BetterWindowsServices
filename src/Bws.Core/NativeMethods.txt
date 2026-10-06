@@ -258,3 +258,13 @@ MUI_LANGUAGE_NAME
 SERVICE_TRIGGER_INFO
 SERVICE_TRIGGER
 WIN32_ERROR
+
+// Whether an elevated session has a twin without elevation - security report S-7, 2026-10-06. The
+// built-in role answers "administrator" and nothing more, and the window needs the second fact: a
+// token with a linked limited token (TokenElevationTypeFull) means a session of the same account runs
+// without elevation and can shape the profile this process would write into. Measured that day: this
+// session Full, explorer.exe Limited, and a process under runas /trustlevel:0x20000 ALSO Full while
+// the role says no - so the type alone never stands for "administrator".
+GetTokenInformation
+TOKEN_INFORMATION_CLASS
+TOKEN_ELEVATION_TYPE

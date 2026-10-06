@@ -47,12 +47,38 @@ internal static class Sentences
     /// owner's decision that day, and in the same red place because it is the same kind of fact: about
     /// the process, not the query. Empty when there are none, which is the ordinary case.
     /// </para>
+    /// <para>
+    /// <b>And, since the same day, the translation beside the program it did not read</b> - security
+    /// report S-9. The window opens in English when a language file lies beside it, and saying so is
+    /// what keeps that from looking like a translation that broke. Rare by construction: no
+    /// translation ships beyond the English built in, so the file is one somebody put there.
+    /// </para>
     /// </summary>
     /// <param name="settings">What <c>Session.RuntimeSettingsFromEnvironment</c> found.</param>
-    internal static string Rights(bool elevated, IReadOnlyList<string> settings) =>
-        !elevated ? Texts.Of("gui.status.notElevated")
-        : settings.Count > 0 ? Texts.Of("gui.status.runtimeSettings", string.Join(", ", settings))
-        : string.Empty;
+    /// <param name="besideNotRead">What <c>Texts.BesideNotRead</c> found, or nothing.</param>
+    internal static string Rights(bool elevated, IReadOnlyList<string> settings, string? besideNotRead)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (!elevated)
+        {
+            return Texts.Of("gui.status.notElevated");
+        }
+
+        var said = new List<string>();
+
+        if (settings.Count > 0)
+        {
+            said.Add(Texts.Of("gui.status.runtimeSettings", string.Join(", ", settings)));
+        }
+
+        if (besideNotRead is not null)
+        {
+            said.Add(Texts.Of("gui.status.besideNotRead", besideNotRead));
+        }
+
+        return string.Join(" ", said);
+    }
 
     /// <summary>
     /// What this answer could not judge, one sentence per reservation that has a count.
