@@ -374,12 +374,15 @@ A tool that quietly fails to cover something is worse than one that says what it
   never does. So *Trusted* means the chain was valid on this machine, not that nobody revoked the
   certificate since.
 - **The window unpacks part of the Windows user interface framework before it starts.** As one
-  file it carries a few native libraries that Windows can only load from disk, and on the first
-  start of each version it writes them to a `.net` folder under the temporary folder Windows gives
-  the account running it. An elevated window loads them from there. On a machine where people you
-  do not trust can write to that folder, set `DOTNET_BUNDLE_EXTRACT_BASE_DIR` to a folder only
-  administrators can write to before running the window elevated. The command line carries no such
-  libraries and unpacks nothing.
+  file it carries a few native libraries that Windows can only load from disk. Without
+  administrator rights it writes them, on the first start of each version, to a `.net` folder under
+  the account's temporary folder and loads them from there. With administrator rights it uses
+  `ProgramData\BetterWindowsServices` on the Windows drive instead - a folder it creates so that
+  only administrators can change it, and checks at every start. If that folder cannot be created,
+  or others can change it, the window does not start and says which folder and what to do. Moving
+  there means an elevated window starts itself a second time, which takes a fraction of a second,
+  and each version leaves its libraries there (about 8 MB) until somebody deletes the folder. The
+  command line carries no such libraries and unpacks nothing.
 - **An elevated session names the .NET settings it inherits rather than refusing them.** A
   profiler, a trace or dump switch, or a diagnostic port set in the environment cannot be switched
   off from inside a .NET program, so with administrator rights both halves list any they find.

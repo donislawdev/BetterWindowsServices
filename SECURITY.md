@@ -54,11 +54,12 @@ administrative.
 **Code running as the same account without elevation**, trying to reach the elevated tool, is
 handled as defence in depth rather than as a promise. Microsoft does not treat User Account Control
 as a security boundary, so neither does this project - but the tool is meant to run elevated on
-servers, and what is cheap to close is closed. Reports in this area are welcome. Two things are
-known and not closed, and are described in the README under *Honest limits*: the window unpacks
-native libraries to the account's temporary folder before it starts, and a .NET profiler or
+servers, and what is cheap to close is closed. Reports in this area are welcome. One thing is
+known and not closed, and is described in the README under *Honest limits*: a .NET profiler or
 diagnostic setting in the account's environment is named by an elevated session rather than
-refused, because a program cannot switch those off for itself.
+refused, because a program cannot switch those off for itself. The native libraries the window
+unpacks before it starts are kept, when it runs elevated, in a folder only administrators can
+change, and the window does not start when that folder cannot be trusted.
 
 A fuller version of the same boundary, including what the project deliberately does not
 protect, is kept with the project's own documentation.
