@@ -63,7 +63,11 @@ internal static class CountedWords
     internal static readonly string[] Nouns =
     [
         "entries", "instances", "steps",
-        "services", "drivers", "templates", "dependents", "rows", "columns", "plans"
+        "services", "drivers", "templates", "dependents", "rows", "columns", "plans",
+        // 2026-10-07, backlog 541: "{0} counts its failures from 1 again after {1} without one". The
+        // placeholder before it is a service name, but the word is a plural noun this project now says, so
+        // it is named as one - and the sentence lives in a pair, because the names can be two.
+        "failures"
     ];
 
     /// <summary>

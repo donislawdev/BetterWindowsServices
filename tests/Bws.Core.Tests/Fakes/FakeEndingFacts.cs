@@ -26,7 +26,7 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
     private readonly Dictionary<int, Reading<bool>> _rights = [];
     private readonly Dictionary<int, Reading<long>> _created = [];
     private readonly Dictionary<int, Reading<bool>> _critical = [];
-    private readonly Dictionary<string, Reading<IReadOnlyList<RecoveryItem>>> _recovery = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Reading<RecoveryList>> _recovery = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Every entry whose recovery list was asked for, in order.</summary>
     internal List<string> AskedRecovery { get; } = [];
@@ -50,16 +50,28 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
         Recovering(serviceName, [.. actions.Select(action => new RecoveryItem(action, TimeSpan.Zero))]);
 
     /// <summary>The same with the delay of each item, for the sentences that say when (backlog 501).</summary>
-    internal FakeEndingFacts Recovering(string serviceName, params RecoveryItem[] items)
+    internal FakeEndingFacts Recovering(string serviceName, params RecoveryItem[] items) =>
+        Recovering(serviceName, ADay, items);
+
+    /// <summary>
+    /// The same with the reset period, for the sentences that say when the count starts again (backlog 541).
+    /// </summary>
+    internal FakeEndingFacts Recovering(string serviceName, TimeSpan resetPeriod, params RecoveryItem[] items)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Present(items);
+        _recovery[serviceName] = Reading<RecoveryList>.Present(new RecoveryList(items, resetPeriod));
         return this;
     }
+
+    /// <summary>
+    /// The reset period a list gets when a test does not name one - a day, the commonest on the owner's
+    /// machine on 2026-10-07 (146 of 204 lists with a restart).
+    /// </summary>
+    internal static readonly TimeSpan ADay = TimeSpan.FromDays(1);
 
     /// <summary>The manager will not say what it does to this entry.</summary>
     internal FakeEndingFacts RefusingRecovery(string serviceName, int errorCode = 5)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Denied(errorCode, "Access is denied.");
+        _recovery[serviceName] = Reading<RecoveryList>.Denied(errorCode, "Access is denied.");
         return this;
     }
 
@@ -69,18 +81,18 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
     /// </summary>
     internal FakeEndingFacts GoneFromTheManager(string serviceName)
     {
-        _recovery[serviceName] = Reading<IReadOnlyList<RecoveryItem>>.Absent();
+        _recovery[serviceName] = Reading<RecoveryList>.Absent();
         return this;
     }
 
-    public Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName)
+    public Reading<RecoveryList> ReadRecovery(string serviceName)
     {
         AskedRecovery.Add(serviceName);
 
         // An entry nobody scripted has no recovery at all - the ordinary answer is a list with no items.
         return _recovery.TryGetValue(serviceName, out var recovery)
             ? recovery
-            : Reading<IReadOnlyList<RecoveryItem>>.Present([]);
+            : Reading<RecoveryList>.Present(new RecoveryList([], ADay));
     }
 
     /// <summary>Every process this was asked about, in order, so a test can see it was asked once.</summary>

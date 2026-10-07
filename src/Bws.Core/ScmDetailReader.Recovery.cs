@@ -18,23 +18,26 @@ internal static partial class ScmDetailReader
     /// <summary>
     /// Every item of the entry's recovery list, in order, with the kind and the delay of each.
     ///
-    /// <b>The delays are kept since 2026-09-30 (backlog 501), and the reset period is still read and
-    /// dropped on purpose.</b> A delay changes nothing about whether a restart comes, only when - and
-    /// "when" is what a person reading "succeeded" needed to hear. The reset period only says when the
-    /// manager forgets earlier failures, and which item runs depends on a failure count no documented call
-    /// hands out, so it would decide nothing here. Phase 2 reads the rest for a person.
+    /// <b>The delays are kept since 2026-09-30 (backlog 501), and the reset period since 2026-10-07
+    /// (backlog 541).</b> A delay changes nothing about whether a restart comes, only when - and "when" is
+    /// what a person reading "succeeded" needed to hear. The reset period was dropped on purpose until the
+    /// second date, on the argument that which item runs depends on a failure count no documented call hands
+    /// out, so it could decide nothing. That argument was right about the count and wrong about the
+    /// sentence: Spooler's list restarts it on its first two failures only, and the reset period is what
+    /// says when the count starts again - the plan said "Windows starts Spooler again" over a third failure
+    /// that left it stopped. Phase 2 reads the rest for a person.
     ///
     /// <b>An entry with no recovery at all answers a structure with no items</b> - measured over 312
     /// services on 2026-09-30, the sizing call never came back empty - so this is an empty list rather
     /// than an absence. Absent stays for an answer with nothing in it at all.
     /// </summary>
-    internal static unsafe Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(SafeHandle service)
+    internal static unsafe Reading<RecoveryList> ReadRecovery(SafeHandle service)
     {
         if (!Sized(service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS, out var needed, out var refusal))
         {
             return refusal == 0
-                ? Reading<IReadOnlyList<RecoveryItem>>.Absent()
-                : Refused<IReadOnlyList<RecoveryItem>>(refusal);
+                ? Reading<RecoveryList>.Absent()
+                : Refused<RecoveryList>(refusal);
         }
 
         var buffer = new byte[needed];
@@ -47,7 +50,7 @@ internal static partial class ScmDetailReader
                     service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS,
                     new Span<byte>(pinned, buffer.Length), out _))
             {
-                return Refused<IReadOnlyList<RecoveryItem>>(Marshal.GetLastWin32Error());
+                return Refused<RecoveryList>(Marshal.GetLastWin32Error());
             }
 
             return Items(pinned, buffer.Length);
@@ -63,26 +66,27 @@ internal static partial class ScmDetailReader
     /// a malformed one becomes "could not read" - which refuses - and never "nothing configured", which
     /// would let the plan through saying nothing.
     /// </summary>
-    private static unsafe Reading<IReadOnlyList<RecoveryItem>> Items(byte* block, int length)
+    private static unsafe Reading<RecoveryList> Items(byte* block, int length)
     {
         if (length < sizeof(SERVICE_FAILURE_ACTIONSW))
         {
-            return Reading<IReadOnlyList<RecoveryItem>>.Absent();
+            return Reading<RecoveryList>.Absent();
         }
 
         var header = (SERVICE_FAILURE_ACTIONSW*)block;
         var count = header->cActions;
+        var reset = Reset(header->dwResetPeriod);
 
         if (count == 0)
         {
-            return Reading<IReadOnlyList<RecoveryItem>>.Present([]);
+            return Reading<RecoveryList>.Present(new RecoveryList([], reset));
         }
 
         var offset = (byte*)header->lpsaActions - block;
 
         if (offset < 0 || offset + ((long)count * sizeof(SC_ACTION)) > length)
         {
-            return Refused<IReadOnlyList<RecoveryItem>>((int)WIN32_ERROR.ERROR_INVALID_DATA);
+            return Refused<RecoveryList>((int)WIN32_ERROR.ERROR_INVALID_DATA);
         }
 
         var items = new RecoveryItem[count];
@@ -93,8 +97,21 @@ internal static partial class ScmDetailReader
             items[index] = new RecoveryItem(Kind(item.Type), TimeSpan.FromMilliseconds(item.Delay));
         }
 
-        return Reading<IReadOnlyList<RecoveryItem>>.Present(items);
+        return Reading<RecoveryList>.Present(new RecoveryList(items, reset));
     }
+
+    /// <summary>
+    /// The reset period in seconds, with <c>INFINITE</c> as the one value that is not a number of seconds -
+    /// sc.exe prints it as the word, and as seconds it would be a reset after 136 years.
+    /// </summary>
+    private static TimeSpan Reset(uint seconds) =>
+        seconds == NeverReset ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(seconds);
+
+    /// <summary>
+    /// <c>INFINITE</c> from winbase.h, 0xFFFFFFFF - written out rather than generated, because one constant
+    /// is not worth a name in NativeMethods.txt, the list docs/09 reviews as this tool's surface.
+    /// </summary>
+    private const uint NeverReset = uint.MaxValue;
 
     /// <summary>
     /// The four documented kinds by name, and everything else as one that is named as unknown - never as

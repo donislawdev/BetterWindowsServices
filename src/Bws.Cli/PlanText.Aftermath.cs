@@ -18,14 +18,7 @@ internal static partial class PlanText
 {
     private static string Aftermath(PlanWarning warning) => warning.Kind switch
     {
-        // WHEN, BESIDE EVERY NAME, since 2026-09-30 (backlog 501) - and the bare name for the singular's
-        // command at the end, which a person copies.
-        PlanWarningKind.RecoveryRestarts => Texts.Of(
-            Count("cli.plan.warning.recoveryRestarts", warning),
-            warning.ServiceName,
-            warning.Related.Count,
-            Join([.. warning.Related.Select(name => Later(name, warning.Restarts))]),
-            warning.Related.FirstOrDefault() ?? warning.ServiceName),
+        PlanWarningKind.RecoveryRestarts => Restarting(warning),
 
         PlanWarningKind.RecoveryRunsProgram => Texts.Of(
             Count("cli.plan.warning.recoveryRunsProgram", warning),
@@ -38,6 +31,35 @@ internal static partial class PlanText
         _ => throw new ArgumentOutOfRangeException(
             nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
+
+    /// <summary>
+    /// The restart warning, with WHEN beside every name since 2026-09-30 (backlog 501) and WHICH FAILURES
+    /// since 2026-10-07 (backlog 541, the owner's decision of that day).
+    ///
+    /// <b>Two shapes, and the old one is untouched.</b> When every entry's list restarts it on every failure the
+    /// sentence is the one it always was, ending in the bare name a person copies for sc.exe. When one does not
+    /// - Spooler's restart, restart, nothing, 190 of 204 lists on the owner's machine - its name says on which
+    /// failures, a clause says when the count starts again, and the sc.exe line goes: sc.exe prints no line for
+    /// an item that does nothing, so it shows Spooler's list as two restarts, which reads as "every failure".
+    /// </summary>
+    private static string Restarting(PlanWarning warning)
+    {
+        var names = Join([.. warning.Related.Select(name => Later(name, warning.Restarts))]);
+
+        return Counted(warning.Restarts) is { } counted
+            ? Texts.Of(
+                Count("cli.plan.warning.recoveryRestarts.some", warning),
+                warning.ServiceName,
+                warning.Related.Count,
+                names,
+                Texts.Of("cli.plan.recovery.unsaid", counted))
+            : Texts.Of(
+                Count("cli.plan.warning.recoveryRestarts", warning),
+                warning.ServiceName,
+                warning.Related.Count,
+                names,
+                warning.Related.FirstOrDefault() ?? warning.ServiceName);
+    }
 
     /// <summary>
     /// The three refusals. <b>An unreadable consequence with no names is the process itself</b> - whether it
@@ -80,25 +102,94 @@ internal static partial class PlanText
             return;
         }
 
+        var target = run.Plan.Action.ServiceName;
+        var names = Join([.. back.Select(one => Later(one.ServiceName, back))]);
+
+        // The same two shapes as the warning, and for the same reason (backlog 541): an entry restarted on
+        // some failures only is not "started again" - it is started again if this was one of them.
+        var counted = Counted(back) is { } clauses ? Texts.Of("cli.run.recovery.unsaid", clauses) : null;
+
         text.AppendLine();
-        text.AppendLine(back.Count == 1
-            ? Texts.Of("cli.run.comesBack.one", run.Plan.Action.ServiceName, Later(back[0].ServiceName, back))
-            : Texts.Of(
-                "cli.run.comesBack.many",
-                run.Plan.Action.ServiceName,
-                back.Count,
-                Join([.. back.Select(one => Later(one.ServiceName, back))])));
+        text.AppendLine((back.Count, counted) switch
+        {
+            (1, null) => Texts.Of("cli.run.comesBack.one", target, names),
+            (_, null) => Texts.Of("cli.run.comesBack.many", target, back.Count, names),
+            (1, { } said) => Texts.Of("cli.run.comesBack.some.one", target, names, said),
+            (_, { } said) => Texts.Of("cli.run.comesBack.some.many", target, back.Count, names, said)
+        });
     }
 
     /// <summary>
-    /// An entry's name with the delays its recovery list restarts it after, or the bare name when there are
-    /// none to say - a warning built without them reads as it did before they were read.
+    /// An entry's name with the delays its recovery list restarts it after, and since 2026-10-07 the failures
+    /// it does so on when not every one - or the bare name when there are none to say, so a warning built
+    /// without them reads as it did before they were read.
     /// </summary>
     private static string Later(string serviceName, IReadOnlyList<RecoveryRestart> restarts) =>
         restarts.FirstOrDefault(one => string.Equals(one.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase))
             is { After.Count: > 0 } restart
-            ? Texts.Of("cli.plan.recovery.later", serviceName, Delays(restart.After))
+            ? When(serviceName, restart)
             : serviceName;
+
+    private static string When(string serviceName, RecoveryRestart restart) => restart.Only switch
+    {
+        null => Texts.Of("cli.plan.recovery.later", serviceName, Delays(restart.After)),
+        { AndLater: true } only => Texts.Of("cli.plan.recovery.laterOrLater", serviceName, Delays(restart.After), Failures(only)),
+        { } only => Texts.Of("cli.plan.recovery.laterOnly", serviceName, Delays(restart.After), Failures(only))
+    };
+
+    /// <summary>
+    /// "1", "1 or 2", "1, 2 or 3" - and for a list whose last item repeats, "2" or "1, 3", which the sentence
+    /// ends with "or later".
+    /// </summary>
+    private static string Failures(SomeFailures only)
+    {
+        string[] numbers = [.. only.Numbers.Select(number => number.ToString(CultureInfo.InvariantCulture))];
+
+        return only.AndLater || numbers.Length == 1
+            ? string.Join(", ", numbers)
+            : Texts.Of("cli.plan.recovery.either", string.Join(", ", numbers[..^1]), numbers[^1]);
+    }
+
+    /// <summary>
+    /// When the count starts again, one clause per reset period among the entries restarted on some failures
+    /// only - or nothing when every entry is restarted on every failure, and the sentence is the old one.
+    /// </summary>
+    private static string? Counted(IReadOnlyList<RecoveryRestart> restarts)
+    {
+        string[] clauses =
+        [
+            .. restarts
+                .Where(one => one.Only is not null)
+                .GroupBy(one => one.Only!.ResetPeriod)
+                .Select(same => Clause([.. same.Select(one => one.ServiceName)], same.Key))
+        ];
+
+        return clauses.Length == 0 ? null : string.Join(", ", clauses);
+    }
+
+    private static string Clause(IReadOnlyList<string> names, TimeSpan resetPeriod) =>
+        (names.Count == 1, resetPeriod == Timeout.InfiniteTimeSpan) switch
+        {
+            (true, true) => Texts.Of("cli.plan.recovery.countAtBoot.one", names[0]),
+            (false, true) => Texts.Of("cli.plan.recovery.countAtBoot.many", Both(names)),
+            (true, false) => Texts.Of("cli.plan.recovery.count.one", names[0], Period(resetPeriod)),
+            (false, false) => Texts.Of("cli.plan.recovery.count.many", Both(names), Period(resetPeriod))
+        };
+
+    private static string Both(IReadOnlyList<string> names) =>
+        Texts.Of("cli.plan.recovery.and", string.Join(", ", names.Take(names.Count - 1)), names[^1]);
+
+    /// <summary>
+    /// A reset period in the largest unit that divides it evenly - 30 s, 15 min, 1 h, 24 h, 390 min - the
+    /// owner's decision of 2026-10-07. Periods on the owner's machine run from 30 s to 86 400 000 s, so
+    /// seconds alone would read "86400 s" for the commonest one.
+    /// </summary>
+    private static string Period(TimeSpan period) => (long)period.TotalSeconds switch
+    {
+        var seconds when seconds % 3600 == 0 => Texts.Of("cli.plan.recovery.hours", seconds / 3600),
+        var seconds when seconds % 60 == 0 => Texts.Of("cli.plan.recovery.minutes", seconds / 60),
+        var seconds => Texts.Of("cli.run.took.seconds", seconds)
+    };
 
     /// <summary>
     /// "60 s", or "1 s, 2 s, 4 s, 8 s or 16 s" - every delay, because which item runs depends on a count of

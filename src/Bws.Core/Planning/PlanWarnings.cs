@@ -253,5 +253,33 @@ public sealed record PlanWarning(PlanWarningKind Kind, string ServiceName, IRead
 /// not known from outside, and the sentence says "60 s or 120 s later".
 /// </summary>
 /// <param name="ServiceName">The entry, by the name the manager knows it by.</param>
-/// <param name="After">Never empty - an entry without a restart in its list is not one of these.</param>
-public sealed record RecoveryRestart(string ServiceName, IReadOnlyList<TimeSpan> After);
+/// <param name="After">Never empty - an entry no failure restarts is not one of these.</param>
+public sealed record RecoveryRestart(string ServiceName, IReadOnlyList<TimeSpan> After)
+{
+    /// <summary>
+    /// Which failures restart the entry, when not every one does - nothing when its list restarts it on
+    /// every failure, and then the sentence is the one it always was (backlog 541, 2026-10-07).
+    ///
+    /// <b>Nothing rather than a list of every number</b>, because "every" has no last number - and a
+    /// restart built without it, as every guard over the sentences builds one, reads as it did before.
+    /// </summary>
+    public SomeFailures? Only { get; init; }
+}
+
+/// <summary>
+/// The failures, counted from 1, on which an entry's recovery list restarts it - and when the count starts
+/// again. Part of <see cref="RecoveryRestart"/> for a list that restarts the entry on some failures and not
+/// on others: Spooler's restart, restart, nothing is failures 1 and 2.
+///
+/// <b>Here since 2026-10-07, on the owner's decision of that day (backlog 541): the sentence names the
+/// failures</b> rather than saying "Windows starts it again", which was false from Spooler's third failure
+/// inside the hour - measured on the throwaway machine. Not in the machine readable output, like the delays.
+/// </summary>
+/// <param name="Numbers">The failures that restart it, in order - never empty.</param>
+/// <param name="AndLater">The last item of the list is a restart, so every failure past the list's end restarts it too.</param>
+/// <param name="ResetPeriod">
+/// How long without a failure before the manager counts from 1 again - <see cref="Timeout.InfiniteTimeSpan"/>
+/// when it never does until the machine restarts. Never zero here: a list with a period of zero has only its
+/// first item reached, so it restarts on every failure or on none.
+/// </param>
+public sealed record SomeFailures(IReadOnlyList<int> Numbers, bool AndLater, TimeSpan ResetPeriod);

@@ -16,8 +16,8 @@ namespace Bws.Core.Planning;
 /// </summary>
 internal static class Aftermath
 {
-    /// <summary>One entry that dies with the process, and its recovery list as the manager answered.</summary>
-    internal readonly record struct Recovered(string ServiceName, Reading<IReadOnlyList<RecoveryItem>> Actions);
+    /// <summary>One entry that dies with the process, and its recovery list and reset period as the manager answered.</summary>
+    internal readonly record struct Recovered(string ServiceName, Reading<RecoveryList> Actions);
 
     /// <summary>
     /// The last question before a plan that ends a process exists - what the manager does to the dead once
@@ -116,18 +116,65 @@ internal static class Aftermath
     }
 
     /// <summary>
-    /// Every entry with a restart anywhere in its list, and the different delays of those restarts in the
-    /// order the list gives them - WSearch names 30 s five times and comes out as one.
+    /// Every entry some failure restarts, the different delays of those restarts in the order the list gives
+    /// them - WSearch names 30 s five times and comes out as one - and, since 2026-10-07, which failures they
+    /// are when not every one restarts it (backlog 541).
     /// </summary>
     private static List<RecoveryRestart> Restarts(IReadOnlyList<Recovered> recovery) =>
     [
         .. recovery
             .Where(one => one.Actions.IsPresent)
-            .Select(one => new RecoveryRestart(
-                one.ServiceName,
-                [.. one.Actions.Value!.Where(item => item.Action == RecoveryAction.RestartService).Select(item => item.Delay).Distinct()]))
+            .Select(one => Restart(one.ServiceName, one.Actions.Value!))
             .Where(one => one.After.Count > 0)
     ];
+
+    /// <summary>
+    /// One entry's restarts. <b>Until 2026-10-07 a restart anywhere in the list made the sentence "Windows
+    /// starts it again"</b>, and on the throwaway machine Spooler's list - restart, restart, nothing - left
+    /// it stopped on its third and fourth failure inside the hour, as Microsoft documents: failure N runs item
+    /// N and the last item repeats. Measured on the owner's machine the same day, 190 of 204 lists with a
+    /// restart are like that, so the narrowed sentence is the ordinary one rather than an edge.
+    /// </summary>
+    private static RecoveryRestart Restart(string serviceName, RecoveryList list)
+    {
+        var reached = Reached(list);
+
+        return new RecoveryRestart(
+            serviceName,
+            [.. reached.Where(item => item.Action == RecoveryAction.RestartService).Select(item => item.Delay).Distinct()])
+        {
+            Only = Only(reached, list.ResetPeriod)
+        };
+    }
+
+    /// <summary>
+    /// The items a failure can reach. <b>Only the first when the reset period is zero</b> - a value Microsoft
+    /// does not describe, measured on the throwaway machine on 2026-10-07 with endings 7-8 s apart: Spooler's
+    /// list with a period of 0 restarted the entry on each of four endings, so every failure was the first.
+    /// The refusal over a computer restart still asks the whole list, because a refusal is the side to err on.
+    /// </summary>
+    private static IReadOnlyList<RecoveryItem> Reached(RecoveryList list) =>
+        list.ResetPeriod == TimeSpan.Zero ? [.. list.Items.Take(1)] : list.Items;
+
+    /// <summary>
+    /// Which failures restart the entry, counted from 1, and whether every one past the end of the list does
+    /// too because the last item is a restart - or nothing when every failure restarts it, which is the
+    /// sentence as it was before this was read.
+    /// </summary>
+    private static SomeFailures? Only(IReadOnlyList<RecoveryItem> items, TimeSpan resetPeriod)
+    {
+        if (items.All(item => item.Action == RecoveryAction.RestartService))
+        {
+            return null;
+        }
+
+        return new SomeFailures(
+            [.. items.Select((item, index) => (item.Action, Number: index + 1))
+                .Where(one => one.Action == RecoveryAction.RestartService)
+                .Select(one => one.Number)],
+            items[^1].Action == RecoveryAction.RestartService,
+            resetPeriod);
+    }
 
     /// <summary>
     /// Who of the entries the plan warned about comes back after this run, and nothing unless the run ended
@@ -211,9 +258,11 @@ internal static class Aftermath
     }
 
     /// <summary>
-    /// Every entry whose list holds this item ANYWHERE - the manager runs item N for failure N since the
-    /// machine started, and no call hands out N. Absent and unread lists hold nothing.
+    /// Every entry whose list holds this item ANYWHERE - the manager runs item N for failure N, counting from
+    /// 1 again after the reset period without one, and no call hands out N. Absent and unread lists hold
+    /// nothing. The restart warning says which failures since 2026-10-07 (<see cref="Only"/>) - the program
+    /// and the unnamed item still say "anywhere", backlog 543.
     /// </summary>
     private static List<string> Having(IReadOnlyList<Recovered> recovery, RecoveryAction action) =>
-        [.. recovery.Where(one => one.Actions.IsPresent && one.Actions.Value!.Any(item => item.Action == action)).Select(one => one.ServiceName)];
+        [.. recovery.Where(one => one.Actions.IsPresent && one.Actions.Value!.Items.Any(item => item.Action == action)).Select(one => one.ServiceName)];
 }
