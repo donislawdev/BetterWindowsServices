@@ -35,6 +35,88 @@ public sealed class ComingBackTextTests
         Assert.Contains(": WpnService (1 s, 2 s, 4 s, 8 s or 16 s later), Fax (0.1 s later).", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Backlog 541, the owner's decision of 2026-10-07 - quoted whole, because the sentence is the change.
+    /// Spooler's list restarts it on its first two failures only, and sc.exe prints that list as two restarts.
+    /// </summary>
+    [Fact]
+    public void A_restart_on_some_failures_only_names_them_and_sends_nobody_to_sc_exe()
+    {
+        var said = PlanText.Describe(Warned(new RecoveryRestart("Spooler", [TimeSpan.FromSeconds(5)])
+        {
+            Only = new SomeFailures([1, 2], false, TimeSpan.FromHours(1))
+        }));
+
+        Assert.Equal(
+            "Once the process behind Spooler is ended, Windows starts Spooler (5 s later, on failure 1 or 2 only) "
+            + "again by itself - its recovery actions say so. Spooler counts its failures from 1 again after 1 h "
+            + "without one, and Windows does not say which failure this is. The stop may not last.",
+            said);
+    }
+
+    [Fact]
+    public void Or_later_a_count_that_never_starts_again_and_two_names_sharing_a_period_have_their_words()
+    {
+        var day = TimeSpan.FromDays(1);
+
+        var said = PlanText.Describe(Warned(
+            new RecoveryRestart("Dnscache", [TimeSpan.FromSeconds(1)]),
+            new RecoveryRestart("SNMPTrap", [Minute]) { Only = new SomeFailures([2], true, Timeout.InfiniteTimeSpan) },
+            new RecoveryRestart("BITS", [Minute]) { Only = new SomeFailures([1, 3], true, day) },
+            new RecoveryRestart("Spooler", [Minute]) { Only = new SomeFailures([1, 2, 3], false, day) }));
+
+        Assert.Contains(
+            ": Dnscache (1 s later), SNMPTrap (60 s later, on failure 2 or later), BITS (60 s later, on failure 1, 3 "
+            + "or later), Spooler (60 s later, on failure 1, 2 or 3 only). SNMPTrap counts its failures from 1 again "
+            + "only after the computer restarts, BITS and Spooler count their failures from 1 again after 24 h "
+            + "without one, and Windows does not say which failure this is.",
+            said,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("sc.exe", said, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(30, "30 s")]
+    [InlineData(90, "90 s")]
+    [InlineData(900, "15 min")]
+    [InlineData(3600, "1 h")]
+    [InlineData(23400, "390 min")]
+    [InlineData(86400, "24 h")]
+    public void A_reset_period_is_said_in_the_largest_unit_that_divides_it(int seconds, string words)
+    {
+        var said = PlanText.Describe(Warned(new RecoveryRestart("Spooler", [Minute])
+        {
+            Only = new SomeFailures([1], false, TimeSpan.FromSeconds(seconds))
+        }));
+
+        Assert.Contains($"from 1 again after {words} without one", said, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_item_sc_exe_does_not_print_is_not_looked_up_there()
+    {
+        // Owner's decision of 2026-10-07: sc.exe prints no line for the type this warning is about.
+        Assert.DoesNotContain(
+            "sc.exe",
+            PlanText.Describe(new PlanWarning(PlanWarningKind.RecoveryUnnamed, "Schedule", ["Schedule"])),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_run_that_ended_the_process_names_the_failures_of_who_may_come_back()
+    {
+        var report = PlanText.Render(Ran(
+            StepOutcome.Succeeded,
+            new RecoveryRestart("Spooler", [Minute]) { Only = new SomeFailures([1, 2], false, TimeSpan.FromHours(1)) }));
+
+        Assert.Contains(
+            "Windows starts Spooler (60 s later, on failure 1 or 2 only) again by itself after the process behind "
+            + "Spooler was ended - its recovery actions say so. Spooler counts its failures from 1 again after 1 h "
+            + "without one, and Windows does not say which failure this was. The stop may not last.",
+            report,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_run_that_ended_the_process_says_who_comes_back_before_the_warnings()
     {
@@ -73,7 +155,9 @@ public sealed class ComingBackTextTests
             Restarts = restarts
         };
 
-    private static PlanRun Ran(StepOutcome outcome)
+    private static PlanRun Ran(StepOutcome outcome) => Ran(outcome, new RecoveryRestart("Spooler", [Minute]));
+
+    private static PlanRun Ran(StepOutcome outcome, RecoveryRestart restart)
     {
         var ending = new PlanStep(
             "Spooler", "Print Spooler", StepOperation.Terminate, StepReason.Requested, ProcessId: 4812, TakesWithIt: []);
@@ -84,7 +168,7 @@ public sealed class ComingBackTextTests
             {
                 Action = new ServiceAction(ActionKind.ForceStop, "Spooler"),
                 Steps = [ending],
-                Warnings = [Warned(new RecoveryRestart("Spooler", [Minute]))],
+                Warnings = [Warned(restart)],
                 Problems = []
             },
             Results =

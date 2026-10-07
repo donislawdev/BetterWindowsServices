@@ -37,7 +37,7 @@ public sealed class RecoveryContractTests
 
         string[] spoken =
         [
-            .. ours.Value!
+            .. ours.Value!.Items
                 .Where(item => item.Action is not (RecoveryAction.Nothing or RecoveryAction.Unnamed))
                 .Select(item => (item.Action switch
                 {
@@ -49,6 +49,30 @@ public sealed class RecoveryContractTests
 
         Assert.NotEmpty(theirs);
         Assert.Equal(theirs, spoken);
+    }
+
+    /// <summary>
+    /// The reset period, read since 2026-10-07 (backlog 541), against the number sc.exe prints for it. By
+    /// tokens again: the first line ending in a colon and a number - or the word INFINITE, sc.exe's own for a
+    /// count that never starts again - is the period, in seconds, whatever language the label is in.
+    /// </summary>
+    [Fact]
+    public void The_reset_period_of_RpcSs_reads_as_sc_exe_prints_it()
+    {
+        var ours = new WindowsEndingFactsReader().ReadRecovery("RpcSs");
+
+        var theirs = CommandLineTool.ServiceControl("qfailure", "RpcSs", "5000").StandardOutput
+            .Split('\n')
+            .Select(line => line.TrimEnd())
+            .Select(line => line[(line.LastIndexOf(':') + 1)..].Trim())
+            .First(value => value == "INFINITE" || (value.Length > 0 && value.All(char.IsAsciiDigit)));
+
+        Assert.Equal(ReadOutcome.Present, ours.Outcome);
+        Assert.Equal(
+            theirs,
+            ours.Value!.ResetPeriod == Timeout.InfiniteTimeSpan
+                ? "INFINITE"
+                : ((long)ours.Value.ResetPeriod.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private static string Kind(string line)

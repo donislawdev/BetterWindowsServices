@@ -81,6 +81,54 @@ public sealed class ForcedRunTests
         Assert.True(run.Completed);
     }
 
+    /// <summary>
+    /// Backlog 539: the same shape as a forced restart. The starts that would have put the neighbours back
+    /// have nothing to give, because nothing took them down - and until 2026-10-07 that read as "not where
+    /// you asked", exit code 3 over a machine standing exactly where it was asked to.
+    /// </summary>
+    [Fact]
+    public void A_forced_restart_whose_polite_stop_works_is_complete()
+    {
+        var control = new FakeScmControl();
+
+        var run = Run(control, Restarted(
+            Stop("Spooler", StepReason.Requested),
+            Stop("Housemate", StepReason.SharesTheProcess),
+            Ending("Housemate"),
+            Start("Spooler"),
+            Start("Housemate")));
+
+        Assert.Equal(SkipReason.ProcessStays, run.Results[1].SkippedBecause);
+        Assert.Equal(StepOutcome.Succeeded, run.Results[3].Outcome);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[4].SkippedBecause);
+        Assert.Equal(["Spooler", "Spooler"], control.Requested);
+        Assert.Empty(control.Ended);
+        Assert.True(run.Completed);
+    }
+
+    /// <summary>
+    /// The other half of 539, and the reason the rule is narrow: an entry somebody stopped before the run is
+    /// left stopped (package D, W-5 c) and the plan wanted it running. Its neighbour is out of the count -
+    /// the entry itself is not.
+    /// </summary>
+    [Fact]
+    public void A_forced_restart_of_an_entry_somebody_stopped_first_is_not_complete()
+    {
+        var control = new FakeScmControl().At("Spooler", EntryStatus.Stopped);
+
+        var run = Run(control, Restarted(
+            Stop("Spooler", StepReason.Requested),
+            Stop("Housemate", StepReason.SharesTheProcess),
+            Ending("Housemate"),
+            Start("Spooler"),
+            Start("Housemate")));
+
+        Assert.Equal(SkipReason.AlreadyThere, run.Results[0].SkippedBecause);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[3].SkippedBecause);
+        Assert.Empty(control.Requested);
+        Assert.False(run.Completed);
+    }
+
     [Fact]
     public void A_neighbour_is_left_alone_when_the_entry_cannot_be_read()
     {
@@ -187,6 +235,9 @@ public sealed class ForcedRunTests
         Warnings = [],
         Problems = []
     };
+
+    private static OperationPlan Restarted(params PlanStep[] steps) =>
+        Forced(steps) with { Action = new ServiceAction(ActionKind.ForceRestart, "Spooler") };
 
     private static PlanRun Run(FakeScmControl control, OperationPlan plan) =>
         new PlanRunner(control, new FakeClock()).Run(plan, TimeSpan.FromSeconds(30));

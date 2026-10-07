@@ -26,6 +26,57 @@ public sealed class ComingBackWordsGuards
         Assert.Contains(": WpnService (1 s, 2 s, 4 s, 8 s or 16 s later), Fax (0.1 s later).", said, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Backlog 541, the owner's decision of 2026-10-07 - the window's sentence is the terminal's without the
+    /// sc.exe line, which the window never had.
+    /// </summary>
+    [Fact]
+    public void A_restart_on_some_failures_only_names_them()
+    {
+        var said = PlanWords.Describe(Warned(
+            new RecoveryRestart("Spooler", [TimeSpan.FromSeconds(5)])
+            {
+                Only = new SomeFailures([1, 2], false, TimeSpan.FromHours(1))
+            }));
+
+        Assert.Equal(
+            "Once the process behind Spooler is ended, Windows starts Spooler (5 s later, on failure 1 or 2 only) "
+            + "again by itself - its recovery actions say so. Spooler counts its failures from 1 again after 1 h "
+            + "without one, and Windows does not say which failure this is. The stop may not last.",
+            said);
+    }
+
+    [Fact]
+    public void Or_later_and_a_count_that_never_starts_again_have_their_words()
+    {
+        var said = PlanWords.Describe(Warned(
+            new RecoveryRestart("SNMPTrap", [Minute]) { Only = new SomeFailures([2], true, Timeout.InfiniteTimeSpan) },
+            new RecoveryRestart("BITS", [Minute]) { Only = new SomeFailures([1], false, TimeSpan.FromMinutes(15)) }));
+
+        Assert.Contains("SNMPTrap (60 s later, on failure 2 or later), BITS (60 s later, on failure 1 only)", said, StringComparison.Ordinal);
+        Assert.Contains(
+            "SNMPTrap counts its failures from 1 again only after the computer restarts, BITS counts its failures "
+            + "from 1 again after 15 min without one, and Windows does not say which failure this is.",
+            said,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_notice_after_a_run_names_the_failures_of_who_may_come_back()
+    {
+        var panel = new Planned { Elevated = true };
+
+        panel.Show(Forcing(new RecoveryRestart("Spooler", [Minute]) { Only = new SomeFailures([1, 2], false, TimeSpan.FromHours(1)) }));
+        panel.Finished(Ran(panel, StepOutcome.Succeeded));
+
+        Assert.EndsWith(
+            "Windows starts Spooler (60 s later, on failure 1 or 2 only) again by itself after the process behind "
+            + "Spooler was ended - its recovery actions say so. Spooler counts its failures from 1 again after 1 h "
+            + "without one, and Windows does not say which failure this was. The stop may not last.",
+            panel.Notice,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_notice_after_a_run_that_ended_the_process_says_who_comes_back()
     {
@@ -62,7 +113,9 @@ public sealed class ComingBackWordsGuards
             Restarts = restarts
         };
 
-    private static BulkPlan Forcing() => new()
+    private static BulkPlan Forcing() => Forcing(new RecoveryRestart("Spooler", [Minute]));
+
+    private static BulkPlan Forcing(RecoveryRestart restart) => new()
     {
         Action = new BulkAction(ActionKind.ForceStop, ["Spooler"]),
         Plans =
@@ -75,7 +128,7 @@ public sealed class ComingBackWordsGuards
                     new PlanStep(
                         "Spooler", "Print Spooler", StepOperation.Terminate, StepReason.Requested, ProcessId: 4812, TakesWithIt: [])
                 ],
-                Warnings = [Warned(new RecoveryRestart("Spooler", [Minute]))],
+                Warnings = [Warned(restart)],
                 Problems = []
             }
         ],

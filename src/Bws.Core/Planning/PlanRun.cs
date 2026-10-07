@@ -240,11 +240,42 @@ public sealed record PlanRun
     /// wanted it down only on the way to ending the process, and that way was not needed - so a
     /// forced stop whose polite step worked reads as done rather than as three neighbours "not where
     /// you asked", which would be exit code 3 over a machine in exactly the state asked for.
+    ///
+    /// <b>AND NEITHER IS THE STEP THAT WOULD HAVE PUT THAT NEIGHBOUR BACK (backlog 539, 2026-10-07).</b> A
+    /// forced restart plans a start for every neighbour, to give back what the ending took - and when the
+    /// polite stop worked, the ending took nothing, so the start is skipped as nothing to put back. Counted,
+    /// that skip read as "not arrived", and <c>bws kill X --restart</c> on an entry sharing its process ended
+    /// with exit code 3 over a machine standing exactly where it was asked to - found by reading the code
+    /// before the rehearsal ran it, then seen twice on the throwaway machine. The window said "not where you
+    /// asked" over an empty list of what went wrong. The neighbour is in the plan only on account of the
+    /// ending, its stop and its start alike, so an ending that was not needed takes both out of the count.
+    ///
+    /// <b>Only for a neighbour whose own stop was skipped that way.</b> Nothing to put back is still "not
+    /// arrived" everywhere else, as package D decided on 2026-09-30: an entry somebody stopped between the
+    /// preview and the run is left stopped, and the plan wanted it running. The price is the one the
+    /// neighbour's stop already pays - nobody reads it, so a neighbour stopped by somebody else in the
+    /// meantime is not seen either.
     /// </summary>
     public bool Completed => Results
-        .Where(result => result.SkippedBecause != SkipReason.ProcessStays)
+        .Where(result => !OnlyForTheEnding(result))
         .GroupBy(result => (result.Step.ServiceName, Aim(result.Step.Operation)))
         .All(same => same.Last().Arrived);
+
+    /// <summary>
+    /// A step the plan wanted only on the way to ending a process that was not ended - a neighbour's stop
+    /// skipped because the process stays, and the start that would have put that same neighbour back.
+    /// </summary>
+    private bool OnlyForTheEnding(StepResult result) => result.SkippedBecause switch
+    {
+        SkipReason.ProcessStays => true,
+        SkipReason.NothingToPutBack => Stayed(result.Step.ServiceName),
+        _ => false
+    };
+
+    /// <summary>Whether this entry's stop was skipped because its process stays.</summary>
+    private bool Stayed(string serviceName) => Results.Any(result =>
+        result.SkippedBecause == SkipReason.ProcessStays
+        && string.Equals(result.Step.ServiceName, serviceName, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// What an operation is trying to make true of its entry, with ending the process folded into

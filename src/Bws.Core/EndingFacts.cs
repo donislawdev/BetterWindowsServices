@@ -97,6 +97,25 @@ public readonly record struct EndingFacts(Reading<bool> CanBeEnded, Reading<long
 public readonly record struct RecoveryItem(RecoveryAction Action, TimeSpan Delay);
 
 /// <summary>
+/// An entry's recovery list as the manager keeps it: the items in order, and how long the entry has to go
+/// without failing before the manager counts its failures from 1 again.
+///
+/// <b>The reset period is kept since 2026-10-07 (backlog 541), and until that day it was read and dropped</b>
+/// on the argument that the count it resets is not handed out, so it could decide nothing. It decides the
+/// sentence: failure N runs item N and the last item repeats past the end (<c>SERVICE_FAILURE_ACTIONSW</c>),
+/// so a list of restart, restart, nothing - Spooler's - restarts the entry on its first two failures only, and
+/// the reset period is what says when the count starts again. Measured on the owner's machine that day: 190
+/// of 204 lists with a restart restart on some failures and not on others.
+/// </summary>
+/// <param name="Items">Every item, in the order of the list - an item that does nothing included.</param>
+/// <param name="ResetPeriod">
+/// Microsoft's <c>dwResetPeriod</c>, in seconds there. <see cref="Timeout.InfiniteTimeSpan"/> for
+/// <c>INFINITE</c>, a count that starts again only when the machine does. Zero is a value Microsoft does not
+/// describe, and measured on the throwaway machine on 2026-10-07 it makes every failure the first.
+/// </param>
+public sealed record RecoveryList(IReadOnlyList<RecoveryItem> Items, TimeSpan ResetPeriod);
+
+/// <summary>
 /// What one item of the recovery list does when an entry's process dies without the entry saying it
 /// stopped - the kind of an item, <see cref="RecoveryItem"/> carries it with its delay.
 ///
@@ -107,8 +126,10 @@ public readonly record struct RecoveryItem(RecoveryAction Action, TimeSpan Delay
 /// is in the machine readable output.
 ///
 /// <b>Which item of the list runs is not knowable from outside.</b> The manager counts failures since
-/// the machine started and runs item N for failure N, repeating the last - and no call hands out the
-/// count. So the plan asks what is ANYWHERE in the list.
+/// the machine started, starts the count again after the reset period without one, and runs item N for
+/// failure N, repeating the last - and no call hands out the count. So a refusal asks what is ANYWHERE in
+/// the list, and since 2026-10-07 the restart warning says which failures restart the entry
+/// (<see cref="RecoveryList"/>).
 /// </summary>
 public enum RecoveryAction
 {
@@ -162,14 +183,15 @@ public interface IEndingFactsReader
     EndingFacts Read(int processId);
 
     /// <summary>
-    /// What the manager does to this entry when its process dies, item by item.
+    /// What the manager does to this entry when its process dies, item by item, and when it starts counting
+    /// the failures again - the reset period, since 2026-10-07.
     ///
     /// <b>Absent when the entry is not there any more</b> - it went between the listing and this
     /// question, so it will not die with anything. Denied when the manager refused, with its number,
     /// and the plan refuses on that: a casualty list whose consequences are known to be missing is
     /// the same shape as one known to be short.
     /// </summary>
-    Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName);
+    Reading<RecoveryList> ReadRecovery(string serviceName);
 }
 
 /// <summary>
@@ -185,6 +207,6 @@ internal sealed class NobodyToAsk : IEndingFactsReader
 
     public EndingFacts Read(int processId) => EndingFacts.NobodyAsked();
 
-    public Reading<IReadOnlyList<RecoveryItem>> ReadRecovery(string serviceName) =>
-        Reading<IReadOnlyList<RecoveryItem>>.NotRead();
+    public Reading<RecoveryList> ReadRecovery(string serviceName) =>
+        Reading<RecoveryList>.NotRead();
 }
