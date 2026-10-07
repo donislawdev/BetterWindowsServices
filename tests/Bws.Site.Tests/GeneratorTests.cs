@@ -17,6 +17,9 @@ namespace Bws.Site.Tests;
 /// </summary>
 public sealed class GeneratorTests : IDisposable
 {
+    // The session on the front page, which the poster tests plant a video in front of.
+    private const string SessionImage = "<img src=\"/assets/bws-in-action.gif\"";
+
     private readonly string _copy;
     private readonly string _output;
 
@@ -74,11 +77,16 @@ public sealed class GeneratorTests : IDisposable
     /// A video's still frame is an address too, and the check read only href and src until the
     /// front page got a video on 2026-09-24 - a poster pointing at nothing would have shipped as
     /// a black box with a play button on it.
+    ///
+    /// <b>The video is planted, since 2026-10-07</b>, when the front page went back to the GIF the
+    /// README carries, by the owner's decision. The check still reads posters, so a video can come
+    /// back without this guard having to be found again - and a test that relied on the page to
+    /// hold one would have nothing left to damage.
     /// </summary>
     [Fact]
     public void A_poster_pointing_at_nothing_is_reported()
     {
-        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "poster=\"/assets/bws-in-action.jpg\"");
+        DamagePage("home", "en", SessionImage, "<video poster=\"/assets/bws-in-action.jpg\"></video>" + SessionImage);
 
         Assert.Contains(Build(), problem => problem.Contains("/assets/bws-in-action.jpg", StringComparison.Ordinal));
     }
@@ -109,7 +117,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_poster_loaded_from_another_host_is_refused()
     {
-        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "poster=\"https://cdn.example.com/bws-in-action.png\"");
+        DamagePage("home", "en", SessionImage, "<video poster=\"https://cdn.example.com/bws-in-action.png\"></video>" + SessionImage);
 
         Assert.Contains(Build(), problem => problem.Contains("loads https://cdn.example.com/bws-in-action.png from another host", StringComparison.Ordinal));
     }
@@ -121,7 +129,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void An_address_in_capitals_and_single_quotes_is_still_checked()
     {
-        DamagePage("home", "en", "poster=\"/assets/bws-in-action.png\"", "POSTER='/assets/bws-in-action.jpg'");
+        DamagePage("home", "en", "src=\"/assets/bws-in-action.gif\"", "SRC='/assets/bws-in-action.jpg'");
 
         Assert.Contains(Build(), problem => problem.Contains("/assets/bws-in-action.jpg", StringComparison.Ordinal));
     }
