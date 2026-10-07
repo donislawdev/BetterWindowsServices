@@ -166,9 +166,11 @@
     it named the binaries while everything stood under [Unreleased].
 
     0.3.0 on 2026-09-25, the owner's decision.
+
+    0.4.0 on 2026-10-07, the owner's decision.
   -->
   <PropertyGroup>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

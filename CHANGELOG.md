@@ -11,6 +11,8 @@ is not part of this repository.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-07
+
 ### Added
 
 - A plan run from the window can now be left undone, the way a second Ctrl+C leaves one in a
