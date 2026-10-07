@@ -26,8 +26,8 @@ is not part of this repository.
   from that sheet. Nothing is carried out until you press the button at the foot of the plan, and a
   restart as administrator keeps the choice.
 - After a plan that ended a process - `bws kill`, or Force stop in the window - the report says which
-  services Windows will start again by itself and how long after the ending, as their recovery
-  actions say (`sc.exe qfailure` shows them). The step that ended the process is reported done the
+  services Windows will start again by itself, how long after the ending and on which failures, as
+  their recovery actions say. The step that ended the process is reported done the
   moment it happens, and a service set to restart after a minute was back a minute later with nothing
   on screen saying so. A forced restart that started everything again itself adds nothing.
 
@@ -103,6 +103,15 @@ is not part of this repository.
   every name: "Spooler (5 s later)", or "W32Time (60 s or 120 s later)" when the recovery actions
   name several delays - which of them applies depends on how often the service has failed, and
   Windows does not say. With `--json` this is in the `message` of the warning. No field was added.
+- That warning, and the line after a run, also say on which failures Windows starts the service
+  again when its recovery actions do not restart it on every one. On the machine this was built on
+  that is 190 of the 204 services with a restart in their recovery actions - Print Spooler's restart
+  it on its first two failures and do nothing on the third - and the warning used to say "Windows
+  starts Spooler again" of every ending. It now
+  reads "Spooler (5 s later, on failure 1 or 2 only)", says after how long without a failure the
+  service counts from 1 again, and that Windows does not say which failure an ending is. The advice
+  to look at `sc.exe qfailure` is gone from these warnings, and from the one about a recovery action
+  the tool cannot name, because `sc.exe` does not print the very items they are about.
 
 - Interrupt goes grey once pressed, and the line at the top of the plan says the run was
   interrupted and is finishing the step in flight. Until now pressing it left no trace on the screen.
@@ -162,6 +171,12 @@ is not part of this repository.
 
 ### Fixed
 
+- `bws kill NAME --restart` on a service that shares its process, when asking it to stop was
+  enough, ends with exit code 0 and `"completed": true`. It used to end with exit code 3 over a
+  machine standing exactly where it was asked to be, because the services sharing the process -
+  never stopped, so never started again - were counted as not where you asked. The window's Force
+  restart said "The entry is not where you asked" over an empty list for the same reason, and now
+  says Done.
 - The window no longer writes over a column layout file it said it left alone. A file from a newer
   version, a damaged file that could not be moved aside, and a file another program held open while
   the window started are now left exactly as they are, the window says that changes to the columns

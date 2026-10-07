@@ -116,7 +116,33 @@ internal static class WpfHost
     {
         _ = Resources;
 
-        return On(() => new MainWindow(Nowhere()));
+        return Attached(On(() => new MainWindow(Nowhere())));
+    }
+
+    /// <summary>
+    /// Hands the window back only once its bindings are attached - backlog 502, 2026-10-07.
+    ///
+    /// <b>A window built inside one call to this thread does not have its bindings yet.</b> WPF
+    /// attaches them from a task it queues on the dispatcher, and every call through
+    /// <see cref="On(Action)"/> runs at Send priority, ahead of that task. So a test that wrote into
+    /// a bound control straight after building the window could have its text overwritten by the
+    /// model's value when the binding attached. Caught by its stack: DataBindEngine.Run, then
+    /// BindingExpression.AttachToContext, Activate and TransferValue, putting the model's empty
+    /// QueryText into a search box the test had just set to "spool" - which is how the Ctrl+F test in
+    /// KeyboardTests failed twice on CI and never locally, and 10 and 9 times in 400 rounds of the
+    /// same steps on this machine.
+    ///
+    /// <b>Input priority, not <see cref="Settled"/></b>, because that is the line a person's
+    /// keystroke stands behind: everything queued above it has run before a key can arrive. With
+    /// this drain the same 400 rounds failed none. Waiting for ContextIdle would also run background
+    /// work no keystroke waits for, and tests that look at the window before that work would change
+    /// meaning without a word.
+    /// </summary>
+    private static MainWindow Attached(MainWindow window)
+    {
+        Thread.Value.Invoke(() => { }, DispatcherPriority.Input);
+
+        return window;
     }
 
     /// <summary>
@@ -146,9 +172,9 @@ internal static class WpfHost
     {
         _ = Resources;
 
-        return On(() => carriedOutBy is null
+        return Attached(On(() => carriedOutBy is null
             ? new MainWindow(Nowhere(seenTheOverview), model)
-            : new MainWindow(Nowhere(seenTheOverview), model) { CarriedOutBy = carriedOutBy });
+            : new MainWindow(Nowhere(seenTheOverview), model) { CarriedOutBy = carriedOutBy }));
     }
 
     /// <summary>
