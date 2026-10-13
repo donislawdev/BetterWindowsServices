@@ -388,6 +388,7 @@
   "gui.plan.abandon": "Leave the rest undone",
   "gui.plan.abandon.hint": "Stop watching the step in flight and put nothing back. What this run took down stays down, and the sheet says how to put it back.",
   "gui.plan.progress": "Step {0} of {1}: {2} {3}",
+  "gui.plan.progress.escalation": "Step {0} of {1}: {2} {3}, if the stop did not work",
   "gui.plan.progress.waiting": "{0} - {1} s so far, given up on after {2} s with no progress",
   "gui.plan.waiting.label": "Wait up to",
   "gui.plan.waiting.unit": "seconds without progress",
