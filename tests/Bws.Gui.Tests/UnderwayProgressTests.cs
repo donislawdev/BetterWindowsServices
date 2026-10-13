@@ -20,6 +20,10 @@ public sealed class UnderwayProgressTests
         run.Announce(Ending(StepReason.Escalation), 4);
 
         Assert.Equal(Texts.Of("gui.plan.progress.escalation", 4, 7, PlanWords.Word(StepOperation.Terminate), "Spooler"), run.Progress);
+
+        // The expected line comes from the same key the window reads, so the words themselves are
+        // held here - without this, a sentence that lost its condition would still pass.
+        Assert.Contains("if the stop did not work", run.Progress, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -30,6 +34,7 @@ public sealed class UnderwayProgressTests
         run.Announce(Ending(StepReason.Requested), 1);
 
         Assert.Equal(Texts.Of("gui.plan.progress", 1, 7, PlanWords.Word(StepOperation.Terminate), "Spooler"), run.Progress);
+        Assert.DoesNotContain("if the stop did not work", run.Progress, StringComparison.Ordinal);
     }
 
     private static Underway Begun()

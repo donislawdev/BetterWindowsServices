@@ -7,7 +7,7 @@ namespace Bws.Cli.Tests;
 ///
 /// <b>Written 2026-10-13, backlog 545.</b> The line goes out before the step reads the entry, so the
 /// ending that stands behind a stop was announced as "end process 5476" even when the stop had worked
-/// and the ending found nothing to do. Seen in the rehearsal on the throwaway machine (S-f), where the
+/// and the ending found nothing to do. Seen in the rehearsal on the throwaway machine (scenario S-f), where the
 /// report under it said "already there".
 /// </summary>
 public sealed class ProgressLineTests
@@ -18,6 +18,10 @@ public sealed class ProgressLineTests
         var said = PlanText.Progress(Ending(StepReason.Escalation), 4, 7);
 
         Assert.Equal(Texts.Of("cli.run.progress.escalation", 4, 7, Texts.Of("cli.plan.operation.terminate", 4812), "Spooler"), said);
+
+        // The expected line comes from the same key the product reads, so the words themselves are
+        // held here - without this, a sentence that lost its condition would still pass.
+        Assert.Contains("if the stop did not work", said, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -26,6 +30,7 @@ public sealed class ProgressLineTests
         var said = PlanText.Progress(Ending(StepReason.Requested), 1, 1);
 
         Assert.Equal(Texts.Of("cli.run.progress", 1, 1, Texts.Of("cli.plan.operation.terminate", 4812), "Spooler"), said);
+        Assert.DoesNotContain("if the stop did not work", said, StringComparison.Ordinal);
     }
 
     private static PlanStep Ending(StepReason reason) =>
