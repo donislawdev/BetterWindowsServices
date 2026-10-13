@@ -112,6 +112,7 @@
   "cli.plan.warning.recoveryUnnamed.many": "{1} entries have a recovery action of a kind this tool cannot name, and Windows carries it out once the process behind {0} is ended: {2}.",
 
   "cli.run.progress": "[{0}/{1}] {2} {3} ...",
+  "cli.run.progress.escalation": "[{0}/{1}] {2} {3}, if the stop did not work ...",
   "cli.run.interrupted": "Interrupted. Finishing the step in flight, then putting back what was taken down. Another Ctrl+C leaves it as it is.",
   "cli.run.abandoned": "Leaving the rest undone. The report still follows, so you can see what was changed. Another Ctrl+C ends this without it.",
   "cli.run.wasInterrupted": "This run was interrupted. Steps that were never attempted say so above.",

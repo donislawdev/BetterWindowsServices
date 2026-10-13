@@ -92,7 +92,7 @@ internal static partial class PlanWords
         PlanWarningKind.AlreadyThere => Texts.Of("gui.plan.warning.alreadyThere", warning.ServiceName),
 
         // The offer to stop it too is not in this sentence - it stands under it as a button, which
-        // PlanWarningLine decides. The terminal's sentence names --stop instead, having no button.
+        // PlanSentence carries. The terminal's sentence names --stop instead, having no button.
         PlanWarningKind.KeepsRunning => Texts.Of("gui.plan.warning.keepsRunning", warning.ServiceName),
 
         PlanWarningKind.StartsAtNextBoot => Texts.Of("gui.plan.warning.startsAtNextBoot", warning.ServiceName),

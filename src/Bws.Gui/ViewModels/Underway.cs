@@ -177,7 +177,12 @@ public sealed class Underway : Observable
     /// </summary>
     internal void Announce(PlanStep step, int number)
     {
-        _step = Texts.Of("gui.plan.progress", number, _steps, PlanWords.Word(step.Operation), step.ServiceName);
+        // AN ENDING BEHIND A STOP IS ANNOUNCED AS CONDITIONAL, since 2026-10-13 (backlog 545). This goes
+        // up before the step reads the entry, and when the stop in front of it worked the ending ends
+        // nothing. The words are the plan's own reason for the step, in the past tense.
+        _step = step.Reason == StepReason.Escalation
+            ? Texts.Of("gui.plan.progress.escalation", number, _steps, PlanWords.Word(step.Operation), step.ServiceName)
+            : Texts.Of("gui.plan.progress", number, _steps, PlanWords.Word(step.Operation), step.ServiceName);
 
         // THE CLOCK RESTARTS PER STEP, NOT PER RUN, because the limit is per step. A run of six steps
         // may take six minutes without any one of them being near its limit.

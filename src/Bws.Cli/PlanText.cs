@@ -183,9 +183,19 @@ internal static partial class PlanText
         _ => Texts.Of($"cli.run.outcome.{Camel(result.SkippedBecause ?? SkipReason.AlreadyThere)}")
     };
 
-    /// <summary>The step being attempted, for the error channel while somebody waits.</summary>
-    internal static string Progress(PlanStep step, int number, int count) =>
-        Texts.Of("cli.run.progress", number, count, Operation(step), step.ServiceName);
+    /// <summary>
+    /// The step being attempted, for the error channel while somebody waits.
+    ///
+    /// <b>An ending that stands behind a stop is announced as conditional, since 2026-10-13
+    /// (backlog 545).</b> This line goes out before the step reads the entry, and when the stop in
+    /// front of it worked the ending ends nothing - it finds the entry stopped and reports "already
+    /// there". Announced bare, it put "end process 5476" over a report saying nothing was done. The
+    /// words are the preview's own reason for the step, in the past tense, because by the time this
+    /// is said the stop has been tried. An ending with no stop in front of it stays as it was.
+    /// </summary>
+    internal static string Progress(PlanStep step, int number, int count) => step.Reason == StepReason.Escalation
+        ? Texts.Of("cli.run.progress.escalation", number, count, Operation(step), step.ServiceName)
+        : Texts.Of("cli.run.progress", number, count, Operation(step), step.ServiceName);
 
     /// <summary>
     /// How long something took. Milliseconds up to a second, seconds above it - a stop that

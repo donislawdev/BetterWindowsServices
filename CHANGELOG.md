@@ -11,6 +11,14 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Fixed
+
+- `bws kill`, and Force stop in the window, no longer announce that they end a service's process
+  when the ordinary stop in front of that step has already worked. The step finds the service
+  stopped and ends nothing, and its progress line now says so up front: "end process 5476
+  Spooler, if the stop did not work" in a terminal, and the same words under the buttons of the
+  window's plan. The report after the run is unchanged.
+
 ## [0.4.0] - 2026-10-07
 
 ### Added
