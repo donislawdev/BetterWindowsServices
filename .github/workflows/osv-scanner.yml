@@ -39,7 +39,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: read # checkout only - nothing in this workflow pushes, comments or labels
 
 concurrency:
   group: osv-scanner-${{ github.ref }}
@@ -80,9 +80,8 @@ jobs:
         run: docker build --quiet --tag osv-scanner-pinned .github/osv-scanner
 
       - name: Canary
-        # The checkout is mounted at its own path and read only. The same path inside and outside
-        # is what lets the Security tab place an alert - the scanner writes absolute paths, and the
-        # upload makes them relative to this directory.
+        # The checkout is mounted read only, and at its own path, so that every path the scanner
+        # reports is the runner's own and can be matched against what git tracks.
         run: |
           set +e
           docker run --rm -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE:ro" -w "$GITHUB_WORKSPACE" osv-scanner-pinned \
@@ -141,6 +140,18 @@ jobs:
           if [ "$json" -gt 1 ]; then exit "$json"; fi
           if [ "$sarif" -gt 1 ]; then exit "$sarif"; fi
 
+      - name: Point every alert at a file the repository has
+        # The lock files and the pip list exist only in this job, so an alert left pointing at
+        # one would point at nothing. Each location moves to the tracked file behind it - the
+        # project's .csproj, or the requirements file - and a location that belongs to neither is
+        # refused. On every event, a pull request included, so that a change which breaks this
+        # step is red before it is merged rather than on the first push to main. A review of
+        # pull request 62 asked for it.
+        run: >-
+          python .github/scripts/osv_gate.py sarif "$RUNNER_TEMP/osv.sarif"
+          --pins .github/semgrep.installed.txt
+          --pins-from .github/requirements-semgrep.txt
+
       # Handed over BEFORE the verdict, so that a scan which found something still reaches the
       # Security tab - that is the case the tab exists for. Never on a pull request.
       - name: Hand the SARIF to the job that may write it
@@ -172,9 +183,9 @@ jobs:
     # The one write scope in this workflow, held by a job that runs no package, no resolver and no
     # image - only GitHub's own actions, on a file the job above wrote.
     permissions:
-      contents: read
-      actions: read
-      security-events: write
+      contents: read # the checkout, which the upload also needs while a repository is private
+      actions: read # the upload needs it only while a repository is private - kept, as codeql.yml keeps it
+      security-events: write # the upload itself, the only write in this workflow
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
