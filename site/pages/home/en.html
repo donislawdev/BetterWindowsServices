@@ -19,7 +19,7 @@
       </div>
       <ul class="trust">
         <li>Free and open source, GPL-3.0</li>
-        <li>One file, no installer</li>
+        <li>One file, or an installer</li>
         <li>No administrator rights to look</li>
         <li>Never talks to the internet</li>
       </ul>
@@ -98,7 +98,7 @@
       <div class="card"><h3>Show what <code>services.msc</code> hides</h3><p>Who signed the binary and whether Windows trusts it, triggers, privileges, the security descriptor, the process and its memory. As columns, and as things to search on.</p></div>
       <div class="card"><h3>Say when it could not read something</h3><p>A field it could not read is reported as not read, never shown as empty. A snapshot taken without administrator rights says so inside the file.</p></div>
       <div class="card"><h3>Fit into scripts</h3><p><code>--json</code> on every command, an exit code for every ending, and <code>5</code> when a diff finds drift.</p></div>
-      <div class="card"><h3>Run from one file, offline</h3><p>No installer, no .NET to install, and it never talks to the internet. Reading needs no administrator rights. GPL-3.0.</p></div>
+      <div class="card"><h3>Run from one file, offline</h3><p>Unzip and run, or install it for the whole machine. No .NET to install, and it never talks to the internet. Reading needs no administrator rights. GPL-3.0.</p></div>
     </div>
   </div>
 </section>
@@ -191,7 +191,7 @@ Plan: stop Winmgmt  (2 steps)
   <div class="wrap">
     <span class="eyebrow">Get it</span>
     <h2>Unzip anywhere and run</h2>
-    <p class="lede">Windows 10 1809 or Windows Server 2019 and later, 64-bit. No installer, nothing written to the registry, and no administrator rights needed to look. Changing anything needs an elevated session, and both halves say so instead of failing quietly - the window offers <em>Restart as admin</em>.</p>
+    <p class="lede">Windows 10 1809 or Windows Server 2019 and later, 64-bit. The archives need no installer and write nothing to the registry, and looking needs no administrator rights. Changing anything needs an elevated session, and both halves say so instead of failing quietly - the window offers <em>Restart as admin</em>.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>File</th><th>What it is</th></tr></thead>

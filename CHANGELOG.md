@@ -13,6 +13,14 @@ is not part of this repository.
 
 ### Added
 
+- A Windows installer, `BetterWindowsServices-win-x64.msi`, beside the two archives, which stay as
+  they are. It installs the window and the command line into `Program Files\Better Windows Services`
+  for every account on the machine, with the window in the Start menu and the folder on the
+  machine's PATH, so `bws` answers in a new terminal and in a scheduled task. It is signed like the
+  programs and carries its own bill of materials and attestation. A newer version installs over an
+  older one, an older one is refused, and nothing that is running is closed. Uninstalling removes
+  the programs, the Start menu entry and the PATH entry, and leaves the window's own file in
+  `%APPDATA%` and the folder it unpacks into as administrator under `ProgramData` alone.
 - Snapshots in the window. A "Snapshots..." button beside Export... offers "Take snapshot...", which
   writes this machine to a file you choose - the same file `bws snapshot create` writes, readable by
   either - and "Compare with this machine...", which reads a snapshot and shows what changed since it

@@ -30,20 +30,31 @@
     ONE DOCUMENT PER ARCHIVE, not one for both. The two packages have different contents and a
     single document describing both would misstate each of them.
 
+    AND ONE FOR THE INSTALLER, from 2026-10-14. The installer carries both packages (the register's
+    `installer.contents`), so its document lists the components of both - each package checked in
+    both directions against ITS OWN build manifest, exactly as its archive's document is, and a
+    component both carry has to have resolved to the same version in both. Nothing here keeps a
+    second list of what the installer holds.
+
     The document carries the archive's own sha256, so it is tied to exact bytes. That is also why
     it sits BESIDE the archive in the release rather than inside it: a file cannot contain its
     own hash.
 
 .PARAMETER PackageId
-    Which package to describe: a key of the register's `packages` object (cli or gui).
+    Which file to describe: a key of the register's `packages` object (cli or gui), or `installer`.
 
 .PARAMETER ZipPath
-    The archive that was built for it. Its sha256 goes into the document.
+    The file that was built for it - an archive, or the installer. Its sha256 goes into the
+    document.
 
 .PARAMETER DepsPath
-    The .deps.json the publish produced for that package. This is where the resolved version of
-    every runtime pack is read from. Ask MSBuild for it with -getProperty:ProjectDepsFilePath
+    For a package: the .deps.json the publish produced for it. This is where the resolved version
+    of every runtime pack is read from. Ask MSBuild for it with -getProperty:ProjectDepsFilePath
     rather than assembling the path by hand - build-dist.ps1 does exactly that.
+
+.PARAMETER DepsFolder
+    For the installer: the folder holding `<archive>.deps.json` for every package it carries, the
+    names build-dist.ps1 writes them under and the names phase A hands them to phase B under.
 
 .PARAMETER OutPath
     Where to write the SPDX JSON.
@@ -52,7 +63,8 @@
 param(
     [Parameter(Mandatory)] [string] $PackageId,
     [Parameter(Mandatory)] [string] $ZipPath,
-    [Parameter(Mandatory)] [string] $DepsPath,
+    [string] $DepsPath = '',
+    [string] $DepsFolder = '',
     [Parameter(Mandatory)] [string] $OutPath
 )
 
@@ -68,14 +80,39 @@ function Assert-File([string] $path, [string] $why) {
 
 Assert-File $registerPath 'the register is the source of this document'
 Assert-File $ZipPath 'build the package before describing it'
-Assert-File $DepsPath 'the publish writes it, and the runtime pack versions are read from it'
 
 $register = Get-Content -Raw -LiteralPath $registerPath | ConvertFrom-Json
-$knownPackages = $register.packages.PSObject.Properties.Name
-if ($knownPackages -notcontains $PackageId) {
-    throw "sbom: the register has no package '$PackageId' - it knows: $($knownPackages -join ', ')"
+$knownPackages = @($register.packages.PSObject.Properties.Name)
+
+# What is described, which packages it carries, and where each package's build manifest is. For an
+# archive that is the archive's own package and the manifest passed in. For the installer it is every
+# package under `contents`, each with the manifest named after its archive.
+$manifests = [ordered]@{}
+if ($PackageId -eq 'installer') {
+    if (-not $register.PSObject.Properties['installer']) { throw 'sbom: the register names no installer' }
+    if (-not $DepsFolder) { throw 'sbom: the installer is described with -DepsFolder, the folder holding each package''s <archive>.deps.json' }
+    $described = $register.installer
+    $fileName = [string]$described.file
+    foreach ($id in @($described.contents)) {
+        if ($knownPackages -notcontains $id) {
+            throw "sbom: the installer carries '$id', which is no package of the register - it knows: $($knownPackages -join ', ')"
+        }
+        $manifests[$id] = Join-Path $DepsFolder ($register.packages.$id.zip + '.deps.json')
+    }
+    if ($manifests.Count -eq 0) { throw 'sbom: the installer carries no package, which cannot be right' }
 }
-$package = $register.packages.$PackageId
+else {
+    if ($knownPackages -notcontains $PackageId) {
+        throw "sbom: the register has no package '$PackageId' - it knows: $($knownPackages -join ', '), installer"
+    }
+    if (-not $DepsPath) { throw "sbom: package '$PackageId' is described with -DepsPath, the build manifest of its publish" }
+    $described = $register.packages.$PackageId
+    $fileName = [string]$described.zip
+    $manifests[$PackageId] = $DepsPath
+}
+foreach ($id in $manifests.Keys) {
+    Assert-File $manifests[$id] 'the publish writes it, and the runtime pack versions are read from it'
+}
 
 # The product version, read from the one file that sets it rather than retyped. Rule 11 of
 # CLAUDE.md makes that number the owner's to move, and a second copy here would be a first place
@@ -93,75 +130,95 @@ $zipItem = Get-Item -LiteralPath $ZipPath
 # What the build actually resolved
 # ---------------------------------------------------------------------------------------------
 
-# Every library the publish recorded, as name -> version. The manifest spells a runtime pack
+# Every library one publish recorded, as name -> version. The manifest spells a runtime pack
 # `runtimepack.Microsoft.NETCore.App.Runtime.win-x64/10.0.12` and a package `WPF-UI/4.3.0`, so
 # the prefix is stripped here and the register's `kind` says which shape to expect.
 # Ordinal-ignore-case: NuGet ids are compared without case everywhere else in this repository.
-$deps = Get-Content -Raw -LiteralPath $DepsPath | ConvertFrom-Json
-$resolved = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-$ours = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-
-foreach ($library in $deps.libraries.PSObject.Properties) {
-    $parts = $library.Name -split '/', 2
-    if ($parts.Count -ne 2) { throw "sbom: '$($library.Name)' in $DepsPath is not <name>/<version>" }
-    $name = $parts[0] -replace '^runtimepack\.', ''
-    # A project is ours - this product's own assemblies. They are not third-party components and
-    # must not be demanded of the register.
-    if ($library.Value.type -eq 'project') { [void] $ours.Add($name); continue }
-    $resolved[$name] = $parts[1]
+function Read-Resolved([string] $path) {
+    $deps = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+    $resolved = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($library in $deps.libraries.PSObject.Properties) {
+        $parts = $library.Name -split '/', 2
+        if ($parts.Count -ne 2) { throw "sbom: '$($library.Name)' in $path is not <name>/<version>" }
+        # A project is ours - this product's own assemblies. They are not third-party components and
+        # must not be demanded of the register.
+        if ($library.Value.type -eq 'project') { continue }
+        $resolved[($parts[0] -replace '^runtimepack\.', '')] = $parts[1]
+    }
+    # The comma keeps the dictionary whole. Without it PowerShell unrolls it into its entries on the
+    # way out, and the caller gets an array of pairs instead of a map (trap 20 of docs/14).
+    return , $resolved
 }
 
 # ---------------------------------------------------------------------------------------------
-# The register, checked against it in both directions
+# The register, checked against each package's build in both directions
 # ---------------------------------------------------------------------------------------------
 
-$mine = @($register.components | Where-Object { $_.in -contains $PackageId })
-if ($mine.Count -eq 0) {
-    throw "sbom: the register lists no component in package '$PackageId', which cannot be right"
-}
-
-$versions = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($component in $mine) {
-    $declared = $component.PSObject.Properties.Name -contains 'version'
-    $fromBuild = $component.PSObject.Properties.Name -contains 'version_from'
-    if ($declared -eq $fromBuild) {
-        throw ("sbom: '$($component.name)' must carry exactly one of `version` and `version_from` - " +
-            'a component whose version we choose states it, one the SDK resolves does not')
-    }
-    if (-not $resolved.ContainsKey($component.name)) {
-        throw ("sbom: the register puts '$($component.name)' in package '$PackageId' and the build " +
-            "did not resolve it. Either it stopped shipping - take it out of the register - or the " +
-            "name drifted. What the build carries: $(($resolved.Keys | Sort-Object) -join ', ')")
-    }
-    $built = $resolved[$component.name]
-    if ($declared -and $component.version -ne $built) {
-        throw ("sbom: the register says '$($component.name)' is $($component.version) and the build " +
-            "resolved $built. Update the register - a document describing a different build than " +
-            'the one in the archive is worse than no document.')
-    }
-    $versions[$component.name] = $built
-}
-
-# THE DIRECTION THAT FINDS THINGS. A component we chose is in a project file and hard to forget.
-# One that arrives as somebody else's dependency arrives with no prompt at all, ships, and creates
-# exactly the same licence obligation - WPF-UI.Abstractions is in this register because a person
-# noticed, not because anything asked.
 $named = [System.Collections.Generic.HashSet[string]]::new(
     [string[]] @($register.components | ForEach-Object { $_.name }), [System.StringComparer]::OrdinalIgnoreCase)
-$unnamed = @($resolved.Keys | Where-Object { -not $named.Contains($_) })
-if ($unnamed) {
-    throw ("sbom: the build of '$PackageId' carries $($unnamed.Count) component(s) the register does not " +
-        "name: $(($unnamed | Sort-Object) -join ', '). Read the licence in the package on disk - not the " +
-        'label on its listing - add it to packaging/components.json and to THIRD-PARTY-NOTICES.md.')
-}
-# And named for the right package. A component listed against the other package only would pass
-# the sweep above and be missing from this document.
-$mineNames = [System.Collections.Generic.HashSet[string]]::new(
-    [string[]] @($mine | ForEach-Object { $_.name }), [System.StringComparer]::OrdinalIgnoreCase)
-$misfiled = @($resolved.Keys | Where-Object { -not $mineNames.Contains($_) })
-if ($misfiled) {
-    throw ("sbom: the build of '$PackageId' carries $(($misfiled | Sort-Object) -join ', '), which the " +
-        "register names but does not list in this package. Add '$PackageId' to its `in` list.")
+
+$mine = [System.Collections.Generic.List[object]]::new()
+$versions = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+foreach ($id in $manifests.Keys) {
+    $resolved = Read-Resolved $manifests[$id]
+    $inPackage = @($register.components | Where-Object { $_.in -contains $id })
+    if ($inPackage.Count -eq 0) {
+        throw "sbom: the register lists no component in package '$id', which cannot be right"
+    }
+
+    foreach ($component in $inPackage) {
+        $declared = $component.PSObject.Properties.Name -contains 'version'
+        $fromBuild = $component.PSObject.Properties.Name -contains 'version_from'
+        if ($declared -eq $fromBuild) {
+            throw ("sbom: '$($component.name)' must carry exactly one of `version` and `version_from` - " +
+                'a component whose version we choose states it, one the SDK resolves does not')
+        }
+        if (-not $resolved.ContainsKey($component.name)) {
+            throw ("sbom: the register puts '$($component.name)' in package '$id' and the build " +
+                "did not resolve it. Either it stopped shipping - take it out of the register - or the " +
+                "name drifted. What the build carries: $(($resolved.Keys | Sort-Object) -join ', ')")
+        }
+        $built = $resolved[$component.name]
+        if ($declared -and $component.version -ne $built) {
+            throw ("sbom: the register says '$($component.name)' is $($component.version) and the build " +
+                "resolved $built. Update the register - a document describing a different build than " +
+                'the one in the archive is worse than no document.')
+        }
+        # One component in two packages of one installer is one entry in its document, so it has to
+        # be one version. Two would mean the two publishes resolved different runtimes, and that is a
+        # question about the build, not a line this document can write.
+        if ($versions.ContainsKey($component.name)) {
+            if ($versions[$component.name] -ne $built) {
+                throw ("sbom: '$($component.name)' resolved to $($versions[$component.name]) in one package " +
+                    "and to $built in '$id'. One installer carries one copy of it - look at how the two " +
+                    'packages were built.')
+            }
+            continue
+        }
+        $versions[$component.name] = $built
+        $mine.Add($component)
+    }
+
+    # THE DIRECTION THAT FINDS THINGS. A component we chose is in a project file and hard to forget.
+    # One that arrives as somebody else's dependency arrives with no prompt at all, ships, and creates
+    # exactly the same licence obligation - WPF-UI.Abstractions is in this register because a person
+    # noticed, not because anything asked.
+    $unnamed = @($resolved.Keys | Where-Object { -not $named.Contains($_) })
+    if ($unnamed) {
+        throw ("sbom: the build of '$id' carries $($unnamed.Count) component(s) the register does not " +
+            "name: $(($unnamed | Sort-Object) -join ', '). Read the licence in the package on disk - not the " +
+            'label on its listing - add it to packaging/components.json and to THIRD-PARTY-NOTICES.md.')
+    }
+    # And named for the right package. A component listed against the other package only would pass
+    # the sweep above and be missing from this document.
+    $inNames = [System.Collections.Generic.HashSet[string]]::new(
+        [string[]] @($inPackage | ForEach-Object { $_.name }), [System.StringComparer]::OrdinalIgnoreCase)
+    $misfiled = @($resolved.Keys | Where-Object { -not $inNames.Contains($_) })
+    if ($misfiled) {
+        throw ("sbom: the build of '$id' carries $(($misfiled | Sort-Object) -join ', '), which the " +
+            "register names but does not list in this package. Add '$id' to its `in` list.")
+    }
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -186,7 +243,15 @@ function Get-Purl($component, [string] $version) {
     }
 }
 
-$stem = [System.IO.Path]::GetFileNameWithoutExtension($package.zip)
+# The name a reader sees for the file. An archive is named by its stem, as every document before the
+# installer was. The installer's stem is the window archive's own (BetterWindowsServices-win-x64), and two
+# documents naming one thing would mislead, so it keeps its extension - the same answer Chrono Mock gives.
+$stem = if ([System.IO.Path]::GetExtension($fileName) -eq '.zip') {
+    [System.IO.Path]::GetFileNameWithoutExtension($fileName)
+}
+else {
+    $fileName
+}
 $rootId = ConvertTo-SpdxId $stem
 $packages = [System.Collections.Generic.List[object]]::new()
 $relationships = [System.Collections.Generic.List[object]]::new()
@@ -196,7 +261,7 @@ $packages.Add([ordered]@{
         SPDXID           = $rootId
         name             = $stem
         versionInfo      = $productVersion
-        downloadLocation = "$($register.product.source)/releases/download/v$productVersion/$($package.zip)"
+        downloadLocation = "$($register.product.source)/releases/download/v$productVersion/$fileName"
         homepage         = $register.product.homepage
         filesAnalyzed    = $false
         licenseConcluded = $register.product.license
@@ -204,7 +269,7 @@ $packages.Add([ordered]@{
         copyrightText    = $register.product.copyright
         supplier         = $register.product.supplier
         checksums        = @([ordered]@{ algorithm = 'SHA256'; checksumValue = $zipSha })
-        comment          = $package.description
+        comment          = $described.description
     })
 $relationships.Add([ordered]@{
         spdxElementId      = 'SPDXRef-DOCUMENT'
@@ -352,7 +417,7 @@ $json = $document | ConvertTo-Json -Depth 12
 [System.IO.File]::WriteAllText($OutPath, $json, (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ("== sbom == {0}: {1} component(s), archive {2:N1} MB, sha256 {3}..." -f `
-        $package.zip, $mine.Count, ($zipItem.Length / 1MB), $zipSha.Substring(0, 12))
+        $fileName, $mine.Count, ($zipItem.Length / 1MB), $zipSha.Substring(0, 12))
 foreach ($component in $mine) {
     Write-Host ("   {0} {1}  {2}" -f $component.name, $versions[$component.name], $component.license_concluded)
 }

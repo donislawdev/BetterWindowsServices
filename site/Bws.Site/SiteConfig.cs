@@ -137,4 +137,7 @@ internal sealed record Archives
     public required string Window { get; init; }
 
     public required string Cli { get; init; }
+
+    /// <summary>The Windows installer, from 2026-10-14. Named as packaging/components.json names it - InstallerGuards holds the two together.</summary>
+    public required string Installer { get; init; }
 }

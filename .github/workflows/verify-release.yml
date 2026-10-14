@@ -44,8 +44,14 @@ jobs:
       TAG: ${{ inputs.tag || github.event.release.tag_name }}
       REPO: ${{ github.repository }}
     steps:
+      # THE TREE OF THE TAG, not of the branch the workflow was started from. On `published` that is
+      # what checkout takes anyway. A run started by hand with an older tag would otherwise read
+      # TODAY's README and register and hold an old release to them - since 2026-10-14 that would be
+      # "the installer is missing" for every release made before there was one. A release is held to
+      # what its own tree says it publishes.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: refs/tags/${{ env.TAG }}
           persist-credentials: false
 
       - name: Download everything the release publishes
@@ -71,6 +77,19 @@ jobs:
             ($archives | ForEach-Object { "$_.sigstore.json" }) +
             @('SHA256SUMS')
           $present = (Get-ChildItem published -File).Name
+          # THE INSTALLER, by the rule phase B builds it by (sign-release.ps1, Test-Installer): the
+          # register of this tag's tree names one, and the tag is not a candidate. Asked both ways,
+          # because an installer on a candidate is as wrong as one missing from a release - Windows
+          # Installer reads three numbers, so it would block the release on that machine.
+          if ($register.PSObject.Properties['installer']) {
+            $installer = [string]$register.installer.file
+            if (-not $env:TAG.Contains('-')) {
+              $expected += @($installer, "$installer.spdx.json", "$installer.sigstore.json")
+            }
+            elseif ($present -contains $installer) {
+              throw "$env:TAG is a release candidate and carries $installer - a candidate gets none. Remove it, its SBOM and its bundle from the release"
+            }
+          }
           $missing = @($expected | Where-Object { $present -notcontains $_ })
           if ($missing) {
             throw "the release is missing $($missing -join ', ') - some phase of the release ritual did not finish"
@@ -141,6 +160,23 @@ jobs:
             # Without a timestamp the signature dies with the certificate, which is a year away.
             elseif (-not $signature.TimeStamperCertificate) { $bad += "$($entry.Value.executable) : signed but NOT timestamped" }
             else { Write-Host "  ok  $($entry.Value.folder)/$($entry.Value.executable)" }
+          }
+          # The installer is what an administrator runs with the machine's highest rights, so it is
+          # held to the same pin and the same timestamp as the programs inside it. Whether it has to
+          # be there is the step above - this one asks the file that is.
+          if ($register.PSObject.Properties['installer']) {
+            $installer = "published/$($register.installer.file)"
+            if (Test-Path -LiteralPath $installer) {
+              $signature = Get-AuthenticodeSignature -LiteralPath $installer
+              if ($signature.Status -ne 'Valid') { $bad += "the installer : signature status $($signature.Status)" }
+              else {
+                $sha = (([System.Security.Cryptography.SHA256]::Create().ComputeHash($signature.SignerCertificate.RawData) |
+                      ForEach-Object { $_.ToString('x2') }) -join '')
+                if ($sha -ne $pin) { $bad += "the installer : signed by $sha, and this repository pins $pin" }
+                elseif (-not $signature.TimeStamperCertificate) { $bad += 'the installer : signed but NOT timestamped' }
+                else { Write-Host "  ok  $($register.installer.file)" }
+              }
+            }
           }
           if ($bad) { throw "signature check failed: $($bad -join '; ')" }
 

@@ -72,7 +72,8 @@
 
   "archives": {
     "window": "BetterWindowsServices-win-x64.zip",
-    "cli": "bws-cli-win-x64.zip"
+    "cli": "bws-cli-win-x64.zip",
+    "installer": "BetterWindowsServices-win-x64.msi"
   },
 
   "_link_hosts": "Every host a link on this site may point at. The site loads nothing from anywhere else and the build refuses an src to any of these; for an href, a host not on this list is a typo in a domain.",

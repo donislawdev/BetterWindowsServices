@@ -34,6 +34,7 @@ internal sealed class Tokens
             ["version"] = _ => facts.Version,
             ["archive_window"] = _ => site.Archives.Window,
             ["archive_cli"] = _ => site.Archives.Cli,
+            ["archive_installer"] = _ => site.Archives.Installer,
             ["field_count"] = _ => facts.Fields.Count.ToString(CultureInfo.InvariantCulture),
             ["exit_code_count"] = _ => facts.ExitCodes.Count.ToString(CultureInfo.InvariantCulture),
             ["switch_count"] = _ => facts.Switches.Count.ToString(CultureInfo.InvariantCulture),

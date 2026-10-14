@@ -223,7 +223,7 @@ public sealed class GeneratorTests : IDisposable
         DamagePage(
             "download",
             "en",
-            "<meta name=\"title\" content=\"Download Better Windows Services for Windows - free, no installer\">",
+            "<meta name=\"title\" content=\"Download Better Windows Services for Windows - free, zip or MSI\">",
             "<meta name=\"title\" content=\"" + new string('x', 120) + "\">");
 
         Assert.Contains(Build(), problem => problem.Contains("title is 120 characters", StringComparison.Ordinal));
