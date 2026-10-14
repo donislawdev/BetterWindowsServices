@@ -380,7 +380,11 @@ public sealed class PublicSurfaceGuards
         // GitHub reads from there that has no extension at all, so no pattern above could ever
         // reach it - and it is forty lines of prose about how this repository is guarded, shown
         // to anybody who opens it.
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "CODEOWNERS" }
+        //
+        // Dockerfile joined it on 2026-10-14 for CODEOWNERS' reason, with OSV-Scanner. It has no
+        // extension either, and it is a paragraph of prose about how the scanner is pinned over a
+        // line that names a registry.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "CODEOWNERS", "Dockerfile" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)

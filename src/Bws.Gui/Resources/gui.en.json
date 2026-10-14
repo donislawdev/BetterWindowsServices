@@ -450,6 +450,9 @@
   "gui.support.desktopRefused": "The desktop did not take it (error 0x{0}).",
   "gui.support.slow": "Windows has not finished opening the support page, so it may still open by itself. It is at {0}, and any browser you open yourself will show it.",
 
+  "gui.repository.button": "GitHub",
+  "gui.repository.hint": "Opens github.com/donislawdev/BetterWindowsServices in your browser - the source code, the issues and the releases. This tool itself still connects to nothing.",
+
   "gui.help.button": "Help",
   "gui.help.hint": "The query language, on the project's website. F1 opens this too. This tool itself connects to nothing, and the page opens in your browser.",
   "gui.help.queryLanguage": "The query language, on the project's website",

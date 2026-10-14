@@ -22,6 +22,10 @@ is not part of this repository.
   either changes a service, and a file at the chosen path that is not a snapshot is refused and left
   as it was. A value read from a snapshot shows a control or text direction character as its code
   point, as the command line does.
+- A "GitHub" button left of Donate at the right end of the row above the search box. It opens the
+  project's repository - the source, the issues and the releases - in your browser, the way Donate
+  opens its page, and in a window running as administrator it asks the desktop to open it, so the
+  browser does not get those rights.
 
 ### Changed
 

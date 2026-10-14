@@ -28,6 +28,11 @@ public partial class ScopeBar : UserControl
     internal Button Donate => DonateButton;
 
     /// <summary>
+    /// The GitHub button left of Donate, since 2026-10-14 - forwarded for the reason Donate is.
+    /// </summary>
+    internal Button GitHub => GitHubButton;
+
+    /// <summary>
     /// The Help button at the very end of this row, since 2026-09-24 - forwarded for the reason
     /// Donate is: the window hangs the menu on it and answers F1 with the same menu.
     /// </summary>

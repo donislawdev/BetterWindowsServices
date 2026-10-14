@@ -570,10 +570,10 @@ settings separate lists, so a double click opens it in columns. *Snapshots...* b
 snapshot of the machine to a file, the same file `bws snapshot create` writes, or compares one with
 the machine as it is now and shows what changed in place of the list, one row per field. Ctrl+C
 over the list copies everything about the chosen entry. Escape backs out of the innermost thing
-first. *Donate*, at the
-right end of the row above the search box, opens the project's support page in your browser - and
-in a window running as administrator it asks the desktop to open it, so the browser does not get
-those rights.
+first. *GitHub* and *Donate*, at the
+right end of the row above the search box, open the project's repository and its support page in
+your browser - and in a window running as administrator they ask the desktop to open it, so the
+browser does not get those rights.
 
 ![The Better Windows Services window with the three lists above the search box - Services 335, Drivers 465, All 800 - an empty search box, the filter buttons open in rows for state, startup type, signature, disagreements and triggers, the row of operation buttons, the list with display name, description, status, startup type, account, memory and what each entry depends on, and a line under it saying that 23 per-user instances are folded under the templates they came from.](site/assets/window-list.png)
 
@@ -594,8 +594,8 @@ test suite runs both and compares them entry by entry.
 Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The
 one time it can touch a network at all is when a service's launch path points at another
 machine's share and you pass `--follow-network` to let it look there - off by default, and the
-help says why. The *Donate* button in the window hands one address to your browser when you press
-it, and your browser is what connects.
+help says why. The *GitHub* and *Donate* buttons in the window and the page in its *Help* menu each
+hand one fixed address to your browser when you press them, and your browser is what connects.
 
 ### Does it need administrator rights?
 

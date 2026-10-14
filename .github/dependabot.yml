@@ -2,7 +2,7 @@ version: 2
 
 # Keeps what this project depends on from ageing without anybody noticing.
 #
-# WHAT THIS IS NOT. It is not a vulnerability check. That question is asked in three other
+# WHAT THIS IS NOT. It is not a vulnerability check. That question is asked in four other
 # places and each of them answers something this file cannot:
 #
 #   dotnet restore, on every push and every pull request, refuses to finish when a package in
@@ -14,6 +14,10 @@ version: 2
 #
 #   Dependabot's own security updates, which are a separate mechanism from this file and are
 #   NOT delayed by the cooldown below.
+#
+#   .github/workflows/osv-scanner.yml, since 2026-10-14, asks OSV about every package the build
+#   restores and every package the Semgrep job installs - on each pull request, each push to
+#   main and once a week - and puts what it finds in the Security tab.
 #
 # This file asks the duller question - does a newer version exist at all - which is how a
 # dependency comes to be three years behind while every gate stays green.
@@ -124,6 +128,28 @@ updates:
   # pull request against that path.
   - package-ecosystem: pip
     directory: "/.github"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(ci)"
+
+  # ---- The scanner that osv-scanner.yml runs ---------------------------------------------
+  #
+  # The same lesson as the entry above, for an image instead of a Python package. The scanner
+  # runs as a container named by its DIGEST in .github/osv-scanner/Dockerfile, and a digest
+  # does not move on its own - this entry is what moves it, tag and digest together, after the
+  # same seven days as everything else here. The Dockerfile says why the image is not the
+  # scanner's own GitHub Action, which would have pinned a tag.
+  #
+  # NOT VERIFIED YET, and written down rather than assumed: that the first proposal arrives
+  # with both the tag and the digest of the next release on the FROM line. The documentation
+  # says it does. The first v2.7.0 proposal will show it.
+  - package-ecosystem: docker
+    directory: "/.github/osv-scanner"
     schedule:
       interval: weekly
       day: monday

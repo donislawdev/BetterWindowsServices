@@ -207,7 +207,8 @@
     -->
     <!--
         A DockPanel SO THAT NEITHER CHILD CARRIES A NUMBERED POSITION, and the order below is the
-        order of the Tab key: the positions first, then Donate, then the search box under this row.
+        order of the Tab key: the positions first, then GitHub, Donate and Help, then the search box
+        under this row.
         The positions keep the left, and the last child takes what is left of the width and stands
         at its right end.
     -->
@@ -263,6 +264,20 @@
             margin, so it is Help that lines up with Columns now.
         -->
         <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+            <!--
+                GITHUB SINCE 2026-10-14, owner's decision - the project's repository, LEFT of Donate so
+                that Donate and Help stay where people already find them. Text only, the way Help is:
+                the heart is Donate's because it is the one thing this window asks of anybody, and a
+                second mark beside it would make it one of two. The press is wired in MainWindow and
+                the address is a constant in ExternalLinks, exactly as Donate's is.
+            -->
+            <Button x:Name="GitHubButton"
+                    AutomationProperties.AutomationId="github"
+                    AutomationProperties.Name="{DynamicResource gui.repository.button}"
+                    ToolTip="{DynamicResource gui.repository.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    Content="{DynamicResource gui.repository.button}" />
+
             <Button x:Name="DonateButton"
                     AutomationProperties.AutomationId="donate"
                     AutomationProperties.Name="{DynamicResource gui.support.button}"
