@@ -143,8 +143,10 @@ jobs:
         if: steps.installer.outputs.present == 'true'
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
-          subject-path: assets/BetterWindowsServices-win-x64.msi
-          sbom-path: assets/BetterWindowsServices-win-x64.msi.spdx.json
+          # From INSTALLER, the one copy of the name InstallerGuards holds to the register, so a
+          # renamed installer cannot be found present above and then attested under the old name.
+          subject-path: assets/${{ env.INSTALLER }}
+          sbom-path: assets/${{ env.INSTALLER }}.spdx.json
 
       # Published as assets, with the extension the tooling and the scanners recognise, so the
       # attestation can be checked offline with `--bundle` by somebody who would rather not call

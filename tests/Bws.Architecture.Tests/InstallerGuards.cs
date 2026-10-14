@@ -141,12 +141,14 @@ public sealed class InstallerGuards
         var name = Register().GetProperty("installer").GetProperty("file").GetString()!;
         Assert.EndsWith(".msi", name, StringComparison.Ordinal);
 
-        var places = new Dictionary<string, string>
-        {
-            [".github/workflows/attest-signed.yml"] = "INSTALLER: " + name,
-            ["README.md"] = "gh attestation verify " + name + " --repo",
-            ["site/site.json"] = "\"installer\": \"" + name + "\"",
-        };
+        // Phase C names the installer once and attests it under that one copy (review of #68).
+        (string File, string Line)[] places =
+        [
+            (".github/workflows/attest-signed.yml", "INSTALLER: " + name),
+            (".github/workflows/attest-signed.yml", "subject-path: assets/${{ env.INSTALLER }}"),
+            ("README.md", "gh attestation verify " + name + " --repo"),
+            ("site/site.json", "\"installer\": \"" + name + "\""),
+        ];
         foreach (var (file, line) in places)
         {
             Assert.True(Text(file).Contains(line, StringComparison.Ordinal), $"{file} does not say \"{line}\" - the installer is {name} in packaging/components.json, and one file has one name.");
@@ -186,7 +188,8 @@ public sealed class InstallerGuards
 
         var verify = Text(".github/workflows/verify-release.yml");
         foreach (var line in new[] { "ref: refs/tags/${{ env.TAG }}", "if ($register.PSObject.Properties['installer'])", "if (-not $env:TAG.Contains('-'))",
-            "$expected += @($installer, \"$installer.spdx.json\", \"$installer.sigstore.json\")", "Get-AuthenticodeSignature -LiteralPath $installer" })
+            "$expected += @($installer, \"$installer.spdx.json\", \"$installer.sigstore.json\")", "Get-AuthenticodeSignature -LiteralPath $installer",
+            "$commands = @($commands | Where-Object { -not $_.Contains($installer) })" })
         {
             Assert.True(verify.Contains(line, StringComparison.Ordinal), $"verify-release.yml has no line saying {line}");
         }
@@ -236,13 +239,26 @@ public sealed class InstallerGuards
             start.ArgumentList.Add(argument);
         }
 
-        // Read one channel after the other, which is safe only because both are small: the rendered
-        // source is a few kilobytes on one and a refusal is one line on the other, far below what a pipe
-        // holds before its writer waits.
-        using var process = Process.Start(start)!;
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        Assert.True(process.WaitForExit(TimeSpan.FromSeconds(60)), "build-msi.ps1 did not finish in 60 s.");
-        return (process.ExitCode, output + error);
+        // Both channels are read as they arrive, so the limit below is the one that holds: a read to the
+        // end would wait for pwsh to close its output, and a pwsh that hangs never would - the test run
+        // would hang with it (review of #68). Each channel has its own builder, and the events of one
+        // channel come one after another.
+        var output = new System.Text.StringBuilder();
+        var error = new System.Text.StringBuilder();
+        using var process = new Process { StartInfo = start };
+        process.OutputDataReceived += (_, line) => output.AppendLine(line.Data);
+        process.ErrorDataReceived += (_, line) => error.AppendLine(line.Data);
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        if (!process.WaitForExit(TimeSpan.FromSeconds(60)))
+        {
+            process.Kill(entireProcessTree: true);
+            Assert.Fail($"build-msi.ps1 did not finish in 60 s and was ended. It had said:{Environment.NewLine}{output}{error}");
+        }
+
+        // Without a limit once it has exited: this is what waits for the last line of both channels.
+        process.WaitForExit();
+        return (process.ExitCode, output.ToString() + error);
     }
 }

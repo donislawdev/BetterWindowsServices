@@ -190,7 +190,7 @@ Plan: stop Winmgmt  (2 steps)
 <section class="band">
   <div class="wrap">
     <span class="eyebrow">Get it</span>
-    <h2>Unzip anywhere and run</h2>
+    <h2>Unzip and run, or install</h2>
     <p class="lede">Windows 10 1809 or Windows Server 2019 and later, 64-bit. The archives need no installer and write nothing to the registry, and looking needs no administrator rights. Changing anything needs an elevated session, and both halves say so instead of failing quietly - the window offers <em>Restart as admin</em>.</p>
     <div class="table-wrap">
       <table>
@@ -198,6 +198,7 @@ Plan: stop Winmgmt  (2 steps)
         <tbody>
           <tr><td><code>{{archive_window}}</code></td><td>The window, one self-contained executable - no .NET to install</td></tr>
           <tr><td><code>{{archive_cli}}</code></td><td>The command line, one self-contained executable, for scripts and CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>The installer: both programs for every account on the machine, the window in the Start menu and <code>bws</code> on the PATH</td></tr>
         </tbody>
       </table>
     </div>

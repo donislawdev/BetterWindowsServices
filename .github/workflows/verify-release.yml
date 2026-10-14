@@ -124,6 +124,17 @@ jobs:
           $block = [regex]::Match($readme, '(?s)<!-- verify-commands -->\s*```powershell(.*?)```\s*<!-- /verify-commands -->')
           if (-not $block.Success) { throw 'README.md has no <!-- verify-commands --> block to run' }
           $commands = @($block.Groups[1].Value -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+          # A RELEASE CANDIDATE PUBLISHES NO INSTALLER (the rule of the step that lists the assets),
+          # so the README's commands naming it would fail there on a file that was never meant to
+          # be published. Left out for a candidate and said so - and only those: every other command
+          # still runs as written, and a full release runs all of them.
+          $register = Get-Content -Raw ../packaging/components.json | ConvertFrom-Json
+          if ($register.PSObject.Properties['installer'] -and $env:TAG.Contains('-')) {
+            $installer = [string]$register.installer.file
+            $skipped = @($commands | Where-Object { $_.Contains($installer) })
+            $commands = @($commands | Where-Object { -not $_.Contains($installer) })
+            Write-Host "$env:TAG is a release candidate and carries no installer - $($skipped.Count) command(s) naming $installer are not run"
+          }
           if ($commands.Count -lt 2) { throw "expected at least two verification commands in the README, found $($commands.Count)" }
           foreach ($command in $commands) {
             Write-Host "`n  $command"
