@@ -1,6 +1,5 @@
 using System.Windows;
 using Bws.Gui.ViewModels;
-using Microsoft.Win32;
 
 namespace Bws.Gui;
 
@@ -84,13 +83,7 @@ internal sealed class SnapshotDoors
     /// </summary>
     private Task TakeSnapshot()
     {
-        var dialog = new SaveFileDialog
-        {
-            FileName = _model.Snapshotting.SuggestedName(),
-            DefaultExt = ".json",
-            Filter = Texts.Of("gui.snapshot.kind") + " (*.json)|*.json",
-            AddExtension = true
-        };
+        var dialog = FileDialogs.Save(_model.Snapshotting.SuggestedName(), ".json", Texts.Of("gui.snapshot.kind"));
 
         return dialog.ShowDialog(_owner) == true
             ? _model.Snapshotting.TakeAsync(dialog.FileName)
@@ -100,12 +93,7 @@ internal sealed class SnapshotDoors
     /// <summary>Asks which snapshot to compare with this machine, and compares it.</summary>
     private Task CompareWithThisMachine()
     {
-        var dialog = new OpenFileDialog
-        {
-            DefaultExt = ".json",
-            Filter = Texts.Of("gui.snapshot.kind") + " (*.json)|*.json",
-            CheckFileExists = true
-        };
+        var dialog = FileDialogs.Open(".json", Texts.Of("gui.snapshot.kind"));
 
         return dialog.ShowDialog(_owner) == true
             ? _model.Snapshotting.CompareAsync(dialog.FileName)

@@ -76,7 +76,23 @@ internal static class ExternalLinks
         Texts.Of("gui.support.slow", Support));
 
     /// <summary>
-    /// Hands the support page to a browser, or says why it did not.
+    /// The pages a press in this window may open, one per button or menu item. A name rather than
+    /// an address, so that nothing outside this file ever holds a string the shell would run.
+    /// </summary>
+    internal enum Destination
+    {
+        /// <summary>The support page, from the Donate button.</summary>
+        Support,
+
+        /// <summary>The project's repository, from the GitHub button.</summary>
+        Repository,
+
+        /// <summary>The query language page, from the help menu.</summary>
+        QueryLanguage
+    }
+
+    /// <summary>
+    /// Hands one of the pages to a browser, or says why it did not.
     ///
     /// <b>Null means it was handed over</b>, the same shape as <see cref="Elevation.Restart"/>, and
     /// for the same reason: a failure here is a sentence a person reads, rule 8, and it carries the
@@ -85,8 +101,21 @@ internal static class ExternalLinks
     /// <b>Awaited, and never on the window's thread, since a review of 2026-09-23.</b> Both ways
     /// below call into another process, and the window's thread was the one waiting for it. This is
     /// the only way in from outside this file, so there is no longer a synchronous one to reach for.
+    ///
+    /// <b>ONE WAY IN FOR ALL THREE, since 2026-10-14 - backlog 568.</b> There were three methods,
+    /// one per page, and each button reached its own - so which page a press opened was a choice
+    /// made at the button, where no test could see it without opening a browser. The window now
+    /// names a destination through a hand-over a test can replace (MainWindow.PagesOpenedBy), and
+    /// the press is checked up to here. <b>What stays unchecked is this switch</b>: each arm hands
+    /// out a hand-over that only opens a browser, so it is answered by reading three lines.
     /// </summary>
-    internal static Task<string?> OpenSupportAsync() => Supporting.Ask();
+    internal static Task<string?> OpenAsync(Destination destination) => destination switch
+    {
+        Destination.Support => Supporting.Ask(),
+        Destination.Repository => Repository.Ask(),
+        Destination.QueryLanguage => QueryLanguage.Ask(),
+        _ => throw new ArgumentOutOfRangeException(nameof(destination), destination, "no such page")
+    };
 
     /// <summary>
     /// The page describing the query language, from the help menu. The same address the README
@@ -103,9 +132,6 @@ internal static class ExternalLinks
     /// </summary>
     private static readonly ShellHandover QueryLanguage = Page(QueryLanguagePage);
 
-    /// <summary>Hands the query language page to a browser, or says why it did not.</summary>
-    internal static Task<string?> OpenQueryLanguagePageAsync() => QueryLanguage.Ask();
-
     /// <summary>
     /// The project's repository, from the GitHub button left of Donate - owner's decision of
     /// 2026-10-14. It is where the source, the issues and the releases are, so a person who wants
@@ -118,9 +144,6 @@ internal static class ExternalLinks
     /// sentences when the shell refuses or is slow, and no new call into the shell.
     /// </summary>
     private static readonly ShellHandover Repository = Page(RepositoryPage);
-
-    /// <summary>Hands the repository page to a browser, or says why it did not.</summary>
-    internal static Task<string?> OpenRepositoryPageAsync() => Repository.Ask();
 
     /// <summary>
     /// What a failure says, per destination - named rather than written into a call, so the sentence

@@ -12,9 +12,10 @@ namespace Bws.Gui.Tests;
 /// outside the links file choosing one - are that class's and hold for this button unchanged, so
 /// what is here is only what is new: which address, and where the button stands.
 ///
-/// <b>What is NOT here.</b> That a press reaches this address and not another. A test that pressed
-/// the button would open a browser on whoever runs the suite, so it is answered by pressing the
-/// button, the same answer ExternalLinksGuards gives for Donate.
+/// <b>What is NOT here.</b> That a press asks for this page and not another - LinkPressGuards
+/// presses it with a hand-over that opens nothing, since 2026-10-14 (backlog 568). Whether the
+/// browser then really opens the page is answered by pressing the button, the same answer
+/// ExternalLinksGuards gives for Donate.
 /// </summary>
 public sealed class GitHubButtonGuards
 {

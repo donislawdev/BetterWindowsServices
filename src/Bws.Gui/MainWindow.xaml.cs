@@ -188,13 +188,14 @@ public partial class MainWindow : Window
         // THE DONATE BUTTON, 2026-09-23, wired here for the reason the line above gives: pressing
         // it hands an address to the shell, which only ExternalLinks.cs may do, and a failure is a
         // sentence for the model this window holds and the row does not. An async lambda, the shape
-        // the bar below uses, because the press waits for the shell off this thread.
-        Scope.Donate.Click += async (_, _) => await OpenSupportPage().ConfigureAwait(true);
+        // the bar below uses, because the press waits for the shell off this thread. Through the
+        // OpenPage the other two presses take since 2026-10-14 (backlog 568), which a test can follow.
+        Scope.Donate.Click += async (_, _) => await OpenPage(ExternalLinks.Destination.Support).ConfigureAwait(true);
 
         // AND GITHUB LEFT OF IT, 2026-10-14 - the project's repository, through the same OpenPage the
         // help menu's page goes through, so a refusal reaches the status line the same way. One line
         // here rather than a method: this type is on the ceiling of methods, and the seam is OpenPage.
-        Scope.GitHub.Click += async (_, _) => await OpenPage(ExternalLinks.OpenRepositoryPageAsync).ConfigureAwait(true);
+        Scope.GitHub.Click += async (_, _) => await OpenPage(ExternalLinks.Destination.Repository).ConfigureAwait(true);
 
         // AND HELP BESIDE IT, 2026-09-24 - UX-GUI-014. MainWindow.Help.cs.
         IntroduceTheHelp();
@@ -481,22 +482,6 @@ public partial class MainWindow : Window
         _kept?.Leave();
 
         Close();
-    }
-
-    /// <summary>
-    /// Hands the support page to a browser, or says in the status line why it did not and where
-    /// the page is.
-    ///
-    /// <b>The window stays as it is either way</b> - nothing about the list, the query or a plan
-    /// depends on a browser opening, so a failure here is a sentence rather than an interruption.
-    /// It keeps answering while the shell is asked, too - ShellHandover says why that is not free.
-    /// </summary>
-    private async Task OpenSupportPage()
-    {
-        if (await ExternalLinks.OpenSupportAsync().ConfigureAwait(true) is { } trouble)
-        {
-            _model.Says.CouldNotDo(trouble);
-        }
     }
 
     private void ListEngaged(object sender, RoutedEventArgs e) => _model.Interacting = true;
