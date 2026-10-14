@@ -12,21 +12,23 @@
 # release turning a green branch red on a commit that touched nothing teaches everybody to
 # ignore the check.
 #
-# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW, AND ON 2026-10-14 THEY ARE BEING MEASURED
-# AGAIN. The version moved from 1.178.0 to 1.180.0, the newest stable release on the package index
-# that day, with the pull request that brought snapshots to the window. The numbers that stood here
-# were from 1.177.0: on 2026-09-22, against commit 693bced exported to a clean directory, semgrep
-# 1.177.0 with `--config p/default` ran 131 rules over 301 files and reported zero findings and zero
-# errors at level error. 1.178.0 was never measured. The Semgrep run of that pull request is the new
-# measurement, and its numbers replace these here and in .github/scripts/semgrep_gate.py in a commit
-# of their own - moving this line means measuring again rather than assuming the report will look
-# the same.
+# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW. Measured again on 2026-10-14, when the
+# version moved from 1.178.0 to 1.180.0, the newest stable release on the package index that day,
+# with the pull request that brought snapshots to the window. That pull request's own Semgrep run,
+# on the merge of commit c8ea3cb into main with `--config p/default`: semgrep ran 374 rules over
+# 399 files and reported zero findings, and the gate read zero errors at level error and 419 rules.
+# The two rule counts are one run read two ways - 374 is semgrep's own summary, 419 the timing
+# list in the report, which is what the gate counts. The run on the commit before, d39889d, gave
+# the same numbers. Before them the numbers here were from 1.177.0 on 2026-09-22 (131 rules, 301
+# files), and 1.178.0 was never measured. Moving this line means measuring again rather than
+# assuming the report will look the same.
 #
-# 301 OF 516 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
-# tests/, which is 212 of this repository's files. So a healthy run of this tree reads src/,
-# site/, .github/ and the root - about three hundred files - and a collapse to a handful is the
-# shape of a scan that ran somewhere else. The gate prints the number on every run for exactly
-# that reason.
+# 399 OF 743 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
+# tests/, which is 336 of this repository's files, one picture is skipped for being over 1 MB, and
+# the seven other pictures are not among the 399 either - that last part is the arithmetic of the
+# count, not a line semgrep prints. So a healthy run of this tree reads src/, site/, .github/,
+# packaging/ and the root - about four hundred files - and a collapse to a handful is the shape of
+# a scan that ran somewhere else. The gate prints the number on every run for exactly that reason.
 #
 # Licence, read on 2026-09-22 from that version's own metadata rather than recalled, and read again
 # on 2026-10-14 from 1.180.0's, which says the same. The

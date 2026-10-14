@@ -45,8 +45,10 @@ fixed table - and a gate that fires on those is a gate nobody reads.
 
 A scan error blocks too. A rule that failed to run is not a rule that found
 nothing, and "the scan was green" must never mean "the scan did not happen".
-Only entries at level "error" count: a clean run of this repository carries four
-entries at level "warn", and none of them is a reason to stop anybody.
+Only entries at level "error" count: a clean run of this repository carried four
+entries at level "warn" with 1.177.0 on 2026-09-22, and none of them is a reason
+to stop anybody. That count was not taken again with 1.180.0, because this gate
+prints only the level it blocks on.
 
 A scan that read too few files blocks as well, and so does one carrying too few
 rules. Both numbers are printed on every run rather than only when they fire.
@@ -62,17 +64,24 @@ BLOCKING and MINIMUM_FILES below, with the measurements that set them.
 
 What a healthy run of THIS repository looks like
 -------------------------------------------------
-Measured 2026-09-22 against commit 693bced, exported to a clean directory so
-that exactly the 516 files a checkout carries were present, semgrep 1.177.0 with
-`--config p/default`:
+Measured 2026-10-14 by this repository's own Semgrep run on pull request 61,
+the merge of commit c8ea3cb into main, semgrep 1.180.0 with `--config p/default`.
+This gate's last line on that run:
 
-    131 rules, 301 files, 0 findings, 0 errors at level error, 4 at level warn
+    semgrep: 0 blocking, 0 other, 0 scan error(s), 399 file(s) scanned, 419 rule(s)
 
-301 rather than 516 because semgrep's own default ignore patterns exclude
-tests/, which is 212 of this repository's files. That is not a fault and not a
-setting of ours - it is the tool's default, and it is worth knowing before
-somebody reads "301" as a broken scan. The files that ARE read are src/, site/,
-.github/ and the root.
+Semgrep's own summary on the same run says 374 rules. Both are true - the gate
+counts the timing list in the report, which is the longer of the two.
+
+399 rather than the 743 files a checkout carries, because semgrep's own default
+ignore patterns exclude tests/, which is 336 of them, and the eight pictures are
+not read either. That is not a fault and not a setting of ours - it is the
+tool's default, and it is worth knowing before somebody reads "399" as a broken
+scan. The files that ARE read are src/, site/, .github/, packaging/ and the root.
+
+The first measurement, 2026-09-22 with 1.177.0 against commit 693bced exported
+to a clean directory, was 131 rules over 301 files - before the two Python
+scripts arrived, which the floors below come back to.
 
 Findings decided once and recorded
 -----------------------------------
@@ -100,9 +109,15 @@ BLOCKING = ("ERROR", "HIGH", "CRITICAL")
 # a gate that goes red for a legitimate reason is a gate people learn to bypass. Measured on
 # this repository:
 #
-#   files   301 (before the Python scripts existed), 306, 309 - it tracks the tree
+#   files   301 (before the Python scripts existed), 306, 309, 399 - it tracks the tree
 #   rules   131, 374, 419 - it tracks WHICH LANGUAGES ARE IN THE TREE, not the ruleset alone.
-#           Two .py files took it from 131 to 374 by pulling in Python's rules.
+#           Two .py files took it from 131 to 374 by pulling in Python's rules. On 2026-10-14,
+#           with 1.180.0, ONE run said both 374 (semgrep's summary) and 419 (the timing list
+#           this gate counts), so the last two may be one run read two ways - the earlier runs
+#           did not keep both, and that is not settled.
+#
+# Both floors were checked against that run: 399 files over 200, 419 rules over 50. Still floors
+# against a collapse, far under a healthy run on purpose.
 #
 # So these refuse a collapse and say nothing about a drift of tens. Raising them is a deliberate
 # act that means measuring again, exactly like the pinned scanner version.
