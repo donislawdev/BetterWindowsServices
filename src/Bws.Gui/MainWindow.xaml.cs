@@ -191,6 +191,11 @@ public partial class MainWindow : Window
         // the bar below uses, because the press waits for the shell off this thread.
         Scope.Donate.Click += async (_, _) => await OpenSupportPage().ConfigureAwait(true);
 
+        // AND GITHUB LEFT OF IT, 2026-10-14 - the project's repository, through the same OpenPage the
+        // help menu's page goes through, so a refusal reaches the status line the same way. One line
+        // here rather than a method: this type is on the ceiling of methods, and the seam is OpenPage.
+        Scope.GitHub.Click += async (_, _) => await OpenPage(ExternalLinks.OpenRepositoryPageAsync).ConfigureAwait(true);
+
         // AND HELP BESIDE IT, 2026-09-24 - UX-GUI-014. MainWindow.Help.cs.
         IntroduceTheHelp();
 

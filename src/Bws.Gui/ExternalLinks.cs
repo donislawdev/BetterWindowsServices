@@ -12,8 +12,8 @@ namespace Bws.Gui;
 
 /// <summary>
 /// The addresses this window hands to a browser, and the two ways it hands them over: the support
-/// page and the query language page. The help menu (UX-GUI-014) offered the project's website as a
-/// third for one day, 2026-09-24.
+/// page, the query language page and, since 2026-10-14, the project's repository on GitHub. The
+/// help menu (UX-GUI-014) offered the project's website as a fourth for one day, 2026-09-24.
 ///
 /// <b>THE SECOND FILE IN THIS WINDOW ALLOWED TO START SOMETHING, and that is the owner's decision
 /// of 2026-09-23 rather than an arrangement of mine.</b> <see cref="Elevation"/> was the only one
@@ -105,6 +105,22 @@ internal static class ExternalLinks
 
     /// <summary>Hands the query language page to a browser, or says why it did not.</summary>
     internal static Task<string?> OpenQueryLanguagePageAsync() => QueryLanguage.Ask();
+
+    /// <summary>
+    /// The project's repository, from the GitHub button left of Donate - owner's decision of
+    /// 2026-10-14. It is where the source, the issues and the releases are, so a person who wants
+    /// to read the code, report something or fetch another version is one press away from it.
+    /// </summary>
+    internal const string RepositoryPage = "https://github.com/donislawdev/BetterWindowsServices";
+
+    /// <summary>
+    /// Its hand-over, built exactly as the query language page's is: the same two ways, the same
+    /// sentences when the shell refuses or is slow, and no new call into the shell.
+    /// </summary>
+    private static readonly ShellHandover Repository = Page(RepositoryPage);
+
+    /// <summary>Hands the repository page to a browser, or says why it did not.</summary>
+    internal static Task<string?> OpenRepositoryPageAsync() => Repository.Ask();
 
     /// <summary>
     /// What a failure says, per destination - named rather than written into a call, so the sentence
