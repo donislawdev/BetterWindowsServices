@@ -49,8 +49,8 @@ is not part of this repository.
   Spooler, if the stop did not work" in a terminal, and the same words under the buttons of the
   window's plan. The report after the run is unchanged.
 - The dialogs that save a snapshot or an export, and the one that opens a snapshot to compare, no
-  longer start in the folder Windows started the program in - `C:\Windows\System32` when it was
-  opened from Explorer - while Windows remembers no folder for the program. They start in your
+  longer start in the folder Windows started the program in - the Windows system folder,
+  System32, when it was opened from Explorer - while Windows remembers no folder for the program. They start in your
   Documents folder instead, and once you have saved or opened a file somewhere, Windows remembers
   that folder as before.
 

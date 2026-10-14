@@ -75,16 +75,22 @@ public sealed class SnapshotWindowGuards : IDisposable
     /// <summary>
     /// The same Escape, pressed rather than called - backlog 563. The test above asks Act straight,
     /// which is the window's decision. This one holds that a key a person presses reaches it.
+    ///
+    /// <b>With a query in the box, since a review of 2026-10-14</b> - started from an empty one, a
+    /// press that put the comparison away AND emptied the query on the way would have passed here.
     /// </summary>
     [Fact]
-    public async Task Escape_pressed_on_the_window_puts_the_comparison_away()
+    public async Task Escape_pressed_on_the_window_puts_the_comparison_away_and_leaves_the_query()
     {
         var (window, model) = await Compared();
 
         WpfHost.On(() => KeyPresses.ShowAside(window));
+        WpfHost.On(() => model.QueryText = "spool");
+        WpfHost.Settled();
 
         Assert.True(WpfHost.On(() => KeyPresses.Press(window.Comparison, Key.Escape)));
         Assert.Null(model.Snapshotting.Shown);
+        Assert.Equal("spool", WpfHost.On(() => model.QueryText));
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.Entries.Visibility));
 
         WpfHost.On(window.Close);
