@@ -28,7 +28,7 @@
       </table>
     </div>
     <p>Take one or both - they are two clients of the same engine and neither needs the other. On a server, the command line is the smaller of the two and does everything the window does.</p>
-    <p>The installer carries exactly what the two archives hold. It installs silently with <code>msiexec /i {{archive_installer}} /qn</code>, a newer version installs over an older one, and it closes nothing that is running. Uninstalling from Settings, Apps removes the programs, the Start menu entry and the PATH entry, and leaves your own files alone.</p>
+    <p>The installer carries exactly what the two archives hold. It installs silently with <code>msiexec /i {{archive_installer}} /qn</code>, a newer version installs over an older one, and it closes nothing that is running - so close the window and any running <code>bws</code> before you upgrade, because a copy left running can stop with an error. Uninstalling from Settings, Apps removes the programs, the Start menu entry and the PATH entry, and leaves your own files alone.</p>
     <p>The executables carry an Authenticode signature, so Windows names the publisher instead of warning about an unknown one.</p>
   </div>
 </section>

@@ -536,10 +536,22 @@ try {
             # success). 3010 is a success too, so it is accepted and said rather than refused.
             Require ($code -eq 0 -or $code -eq 3010) ('the upgrade succeeds with bws.exe in use (' + $code + ')')
             if ($code -eq 3010) { Note '3010 - Windows asks for a restart to finish' }
-            Check (-not $script:Held.HasExited) 'the bws run is still going - nothing ended it'
+            # WHAT BECOMES OF THE RUN IS SAID, NOT HELD TO ONE ANSWER - because the answer is not the
+            # installer's. bws is a single-file .NET program and reads parts of itself out of bws.exe the
+            # first time it needs them, and the upgrade has moved that file away. On the virtual machine
+            # the run needed nothing more and finished with 0. On a clean runner (2026-10-14) it next
+            # opened its error channel, needed System.Text.Encoding.Extensions, did not find the file and
+            # ended with an unhandled exception. So a copy left running may stop with an error, and the
+            # README tells a person to close it first - this line says, every run, which of the two it was.
+            $runningAfter = -not $script:Held.HasExited
             [void]$script:Held.StandardOutput.ReadToEnd()
             [void]$script:Held.WaitForExit(60000)
-            Check ($script:Held.HasExited -and $script:Held.ExitCode -eq 0) ('and it finished with 0 (' + $script:Held.ExitCode + ')')
+            if ($script:Held.HasExited -and $script:Held.ExitCode -eq 0) {
+                Note ('the bws run outlived the upgrade and finished with 0 (still running right after it: ' + $runningAfter + ')')
+            }
+            else {
+                Note ('the bws run did NOT outlive the upgrade (exit ' + $script:Held.ExitCode + ') - it read part of itself from the bws.exe the upgrade moved away. The README says to close it first')
+            }
         }
         else {
             Require ($code -eq 0 -or $code -eq 3010) ('upgraded (' + $code + ')')

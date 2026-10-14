@@ -87,8 +87,9 @@ window's own file in `%APPDATA%\BetterWindowsServices` alone, and the folder
 `ProgramData\BetterWindowsServices` on the Windows drive, where the window unpacks its native
 libraries when it runs as administrator - delete that one by hand if you want it gone. A newer
 version installs over an older one, and an older one is refused. The installer closes nothing that
-is running: a `bws` still running keeps its old copy until it ends, and the new version is in place
-at once.
+is running, so **close the window and any `bws` that is running before you upgrade**. The new version
+is in place at once, but each program reads parts of itself from its own file as it needs them, and
+a copy left running can stop with an error the next time it reaches for one.
 
 The executables carry an Authenticode signature with a timestamp, so Windows names the publisher
 rather than an unknown one. SmartScreen can still warn on a brand new build until enough people

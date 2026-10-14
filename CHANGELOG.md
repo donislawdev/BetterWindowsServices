@@ -18,7 +18,8 @@ is not part of this repository.
   for every account on the machine, with the window in the Start menu and the folder on the
   machine's PATH, so `bws` answers in a new terminal and in a scheduled task. It is signed like the
   programs and carries its own bill of materials and attestation. A newer version installs over an
-  older one, an older one is refused, and nothing that is running is closed. Uninstalling removes
+  older one, an older one is refused, and nothing that is running is closed - close the window and any
+  running `bws` before you upgrade, because a copy left running can stop with an error. Uninstalling removes
   the programs, the Start menu entry and the PATH entry, and leaves the window's own file in
   `%APPDATA%` and the folder it unpacks into as administrator under `ProgramData` alone.
 - Snapshots in the window. A "Snapshots..." button beside Export... offers "Take snapshot...", which

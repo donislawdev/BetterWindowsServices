@@ -50,9 +50,13 @@
     <!--
       Nothing that is running gets closed (the owner's decision of 2026-10-14). The window may be in the
       middle of a plan that stops and starts services, and ending it there would leave those services
-      half way. With the Restart Manager off, a file in use is set aside, the new one is in place at once,
-      and the installer answers 3010 so the old copy goes at the next restart. Started with a double
-      click, Windows Installer asks first and names the program that holds the file.
+      half way. With the Restart Manager off and the old product removed first, a file in use is moved
+      aside, the new one is in place at once, and the installer answers 0 - measured 2026-10-14 with bws
+      holding bws.exe. What is moved aside is the program's own file, and a single-file .NET program reads
+      parts of itself out of it the first time it needs them, so a copy left running can stop with an
+      error later (measured on a clean runner the same day). Closing both programs first is the person's
+      step, and README.md says so. Started with a double click, Windows Installer asks first and names a
+      program that holds a file and has a window.
 
       It has to be here from the first installer on. An upgrade removes the old version under the OLD
       package's properties, so a package published without it could not be fixed afterwards.
