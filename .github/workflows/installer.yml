@@ -1,0 +1,86 @@
+# The Windows installer, asked of a clean machine.
+#
+# A release builds the installer in phase B, on the machine with the card, from the two SIGNED
+# packages (packaging/sign-release.ps1) - so a release is the first time anybody would learn that a
+# change broke it, and the person learning would be the one installing it. This job builds an
+# UNSIGNED one from the same two packages, on a runner nobody has used, and asks the machine what
+# it does: install, upgrade while a `bws` run holds bws.exe, install a rebuild of the same version
+# over it, refuse an older version, uninstall with a file of somebody else's in the folder. The
+# script is packaging/test-installer.ps1, the same one that runs on the throwaway virtual machine
+# and on a developer machine, so the three cannot drift apart.
+#
+# ONLY WHEN A PULL REQUEST TOUCHES WHAT THE INSTALLER IS MADE OF - the packaging, the programs, the
+# version - and on request. The owner's decision of 2026-10-14, and NOT a required check of main:
+# making it one is a change to the repository's rules and a decision of its own.
+#
+# The runner's account is an administrator with nothing to approve, which is what installing for
+# the machine needs. The job reads the repository and writes nothing anywhere but the runner.
+name: installer
+
+on:
+  pull_request:
+    paths:
+      - 'packaging/**'
+      - 'src/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/installer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  installer:
+    name: Install, upgrade and remove the installer on a clean runner
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # The same two packages a release builds, unsigned, into dist/staging - the folders the
+      # installer is built from.
+      - name: Build both packages
+        shell: pwsh
+        run: ./packaging/build-dist.ps1
+
+      # READ OUT OF build-msi.ps1 rather than written here a second time. That script refuses every
+      # other version, so a job installing another one would stop at the refusal instead of at the
+      # install, and the version would have two places to be moved in.
+      - name: Install the WiX the installer is built with
+        shell: pwsh
+        run: |
+          $line = Select-String -Path packaging/build-msi.ps1 -Pattern "^\`$WixVersion = '([0-9.]+)'" | Select-Object -First 1
+          if (-not $line) { throw 'cannot read WixVersion out of packaging/build-msi.ps1' }
+          $version = $line.Matches[0].Groups[1].Value
+          dotnet tool install --global wix --version $version
+          if ($LASTEXITCODE -ne 0) { throw "could not install WiX $version" }
+
+      # Exit 0 only when every line was asked and answered ok. A line that could not be asked
+      # (NOT MEASURED, exit 3) fails the step as well - nothing here passes by default.
+      - name: Install, upgrade, rebuild, refuse and uninstall it
+        shell: pwsh
+        run: ./packaging/test-installer.ps1 -Window dist/staging/BetterWindowsServices -CommandLine dist/staging/bws -WorkFolder "$env:RUNNER_TEMP/installer"
+
+      # The report and every installer log, kept whatever the result - the first red run is the one
+      # worth reading, and a second run may not repeat it.
+      - name: Keep the report and the installer logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installer-report
+          path: |
+            ${{ runner.temp }}/installer/*.txt
+            ${{ runner.temp }}/installer/*.log
+          if-no-files-found: warn
+          retention-days: 14

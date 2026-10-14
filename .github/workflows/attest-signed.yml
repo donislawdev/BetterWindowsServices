@@ -53,6 +53,9 @@ jobs:
       TAG: ${{ inputs.tag }}
       DIGESTS: ${{ inputs.digests }}
       REPO: ${{ github.repository }}
+      # The Windows installer phase B builds from the two signed packages, named as
+      # packaging/components.json names it (InstallerGuards holds the two together).
+      INSTALLER: BetterWindowsServices-win-x64.msi
     steps:
       # THE ARCHIVES COME FROM THE RELEASE, not from the caller. Attesting a digest somebody
       # handed us would attest a number rather than a file, and the number and the file are the
@@ -62,7 +65,7 @@ jobs:
         run: |
           mkdir -p assets
           gh release download "$TAG" --repo "$REPO" \
-            --pattern '*.zip' --pattern '*.spdx.json' --dir assets
+            --pattern '*.zip' --pattern '*.msi' --pattern '*.spdx.json' --dir assets
           ls -l assets
 
       - name: The bytes on the release must be the bytes phase B signed
@@ -94,13 +97,32 @@ jobs:
           # others - and the steps below then attest archives nobody cross-checked. This is a
           # workflow_dispatch input, so the value is typed by a person on a bad day rather than
           # always produced by phase B. Found by the review of PR #5.
-          for zip in assets/*.zip; do
-            name=$(basename "$zip")
+          #
+          # The installer too, from 2026-10-14 - phase B passes its digest beside the archives'.
+          # nullglob, because a release with no installer would otherwise hand the loop the
+          # pattern itself as a file name and fail on a file that was never there.
+          shopt -s nullglob
+          for file in assets/*.zip assets/*.msi; do
+            name=$(basename "$file")
             case ",$DIGESTS," in
               *",$name="*) ;;
               *) echo "::error::no digest was passed for $name, so nothing cross-checked it"; exit 1 ;;
             esac
           done
+
+      # The installer is attested when the release carries one. WHETHER it should carry one is
+      # phase B's rule (sign-release.ps1, Test-Installer) and phase D asks it again of the
+      # published page, so this step only reads what is there.
+      - name: Whether the release carries the installer
+        id: installer
+        run: |
+          if [ -f "assets/$INSTALLER" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "the release carries $INSTALLER"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "the release carries no installer"
+          fi
 
       - name: Attest the bill of materials for the window package
         id: gui
@@ -116,6 +138,16 @@ jobs:
           subject-path: assets/bws-cli-win-x64.zip
           sbom-path: assets/bws-cli-win-x64.zip.spdx.json
 
+      - name: Attest the bill of materials for the installer
+        id: msi
+        if: steps.installer.outputs.present == 'true'
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          # From INSTALLER, the one copy of the name InstallerGuards holds to the register, so a
+          # renamed installer cannot be found present above and then attested under the old name.
+          subject-path: assets/${{ env.INSTALLER }}
+          sbom-path: assets/${{ env.INSTALLER }}.spdx.json
+
       # Published as assets, with the extension the tooling and the scanners recognise, so the
       # attestation can be checked offline with `--bundle` by somebody who would rather not call
       # the API - and so a scanner looking over the release page finds it at all.
@@ -123,10 +155,14 @@ jobs:
         env:
           GUI_BUNDLE: ${{ steps.gui.outputs.bundle-path }}
           CLI_BUNDLE: ${{ steps.cli.outputs.bundle-path }}
+          MSI_BUNDLE: ${{ steps.msi.outputs.bundle-path }}
+          MSI_PRESENT: ${{ steps.installer.outputs.present }}
         run: |
           cp "$GUI_BUNDLE" BetterWindowsServices-win-x64.zip.sigstore.json
           cp "$CLI_BUNDLE" bws-cli-win-x64.zip.sigstore.json
-          gh release upload "$TAG" \
-            BetterWindowsServices-win-x64.zip.sigstore.json \
-            bws-cli-win-x64.zip.sigstore.json \
-            --repo "$REPO" --clobber
+          bundles=(BetterWindowsServices-win-x64.zip.sigstore.json bws-cli-win-x64.zip.sigstore.json)
+          if [ "$MSI_PRESENT" = "true" ]; then
+            cp "$MSI_BUNDLE" "$INSTALLER.sigstore.json"
+            bundles+=("$INSTALLER.sigstore.json")
+          fi
+          gh release upload "$TAG" "${bundles[@]}" --repo "$REPO" --clobber

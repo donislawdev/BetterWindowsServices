@@ -44,8 +44,9 @@ next administrator finds out it exists.
   shown as empty. A snapshot taken without administrator rights says so inside the file.
 - **Fit into scripts** - `--json` on every command, an exit code for every ending, and `5` when a diff
   finds drift.
-- **Run from one file, offline** - no installer, no .NET to install, and it never talks to the
-  internet. Reading needs no administrator rights. GPL-3.0.
+- **Run from one file, offline** - unzip and run, no .NET to install, and it never talks to the
+  internet. A signed installer is there for a whole machine. Reading needs no administrator rights.
+  GPL-3.0.
 
 ![A real session in the Better Windows Services window: four entries picked and, from the row menu, the plan for starting them shown before anything runs, a force restart of the Local Session Manager whose plan warns that the machine does not work without it and asks for its name to be typed before the button works, the questions to start from under the empty search box, and the Print Spooler found by typing part of its name and started from its row menu.](site/assets/bws-in-action.gif)
 
@@ -64,14 +65,31 @@ Grab the latest build from the
 
 | File | What it is |
 |---|---|
+| `BetterWindowsServices-win-x64.msi` | The window and the command line, installed for every account on the machine |
 | `BetterWindowsServices-win-x64.zip` | The window, one self-contained executable - no .NET to install |
 | `bws-cli-win-x64.zip` | The command line, one self-contained executable, for scripts and CI |
 
 Windows 10 1809 or Windows Server 2019 and later, 64-bit. Each archive unzips to a folder holding
 the executable, the licence and the notices for the borrowed code - run
-`BetterWindowsServices.exe`, or `bws.exe` from a terminal. No installer, nothing written to the
-registry, and no administrator rights needed to look. Changing anything needs an elevated session,
-and both halves say so instead of failing quietly - the window offers *Restart as admin*.
+`BetterWindowsServices.exe`, or `bws.exe` from a terminal. The archives need no installer, write
+nothing to the registry, and need no administrator rights to look. Changing anything needs an
+elevated session, and both halves say so instead of failing quietly - the window offers *Restart as
+admin*.
+
+The `.msi` is the other way in, and it installs exactly what the two archives hold. It puts both
+programs into `Program Files\Better Windows Services` for every account on the machine, a Start menu
+entry for the window, and that folder on the machine's PATH, so `bws` answers in a new terminal and
+in a scheduled task. Installing needs administrator rights, and it can run silently -
+`msiexec /i BetterWindowsServices-win-x64.msi /qn`. Besides the programs it adds the Start menu
+entry, the PATH entry, an entry in Settings, Apps, and the key
+`HKLM\SOFTWARE\DonislawDev\Better Windows Services`. Uninstalling removes all of that. It leaves the
+window's own file in `%APPDATA%\BetterWindowsServices` alone, and the folder
+`ProgramData\BetterWindowsServices` on the Windows drive, where the window unpacks its native
+libraries when it runs as administrator - delete that one by hand if you want it gone. A newer
+version installs over an older one, and an older one is refused. The installer closes nothing that
+is running, so **close the window and any `bws` that is running before you upgrade**. The new version
+is in place at once, but each program reads parts of itself from its own file as it needs them, and
+a copy left running can stop with an error the next time it reaches for one.
 
 The executables carry an Authenticode signature with a timestamp, so Windows names the publisher
 rather than an unknown one. SmartScreen can still warn on a brand new build until enough people
@@ -80,13 +98,14 @@ outright.
 
 ### Check what you downloaded
 
-Every release publishes, beside each archive: a bill of materials naming everything inside it
-that somebody else wrote, a signed attestation of that document, and one file of SHA-256 sums.
-Run these in the folder you downloaded into. The first two need nothing at all. The last two need
-the [GitHub CLI](https://cli.github.com/), and because the `.sigstore.json` beside each archive is
+Every release publishes, beside each archive and beside the installer: a bill of materials naming
+everything inside it that somebody else wrote, a signed attestation of that document, and one file
+of SHA-256 sums.
+Run these in the folder you downloaded into. The first three need nothing at all. The last three
+need the [GitHub CLI](https://cli.github.com/), and because the `.sigstore.json` beside each file is
 passed to `--bundle`, they check it against what GitHub signed rather than by asking GitHub.
 
-The first two match a whole line - the digest **and** the file name it is written against - rather
+The first three match a whole line - the digest **and** the file name it is written against - rather
 than looking for the digest anywhere in the file. A sums file that lists your digest under somebody
 else's name would otherwise pass.
 
@@ -94,8 +113,10 @@ else's name would otherwise pass.
 ```powershell
 if (-not ((Get-Content SHA256SUMS) -match ('^' + (Get-FileHash BetterWindowsServices-win-x64.zip -Algorithm SHA256).Hash.ToLower() + '\s+\*?BetterWindowsServices-win-x64\.zip$'))) { throw 'BetterWindowsServices-win-x64.zip does not match SHA256SUMS' }
 if (-not ((Get-Content SHA256SUMS) -match ('^' + (Get-FileHash bws-cli-win-x64.zip -Algorithm SHA256).Hash.ToLower() + '\s+\*?bws-cli-win-x64\.zip$'))) { throw 'bws-cli-win-x64.zip does not match SHA256SUMS' }
+if (-not ((Get-Content SHA256SUMS) -match ('^' + (Get-FileHash BetterWindowsServices-win-x64.msi -Algorithm SHA256).Hash.ToLower() + '\s+\*?BetterWindowsServices-win-x64\.msi$'))) { throw 'BetterWindowsServices-win-x64.msi does not match SHA256SUMS' }
 gh attestation verify BetterWindowsServices-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle BetterWindowsServices-win-x64.zip.sigstore.json
 gh attestation verify bws-cli-win-x64.zip --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle bws-cli-win-x64.zip.sigstore.json
+gh attestation verify BetterWindowsServices-win-x64.msi --repo donislawdev/BetterWindowsServices --predicate-type https://spdx.dev/Document/v2.3 --bundle BetterWindowsServices-win-x64.msi.sigstore.json
 ```
 <!-- /verify-commands -->
 
@@ -105,7 +126,7 @@ those bytes on their own machine with a card in a reader, and an attestation say
 produced them would be a lie. What is attested is what is inside the archive. Without the flag one
 spelling answers "no attestation found" and another returns 404.
 
-These four commands are not decoration: a workflow runs them, out of this file and unchanged, every
+These six commands are not decoration: a workflow runs them, out of this file and unchanged, every
 time a release is published. If the command you are about to type has stopped working, that
 workflow is what turns red.
 

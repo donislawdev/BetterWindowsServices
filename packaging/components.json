@@ -38,6 +38,13 @@
     }
   },
 
+  "//installer": "The Windows installer, the third thing a release publishes from 2026-10-14 on (the owner's decision). It is NOT a key of `packages`, and that is the shape of the register rather than a preference: every consumer of `packages` takes each entry for a project that publishes one executable into one archive - build-dist.ps1 publishes it, sign-release.ps1 signs it by `folder` and `executable`, verify-release.yml unpacks it, and ComponentRegisterGuards asks for its project. The installer is none of that. It is built in phase B from the two SIGNED packages named under `contents`, so its bill of materials is exactly their components, checked against their own build manifests, and nothing here repeats a component list. packaging/build-msi.ps1 builds it and says why each line of it is there.",
+  "installer": {
+    "file": "BetterWindowsServices-win-x64.msi",
+    "contents": ["gui", "cli"],
+    "description": "The Windows installer: the window and the command line for every account on the machine, with the command line on PATH"
+  },
+
   "//components": "kind is how the thing arrives and how the build manifest names it. `nuget` is a package we reference and appears in .deps.json as `<name>/<version>`. `dotnet-runtime-pack` is part of the self-contained runtime the publish bundles and appears as `runtimepack.<name>/<version>`. license_declared is what the component itself states, license_concluded is the option we take under it - the difference is the whole reason SPDX has two fields, and for every entry here the two agree because none of these offers a choice.",
   "components": [
     {

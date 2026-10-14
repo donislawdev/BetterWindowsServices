@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Windows installer: the window and the command line, for every account on the machine.
+
+  A TEMPLATE, not a file WiX reads as it stands. packaging/build-msi.ps1 fills every doubled-brace
+  placeholder from the one place its value lives - packaging/components.json for the names and the
+  addresses, the release tag for the version - and hands WiX two paths: $(PayloadDir), the two SIGNED
+  packages laid out the way the installer puts them down, and $(IconFile), the program's icon.
+
+  No extension, no custom action and no dialogs of WiX's own, so nothing goes into the package but our
+  files and Windows Installer's own tables. tests/Bws.Architecture.Tests/InstallerGuards.cs holds that
+  against the rendered source, and build-msi.ps1 asks the built database the same question before the
+  file is moved anywhere a release would find it. The same shape as the installers of the owner's two
+  other projects, and every line that decides what happens on somebody's machine is asked of a machine by
+  packaging/test-installer.ps1.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="{{APP_NAME}}"
+      Manufacturer="{{PUBLISHER}}"
+      Version="{{VERSION}}"
+      UpgradeCode="{{UPGRADE_CODE}}"
+      Language="1033"
+      Scope="perMachine">
+
+    <!--
+      The UpgradeCode is the product, not a build, and it never changes. Every machine finds the version
+      it has through it, and a new one would leave the old install in place beside the new one for good.
+      Pinned by a guard that keeps a second copy of it.
+
+      AllowSameVersionUpgrades, because a release signed again under the same number (phase B run twice)
+      must replace the first build rather than install beside it as a second entry in Programs and
+      Features.
+
+      afterInstallInitialize, because that rebuild's files must actually land. Windows Installer replaces a
+      versioned file only when it is missing or older, and both programs carry the product version - so
+      with the old product still in place while the new files go down, a rebuild under the same number
+      kept every old program and reported success. Measured in the owner's other project with this exact
+      shape (Chrono Mock, 2026-10-07), and asked again here by test-installer.ps1, step "a rebuild". Here
+      the old product goes first, inside the same transaction, so a failed install puts it back. The cost
+      is that every file is copied again.
+    -->
+    <MajorUpgrade
+        Schedule="afterInstallInitialize"
+        AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="{{DOWNGRADE_MESSAGE}}" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!--
+      Nothing that is running gets closed (the owner's decision of 2026-10-14). The window may be in the
+      middle of a plan that stops and starts services, and ending it there would leave those services
+      half way. With the Restart Manager off and the old product removed first, a file in use is moved
+      aside, the new one is in place at once, and the installer answers 0 - measured 2026-10-14 with bws
+      holding bws.exe. What is moved aside is the program's own file, and a single-file .NET program reads
+      parts of itself out of it the first time it needs them, so a copy left running can stop with an
+      error later (measured on a clean runner the same day). Closing both programs first is the person's
+      step, and README.md says so. Started with a double click, Windows Installer asks first and names a
+      program that holds a file and has a window.
+
+      It has to be here from the first installer on. An upgrade removes the old version under the OLD
+      package's properties, so a package published without it could not be fixed afterwards.
+    -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+
+    <!-- What Programs and Features shows. There is nothing to repair or to change - one feature. -->
+    <Property Id="ARPURLINFOABOUT" Value="{{PROJECT_URL}}" />
+    <Property Id="ARPHELPLINK" Value="{{ISSUES_URL}}" />
+    <Property Id="ARPURLUPDATEINFO" Value="{{RELEASE_NOTES_URL}}" />
+    <Property Id="ARPPRODUCTICON" Value="ProgramIcon" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <Icon Id="ProgramIcon" SourceFile="$(IconFile)" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="{{APP_NAME}}" />
+    </StandardDirectory>
+
+    <!--
+      The two packages as they are, and nothing added: both programs, the licence and the notices for the
+      borrowed code. Neither program keeps anything of its own in this folder - the window's layout lives
+      in the roaming profile, and an elevated window unpacks its native libraries into a folder under
+      ProgramData that only administrators can change - so a folder only administrators can change is a
+      better home for both than a Downloads folder.
+    -->
+    <ComponentGroup Id="Programs" Directory="INSTALLFOLDER">
+      <Files Include="$(PayloadDir)\**" />
+    </ComponentGroup>
+
+    <!--
+      The install folder on the machine's PATH, once, at the end, so `bws` answers in every account and
+      for a scheduled task that runs as a service account. The folder holds two executables and two text
+      files and no library, so putting it on PATH offers no other program a DLL to load by accident.
+      Permanent="no" takes the entry off again at uninstall.
+    -->
+    <ComponentGroup Id="OnThePath" Directory="INSTALLFOLDER">
+      <Component Id="MachinePath">
+        <Environment Id="MachinePath" Name="PATH" Value="[INSTALLFOLDER]"
+                     Part="last" Action="set" System="yes" Permanent="no" />
+        <RegistryValue Root="HKLM" Key="Software\{{PUBLISHER}}\{{APP_NAME}}"
+                       Name="Path" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!--
+      The window in the Start menu of every account, started in the folder it is installed in. Where it
+      starts does not decide where it saves: every file dialog of the window opens in Documents when
+      Windows remembers no folder for it.
+    -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="Window"
+                  Name="{{APP_NAME}}"
+                  Description="{{SHORTCUT_DESCRIPTION}}"
+                  Target="[INSTALLFOLDER]{{WINDOW_EXE}}"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="ProgramIcon" />
+        <RegistryValue Root="HKLM" Key="Software\{{PUBLISHER}}\{{APP_NAME}}"
+                       Name="Shortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Feature Id="Everything">
+      <ComponentGroupRef Id="Programs" />
+      <ComponentGroupRef Id="OnThePath" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Package>
+</Wix>

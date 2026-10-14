@@ -1,12 +1,12 @@
-<meta name="title" content="Pobierz Better Windows Services na Windows - za darmo, bez instalatora">
-<meta name="description" content="Dwa samodzielne pliki wykonywalne, bez instalatora i bez instalowania .NET-a. Windows 10 1809 i Windows Server 2019 lub nowsze, 64 bity. Darmowe i otwarte, GPL-3.0.">
+<meta name="title" content="Pobierz Better Windows Services na Windows - za darmo, zip lub MSI">
+<meta name="description" content="Dwa samodzielne pliki albo podpisany instalator, bez instalowania .NET-a. Windows 10 1809 i Windows Server 2019 lub nowsze, 64 bity. Darmowe i otwarte, GPL-3.0.">
 <meta name="nav" content="Pobieranie">
 
 <section class="band page-title">
   <div class="wrap">
     <span class="eyebrow">Pobieranie</span>
-    <h1>Rozpakuj gdziekolwiek i uruchom</h1>
-    <p class="lede">Wersja {{version}}. Bez instalatora, bez pisania do rejestru i bez praw administratora do samego patrzenia. Darmowe i otwarte na licencji GPL-3.0.</p>
+    <h1>Rozpakuj i uruchom albo zainstaluj</h1>
+    <p class="lede">Wersja {{version}}. Archiwa nie potrzebują instalatora i nie piszą do rejestru, a do samego patrzenia nie trzeba praw administratora. Podpisany instalator kładzie za to oba programy na całą maszynę. Darmowe i otwarte na licencji GPL-3.0.</p>
     <div class="actions">
       <a class="btn btn-primary" href="{{releases}}">Pobierz na Windows</a>
       <a class="btn btn-secondary" href="{{all_releases}}">Wszystkie wydania</a>
@@ -23,10 +23,12 @@
         <tbody>
           <tr><td><code>{{archive_window}}</code></td><td>Okno: <code>BetterWindowsServices.exe</code>, jeden samodzielny plik wykonywalny z własnym środowiskiem .NET w środku</td></tr>
           <tr><td><code>{{archive_cli}}</code></td><td>Wiersz poleceń: <code>bws.exe</code>, jeden samodzielny plik wykonywalny, do skryptów, zadań harmonogramu i CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Instalator: oba programy w <code>Program Files</code> dla wszystkich kont na maszynie, okno w menu Start i <code>bws</code> na ścieżce PATH maszyny</td></tr>
         </tbody>
       </table>
     </div>
     <p>Weź jeden albo oba - to dwaj klienci tego samego silnika i żaden nie potrzebuje drugiego. Na serwerze wiersz poleceń jest mniejszy z tych dwóch i robi wszystko, co okno.</p>
+    <p>Instalator niesie dokładnie to, co dwa archiwa. Instaluje się po cichu przez <code>msiexec /i {{archive_installer}} /qn</code>, nowsza wersja wchodzi na miejsce starszej, a instalator nie zamyka niczego, co działa - dlatego przed aktualizacją zamknij okno i działający <code>bws</code>, bo kopia zostawiona w działaniu może zakończyć się błędem. Odinstalowanie w Ustawieniach, Aplikacje usuwa programy, wpis w menu Start i wpis w PATH, a Twoich własnych plików nie rusza.</p>
     <p>Pliki wykonywalne noszą podpis Authenticode, więc Windows podaje wydawcę zamiast ostrzegać przed nieznanym.</p>
   </div>
 </section>
@@ -36,7 +38,7 @@
     <h2>Wymagania</h2>
     <ul class="points">
       <li><strong>Windows 10 w wersji 1809 lub nowszy, albo Windows Server 2019 lub nowszy.</strong> Tylko 64 bity - proces 32-bitowy czyta przekierowane ścieżki i klucze rejestru, co po cichu dawałoby złe odpowiedzi.</li>
-      <li><strong>Nic do instalowania.</strong> Oba pliki wykonywalne niosą własne środowisko .NET.</li>
+      <li><strong>Bez instalowania .NET-a.</strong> Oba pliki wykonywalne niosą własne środowisko .NET.</li>
       <li><strong>Prawa administratora do zmieniania czegokolwiek.</strong> Czytanie, szukanie, snapshoty i porównania działają bez nich, z mniejszą liczbą widocznych wpisów - a program mówi to na górze, zamiast udawać, że lista jest całą maszyną.</li>
     </ul>
     <p>Okno trzyma jeden własny plik - układ, w jakim zostawiłeś listę - pod <code>%APPDATA%\BetterWindowsServices</code>. Snapshot ląduje tam, gdzie każesz <code>bws snapshot create</code>, a bez wskazania w katalogu bieżącym.</p>
@@ -49,7 +51,7 @@
     <h2>Antywirus i EDR</h2>
     <p class="lede">Ten program robi to, co administrator robi z usługami, a część tego jest tym, czego pilnuje oprogramowanie ochronne.</p>
     <p>Zatrzymuje i uruchamia usługi, potrafi zakończyć stojący za usługą proces i czyta deskryptor bezpieczeństwa oraz wymagane przywileje każdej z nich. EDR, który reaguje na zakończenie procesu <code>svchost.exe</code>, robi swoją robotę - a wymuszone zatrzymanie wygląda tu dokładnie tak.</p>
-    <p>Czego <strong>nie</strong> robi, żebyś mógł to sprawdzić: nie wstrzykuje niczego do żadnego procesu, niczego nie pakuje ani nie zaciemnia, nic nie instaluje i nic po sobie nie zostawia, i nie otwiera żadnego połączenia sieciowego. Jest otwarty na licencji GPL-3.0 i oba pliki wykonywalne możesz zbudować sam.</p>
+    <p>Czego <strong>nie</strong> robi, żebyś mógł to sprawdzić: nie wstrzykuje niczego do żadnego procesu, niczego nie pakuje ani nie zaciemnia, nie instaluje żadnej usługi ani sterownika i nic po sobie nie zostawia, i nie otwiera żadnego połączenia sieciowego. Jest otwarty na licencji GPL-3.0 i oba pliki wykonywalne możesz zbudować sam.</p>
     <p>Jeśli Twoja polityka wymaga wyjątku, wyklucz te dwa pliki wykonywalne, a nie folder. Jedyna rzecz warta takiej samej ostrożności co sam program to plik snapshotu: opisuje całą maszynę.</p>
   </div>
 </section>

@@ -384,7 +384,13 @@ public sealed class PublicSurfaceGuards
         // Dockerfile joined it on 2026-10-14 for CODEOWNERS' reason, with OSV-Scanner. It has no
         // extension either, and it is a paragraph of prose about how the scanner is pinned over a
         // line that names a registry.
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "CODEOWNERS", "Dockerfile" }
+        //
+        // *.ps1 and *.wxs joined it the same day, with the Windows installer. The installer source
+        // is a new kind of published file, and the scripts beside it were the only published files
+        // no sweep had ever read - five of them in git that day, packaging/ and tests/, all ASCII
+        // when measured before the line went in. They hold paths, machine names and long comments
+        // about measurements, the material a home directory wanders into.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "*.ps1", "*.wxs", "CODEOWNERS", "Dockerfile" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)

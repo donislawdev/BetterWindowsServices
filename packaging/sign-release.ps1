@@ -20,9 +20,11 @@
       4. reads the certificate back OUT of each signed file and refuses to go on unless it hashes
          to the pin in packaging/codesign.json. A second code-signing certificate on the same
          machine - a renewal, a test one, one from another project - is exactly this accident;
-      5. repacks both archives, regenerates their bills of materials over the SIGNED bytes, and
-         writes SHA256SUMS over what will actually ship;
-      6. uploads all five to the DRAFT release and asks phase C to attest the signed bytes;
+      5. repacks both archives, builds the Windows installer from the two SIGNED packages and signs
+         it the same way, regenerates the bills of materials over the SIGNED bytes, and writes
+         SHA256SUMS over what will actually ship. Whether the installer CAN be built here is asked
+         before anything else, so a machine without WiX stops before the card signs anything;
+      6. uploads all of it to the DRAFT release and asks phase C to attest the signed bytes;
       7. waits for that and confirms the draft is COMPLETE - a draft missing one file looks
          almost exactly like a finished one.
 
@@ -31,7 +33,8 @@
 
     BE AT THE MACHINE. signtool reaches the card and then waits for its PIN, so this cannot run
     unattended. Whether the card asks once or once per file depends on the card middleware's own
-    PIN caching, and there are two files here, so watch the first run before assuming.
+    PIN caching, and there are three files here - two programs and the installer - so watch the first
+    run before assuming.
 
 .PARAMETER Tag
     The release tag, e.g. v0.1.0.
@@ -92,8 +95,44 @@ foreach ($entry in $register.packages.PSObject.Properties) {
     $PACKAGE_ID[$entry.Value.zip] = $entry.Name
 }
 
-# What a complete draft carries. A missing one of these is a phase that did not finish.
+# What a complete draft carries. A missing one of these is a phase that did not finish. The installer
+# and its bill of materials join the list below, for a release that gets an installer.
 $EXPECTED_ASSETS = @($OURS.Keys) + @($OURS.Keys | ForEach-Object { "$_.spdx.json" }) + @('SHA256SUMS')
+
+# THE WINDOWS INSTALLER, from 2026-10-14 (the owner's decision). Built in step 5 from the two SIGNED
+# packages and signed like the programs inside it - an installer built before the card would carry
+# unsigned copies. Named where every published file is named, the register's `installer`.
+$BUILD_MSI = Join-Path $PSScriptRoot 'build-msi.ps1'
+$INSTALLER = ''
+if ($register.PSObject.Properties['installer']) { $INSTALLER = [string]$register.installer.file }
+
+# ONE RULE FOR WHICH RELEASE GETS AN INSTALLER, and verify-release.yml asks the same one (held together by
+# tests/Bws.Architecture.Tests/InstallerGuards.cs). The register of the tagged tree names an installer -
+# this checkout IS the tag, refused below otherwise, so a tag from before the installer existed gets none
+# and needs no version written here - and the tag is not a release candidate. A hyphen makes a candidate:
+# Windows Installer reads only three numbers, so a candidate's installer would take the release's own
+# version and the release could not replace it on the machine of whoever tested the candidate.
+function Test-Installer([string] $releaseTag) {
+    return [bool]$INSTALLER -and -not $releaseTag.Contains('-')
+}
+
+# The signature one file carries, held to the pin: valid, made by the pinned certificate, timestamped. One
+# function for the programs and the installer, so the two cannot be held to different rules.
+function Assert-SignedByPin([string] $file, [string] $label, [string] $pinned) {
+    $signature = Get-AuthenticodeSignature -LiteralPath $file
+    if ($signature.Status -ne 'Valid') {
+        throw "sign-release: $label came back with signature status $($signature.Status). Nothing has been uploaded."
+    }
+    $actual = Get-CertificateSha256 $signature.SignerCertificate
+    if ($actual -ne $pinned) {
+        throw ("sign-release: $label was signed by a DIFFERENT certificate.`n" +
+            "  expected $pinned`n  got      $actual`nNothing has been uploaded.")
+    }
+    if (-not $signature.TimeStamperCertificate) {
+        throw ("sign-release: $label carries no timestamp. Without one the signature dies with the " +
+            'certificate. Nothing has been uploaded.')
+    }
+}
 
 function Invoke-Step([string[]] $Command) {
     Write-Host "  `$ $($Command -join ' ')"
@@ -257,6 +296,19 @@ if (git status --porcelain) {
         'over the signed archive are read from it. Commit, stash or clean them first.')
 }
 
+# BEFORE ANYTHING IS DOWNLOADED OR SIGNED: a machine that cannot build the installer would otherwise stop
+# at step 5, with the programs already signed and a draft that can never get its installer from this run.
+# build-msi.ps1 runs as its own process, because a refusal there ends the process it runs in.
+$withInstaller = Test-Installer $Tag
+Write-Host "`n[0/8] whether the installer can be built here"
+if ($withInstaller) {
+    Invoke-Step @('pwsh', '-NoProfile', '-File', $BUILD_MSI, '-Tag', $Tag, '-Check') | ForEach-Object { Write-Host "  $_" }
+    $EXPECTED_ASSETS += @($INSTALLER, "$INSTALLER.spdx.json")
+}
+else {
+    Write-Host "  $Tag is a release candidate, or its tree names no installer, so it gets none"
+}
+
 # THE LOCAL IS NOT CALLED 'work', AND THAT IS NOT STYLE. PowerShell ignores case in variable
 # names, so a local spelled that way and the parameter $Work above would be ONE variable, and
 # assigning to it here would quietly overwrite the parameter. Trap 1 of docs/14, caught by
@@ -354,19 +406,7 @@ foreach ($archive in $archives) {
 
         # READ THE CERTIFICATE BACK OUT OF THE SIGNED FILE. A second code-signing certificate on
         # this machine would sign just as willingly and the release page would look identical.
-        $signature = Get-AuthenticodeSignature -LiteralPath $file
-        if ($signature.Status -ne 'Valid') {
-            throw "sign-release: $relative came back with signature status $($signature.Status). Nothing has been uploaded."
-        }
-        $actual = Get-CertificateSha256 $signature.SignerCertificate
-        if ($actual -ne $pin.certificate_sha256) {
-            throw ("sign-release: $relative was signed by a DIFFERENT certificate.`n" +
-                "  expected $($pin.certificate_sha256)`n  got      $actual`nNothing has been uploaded.")
-        }
-        if (-not $signature.TimeStamperCertificate) {
-            throw ("sign-release: $relative carries no timestamp. Without one the signature dies with the " +
-                'certificate. Nothing has been uploaded.')
-        }
+        Assert-SignedByPin $file $relative $pin.certificate_sha256
     }
     if (-not $DryRun) {
         # Exactly the files we meant to sign changed state, and nobody else's signature broke.
@@ -390,18 +430,61 @@ foreach ($archive in $archives) {
     }
 }
 
+# The two package folders the installer is built from, as phase A packed them: <unpacked archive>/<folder>.
+# Read from the register, which is where the archive layout is decided.
+function Get-PackageFolder([string] $id) {
+    $package = $register.packages.$id
+    return Join-Path $unpacked[$package.zip] $package.folder
+}
+
+# Built by build-msi.ps1 as its own process, into the work folder, and the path it reports is checked to
+# be the file it was asked for - a run that says success and writes nothing is the shape this ritual has
+# met before.
+function New-Installer {
+    $built = Join-Path $workspace $INSTALLER
+    if (Test-Path -LiteralPath $built) { Remove-Item -LiteralPath $built -Force }
+    Invoke-Step @('pwsh', '-NoProfile', '-File', $BUILD_MSI, '-Tag', $Tag,
+        '-Window', (Get-PackageFolder 'gui'), '-CommandLine', (Get-PackageFolder 'cli'), '-OutDir', $workspace) | Out-Null
+    if (-not (Test-Path -LiteralPath $built)) { throw 'sign-release: build-msi.ps1 reported success and wrote no installer' }
+    return $built
+}
+
 if ($DryRun) {
+    if ($withInstaller) {
+        # From the UNSIGNED packages, only to show the installer builds here. It goes with the work folder.
+        $built = New-Installer
+        Write-Host ("  DRY RUN, would sign {0} (built here from the unsigned packages, {1:N1} MB)" -f
+            $INSTALLER, ((Get-Item -LiteralPath $built).Length / 1MB))
+    }
     Write-Host "`ndry run finished - nothing was signed, uploaded or published"
     return
 }
 
-Write-Host "`n[5/8] repacking"
+Write-Host "`n[5/8] repacking, and the installer"
 $shipped = @()
 foreach ($archive in $archives) {
     Remove-Item -LiteralPath $archive.FullName -Force
     Compress-Archive -Path (Join-Path $unpacked[$archive.Name] '*') -DestinationPath $archive.FullName -Force
     $shipped += $archive.FullName
     Write-Host ("  {0}  {1}" -f $archive.Name, (Get-Sha256 $archive.FullName))
+}
+
+# What phase C attests and what the draft is checked against at the end: the archives, and the installer.
+$installerPath = ''
+if ($withInstaller) {
+    # From the folders the archives were just repacked from, so the installer carries the same signed bytes
+    # a person unzips.
+    $installerPath = New-Installer
+    # /d is the program's name in the window Windows shows an administrator before the installer runs -
+    # a string of digits without it - and it is the name the installer carries, asked of the same script
+    # that put it there.
+    $productName = "$(@(Invoke-Step @('pwsh', '-NoProfile', '-File', $BUILD_MSI, '-Tag', $Tag, '-ProductName'))[-1])".Trim()
+    if (-not $productName) { throw 'sign-release: build-msi.ps1 -ProductName printed no name' }
+    Invoke-Step @($signtool, 'sign', '/sha1', $certificate.Thumbprint, '/fd', 'sha256',
+        '/tr', $pin.timestamp_url, '/td', 'sha256', '/d', $productName, '/q', $installerPath) | Out-Null
+    Assert-SignedByPin $installerPath $INSTALLER $pin.certificate_sha256
+    $shipped += $installerPath
+    Write-Host ("  {0}  {1}  signed as '{2}'" -f $INSTALLER, (Get-Sha256 $installerPath), $productName)
 }
 
 Write-Host "`n[6/8] bills of materials over the signed bytes, and the checksums"
@@ -425,6 +508,13 @@ foreach ($archive in $archives) {
         -DepsPath (Join-Path $workspace ($archive.Name + '.deps.json')) -OutPath $sbom
     $shipped += $sbom
 }
+if ($withInstaller) {
+    # The components of both packages, each checked against its own build manifest - the two files phase
+    # A handed over beside the archives and step 3 required.
+    $installerSbom = Join-Path $workspace ($INSTALLER + '.spdx.json')
+    & (Join-Path $PSScriptRoot 'sbom.ps1') -PackageId 'installer' -ZipPath $installerPath -DepsFolder $workspace -OutPath $installerSbom
+    $shipped += $installerSbom
+}
 $sums = Join-Path $workspace 'SHA256SUMS'
 $lines = $shipped | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_), (Split-Path -Leaf $_) }
 [System.IO.File]::WriteAllText($sums, ($lines -join "`n") + "`n", (New-Object System.Text.UTF8Encoding($false)))
@@ -441,7 +531,11 @@ Write-Host "`n[7/8] handing it back to the workflow"
 # minute ago. Phase D then fails the README's own --bundle command - after publication, which is
 # the one moment nobody wants to find out. Taking them off first makes the count mean what step 8
 # reads it as meaning. Found by the review of PR #5.
-$stale = @($OURS.Keys | ForEach-Object { "$_.sigstore.json" })
+# The files phase C attests, each with a bundle of its own: the archives and, for a release that gets
+# one, the installer.
+$attested = @($archives | ForEach-Object { $_.FullName })
+if ($withInstaller) { $attested += $installerPath }
+$stale = @($attested | ForEach-Object { (Split-Path -Leaf $_) + '.sigstore.json' })
 # One field, so no comma to be split - but the exit code is read for the same reason as in the
 # wait loop below: a read that failed and a draft with no assets look identical from here, and
 # the difference decides whether a stale bundle is left behind.
@@ -456,7 +550,7 @@ foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
 }
 
 Invoke-Step (@('gh', 'release', 'upload', $Tag) + $shipped + @('--repo', $repo, '--clobber')) | Out-Null
-$digests = $archives | ForEach-Object { "$($_.Name)=$(Get-Sha256 $_.FullName)" }
+$digests = $attested | ForEach-Object { "$(Split-Path -Leaf $_)=$(Get-Sha256 $_)" }
 Invoke-Step @('gh', 'workflow', 'run', $attestWorkflow, '--repo', $repo,
     '-f', "tag=$Tag", '-f', "digests=$($digests -join ',')") | Out-Null
 
@@ -466,7 +560,7 @@ Write-Host "`n[8/8] confirming the draft is complete"
 # exactly like a finished one.
 $deadline = (Get-Date).AddSeconds([Math]::Max(0, $Wait))
 $signedDigests = @{}
-foreach ($archive in $archives) { $signedDigests[$archive.Name] = Get-Sha256 $archive.FullName }
+foreach ($file in $attested) { $signedDigests[(Split-Path -Leaf $file)] = Get-Sha256 $file }
 $names = @()
 while ($true) {
     # QUOTED, AND MEASURED RATHER THAN STYLED. In PowerShell argument mode a space ends a token,
@@ -483,11 +577,11 @@ while ($true) {
     $names = @($view.assets | ForEach-Object { $_.name })
     $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
     $bundles = @($names | Where-Object { $_.EndsWith('.sigstore.json') })
-    if (-not $missing -and $bundles.Count -ge $archives.Count) { break }
+    if (-not $missing -and $bundles.Count -ge $attested.Count) { break }
     if ((Get-Date) -gt $deadline) {
         Write-Host "  waited $Wait s and the draft is still incomplete."
         if ($missing) { Write-Host "  missing: $($missing -join ', ')" }
-        if ($bundles.Count -lt $archives.Count) { Write-Host "  attestation bundles present: $($bundles.Count) of $($archives.Count)" }
+        if ($bundles.Count -lt $attested.Count) { Write-Host "  attestation bundles present: $($bundles.Count) of $($attested.Count)" }
         Write-Host "  assets present: $(($names | Sort-Object) -join ', ')"
         throw ('sign-release: the draft is NOT complete. Nothing was published, so nothing is broken - but do ' +
             "not press publish until the missing piece is there. Check the run log of $attestWorkflow. " +
