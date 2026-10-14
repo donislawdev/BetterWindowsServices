@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using Bws.Core;
 using Bws.Gui.ViewModels;
 
@@ -69,6 +70,24 @@ public sealed class SnapshotWindowGuards : IDisposable
         Assert.Null(model.Snapshotting.Shown);
         Assert.Equal("spool", WpfHost.On(() => model.QueryText));
         Assert.Equal(Visibility.Visible, WpfHost.On(() => window.Entries.Visibility));
+    }
+
+    /// <summary>
+    /// The same Escape, pressed rather than called - backlog 563. The test above asks Act straight,
+    /// which is the window's decision. This one holds that a key a person presses reaches it.
+    /// </summary>
+    [Fact]
+    public async Task Escape_pressed_on_the_window_puts_the_comparison_away()
+    {
+        var (window, model) = await Compared();
+
+        WpfHost.On(() => KeyPresses.ShowAside(window));
+
+        Assert.True(WpfHost.On(() => KeyPresses.Press(window.Comparison, Key.Escape)));
+        Assert.Null(model.Snapshotting.Shown);
+        Assert.Equal(Visibility.Visible, WpfHost.On(() => window.Entries.Visibility));
+
+        WpfHost.On(window.Close);
     }
 
     [Fact]

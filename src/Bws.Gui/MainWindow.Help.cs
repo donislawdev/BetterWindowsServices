@@ -31,14 +31,35 @@ public partial class MainWindow
     internal bool OpenHelp() => ButtonMenu.OpenUnder(Scope.Help);
 
     /// <summary>
-    /// Hands one of the project's pages to a browser through <see cref="ExternalLinks"/>, and says
-    /// in the status line why it did not when it did not - the same shape as the Donate button.
+    /// How a press hands a page to a browser: <see cref="ExternalLinks.OpenAsync"/>, unless somebody
+    /// handed this window another way.
+    ///
+    /// <b>PRODUCTION CODE THAT EXISTS FOR A TEST, the trade <see cref="CarriedOutBy"/> was taken on -
+    /// backlog 568, owner's decision of 2026-10-14.</b> A test that pressed Donate, GitHub or the
+    /// help menu's item would open a browser on whoever runs the suite, so until that day nothing
+    /// checked which page a press reaches, and a wiring pointed at the wrong page or at none stayed
+    /// green. This replacement hands back what it was asked for and opens nothing.
+    ///
+    /// <b>It takes a name, never an address</b>, which is what keeps the safety rule of
+    /// ExternalLinks intact: the addresses stay constants in that file, and the most a replacement
+    /// can do is fail to open anything. <b>Init rather than settable</b>, as CarriedOutBy is.
     /// </summary>
-    internal async Task OpenPage(Func<Task<string?>> open)
-    {
-        ArgumentNullException.ThrowIfNull(open);
+    internal Func<ExternalLinks.Destination, Task<string?>> PagesOpenedBy { get; init; } = ExternalLinks.OpenAsync;
 
-        if (await open().ConfigureAwait(true) is { } trouble)
+    /// <summary>
+    /// Hands one of the project's pages to a browser through <see cref="ExternalLinks"/>, and says
+    /// in the status line why it did not when it did not.
+    ///
+    /// <b>THE ONE ROAD FOR ALL THREE PRESSES since 2026-10-14</b> - Donate had a method of its own
+    /// until then, and two roads to one answer only have to disagree once.
+    ///
+    /// <b>The window stays as it is either way</b> - nothing about the list, the query or a plan
+    /// depends on a browser opening, so a failure is a sentence rather than an interruption. It
+    /// keeps answering while the shell is asked, too - ShellHandover says why that is not free.
+    /// </summary>
+    internal async Task OpenPage(ExternalLinks.Destination destination)
+    {
+        if (await PagesOpenedBy(destination).ConfigureAwait(true) is { } trouble)
         {
             _model.Says.CouldNotDo(trouble);
         }

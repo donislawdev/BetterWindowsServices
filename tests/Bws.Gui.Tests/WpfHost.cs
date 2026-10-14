@@ -120,6 +120,18 @@ internal static class WpfHost
     }
 
     /// <summary>
+    /// A window whose presses on Donate, GitHub and the help menu's page reach the caller rather
+    /// than a browser - backlog 568. The argument is at <see cref="MainWindow.PagesOpenedBy"/>, and
+    /// the short of it is that the real hand-over would open a browser on whoever ran the suite.
+    /// </summary>
+    internal static MainWindow Window(Func<ExternalLinks.Destination, Task<string?>> pagesOpenedBy)
+    {
+        _ = Resources;
+
+        return Attached(On(() => new MainWindow(Nowhere()) { PagesOpenedBy = pagesOpenedBy }));
+    }
+
+    /// <summary>
     /// Hands the window back only once its bindings are attached - backlog 502, 2026-10-07.
     ///
     /// <b>A window built inside one call to this thread does not have its bindings yet.</b> WPF

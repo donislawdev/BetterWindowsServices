@@ -93,13 +93,15 @@ internal static class ShapeCeilings
     internal const int SignaturesNearWidest = 3;
 
     /// <summary>
-    /// 78 members with code in them, MainWindow across fourteen partial files. Lowered from 79 on
+    /// 77 members with code in them, MainWindow across fourteen partial files. Lowered from 79 on
     /// 2026-09-28, when the plan's view model Planned - the largest until then - lost one (its
     /// commands became a value set once per plan, G-7 of the external performance report) and the
-    /// window's own count stood at 78. Neither was ever near a file ceiling, which is the point of
-    /// measuring the type rather than the file.
+    /// window's own count stood at 78. Lowered to 77 on 2026-10-14, when the Donate button's own
+    /// method went and its press joined the OpenPage the other two pages take (backlog 568).
+    /// Neither was ever near a file ceiling, which is the point of measuring the type rather than
+    /// the file.
     /// </summary>
-    internal const int MostMethodsInType = 78;
+    internal const int MostMethodsInType = 77;
 
     /// <summary>Two at 56 or more: Planned and MainWindow.</summary>
     internal const int TypesNearMostMethods = 2;

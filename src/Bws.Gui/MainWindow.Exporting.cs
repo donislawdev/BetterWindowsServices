@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Data;
 using Bws.Core.Snapshots;
 using Bws.Gui.ViewModels;
-using Microsoft.Win32;
 
 namespace Bws.Gui;
 
@@ -42,13 +41,8 @@ public partial class MainWindow
 
     private void ExportWhatIsShown()
     {
-        var dialog = new SaveFileDialog
-        {
-            FileName = Exporting.FileName(_model.Scope),
-            DefaultExt = ".csv",
-            Filter = Texts.Of("gui.export.kind") + " (*.csv)|*.csv",
-            AddExtension = true
-        };
+        // Where it starts is FileDialogs' answer, the same for every dialog in the window - 562.
+        var dialog = FileDialogs.Save(Exporting.FileName(_model.Scope), ".csv", Texts.Of("gui.export.kind"));
 
         if (dialog.ShowDialog(this) != true)
         {

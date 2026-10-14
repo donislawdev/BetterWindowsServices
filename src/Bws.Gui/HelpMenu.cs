@@ -28,7 +28,7 @@ internal static class HelpMenu
     internal static IReadOnlyList<IReadOnlyList<RowMenuEntry>> GroupsFor(MainWindow window) =>
     [
         [
-            new RowMenuEntry("gui.help.queryLanguage", null, () => window.OpenPage(ExternalLinks.OpenQueryLanguagePageAsync))
+            new RowMenuEntry("gui.help.queryLanguage", null, () => window.OpenPage(ExternalLinks.Destination.QueryLanguage))
         ]
     ];
 }
