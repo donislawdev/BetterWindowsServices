@@ -1,0 +1,95 @@
+using Bws.Core;
+using Bws.Core.Snapshots;
+
+namespace Bws.Gui.ViewModels;
+
+/// <summary>
+/// One row of the comparison table: an entry, one thing about it, and what that thing was in the
+/// snapshot and is now.
+/// </summary>
+/// <param name="ServiceName">The identity the two sides were matched by - `ADR-14`.</param>
+/// <param name="What">
+/// The field, in the words the list's column heading uses for it - or, for an entry that came or
+/// went, a sentence saying so.
+/// </param>
+public sealed record DiffLine(string ServiceName, string DisplayName, string What, string Before, string After);
+
+/// <summary>
+/// The table under a comparison: one row per field that differs, one per entry that came, went or
+/// one side could not see, and one per field that could not be compared on an entry.
+///
+/// <b>A row per FIELD rather than per entry, owner's decision of 2026-10-14 (W-b).</b> An entry with
+/// three changed fields is three rows, each sortable and readable on its own - the shape a table
+/// is good at - rather than one row holding a paragraph. The command line's report groups the same
+/// facts under the entry, and both come from the same <see cref="SnapshotDiff"/> in the same order.
+///
+/// <b>The field is named by the list's own heading where the list has a column for it.</b> The
+/// window's column ids ARE the snapshot's field names - <c>startType</c> is both - so "Startup type"
+/// here is the word somebody reads above the list. A field with no column (a privilege list, the
+/// security descriptor) keeps the name the file gives it.
+/// </summary>
+internal static class DiffLines
+{
+    internal static IReadOnlyList<DiffLine> Of(SnapshotDiff diff) =>
+    [
+        .. diff.Added.Select(entry => Presence(
+            entry, Texts.Of("gui.diff.row.added"), Texts.Of("gui.diff.row.notThere"), Texts.Of("gui.diff.row.there"))),
+        .. diff.Removed.Select(entry => Presence(
+            entry, Texts.Of("gui.diff.row.removed"), Texts.Of("gui.diff.row.there"), Texts.Of("gui.diff.row.notThere"))),
+
+        // Its own rows rather than among the removals or the additions, for the reason the command
+        // line gives its own heading: "these are gone" and "one side could not see them" are
+        // different sentences, and only one of them is a fact.
+        .. diff.Uncertain.Select(entry => Presence(
+            entry, Texts.Of("gui.diff.row.uncertain"), Texts.Of("gui.diff.row.cannotTell"), Texts.Of("gui.diff.row.cannotTell"))),
+        .. diff.Changed.Concat(diff.NotFullyCompared).SelectMany(Fields)
+    ];
+
+    /// <summary>
+    /// The heading the list puts over this field, or the field's own name when the list has no column
+    /// for it.
+    ///
+    /// <b>The own name escaped like any value from a file.</b> Most names here are this build's own -
+    /// the comparison walks its own fields - but a field NEITHER side read is a name both files wrote,
+    /// and once both sides are files (the command line's two-file comparison, and the window's in W2)
+    /// a pair of files decides it. The command line escapes every value it formats, and the window's
+    /// texts do not, so the window escapes it here.
+    /// </summary>
+    internal static string Label(string field) =>
+        Columns.Of(field) is { } column ? Texts.Of(column.LabelKey) : Printable.Of(field);
+
+    private static DiffLine Presence(EntryPresence entry, string what, string before, string after) =>
+        new(Printable.Of(entry.ServiceName), Printable.Of(entry.DisplayName), what, before, after);
+
+    private static IEnumerable<DiffLine> Fields(ChangedEntry entry)
+    {
+        var name = Printable.Of(entry.ServiceName);
+        var shown = Printable.Of(entry.DisplayName);
+
+        foreach (var difference in entry.Differences)
+        {
+            yield return new DiffLine(name, shown, What(difference), Value(difference.Before), Value(difference.After));
+        }
+
+        // Named, never counted as a change - the rule 8 argument the command line makes at the same
+        // place. A field one side holds no value for says nothing about whether it moved.
+        foreach (var field in entry.Incomparable)
+        {
+            yield return new DiffLine(
+                name, shown, Label(field), Texts.Of("gui.diff.row.notCompared"), Texts.Of("gui.diff.row.notCompared"));
+        }
+    }
+
+    /// <summary>
+    /// The field, marked when it is about what was running rather than how the machine is set up -
+    /// the distinction `--exit-code` draws since 2026-09-30, and the one a person most needs to see.
+    /// </summary>
+    private static string What(FieldDifference difference) =>
+        difference.Group == DifferenceGroup.RunningState
+            ? Texts.Of("gui.diff.row.state", Label(difference.Field))
+            : Label(difference.Field);
+
+    /// <summary>A missing value in a word rather than a blank cell, which reads as the window running out of room.</summary>
+    private static string Value(string? value) =>
+        value is null ? Texts.Of("gui.diff.row.nothing") : Printable.Of(value);
+}

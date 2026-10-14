@@ -158,6 +158,24 @@ internal static class Machines
         return uncomparable;
     }
 
+    /// <summary>
+    /// Which fields of one entry BOTH sides refused - worked out from the two readings, like the
+    /// oracle above.
+    ///
+    /// Since 2026-10-14 (backlog 559) these are said once for the whole comparison rather than
+    /// against the entry: neither side holds a value, so no second look could settle them, and named
+    /// per entry they put the same ten entries under "not fully compared" every time a real machine
+    /// was compared with itself.
+    /// </summary>
+    internal static HashSet<string> RefusedByBoth(
+        IReadOnlyList<ScmEntry> before, IReadOnlyList<ScmEntry> after, string name)
+    {
+        var both = Named(before, name).Unreadable?.Keys.ToHashSet(StringComparer.Ordinal) ?? [];
+        both.IntersectWith(Named(after, name).Unreadable?.Keys ?? Enumerable.Empty<string>());
+
+        return both;
+    }
+
     /// <summary>How many fields these readings refused, and how many nobody asked about.</summary>
     internal static (int Refused, int Unasked) Unread(IReadOnlyList<ScmEntry> entries)
     {

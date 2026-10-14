@@ -39,7 +39,10 @@ public sealed class SilentCatchGuards
     private static readonly Dictionary<string, int> Recorded = new(StringComparer.Ordinal)
     {
         ["src/Bws.Cli/Execution.cs"] = 1,
-        ["src/Bws.Cli/SnapshotFiles.cs"] = 2,
+        // Moved, not added: the snapshot's file rules left the command line for the core on 2026-10-14,
+        // when the window began reading snapshots, and took the two decoder catches with them - each
+        // turns bytes that are not UTF-8 into a fault the person is told about.
+        ["src/Bws.Core/Snapshots/SnapshotOnDisk.cs"] = 2,
         // Moved, not added: the machine's environment block left BinaryPathResolver for a file of its
         // own on 2026-10-05 (stability report R-3), taking its one catch with it.
         ["src/Bws.Core/ManagerEnvironment.cs"] = 1,

@@ -139,13 +139,22 @@
         the reason 3.10 gives: it would change the bar at the sizes people use to rescue a size in
         which the list has two columns.
 
+        AND 1000 FOR TEN, since 2026-10-14 - "Snapshots...", W1 of the second half of the audit,
+        owner's decision between three answers (this, a bar that wraps, the button in the top row).
+        Read off ActionBarGuards at 900: the tenth button ends 954 from the left and the bar ends
+        870,67, so 984 is where ten stop being cut. THE SLACK IS THINNER THAN THE NINE HAD, and that
+        is said rather than hidden: 1000 leaves about 17 units, under two per cent, where 900 kept six
+        for nine. A longer word in another language reddens the guard, and the answer then is this
+        number again or the menu taking a button in - the menu under "Snapshots..." exists so the
+        next snapshot item does not need a button of its own.
+
         THE HEIGHT WAS 600 FOR ONE BUILD AND THE PHOTOGRAPH RAISED IT. The arithmetic forgot the
         block the steps now sit in, which spends 30 on its own margin and padding - so the button
         was there and the body was 53 points of nothing with a stray rule in it. Read off the
         picture: heading plus one step plus that chrome is 91, so 600 was 38 short.
     -->
     <system:Double x:Key="HeightWindowLeast">640</system:Double>
-    <system:Double x:Key="WidthWindowLeast">900</system:Double>
+    <system:Double x:Key="WidthWindowLeast">1000</system:Double>
 
     <!--
         The mark for an entry running against its start type - backlog 165. A triangle rather than a

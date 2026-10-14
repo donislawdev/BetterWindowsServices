@@ -63,7 +63,7 @@ public sealed class MachineDocumentValueGuards
             .ToList();
 
         var diff = new SnapshotDiff(
-            [], [], [new ChangedEntry("Spooler", "Print Spooler", differences, [])], [], [], [],
+            [], [], [new ChangedEntry("Spooler", "Print Spooler", differences, [])], [], [], [], [],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0));
 

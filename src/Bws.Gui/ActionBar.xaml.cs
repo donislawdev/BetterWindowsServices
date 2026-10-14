@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using Bws.Core.Planning;
 
@@ -33,7 +34,54 @@ public partial class ActionBar : UserControl
         Picked(0, onlyDrivers: false);
 
         OfferTheSettings();
+        OfferTheSnapshots();
     }
+
+    /// <summary>
+    /// The two things under "Snapshots...", one item each, built from a list the way the startup
+    /// settings are - GUI rule 8, and the same reason: each item a real MenuItem with its own
+    /// automation peer, present before the menu has ever opened (`docs/10` traps 7 and 19).
+    /// "Compare two snapshots" joins this list in W2.
+    /// </summary>
+    private void OfferTheSnapshots()
+    {
+        var style = (Style)FindResource("RowMenuItem");
+
+        (string Words, string Id, Action Asked)[] items =
+        [
+            (Texts.Of("gui.snapshot.take"), "snapshotTake", () => TakeSnapshotRequest?.Invoke(this, EventArgs.Empty)),
+            (Texts.Of("gui.snapshot.compare"), "snapshotCompare", () => CompareRequest?.Invoke(this, EventArgs.Empty))
+        ];
+
+        foreach (var (words, id, asked) in items)
+        {
+            var item = new MenuItem { Header = words, Style = style };
+
+            AutomationProperties.SetAutomationId(item, id);
+            item.Click += (_, _) => asked();
+
+            SnapshotsMenu.Items.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// Whether the machine is being read for a snapshot - the button is off while it is, and says
+    /// why on itself, so a second press cannot ask for a second reading of the same thing.
+    /// </summary>
+    internal void ReadingForASnapshot(bool busy)
+    {
+        SnapshotsButton.IsEnabled = !busy;
+        SnapshotsButton.ToolTip = busy ? Texts.Of("gui.action.snapshots.busy") : Texts.Of("gui.action.snapshots.hint");
+    }
+
+    /// <summary>Somebody asked for a snapshot of this machine, written to a file.</summary>
+    internal event EventHandler? TakeSnapshotRequest;
+
+    /// <summary>Somebody asked to compare a snapshot with this machine.</summary>
+    internal event EventHandler? CompareRequest;
+
+    /// <summary>Opens the two items under the button, the way the startup settings open - ButtonMenu says why a left click.</summary>
+    private void SnapshotsAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(SnapshotsButton);
 
     /// <summary>
     /// The startup settings under the button, one item per setting, in the order the command line

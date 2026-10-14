@@ -326,6 +326,13 @@
                             x:Name="Overview"
                             Visibility="Collapsed" />
 
+        <!-- What changed since a snapshot, in the same cell and the same way - DiffView.xaml. -->
+        <local:DiffView Grid.Row="4"
+                        Grid.ColumnSpan="2"
+                        x:Name="Comparison"
+                        DataContext="{Binding Snapshotting.Shown}"
+                        Visibility="Collapsed" />
+
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
             Escape - which is the last of the three keys `docs/11` 9.1 asked for on 2026-08-05 and

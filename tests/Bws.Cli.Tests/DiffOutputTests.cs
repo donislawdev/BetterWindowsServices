@@ -92,9 +92,65 @@ public sealed class DiffOutputTests
         Assert.Equal("fileVersionSourceDiffers", caveats.EnumerateObject().Last().Name);
     }
 
+    [Fact]
+    public void A_field_refused_to_both_snapshots_is_one_line_naming_the_entries_and_nothing_else_differs()
+    {
+        // Backlog 559: this machine compared with itself a minute later used to print ten entries
+        // under "Not fully compared", because Windows refuses their descriptions to every reader.
+        // One line per field now, the entries named in it, and the report still says it found
+        // nothing - since neither side holds a value, there was nothing a second look could settle.
+        var diff = Of(changed: []) with
+        {
+            RefusedByBoth = [new RefusedField("description", ["IsoSessionCore", "Tcpip6"])]
+        };
+
+        var text = DiffText.Render(diff);
+
+        Assert.Contains(
+            Texts.Of("cli.diff.caveat.refusedByBoth.many", "description", 2, "IsoSessionCore, Tcpip6"),
+            text,
+            StringComparison.Ordinal);
+        Assert.Contains(Texts.Of("cli.diff.same"), text, StringComparison.Ordinal);
+        Assert.DoesNotContain(Texts.Of("cli.diff.notFullyCompared", 2), text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void One_entry_refused_a_field_on_both_sides_is_said_in_the_singular()
+    {
+        var text = DiffText.Render(Of(changed: []) with
+        {
+            RefusedByBoth = [new RefusedField("securityDescriptor", ["LSM"])]
+        });
+
+        Assert.Contains(
+            Texts.Of("cli.diff.caveat.refusedByBoth.one", "securityDescriptor", 1, "LSM"),
+            text,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_field_refused_to_both_snapshots_is_written_last_with_its_entries()
+    {
+        // Last, so a script reading the document by position before 2026-10-14 still finds what it
+        // found. And the entries are in it by name, so a script loses nothing that the old
+        // per-entry place under notFullyCompared told it.
+        var root = Document(Of(changed: []) with
+        {
+            RefusedByBoth = [new RefusedField("description", ["IsoSessionCore", "Tcpip6"])]
+        });
+
+        Assert.Equal("refusedByBoth", root.EnumerateObject().Last().Name);
+
+        var refused = Assert.Single(root.GetProperty("refusedByBoth").EnumerateArray());
+
+        Assert.Equal("description", refused.GetProperty("field").GetString());
+        Assert.Equal(["IsoSessionCore", "Tcpip6"], refused.GetProperty("entries").EnumerateArray().Select(name => name.GetString()));
+        Assert.Empty(root.GetProperty("notFullyCompared").EnumerateArray());
+    }
+
     private static SnapshotDiff Of(IReadOnlyList<ChangedEntry> changed, InstancesLeftOut? leftOut = null) =>
         new(
-            [], [], changed, [], [], [],
+            [], [], changed, [], [], [], [],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
             leftOut ?? new InstancesLeftOut(0, 0));
 

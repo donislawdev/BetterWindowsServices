@@ -46,6 +46,15 @@ public sealed class ConcurrencyGuards
             "held by index, and RequiredByPassParallelTests holds both halves: every answer in its " +
             "own entry against a single-threaded run, and the questions really going out together.",
 
+        ["Snapshotting.cs"] =
+            "Reading the machine for a snapshot off the interface thread, added 2026-10-14 when the " +
+            "window began taking and comparing snapshots. The same argument as Readings.cs and a " +
+            "bigger number: a snapshot reads signatures and dependents on top of the listing, " +
+            "1.1-1.2 s over 801 entries on sixteen processors, so the window would stop answering for " +
+            "that long. Only the reading, the rendering and the file comparison run out there - the " +
+            "sheet is built and shown back on the interface thread, and one reading at a time is held " +
+            "by Busy, which only the interface thread sets.",
+
         ["Readings.cs"] =
             "Reading the manager off the interface thread, because a full reading takes about " +
             "half a second and a window that stops answering for half a second looks broken. " +

@@ -362,15 +362,17 @@ public sealed class ActionBarGuards
         });
 
         // NOT VACUOUS: a walk that found nothing would have no widest button and no way to fail.
-        // Nine is what this build has - seven until 2026-09-16, when the two forcing verbs arrived
-        // and the floor was raised to fit them - and asking for the exact number is deliberate: a
-        // button quietly disappearing from this bar is worth a red run of its own.
-        Assert.Equal(9, buttons);
+        // Ten is what this build has - seven until 2026-09-16, when the two forcing verbs arrived
+        // and the floor was raised to fit them, nine until 2026-10-14, when "Snapshots..." arrived
+        // (W-a, one button with a menu rather than two for exactly this bar) - and asking for the
+        // exact number is deliberate: a button quietly disappearing from this bar is worth a red run
+        // of its own.
+        Assert.Equal(10, buttons);
 
         Assert.True(
             worst <= edge,
             $"The action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so it is "
-            + "standing outside the bar, where it can be neither read nor clicked. These nine sit "
+            + "standing outside the bar, where it can be neither read nor clicked. These ten sit "
             + "on one line and cannot wrap, so the answer is a decision about the bar rather than a "
             + "shorter word.");
 

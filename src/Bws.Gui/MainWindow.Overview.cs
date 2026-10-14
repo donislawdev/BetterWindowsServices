@@ -84,10 +84,17 @@ public partial class MainWindow
     /// </summary>
     private void ArrangeTheMiddle()
     {
-        var overview = _model.ShowingOverview;
+        // FOUR CONTROLS SINCE 2026-10-14 - a comparison with a snapshot takes the middle the way the
+        // overview does (MainWindow.Snapshots.cs). It arrives only from the action bar, which the
+        // overview hides, and it puts the overview away when it comes - so the two never stand there
+        // together, and if they ever did the comparison is the newer thing somebody asked for.
+        var comparing = _model.Snapshotting.Shown is not null;
+        var overview = _model.ShowingOverview && !comparing;
+        var elsewhere = overview || comparing;
 
         Overview.Visibility = overview ? Visibility.Visible : Visibility.Collapsed;
-        Entries.Visibility = overview ? Visibility.Collapsed : Visibility.Visible;
+        Comparison.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
+        Entries.Visibility = elsewhere ? Visibility.Collapsed : Visibility.Visible;
 
         // THE EMPTY STATE IS PUT BACK BY CLEARING RATHER THAN BY SETTING, AND THE DIFFERENCE IS A
         // FAULT THIS METHOD SHIPPED FOR ONE BUILD. That control decides its own visibility from a
@@ -98,7 +105,7 @@ public partial class MainWindow
         // Clearing hands the property back to the style, which is the only thing that knows whether
         // there is anything to say. Setting Collapsed is still a local value and that is correct:
         // while the overview has the middle of the window, nothing about a list is worth saying.
-        if (overview)
+        if (elsewhere)
         {
             ListEmptyState.Visibility = Visibility.Collapsed;
 
@@ -142,7 +149,7 @@ public partial class MainWindow
     /// </summary>
     private void ArrangeTheChrome()
     {
-        var chrome = _model.ShowingOverview ? Visibility.Collapsed : Visibility.Visible;
+        var chrome = _model.ListOnScreen ? Visibility.Visible : Visibility.Collapsed;
 
         Scope.Visibility = chrome;
         Search.Visibility = chrome;

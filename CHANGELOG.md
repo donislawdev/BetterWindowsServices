@@ -11,6 +11,32 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Added
+
+- Snapshots in the window. A "Snapshots..." button beside Export... offers "Take snapshot...", which
+  writes this machine to a file you choose - the same file `bws snapshot create` writes, readable by
+  either - and "Compare with this machine...", which reads a snapshot and shows what changed since it
+  in place of the list: one row per field that differs, the entries added and removed, and above
+  the table everything that makes the comparison less than exact, such as a snapshot taken on
+  another machine or without administrator rights. "Back to the list" or Escape returns. Nothing in
+  either changes a service, and a file at the chosen path that is not a snapshot is refused and left
+  as it was. A value read from a snapshot shows a control or text direction character as its code
+  point, as the command line does.
+
+### Changed
+
+- A comparison no longer lists, entry by entry, a field Windows refused to both sides. On a real
+  machine a few service descriptions point at a language file that is not there, and Windows refuses
+  them to every reader - so every comparison listed the same entries as "not fully compared" while
+  nothing about them had changed. Such a field is now one line among the caveats, naming the entries,
+  and a snapshot compared with a copy of itself says "No differences." again. In `--json` the field
+  and its entries are in a new `refusedByBoth` list at the end of the document, and those entries are
+  no longer in `notFullyCompared`. A field one side holds a value for and the other does not is still
+  listed against its entry, and the sentence there now says "holds no value for" rather than "never
+  read".
+- The window cannot be made narrower than 1000 points, up from 900, so the new button fits in the
+  bar of actions.
+
 ### Fixed
 
 - `bws kill`, and Force stop in the window, no longer announce that they end a service's process

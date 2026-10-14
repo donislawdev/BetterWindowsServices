@@ -116,7 +116,11 @@ internal static class CountedWords
         "opens",
         // Not verbs, and the reason no shape can do this job. A unit, a determiner and a singular
         // noun that happens to end in s.
-        "ms", "this", "process"
+        "ms", "this", "process",
+        // One more on 2026-10-14, from the sentence over a comparison: "taken {1} by {2} with
+        // administrator rights". The placeholder is the account that took the snapshot, never a
+        // count, and "rights" belongs to "administrator" two words on.
+        "rights"
     ];
 
     internal static readonly Regex Plural =

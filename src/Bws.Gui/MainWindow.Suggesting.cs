@@ -64,7 +64,7 @@ public partial class MainWindow
             System.Windows.Threading.DispatcherPriority.Input,
             () =>
             {
-                if (_model.ShowingOverview)
+                if (!_model.ListOnScreen)
                 {
                     return;
                 }

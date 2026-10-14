@@ -56,7 +56,8 @@ internal static class DiffJson
                 [.. diff.Changed.Select(Changed)],
                 [.. diff.NotFullyCompared.Select(Changed)],
                 diff.NeitherRead,
-                new LeftOutDocument(diff.LeftOut.Earlier, diff.LeftOut.Later)),
+                new LeftOutDocument(diff.LeftOut.Earlier, diff.LeftOut.Later),
+                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))]),
             Options);
 
     private static PresenceDocument Presence(EntryPresence entry) =>
@@ -86,6 +87,12 @@ internal static class DiffJson
     /// Per-user session copies neither side was compared on, counted per side. Added 2026-09-30
     /// (D-1) - an addition, so nothing a script already reads changes.
     /// </param>
+    /// <param name="RefusedByBoth">
+    /// Fields Windows refused to both snapshots, each with the entries it refused it on. Added
+    /// 2026-10-14 (backlog 559, owner's decision) and LAST, so the document only grew at its end.
+    /// <b>What moved, said for whoever reads <paramref name="NotFullyCompared"/>:</b> an entry whose
+    /// only uncompared field was refused to both sides is no longer there - it is named here instead.
+    /// </param>
     private sealed record DiffDocument(
         bool Differs,
         CaveatsDocument Caveats,
@@ -95,7 +102,10 @@ internal static class DiffJson
         IReadOnlyList<ChangedDocument> Changed,
         IReadOnlyList<ChangedDocument> NotFullyCompared,
         IReadOnlyList<string> NeitherRead,
-        LeftOutDocument InstancesLeftOut);
+        LeftOutDocument InstancesLeftOut,
+        IReadOnlyList<RefusedDocument> RefusedByBoth);
+
+    private sealed record RefusedDocument(string Field, IReadOnlyList<string> Entries);
 
     /// <param name="NotKnown">
     /// Metadata one of the two files does not carry, as the field names the file uses - a

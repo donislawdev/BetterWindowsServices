@@ -2,10 +2,17 @@ using System.Buffers;
 using System.Globalization;
 using System.Text;
 
-namespace Bws.Cli;
+namespace Bws.Core;
 
 /// <summary>
-/// A value from the machine or from a file, made safe to put in front of a terminal.
+/// A value from the machine or from a file, made safe to put in front of a terminal - and, since
+/// 2026-10-14, in front of a person reading somebody else's snapshot in the window.
+///
+/// <b>In the core since that day</b>, moved from the command line when the window began comparing
+/// snapshots (`docs/PROJEKT-DRUGA-POLOWA-AUDYTU-20261014.md`, W1). A window is not a terminal - no
+/// character here can move a cursor in it - but the half of this set that reorders text works the
+/// same in a cell as in a console: a file name in a crafted snapshot can show one extension and carry
+/// another. One rule for both front ends rather than a second list in the window that would drift.
 ///
 /// <b>Stability report C-4, owner's decision 2026-10-05.</b> Names, paths, descriptions and the
 /// values inside a snapshot reached the terminal exactly as they were. A tab or a line break in
@@ -24,12 +31,12 @@ namespace Bws.Cli;
 /// <b>Text only.</b> A JSON document escapes all of these anyway, through AsciiJson. And it is
 /// applied to VALUES, never to sentences: five templates of this tool break lines on purpose.
 /// </summary>
-internal static class Printable
+public static class Printable
 {
     private static readonly SearchValues<char> Unprintable = SearchValues.Create(Characters());
 
     /// <summary>The value with every character from the set above written out as its code point.</summary>
-    internal static string Of(string value)
+    public static string Of(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
 
