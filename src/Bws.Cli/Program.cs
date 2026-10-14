@@ -135,20 +135,12 @@ try
 
         if (options.Live)
         {
-            // Signatures and hashes are read here for the same reason snapshot create reads
-            // them: the file on the other side has them. Comparing against a reading that
-            // skipped them would mark every entry as "one side never read this", which is
-            // 810 admissions and no answer.
-            var before2 = stopwatch.ElapsedMilliseconds;
-            entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
-            inspected = stopwatch.ElapsedMilliseconds - before2;
-
-            // The same third family, and for the same sentence: the file on the other side has
-            // it. Left out, every entry lands in "neitherRead" - which is not a difference, so a
-            // comparison reports none while the field goes uncompared.
-            before2 = stopwatch.ElapsedMilliseconds;
-            entries = RequiredByPass.Fill(entries, catalog!);
-            asked = stopwatch.ElapsedMilliseconds - before2;
+            // Signatures, hashes and who depends on each entry are read here for the same reason
+            // snapshot create reads them: the file on the other side has them. Comparing against a
+            // reading that skipped them would mark every entry as "one side never read this",
+            // which is 810 admissions and no answer. One call since 2026-10-14, shared with
+            // snapshot create and the window - SnapshotPasses says why.
+            entries = SnapshotPasses.Fill(entries, catalog!, new WindowsBinaryInspector(networkPaths), out inspected, out asked);
 
             after = Snapshot.Of(entries, note: null, new SystemClock());
         }
@@ -224,20 +216,10 @@ try
             return ExitCode.Usage;
         }
 
-        // Signatures and the hash are read every time here, unlike in a listing. A snapshot
-        // is taken deliberately and kept for months, so being comparable against the next
-        // one matters more than the several seconds it costs - and a snapshot missing them
-        // would compare against one that has them as though the machine had changed.
-        var before = stopwatch.ElapsedMilliseconds;
-        entries = SecondPass.Fill(entries, new WindowsBinaryInspector(networkPaths));
-        inspected = stopwatch.ElapsedMilliseconds - before;
-
-        // AND WHO DEPENDS ON EACH ENTRY, EVERY TIME, on the argument above and for a small fraction
-        // of the price - RequiredByPass carries the measurement. No switch here: one taken without it
-        // would compare against one that has it as though every service had lost its dependents.
-        before = stopwatch.ElapsedMilliseconds;
-        entries = RequiredByPass.Fill(entries, catalog!);
-        asked = stopwatch.ElapsedMilliseconds - before;
+        // Signatures, the hash and who depends on each entry are read every time here, unlike in a
+        // listing - SnapshotPasses carries the argument, and since 2026-10-14 the one place it is
+        // read for the command line and the window alike.
+        entries = SnapshotPasses.Fill(entries, catalog!, new WindowsBinaryInspector(networkPaths), out inspected, out asked);
 
         var snapshot = Snapshot.Of(entries, options.Note, new SystemClock());
         var target = SnapshotFiles.Target(options.Path, snapshot.Metadata);

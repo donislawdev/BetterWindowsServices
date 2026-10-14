@@ -293,16 +293,56 @@ public sealed class SnapshotDiffTests
         // every refused field as drift on any pair of machines set up differently - `ADR-14`
         // one layer down.
         //
-        // Refused on both sides is still named per entry rather than folded into the note
-        // about the whole comparison. A refusal is about permissions on this one entry, and
-        // on a real machine five entries refuse their descriptor while eight hundred hand it
-        // over - a sentence about "the snapshot" would be false about most of it.
+        // REFUSED ON BOTH SIDES IS SAID ONCE FOR THE COMPARISON SINCE 2026-10-14, AGAINST THE ENTRY
+        // BY NAME (backlog 559, owner's decision). What stood here said it was named per entry
+        // because "a sentence about the snapshot would be false about most of it" - five entries
+        // refuse their descriptor while eight hundred hand it over. That argument still holds, and
+        // the new shape keeps it: the sentence is about one FIELD and names the entries it was
+        // refused on, never the snapshot. What changed is where it stands - per entry it put the
+        // same ten entries under "not fully compared" every time a real machine was compared with
+        // itself a minute later, which taught that the section is noise.
         var diff = Between(
             Taken([Entry("LSM") with { SecurityDescriptor = Reading<string>.Denied(5, "Access is denied.") }]),
             Taken([Entry("LSM") with { SecurityDescriptor = Reading<string>.Denied(5, "Odmowa dostepu.") }]));
 
         Assert.False(diff.Drifted);
-        Assert.Equal("securityDescriptor", Assert.Single(Assert.Single(diff.NotFullyCompared).Incomparable));
+        Assert.False(diff.Reported);
+        Assert.Empty(diff.NotFullyCompared);
+
+        var refused = Assert.Single(diff.RefusedByBoth);
+
+        Assert.Equal("securityDescriptor", refused.Field);
+        Assert.Equal("LSM", Assert.Single(refused.Entries));
+    }
+
+    [Fact]
+    public void A_field_refused_on_one_side_only_stays_against_its_entry_beside_one_refused_on_both()
+    {
+        // The line backlog 559 draws, from both sides of it on one entry. The descriptor is refused
+        // to both, so no second look could settle it and it is said once. The signature is refused
+        // to one side only - the other holds a value, so a change could hide there and the entry is
+        // still "not fully compared" because of it.
+        var diff = Between(
+            Taken([
+                Entry("LSM") with
+                {
+                    SecurityDescriptor = Reading<string>.Denied(5, "Access is denied."),
+                    Signature = Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.Trusted, 0, "Contoso Systems"))
+                }
+            ]),
+            Taken([
+                Entry("LSM") with
+                {
+                    SecurityDescriptor = Reading<string>.Denied(5, "Access is denied."),
+                    Signature = Reading<BinarySignature>.Denied(5, "Access is denied.")
+                }
+            ]));
+
+        var entry = Assert.Single(diff.NotFullyCompared);
+
+        Assert.Equal("signature", Assert.Single(entry.Incomparable));
+        Assert.Equal("securityDescriptor", Assert.Single(diff.RefusedByBoth).Field);
+        Assert.True(diff.Reported);
     }
 
     [Fact]

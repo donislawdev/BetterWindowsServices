@@ -136,6 +136,7 @@ public sealed partial class MainViewModel : Checked
         // THE PANEL READS WHAT ITS ENTRY LACKS, THROUGH THE SAME READINGS - UX-GUI-005. After them,
         // because it is handed them.
         Chosen = new Chosen(_readings);
+        Snapshotting = Comparing(catalog, inspector, clock);
 
         // Reading the field and writing the property, which is deliberate and is the difference
         // between a chip that filters and a chip that only edits text: the setter is what parses
@@ -410,7 +411,7 @@ public sealed partial class MainViewModel : Checked
         {
             Says.AboutTheAnswer(
                 Asked, _holding.Pending, answered.Narrowed,
-                _readings.Have, _readings.Filling, answered.Instances, !_showingOverview);
+                _readings.Have, _readings.Filling, answered.Instances, ListOnScreen);
         }
     }
 

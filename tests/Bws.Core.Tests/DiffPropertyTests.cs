@@ -183,17 +183,54 @@ public sealed class DiffPropertyTests
                     }
 
                     var uncomparable = Machines.Uncomparable(before, after, entry.ServiceName);
+                    var refusedByBoth = Machines.RefusedByBoth(before, after, entry.ServiceName);
 
-                    if (uncomparable.Any(field => !entry.Incomparable.Contains(field, StringComparer.Ordinal))
+                    // Refused to BOTH sides is uncomparable too, and since 2026-10-14 it is said for
+                    // the comparison rather than against the entry - never in both places at once.
+                    if (uncomparable.Except(refusedByBoth).Any(field => !entry.Incomparable.Contains(field, StringComparer.Ordinal))
+                        || refusedByBoth.Overlaps(entry.Incomparable)
                         || uncomparable.Overlaps(differing))
                     {
                         return false;
                     }
                 }
 
-                return true;
+                return RefusedByBothIsSaidOnceAndTruly(before, after, diff);
             },
             iter: 5_000);
+    }
+
+    /// <summary>
+    /// Every field refused to both sides is named once for the comparison against its entry, and
+    /// nothing is named there that was not refused to both.
+    ///
+    /// <b>Both directions, and the first is the one a per-entry walk cannot see:</b> an entry whose
+    /// only uncompared field was refused to both sides is in neither <c>Changed</c> nor
+    /// <c>NotFullyCompared</c> any more, so the loop above never meets it. Without this, a comparison
+    /// that dropped those fields on the floor would pass - the silence rule 8 forbids.
+    /// </summary>
+    private static bool RefusedByBothIsSaidOnceAndTruly(
+        IReadOnlyList<ScmEntry> before, IReadOnlyList<ScmEntry> after, SnapshotDiff diff)
+    {
+        var said = diff.RefusedByBoth
+            .SelectMany(field => field.Entries.Select(entry => (field.Field, Entry: entry.ToUpperInvariant())))
+            .ToList();
+
+        if (said.Count != said.Distinct().Count())
+        {
+            return false;
+        }
+
+        var shared = after
+            .Select(entry => entry.ServiceName)
+            .Where(name => before.Any(entry => string.Equals(entry.ServiceName, name, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        var expected = shared
+            .SelectMany(name => Machines.RefusedByBoth(before, after, name).Select(field => (Field: field, Entry: name.ToUpperInvariant())))
+            .ToHashSet();
+
+        return expected.SetEquals(said);
     }
 
     /// <summary>
@@ -245,7 +282,7 @@ public sealed class DiffPropertyTests
     [Fact]
     public void The_generated_pairs_reach_every_outcome_these_properties_are_about()
     {
-        int added = 0, removed = 0, changed = 0, partly = 0, refused = 0, unasked = 0;
+        int added = 0, removed = 0, changed = 0, partly = 0, refused = 0, unasked = 0, refusedByBoth = 0;
 
         Gen.Select(Machines.Any, Machines.Any).Sample(
             pair =>
@@ -257,6 +294,7 @@ public sealed class DiffPropertyTests
                 removed += diff.Removed.Count;
                 changed += diff.Changed.Count;
                 partly += diff.NotFullyCompared.Count;
+                refusedByBoth += diff.RefusedByBoth.Sum(field => field.Entries.Count);
 
                 var (denied, never) = Machines.Unread(before);
                 refused += denied;
@@ -273,6 +311,7 @@ public sealed class DiffPropertyTests
         Assert.True(partly > 0, "nothing was ever left incompletely compared");
         Assert.True(refused > 0, "the machine never refused a field");
         Assert.True(unasked > 0, "no field was ever left unasked");
+        Assert.True(refusedByBoth > 0, "no field was ever refused to both sides");
     }
 
     /// <summary>

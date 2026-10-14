@@ -329,6 +329,7 @@ public static partial class Catalogue
         ArgumentNullException.ThrowIfNull(resources);
 
         var limits = Limits.Of(resources);
+        var compared = Comparisons();
 
         Built[] built =
         [
@@ -353,6 +354,8 @@ public static partial class Catalogue
 
             View(() => new OverviewView(),
                 data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
+
+            .. DiffViews(compared),
 
             View(() => new DetailsView(),
                 data: ready.ChoseOrdinary.Chosen, wrong: ready.ChoseGone.Chosen, loading: ready.ChoseReading, extreme: ready.ChoseLongest.Chosen),

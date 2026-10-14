@@ -158,7 +158,8 @@ public partial class MainWindow
                 // selected, so nothing to complete - offers nothing. Said here rather than left to the focus event, because
                 // a box that already had the keyboard gets no focus event from this.
                 //
-                // NOT ON THE OVERVIEW SCREEN, where the row holding the box is collapsed: a popup
+                // NOT ON THE OVERVIEW SCREEN NOR UNDER A COMPARISON (since 2026-10-14), where the row
+                // holding the box is collapsed: a popup
                 // hung off a collapsed target opens somewhere on the screen with nothing under it,
                 // and nothing would close it but Escape - the box never had the keyboard to lose.
                 // Asked of the model rather than of the box's visibility, because a window these
@@ -166,7 +167,7 @@ public partial class MainWindow
                 Search.Box.Focus();
                 Search.Box.SelectAll();
 
-                if (!_model.ShowingOverview)
+                if (_model.ListOnScreen)
                 {
                     _model.Suggesting.Arrived(Search.Box.Text);
                 }
@@ -227,7 +228,7 @@ public partial class MainWindow
                 return _model.Suggesting.Close()
                     || _model.Planned.Busy
                     || _model.Planned.Hide()
-                    || _model.Chosen.Hide()
+                    || _model.PutAwayAView()
                     || _model.ClearQuery();
 
             default:

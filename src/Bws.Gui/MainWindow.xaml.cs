@@ -194,6 +194,15 @@ public partial class MainWindow : Window
         // AND HELP BESIDE IT, 2026-09-24 - UX-GUI-014. MainWindow.Help.cs.
         IntroduceTheHelp();
 
+        // SNAPSHOTS, 2026-10-14 - taking one and comparing one with this machine. SnapshotDoors.cs, and
+        // the window is asked to rearrange its middle the way the overview asks it.
+        SnapshotDoors.Open(this, Actions, Comparison, _model, () =>
+        {
+            ArrangeTheMiddle();
+            ArrangeTheChrome();
+            GiveTheBoxTheKeyboard();
+        });
+
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
         // reaches into the model would be a second road to everything the model owns.

@@ -270,14 +270,14 @@ public sealed class SnapshotContractTests : IDisposable
 
         Assert.Equal(0, compared.ExitCode);
 
-        // NOTHING DIFFERS, WHICH IS THE CLAIM - and it used to be asserted as the literal words
-        // "No differences", which stopped being what this prints on 2026-08-12. The description
-        // arrived, and eight entries of 809 on this machine carry one the manager will not resolve
-        // into words - so a file compared against a byte-identical copy of itself correctly reports
-        // that eight entries hold a field nobody could put a value to. Both summaries say "nothing
-        // differs" and that is the half this test is about: the subject here is the ENCODING, and a
-        // mark honoured means the copy reads back as the same machine.
-        Assert.Contains("nothing differs", compared.StandardOutput, StringComparison.Ordinal);
+        // NOTHING DIFFERS, WHICH IS THE CLAIM, AND SINCE 2026-10-14 IT IS THE LITERAL WORDS AGAIN.
+        // From 2026-08-12 this asserted "nothing differs", the words inside the heading over the
+        // entries the comparison could not finish: the description arrived, and eight to ten entries
+        // on this machine carry one the manager will not resolve into words, so a file compared with a
+        // byte-identical copy of itself reported them every time. Backlog 559 moved a field refused to
+        // BOTH sides into one caveat line for the whole comparison - a copy refuses exactly what the
+        // original refused - so the report says "No differences." again, and this asks for that.
+        Assert.Contains("No differences.", compared.StandardOutput, StringComparison.Ordinal);
         Assert.DoesNotContain("Changed", compared.StandardOutput, StringComparison.Ordinal);
     }
 

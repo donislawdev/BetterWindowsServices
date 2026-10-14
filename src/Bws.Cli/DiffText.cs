@@ -44,8 +44,8 @@ internal static class DiffText
         Changed(text, "cli.diff.changed", diff.Changed);
 
         // Also its own heading, for the same reason one level down. These entries have
-        // nothing different about them - one of the two snapshots simply never read a field,
-        // so nobody can say either way. Filed under "changed" they read as drift that is not
+        // nothing different about them - one of the two snapshots holds no value for a field,
+        // so nobody can say either way. A field refused to BOTH is not here but in the caveats. Filed under "changed" they read as drift that is not
         // there, which is how the first version of this printed "5 changed, 0 differences".
         Changed(text, "cli.diff.notFullyCompared", diff.NotFullyCompared);
 
@@ -80,7 +80,11 @@ internal static class DiffText
             (diff.LeftOut.Any, () => Texts.Of("cli.diff.caveat.instancesLeftOut", diff.LeftOut.Earlier, diff.LeftOut.Later))
         ];
 
-        var said = lines.Where(line => line.Says).Select(line => line.Line()).ToList();
+        var said = lines
+            .Where(line => line.Says)
+            .Select(line => line.Line())
+            .Concat(diff.RefusedByBoth.Select(Refused))
+            .ToList();
 
         foreach (var line in said)
         {
@@ -92,6 +96,17 @@ internal static class DiffText
             text.AppendLine();
         }
     }
+
+    /// <summary>
+    /// A field Windows refused to both snapshots, said once with the entries it was refused on -
+    /// backlog 559, owner's decision of 2026-10-14. Until then each of those entries stood under
+    /// "not fully compared", so this machine compared with itself a minute later printed ten of
+    /// them every time.
+    /// </summary>
+    private static string Refused(RefusedField field) =>
+        field.Entries.Count == 1
+            ? Texts.Of("cli.diff.caveat.refusedByBoth.one", field.Field, field.Entries.Count, string.Join(", ", field.Entries))
+            : Texts.Of("cli.diff.caveat.refusedByBoth.many", field.Field, field.Entries.Count, string.Join(", ", field.Entries));
 
     private static void Presence(StringBuilder text, string heading, IReadOnlyList<EntryPresence> entries)
     {

@@ -28,15 +28,30 @@ public sealed record FieldDifference(string Field, DifferenceGroup Group, string
 public sealed record EntryPresence(string ServiceName, string DisplayName);
 
 /// <param name="Incomparable">
-/// Fields that could not be compared because at least one side never read them. Named rather
-/// than dropped: silence about a field nobody could read is exactly what rule 8 forbids, and
-/// "we did not compare this" is a different sentence from "this did not change".
+/// Fields that could not be compared because one side holds no value for them - refused there, or
+/// never asked. Named rather than dropped: silence about a field nobody could read is exactly what
+/// rule 8 forbids, and "we did not compare this" is a different sentence from "this did not
+/// change". A field Windows refused to BOTH sides is not here since 2026-10-14 - it is in
+/// <see cref="SnapshotDiff.RefusedByBoth"/>, said once for the comparison.
 /// </param>
 public sealed record ChangedEntry(
     string ServiceName,
     string DisplayName,
     IReadOnlyList<FieldDifference> Differences,
     IReadOnlyList<string> Incomparable);
+
+/// <summary>
+/// A field Windows refused to BOTH snapshots, and the entries it refused it on.
+///
+/// <b>Its own shape since 2026-10-14 (backlog 559, owner's decision).</b> Until then a field refused
+/// on both sides was named against each entry like a field only one side could read, so a machine
+/// compared with itself a minute later listed ten entries as "not fully compared" every time - their
+/// descriptions point at a resource file that is not there, and Windows says so to both snapshots.
+/// Nothing about those entries is uncertain in a way one of the two snapshots could have settled, so
+/// it is said once for the whole comparison, the way a field neither snapshot asked about is.
+/// </summary>
+/// <param name="Entries">Service names, in the order the comparison walked them.</param>
+public sealed record RefusedField(string Field, IReadOnlyList<string> Entries);
 
 /// <summary>
 /// What changed between two snapshots.
@@ -84,16 +99,22 @@ public sealed record ChangedEntry(
 /// would be the same admission eight hundred times, the shape this project already met when a
 /// listing threatened to answer "I do not know" about every entry it had.
 /// </param>
+/// <param name="RefusedByBoth">
+/// Fields Windows refused to both snapshots, each with the entries it refused it on. Never part
+/// of <see cref="NotFullyCompared"/> and never counted by <see cref="Reported"/> - see
+/// <see cref="RefusedField"/> for why a refusal on both sides is said once rather than per entry.
+/// </param>
 /// <param name="LeftOut">
 /// The per-user session copies neither side was compared on - see <see cref="InstancesLeftOut"/>.
 /// Matched by the role the type bits give an entry, never by the shape of its name.
 /// </param>
-public sealed record SnapshotDiff(
+public sealed partial record SnapshotDiff(
     IReadOnlyList<EntryPresence> Added,
     IReadOnlyList<EntryPresence> Removed,
     IReadOnlyList<ChangedEntry> Changed,
     IReadOnlyList<ChangedEntry> NotFullyCompared,
     IReadOnlyList<string> NeitherRead,
+    IReadOnlyList<RefusedField> RefusedByBoth,
     IReadOnlyList<EntryPresence> Uncertain,
     ComparisonCaveats Caveats,
     InstancesLeftOut LeftOut)
@@ -238,13 +259,13 @@ public sealed record SnapshotDiff(
         var uncertain = new List<EntryPresence>();
         var changed = new List<ChangedEntry>();
         var partial = new List<ChangedEntry>();
-        var neitherRead = new HashSet<string>(StringComparer.Ordinal);
+        var unseen = new Unseen();
 
         foreach (var entry in Ordered(later))
         {
             if (left.TryGetValue(entry.ServiceName, out var was))
             {
-                var difference = Compare(was, entry, neitherRead, ignored);
+                var difference = Compare(was, entry, unseen, ignored);
 
                 if (difference is not null)
                 {
@@ -281,7 +302,8 @@ public sealed record SnapshotDiff(
             removed,
             changed,
             partial,
-            [.. neitherRead.OrderBy(field => field, StringComparer.Ordinal)],
+            [.. unseen.NeitherRead.OrderBy(field => field, StringComparer.Ordinal)],
+            [.. unseen.RefusedByBoth.Select(pair => new RefusedField(pair.Key, pair.Value))],
             [.. uncertain.OrderBy(entry => entry.ServiceName, StringComparer.Ordinal)],
             caveats,
             new InstancesLeftOut(leftOutEarlier, leftOutLater));
@@ -324,7 +346,7 @@ public sealed record SnapshotDiff(
     /// says why - never listed as incomparable here, which would repeat that sentence on every row.
     /// </param>
     private static ChangedEntry? Compare(
-        EntryDocument before, EntryDocument after, HashSet<string> neitherRead, string[] ignored)
+        EntryDocument before, EntryDocument after, Unseen unseen, string[] ignored)
     {
         var was = SnapshotJson.Document(before);
         var now = SnapshotJson.Document(after);
@@ -341,7 +363,14 @@ public sealed record SnapshotDiff(
         // field this build does not read at all. Repeating it per entry would put the same
         // sentence on every row - the "810 shrugs" this project already walked into once with
         // triggers. Said once, for the whole comparison.
+        //
+        // Refused on BOTH sides is the third case and it is about the entry again, but not about the
+        // comparison being unable to settle it: neither snapshot holds a value, so no second look
+        // could have told a change from none. Said once for the whole comparison since 2026-10-14
+        // (backlog 559) - named per entry, it put the same ten entries under "not fully compared"
+        // every time this machine was compared with itself.
         var refused = Refused(before).Union(Refused(after), StringComparer.Ordinal);
+        var refusedByBoth = Refused(before).Intersect(Refused(after), StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
         var neither = NotAsked(before).Intersect(NotAsked(after), StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
 
         var skip = NotAsked(before)
@@ -350,7 +379,7 @@ public sealed record SnapshotDiff(
             .Union(refused, StringComparer.Ordinal)
             .ToHashSet(StringComparer.Ordinal);
 
-        neitherRead.UnionWith(neither);
+        unseen.NeitherRead.UnionWith(neither);
 
         var differences = new List<FieldDifference>();
         var incomparable = new List<string>();
@@ -360,6 +389,14 @@ public sealed record SnapshotDiff(
                      .Where(field => Comparable(field) && !ignored.Contains(field, StringComparer.Ordinal))
                      .OrderBy(field => field, StringComparer.Ordinal))
         {
+            // Refused to both is a part of skip, so it is asked first - and flat rather than nested,
+            // because the shape guard counts a third level here as a method climbing towards its ceiling.
+            if (refusedByBoth.Contains(field))
+            {
+                unseen.Refused(field, after.ServiceName);
+                continue;
+            }
+
             if (skip.Contains(field))
             {
                 incomparable.Add(field);
@@ -383,22 +420,6 @@ public sealed record SnapshotDiff(
             ? null
             : new ChangedEntry(after.ServiceName, after.DisplayName, differences, incomparable);
     }
-
-    /// <summary>Fields this machine refused. A fact about permissions on this entry.</summary>
-    private static IEnumerable<string> Refused(EntryDocument entry) =>
-        (entry.Unreadable?.Keys ?? Enumerable.Empty<string>()).Select(Camel);
-
-    /// <summary>Fields nobody asked about on that run. A fact about the run, not the entry.</summary>
-    private static IEnumerable<string> NotAsked(EntryDocument entry) =>
-        (entry.NotRead ?? []).Select(Camel);
-
-    /// <summary>
-    /// The field names inside "unreadable" and "notRead" are written the same way as the
-    /// fields they talk about. They come from the property names, so they arrive capitalised
-    /// and the keys beside them do not.
-    /// </summary>
-    private static string Camel(string name) =>
-        name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
 
     private static bool Comparable(string field) =>
         field != Identity && field != Unstable && !Bookkeeping.Contains(field, StringComparer.Ordinal);

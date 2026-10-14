@@ -87,7 +87,7 @@ public sealed class TerminalTextTests
         var diff = new SnapshotDiff(
             [new EntryPresence("Aaa", Hostile)], [],
             [new ChangedEntry("Bbb", Hostile, [new FieldDifference("account", DifferenceGroup.Configuration, Hostile, "LocalSystem")], [])],
-            [], [Hostile], [new EntryPresence("Ccc", Hostile)],
+            [], [Hostile], [new RefusedField(Hostile, [Hostile])], [new EntryPresence("Ccc", Hostile)],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0));
 

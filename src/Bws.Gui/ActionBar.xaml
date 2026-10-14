@@ -165,6 +165,28 @@
                 Click="ExportAsked" />
 
         <!--
+            THE MACHINE AS A FILE, AND A FILE AGAINST THE MACHINE - `D1` and `D2` in the window since
+            2026-10-14. One button with a menu rather than two buttons, owner's decision (W-a): this
+            bar is a horizontal StackPanel that cannot break a line (`docs/10` trap 18), and the
+            narrowest window already fits it with little to spare. On this side of the line because
+            nothing either item does reaches a service. Three dots: each asks for a file first.
+
+            ShowOnDisabled because the button is off while a snapshot is being read, and the reason
+            is on it - `docs/10` trap 14.
+        -->
+        <Button x:Name="SnapshotsButton"
+                AutomationProperties.AutomationId="actionSnapshots"
+                Content="{DynamicResource gui.action.snapshots}"
+                ToolTip="{DynamicResource gui.action.snapshots.hint}"
+                ToolTipService.ShowOnDisabled="True"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="SnapshotsAsked">
+            <Button.ContextMenu>
+                <ContextMenu x:Name="SnapshotsMenu" />
+            </Button.ContextMenu>
+        </Button>
+
+        <!--
             WHAT THIS MACHINE LOOKS LIKE, `G`, and it belongs on this side of the line with the
             other two: nothing it does reaches a service.
 

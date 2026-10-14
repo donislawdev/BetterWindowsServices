@@ -1,0 +1,119 @@
+<UserControl x:Class="Bws.Gui.DiffView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Bws.Gui"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHAT CHANGED SINCE A SNAPSHOT - `D2` in the window, since 2026-10-14 (`docs/PROJEKT-DRUGA-
+        POLOWA-AUDYTU-20261014.md`, W1). Bound to a ViewModels.DiffSheet, worked out once when the
+        comparison arrives: a comparison is a statement about two moments that have both passed, so
+        nothing here is kept in step with the machine.
+
+        IN PLACE OF THE LIST, LIKE THE OVERVIEW - owner's decision W-b. The window collapses the list's
+        own controls while this is up (MainWindow.Overview.cs, ArrangeTheChrome), because the search
+        box, the filters and the action bar all act on a list that is not on screen.
+
+        WHAT MAKES THE COMPARISON LESS THAN EXACT GOES ABOVE THE TABLE, not under it - the command
+        line's reason: somebody who reads the differences first has already believed something.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a ContentControl
+        is both by default - `docs/10` trap 8.
+    -->
+    <Grid Margin="{StaticResource PadPanel}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--
+            THE TITLE AND THE WAY BACK SHARE A LINE, the overview's arrangement and its reason: the exit
+            must not depend on the height of anything below it, and the top is the one place that holds
+            at every size.
+        -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{DynamicResource gui.diff.title}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource HeadingText}" />
+
+            <Button Grid.Column="1"
+                    x:Name="BackButton"
+                    AutomationProperties.AutomationId="diffBack"
+                    Content="{DynamicResource gui.diff.back}"
+                    ToolTip="{DynamicResource gui.diff.back.hint}"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource PrimaryAction}"
+                    Click="Back" />
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   AutomationProperties.AutomationId="diffAbout"
+                   Text="{Binding About}"
+                   TextWrapping="Wrap"
+                   MaxWidth="{StaticResource WidthOverview}"
+                   HorizontalAlignment="Left"
+                   Margin="{StaticResource MarginAboveStatus}"
+                   Style="{StaticResource BodyText}" />
+
+        <!-- The snapshot's own note, when it has one - collapsed rather than empty, because an empty
+             line still spends its margin. -->
+        <TextBlock Grid.Row="2"
+                   AutomationProperties.AutomationId="diffNote"
+                   Text="{Binding Note}"
+                   TextWrapping="Wrap"
+                   MaxWidth="{StaticResource WidthOverview}"
+                   HorizontalAlignment="Left"
+                   Margin="{StaticResource MarginAboveStatus}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Note}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <TextBlock Grid.Row="3"
+                   AutomationProperties.AutomationId="diffCounts"
+                   Text="{Binding Counts}"
+                   TextWrapping="Wrap"
+                   Margin="{StaticResource MarginAboveStatus}"
+                   Style="{StaticResource BodyText}" />
+
+        <!--
+            THE CAVEATS, IN THE NOTICE VOICE - the colour the line under the list uses for what an
+            answer has to admit about itself, which is what each of these is. The AutomationId is on the
+            ItemsControl, never on a panel: a layout panel gets no automation peer.
+        -->
+        <ItemsControl Grid.Row="4"
+                      AutomationProperties.AutomationId="diffCaveats"
+                      ItemsSource="{Binding Caveats}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource MarginAboveStatus}"
+                               Style="{StaticResource NoticeText}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- The table, or the sentence in its place when nothing differs - DiffTable.xaml. -->
+        <local:DiffTable Grid.Row="5"
+                         Margin="{StaticResource MarginTileParts}" />
+    </Grid>
+</UserControl>

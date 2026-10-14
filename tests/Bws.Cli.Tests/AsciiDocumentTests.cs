@@ -87,7 +87,7 @@ public sealed class AsciiDocumentTests
     public void A_comparison_is_ascii_and_says_the_name_the_file_held()
     {
         var diff = new SnapshotDiff(
-            [new EntryPresence("Aaa", Hostile)], [], [], [], [], [],
+            [new EntryPresence("Aaa", Hostile)], [], [], [], [], [new RefusedField("description", [Hostile])], [],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0));
 
