@@ -48,9 +48,15 @@ internal static class DiffLines
     /// <summary>
     /// The heading the list puts over this field, or the field's own name when the list has no column
     /// for it.
+    ///
+    /// <b>The own name escaped like any value from a file.</b> Most names here are this build's own -
+    /// the comparison walks its own fields - but a field NEITHER side read is a name both files wrote,
+    /// and once both sides are files (the command line's two-file comparison, and the window's in W2)
+    /// a pair of files decides it. The command line escapes every value it formats, and the window's
+    /// texts do not, so the window escapes it here.
     /// </summary>
     internal static string Label(string field) =>
-        Columns.Of(field) is { } column ? Texts.Of(column.LabelKey) : field;
+        Columns.Of(field) is { } column ? Texts.Of(column.LabelKey) : Printable.Of(field);
 
     private static DiffLine Presence(EntryPresence entry, string what, string before, string after) =>
         new(Printable.Of(entry.ServiceName), Printable.Of(entry.DisplayName), what, before, after);

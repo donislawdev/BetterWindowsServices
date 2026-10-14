@@ -25,7 +25,10 @@ internal static class SnapshotWords
             DiskFault.TooBig => Texts.Of("gui.snapshot.fault.tooBig", path, SnapshotOnDisk.Biggest / (1024 * 1024)),
             DiskFault.NotUtf8 => Texts.Of("gui.snapshot.fault.notUtf8", path),
             DiskFault.NotASnapshot => Texts.Of("gui.snapshot.fault.notASnapshot", path, Printable.Of(refusal.Detail)),
-            _ => Texts.Of("gui.snapshot.fault.unreadable", path, refusal.Detail)
+            // The reason is the message of whatever the reading threw, and .NET quotes the path in
+            // most of them ("Could not find file '...'") - so it goes through the same escaping as the
+            // path beside it, or a character in a file name reorders the line after all.
+            _ => Texts.Of("gui.snapshot.fault.unreadable", path, Printable.Of(refusal.Detail))
         };
     }
 

@@ -85,21 +85,15 @@ public sealed class Snapshotting : Observable
 
         try
         {
-            var (snapshot, text) = await Task.Run(() =>
-            {
-                var read = Read(inspector);
+            var (snapshot, trouble) = await Task.Run(() => Written(path, inspector)).ConfigureAwait(true);
 
-                return (read, SnapshotJson.Render(read));
-            }).ConfigureAwait(true);
-
-            if (SnapshotOnDisk.WhyNotWritten(path, force: true) is { } refusal)
+            // The same one answer told two ways as in CompareAsync - Written fills one of them, never both.
+            if (snapshot is null)
             {
-                _says().CouldNotDo(SnapshotWords.NotWritten(refusal));
+                _says().CouldNotDo(trouble ?? string.Empty);
 
                 return;
             }
-
-            AtomicFile.Write(path, text);
 
             var count = snapshot.Entries.Count;
 
@@ -209,6 +203,42 @@ public sealed class Snapshotting : Observable
 
         return true;
     }
+
+    /// <summary>
+    /// Reads the machine and writes it where somebody asked, or says why not - all of it off the
+    /// interface thread, because asking about a file standing there may read it up to the size
+    /// ceiling, and the write is a few megabytes to a disk that may be a share on the network.
+    ///
+    /// <b>Asked twice, and both are needed.</b> Before the reading, so a target that will be refused
+    /// costs no second of reading the machine - the courtesy the command line extends at the same
+    /// place. And again right before the write, because a file can appear at the path while the
+    /// machine is read, and that second ask is the one S-8 stands on.
+    /// </summary>
+    private (Snapshot? Taken, string? Trouble) Written(string path, IBinaryInspector inspector)
+    {
+        if (Refused(path) is { } early)
+        {
+            return (null, SnapshotWords.NotWritten(early));
+        }
+
+        var read = Read(inspector);
+        var text = SnapshotJson.Render(read);
+
+        if (Refused(path) is { } late)
+        {
+            return (null, SnapshotWords.NotWritten(late));
+        }
+
+        AtomicFile.Write(path, text);
+
+        return (read, null);
+    }
+
+    /// <summary>
+    /// Why a snapshot may not go to this path. Told that a snapshot standing there may go, for the
+    /// reason <see cref="TakeAsync"/> gives - the dialog has already asked.
+    /// </summary>
+    private static DiskRefusal? Refused(string path) => SnapshotOnDisk.WhyNotWritten(path, force: true);
 
     /// <summary>Everything a snapshot holds, read now - the listing and the two passes on top of it.</summary>
     private Snapshot Read(IBinaryInspector inspector) =>

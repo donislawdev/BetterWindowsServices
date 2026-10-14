@@ -95,6 +95,22 @@ public sealed class DiffSheetTests
     }
 
     [Fact]
+    public void A_field_name_two_files_wrote_cannot_reorder_the_text_around_it_either()
+    {
+        // A field neither side read is said once above the table under the name the files give it,
+        // and when both sides are files a pair of them decides that name.
+        var hostile = "exe" + char.ConvertFromUtf32(0x202E) + "txt";
+        EntryDocument[] both = [EntryDocument.From(Rows.Entry("Spooler")) with { NotRead = [hostile] }];
+
+        Assert.True(SnapshotDiff.TryBetween(Documented(both), Documented(both), out var diff, out _));
+
+        var caveats = DiffSheet.Of(Documented(both).Metadata, diff).Caveats;
+
+        Assert.Contains(caveats, caveat => caveat.Contains("exe<U+202E>txt", StringComparison.Ordinal));
+        Assert.DoesNotContain(caveats, caveat => caveat.Contains(char.ConvertFromUtf32(0x202E), StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_snapshot_taken_without_rights_says_so_and_its_note_is_shown()
     {
         var sheet = Of(Taken([Rows.Entry("Spooler")], elevated: false, note: "Before the patch"), [Rows.Entry("Spooler")]);
@@ -123,6 +139,9 @@ public sealed class DiffSheetTests
     }
 
     private static Snapshot Taken(IReadOnlyList<ScmEntry> entries, bool elevated, string? note) =>
+        Documented([.. entries.Select(EntryDocument.From)], elevated, note);
+
+    private static Snapshot Documented(IReadOnlyList<EntryDocument> entries, bool elevated = true, string? note = null) =>
         new(
             new SnapshotMetadata
             {
@@ -135,5 +154,5 @@ public sealed class DiffSheetTests
                 Note = note,
                 Tool = "0.4.0"
             },
-            [.. entries.Select(EntryDocument.From)]);
+            entries);
 }

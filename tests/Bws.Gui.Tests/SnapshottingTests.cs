@@ -50,6 +50,73 @@ public sealed class SnapshottingTests : IDisposable
     }
 
     [Fact]
+    public async Task A_target_that_will_be_refused_costs_no_reading_of_the_machine()
+    {
+        // The command line's courtesy at the same place: the answer is known before the second the
+        // machine takes, so the second is not spent.
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "refused-early.json");
+
+        await File.WriteAllTextAsync(path, "this is not a snapshot");
+
+        var reads = machine.FullReads;
+
+        await model.Snapshotting.TakeAsync(path);
+
+        Assert.Equal(reads, machine.FullReads);
+        Assert.Contains(Texts.Of("gui.snapshot.fault.notReplaced", string.Empty).Trim(), model.Says.Problem, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_file_that_appears_while_the_machine_is_read_is_still_never_written_over()
+    {
+        // The ask before the reading is a courtesy, the one right before the write is S-8 - and only a
+        // file that turns up during the reading tells the two apart.
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "arrived-meanwhile.json");
+        var reads = machine.FullReads;
+
+        machine.HoldReadings();
+
+        var taking = model.Snapshotting.TakeAsync(path);
+
+        try
+        {
+            for (var waited = 0; machine.FullReads == reads && waited < 10_000; waited += 10)
+            {
+                await Task.Delay(10);
+            }
+
+            // Past the first ask by now - the reading counts itself before it waits on the hold.
+            Assert.True(machine.FullReads > reads, "the reading never started");
+
+            await File.WriteAllTextAsync(path, "somebody else's, written meanwhile");
+        }
+        finally
+        {
+            machine.ReleaseReadings();
+        }
+
+        await taking.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal("somebody else's, written meanwhile", await File.ReadAllTextAsync(path));
+        Assert.Contains(Texts.Of("gui.snapshot.fault.notReplaced", string.Empty).Trim(), model.Says.Problem, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reason_a_file_could_not_be_read_cannot_reorder_the_line_either()
+    {
+        // The reason quotes the path in most cases, so it is escaped like the path beside it.
+        var hostile = "exe" + char.ConvertFromUtf32(0x202E) + "txt.json";
+        var said = SnapshotWords.Of(new DiskRefusal(DiskFault.Unreadable, "x.json", $"Could not find file '{hostile}'."));
+
+        Assert.Contains("exe<U+202E>txt.json", said, StringComparison.Ordinal);
+        Assert.DoesNotContain(char.ConvertFromUtf32(0x202E), said, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_snapshot_compared_with_the_machine_it_came_from_finds_nothing()
     {
         var model = Model(new LiveMachine(Rows.Entry("Spooler")));
