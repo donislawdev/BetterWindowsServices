@@ -274,17 +274,38 @@ function Get-Entries {
 function Get-MachinePath { return @(([Environment]::GetEnvironmentVariable('Path', 'Machine')) -split ';' | Where-Object { $_ }) }
 
 # The machine PATH as the registry holds it: unexpanded, with its value kind. The entries above are
-# EXPANDED, so a PATH written back as a plain string, or with %SystemRoot% turned into C:\Windows, would
-# compare equal there and still be a changed machine. This is the copy a restore would need.
+# EXPANDED, so a PATH written back with %SystemRoot% turned into C:\Windows would compare equal there and
+# still be a changed machine. This is the copy a restore would need.
 function Get-RawMachinePath {
     $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment')
     try {
-        $kind = $key.GetValueKind('Path').ToString()
-        $value = [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-        return ($kind + ' ' + $value)
+        return @{
+            Kind = $key.GetValueKind('Path').ToString()
+            Text = [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        }
     }
     finally {
         $key.Dispose()
+    }
+}
+
+# THE KIND MAY CHANGE, AND ONLY WHEN NOTHING IN THE TEXT IS A VARIABLE - measured, not documented. On a
+# clean runner (2026-10-14) Windows Installer wrote PATH back as String where it had been ExpandString,
+# with the text the same to the character. On the virtual machine, whose PATH holds %SystemRoot%, the kind
+# stayed. With no %variable% in the text the two kinds read the same for every reader, so the change is
+# SAID and not failed - but a tool that later appends a %variable% without setting the kind would get it
+# unexpanded (docs/08, 574). A kind that changed while the text holds a variable is a broken PATH.
+function Test-RawPathKept($before, $after) {
+    Check ($after.Text -ceq $before.Text) ('the registry text under it is the same to the character (' + $after.Text.Length + ' characters, ' + $before.Text.Length + ' before)')
+    $variable = $before.Text.Contains('%')
+    if ($after.Kind -eq $before.Kind) {
+        Check $true ('and so is its kind (' + $after.Kind + ')')
+    }
+    elseif (-not $variable) {
+        Note ('Windows Installer wrote PATH back as ' + $after.Kind + ', it was ' + $before.Kind + '. It holds no %variable%, so every reader expands it to the same entries')
+    }
+    else {
+        Check $false ('its kind changed from ' + $before.Kind + ' to ' + $after.Kind + ' while it holds a %variable% - new processes read that entry unexpanded')
     }
 }
 function Get-OursOnPath {
@@ -474,7 +495,7 @@ try {
     if ($dirty.Count -gt 0) { Stop-Inputs ('something of ours is here already: ' + ($dirty -join ', ') + '. Remove it, or run -Cleanup -KitFolder <kit> when it is a test copy') }
     $pathBefore = @(Get-MachinePath)
     $rawBefore = Get-RawMachinePath
-    Note ('the machine PATH before: ' + $rawBefore.Split(' ')[0] + ', ' + $rawBefore.Length + ' characters')
+    Note ('the machine PATH before: ' + $rawBefore.Kind + ', ' + $rawBefore.Text.Length + ' characters, holds a %variable%: ' + $rawBefore.Text.Contains('%'))
 
     $old = Join-Path $KitFolder 'old.msi'
     $new = Join-Path $KitFolder 'new.msi'
@@ -569,8 +590,7 @@ try {
     Check ($left.Count -eq 1 -and $left[0] -eq 'somebody-elses.txt') ('the folder holds only the planted file (' + ($left -join ', ') + ')')
     $pathAfter = @(Get-MachinePath)
     Check (($pathAfter -join ';') -eq ($pathBefore -join ';')) ('the machine PATH is what it was before the install (' + $pathAfter.Count + ' entries, ' + $pathBefore.Count + ' before)')
-    $rawAfter = Get-RawMachinePath
-    Check ($rawAfter -ceq $rawBefore) ('and so is the registry value under it, kind and unexpanded text (' + $rawAfter.Split(' ')[0] + ', ' + $rawAfter.Length + ' characters, ' + $rawBefore.Length + ' before)')
+    Test-RawPathKept $rawBefore (Get-RawMachinePath)
     Check (-not (Test-Path -LiteralPath (Get-ShortcutPath))) 'no Start menu entry'
     Check (-not (Test-Path -LiteralPath (Get-OwnKey))) ('no ' + (Get-OwnKey))
     Note ('HKLM:\Software\' + $script:Kit.publisher + ' is there: ' + (Test-Path -LiteralPath ('HKLM:\Software\' + $script:Kit.publisher)))
