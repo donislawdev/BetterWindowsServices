@@ -126,6 +126,14 @@ updates:
   # So the version of semgrep lives in .github/requirements-semgrep.txt, which is an ecosystem
   # this bot does read - confirmed on that repository, where a semgrep bump now arrives as a
   # pull request against that path.
+  #
+  # THE OSV CANARY IS OLD ON PURPOSE, and this entry reads it. .github/osv-scanner/canary-pip.txt
+  # pins requests 2.19.1, a version with advisories published for years, so that every run of
+  # osv-scanner.yml proves the scanner still finds one - .github/scripts/osv_gate.py turns the job
+  # red when it does not. On 2026-10-14 this entry found that file and proposed a newer requests
+  # (pull request 63, closed unmerged), which would have made the canary clean and every OSV run
+  # red. requests is in no other file this entry reads, so ignoring it costs nothing else. If it
+  # ever joins requirements-semgrep.txt, this rule has to narrow to the canary instead of staying.
   - package-ecosystem: pip
     directory: "/.github"
     schedule:
@@ -136,6 +144,8 @@ updates:
     open-pull-requests-limit: 2
     commit-message:
       prefix: "chore(ci)"
+    ignore:
+      - dependency-name: "requests"
 
   # ---- The scanner that osv-scanner.yml runs ---------------------------------------------
   #
