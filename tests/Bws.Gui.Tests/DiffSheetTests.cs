@@ -117,15 +117,15 @@ public sealed class DiffSheetTests
 
         var when = DateTimeOffset.UnixEpoch.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
 
-        Assert.Equal(Texts.Of("gui.diff.about.unelevated", "TESTBOX", when, "TESTBOX\\somebody"), sheet.About);
-        Assert.Equal(Texts.Of("gui.diff.note", "Before the patch"), sheet.Note);
+        Assert.Equal(Texts.Of("gui.diff.about.unelevated", "TESTBOX", when, "TESTBOX\\somebody"), Assert.Single(sheet.Sides).About);
+        Assert.Equal(Texts.Of("gui.diff.note", "Before the patch"), Assert.Single(sheet.Sides).Note);
         Assert.Contains(Texts.Of("gui.diff.caveat.elevation"), sheet.Caveats);
     }
 
     [Fact]
     public void A_snapshot_with_no_note_has_no_line_for_one()
     {
-        Assert.Equal(string.Empty, Sheet([Rows.Entry("Spooler")], [Rows.Entry("Spooler")]).Note);
+        Assert.Equal(string.Empty, Assert.Single(Sheet([Rows.Entry("Spooler")], [Rows.Entry("Spooler")]).Sides).Note);
     }
 
     private static DiffSheet Sheet(IReadOnlyList<ScmEntry> earlier, IReadOnlyList<ScmEntry> later) =>

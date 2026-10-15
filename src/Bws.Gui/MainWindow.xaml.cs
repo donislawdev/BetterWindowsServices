@@ -200,9 +200,10 @@ public partial class MainWindow : Window
         // AND HELP BESIDE IT, 2026-09-24 - UX-GUI-014. MainWindow.Help.cs.
         IntroduceTheHelp();
 
-        // SNAPSHOTS, 2026-10-14 - taking one and comparing one with this machine. SnapshotDoors.cs, and
-        // the window is asked to rearrange its middle the way the overview asks it.
-        SnapshotDoors.Open(this, Actions, Comparison, _model, () =>
+        // SNAPSHOTS, 2026-10-14 - taking one and comparing one with this machine, and since 2026-10-15
+        // two files, the export and the form with a note (W2). SnapshotDoors.cs, and the window is asked
+        // to rearrange its middle the way the overview asks it.
+        SnapshotDoors.Open(this, Actions, new SnapshotDoors.Middle(Comparison, TakeForm), _model, () =>
         {
             ArrangeTheMiddle();
             ArrangeTheChrome();

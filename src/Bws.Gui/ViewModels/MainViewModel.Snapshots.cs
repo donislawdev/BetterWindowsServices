@@ -25,9 +25,10 @@ public sealed partial class MainViewModel
     /// all really asking this: whether the line under the window may speak about the list, whether
     /// Ctrl+F may open the suggestions under a box nobody can see, and whether the box may take the
     /// keyboard. A comparison hides the list exactly as the overview does, so each of the three would
-    /// otherwise have answered wrongly while one is up.
+    /// otherwise have answered wrongly while one is up. The form before a snapshot (W2-d) hides it too,
+    /// and <see cref="Snapshotting.InTheMiddle"/> answers for both.
     /// </summary>
-    public bool ListOnScreen => !_showingOverview && Snapshotting.Shown is null;
+    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle;
 
     /// <summary>
     /// Escape's middle step: a comparison standing where the list was goes first, then the panel about
@@ -50,7 +51,7 @@ public sealed partial class MainViewModel
 
         snapshotting.PropertyChanged += (_, changed) =>
         {
-            if (changed.PropertyName == nameof(ViewModels.Snapshotting.Shown))
+            if (changed.PropertyName is nameof(ViewModels.Snapshotting.Shown) or nameof(ViewModels.Snapshotting.Form))
             {
                 SayTheAnswer();
             }

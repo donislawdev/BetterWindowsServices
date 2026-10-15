@@ -38,10 +38,10 @@ public partial class ActionBar : UserControl
     }
 
     /// <summary>
-    /// The two things under "Snapshots...", one item each, built from a list the way the startup
+    /// The three things under "Snapshots...", one item each, built from a list the way the startup
     /// settings are - GUI rule 8, and the same reason: each item a real MenuItem with its own
     /// automation peer, present before the menu has ever opened (`docs/10` traps 7 and 19).
-    /// "Compare two snapshots" joins this list in W2.
+    /// "Compare two snapshots" joined this list on 2026-10-15 (W2).
     /// </summary>
     private void OfferTheSnapshots()
     {
@@ -50,7 +50,8 @@ public partial class ActionBar : UserControl
         (string Words, string Id, Action Asked)[] items =
         [
             (Texts.Of("gui.snapshot.take"), "snapshotTake", () => TakeSnapshotRequest?.Invoke(this, EventArgs.Empty)),
-            (Texts.Of("gui.snapshot.compare"), "snapshotCompare", () => CompareRequest?.Invoke(this, EventArgs.Empty))
+            (Texts.Of("gui.snapshot.compare"), "snapshotCompare", () => CompareRequest?.Invoke(this, EventArgs.Empty)),
+            (Texts.Of("gui.snapshot.compareTwo"), "snapshotCompareTwo", () => CompareTwoRequest?.Invoke(this, EventArgs.Empty))
         ];
 
         foreach (var (words, id, asked) in items)
@@ -79,6 +80,9 @@ public partial class ActionBar : UserControl
 
     /// <summary>Somebody asked to compare a snapshot with this machine.</summary>
     internal event EventHandler? CompareRequest;
+
+    /// <summary>Somebody asked to compare two snapshots with each other.</summary>
+    internal event EventHandler? CompareTwoRequest;
 
     /// <summary>Opens the two items under the button, the way the startup settings open - ButtonMenu says why a left click.</summary>
     private void SnapshotsAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(SnapshotsButton);

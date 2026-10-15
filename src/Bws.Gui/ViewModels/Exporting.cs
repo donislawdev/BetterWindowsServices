@@ -128,7 +128,20 @@ internal static class Exporting
             ? Texts.Of("gui.export.done.one", rows, file)
             : Texts.Of("gui.export.done.many", rows, file);
 
-    private static void Line(StringBuilder text, IEnumerable<string> values, string separator)
+    /// <summary>
+    /// The byte order mark a spreadsheet needs to read the file as UTF-8, written as a character in
+    /// front of the text - MainWindow.Exporting.cs says why rather than by the encoder.
+    /// </summary>
+    internal const string Mark = "\uFEFF";
+
+    /// <summary>
+    /// One line of the file, every value made inert and quoted where the format needs it.
+    ///
+    /// <b>Internal since 2026-10-15 so the comparison's export calls it</b> rather than carrying a
+    /// copy (DiffExporting) - the two files are opened by the same spreadsheets and carry values
+    /// written by the same strangers, so they are protected by the same code or not at all.
+    /// </summary>
+    internal static void Line(StringBuilder text, IEnumerable<string> values, string separator)
     {
         text.AppendJoin(separator, values.Select(value => Quoted(Inert(value), separator)));
         text.Append("\r\n");

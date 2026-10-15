@@ -9,30 +9,42 @@ namespace Bws.Gui.ViewModels;
 /// <b>First, not last, for the command line's reason:</b> somebody who reads the differences before
 /// learning that one side was read without administrator rights has already believed something.
 /// The same facts the command line says, in the window's own words and its own language file.
+///
+/// <b>Seven of them name the sides, and those come in two wordings since W2</b> - "the snapshot and
+/// this window" against a machine read now, "the two snapshots" against a second file, which is the
+/// wording the command line has always used for two files. The other four speak of "either side" and
+/// are true of both.
 /// </summary>
 internal static class DiffCaveats
 {
-    internal static IReadOnlyList<string> Of(SnapshotDiff diff)
+    internal static IReadOnlyList<string> Of(SnapshotDiff diff, DiffSides sides)
     {
         var caveats = diff.Caveats;
+        var files = sides == DiffSides.TwoSnapshots;
 
         (bool Says, Func<string> Line)[] lines =
         [
-            (caveats.ElevationDiffers, () => Texts.Of("gui.diff.caveat.elevation")),
-            (caveats.MachineDiffers, () => Texts.Of("gui.diff.caveat.machine")),
-            (caveats.OperatingSystemDiffers, () => Texts.Of("gui.diff.caveat.operatingSystem")),
-            (caveats.ToolVersionDiffers, () => Texts.Of("gui.diff.caveat.tool")),
+            (caveats.ElevationDiffers, () => files ? Texts.Of("gui.diff.files.caveat.elevation") : Texts.Of("gui.diff.caveat.elevation")),
+            (caveats.MachineDiffers, () => files ? Texts.Of("gui.diff.files.caveat.machine") : Texts.Of("gui.diff.caveat.machine")),
+            (caveats.OperatingSystemDiffers, () => files ? Texts.Of("gui.diff.files.caveat.operatingSystem") : Texts.Of("gui.diff.caveat.operatingSystem")),
+            (caveats.ToolVersionDiffers, () => files ? Texts.Of("gui.diff.files.caveat.tool") : Texts.Of("gui.diff.caveat.tool")),
             (caveats.LanguageDiffers, () => Texts.Of("gui.diff.caveat.language")),
-            (caveats.AccountDiffers, () => Texts.Of("gui.diff.caveat.account")),
-            (caveats.FileVersionSourceDiffers, () => Texts.Of("gui.diff.caveat.fileVersion")),
+            (caveats.AccountDiffers, () => files ? Texts.Of("gui.diff.files.caveat.account") : Texts.Of("gui.diff.caveat.account")),
+            (caveats.FileVersionSourceDiffers, () => files ? Texts.Of("gui.diff.files.caveat.fileVersion") : Texts.Of("gui.diff.caveat.fileVersion")),
             (caveats.NotKnown.Count > 0, () => Texts.Of("gui.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
             (diff.NeitherRead.Count > 0, () => Texts.Of("gui.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead.Select(DiffLines.Label)))),
-            (diff.LeftOut.Any, () => Texts.Of("gui.diff.caveat.instancesLeftOut", diff.LeftOut.Earlier, diff.LeftOut.Later)),
+            (diff.LeftOut.Any, () => LeftOut(diff.LeftOut, files)),
             (diff.NotFullyCompared.Count > 0, () => NotCompared(diff.NotFullyCompared.Count))
         ];
 
         return [.. lines.Where(line => line.Says).Select(line => line.Line()), .. diff.RefusedByBoth.Select(Refused)];
     }
+
+    /// <summary>Per-user copies left out, counted on each side by the name the side goes by.</summary>
+    private static string LeftOut(InstancesLeftOut leftOut, bool files) =>
+        files
+            ? Texts.Of("gui.diff.files.caveat.instancesLeftOut", leftOut.Earlier, leftOut.Later)
+            : Texts.Of("gui.diff.caveat.instancesLeftOut", leftOut.Earlier, leftOut.Later);
 
     /// <summary>
     /// How many entries carry a row saying "not compared" - said above the table as well as in it, so

@@ -147,4 +147,19 @@
         <Setter Property="Header" Value="{Binding Label}" />
         <Setter Property="InputGestureText" Value="{Binding Gesture}" />
     </Style>
+
+    <!--
+        THE FOURTH MENU, 2026-10-15: "SHOW" OVER A COMPARISON (W2-b). Bound to a DiffChoice, one item per
+        way the rows can be narrowed, each with how many rows it shows. The tick is two way like a
+        column choice, and DiffChoice is what makes it a tick that moves rather than one that can be
+        taken off - a table has to show something.
+
+        StaysOpenOnClick is NOT here, unlike the column choices: one choice is one errand, and the menu
+        closing is what says it was done - the reasoning ColumnResetItem gives above.
+    -->
+    <Style x:Key="DiffChoiceItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Header" Value="{Binding Label}" />
+        <Setter Property="IsCheckable" Value="True" />
+        <Setter Property="IsChecked" Value="{Binding IsChosen, Mode=TwoWay}" />
+    </Style>
 </ResourceDictionary>

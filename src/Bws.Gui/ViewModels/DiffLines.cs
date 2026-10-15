@@ -4,15 +4,38 @@ using Bws.Core.Snapshots;
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
-/// One row of the comparison table: an entry, one thing about it, and what that thing was in the
-/// snapshot and is now.
+/// One row of the comparison table: an entry, one thing about it, and what that thing was on the
+/// earlier side and is on the later one.
 /// </summary>
 /// <param name="ServiceName">The identity the two sides were matched by - `ADR-14`.</param>
 /// <param name="What">
 /// The field, in the words the list's column heading uses for it - or, for an entry that came or
 /// went, a sentence saying so.
 /// </param>
-public sealed record DiffLine(string ServiceName, string DisplayName, string What, string Before, string After);
+public sealed record DiffLine(string ServiceName, string DisplayName, string What, string Before, string After)
+{
+    /// <summary>
+    /// What kind of row this is - the question the filter over the table asks (W2-b). Kept beside the
+    /// words rather than read back out of them, because the words are a translation and this is not.
+    /// </summary>
+    internal DiffLineKind Kind { get; init; }
+
+    /// <summary>
+    /// The snapshot's own name for the field a row is about, or null for a row about a whole entry -
+    /// what the filter groups the changed rows by.
+    /// </summary>
+    internal string? Field { get; init; }
+}
+
+/// <summary>The five kinds of row the comparison table holds, in the order <see cref="DiffLines.Of"/> lays them out.</summary>
+internal enum DiffLineKind
+{
+    Added,
+    Removed,
+    Uncertain,
+    Changed,
+    NotCompared
+}
 
 /// <summary>
 /// The table under a comparison: one row per field that differs, one per entry that came, went or
@@ -30,18 +53,18 @@ public sealed record DiffLine(string ServiceName, string DisplayName, string Wha
 /// </summary>
 internal static class DiffLines
 {
-    internal static IReadOnlyList<DiffLine> Of(SnapshotDiff diff) =>
+    internal static IReadOnlyList<DiffLine> Of(SnapshotDiff diff, DiffSides sides) =>
     [
         .. diff.Added.Select(entry => Presence(
-            entry, Texts.Of("gui.diff.row.added"), Texts.Of("gui.diff.row.notThere"), Texts.Of("gui.diff.row.there"))),
+            entry, DiffLineKind.Added, Added(sides), Texts.Of("gui.diff.row.notThere"), Texts.Of("gui.diff.row.there"))),
         .. diff.Removed.Select(entry => Presence(
-            entry, Texts.Of("gui.diff.row.removed"), Texts.Of("gui.diff.row.there"), Texts.Of("gui.diff.row.notThere"))),
+            entry, DiffLineKind.Removed, Removed(sides), Texts.Of("gui.diff.row.there"), Texts.Of("gui.diff.row.notThere"))),
 
         // Its own rows rather than among the removals or the additions, for the reason the command
         // line gives its own heading: "these are gone" and "one side could not see them" are
         // different sentences, and only one of them is a fact.
         .. diff.Uncertain.Select(entry => Presence(
-            entry, Texts.Of("gui.diff.row.uncertain"), Texts.Of("gui.diff.row.cannotTell"), Texts.Of("gui.diff.row.cannotTell"))),
+            entry, DiffLineKind.Uncertain, Texts.Of("gui.diff.row.uncertain"), Texts.Of("gui.diff.row.cannotTell"), Texts.Of("gui.diff.row.cannotTell"))),
         .. diff.Changed.Concat(diff.NotFullyCompared).SelectMany(Fields)
     ];
 
@@ -51,15 +74,26 @@ internal static class DiffLines
     ///
     /// <b>The own name escaped like any value from a file.</b> Most names here are this build's own -
     /// the comparison walks its own fields - but a field NEITHER side read is a name both files wrote,
-    /// and once both sides are files (the command line's two-file comparison, and the window's in W2)
-    /// a pair of files decides it. The command line escapes every value it formats, and the window's
-    /// texts do not, so the window escapes it here.
+    /// and once both sides are files (the command line's two-file comparison, and the window's since
+    /// W2) a pair of files decides it. The command line escapes every value it formats, and the
+    /// window's texts do not, so the window escapes it here.
     /// </summary>
     internal static string Label(string field) =>
         Columns.Of(field) is { } column ? Texts.Of(column.LabelKey) : Printable.Of(field);
 
-    private static DiffLine Presence(EntryPresence entry, string what, string before, string after) =>
-        new(Printable.Of(entry.ServiceName), Printable.Of(entry.DisplayName), what, before, after);
+    /// <summary>
+    /// What an entry that came is called, by what it came against - "since the snapshot" is true of a
+    /// machine read now and false of a second file, which may be another machine altogether.
+    /// </summary>
+    private static string Added(DiffSides sides) =>
+        sides == DiffSides.TwoSnapshots ? Texts.Of("gui.diff.files.row.added") : Texts.Of("gui.diff.row.added");
+
+    /// <summary>The same for an entry that went.</summary>
+    private static string Removed(DiffSides sides) =>
+        sides == DiffSides.TwoSnapshots ? Texts.Of("gui.diff.files.row.removed") : Texts.Of("gui.diff.row.removed");
+
+    private static DiffLine Presence(EntryPresence entry, DiffLineKind kind, string what, string before, string after) =>
+        new(Printable.Of(entry.ServiceName), Printable.Of(entry.DisplayName), what, before, after) { Kind = kind };
 
     private static IEnumerable<DiffLine> Fields(ChangedEntry entry)
     {
@@ -68,7 +102,11 @@ internal static class DiffLines
 
         foreach (var difference in entry.Differences)
         {
-            yield return new DiffLine(name, shown, What(difference), Value(difference.Before), Value(difference.After));
+            yield return new DiffLine(name, shown, What(difference), Value(difference.Before), Value(difference.After))
+            {
+                Kind = DiffLineKind.Changed,
+                Field = difference.Field
+            };
         }
 
         // Named, never counted as a change - the rule 8 argument the command line makes at the same
@@ -76,7 +114,11 @@ internal static class DiffLines
         foreach (var field in entry.Incomparable)
         {
             yield return new DiffLine(
-                name, shown, Label(field), Texts.Of("gui.diff.row.notCompared"), Texts.Of("gui.diff.row.notCompared"));
+                name, shown, Label(field), Texts.Of("gui.diff.row.notCompared"), Texts.Of("gui.diff.row.notCompared"))
+            {
+                Kind = DiffLineKind.NotCompared,
+                Field = field
+            };
         }
     }
 

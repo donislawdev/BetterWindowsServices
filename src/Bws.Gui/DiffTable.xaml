@@ -15,11 +15,15 @@
 
         Focusable and IsTabStop are off on the UserControl, `docs/10` trap 8 - the grid inside is the
         stop, not the part holding it.
+
+        THE ROWS ARE THE FILTER'S, the empty state is the sheet's (W2-b): the table shows what "Show"
+        leaves on screen, and it gives way to the sentence only when the comparison itself found
+        nothing - a choice that narrows the rows never makes the comparison say "no differences".
     -->
     <Grid>
         <DataGrid x:Name="Lines"
                   AutomationProperties.AutomationId="diffLines"
-                  ItemsSource="{Binding Lines}"
+                  ItemsSource="{Binding Filter.Rows}"
                   RowStyle="{StaticResource ListRow}"
                   CellStyle="{StaticResource ListCell}"
                   ColumnHeaderStyle="{StaticResource ColumnHeading}"
@@ -56,11 +60,12 @@
                                     Binding="{Binding What}"
                                     ElementStyle="{StaticResource CellText}"
                                     Width="Auto" />
-                <DataGridTextColumn Header="{DynamicResource gui.diff.column.before}"
+                <!-- Headed from the sheet in DiffTable.xaml.cs - "In the snapshot" or "Earlier". -->
+                <DataGridTextColumn x:Name="BeforeColumn"
                                     Binding="{Binding Before}"
                                     ElementStyle="{StaticResource CellText}"
                                     Width="*" />
-                <DataGridTextColumn Header="{DynamicResource gui.diff.column.after}"
+                <DataGridTextColumn x:Name="AfterColumn"
                                     Binding="{Binding After}"
                                     ElementStyle="{StaticResource CellText}"
                                     Width="*" />

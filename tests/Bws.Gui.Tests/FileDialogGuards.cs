@@ -27,7 +27,7 @@ public sealed class FileDialogGuards
         var (saveDefault, saveInitial, openDefault, openInitial) = WpfHost.On(() =>
         {
             var save = FileDialogs.Save("a.json", ".json", "Snapshot");
-            var open = FileDialogs.Open(".json", "Snapshot");
+            var open = FileDialogs.Open(".json", "Snapshot", "Choose a snapshot");
 
             return (save.DefaultDirectory, save.InitialDirectory, open.DefaultDirectory, open.InitialDirectory);
         });
@@ -54,12 +54,12 @@ public sealed class FileDialogGuards
     [Fact]
     public void The_dialogs_keep_the_name_extension_and_filter_they_always_had()
     {
-        var (name, extension, filter, adds, openFilter, mustExist) = WpfHost.On(() =>
+        var (name, extension, filter, adds, openFilter, mustExist, title) = WpfHost.On(() =>
         {
             var save = FileDialogs.Save("services.csv", ".csv", "CSV file");
-            var open = FileDialogs.Open(".json", "Snapshot");
+            var open = FileDialogs.Open(".json", "Snapshot", "Choose the first of two snapshots to compare");
 
-            return (save.FileName, save.DefaultExt, save.Filter, save.AddExtension, open.Filter, open.CheckFileExists);
+            return (save.FileName, save.DefaultExt, save.Filter, save.AddExtension, open.Filter, open.CheckFileExists, open.Title);
         });
 
         // Pinned to the strings the three call sites built by hand until 2026-10-14, so moving them
@@ -74,6 +74,10 @@ public sealed class FileDialogGuards
         Assert.True(adds);
         Assert.Equal("Snapshot (*.json)|*.json", openFilter);
         Assert.True(mustExist);
+
+        // Since 2026-10-15 an open dialog says what it is choosing for - two of them come one after
+        // the other when two snapshots are compared, and "Open" alone said nothing about which was which.
+        Assert.Equal("Choose the first of two snapshots to compare", title);
     }
 
     [Fact]

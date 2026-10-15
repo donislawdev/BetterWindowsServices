@@ -1,0 +1,98 @@
+<UserControl x:Class="Bws.Gui.SnapshotFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        BEFORE A SNAPSHOT IS TAKEN - owner's decision W2-d of 2026-10-15, backlog 561. Bound to a
+        ViewModels.SnapshotForm. "Take snapshot..." opens this in place of the list, and the save dialog
+        opens from its button: the dialog Windows draws has no room for a note (SnapshotForm says why).
+
+        IN PLACE OF THE LIST, THE WAY THE COMPARISON STANDS THERE - one arrangement for every view that
+        takes the middle of the window, so the way back is where it is on the comparison and Escape does
+        the same.
+
+        THE MAIN ACTION IS SAVE, so it is the one button in the accent colour - GUI rule 17. The way back
+        is an ordinary button here, unlike on the comparison, where it is the only thing to do.
+
+        Focusable and IsTabStop are off because a UserControl is both by default - `docs/10` trap 8.
+    -->
+    <Grid Margin="{StaticResource PadPanel}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{DynamicResource gui.snapshot.form.title}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource HeadingText}" />
+
+            <Button Grid.Column="1"
+                    x:Name="BackButton"
+                    AutomationProperties.AutomationId="snapshotFormBack"
+                    Content="{DynamicResource gui.diff.back}"
+                    ToolTip="{DynamicResource gui.snapshot.form.back.hint}"
+                    VerticalAlignment="Center"
+                    Click="Back" />
+        </Grid>
+
+        <!-- What rights the reading runs with - `D1`: with and without them are two different documents. -->
+        <TextBlock Grid.Row="1"
+                   AutomationProperties.AutomationId="snapshotRights"
+                   Text="{Binding Rights}"
+                   TextWrapping="Wrap"
+                   MaxWidth="{StaticResource WidthOverview}"
+                   HorizontalAlignment="Left"
+                   Margin="{StaticResource MarginAboveStatus}"
+                   Style="{StaticResource BodyText}" />
+
+        <TextBlock Grid.Row="2"
+                   Text="{DynamicResource gui.snapshot.form.note}"
+                   Margin="{StaticResource MarginTileParts}"
+                   Style="{StaticResource SectionHeadingText}" />
+
+        <!--
+            THE NOTE, ONE LINE AND NO CEILING - the command line puts no limit on its note option
+            either, and a snapshot carries whatever was typed. As wide as the sentences above it read,
+            from the left, rather than stretched and centred - a MaxWidth on a stretched box centres it. Written into the model as it is typed, so the save
+            button reads what is in the box rather than what was there when the box last lost the
+            keyboard. Named for a reader the way the search box is, because a box gets its name from a
+            label only when something ties the two together.
+        -->
+        <TextBox Grid.Row="3"
+                 x:Name="NoteBox"
+                 AutomationProperties.AutomationId="snapshotNote"
+                 AutomationProperties.Name="{DynamicResource gui.snapshot.form.note}"
+                 Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="{DynamicResource gui.snapshot.form.note.hint}"
+                 Width="{StaticResource WidthOverview}"
+                 HorizontalAlignment="Left"
+                 Margin="{StaticResource MarginAboveStatus}"
+                 Style="{StaticResource ReportingBox}" />
+
+        <Button Grid.Row="4"
+                x:Name="SaveButton"
+                AutomationProperties.AutomationId="snapshotSave"
+                Content="{DynamicResource gui.snapshot.form.save}"
+                ToolTip="{DynamicResource gui.snapshot.form.save.hint}"
+                IsEnabled="{Binding Ready}"
+                IsDefault="True"
+                HorizontalAlignment="Left"
+                Margin="{StaticResource MarginTileParts}"
+                Style="{StaticResource PrimaryAction}"
+                Click="Save" />
+    </Grid>
+</UserControl>

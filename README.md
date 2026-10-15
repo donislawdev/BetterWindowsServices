@@ -378,10 +378,6 @@ A tool that quietly fails to cover something is worse than one that says what it
 
 **Not built yet - the second half of the audit story:**
 
-- **Comparing two snapshot files is on the command line only.** The window takes a snapshot and
-  compares one with this machine, and `bws snapshot diff EARLIER LATER` compares two files - from two
-  machines, or from two moments. The window does not take a note with a snapshot either - `--note`
-  does.
 - **No stock Windows baseline.** The opening screen has a place for *how many of these are not
   from a clean install* and says it is not counted yet rather than showing a number it cannot
   stand behind.
@@ -601,8 +597,11 @@ every operation before offering it, and copies the name or
 everything about the entry, display name and description included. *Export...* writes the rows on screen, in the columns
 you have on and the order you sorted them into, to a CSV file separated the way your Windows region
 settings separate lists, so a double click opens it in columns. *Snapshots...* beside it takes a
-snapshot of the machine to a file, the same file `bws snapshot create` writes, or compares one with
-the machine as it is now and shows what changed in place of the list, one row per field. Ctrl+C
+snapshot of the machine to a file, the same file `bws snapshot create` writes, with a note kept
+inside it if you type one, and compares one with the machine as it is now, or two with each other,
+showing what changed in place of the list, one row per field. *Show* above that table narrows it -
+to the differences alone, say, or to one field - and *Export...* there writes the comparison to a
+CSV file, what the window says above the table first. Ctrl+C
 over the list copies everything about the chosen entry. Escape backs out of the innermost thing
 first. *GitHub* and *Donate*, at the
 right end of the row above the search box, open the project's repository and its support page in

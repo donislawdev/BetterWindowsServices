@@ -1,0 +1,52 @@
+<UserControl x:Class="Bws.Gui.DiffFilterRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHICH ROWS OF A COMPARISON THE TABLE SHOWS - owner's decision W2-b of 2026-10-15: a button with
+        a menu, the way Columns opens its own, rather than a drop-down list this window has nowhere else.
+        Bound to the same ViewModels.DiffSheet as the view around it. Beside the button, how many rows
+        are on screen while a choice hides some - rule 8.
+
+        A COMPONENT OF ITS OWN FROM THE START, GUI rule 9: it has its own state (the filter) and its own
+        controls, and the size ratchet counted DiffView one file too close to its ceiling with this
+        inside it.
+
+        THE MARGIN ABOVE IS ON THE PANEL, NOT ON THIS CONTROL, so the row takes its gap with it when
+        nothing differs and the table gives way to a sentence.
+
+        Focusable and IsTabStop are off because a UserControl is both by default - `docs/10` trap 8.
+    -->
+    <StackPanel Orientation="Horizontal"
+                Margin="{StaticResource MarginTileParts}">
+        <StackPanel.Style>
+            <Style TargetType="StackPanel">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Lines.Count}" Value="0">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </StackPanel.Style>
+
+        <Button x:Name="ShowButton"
+                AutomationProperties.AutomationId="diffShow"
+                Content="{Binding Filter.Button}"
+                ToolTip="{DynamicResource gui.diff.show.hint}"
+                Margin="{StaticResource MarginBetweenControls}"
+                Click="ShowAsked">
+            <Button.ContextMenu>
+                <ContextMenu x:Name="ShowMenu"
+                             MaxHeight="{StaticResource HeightMenu}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Button.ContextMenu>
+        </Button>
+
+        <TextBlock AutomationProperties.AutomationId="diffShowing"
+                   Text="{Binding Filter.Showing}"
+                   VerticalAlignment="Center"
+                   Style="{StaticResource SubduedText}" />
+    </StackPanel>
+</UserControl>
