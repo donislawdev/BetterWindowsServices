@@ -180,7 +180,7 @@ Plan: stop Winmgmt  (2 steps)
     <div class="grid grid-quarters">
       <div class="card"><h3>Snapshots are on the command line only</h3><p>The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</p></div>
       <div class="card"><h3>No stock Windows baseline</h3><p>The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</p></div>
-      <div class="card"><h3>No change journal, no restore</h3><p>Who changed a start type, and when, is not read from the event log yet. A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</p></div>
+      <div class="card"><h3>A thin change history, no restore</h3><p>Who changed a start type or installed a service comes from the System log on the command line, and only as far back as that log reaches. A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</p></div>
       <div class="card"><h3>Local machine only</h3><p>Remote management is not in this version. To compare two machines, take a snapshot on each and diff the two files. Windows only, 64-bit only.</p></div>
     </div>
     <a class="more" href="/faq/">The rest of the limits, and the questions people ask</a>

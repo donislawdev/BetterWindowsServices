@@ -234,7 +234,12 @@ internal static class ListingTable
         _ => Nothing
     };
 
-    private static string Layout(List<string[]> rows)
+    /// <remarks>
+    /// <b>Internal since 2026-10-15, for the change history's table</b> - the second table in this
+    /// command line, laid out by the same rule rather than by a copy of it, so the two cannot come to
+    /// disagree about how wide a letter is.
+    /// </remarks>
+    internal static string Layout(List<string[]> rows)
     {
         var columns = rows[0].Length;
         var widths = new int[columns];

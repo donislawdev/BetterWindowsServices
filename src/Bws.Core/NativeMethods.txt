@@ -268,3 +268,40 @@ WIN32_ERROR
 GetTokenInformation
 TOKEN_INFORMATION_CLASS
 TOKEN_ELEVATION_TYPE
+
+// The change history - `bws history`, slice J1 of the second half of the audit, 2026-10-15. Read
+// through wevtapi rather than System.Diagnostics.Eventing.Reader, because that namespace ships in
+// the window's shared framework and NOT in the terminal's: measured that day,
+// System.Diagnostics.EventLog.dll is in Microsoft.WindowsDesktop.App 10.0.13 and absent from
+// Microsoft.NETCore.App 10.0.13, so for bws it would have been a new package under ADR-15. These
+// read the System log on this machine and nothing else - the session argument stays null, which is
+// the local computer. Opening the log and its channel configuration answers how far back it
+// reaches and whether it is overwriting, and the query, the paging and the rendering read the events.
+EvtOpenLog
+EvtGetLogInfo
+EvtOpenChannelConfig
+EvtGetChannelConfigProperty
+EvtQuery
+EvtNext
+EvtRender
+EvtClose
+EVT_OPEN_LOG_FLAGS
+EVT_LOG_PROPERTY_ID
+EVT_CHANNEL_CONFIG_PROPERTY_ID
+EVT_QUERY_FLAGS
+EVT_RENDER_FLAGS
+EVT_VARIANT
+EVT_VARIANT_TYPE
+
+// Which accounts this machine can name WITHOUT asking anybody else - owner's decision J1-c,
+// 2026-10-15. Translating the SID of a domain account makes Windows ask a domain controller, and
+// ADR-19 keeps this program off the network, so a SID is translated only when it is well known or
+// belongs to this machine's own account domain. This asks the local security authority for that
+// domain's SID, a call to lsass on this machine.
+LsaOpenPolicy
+LsaQueryInformationPolicy
+LsaFreeMemory
+LsaClose
+POLICY_INFORMATION_CLASS
+POLICY_ACCOUNT_DOMAIN_INFO
+POLICY_VIEW_LOCAL_INFORMATION

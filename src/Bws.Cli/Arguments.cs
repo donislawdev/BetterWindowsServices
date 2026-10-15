@@ -75,6 +75,9 @@ internal static class Arguments
             // to. Somebody reaching for this has typed it before somewhere else.
             "kill" => CommandKind.Kill,
 
+            // The change history. The word is the owner's - see CommandKind.History.
+            "history" => CommandKind.History,
+
             // The word every other tool puts this under, and the spelling SPDX uses for the
             // field. This repository writes the noun the British way in its own prose, and the
             // command follows the tools rather than the prose - see CommandKind.License.

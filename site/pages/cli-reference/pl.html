@@ -1,5 +1,5 @@
 <meta name="title" content="Dokumentacja wiersza poleceń - przełączniki i kody wyjścia bws">
-<meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type i snapshot, razem z tym, gdzie każda flaga działa.">
+<meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type, snapshot i history, oraz gdzie działa każda flaga.">
 <meta name="nav" content="Dokumentacja CLI">
 
 <section class="band page-title">
@@ -13,7 +13,7 @@
 <section class="band band-tight">
   <div class="wrap">
     <h2>Komendy</h2>
-    <p>Osiem czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie.</p>
+    <p>Dziewięć czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie.</p>
 <pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
@@ -22,6 +22,7 @@
 <span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
 <span class="k">bws license</span> [--components]
 <span class="k">bws --help</span>
 <span class="k">bws --version</span></code></pre>
@@ -55,6 +56,10 @@ There is no command lst. Did you mean list?</code></pre>
       <div>
         <h3><code>snapshot create</code> i <code>snapshot diff</code></h3>
         <p><code>create</code> zawsze czyta podpisy i skróty, bo snapshot jest trzymany i porównywany później, a taki bez nich porównywałby się z takim z nimi tak, jakby maszyna się zmieniła. <code>diff</code> mówi, co się zmieniło w drodze z pierwszego pliku do drugiego, albo z pliku do tej maszyny przy <code>--live</code>. <a href="/pl/snapshoty-i-dryf/">Strona o snapshotach</a> niesie format i uzasadnienie.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - kto to zmienił, z dziennika System</h3>
+        <p>Zmiany typu startu i instalacje usług z dziennika System, od najnowszej, z kontem, które zapisał Windows. Pierwsza linia mówi, jak daleko wstecz sięga dziennik i czy był czyszczony, bo historia jest tylko tak długa jak dziennik. Z nazwą to zmiany typu startu tej jednej usługi - instalacje są wymienione tylko bez nazwy, bo Windows zapisuje instalację pod nazwą wyświetlaną, nigdy pod nazwą usługi. Konto ma nazwę tam, gdzie ta maszyna nazwie je sama, a w przeciwnym razie stoi jego SID. Typy startu są w słowach, które zapisał Windows.</p>
       </div>
       <div>
         <h3><code>license</code> - co jest w środku pobranego pliku</h3>

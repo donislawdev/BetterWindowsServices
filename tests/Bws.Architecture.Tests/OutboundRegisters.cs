@@ -29,7 +29,10 @@ internal static class OutboundRegisters
             ["ADVAPI32.dll"] =
                 "The service control manager itself - opening it, enumerating it, reading and " +
                 "changing configuration, starting and stopping. Every name in the first half of " +
-                "src/Bws.Core/NativeMethods.txt lives here.",
+                "src/Bws.Core/NativeMethods.txt lives here. Since 2026-10-15 also LsaOpenPolicy and " +
+                "LsaQueryInformationPolicy, which ask lsass on this machine for its own account " +
+                "domain so the change history names only accounts this machine can name without a " +
+                "domain controller (owner's decision J1-c).",
 
             ["KERNEL32.dll"] =
                 "Process handles and what can be asked of them without opening a process for " +
@@ -57,6 +60,12 @@ internal static class OutboundRegisters
                 "the certificate WinVerifyTrust left in its own state, instead of opening the file " +
                 "a second time. It formats a name from a certificate already in memory - nothing " +
                 "here fetches, and the chain it came from was built under WTD_CACHE_ONLY_URL_RETRIEVAL.",
+
+            ["wevtapi.dll"] =
+                "The change history, since 2026-10-15 (bws history, slice J1): EvtOpenLog, " +
+                "EvtGetLogInfo and the channel configuration for how far back the System log reaches, " +
+                "EvtQuery, EvtNext and EvtRender for the events 7040 and 7045. The session argument is " +
+                "always null, which is this computer - the remote form of the same calls is never made.",
 
             ["VERSION.dll"] =
                 "GetFileVersionInfoSizeEx, GetFileVersionInfoEx and VerQueryValue, since 2026-10-06 " +
