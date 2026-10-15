@@ -13,6 +13,15 @@ is not part of this repository.
 
 ### Added
 
+- `bws history [NAME]` - who changed the start type of a service, and who installed one, read out of
+  the System log, newest first. The first line says how far back the log reaches and whether, when
+  and by whom it was cleared, or that it is overwriting its oldest events. With a name it lists that
+  service's start type changes. Installations are listed only without a name, under the display
+  name in quotes, because Windows records an installation without the service name. An account is
+  named where this machine can name it on its own and shown as its SID otherwise, so nothing asks a
+  domain controller. Start types are in the words Windows wrote, in the language of the machine. A
+  name with no change and no service behind it ends with code 2. `--json` gives the same as a
+  document with `log` and `changes`, and the words Windows wrote are kept under `windowsWords`.
 - A Windows installer, `BetterWindowsServices-win-x64.msi`, beside the two archives, which stay as
   they are. It installs the window and the command line into `Program Files\Better Windows Services`
   for every account on the machine, with the window in the Start menu and the folder on the

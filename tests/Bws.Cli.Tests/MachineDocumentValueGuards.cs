@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Bws.Core;
+using Bws.Core.History;
 using Bws.Core.Planning;
 using Bws.Core.Snapshots;
 
@@ -72,6 +73,24 @@ public sealed class MachineDocumentValueGuards
             .Sum(difference => Member<DifferenceGroup>(difference, "group"));
 
         Assert.Equal(differences.Count, written);
+    }
+
+    [Fact]
+    public void The_kind_of_every_change_in_the_history_is_a_member_spelled_as_its_enumeration_spells_it()
+    {
+        // The change history became a document of this tool on 2026-10-15 (bws history, J1), with the
+        // same rule from its first day rather than from a breaking change later.
+        var changes = Enum.GetValues<ChangeKind>()
+            .Select(kind => new ServiceChange { At = null, Kind = kind })
+            .ToList();
+
+        var log = ChangeHistory.Cover("System", new LogFacts(0, 1, Full: false), oldest: null, cleared: null);
+
+        var written = JsonDocument.Parse(HistoryJson.Render(log, changes)).RootElement
+            .GetProperty("changes").EnumerateArray()
+            .Sum(change => Member<ChangeKind>(change, "kind"));
+
+        Assert.Equal(changes.Count, written);
     }
 
     /// <summary>

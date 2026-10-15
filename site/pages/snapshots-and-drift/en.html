@@ -64,10 +64,10 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
 <section class="band band-tight">
   <div class="wrap">
     <h2>What this does not do yet</h2>
-    <p class="lede">The second half of the audit story is not built, and saying so is cheaper than somebody discovering it.</p>
+    <p class="lede">The second half of the audit story is not finished, and saying so is cheaper than somebody discovering it.</p>
     <ul class="points points-alarm">
       <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare them.</li>
-      <li><strong>No change journal.</strong> <em>Who</em> changed a start type, and when, is not read from the event log. A snapshot at deployment and a diff against the machine answer <em>what</em> changed, which is most of the question.</li>
+      <li><strong>A thin change history.</strong> <code>bws history</code> reads <em>who</em> changed a start type and who installed a service out of the System log, on the command line and as far back as that log reaches. For everything else a snapshot at deployment and a diff against the machine answer <em>what</em> changed, which is most of the question.</li>
       <li><strong>No stock Windows baseline.</strong> <em>How many of these are not from a clean install</em> is not counted yet, and the opening screen says so rather than showing a number it cannot stand behind.</li>
       <li><strong>No restore.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
     </ul>

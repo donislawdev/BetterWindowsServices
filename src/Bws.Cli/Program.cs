@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Bws.Cli;
 using Bws.Core;
+using Bws.Core.History;
 using Bws.Core.Planning;
 using Bws.Core.Querying;
 using Bws.Core.Snapshots;
@@ -83,7 +84,10 @@ try
     // needing rights over that agent's own services, and reading eight hundred entries this
     // branch never looks at would spend a cold reading of the manager saying nothing - 136-144 ms
     // here and 215-234 ms on an eight-processor machine, measured 2026-09-28.
-    var offline = options.Kind == CommandKind.SnapshotDiff && !options.Live;
+    //
+    // The change history is the same case: it reads the System log, and asks the manager one
+    // question at most, itself, only when a name turns up nothing (HistoryCommand).
+    var offline = (options.Kind == CommandKind.SnapshotDiff && !options.Live) || options.Kind == CommandKind.History;
 
     // Skip unless somebody said otherwise, everywhere, including the branches that never see
     // the switch. `snapshot diff --live` is the one that never sees it: the switch belongs to
@@ -120,7 +124,22 @@ try
     string data;
     var exit = ExitCode.Ok;
 
-    if (options.Kind == CommandKind.SnapshotDiff)
+    if (options.Kind == CommandKind.History)
+    {
+        var (history, ended) = HistoryCommand.Run(
+            options,
+            new WindowsChangeHistoryReader(),
+            () => new WindowsScmCatalog(networkPaths).ReadStatuses().Select(entry => entry.ServiceName));
+
+        if (history is null)
+        {
+            return ended;
+        }
+
+        data = history;
+        exit = ended;
+    }
+    else if (options.Kind == CommandKind.SnapshotDiff)
     {
         // What this branch needs from the words - two sides, and not three - was asked in
         // Refusals before the manager was opened. See AboutTheAsk there.

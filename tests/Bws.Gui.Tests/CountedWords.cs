@@ -67,7 +67,10 @@ internal static class CountedWords
         // 2026-10-07, backlog 541: "{0} counts its failures from 1 again after {1} without one". The
         // placeholder before it is a service name, but the word is a plural noun this project now says, so
         // it is named as one - and the sentence lives in a pair, because the names can be two.
-        "failures"
+        "failures",
+        // 2026-10-15, bws history (J1): "{0} start type changes do not name their entry". A plural noun,
+        // and its one is a sentence of its own - cli.history.unnamed.one says "change".
+        "changes"
     ];
 
     /// <summary>

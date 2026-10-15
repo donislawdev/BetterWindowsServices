@@ -100,6 +100,22 @@ internal enum CommandKind
     SnapshotDiff,
 
     /// <summary>
+    /// Who changed the configuration of an entry, and when - read out of the System log.
+    ///
+    /// <b>The change history of the specification (D7, the retrospective half), and the word is the
+    /// owner's decision J1-a of 2026-10-15.</b> Not <c>journal</c>, which in Windows already names the
+    /// NTFS change journal administrators know from fsutil, and not <c>changes</c>, which a person
+    /// would confuse with comparing two snapshots.
+    ///
+    /// <b>The NAME is optional, and that is the one thing about it no other verb here does.</b> Without
+    /// one it is the whole machine. With one it is the changes tied to that entry BY IDENTITY - which
+    /// leaves installations out, because Windows records an installation under the display name only
+    /// (owner's decision J1-b). A name with no change and no entry behind it is answered as a typo,
+    /// code 2, so a misspelling cannot read as "nobody touched it".
+    /// </summary>
+    History,
+
+    /// <summary>
     /// What this program is licensed under, and what it carries that somebody else wrote.
     ///
     /// <b>The one verb here that reads nothing at all</b> - no service manager, no disk, no
@@ -198,7 +214,7 @@ internal static class OptionSurface
         // could hide one would be exactly that, spelled as an option.
         ("--full", [CommandKind.Show]),
 
-        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill]),
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -214,8 +230,9 @@ internal static class OptionSurface
 
         // Diagnostic, and every command reads the manager before doing anything, so it
         // applies to every command. It used to be accepted everywhere and only honoured for
-        // the listing, which is the same silence from the other side.
-        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill]),
+        // the listing, which is the same silence from the other side. history reads the System log
+        // instead of the manager, and says how long that took.
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
             CommandKind.Kill]),
@@ -324,9 +341,12 @@ internal static class OptionSurface
     /// A mistyped word equally close to two commands is offered the earlier one, and nothing
     /// somebody types at three in the morning on a server was meant to be this. It is also the
     /// only verb here that is read far more often than it is typed.
+    ///
+    /// <b>history sits after snapshot and before license</b>, beside the other half of the audit story,
+    /// and ahead of the one verb nothing typed in a hurry was meant to be.
     /// </remarks>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "license"];
+        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "history", "license"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -341,8 +361,14 @@ internal static class OptionSurface
     /// <b>Checked against a second case, as rule 12 asks:</b> `snapshot diff` on a file that is not
     /// there is not an empty comparison either, and it does not report one.
     /// </summary>
+    /// <remarks>
+    /// <b>history takes a name it does not require</b>, and is here because both readers of this line
+    /// need it to be: the parser has to give the first bare word to it, and a name nobody can find is a
+    /// mistake there too. That the name may be left out is said in Refusals, which asks for a missing
+    /// one only of show and the write verbs.
+    /// </remarks>
     internal static bool TakesAName(CommandKind kind) =>
-        kind == CommandKind.Show || WriteCommands.Writes(kind);
+        kind == CommandKind.Show || kind == CommandKind.History || WriteCommands.Writes(kind);
 
     /// <summary>
     /// How many bare words a command has room for, as the key of a sentence saying so.
@@ -374,6 +400,10 @@ internal static class OptionSurface
         // verb cannot narrow - the answer is the same either way and pretending otherwise would
         // be worse than saying so.
         CommandKind.License => "cli.takes.nothing",
+
+        // A name it can do without, and the phrase says so - "one name" would send somebody who
+        // typed two looking for which one is required.
+        CommandKind.History => "cli.takes.oneNameAtMost",
 
         // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
         // in the window: a fifth shape must fail here loudly rather than quietly claim to take one

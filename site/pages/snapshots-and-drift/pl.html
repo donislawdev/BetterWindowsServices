@@ -64,10 +64,10 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
 <section class="band band-tight">
   <div class="wrap">
     <h2>Czego to jeszcze nie robi</h2>
-    <p class="lede">Druga połowa historii o audycie nie jest zbudowana, a powiedzenie tego jest tańsze niż odkrycie tego przez kogoś samodzielnie.</p>
+    <p class="lede">Druga połowa historii o audycie nie jest skończona, a powiedzenie tego jest tańsze niż odkrycie tego przez kogoś samodzielnie.</p>
     <ul class="points points-alarm">
       <li><strong>Snapshoty są tylko w wierszu poleceń.</strong> Okno pokazuje, szuka i zmienia, a snapshotów nie robi ani nie porównuje.</li>
-      <li><strong>Nie ma dziennika zmian.</strong> <em>Kto</em> zmienił typ uruchomienia i kiedy - dziennik zdarzeń nie jest jeszcze czytany. Snapshot przy wdrożeniu i różnica wobec maszyny odpowiadają na <em>co</em> się zmieniło, czyli na większość pytania.</li>
+      <li><strong>Cienki dziennik zmian.</strong> <code>bws history</code> czyta z dziennika System, <em>kto</em> zmienił typ uruchomienia i kto zainstalował usługę - w wierszu poleceń i tak daleko wstecz, jak sięga ten dziennik. Przy całej reszcie snapshot przy wdrożeniu i różnica wobec maszyny odpowiadają na <em>co</em> się zmieniło, czyli na większość pytania.</li>
       <li><strong>Nie ma wzorca czystego Windowsa.</strong> <em>Które z nich nie pochodzą z czystej instalacji</em> nie jest liczone, więc punktem odniesienia musi być snapshot, który sam zrobiłeś.</li>
       <li><strong>Nie ma przywracania.</strong> Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</li>
     </ul>

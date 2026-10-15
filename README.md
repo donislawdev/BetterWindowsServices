@@ -135,7 +135,8 @@ nothing to download - what it carries, which version, under which licence.
 
 > **Early release.** Both halves do everything on this page, and an automated suite runs on every
 > commit. What is not there yet is under [Honest limits](#honest-limits) - most of it is the second
-> half of the audit story: a stock Windows baseline, a change journal, and restoring from a snapshot.
+> half of the audit story: a stock Windows baseline, who changed what in the window, and restoring
+> from a snapshot.
 
 **One promise to hold it to:** nothing changes without showing the plan first, and the preview is
 what runs. A preview that differs from what then happened is the worst bug this tool can have -
@@ -283,6 +284,32 @@ A snapshot describes the whole machine, down to every launch path and security d
 it accordingly. It is written with whatever permissions its directory already has, and the tool
 narrows nothing.
 
+### And who changed it
+
+A snapshot says *what* changed. The System log says *who*, for two kinds of change, and
+`bws history` reads them: a start type changed, and a service installed.
+
+```
+$ bws history Spooler
+The System log reaches back to 2026-10-11 16:58:05, when HOST\admin cleared it.
+Installations are not listed for one name, because Windows records them without the service name. bws history lists them all.
+Start types and entry types are in the words Windows wrote at the time, in the language this machine had then.
+WHEN                 BY          ENTRY    CHANGE
+2026-10-15 10:26:57  HOST\admin  Spooler  start type demand start -> auto start
+2026-10-15 10:26:57  HOST\admin  Spooler  start type auto start -> demand start
+```
+
+**The first line is the one to read first.** The log keeps only so much, and it can be cleared, so
+the history reaches back exactly as far as it says and no further - a week with no changes in it
+and a log that starts this morning look the same without that line. A start type change is tied
+to its service by the service name Windows wrote into the event. An installation is not: Windows
+records it under the display name only, so `bws history` with no name lists installations with the
+display name in quotes, and the history of one service leaves them out rather than guess. Who did
+it is the account Windows recorded, named where this machine can name it on its own and shown as
+its SID otherwise - naming an account of a domain would mean asking a domain controller, and this
+tool does not go on the network. Start types come in the words Windows used, in the language of
+the machine.
+
 ---
 
 ## Nothing happens without a plan
@@ -381,8 +408,11 @@ A tool that quietly fails to cover something is worse than one that says what it
 - **No stock Windows baseline.** The opening screen has a place for *how many of these are not
   from a clean install* and says it is not counted yet rather than showing a number it cannot
   stand behind.
-- **No change journal.** Who changed a start type, and when, is not read from the event log yet.
-  A snapshot taken at deployment and a diff against the machine answers *what* changed, not *who*.
+- **A thin change history, and only on the command line.** `bws history` reads who changed a start
+  type and who installed a service out of the System log, as far back as that log reaches. Windows
+  writes nothing there about a changed account, launch path or recovery list, or about who stopped
+  a service, so none of that is in it - a snapshot and a diff answer *what* changed for those. The
+  window does not show the history yet.
 - **No restore from a snapshot.** A diff tells you what drifted, and putting it back is by hand or
   by script from the commands the diff shows you.
 - **No creating, deleting or repointing a service.** The launch path is read and reported, and it
@@ -517,6 +547,7 @@ bws start-type NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--js
 bws snapshot create [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]
+bws history [NAME] [--json] [--timing]
 bws license [--components]
 bws --help
 bws --version
@@ -655,10 +686,11 @@ endorsed by or sponsored by Microsoft. Windows is a trademark of the Microsoft g
 
 ### What about the second half - who changed it, and putting it back?
 
-Not yet, and it is the next thing. A change journal read from the event log, a stock Windows
-baseline per build, and restoring configuration from a snapshot with a dry run and a checkbox per
-item are the plan. Until then a snapshot at deployment and a diff against the machine answer
-*what* changed, which is most of the question.
+Half of the first half. `bws history` reads who changed a start type and who installed a service
+from the System log, on the command line - see [And who changed it](#and-who-changed-it). The same
+history in the window, a stock Windows baseline per build, and restoring configuration from a
+snapshot with a dry run and a checkbox per item are the plan. A snapshot at deployment and a diff
+against the machine answer *what* changed for everything the log does not record.
 
 ---
 
@@ -667,12 +699,13 @@ item are the plan. Until then a snapshot at deployment and a diff against the ma
 **Working end to end:** the window and the command line over the same engine, the query language,
 plans with preview, cascade, refusal and the way back, stop, start, restart, force stop, force
 restart and start type, snapshots and diffs between files and against the live machine - in the
-window too, against the live machine - signatures,
+window too, against the live machine - who changed a start type or installed a service, from the
+event log on the command line, signatures,
 privileges, security descriptors, triggers, memory, per-user folding, keyboard and screen reader in
 the window, CSV export, JSON and exit codes on the command line.
 
 **Not there yet:** everything under [Honest limits](#honest-limits), above all the stock baseline,
-the change journal and restore from a snapshot.
+the change history in the window and restore from a snapshot.
 
 Found a problem, or a service this tool reports differently from `sc.exe`? The
 [issue tracker](https://github.com/donislawdev/BetterWindowsServices/issues) is open, and a diff
