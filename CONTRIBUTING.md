@@ -146,6 +146,24 @@ pwsh -File tests/coverage-gate.ps1 -Scope anywhere
 A red run keeps its own output under `TestResults\` and prints the names of the failing tests, so
 that what went wrong survives the run that found it.
 
+### The mutation report on a pull request
+
+A green suite says the code does what the tests check, not that the tests check anything. So each
+guard has an entry in `tests/mutation/entries.ps1` that breaks the behaviour it watches on purpose,
+and the guard has to go red. On a pull request the `mutation` workflow runs only the entries your
+change reaches - the file an entry breaks, the file declaring its test, or the entry itself - and
+reports what it found. It is never red on a pull request, and nothing is expected of you about it.
+Every entry runs once a week on the main branch, and that run is the one that has to be green.
+
+To run one entry yourself, the same way the workflow does:
+
+```
+pwsh -File tests/mutation/mutate.ps1 -Only "the name of the entry"
+```
+
+Interrupting a run can leave one source file mutated. Run `git status` afterwards and restore any
+file you did not change.
+
 ### Conventions the test suite enforces
 
 These are guards rather than preferences. Each one exists because the thing it forbids happened at
