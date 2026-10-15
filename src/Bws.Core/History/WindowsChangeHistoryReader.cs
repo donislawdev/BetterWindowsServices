@@ -174,7 +174,10 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
     {
         uint returned = 0;
 
-        if (PInvoke.EvtNext(results, handles, uint.MaxValue, 0, ref returned))
+        // How many handles to hand over is the length of the span - the generated overload passes it
+        // as the count. The number here is the TIMEOUT, INFINITE, named so it cannot be read as a
+        // count of events (it was, in the review of #70).
+        if (PInvoke.EvtNext(results, handles, Timeout: uint.MaxValue, Flags: 0, ref returned))
         {
             return returned;
         }
@@ -207,6 +210,15 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
                 if (error != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
                 {
                     throw new Win32Exception(error, "Could not render an event from the System event log.");
+                }
+
+                // Never past what one event can render to - ChangeEvents.LargestRendering says why that
+                // is a bound and not a guess. Asked in the review of #70: the room an event asks for is
+                // a number from the log, and this would have handed it to the allocator unread.
+                if (used > ChangeEvents.LargestRendering)
+                {
+                    throw new InvalidDataException(
+                        $"An event in the System log asks for {used} bytes to render, more than one event can hold.");
                 }
 
                 // The call says how much room it wanted. Grown and kept for the events after this one.

@@ -234,7 +234,7 @@
   "cli.history.nothing": "No start type change or installation is recorded in it.",
   "cli.history.nothingFor": "No start type change to {0} is recorded in it.",
   "cli.history.windowsWords": "Start types and entry types are in the words Windows wrote at the time, in the language this machine had then.",
-  "cli.history.noSuchEntry": "There is no entry called {0}, and the System log records no change to one.",
+  "cli.history.noSuchEntry": "There is no entry called {0}, and the System log records no change to one. Check the name against bws list, which shows every entry.",
   "cli.history.notRecorded": "(not recorded)",
   "cli.history.displayNameOnly": "\"{0}\"",
   "cli.history.startTypeChanged": "start type {0} -> {1}",

@@ -700,7 +700,7 @@ against the machine answer *what* changed for everything the log does not record
 plans with preview, cascade, refusal and the way back, stop, start, restart, force stop, force
 restart and start type, snapshots and diffs between files and against the live machine - in the
 window too, against the live machine - who changed a start type or installed a service, from the
-event log on the command line, signatures,
+System log on the command line, signatures,
 privileges, security descriptors, triggers, memory, per-user folding, keyboard and screen reader in
 the window, CSV export, JSON and exit codes on the command line.
 

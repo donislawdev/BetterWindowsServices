@@ -24,10 +24,16 @@ public sealed class HistoryContractTests
     [Fact]
     public void Every_start_type_change_and_installation_the_log_holds_is_listed()
     {
-        var ours = Document().GetProperty("changes").GetArrayLength();
+        var document = Document();
+        var ours = document.GetProperty("changes").GetArrayLength();
         var theirs = int.Parse(CommandLineTool.PowerShell(Query), CultureInfo.InvariantCulture);
 
-        Assert.InRange(theirs - ours, 0, 3);
+        // A log that is overwriting can also LOSE matching events between the two reads - the oldest
+        // ones go to make room - so then PowerShell may see fewer than bws did, by any number. Found
+        // in the review of #70: the lower bound of 0 assumed a log that only grows.
+        var fewest = document.GetProperty("log").GetProperty("overwritten").GetBoolean() ? -ours : 0;
+
+        Assert.InRange(theirs - ours, fewest, 3);
     }
 
     [Fact]

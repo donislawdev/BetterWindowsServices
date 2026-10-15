@@ -1,5 +1,5 @@
 <meta name="title" content="Command line reference - every switch and exit code of bws">
-<meta name="description" content="Every command, switch and exit code of the bws command line: list, show, stop, start, restart, kill, start-type and snapshot, with where each flag works.">
+<meta name="description" content="Every command, switch and exit code of the bws command line: list, show, stop, start, restart, kill, start-type, snapshot and history, with where each flag works.">
 <meta name="nav" content="CLI reference">
 
 <!--
@@ -65,7 +65,7 @@ There is no command lst. Did you mean list?</code></pre>
         <p><code>create</code> always reads signatures and hashes, because a snapshot is kept and compared later and one without them would compare against one with them as though the machine had changed. <code>diff</code> says what changed going from the first file to the second, or from a file to this machine with <code>--live</code>. <a href="/snapshots-and-drift/">The snapshot page</a> has the format and the reasoning.</p>
       </div>
       <div>
-        <h3><code>history</code> - who changed it, from the event log</h3>
+        <h3><code>history</code> - who changed it, from the System log</h3>
         <p>Start type changes and installations out of the System log, newest first, with the account Windows recorded. The first line says how far back the log reaches and whether it was cleared, because a history is only as long as the log. With a name it is that service's start type changes - installations are listed without a name only, because Windows records an installation under the display name and never the service name. An account is named where this machine can name it on its own and shown as its SID otherwise, and start types come in the words Windows wrote.</p>
       </div>
       <div>

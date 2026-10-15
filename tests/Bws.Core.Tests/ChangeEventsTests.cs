@@ -144,6 +144,18 @@ public sealed class ChangeEventsTests
         Assert.Throws<XmlException>(() => ChangeEvents.Change(hostile));
     }
 
+    [Fact]
+    public void An_event_bigger_than_one_event_can_be_is_refused_rather_than_read()
+    {
+        // Review of #70: the size of what is parsed is a number from the log. One record fits in a 64 KB
+        // chunk, so anything past the bound is refused - and something just under it still reads.
+        var huge = new string('a', ChangeEvents.LargestRendering / sizeof(char));
+        var large = new string('a', 100_000);
+
+        Assert.Throws<XmlException>(() => ChangeEvents.Change(StartType("S-1-5-18", huge, "a", "b", "x")));
+        Assert.Equal(large, ChangeEvents.Change(StartType("S-1-5-18", large, "a", "b", "x"))!.DisplayName);
+    }
+
     /// <summary>Event 7040, with param1 to param4 in the order given - fewer when a test leaves some out.</summary>
     private static string StartType(string user, params string[] values) =>
         Event(new Header("Service Control Manager", "7040", user), Data(values.Select((value, index) => ($"param{index + 1}", value))));

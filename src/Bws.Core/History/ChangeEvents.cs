@@ -37,6 +37,19 @@ public static class ChangeEvents
     private const int LogCleared = 104;
 
     /// <summary>
+    /// The most one event may take once rendered as XML, in bytes of UTF-16 - and so half that in
+    /// characters for the parser.
+    ///
+    /// <b>A bound with a reason, not a guess.</b> An event record lives inside one 64 KB chunk of the
+    /// log file (the evtx format, written down by people who read it rather than by Microsoft - the
+    /// same outside source as <see cref="LogFacts.Chunk"/>), so its XML, with the template's markup
+    /// and every value doubled into UTF-16, stays far under a megabyte. Anything bigger is not an
+    /// event this history should read, and it is refused rather than allocated. Added after the review
+    /// of #70.
+    /// </summary>
+    internal const int LargestRendering = 1024 * 1024;
+
+    /// <summary>
     /// The change one event records, or null when the event is not a change this history reads.
     /// </summary>
     public static ServiceChange? Change(string xml)
@@ -108,7 +121,12 @@ public static class ChangeEvents
     {
         internal static Rendered Of(string xml)
         {
-            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+            var settings = new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = LargestRendering / sizeof(char)
+            };
 
             using var text = new StringReader(xml);
             using var reader = XmlReader.Create(text, settings);
