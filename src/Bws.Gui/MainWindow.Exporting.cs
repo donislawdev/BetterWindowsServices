@@ -37,7 +37,7 @@ public partial class MainWindow
     /// <b>The name offered is the list's</b> - drivers.csv on the Drivers tab rather than
     /// services.csv on every tab. <see cref="Exporting.FileName"/> says why.
     /// </summary>
-    private const string Mark = "\uFEFF";
+    private const string Mark = Exporting.Mark;
 
     private void ExportWhatIsShown()
     {

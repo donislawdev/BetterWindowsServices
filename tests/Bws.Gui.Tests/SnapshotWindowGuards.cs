@@ -22,12 +22,12 @@ public sealed class SnapshotWindowGuards : IDisposable
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
     [Fact]
-    public void The_bar_offers_taking_and_comparing_under_one_button()
+    public void The_bar_offers_taking_comparing_and_comparing_two_under_one_button()
     {
         var window = WpfHost.Window();
 
         Assert.Equal(
-            ["snapshotTake", "snapshotCompare"],
+            ["snapshotTake", "snapshotCompare", "snapshotCompareTwo"],
             WpfHost.On(() => window.Actions.SnapshotsMenu.Items.OfType<System.Windows.Controls.MenuItem>().Select(AutomationProperties.GetAutomationId).ToList()));
         Assert.True(WpfHost.On(() => window.Actions.SnapshotsButton.IsEnabled));
     }

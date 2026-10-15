@@ -53,7 +53,9 @@ public sealed class ConcurrencyGuards
             "1.1-1.2 s over 801 entries on sixteen processors, so the window would stop answering for " +
             "that long. Only the reading, the rendering and the file comparison run out there - the " +
             "sheet is built and shown back on the interface thread, and one reading at a time is held " +
-            "by Busy, which only the interface thread sets.",
+            "by Busy, which only the interface thread sets. Since 2026-10-15 (W2) the same road reads " +
+            "and compares two snapshot files, which touches no machine and can still be two files at " +
+            "the size ceiling on a share - TwoSnapshotsTests holds it.",
 
         ["Readings.cs"] =
             "Reading the manager off the interface thread, because a full reading takes about " +

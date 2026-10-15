@@ -6,10 +6,11 @@
              IsTabStop="False">
 
     <!--
-        WHAT CHANGED SINCE A SNAPSHOT - `D2` in the window, since 2026-10-14 (`docs/PROJEKT-DRUGA-
-        POLOWA-AUDYTU-20261014.md`, W1). Bound to a ViewModels.DiffSheet, worked out once when the
-        comparison arrives: a comparison is a statement about two moments that have both passed, so
-        nothing here is kept in step with the machine.
+        WHAT DIFFERS BETWEEN TWO SIDES - `D2` in the window, since 2026-10-14 (`docs/PROJEKT-DRUGA-
+        POLOWA-AUDYTU-20261014.md`, W1 for a snapshot against this machine, W2 for two snapshots).
+        Bound to a ViewModels.DiffSheet, worked out once when the comparison arrives: a comparison is
+        a statement about two moments that have both passed, so nothing here is kept in step with the
+        machine. Which sides were compared reaches this view only as the words the sheet hands it.
 
         IN PLACE OF THE LIST, LIKE THE OVERVIEW - owner's decision W-b. The window collapses the list's
         own controls while this is up (MainWindow.Overview.cs, ArrangeTheChrome), because the search
@@ -32,9 +33,10 @@
         </Grid.RowDefinitions>
 
         <!--
-            THE TITLE AND THE WAY BACK SHARE A LINE, the overview's arrangement and its reason: the exit
-            must not depend on the height of anything below it, and the top is the one place that holds
-            at every size.
+            THE TITLE, THE EXPORT AND THE WAY BACK SHARE A LINE, the overview's arrangement and its
+            reason: the exit must not depend on the height of anything below it, and the top is the one
+            place that holds at every size. The export sits there for the same reason - it is about the
+            whole comparison, sentences and all (W2-c), not about the table under it.
         -->
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
@@ -43,51 +45,73 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Column="0"
-                       Text="{DynamicResource gui.diff.title}"
+                       AutomationProperties.AutomationId="diffTitle"
+                       Text="{Binding Title}"
                        TextWrapping="Wrap"
                        VerticalAlignment="Center"
                        Style="{StaticResource HeadingText}" />
 
-            <Button Grid.Column="1"
-                    x:Name="BackButton"
-                    AutomationProperties.AutomationId="diffBack"
-                    Content="{DynamicResource gui.diff.back}"
-                    ToolTip="{DynamicResource gui.diff.back.hint}"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource PrimaryAction}"
-                    Click="Back" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Button x:Name="ExportButton"
+                        AutomationProperties.AutomationId="diffExport"
+                        Content="{DynamicResource gui.diff.export}"
+                        ToolTip="{DynamicResource gui.diff.export.hint}"
+                        Margin="{StaticResource MarginBetweenControls}"
+                        Click="Export" />
+
+                <Button x:Name="BackButton"
+                        AutomationProperties.AutomationId="diffBack"
+                        Content="{DynamicResource gui.diff.back}"
+                        ToolTip="{DynamicResource gui.diff.back.hint}"
+                        Style="{StaticResource PrimaryAction}"
+                        Click="Back" />
+            </StackPanel>
         </Grid>
 
-        <TextBlock Grid.Row="1"
-                   AutomationProperties.AutomationId="diffAbout"
-                   Text="{Binding About}"
-                   TextWrapping="Wrap"
-                   MaxWidth="{StaticResource WidthOverview}"
-                   HorizontalAlignment="Left"
-                   Margin="{StaticResource MarginAboveStatus}"
-                   Style="{StaticResource BodyText}" />
+        <!--
+            THE SIDES, ONE OR TWO: which snapshot, from which machine, when, by whom and with what
+            rights - and its note when it carries one, collapsed rather than empty, because an empty
+            line still spends its margin. A list from the sheet rather than two copies of the same pair
+            of lines (GUI rule 8).
+        -->
+        <ItemsControl Grid.Row="1"
+                      AutomationProperties.AutomationId="diffSides"
+                      ItemsSource="{Binding Sides}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock AutomationProperties.AutomationId="diffAbout"
+                                   Text="{Binding About}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="{StaticResource WidthOverview}"
+                                   HorizontalAlignment="Left"
+                                   Margin="{StaticResource MarginAboveStatus}"
+                                   Style="{StaticResource BodyText}" />
 
-        <!-- The snapshot's own note, when it has one - collapsed rather than empty, because an empty
-             line still spends its margin. -->
+                        <TextBlock AutomationProperties.AutomationId="diffNote"
+                                   Text="{Binding Note}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="{StaticResource WidthOverview}"
+                                   HorizontalAlignment="Left"
+                                   Margin="{StaticResource MarginAboveStatus}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Note}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <TextBlock Grid.Row="2"
-                   AutomationProperties.AutomationId="diffNote"
-                   Text="{Binding Note}"
-                   TextWrapping="Wrap"
-                   MaxWidth="{StaticResource WidthOverview}"
-                   HorizontalAlignment="Left"
-                   Margin="{StaticResource MarginAboveStatus}">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Note}" Value="">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
-
-        <TextBlock Grid.Row="3"
                    AutomationProperties.AutomationId="diffCounts"
                    Text="{Binding Counts}"
                    TextWrapping="Wrap"
@@ -97,9 +121,10 @@
         <!--
             THE CAVEATS, IN THE NOTICE VOICE - the colour the line under the list uses for what an
             answer has to admit about itself, which is what each of these is. The AutomationId is on the
-            ItemsControl, never on a panel: a layout panel gets no automation peer.
+            ItemsControl, never on a panel: a layout panel gets no automation peer. No choice under
+            "Show" hides these - they are not rows.
         -->
-        <ItemsControl Grid.Row="4"
+        <ItemsControl Grid.Row="3"
                       AutomationProperties.AutomationId="diffCaveats"
                       ItemsSource="{Binding Caveats}">
             <ItemsControl.ItemTemplate>
@@ -112,8 +137,13 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
+        <!-- Which rows the table shows, "Show" and its count - DiffFilterRow.xaml (W2-b). -->
+        <local:DiffFilterRow Grid.Row="4"
+                             x:Name="Choices" />
+
         <!-- The table, or the sentence in its place when nothing differs - DiffTable.xaml. -->
         <local:DiffTable Grid.Row="5"
+                         x:Name="Table"
                          Margin="{StaticResource MarginTileParts}" />
     </Grid>
 </UserControl>

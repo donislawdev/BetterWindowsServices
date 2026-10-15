@@ -333,6 +333,13 @@
                         DataContext="{Binding Snapshotting.Shown}"
                         Visibility="Collapsed" />
 
+        <!-- Before a snapshot is taken, in the same cell and the same way - SnapshotFormView.xaml. -->
+        <local:SnapshotFormView Grid.Row="4"
+                                Grid.ColumnSpan="2"
+                                x:Name="TakeForm"
+                                DataContext="{Binding Snapshotting.Form}"
+                                Visibility="Collapsed" />
+
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
             Escape - which is the last of the three keys `docs/11` 9.1 asked for on 2026-08-05 and

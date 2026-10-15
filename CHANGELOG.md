@@ -31,6 +31,16 @@ is not part of this repository.
   either changes a service, and a file at the chosen path that is not a snapshot is refused and left
   as it was. A value read from a snapshot shows a control or text direction character as its code
   point, as the command line does.
+- More for snapshots in the window. "Compare two snapshots..." asks for two files, one after the
+  other, and compares them the same way - two days of one machine, or two machines - with the one
+  taken first on the left whichever you chose first, both notes shown, and the caveats saying "the two
+  snapshots". "Show" above the table narrows it to the differences, to one field such as the startup
+  type, to the entries one side could not see, or to the fields that were not compared, each with its
+  number of rows, and says how many rows are hidden. "Export..." writes the comparison to a comma
+  separated file - first what the window says above the table, then the rows as you sorted them.
+  "Take snapshot..." now opens a short page first: it says whether the window reads the machine
+  with administrator rights, and takes a note that is kept inside the snapshot and shown whenever it
+  is compared, as `bws snapshot create --note` does.
 - A "GitHub" button left of Donate at the right end of the row above the search box. It opens the
   project's repository - the source, the issues and the releases - in your browser, the way Donate
   opens its page, and in a window running as administrator it asks the desktop to open it, so the

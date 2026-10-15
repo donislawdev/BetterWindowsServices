@@ -356,6 +356,7 @@ public static partial class Catalogue
                 data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
 
             .. DiffViews(compared),
+            .. SnapshotFormViews(),
 
             View(() => new DetailsView(),
                 data: ready.ChoseOrdinary.Chosen, wrong: ready.ChoseGone.Chosen, loading: ready.ChoseReading, extreme: ready.ChoseLongest.Chosen),

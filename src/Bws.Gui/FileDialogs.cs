@@ -47,12 +47,17 @@ internal static class FileDialogs
     /// <summary>A dialog asking which existing file to read.</summary>
     /// <param name="extension">With its leading dot, as the dialog wants it.</param>
     /// <param name="kind">What the files are called in the dialog's filter, already in words.</param>
-    internal static OpenFileDialog Open(string extension, string kind) =>
+    /// <param name="title">
+    /// What the dialog is choosing for, in its title bar - since 2026-10-15, when comparing two files
+    /// put two of these on screen one after the other and "Open" said nothing about which was which.
+    /// </param>
+    internal static OpenFileDialog Open(string extension, string kind, string title) =>
         Started(new OpenFileDialog
         {
             DefaultExt = extension,
             Filter = Filter(extension, kind),
-            CheckFileExists = true
+            CheckFileExists = true,
+            Title = title
         });
 
     /// <summary>

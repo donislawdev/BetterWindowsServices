@@ -88,12 +88,17 @@ public partial class MainWindow
         // overview does (MainWindow.Snapshots.cs). It arrives only from the action bar, which the
         // overview hides, and it puts the overview away when it comes - so the two never stand there
         // together, and if they ever did the comparison is the newer thing somebody asked for.
+        //
+        // AND FIVE SINCE 2026-10-15 - the form before a snapshot (W2-d) stands there the same way. It
+        // comes only from the bar too, and Snapshotting never holds it and a comparison at once.
         var comparing = _model.Snapshotting.Shown is not null;
-        var overview = _model.ShowingOverview && !comparing;
-        var elsewhere = overview || comparing;
+        var preparing = _model.Snapshotting.Form is not null && !comparing;
+        var overview = _model.ShowingOverview && !_model.Snapshotting.InTheMiddle;
+        var elsewhere = overview || comparing || preparing;
 
         Overview.Visibility = overview ? Visibility.Visible : Visibility.Collapsed;
         Comparison.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
+        TakeForm.Visibility = preparing ? Visibility.Visible : Visibility.Collapsed;
         Entries.Visibility = elsewhere ? Visibility.Collapsed : Visibility.Visible;
 
         // THE EMPTY STATE IS PUT BACK BY CLEARING RATHER THAN BY SETTING, AND THE DIFFERENCE IS A
