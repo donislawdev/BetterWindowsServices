@@ -21,9 +21,14 @@ public sealed partial class Snapshotting
     /// Writes the comparison on screen to a file - its sentences, then the rows the table shows in the
     /// order it shows them - and says how many went where, or why none did (W2-c). Hands back the
     /// sentence about a failure, for a guard to read, the way the list's export does.
+    ///
+    /// <b>The text is made here and written off the window's thread</b>, since a review of 2026-10-15:
+    /// the rows and the sentences are the window's and cost nothing to join, and the write goes to a
+    /// folder somebody chose, which may be a share on the network - the argument the snapshot's own
+    /// write was moved off the thread for.
     /// </summary>
     /// <param name="rows">The rows as the table has them, sorted the way somebody sorted them.</param>
-    internal string? Export(string path, IReadOnlyList<DiffLine> rows)
+    internal async Task<string?> ExportAsync(string path, IReadOnlyList<DiffLine> rows)
     {
         if (Shown is not { } sheet)
         {
@@ -35,7 +40,7 @@ public sealed partial class Snapshotting
 
         try
         {
-            AtomicFile.Write(path, Exporting.Mark + text);
+            await WrittenOffTheWindow(path, Exporting.Mark + text).ConfigureAwait(true);
 
             trouble = null;
         }

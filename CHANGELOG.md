@@ -32,9 +32,9 @@ is not part of this repository.
   as it was. A value read from a snapshot shows a control or text direction character as its code
   point, as the command line does.
 - More for snapshots in the window. "Compare two snapshots..." asks for two files, one after the
-  other, and compares them the same way - two days of one machine, or two machines - with the one
-  taken first on the left whichever you chose first, both notes shown, and the caveats saying "the two
-  snapshots". "Show" above the table narrows it to the differences, to one field such as the startup
+  other, and compares them the same way - two days of one machine, or two machines - with the
+  snapshot taken earlier on the left whichever file you chose first, both notes shown, and the
+  caveats saying "the two snapshots". "Show" above the table narrows it to the differences, to one field such as the startup
   type, to the entries one side could not see, or to the fields that were not compared, each with its
   number of rows, and says how many rows are hidden. "Export..." writes the comparison to a comma
   separated file - first what the window says above the table, then the rows as you sorted them.

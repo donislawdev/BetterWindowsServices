@@ -52,6 +52,22 @@ public sealed class DiffFilterTests
     }
 
     [Fact]
+    public void A_choice_tells_the_table_once_rather_than_once_a_row()
+    {
+        // A review of 2026-10-15: the first version removed and inserted row by row, and the grid
+        // answers every notification - the list measured that at about 285 ms for 810 rows (RowList).
+        var sheet = Mixed();
+        var told = new List<System.Collections.Specialized.NotifyCollectionChangedAction>();
+
+        sheet.Filter.Rows.CollectionChanged += (_, changed) => told.Add(changed.Action);
+        sheet.Filter.Choices[1].IsChosen = true;
+        sheet.Filter.Choices[0].IsChosen = true;
+
+        Assert.Equal([System.Collections.Specialized.NotifyCollectionChangedAction.Reset, System.Collections.Specialized.NotifyCollectionChangedAction.Reset], told);
+        Assert.Equal(sheet.Lines, sheet.Filter.Rows);
+    }
+
+    [Fact]
     public void The_tick_on_what_is_shown_cannot_be_taken_off()
     {
         // A table always shows something: clicking the ticked item says "this" again, not "nothing".

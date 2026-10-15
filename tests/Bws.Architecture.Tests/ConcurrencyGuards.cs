@@ -55,7 +55,8 @@ public sealed class ConcurrencyGuards
             "sheet is built and shown back on the interface thread, and one reading at a time is held " +
             "by Busy, which only the interface thread sets. Since 2026-10-15 (W2) the same road reads " +
             "and compares two snapshot files, which touches no machine and can still be two files at " +
-            "the size ceiling on a share - TwoSnapshotsTests holds it.",
+            "the size ceiling on a share - TwoSnapshotsTests holds it - and writes a comparison's " +
+            "export, whose folder may be such a share too (DiffExportingTests).",
 
         ["Readings.cs"] =
             "Reading the manager off the interface thread, because a full reading takes about " +

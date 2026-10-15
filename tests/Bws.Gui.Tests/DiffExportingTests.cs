@@ -66,7 +66,7 @@ public sealed class DiffExportingTests : IDisposable
         var path = Path.Combine(_folder, "comparison.csv");
         var rows = model.Snapshotting.Shown!.Filter.Rows;
 
-        Assert.Null(model.Snapshotting.Export(path, rows));
+        Assert.Null(await model.Snapshotting.ExportAsync(path, rows));
 
         var bytes = await File.ReadAllBytesAsync(path);
 
@@ -79,10 +79,15 @@ public sealed class DiffExportingTests : IDisposable
     {
         var model = await Compared();
 
-        var trouble = model.Snapshotting.Export(_folder, model.Snapshotting.Shown!.Filter.Rows);
+        var trouble = await model.Snapshotting.ExportAsync(_folder, model.Snapshotting.Shown!.Filter.Rows);
+
+        // The reason Windows gave sits between what failed and the way out (`docs/11` section 5) -
+        // so the sentence is held by both of its ends rather than by a reason this test cannot know.
+        var ends = Texts.Of("gui.diff.export.failed", "REASON").Split("REASON");
 
         Assert.NotNull(trouble);
-        Assert.StartsWith(Texts.Of("gui.diff.export.failed", string.Empty).Trim(), trouble, StringComparison.Ordinal);
+        Assert.StartsWith(ends[0], trouble, StringComparison.Ordinal);
+        Assert.EndsWith(ends[1], trouble, StringComparison.Ordinal);
 
         // The foot puts its own opening before it ("That did not happen."), so the sentence is in it, not all of it.
         Assert.Contains(trouble, model.Says.Problem, StringComparison.Ordinal);

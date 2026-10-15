@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace Bws.Gui.ViewModels;
 
@@ -17,9 +19,12 @@ namespace Bws.Gui.ViewModels;
 /// how much - rule 8: a table that lost rows without a word would read as the whole comparison. The
 /// sentences above the table are not rows and no choice hides them.
 ///
-/// <b>The rows change in place rather than being replaced</b>, which is how the list keeps the order
-/// somebody sorted it into (RowList): the grid sorts a view over this collection, and a collection
-/// swapped for another would take the sort with it.
+/// <b>The collection stays and its contents are replaced in one notification</b> (<see cref="DiffRows"/>).
+/// Staying is what keeps the order somebody sorted the table into - the grid sorts a view over this
+/// collection, and a collection swapped for another would take the sort with it. One notification
+/// rather than one per row since a review of 2026-10-15: the first version removed and inserted row by
+/// row, and the list measured a notification per row at about 285 ms for 810 rows (RowList), which a
+/// comparison of two different machines reaches.
 /// </summary>
 public sealed class DiffFilter : Observable
 {
@@ -32,14 +37,14 @@ public sealed class DiffFilter : Observable
         Choices = Offered(all);
         _chosen = Choices[0];
         _chosen.Mark(chosen: true);
-        Rows = [.. all];
+        Rows = new DiffRows(all);
     }
 
     /// <summary>What the menu under the button offers, "All rows" first.</summary>
     public IReadOnlyList<DiffChoice> Choices { get; }
 
     /// <summary>The rows the table shows - every row until somebody chooses otherwise.</summary>
-    public ObservableCollection<DiffLine> Rows { get; }
+    public DiffRows Rows { get; }
 
     /// <summary>The words on the button, naming what is shown.</summary>
     public string Button => Texts.Of("gui.diff.show", _chosen.Name);
@@ -72,38 +77,12 @@ public sealed class DiffFilter : Observable
         _chosen = choice;
         _chosen.Mark(chosen: true);
 
-        Narrow(choice);
+        // In the comparison's own order - the grid lays its sort over that, and without a sort this
+        // is the order the command line reports in.
+        Rows.ShowOnly(_all.Where(choice.Takes));
 
         Raise(nameof(Button));
         Raise(nameof(Showing));
-    }
-
-    /// <summary>
-    /// Takes out what the choice does not take and puts back what it does, in the comparison's own
-    /// order. After the removals the rows are a subsequence of every row in that order, so one walk
-    /// along every row knows where each missing one goes.
-    /// </summary>
-    private void Narrow(DiffChoice choice)
-    {
-        for (var at = Rows.Count - 1; at >= 0; at--)
-        {
-            if (!choice.Takes(Rows[at]))
-            {
-                Rows.RemoveAt(at);
-            }
-        }
-
-        var next = 0;
-
-        foreach (var line in _all.Where(choice.Takes))
-        {
-            if (next >= Rows.Count || !ReferenceEquals(Rows[next], line))
-            {
-                Rows.Insert(next, line);
-            }
-
-            next++;
-        }
     }
 
     /// <summary>
@@ -190,4 +169,40 @@ public sealed class DiffChoice : Observable
     internal Func<DiffLine, bool> Takes { get; }
 
     internal void Mark(bool chosen) => Set(ref _chosen, chosen, nameof(IsChosen));
+}
+
+/// <summary>
+/// The rows a comparison's table shows, replaced all at once when "Show" changes.
+///
+/// <b>RowList.ResetTo's mechanism, and its measurement is the reason</b>: a notification per row is
+/// a notification the grid answers per row. The second place this is done, so a small type rather than
+/// a shared base - the list's version carries a contract about the selection and the scroll position
+/// (`A10`) that a comparison's table does not have.
+/// </summary>
+public sealed class DiffRows : ObservableCollection<DiffLine>
+{
+    internal DiffRows(IEnumerable<DiffLine> rows)
+        : base(rows)
+    {
+    }
+
+    /// <summary>
+    /// Replaces every row with these, saying so once. The three notifications are the three WPF needs
+    /// - RowList.ResetTo says why each one.
+    /// </summary>
+    internal void ShowOnly(IEnumerable<DiffLine> rows)
+    {
+        CheckReentrancy();
+
+        Items.Clear();
+
+        foreach (var row in rows)
+        {
+            Items.Add(row);
+        }
+
+        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+    }
 }

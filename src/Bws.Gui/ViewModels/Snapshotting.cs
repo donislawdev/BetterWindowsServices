@@ -334,6 +334,13 @@ public sealed partial class Snapshotting : Observable
     }
 
     /// <summary>
+    /// A file written off the window's thread - the comparison's export (Snapshotting.Files.cs). Here
+    /// rather than there, because this file is where ConcurrencyGuards holds the argument for work
+    /// leaving that thread.
+    /// </summary>
+    private static Task WrittenOffTheWindow(string path, string text) => Task.Run(() => AtomicFile.Write(path, text));
+
+    /// <summary>
     /// Why a snapshot may not go to this path. Told that a snapshot standing there may go, for the
     /// reason <see cref="TakeAsync"/> gives - the dialog has already asked.
     /// </summary>

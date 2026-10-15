@@ -52,7 +52,7 @@ internal sealed class SnapshotDoors
         actions.CompareTwoRequest += async (_, _) => await doors.CompareTwoSnapshots().ConfigureAwait(true);
         middle.Form.SaveRequest += async (_, _) => await doors.TakeSnapshot().ConfigureAwait(true);
         middle.Form.Finished += (_, _) => model.Snapshotting.PutAway();
-        comparison.ExportRequest += (_, _) => doors.Export();
+        comparison.ExportRequest += async (_, _) => await doors.Export().ConfigureAwait(true);
         comparison.Finished += (_, _) => model.Snapshotting.PutAway();
 
         model.Snapshotting.PropertyChanged += (_, changed) =>
@@ -142,14 +142,13 @@ internal sealed class SnapshotDoors
     /// Asks where the comparison on screen should go and writes it there, its sentences first and the
     /// rows as the table shows them - owner's decision W2-c.
     /// </summary>
-    private void Export()
+    private Task Export()
     {
         var dialog = FileDialogs.Save(DiffExporting.FileName(), ".csv", Texts.Of("gui.export.kind"));
 
-        if (dialog.ShowDialog(_owner) == true)
-        {
-            _ = _model.Snapshotting.Export(dialog.FileName, _middle.Comparison.InTheOrderOnScreen());
-        }
+        return dialog.ShowDialog(_owner) == true
+            ? _model.Snapshotting.ExportAsync(dialog.FileName, _middle.Comparison.InTheOrderOnScreen())
+            : Task.CompletedTask;
     }
 
     /// <summary>The two views snapshots put where the list was, handed over together.</summary>
