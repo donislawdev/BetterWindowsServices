@@ -125,13 +125,26 @@ public sealed class FilterRowGuards
     /// <b>Shown rather than only measured, for the reason <c>PlanViewGuards</c> writes out at
     /// length:</b> an ItemsControl builds no containers until a layout pass runs, so a guard over
     /// a window nobody showed would be counting chips that are not in the tree yet, and passing.
+    ///
+    /// <b>AND AGAIN AT A ROW THIS TEST NARROWS ITSELF, SINCE 2026-10-16, BECAUSE THE NARROWEST
+    /// WINDOW TURNED OUT TO BE A YARDSTICK OF ONE MACHINE.</b> The mutation registry first ran on
+    /// GitHub that day, and the entry that puts this fault back came out MISSED there twice while
+    /// it is caught on the owner's machine. Measured there the same day, at 150 per cent, with the
+    /// fault put back by hand: the one group that overflows, Startup type, ended at 754 against a
+    /// row ending at 745.3. Nine units was all this guard had, and a runner does not give them -
+    /// what differs there is NOT MEASURED, the screen scale is the first suspect. So the row is
+    /// then narrowed to its label column and room for two of its widest chip, rather than one, so
+    /// that rounding cannot push the widest chip out - every chip still fits there and the widest
+    /// group cannot stand on one line - and the same question is asked again. The last assertion
+    /// says some group did wrap at that width, so a narrowing that stopped narrowing is a red test
+    /// rather than a quiet one.
     /// </summary>
     [Fact]
     public void No_filter_chip_stands_outside_a_narrow_window()
     {
         var window = WpfHost.Window();
 
-        var (chips, worst, name, edge) = WpfHost.On(() =>
+        var (least, narrowed) = WpfHost.On(() =>
         {
             window.Width = (double)WpfHost.Resources["WidthWindowLeast"];
             window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
@@ -141,35 +154,26 @@ public sealed class FilterRowGuards
             window.Show();
             window.UpdateLayout();
 
-            var dress = (Style)WpfHost.Resources["FilterChip"];
-            var found = new List<ToggleButton>();
+            var atLeast = ChipSpread.Of(window);
 
-            Collect(window.Filters, dress, found);
+            window.Filters.Chips.Width = atLeast.Labels + (2 * atLeast.WidestChip);
+            window.UpdateLayout();
 
-            var over = found
-                .Select(chip => (
-                    Right: chip.TransformToAncestor(window).Transform(new Point(chip.ActualWidth, 0)).X,
-                    Says: chip.Content as string))
-                .OrderByDescending(pair => pair.Right)
-                .First();
-
-            var host = window.Filters.Chips;
-            var hostRight = host.TransformToAncestor(window).Transform(new Point(host.ActualWidth, 0)).X;
-
-            return (found.Count, over.Right, over.Says, hostRight);
+            return (atLeast, ChipSpread.Of(window));
         });
 
         // NOT VACUOUS, and that half matters as much as the other: a walk that found nothing would
         // have no widest chip and no way to fail. Fifteen is under the number this build has and
         // over any accident.
-        Assert.True(chips >= 15, $"Only {chips} filter chips were built, so this proved nothing.");
+        Assert.True(least.Count >= 15, $"Only {least.Count} filter chips were built, so this proved nothing.");
+
+        Assert.True(least.Right <= least.Edge, least.Outside());
+        Assert.True(narrowed.Right <= narrowed.Edge, narrowed.Outside());
 
         Assert.True(
-            worst <= edge,
-            $"The chip \"{name}\" ends {worst} across, in a row that ends at {edge} - so it is "
-            + "standing outside the row, where it can be neither read nor clicked. A group whose "
-            + "chips cannot wrap grows to the width of all of them, and the row around it can "
-            + "only break between groups.");
+            narrowed.Lines > narrowed.Groups,
+            $"Narrowed to {narrowed.Edge - narrowed.Left} across, the {narrowed.Groups} groups stood on "
+            + $"{narrowed.Lines} lines of chips - no group had to wrap, so this proved nothing.");
 
         WpfHost.On(window.Close);
     }
@@ -305,6 +309,72 @@ public sealed class FilterRowGuards
                 yield return under;
             }
         }
+    }
+
+    private static IEnumerable<DependencyObject> Ancestors(DependencyObject from)
+    {
+        for (var at = VisualTreeHelper.GetParent(from); at is not null; at = VisualTreeHelper.GetParent(at))
+        {
+            yield return at;
+        }
+    }
+
+    /// <summary>
+    /// Where the chips of the filter row stand once laid out, in units across the window. Lines
+    /// counts the lines of chips over every group, so more lines than groups means a group wrapped.
+    /// </summary>
+    private sealed class ChipSpread
+    {
+        public required int Count { get; init; }
+
+        public required double Right { get; init; }
+
+        public required string? Says { get; init; }
+
+        public required double Left { get; init; }
+
+        public required double Edge { get; init; }
+
+        public required double Labels { get; init; }
+
+        public required double WidestChip { get; init; }
+
+        public required int Lines { get; init; }
+
+        public required int Groups { get; init; }
+
+        public static ChipSpread Of(MainWindow window)
+        {
+            var found = new List<ToggleButton>();
+            Collect(window.Filters, (Style)WpfHost.Resources["FilterChip"], found);
+
+            var placed = found
+                .Select(chip => (Chip: chip, At: chip.TransformToAncestor(window).Transform(new Point()), Panel: Ancestors(chip).OfType<Panel>().First()))
+                .ToArray();
+
+            var over = placed.MaxBy(one => one.At.X + one.Chip.ActualWidth);
+            var host = window.Filters.Chips;
+            var left = host.TransformToAncestor(window).Transform(new Point()).X;
+
+            return new ChipSpread
+            {
+                Count = placed.Length,
+                Right = over.At.X + over.Chip.ActualWidth,
+                Says = over.Chip.Content as string,
+                Left = left,
+                Edge = left + host.ActualWidth,
+                Labels = placed.Min(one => one.At.X) - left,
+                WidestChip = placed.Max(one => one.Chip.ActualWidth + one.Chip.Margin.Left + one.Chip.Margin.Right),
+                Lines = placed.Select(one => (one.Panel, Math.Round(one.At.Y))).Distinct().Count(),
+                Groups = placed.Select(one => one.Panel).Distinct().Count(),
+            };
+        }
+
+        public string Outside() =>
+            $"The chip \"{Says}\" ends {Right} across, in a row that ends at {Edge} - so it is "
+            + "standing outside the row, where it can be neither read nor clicked. A group whose "
+            + "chips cannot wrap grows to the width of all of them, and the row around it can "
+            + "only break between groups.";
     }
 
     private static void Collect(DependencyObject from, Style dress, List<ToggleButton> found)

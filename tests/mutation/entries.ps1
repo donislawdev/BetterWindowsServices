@@ -6294,6 +6294,11 @@ $mutations = @(
         # THE GUARD ASKS AT THE NARROW SIZE AND ONLY THERE, which is the whole reason this went
         # unseen: at the size this window opens with, every group fits and the broken markup and
         # the repaired markup are the same picture.
+        #
+        # AND AT A ROW THE TEST NARROWS ITSELF, since 2026-10-16. At the narrowest window the fault
+        # put back stood 8.7 units outside the row on the owner's machine (754 against 745.3, at 150
+        # per cent) and not at all on GitHub's runners, where this entry came out MISSED twice. In
+        # the row narrowed to its label column and two of its widest chip it stands 237 units out.
         Name = 'window: a filter chip never stands outside a narrow window'
         File = 'src\Bws.Gui\Themes\Chips.xaml'
         From = '                        <WrapPanel />'
@@ -11912,8 +11917,10 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     },
     @{
         # The owner's decision of 2026-10-06: the version in the file's own resource. The mutant asks
-        # the way System.Diagnostics.FileVersionInfo asks. Caught only on a machine where a language
-        # file disagrees with the binary - this one does (svchost.exe, 8737 against 8875).
+        # the way System.Diagnostics.FileVersionInfo asks. Until 2026-10-16 the test asked svchost.exe in
+        # System32 and was caught only where a language file disagrees with the binary (the owner's
+        # machine, 8737 against 8875) - MISSED twice on GitHub. Since then the test copies the binary
+        # and its language files with their version moved, so the disagreement exists on any machine.
         Name = 'version: the file''s own resource, not a language file'
         File = 'src\Bws.Core\WindowsBinaryInspector.Version.cs'
         From = 'private const GET_FILE_VERSION_INFO_FLAGS FromTheFileItself = default;'
@@ -12922,10 +12929,13 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'ChangeHistoryTests.A_sid_that_is_not_shaped_like_one_gets_no_name_and_throws_nothing'
     }
     @{
-        # Caught only on a machine whose time zone is not UTC - the owner's is +02:00. A runner in UTC
-        # would let it through, and this registry runs on the owner's machine. The first version of this
-        # entry took AdjustToUniversal away and came back MISSED: the trailing Z already keeps the offset
-        # at zero, so it removed nothing - the comment it stood on was wrong, and is corrected.
+        # Caught only on a machine whose time zone is not UTC - the owner's is +02:00. In UTC moving a
+        # time into the machine's zone changes nothing, and the first two runs on GitHub came back MISSED
+        # for that reason, so since 2026-10-16 mutation.yml sets each part's machine to the owner's zone
+        # (a test cannot choose its own zone on Windows, measured that day). Run by hand in UTC, this
+        # entry is MISSED and says nothing about the test. The first version of this entry took
+        # AdjustToUniversal away and came back MISSED: the trailing Z already keeps the offset at zero,
+        # so it removed nothing - the comment it stood on was wrong, and is corrected.
         Name = 'history: the time is never moved to this machine zone'
         File = 'src\Bws.Core\History\ChangeEvents.cs'
         From = '? at'

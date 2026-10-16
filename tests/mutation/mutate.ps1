@@ -141,12 +141,18 @@ param(
     [string] $PlanTo = '',
 
     # How many parts a run of every entry is cut into, the most a pull request gets, and how many
-    # entries make one part of a pull request. The first two are decisions of 2026-10-16: sixteen
-    # leaves four of the twenty jobs a free plan runs at once, and a pull request keeps room for
-    # its own checks. Forty is a starting point, to be read again after the first runs.
+    # entries make one part of a pull request. Sixteen weekly is a decision of 2026-10-16: it leaves
+    # four of the twenty jobs a free plan runs at once. A pull request had eight parts of forty
+    # entries that day and sixteen of twenty from the same evening, read off the first run on
+    # GitHub (run 38826929149, eight parts of about 154 entries each): a part pays about 47 s for
+    # the machine before this script starts and 113 to 173 s in it outside the entries, and an entry
+    # takes 14.2 s at the median. The whole registry, which a change to this runner selects, took 37
+    # to 41 minutes in eight parts and should take about 21 in sixteen, and a pull request reaching
+    # a hundred entries gets five parts of about eight minutes. The price is said: sixteen parts and
+    # the other checks of a pull request ask for more than twenty jobs, so some parts wait a turn.
     [int] $FullParts = 16,
-    [int] $MostPartsOnAPullRequest = 8,
-    [int] $EntriesPerPart = 40,
+    [int] $MostPartsOnAPullRequest = 16,
+    [int] $EntriesPerPart = 20,
 
     # JUDGES ONLY WHAT CI RUNS. build.yml takes the integration project through the runs=anywhere
     # trait and nothing else, on purpose, so an entry naming an integration test without that
@@ -470,7 +476,7 @@ function Select-Reached($Entries, $Previous, [string[]] $ChangedFiles, $Index) {
     }
 }
 
-# How many parts: a run of every entry gets the full count, a pull request one part per forty
+# How many parts: a run of every entry gets the full count, a pull request one part per twenty
 # entries and never more than its ceiling, and never more parts than entries. None for none - an
 # empty matrix is an error on GitHub, so the workflow asks this number before it starts one.
 function Get-PartCount([int] $Count, [bool] $PullRequest) {
@@ -839,8 +845,17 @@ if ($SelfTest) {
     $cut = @(0..2 | ForEach-Object { @(Select-Part (1..7) $_ 3) })
     if ((($cut | Sort-Object) -join ',') -ne '1,2,3,4,5,6,7') { $problems += "three parts of seven gave $($cut -join ',')" }
     if (@(Select-Part (1..7) 0 3).Count -ne 3) { $problems += 'part 0 of 3 over seven entries did not hold three' }
-    $counts = @((Get-PartCount 0 $true), (Get-PartCount 1 $true), (Get-PartCount 41 $true), (Get-PartCount 1228 $true), (Get-PartCount 1228 $false), (Get-PartCount 10 $false)) -join ','
-    if ($counts -ne '0,1,2,8,16,10') { $problems += "the part counts were $counts, expected 0,1,2,8,16,10" }
+    $counts = @((Get-PartCount 0 $true), (Get-PartCount 1 $true), (Get-PartCount 41 $true), (Get-PartCount 100 $true), (Get-PartCount 400 $true), (Get-PartCount 1228 $true), (Get-PartCount 1228 $false), (Get-PartCount 10 $false)) -join ','
+    if ($counts -ne '0,1,3,5,16,16,16,10') { $problems += "the part counts were $counts, expected 0,1,3,5,16,16,16,10" }
+
+    # The pull request ceiling and the weekly count are both sixteen since 2026-10-16, so a count
+    # that took one for the other passes on the numbers above. Here the weekly count is set apart,
+    # as -FullParts 24 would set it, and the question is asked again.
+    $weekly = $FullParts
+    $FullParts = 24
+    $apart = @((Get-PartCount 1228 $true), (Get-PartCount 1228 $false)) -join ','
+    $FullParts = $weekly
+    if ($apart -ne '16,24') { $problems += "with the weekly count at 24 the parts were $apart, expected 16,24" }
     if ((Get-ShardList 0) -ne '[]' -or (Get-ShardList 3) -ne '[0,1,2]') { $problems += 'the matrix for zero or three parts came out wrong' }
 
     if ($problems.Count) {
