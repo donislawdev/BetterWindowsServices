@@ -1,0 +1,18 @@
+# Advisories this repository has read and settled, for OSV-Scanner.
+#
+# THE SCANNER READS THIS FILE FOR THE FILES IN THIS FOLDER ONLY. It does not carry it into
+# subfolders - the scanner's own documentation for the pinned v2.6.0 says so, and it was measured on
+# 2026-10-16: the same entry one folder down left the advisory in the report. That is on purpose
+# here, because the canary files in osv-scanner/ must keep coming back vulnerable. The one file
+# .github/workflows/osv-scanner.yml scans in this folder is semgrep.installed.txt, which it writes
+# from what pip would install for semgrep, so every entry below is about a package semgrep brings.
+#
+# .github/scripts/osv_gate.py blocks on every advisory this file does not settle. So each entry
+# carries its reason and a date it stops applying, and after that date the gate is red again - the
+# entry is then removed, or written again with a reason that is still true. Measured the same day:
+# an entry whose date has passed is reported by the scanner as unused, and the advisory comes back.
+
+[[IgnoredVulns]]
+id = "GHSA-84m7-p3x7-pcfv"
+ignoreUntil = 2026-11-16
+reason = "mcp 1.29.0 is here only because semgrep requires it, and CI runs semgrep as semgrep scan. The advisory is about an MCP server over Streamable HTTP, and nothing in this repository serves MCP. The fix is mcp 1.30.0, but semgrep 1.180.0 and 1.181.0 both require mcp==1.29.0 exactly, so pip cannot install it. Remove this entry once a semgrep release allows mcp 1.30.0 or later."

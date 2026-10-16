@@ -390,7 +390,11 @@ public sealed class PublicSurfaceGuards
         // no sweep had ever read - five of them in git that day, packaging/ and tests/, all ASCII
         // when measured before the line went in. They hold paths, machine names and long comments
         // about measurements, the material a home directory wanders into.
-        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "*.ps1", "*.wxs", "CODEOWNERS", "Dockerfile" }
+        //
+        // *.toml joined it on 2026-10-16, with .github/osv-scanner.toml - the first file of that
+        // kind in git, and nothing but prose: why an advisory is settled and until when. Measured
+        // before this line went in: with that file staged, every sweep was green and none read it.
+        return new[] { "*.cs", "*.csproj", "*.xaml", "*.json", "*.yml", "*.md", "*.props", "*.slnx", "*.html", "*.css", "*.py", "*.txt", "*.ps1", "*.wxs", "*.toml", "CODEOWNERS", "Dockerfile" }
             .SelectMany(pattern => Directory.EnumerateFiles(root, pattern, SearchOption.AllDirectories))
             .Where(NotBuildOutput)
             .Where(InVersionControl)
