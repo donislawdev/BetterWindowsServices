@@ -28,14 +28,13 @@ namespace Bws.Core;
 /// returned <c>E_FAIL</c> for both of them. <c>todo.dll</c> is not on the disk at all. So the cost
 /// of that road is one system call per entry on the listing path in exchange for nothing.
 ///
-/// <b>WHAT THIS IS NOT ALLOWED NEAR, AND THE REASON IS THE PRODUCT ITSELF: a snapshot.</b> A
-/// snapshot records what the machine said, so that a later comparison can tell whether the machine
-/// changed. Storing the substitution instead would mean that the day the resource is fixed and the
-/// stored value genuinely changes, both sides would still read the same and the comparison would
-/// report nothing. That is rule 8 - a silent loss dressed as a clean result - and it is the one
-/// failure this tool exists to prevent. <see cref="Snapshots.EntryDocument"/> therefore keeps
-/// writing <see cref="ScmEntry.DisplayName"/> untouched, and the difference between the two is the
-/// difference between a label and a record.
+/// <b>The snapshot carries this label too, and that was decided against a first answer that kept
+/// the stored text.</b> The first answer was that a snapshot records what the manager said, so that
+/// the day the resource is fixed a comparison sees the stored text change. It lost to the field's own
+/// definition - a label for a person, never a key - and to the listing and its JSON having to agree.
+/// The argument and its price are beside the line that applies this, in
+/// <see cref="Snapshots.EntryDocument"/>. Until 2026-10-16 this paragraph still said the snapshot kept
+/// the stored text, which the property over every document the command line prints found out.
 ///
 /// <b>Never a refusal, and that is where it parts from <see cref="ServiceDescription"/>.</b> A
 /// description is optional, so "nobody could turn this into words" is a true and usable answer for

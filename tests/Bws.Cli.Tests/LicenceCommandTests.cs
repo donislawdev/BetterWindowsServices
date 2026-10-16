@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Bws.Tests;
 
 namespace Bws.Cli.Tests;
 

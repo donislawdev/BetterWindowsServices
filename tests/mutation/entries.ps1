@@ -13115,6 +13115,54 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = 'if (!asked && spelled.Length == prefix.Length && false)' + [char]10 + '                {' + [char]10 + '                    // Already there in full'
         Test = 'QueryShapePropertyTests.Nothing_offers_itself_again_in_shaped_text_once_it_has_been_written'
     }
+    @{
+        # PowerShell reads a single quote mark inside single quotes as the end of the word unless it is
+        # doubled. A name holding one and a dollar - the only names that go in single quotes - would
+        # reach this tool cut short, and the plan would hand out a line that names another entry.
+        Name = 'search: a quote mark in a name is doubled inside single quotes'
+        File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
+        From = 'if (SingleQuoteMarks.Contains(character))'
+        To = 'if (SingleQuoteMarks.Contains(character) && false)'
+        Test = 'EquivalentCommandPropertyTests.Any_name_typed_the_way_the_plan_writes_it_reaches_this_tool_through_PowerShell_as_the_same_ask'
+    }
+    @{
+        # The double quoted form is the one cmd reads too, and the Windows parser is the oracle for it.
+        # A quote left open runs to the end of the line, so the switches become part of the name.
+        Name = 'search: a name in double quotes has its closing quote'
+        File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
+        From = 'return $"\"{serviceName}\"";'
+        To = 'return $"\"{serviceName}";'
+        Test = 'EquivalentCommandPropertyTests.Any_name_the_plan_writes_for_cmd_too_reaches_this_tool_through_the_Windows_parser_as_the_same_ask'
+    }
+    @{
+        # Program.cs builds the plan on the promise that a start type is never missing where the verb
+        # needs one, because a refusal turned it back. Without the refusal a word that names no start
+        # type walks through in silence.
+        Name = 'search: a start type nobody has is refused before anything runs'
+        File = 'src\Bws.Cli\Refusals.cs'
+        From = 'if (setting is null)'
+        To = 'if (setting is null && false)'
+        Test = 'CommandLinePropertyTests.Any_words_end_in_an_answer_that_says_something_or_a_command_whole_enough_to_run'
+    }
+    @{
+        # Everything before the first character outside ASCII is copied as it is, so moving that
+        # boundary past the Latin letters prints them as themselves - the bytes a console on another
+        # code page turns into a file no UTF-8 reader accepts.
+        Name = 'search: every document leaves as ASCII'
+        File = 'src\Bws.Cli\AsciiJson.cs'
+        From = "var first = document.AsSpan().IndexOfAnyExceptInRange('\0', Last);"
+        To = "var first = document.AsSpan().IndexOfAnyExceptInRange('\0', (char)0x017F);"
+        Test = 'AsciiJsonPropertyTests.Any_text_an_entry_carries_leaves_as_ascii_and_reads_back_as_the_machine_said_it'
+    }
+    @{
+        # The property's verbs are a copy, because the tool reads them in a switch nothing can list. A
+        # verb dropped from the copy is a kind of command nobody draws, and the guard beside it says so.
+        Name = 'search: the words a property draws reach every kind of command'
+        File = 'tests\Bws.Cli.Tests\CommandLinePropertyTests.cs'
+        From = '"history", "license", "snapshot"]'
+        To = '"history", "snapshot"]'
+        Test = 'CommandLinePropertyTests.The_words_drawn_above_reach_every_kind_of_command'
+    }
 )
 
 $mutations

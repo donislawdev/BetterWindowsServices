@@ -35,6 +35,12 @@ namespace Bws.Cli;
 /// section 7), and a character outside the basic plane is two escapes, one per surrogate, which is
 /// how that section spells it. A parser hands back exactly what the machine said.
 ///
+/// <b>One exception, measured rather than assumed</b> (2026-10-16, .NET 10.0.13): a surrogate standing
+/// alone - text the registry can hold and no well formed string can - is written by the serialiser
+/// as U+FFFD, before this class sees it, and nothing says so. The escaping here adds nothing to that
+/// and takes nothing away. AsciiJsonPropertyTests expects it, so a serialiser that changes its mind
+/// is noticed.
+///
 /// <b>NOT THE SNAPSHOT FILE.</b> That is a file this tool writes itself, in UTF-8, and its kept copy
 /// pins display names as themselves (SnapshotJson, SnapshotGoldenTests). It never passes through a
 /// console, so none of the above applies to it.
