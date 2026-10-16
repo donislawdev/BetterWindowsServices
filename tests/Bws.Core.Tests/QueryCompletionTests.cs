@@ -322,39 +322,43 @@ public sealed class QueryCompletionTests
     public void Asking_at_any_caret_in_any_text_never_throws_and_every_row_points_into_the_text()
     {
         AwkwardWithCaret.Searched(
-            pair =>
-            {
-                var (text, caret) = pair;
-
-                try
-                {
-                    foreach (var offered in QueryCompletions.WhileTyping(text, caret).Concat(QueryCompletions.OnRequest(text, caret)))
-                    {
-                        var (start, length) = offered.Replaces.GetOffsetAndLength(text.Length);
-
-                        if (start < 0 || start + length > text.Length || offered.Written.Length == 0)
-                        {
-                            return false;
-                        }
-
-                        var edited = offered.Apply(text);
-
-                        if (edited.Caret != start + offered.Written.Length
-                            || !edited.Text.AsSpan(start).StartsWith(offered.Written, StringComparison.Ordinal))
-                        {
-                            return false;
-                        }
-                    }
-                }
-                catch (Exception failure)
-                {
-                    throw new InvalidOperationException(
-                        $"Completing '{text}' at {caret} threw {failure.GetType().Name}: {failure.Message}", failure);
-                }
-
-                return true;
-            },
+            pair => EveryRowPointsIntoTheText(pair.Text, pair.Caret),
             new(20_000) { Print = pair => $"a row pointed outside the text: <{pair.Text}> at {pair.Caret}" });
+    }
+
+    /// <summary>
+    /// The rule of the property above, kept apart from its generator so that QueryShapePropertyTests
+    /// holds text shaped like the language to the same rule rather than to a copy of it.
+    /// </summary>
+    internal static bool EveryRowPointsIntoTheText(string text, int caret)
+    {
+        try
+        {
+            foreach (var offered in QueryCompletions.WhileTyping(text, caret).Concat(QueryCompletions.OnRequest(text, caret)))
+            {
+                var (start, length) = offered.Replaces.GetOffsetAndLength(text.Length);
+
+                if (start < 0 || start + length > text.Length || offered.Written.Length == 0)
+                {
+                    return false;
+                }
+
+                var edited = offered.Apply(text);
+
+                if (edited.Caret != start + offered.Written.Length
+                    || !edited.Text.AsSpan(start).StartsWith(offered.Written, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+        }
+        catch (Exception failure)
+        {
+            throw new InvalidOperationException(
+                $"Completing '{text}' at {caret} threw {failure.GetType().Name}: {failure.Message}", failure);
+        }
+
+        return true;
     }
 #pragma warning restore CA1031
 
@@ -370,23 +374,24 @@ public sealed class QueryCompletionTests
     public void Nothing_offers_itself_again_once_it_has_been_written()
     {
         AwkwardWithCaret.Searched(
-            pair =>
-            {
-                var (text, caret) = pair;
-
-                foreach (var offered in QueryCompletions.OnRequest(text, caret))
-                {
-                    var edited = offered.Apply(text);
-
-                    if (QueryCompletions.WhileTyping(edited.Text, edited.Caret)
-                        .Any(again => again.Kind == offered.Kind && again.Word == offered.Word))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            },
+            pair => NothingOffersItselfAgain(pair.Text, pair.Caret),
             new(20_000) { Print = pair => $"accepting a row reopened the list with the same row: <{pair.Text}> at {pair.Caret}" });
+    }
+
+    /// <summary>The rule of the property above, shared the same way as the one before it.</summary>
+    internal static bool NothingOffersItselfAgain(string text, int caret)
+    {
+        foreach (var offered in QueryCompletions.OnRequest(text, caret))
+        {
+            var edited = offered.Apply(text);
+
+            if (QueryCompletions.WhileTyping(edited.Text, edited.Caret)
+                .Any(again => again.Kind == offered.Kind && again.Word == offered.Word))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

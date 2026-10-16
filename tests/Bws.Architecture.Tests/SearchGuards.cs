@@ -136,14 +136,14 @@ public sealed class SearchGuards
     {
         // Every assertion above passes on zero methods, which is what a reader that stopped finding
         // anything would return. A floor rather than an exact count, so adding a property does not
-        // turn this red, and set from the count on the day it was written: sixteen weekly
-        // properties, 2026-10-16.
+        // turn this red, and set from the count on the day it was last raised: sixteen weekly
+        // properties on 2026-10-16, twenty-one once the five over shaped query text arrived.
         var methods = Methods();
 
         Assert.True(
-            methods.Count(method => method.Weekly) >= 16,
-            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 16 when " +
-            "this guard was written. Either properties were removed on purpose and this floor goes " +
+            methods.Count(method => method.Weekly) >= 21,
+            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 21 when " +
+            "this floor was last raised. Either properties were removed on purpose and this floor goes " +
             "down with them, or the reading stopped seeing them.");
 
         Assert.Contains(methods, method => method.File == Door && method.SamplesDirectly);
