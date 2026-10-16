@@ -1,0 +1,142 @@
+# The weekly search: every random property run for five minutes instead of a fraction of a second.
+#
+# On every pull request the properties in the test projects draw a few thousand inputs each and are
+# done in under a second, which is the right size for a gate and too small to find anything rare.
+# This is the other half, the model being the weekly fuzzing job of the owner's other project:
+# never on a push of ordinary work, five minutes a property, and red when a property does not hold.
+# A red Sunday leaves the seed in the log, in the job summary and in the part's artifact - the
+# finding becomes a test of its own with that seed in a later commit, and only then is it fixed.
+#
+# tests/search/search.ps1 does the work and its header says how. Each part first runs a planted
+# failure and stops if it cannot see it, so a part that reports nothing found has shown it could
+# have found something. A part that never reports is a failure of the run, never a smaller run.
+#
+# Three ways in:
+#
+#   - Sunday night, away from Saturday's mutation run and Monday's OSV scan and CodeQL.
+#   - by hand from the Actions tab, with the budget as an input.
+#   - a pull request touching the search itself, with ten seconds a property. That proves the
+#     wiring and searches very little, and it is red for the same reasons a Sunday is.
+name: search
+
+on:
+  schedule:
+    - cron: "17 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds each property searches for
+        required: false
+        default: "300"
+  pull_request:
+    paths:
+      - ".github/workflows/search.yml"
+      - "tests/search/**"
+      - "tests/Searching.cs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: search-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The budget, one expression for every job. A pull request gets ten seconds, a hand-started run
+  # what it was given, and Sunday five minutes - the owner's decision of 2026-10-16.
+  SECONDS_EACH: ${{ github.event_name == 'pull_request' && '10' || github.event.inputs.seconds || '300' }}
+
+jobs:
+  plan:
+    name: which properties
+    runs-on: windows-latest
+    timeout-minutes: 20
+    outputs:
+      properties: ${{ steps.plan.outputs.properties }}
+      parts: ${{ steps.plan.outputs.parts }}
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # Builds nothing. Proves the cut into parts, the reading of a trx file and every verdict on
+      # cases whose answer is known, before the plan below trusts them.
+      - name: the runner's own canaries
+        shell: pwsh
+        run: ./tests/search/search.ps1 -SelfTest
+
+      # Builds the test projects and asks them which tests carry the weekly trait. No property at
+      # all stops here, because an empty list is a broken list rather than a quiet week.
+      - name: the plan
+        id: plan
+        shell: pwsh
+        run: ./tests/search/search.ps1 -PlanTo $env:GITHUB_OUTPUT
+
+  run:
+    name: part ${{ matrix.shard }}
+    needs: plan
+    runs-on: windows-latest
+    # Six properties of five minutes and a build make about forty minutes. The ceiling leaves room
+    # for one hung property, which the runner ends after its budget and ten more minutes.
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: the properties of this part
+        shell: pwsh
+        env:
+          SHARD: ${{ matrix.shard }}
+          PARTS: ${{ needs.plan.outputs.parts }}
+        run: ./tests/search/search.ps1 -Shard "$($env:SHARD)/$($env:PARTS)" -Seconds $env:SECONDS_EACH -Json "search-$($env:SHARD).json"
+
+      # Always, because the file matters most on a red part - it holds the seed and what the
+      # property said, and the machine is thrown away after this job.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: search-result-${{ matrix.shard }}
+          path: search-*.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  report:
+    name: what the search found
+    needs: [plan, run]
+    if: always() && needs.plan.result == 'success'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A run in which no part reported has nothing to download, and that is for the report to say
+      # rather than for this step to fail on.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: search-result-*
+          path: results
+          merge-multiple: true
+
+      - name: the verdict
+        shell: pwsh
+        env:
+          PROPERTIES: ${{ needs.plan.outputs.properties }}
+          PARTS: ${{ needs.plan.outputs.parts }}
+        run: ./tests/search/search.ps1 -Report results -Properties $env:PROPERTIES -Parts $env:PARTS

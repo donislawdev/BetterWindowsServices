@@ -67,9 +67,10 @@ public sealed class ParserPropertyTests
     /// A property that quietly avoided them would be a property nobody could argue with.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Text_that_was_typed_either_narrows_the_listing_or_is_called_a_mistake()
     {
-        Awkward.Sample(
+        Awkward.Searched(
             text =>
             {
                 // Nothing typed means nothing expected. The empty query is the listing, and
@@ -109,17 +110,17 @@ public sealed class ParserPropertyTests
                 // Accepted, and constrains nothing. Whatever was typed went into a bin.
                 return !parsed.Query!.IsEmpty;
             },
-            iter: 20_000,
-            print: text => $"accepted and filtered nothing: <{text}>");
+            new(20_000) { Print = text => $"accepted and filtered nothing: <{text}>" });
     }
 
     [Fact]
+    [Trait("search", "weekly")]
     public void Reading_a_query_never_fails_in_a_way_it_did_not_plan_for()
     {
         // The contract is total: any text at all comes back either as something that can
         // filter or as a list of problems. An escaping mistake that throws would reach a
         // person as a stack trace from typing into a search box.
-        Awkward.Sample(
+        Awkward.Searched(
             text =>
             {
                 QueryParseResult parsed;
@@ -136,7 +137,7 @@ public sealed class ParserPropertyTests
 
                 return parsed.IsValid ^ (parsed.Problems.Count > 0);
             },
-            iter: 20_000);
+            new(20_000));
     }
 
     /// <summary>
@@ -161,10 +162,11 @@ public sealed class ParserPropertyTests
     /// below straddle the threshold that used to crash, which is all this has to do.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Reading_a_very_long_query_never_fails_in_a_way_it_did_not_plan_for()
     {
         Gen.Select(Awkward, Gen.Int[40, 200])
-            .Sample(
+            .Searched(
                 grown =>
                 {
                     var (seed, times) = grown;
@@ -185,32 +187,34 @@ public sealed class ParserPropertyTests
 
                     return parsed.IsValid ^ (parsed.Problems.Count > 0);
                 },
-                iter: 150);
+                new(150));
     }
 
     [Fact]
+    [Trait("search", "weekly")]
     public void Reading_a_query_as_expressions_never_fails_either()
     {
         // The switch beside the search box sends every bare word to the regular expression
         // engine, which is a second way in for the same text and has its own way of throwing.
-        Awkward.Sample(
+        Awkward.Searched(
             text =>
             {
                 var parsed = QueryParser.Parse("/" + text + "/");
 
                 return parsed.IsValid ^ (parsed.Problems.Count > 0);
             },
-            iter: 20_000);
+            new(20_000));
     }
 
     [Fact]
+    [Trait("search", "weekly")]
     public void A_query_that_reads_can_judge_any_entry_without_failing()
     {
         // Parsing and evaluating fail differently. A pattern that compiles and then trips over
         // a particular value would surface only on the machine that has that value.
         var entries = Specimens.All;
 
-        Awkward.Sample(
+        Awkward.Searched(
             text =>
             {
                 var parsed = QueryParser.Parse(text);
@@ -227,16 +231,17 @@ public sealed class ParserPropertyTests
 
                 return true;
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     [Fact]
+    [Trait("search", "weekly")]
     public void Resolving_a_launch_path_never_fails_however_it_is_written()
     {
         // What a service registered, which nobody here chose. Six shapes were measured on a
         // real machine and none of them is validated anywhere - the resolver's job is to make
         // sense of whatever is there, so the one thing it may never do is throw.
-        Awkward.Sample(
+        Awkward.Searched(
             command =>
             {
                 _ = BinaryPathResolver.Resolve(
@@ -262,10 +267,11 @@ public sealed class ParserPropertyTests
 
                 return true;
             },
-            iter: 20_000);
+            new(20_000));
     }
 
     [Fact]
+    [Trait("search", "weekly")]
     public void Reading_a_snapshot_never_fails_in_a_way_it_did_not_plan_for()
     {
         // A snapshot is a file kept for months and carried between machines, so by the time it
@@ -280,7 +286,7 @@ public sealed class ParserPropertyTests
             Snapshot.Of([Entries.Any, Entries.Inspected], note: "property", new FakeClock()));
 
         Gen.Select(Gen.Int[0, original.Length - 1], Gen.Int[0, 40], Gen.Int[0, 3])
-            .Sample(
+            .Searched(
                 damage =>
                 {
                     var (at, length, kind) = damage;
@@ -300,7 +306,7 @@ public sealed class ParserPropertyTests
                             $"{thrown.GetType().Name}: {thrown.Message}", thrown);
                     }
                 },
-                iter: 20_000);
+                new(20_000));
     }
 
     /// <summary>

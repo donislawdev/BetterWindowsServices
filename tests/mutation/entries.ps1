@@ -12981,6 +12981,64 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = 'MaxCharactersInDocument = 0'
         Test = 'ChangeEventsTests.An_event_bigger_than_one_event_can_be_is_refused_rather_than_read'
     }
+    @{
+        # The weekly search lists properties by their trait. One left without it is never searched,
+        # and the Sunday run is green and smaller without a word.
+        Name = 'search: a property left out of the weekly list is named'
+        File = 'tests\Bws.Core.Tests\ParserPropertyTests.cs'
+        From = '[Trait("search", "weekly")]' + [char]10 + '    public void Reading_a_snapshot_never_fails_in_a_way_it_did_not_plan_for()'
+        To = 'public void Reading_a_snapshot_never_fails_in_a_way_it_did_not_plan_for()'
+        Test = 'SearchGuards.Every_property_through_the_door_is_in_the_weekly_search'
+    }
+    @{
+        # The runner filters on search=weekly exactly. A capital letter leaves a property out.
+        Name = 'search: the weekly trait has one spelling'
+        File = 'tests\Bws.Core.Tests\DiffPropertyTests.cs'
+        From = '[Trait("search", "weekly")]' + [char]10 + '    public void Turning_the_comparison_round_swaps_what_it_found()'
+        To = '[Trait("search", "Weekly")]' + [char]10 + '    public void Turning_the_comparison_round_swaps_what_it_found()'
+        Test = 'SearchGuards.The_trait_is_spelled_the_one_way_the_runner_lists'
+    }
+    @{
+        # A property sampling CsCheck past the door is searched and can never say how much.
+        Name = 'search: only the door samples random input'
+        File = 'tests\Bws.Core.Tests\ParserPropertyTests.cs'
+        From = 'var entries = Specimens.All;'
+        To = 'var entries = Specimens.All; Awkward.Sample(_ => true, iter: 1);'
+        Test = 'SearchGuards.Only_the_door_samples_random_input'
+    }
+    @{
+        # A trait on a test that samples nothing would be a red Sunday about a label.
+        Name = 'search: a test that searches nothing is not in the weekly list'
+        File = 'tests\Bws.Core.Tests\QueryPropertyTests.cs'
+        From = '[Fact]' + [char]10 + '    public void Repeating_a_field_never_narrows_the_answer()'
+        To = '[Fact]' + [char]10 + '    [Trait("search", "weekly")]' + [char]10 + '    public void Repeating_a_field_never_narrows_the_answer()'
+        Test = 'SearchGuards.Nothing_is_in_the_weekly_search_that_does_not_search'
+    }
+    @{
+        # An exception naming a test that is gone reads as an argument still being made.
+        Name = 'search: an exception that names nothing is named'
+        File = 'tests\Bws.Architecture.Tests\SearchGuards.cs'
+        From = '["SearchCanaryTests.A_property_that_fails_is_red_and_says_how_to_reproduce_it"] ='
+        To = '["SearchCanaryTests.A_property_that_is_gone"] ='
+        Test = 'SearchGuards.The_exceptions_still_name_tests_that_use_CsCheck'
+    }
+    @{
+        # Every assertion of the guard passes on zero methods. This is the canary for that.
+        Name = 'search: a guard that reads no test is refused'
+        File = 'tests\Bws.Architecture.Tests\SearchGuards.cs'
+        From = 'Sources.Testing()' + [char]10 + '            .SelectMany(Read)'
+        To = 'Sources.Testing().Take(0)' + [char]10 + '            .SelectMany(Read)'
+        Test = 'SearchGuards.The_reading_finds_the_properties_it_exists_for'
+    }
+    @{
+        # The weekly run tells a property that searched from one that did not by this count. A door
+        # that stopped counting turns every Sunday NOT SEARCHED, red and silent about why.
+        Name = 'search: the door counts every call'
+        File = 'tests\Searching.cs'
+        From = 'System.Threading.Interlocked.Increment(ref calls);'
+        To = '_ = calls;'
+        Test = 'SearchCanaryTests.A_property_that_fails_is_red_and_says_how_to_reproduce_it'
+    }
 )
 
 $mutations

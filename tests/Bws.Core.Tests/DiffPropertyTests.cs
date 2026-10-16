@@ -37,17 +37,17 @@ public sealed class DiffPropertyTests
     /// promise anybody made is about that.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Two_readings_of_a_machine_that_did_not_change_differ_in_nothing()
     {
-        Machines.Any.Sample(
+        Machines.Any.Searched(
             entries =>
             {
                 var diff = Compared(Machines.Taken(entries, at: 100), Machines.Taken(entries, at: 900));
 
                 return !diff.Drifted && diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
             },
-            iter: 5_000,
-            print: entries => $"unchanged machine reported as changed: {Machines.Naming(entries)}");
+            new(5_000) { Print = entries => $"unchanged machine reported as changed: {Machines.Naming(entries)}" });
     }
 
     /// <summary>
@@ -66,9 +66,10 @@ public sealed class DiffPropertyTests
     /// it, the way the query parser's exclusions are.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Turning_the_comparison_round_swaps_what_it_found()
     {
-        Gen.Select(Machines.Any, Machines.Any).Sample(
+        Gen.Select(Machines.Any, Machines.Any).Searched(
             pair =>
             {
                 var (before, after) = pair;
@@ -80,9 +81,8 @@ public sealed class DiffPropertyTests
                     && Same(forwards.Removed, backwards.Added)
                     && Mirrored(forwards.Changed, backwards.Changed);
             },
-            iter: 5_000,
-            print: pair => "the comparison disagrees with itself reversed: " +
-                $"{Machines.Naming(pair.Item1)} against {Machines.Naming(pair.Item2)}");
+            new(5_000) { Print = pair => "the comparison disagrees with itself reversed: " +
+                $"{Machines.Naming(pair.Item1)} against {Machines.Naming(pair.Item2)}" });
     }
 
     /// <summary>
@@ -96,9 +96,10 @@ public sealed class DiffPropertyTests
     /// list could not see it, because in a swap both rows are wanted.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void No_entry_is_reported_in_two_places_at_once()
     {
-        Gen.Select(Machines.Any, Machines.Any, Gen.Bool).Sample(
+        Gen.Select(Machines.Any, Machines.Any, Gen.Bool).Searched(
             trio =>
             {
                 var (before, after, elevated) = trio;
@@ -112,7 +113,7 @@ public sealed class DiffPropertyTests
 
                 return named.Count == named.Distinct(StringComparer.OrdinalIgnoreCase).Count();
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     /// <summary>
@@ -129,9 +130,10 @@ public sealed class DiffPropertyTests
     /// has to have something it could not compare, or it is an admission about nothing.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void What_is_filed_as_changed_has_something_changed_and_what_is_not_has_not()
     {
-        Gen.Select(Machines.Any, Machines.Any, Gen.Bool).Sample(
+        Gen.Select(Machines.Any, Machines.Any, Gen.Bool).Searched(
             trio =>
             {
                 var (before, after, elevated) = trio;
@@ -142,7 +144,7 @@ public sealed class DiffPropertyTests
                     && diff.NotFullyCompared.All(
                         entry => entry.Differences.Count == 0 && entry.Incomparable.Count > 0);
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     /// <summary>
@@ -163,9 +165,10 @@ public sealed class DiffPropertyTests
     /// than read off the answer.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void A_field_one_side_could_not_read_is_never_a_difference()
     {
-        Gen.Select(Machines.Any, Machines.Any).Sample(
+        Gen.Select(Machines.Any, Machines.Any).Searched(
             pair =>
             {
                 var (before, after) = pair;
@@ -197,7 +200,7 @@ public sealed class DiffPropertyTests
 
                 return RefusedByBothIsSaidOnceAndTruly(before, after, diff);
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     /// <summary>
@@ -244,9 +247,10 @@ public sealed class DiffPropertyTests
     /// on every entry and nothing else, which is what a reboot actually does.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Every_process_identifier_moving_at_once_is_still_not_a_difference()
     {
-        Gen.Select(Machines.Any, Gen.Int[0, 40_000]).Sample(
+        Gen.Select(Machines.Any, Gen.Int[0, 40_000]).Searched(
             pair =>
             {
                 var (entries, moved) = pair;
@@ -259,7 +263,7 @@ public sealed class DiffPropertyTests
 
                 return diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     /// <summary>
@@ -327,9 +331,10 @@ public sealed class DiffPropertyTests
     /// can fail to be one are constructed by hand and put through the same door.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Any_two_snapshots_give_back_a_comparison_or_a_reason()
     {
-        Gen.Select(Machines.Any, Gen.Int[0, 4], Gen.Int[0, 4]).Sample(
+        Gen.Select(Machines.Any, Gen.Int[0, 4], Gen.Int[0, 4]).Searched(
             trio =>
             {
                 var (entries, spoilBefore, spoilAfter) = trio;
@@ -346,7 +351,7 @@ public sealed class DiffPropertyTests
                     && (diff is null) ^ (failure is null)
                     && (failure is null || failure.Length > 0);
             },
-            iter: 5_000);
+            new(5_000));
     }
 
     /// <summary>

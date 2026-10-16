@@ -318,9 +318,10 @@ public sealed class QueryCompletionTests
 #pragma warning disable CA1031
     // Catching everything is the assertion: the property is that nothing of any kind escapes.
     [Fact]
+    [Trait("search", "weekly")]
     public void Asking_at_any_caret_in_any_text_never_throws_and_every_row_points_into_the_text()
     {
-        AwkwardWithCaret.Sample(
+        AwkwardWithCaret.Searched(
             pair =>
             {
                 var (text, caret) = pair;
@@ -353,8 +354,7 @@ public sealed class QueryCompletionTests
 
                 return true;
             },
-            iter: 20_000,
-            print: pair => $"a row pointed outside the text: <{pair.Text}> at {pair.Caret}");
+            new(20_000) { Print = pair => $"a row pointed outside the text: <{pair.Text}> at {pair.Caret}" });
     }
 #pragma warning restore CA1031
 
@@ -366,9 +366,10 @@ public sealed class QueryCompletionTests
     /// than over the two examples the table happens to name.
     /// </summary>
     [Fact]
+    [Trait("search", "weekly")]
     public void Nothing_offers_itself_again_once_it_has_been_written()
     {
-        AwkwardWithCaret.Sample(
+        AwkwardWithCaret.Searched(
             pair =>
             {
                 var (text, caret) = pair;
@@ -386,7 +387,6 @@ public sealed class QueryCompletionTests
 
                 return true;
             },
-            iter: 20_000,
-            print: pair => $"accepting a row reopened the list with the same row: <{pair.Text}> at {pair.Caret}");
+            new(20_000) { Print = pair => $"accepting a row reopened the list with the same row: <{pair.Text}> at {pair.Caret}" });
     }
 }
