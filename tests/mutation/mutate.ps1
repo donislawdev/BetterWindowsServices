@@ -558,7 +558,7 @@ if ($Touched) {
     Write-Output ("-Touched against {0}: {1} changed file(s), {2} of {3} entries selected." -f
         $Since, $changedSet.Count, @($selected).Count, $before)
 
-    # REGULA NIETYKALNA 8 - SILENCE IS FORBIDDEN. The number of entries NOT run is the whole
+    # SILENCE IS FORBIDDEN. The number of entries NOT run is the whole
     # risk of this switch, so it is printed rather than left to be worked out from two numbers.
     Write-Output ("{0} entries were NOT run. This is the loop, not the gate - the full registry" -f ($before - @($selected).Count))
     Write-Output 'is still the only thing that proves a change did not disarm a guard elsewhere.'
@@ -656,7 +656,7 @@ if ($Base.Length -gt 0) {
         }
     }
 
-    # REGULA NIETYKALNA 8 again: what was not run is said, not left to subtraction.
+    # Silence is forbidden here too: what was not run is said, not left to subtraction.
     Write-Output ("{0} entries were NOT selected. The weekly run of every entry is what judges them." -f ($before - $selected.Count))
 }
 
