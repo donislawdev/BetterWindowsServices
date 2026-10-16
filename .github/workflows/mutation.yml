@@ -101,6 +101,22 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # A TIME ZONE THAT IS NOT UTC, a decision of 2026-10-16. In UTC, moving a time into this
+      # machine's zone changes nothing, so the entry guarding against exactly that move came out
+      # MISSED on the first two runs here while it is caught on the machine the registry was written
+      # on, which is in this zone. A test cannot choose its own zone on Windows - .NET reads it from
+      # the system and ignores the TZ variable, measured that day. The machine is thrown away after
+      # the part, and build.yml still runs the tests themselves in UTC, so both zones stay covered.
+      # A zone that did not take stops the part here, which the report counts as a part that never
+      # finished rather than letting it judge in UTC.
+      - name: a time zone that is not UTC
+        shell: pwsh
+        run: |
+          Set-TimeZone -Id 'Central European Standard Time'
+          $zone = tzutil /g
+          if ($zone -ne 'Central European Standard Time') { throw "The time zone is '$zone' after it was set." }
+          "This part judges in $zone."
+
       # Never red on its own. The verdicts go to the JSON file after every entry and the report job
       # decides - a step that crashed or ran out of time is found there as a part that did not
       # finish. The tree is thrown away with the machine, so the closing rebuild is skipped.

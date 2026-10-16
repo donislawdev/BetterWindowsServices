@@ -1,5 +1,7 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Reflection.PortableExecutable;
+using System.Text;
 
 namespace Bws.Core.Tests;
 
@@ -10,12 +12,18 @@ namespace Bws.Core.Tests;
 /// the PE resource directory with the standard library's PEReader - no version.dll, no language file,
 /// nothing Windows could redirect - so it cannot agree with the product by sharing its mistake.
 ///
-/// <b>Asked of a real system file, and the cost of that is said here rather than found later.</b> The
-/// difference this guards only exists where Windows keeps a language file whose version differs from
-/// the binary's own - on the machine this was written on, svchost.exe says 10.0.26100.8737 in its own
-/// resource and 10.0.26100.8875 through the framework's localised read. On a machine where the two
-/// agree this test passes either way and proves nothing, so the guard that holds the rule everywhere
-/// is tools/security-probe/version-doors.ps1, which measures it against Explorer on every binary.
+/// <b>Asked of a copy of a real system file whose language files are made to disagree with it.</b>
+/// The difference this guards only exists where the language file Windows finds carries another
+/// version than the binary - on the machine this was written on, svchost.exe says 10.0.26100.8737 in
+/// its own resource and 10.0.26100.8875 through the framework's localised read. Until 2026-10-16 the
+/// test asked the file in System32 itself, said that a machine where the two agree proves nothing,
+/// and the mutation registry's first runs on GitHub came back MISSED twice for exactly that reason.
+/// So the test builds the disagreement: a copy of the binary in a folder of its own and, in the
+/// language folders beside it, copies of its language files with every digit of their FileVersion
+/// moved on by one. Measured that day: Windows's localised read of such a copy gives the moved
+/// string, and the file's own resource still gives 8737. The test checks the first of those before
+/// it asks anything, so a machine where Windows stops looking beside the copy fails it rather than
+/// passing it with nothing proved.
 /// </summary>
 public sealed class OwnVersionTests
 {
@@ -28,14 +36,93 @@ public sealed class OwnVersionTests
     [Fact]
     public void The_version_of_a_system_binary_is_the_one_in_its_own_resource()
     {
-        var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "svchost.exe");
+        using var specimen = Disagreeing.Copy("svchost.exe");
 
-        var reported = new WindowsBinaryInspector().Inspect(file).Version;
+        // NOT VACUOUS: the localised read - the framework's, and the one the mutation puts back - gives
+        // a language file's version for this copy, so a reader that consulted one cannot pass below.
+        // A machine with no language file to copy is said in its own words, not as an empty "Not found".
+        Assert.True(
+            specimen.Moved.Count > 0,
+            "No language folder beside System32\\svchost.exe holds svchost.exe.mui, so no specimen could be built and this proves nothing.");
+        Assert.Contains(FileVersionInfo.GetVersionInfo(specimen.Binary).FileVersion ?? "no FileVersion", specimen.Moved);
+
+        var reported = new WindowsBinaryInspector().Inspect(specimen.Binary).Version;
 
         // The string Windows binaries carry is the dotted number and then a build label in brackets,
         // "10.0.26100.8737 (WinBuild.160101.0800)", so the number is what is compared, whole.
         Assert.Equal(ReadOutcome.Present, reported.Outcome);
-        Assert.Equal(FixedVersion(file), reported.Value!.Split(' ')[0]);
+        Assert.Equal(FixedVersion(specimen.Binary), reported.Value!.Split(' ')[0]);
+    }
+
+    /// <summary>
+    /// A copy of a system binary in a temporary folder of its own, with copies of its language files
+    /// in the language folders beside it, each with every digit of its FileVersion moved on by one -
+    /// so the language file and the binary cannot agree on any machine. Deleted when disposed.
+    /// </summary>
+    private sealed class Disagreeing : IDisposable
+    {
+        private readonly string _folder;
+
+        private Disagreeing(string folder, string binary, IReadOnlyList<string> moved)
+        {
+            _folder = folder;
+            Binary = binary;
+            Moved = moved;
+        }
+
+        public string Binary { get; }
+
+        /// <summary>The FileVersion each language file carries after the move.</summary>
+        public IReadOnlyList<string> Moved { get; }
+
+        public static Disagreeing Copy(string name)
+        {
+            var system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            var folder = Directory.CreateTempSubdirectory("bws-own-version-").FullName;
+            var moved = new List<string>();
+
+            File.Copy(Path.Combine(system, name), Path.Combine(folder, name));
+
+            foreach (var language in Directory.EnumerateDirectories(system).Where(at => File.Exists(Path.Combine(at, name + ".mui"))))
+            {
+                var beside = Directory.CreateDirectory(Path.Combine(folder, Path.GetFileName(language))).FullName;
+                moved.Add(Move(Path.Combine(language, name + ".mui"), Path.Combine(beside, name + ".mui")));
+            }
+
+            return new Disagreeing(folder, Path.Combine(folder, name), moved);
+        }
+
+        public void Dispose() => Directory.Delete(_folder, recursive: true);
+
+        /// <summary>
+        /// Copies a language file with every digit of its FileVersion string moved on by one, wherever
+        /// that string stands in the file, and returns the moved string. The length is kept, so
+        /// nothing else in the resource shifts.
+        /// </summary>
+        private static string Move(string from, string to)
+        {
+            var said = FileVersionInfo.GetVersionInfo(from).FileVersion
+                ?? throw new InvalidDataException($"{from} carries no FileVersion, so it cannot be the specimen.");
+            var moved = string.Concat(said.Select(c => char.IsAsciiDigit(c) ? (char)('0' + ((c - '0' + 1) % 10)) : c));
+
+            // A version with no digit would move to itself, and the loop below would never end.
+            Assert.NotEqual(said, moved);
+
+            var bytes = File.ReadAllBytes(from);
+            var text = Encoding.Unicode.GetBytes(said);
+            var found = 0;
+
+            for (var at = bytes.AsSpan().IndexOf(text); at >= 0; at = bytes.AsSpan().IndexOf(text))
+            {
+                Encoding.Unicode.GetBytes(moved).CopyTo(bytes, at);
+                found++;
+            }
+
+            Assert.True(found > 0, $"{from} says {said} through Windows and nowhere in its bytes as UTF-16.");
+            File.WriteAllBytes(to, bytes);
+
+            return moved;
+        }
     }
 
     /// <summary>
