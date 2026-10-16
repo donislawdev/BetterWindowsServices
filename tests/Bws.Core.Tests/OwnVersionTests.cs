@@ -40,6 +40,10 @@ public sealed class OwnVersionTests
 
         // NOT VACUOUS: the localised read - the framework's, and the one the mutation puts back - gives
         // a language file's version for this copy, so a reader that consulted one cannot pass below.
+        // A machine with no language file to copy is said in its own words, not as an empty "Not found".
+        Assert.True(
+            specimen.Moved.Count > 0,
+            "No language folder beside System32\\svchost.exe holds svchost.exe.mui, so no specimen could be built and this proves nothing.");
         Assert.Contains(FileVersionInfo.GetVersionInfo(specimen.Binary).FileVersion ?? "no FileVersion", specimen.Moved);
 
         var reported = new WindowsBinaryInspector().Inspect(specimen.Binary).Version;
