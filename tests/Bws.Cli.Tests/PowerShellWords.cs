@@ -12,6 +12,12 @@ namespace Bws.Cli.Tests;
 ///
 /// Its own file since 2026-10-16, when a second test began cutting lines with it: the guard that
 /// checks a handful of names, and the property that checks any name.
+///
+/// <b>Outside quotes it accepts what the plan promises to write bare and nothing more</b> - letters,
+/// digits, the dot, the underscore and the dash (EquivalentCommand.Typed). Anything else there is
+/// syntax to PowerShell - a pipe, a semicolon, a dollar, a brace - and the model refuses the line
+/// rather than reading it as part of a word, which is what it did until the review of #75: a
+/// rendering that left a pipe bare would have passed.
 /// </summary>
 internal sealed class PowerShellWords
 {
@@ -52,11 +58,19 @@ internal sealed class PowerShellWords
         {
             _quote = character;
         }
-        else
+        else if (Bare(character))
         {
             _word.Append(character);
         }
+        else
+        {
+            throw new InvalidOperationException(
+                $"U+{(int)character:X4} stands outside quotes, where PowerShell reads it as syntax rather than as part of a word.");
+        }
     }
+
+    /// <summary>What the plan writes outside quotes - EquivalentCommand.Typed and the words around a name.</summary>
+    internal static bool Bare(char character) => char.IsLetterOrDigit(character) || character is '.' or '_' or '-';
 
     /// <summary>
     /// Whether the character at the index ends the quoted word. Inside single quotes a doubled mark

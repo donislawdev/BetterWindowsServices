@@ -13163,6 +13163,16 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = '"history", "snapshot"]'
         Test = 'CommandLinePropertyTests.The_words_drawn_above_reach_every_kind_of_command'
     }
+    @{
+        # Review of #75: a pipe left bare is syntax to both shells, and the models used to read it as
+        # part of a word. A name of letters and one pipe would go out bare, and the line would hand
+        # the rest of the name to another command.
+        Name = 'search: a shell operator in a name never goes bare'
+        File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
+        From = "character is '.' or '_' or '-')"
+        To = "character is '.' or '_' or '-' or '|')"
+        Test = 'EquivalentCommandPropertyTests.Any_name_typed_the_way_the_plan_writes_it_reaches_this_tool_through_PowerShell_as_the_same_ask'
+    }
 )
 
 $mutations

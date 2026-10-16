@@ -51,7 +51,8 @@ public sealed class AsciiJsonPropertyTests
             }
         }
 
-        var root = JsonDocument.Parse(written).RootElement;
+        using var document = JsonDocument.Parse(written);
+        var root = document.RootElement;
 
         // The display name goes out as the label a person is shown, which is the service name when
         // the manager's own label is empty or not words - a decision written beside the line that

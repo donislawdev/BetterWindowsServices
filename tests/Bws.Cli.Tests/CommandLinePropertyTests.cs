@@ -52,15 +52,20 @@ public sealed class CommandLinePropertyTests
         {
             var read = CommandLine.Read(words);
 
+            // Each ending on its own channel and nothing on the other: an answer is the output of the
+            // run, a refusal is a diagnostic beside it, and a line that goes on to the manager has said
+            // nothing yet. Review of #75: an ending that wrote to both would have passed.
             if (Immediate.Answer(read) is { } answered)
             {
-                return answered == ExitCode.Ok && !string.IsNullOrWhiteSpace(output.ToString());
+                return answered == ExitCode.Ok && Said(output) && !Said(error);
             }
 
             return Refusals.Answer(read) is { } refused
-                ? refused == ExitCode.Usage && !string.IsNullOrWhiteSpace(error.ToString())
-                : WholeEnoughToRun(read);
+                ? refused == ExitCode.Usage && Said(error) && !Said(output)
+                : WholeEnoughToRun(read) && !Said(output) && !Said(error);
         });
+
+    private static bool Said(StringWriter channel) => !string.IsNullOrWhiteSpace(channel.ToString());
 
     /// <summary>What Program.cs goes on to rely on once nothing has answered or refused.</summary>
     private static bool WholeEnoughToRun(CommandLine read) =>
