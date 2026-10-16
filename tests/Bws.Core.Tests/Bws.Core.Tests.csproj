@@ -24,6 +24,16 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Bws.Tests" />
+  </ItemGroup>
+
+  <!--
+    The one door the random properties go through, linked rather than referenced for the reason
+    SourceTree.cs gives in the other test projects: a shared test assembly would be a new reference
+    edge. It counts the draws for the weekly search in tests/search.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Searching.cs" Link="Searching.cs" />
   </ItemGroup>
 
   <!--
