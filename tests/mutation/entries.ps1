@@ -2843,6 +2843,25 @@ $mutations = @(
         Test = 'QueryMemberTests.A_member_at_either_end_comes_out_without_leaving_a_gap'
     },
     @{
+        # Backlog 588: a line ending in a lone backslash took the space a chip wrote into the word,
+        # so the member was never a member and a second click wrote it again. Doubling the lone
+        # backslash keeps the same literal backslash and gives the space back its meaning.
+        Name = 'filters: a chip after a lone backslash doubles it'
+        File = 'src\Bws.Core\Querying\QueryMembers.cs'
+        From = '(backslashes % 2 == 1 ? "\\ " : " ")'
+        To = '(backslashes < 0 ? "\\ " : " ")'
+        Test = 'QueryMemberTests.A_member_after_a_lone_backslash_is_a_member_and_the_word_before_it_is_unchanged'
+    },
+    @{
+        # The control for the one above. Doubling every trailing backslash gives C:\\ a third,
+        # and the third disarms the space all over again.
+        Name = 'filters: a chip after paired backslashes adds only the gap'
+        File = 'src\Bws.Core\Querying\QueryMembers.cs'
+        From = '(backslashes % 2 == 1 ? "\\ " : " ")'
+        To = '(backslashes > 0 ? "\\ " : " ")'
+        Test = 'QueryMemberTests.A_member_after_paired_backslashes_adds_only_the_gap'
+    },
+    @{
         # Every chip reads the query again after any edit, not the one that was clicked. Without
         # it a chip sits lit over a query that has stopped saying anything about it - which is
         # the state A5 exists to make impossible, and it looks like the filter is still applied.
@@ -13047,6 +13066,54 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'System.Threading.Interlocked.Increment(ref calls);'
         To = '_ = calls;'
         Test = 'SearchCanaryTests.A_property_that_fails_is_red_and_says_how_to_reproduce_it'
+    }
+    @{
+        # The fault this property found on its first run (backlog 588), put back. The example test
+        # beside the fix holds one path, and this entry holds the property to finding it again on
+        # whatever line the generator writes.
+        Name = 'search: a chip is carried after any line somebody typed'
+        File = 'src\Bws.Core\Querying\QueryMembers.cs'
+        From = '(backslashes % 2 == 1 ? "\\ " : " ")'
+        To = '(backslashes < 0 ? "\\ " : " ")'
+        Test = 'QueryShapePropertyTests.A_chip_turned_on_is_carried_and_turned_off_is_not_whatever_was_typed_before'
+    }
+    @{
+        # A size the reader cannot read has to come back as a reason. Parsing it instead throws on
+        # 1.5MB, and the random properties before the shaped generator never reached this file
+        # (0 per cent of it on 2026-10-16), so only the shaped one can be the guard here.
+        Name = 'search: a size that does not read is refused rather than thrown'
+        File = 'src\Bws.Core\Querying\QuerySizes.cs'
+        From = 'if (!long.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out var quantity))'
+        To = 'var quantity = long.Parse(number, NumberStyles.None, CultureInfo.InvariantCulture);' + [char]10 + '            if (quantity < 0)'
+        Test = 'QueryShapePropertyTests.Shaped_text_is_read_or_refused_in_both_readings_and_never_both'
+    }
+    @{
+        # A stopped entry has no process and so no memory. A comparison that reads the missing
+        # value instead of saying "no match" throws on the first stopped entry it judges, and only
+        # a query that reads - memory:>5MB, which the old alphabet never spelled - gets that far.
+        Name = 'search: an entry with no memory is judged rather than thrown over'
+        File = 'src\Bws.Core\Querying\QueryValues.cs'
+        From = 'var value = field.SizeOf!(entry);'
+        To = 'var value = (long?)field.SizeOf!(entry)!.Value;'
+        Test = 'QueryShapePropertyTests.Shaped_text_that_reads_judges_every_entry_without_failing'
+    }
+    @{
+        # A value row replaces the value under the caret and nothing past the end of the line. One
+        # character too many reaches outside the text whenever the value ends the line.
+        Name = 'search: a value row replaces only text that is there'
+        File = 'src\Bws.Core\Querying\QueryCompletions.cs'
+        From = 'replaces: valueStart..valueEnd,'
+        To = 'replaces: valueStart..(valueEnd + 1),'
+        Test = 'QueryShapePropertyTests.Asking_at_any_caret_in_shaped_text_never_throws_and_every_row_points_into_the_text'
+    }
+    @{
+        # Written in full is hidden while typing, so accepting a row does not reopen the list with
+        # that row alone. Anchored on the comment beside it, because the condition stands twice.
+        Name = 'search: a value written in full is not offered again while typing'
+        File = 'src\Bws.Core\Querying\QueryCompletions.cs'
+        From = 'if (!asked && spelled.Length == prefix.Length)' + [char]10 + '                {' + [char]10 + '                    // Already there in full'
+        To = 'if (!asked && spelled.Length == prefix.Length && false)' + [char]10 + '                {' + [char]10 + '                    // Already there in full'
+        Test = 'QueryShapePropertyTests.Nothing_offers_itself_again_in_shaped_text_once_it_has_been_written'
     }
 )
 

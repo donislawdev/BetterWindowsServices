@@ -81,6 +81,11 @@ is not part of this repository.
   System32, when it was opened from Explorer - while Windows remembers no folder for the program. They start in your
   Documents folder instead, and once you have saved or opened a file somewhere, Windows remembers
   that folder as before.
+- Turning a filter on in the window while the search box ends in a backslash, as a path like
+  `C:\Windows\` does, now adds the filter. The backslash used to join the filter to the path as one
+  word, so the filter stayed dark, the list searched for text no service has, and a second click
+  added the filter again. The box now reads `C:\Windows\\ status:stopped` - two backslashes are one
+  literal backslash, so the path searched for is still the one you typed.
 
 ## [0.4.0] - 2026-10-07
 

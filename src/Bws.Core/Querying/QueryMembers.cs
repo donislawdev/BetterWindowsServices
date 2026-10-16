@@ -37,6 +37,22 @@ public static class QueryMembers
     /// expects a thing they just clicked to appear. Idempotent on purpose: a chip that is
     /// already on cannot add a second copy, which is the state that would then need two clicks
     /// to turn off.
+    ///
+    /// <b>A line ending in a lone backslash gets a second one, and that is the only character this
+    /// ever adds to what was typed</b> (backlog 588, found 2026-10-16 by the property over shaped
+    /// text). A backslash at the very end is an ordinary backslash, but put a space after it and
+    /// it disarms the space - so <c>C:\Windows\</c> plus a chip read as one word,
+    /// <c>C:\Windows status:stopped</c>, and the chip never lit. The scanner pairs backslashes from
+    /// the left, so an odd run ends in one that is still alone, and doubling it makes it a pair:
+    /// <c>\\</c> is one literal backslash, which is what the lone one at the end was. The word
+    /// searched for is the same before and after the click. An even run is already paired and gets
+    /// nothing.
+    ///
+    /// <b>The price, said rather than hidden:</b> a backslash followed by a space or a tab at the
+    /// end of the line disarmed that space, so the word ended in a literal space - and the trim
+    /// below takes the space with the rest of the trailing gap, as it did before this. The chip
+    /// reads that space as the gap somebody typed before the next word, which is almost certainly
+    /// what it was.
     /// </summary>
     public static string With(string? text, string field, string value, bool negated)
     {
@@ -49,7 +65,14 @@ public static class QueryMembers
 
         var trimmed = (text ?? string.Empty).TrimEnd();
 
-        return trimmed.Length == 0 ? member : trimmed + " " + member;
+        if (trimmed.Length == 0)
+        {
+            return member;
+        }
+
+        var backslashes = trimmed.Length - trimmed.AsSpan().TrimEnd('\\').Length;
+
+        return trimmed + (backslashes % 2 == 1 ? "\\ " : " ") + member;
     }
 
     /// <summary>

@@ -45,6 +45,57 @@ public sealed class QueryMemberTests
     }
 
     /// <summary>
+    /// A PATH TYPED WITH ITS LAST BACKSLASH STILL TAKES A CHIP - backlog 588, found 2026-10-16 by
+    /// the first run of the property over shaped text and then on a real path.
+    ///
+    /// <b>The space a chip writes was disarmed by the backslash in front of it.</b> A lone
+    /// backslash at the end of the line is an ordinary one, and a backslash in front of a space
+    /// makes the space part of the word - so <c>C:\Windows\ status:stopped</c> was one word, the
+    /// chip stayed dark, and a second click wrote the member again. The backslash is doubled
+    /// instead, and the word the box searches for is checked to be the one it searched for before
+    /// the click, because that is the whole of the argument for doubling it.
+    /// </summary>
+    [Fact]
+    public void A_member_after_a_lone_backslash_is_a_member_and_the_word_before_it_is_unchanged()
+    {
+        const string path = @"C:\Windows\";
+
+        var on = QueryMembers.With(path, "status", "stopped", negated: false);
+
+        Assert.Equal(@"C:\Windows\\ status:stopped", on);
+        Assert.True(QueryMembers.Carries(on, "status", "stopped", negated: false));
+        Assert.Equal(FirstWord(path), FirstWord(on));
+
+        // Three: the first two are a pair already and the third is the one alone.
+        Assert.Equal(@"a\\\\ !type:driver", QueryMembers.With(@"a\\\", "type", "driver", negated: true));
+
+        // The cost the code states: a backslash that disarmed a trailing space loses that space
+        // with the rest of the gap, and the word ends in the backslash rather than in a space.
+        Assert.Equal(@"C:\Windows\\ status:stopped", QueryMembers.With(@"C:\Windows\ ", "status", "stopped", negated: false));
+    }
+
+    /// <summary>
+    /// The control for the one above: an even run of backslashes is already paired, so the line
+    /// gets nothing but the gap and the member. Doubling every trailing backslash would turn
+    /// <c>C:\\</c> into three, and the third would disarm the space all over again.
+    /// </summary>
+    [Fact]
+    public void A_member_after_paired_backslashes_adds_only_the_gap()
+    {
+        var on = QueryMembers.With(@"C:\\", "status", "stopped", negated: false);
+
+        Assert.Equal(@"C:\\ status:stopped", on);
+        Assert.True(QueryMembers.Carries(on, "status", "stopped", negated: false));
+    }
+
+    private static string FirstWord(string text)
+    {
+        Assert.True(QueryScanner.TryScan(text, out var members, out _));
+
+        return members[0].Text;
+    }
+
+    /// <summary>
     /// A MEMBER STANDING IN THE BOX IS CARRIED, EVEN WHEN ANOTHER MEMBER BESIDE IT HAS A MISTAKE -
     /// UX-GUI-002 of the audit of 2026-09-23.
     ///

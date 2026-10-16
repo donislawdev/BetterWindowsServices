@@ -93,7 +93,10 @@ public sealed class AnalyzerRuleGuards
     /// to silence something and this is where that decision is written down. CA1031 went from ten
     /// to eleven on 2026-09-24: the details panel's own reading, argued in BroadCatchGuards. It went
     /// back to ten on 2026-10-06 (package SB), when the publisher stopped reading the file and with
-    /// it went its catch - and the one SYSLIB0057, the obsolete call that read it, went too.
+    /// it went its catch - and the one SYSLIB0057, the obsolete call that read it, went too. Eleven
+    /// on 2026-10-16: QueryShapePropertyTests, the properties over shaped query text, catch
+    /// everything for the reason ParserPropertyTests and QueryCompletionTests already do - nothing
+    /// of any kind escaping is the property, and the catch adds the text that broke it.
     ///
     /// CA1031 - catching everything - is also held file by file in <see cref="BroadCatchGuards"/>,
     /// which says WHERE each one is allowed. This says HOW MANY, which that guard cannot: a second
@@ -106,7 +109,7 @@ public sealed class AnalyzerRuleGuards
     /// </summary>
     private static readonly Dictionary<string, int> Escapes = new(StringComparer.Ordinal)
     {
-        ["#pragma warning disable CA1031"] = 10,
+        ["#pragma warning disable CA1031"] = 11,
         ["[SuppressMessage] IL3000"] = 1,
     };
 
