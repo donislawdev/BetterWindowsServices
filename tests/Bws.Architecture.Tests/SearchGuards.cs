@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Bws.Architecture.Tests;
@@ -148,19 +149,41 @@ public sealed class SearchGuards
         Assert.Contains(methods, method => method.File == Door && method.SamplesDirectly);
     }
 
+    [Theory]
+    [InlineData("using CsCheck; class T { void M() { Gen.Int.Sample(x => true); } }", true)]
+    [InlineData("class T { void M() { CsCheck.Gen.Int.Sample(x => true); } }", true)]
+    [InlineData("class T { void M() { global::CsCheck.Gen.Int.Sample(x => true); } }", true)]
+    [InlineData("class T { void M() { var e = Sample(); } static int Sample() => 1; }", false)]
+    [InlineData("class T { void M() { new Random(1).Sample(); } }", false)]
+    public void The_reading_sees_a_sample_however_CsCheck_is_named(string source, bool samples)
+    {
+        // The reading on its own, over five small files whose answer is known - the two shapes
+        // that reach CsCheck, the fully qualified one review found, and two that only share the
+        // word Sample. Every guard above stands on this reading.
+        var root = CSharpSyntaxTree.ParseText(source, CodeShape.Language).GetRoot();
+
+        Assert.Equal(samples, Read(root, "Specimen.cs").Single(method => method.Name == "T.M").SamplesDirectly);
+    }
+
     private static List<TestMethod> Methods() =>
         Sources.Testing()
             .SelectMany(Read)
             .ToList();
 
-    private static IEnumerable<TestMethod> Read(string path)
-    {
-        var root = CodeShape.TreeOf(path).GetRoot();
-        var file = Path.GetFileName(path);
+    private static IEnumerable<TestMethod> Read(string path) =>
+        Read(CodeShape.TreeOf(path).GetRoot(), Path.GetFileName(path));
 
+    /// <summary>
+    /// The methods of one file. A file reaches CsCheck when the name stands anywhere in it - the
+    /// using directive, or a call written out in full such as <c>CsCheck.Gen.Int[0, 9].Sample(...)</c>
+    /// with no directive at all. Only the directive counted until the review of PR #73, and the
+    /// second form would have sampled past the door without a word.
+    /// </summary>
+    private static IEnumerable<TestMethod> Read(SyntaxNode root, string file)
+    {
         var usesCsCheck = root.DescendantNodes()
-            .OfType<UsingDirectiveSyntax>()
-            .Any(directive => directive.Name?.ToString() == "CsCheck");
+            .OfType<IdentifierNameSyntax>()
+            .Any(name => name.Identifier.Text == "CsCheck");
 
         foreach (var method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
         {

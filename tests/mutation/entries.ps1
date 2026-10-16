@@ -13031,6 +13031,15 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'SearchGuards.The_reading_finds_the_properties_it_exists_for'
     }
     @{
+        # Review of PR #73: CsCheck.Gen... written out in full, with no using directive, sampled past
+        # the door unseen while only the directive counted.
+        Name = 'search: a sample written with the full name is still seen'
+        File = 'tests\Bws.Architecture.Tests\SearchGuards.cs'
+        From = '.Any(name => name.Identifier.Text == "CsCheck");'
+        To = '.Any(name => name.Identifier.Text == "CsCheck" && name.Parent is UsingDirectiveSyntax);'
+        Test = 'SearchGuards.The_reading_sees_a_sample_however_CsCheck_is_named'
+    }
+    @{
         # The weekly run tells a property that searched from one that did not by this count. A door
         # that stopped counting turns every Sunday NOT SEARCHED, red and silent about why.
         Name = 'search: the door counts every call'

@@ -25,14 +25,21 @@ on:
   workflow_dispatch:
     inputs:
       seconds:
-        description: Seconds each property searches for
+        # The runner refuses more than 600, so that six properties, the canary and a build stay
+        # inside the ninety minutes a part may take - a budget past that would end the part on its
+        # timeout with nothing reported.
+        description: Seconds each property searches for, 1 to 600
         required: false
         default: "300"
+  # Everything the search stands on: the workflow, the runner, the door the properties go through,
+  # the canary every part starts with, and the guard deciding which tests are listed.
   pull_request:
     paths:
       - ".github/workflows/search.yml"
       - "tests/search/**"
       - "tests/Searching.cs"
+      - "tests/Bws.Core.Tests/SearchCanaryTests.cs"
+      - "tests/Bws.Architecture.Tests/SearchGuards.cs"
 
 permissions:
   contents: read

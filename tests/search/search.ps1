@@ -25,8 +25,8 @@
       FAILED          the property did not hold - the seed and what the property printed are kept
       NOT SEARCHED    passed and counted nothing, which is a green test that searched nothing
       NOT RUN         the filter matched no test - the list and the tree disagree
-      DID NOT FINISH  no result and a failing exit - a crash, a stack overflow or a hang, which is
-                      a finding too, and the console is kept for it
+      DID NOT FINISH  a failing exit with no result, or after a passed one - a crash, a stack
+                      overflow or a hang, which is a finding too, and the console is kept for it
 
     Only SEARCHED is green. A part that cannot see a failure is worse than no part, so before it
     trusts its own reading every part runs SearchCanaryTests with BWS_SEARCH_CANARY=1 and expects
@@ -37,8 +37,9 @@
     finding leaves with the runner.
 
 .PARAMETER Seconds
-    The budget of each property. 300 on Sunday, the owner's decision. A pull request touching the
-    search itself runs it with a few seconds, which proves the wiring and searches nothing much.
+    The budget of each property, 1 to 600 seconds. 300 on Sunday, the owner's decision. A pull
+    request touching the search itself runs it with a few seconds, which proves the wiring and
+    searches nothing much.
 
 .PARAMETER PlanTo
     Appends properties=, parts= and shards= to this file (GitHub's step outputs) and stops.
@@ -68,7 +69,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)][string] $Root = '',
-    [int] $Seconds = 300,
+    # At most ten minutes: six properties, the canary and a build then fit the ninety minutes a part
+    # may take on GitHub, with room for one hung property. Review of PR #73 - a hand-started budget of
+    # 5400 would have ended every part on its timeout with nothing reported.
+    [ValidateRange(1, 600)][int] $Seconds = 300,
     [int] $PerPart = 6,
     [int] $MostParts = 16,
     [string] $Configuration = 'Release',
@@ -164,6 +168,11 @@ function Get-Verdict($Trx, [long] $Calls, [int] $ExitCode) {
         return 'DID NOT FINISH'
     }
     if ($Trx.Outcome -ne 'Passed') { return 'FAILED' }
+
+    # A passed result in the file and a failing exit is a run that broke after the test reported -
+    # the host dying on the way out, or the hang guard ending it. Green there would be a property
+    # nobody saw finish. Review of PR #73.
+    if ($ExitCode -ne 0) { return 'DID NOT FINISH' }
     if ($Calls -le 0) { return 'NOT SEARCHED' }
     return 'SEARCHED'
 }
@@ -266,6 +275,7 @@ if ($SelfTest) {
     Assert-Same 'verdict red' 'FAILED' (Get-Verdict $readRed 3 1)
     Assert-Same 'verdict no result and a clean exit' 'NOT RUN' (Get-Verdict (Read-Trx $none) 0 0)
     Assert-Same 'verdict no result and a failing exit' 'DID NOT FINISH' (Get-Verdict (Read-Trx '') 0 1)
+    Assert-Same 'verdict passed and counted, with a failing exit' 'DID NOT FINISH' (Get-Verdict (Read-Trx $green) 5 1)
 
     $good = { param($p) [pscustomobject]@{ name = $p; verdict = 'SEARCHED'; calls = 9; seconds = 1; seed = '' } }
     $planted = [pscustomobject]@{ verdict = 'FAILED'; seed = 'x' }
