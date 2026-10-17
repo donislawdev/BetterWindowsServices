@@ -122,6 +122,25 @@ public sealed class PlanRunProgressTests
     }
 
     [Fact]
+    public void A_restart_that_only_watched_an_entry_stopping_and_ran_out_puts_nothing_back()
+    {
+        // Finding E of the fuzzing project, 2026-10-17. Somebody else is stopping the entry and it sits
+        // still. The stop asks nothing and only watches - and until the fix it ran out as TimedOut, which
+        // the way back reads as "this run took it down", so the restart STARTED a service this tool had
+        // never asked to stop. The same rule as the test above, in the direction the step wanted.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .OnItsWay(Name, TimeSpan.FromMinutes(10), Pending(1, TimeSpan.Zero));
+
+        var run = Run(control, clock, Restarting());
+
+        Assert.Equal(StepOutcome.Failed, run.Results[0].Outcome);
+        Assert.Equal(0, run.Results[0].ErrorCode);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[1].SkippedBecause);
+        Assert.Empty(control.Requested);
+    }
+
+    [Fact]
     public void The_time_the_manager_sits_on_a_request_is_what_outruns_the_limit()
     {
         // Half a minute inside the start call, as measured on Windows Server 2025, under a limit of one

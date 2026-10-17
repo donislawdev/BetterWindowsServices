@@ -2263,8 +2263,8 @@ $mutations = @(
         # accident and wrong on somebody else's machine at the worst moment".
         Name = 'plan: a cascade comes down dependants first, worked out rather than as it arrived'
         File = 'src\Bws.Core\Planning\DependentsFirst.cs'
-        From = 'blockedBy[name].All(done.Contains)'
-        To = 'blockedBy[name].Any(done.Contains)'
+        From = 'blockedBy[name].All(other =>'
+        To = 'blockedBy[name].Any(other =>'
         Test = 'BulkPlanTests.An_entry_something_else_in_the_selection_needs_is_dealt_with_last'
     },
     @{
@@ -10219,8 +10219,8 @@ $mutations = @(
         # with the process, and asking about it would warn about restarts that never come.
         Name = 'aftermath: the cascade is never asked'
         File = 'src\Bws.Core\Planning\ForcedStop.cs'
-        From = '        return Aftermath.Weigh(processes, facts, target, sharing, action, processId);'
-        To = '        return Aftermath.Weigh(processes, facts, target, [.. cascade, .. sharing], action, processId);'
+        From = '        return Aftermath.Weigh(processes, facts, target, InOrder(asked, sharing), action, processId);'
+        To = '        return Aftermath.Weigh(processes, facts, target, [.. cascade, .. InOrder(asked, sharing)], action, processId);'
         Test = 'AftermathTests.The_cascade_is_never_asked_because_nothing_in_it_dies_with_the_process'
     },
     @{
@@ -13274,6 +13274,190 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '            if (Parsed(kept) is { } saved)'
         To = '            if (Parsed(kept) is { } saved && false)'
         Test = 'KeptWidthPropertyTests.A_kept_width_of_any_text_is_drawable_or_left_to_the_theme_and_named'
+    }
+    @{
+        # Fuzzing finding M1, 2026-10-17: over a cycle through the target the manager's answer reaches
+        # back round to it, and the target was a member of its own cascade - stopped twice, and named
+        # in the cascade warning among the things that come down with it.
+        Name = 'search: a target the manager names among its own dependants is not in its cascade'
+        File = 'src\Bws.Core\Planning\PlanBuilder.cs'
+        From = '                && !target.ServiceName.Equals(entry.ServiceName, StringComparison.OrdinalIgnoreCase))'
+        To = '                && true)'
+        Test = 'PlanGraphPropertyTests.A_plan_over_any_dependency_graph_does_each_thing_once_and_nothing_before_what_needs_it'
+    }
+    @{
+        # The same mutant against the example written out from what the search found.
+        Name = 'plan: a target the manager names among its own dependants is stopped once'
+        File = 'src\Bws.Core\Planning\PlanBuilder.cs'
+        From = '                && !target.ServiceName.Equals(entry.ServiceName, StringComparison.OrdinalIgnoreCase))'
+        To = '                && true)'
+        Test = 'DependencyCycleTests.A_target_the_manager_names_among_its_own_dependants_is_stopped_once_and_started_once'
+    }
+    @{
+        # Fuzzing finding C: every member of a cycle names itself in an answer that reaches past the
+        # first hop, so waited on, no member was ever ready and the fallback took an entry the cycle
+        # still needed - which the manager refuses to stop while the cycle runs.
+        Name = 'search: a block both ways is a cycle and is not waited on'
+        File = 'src\Bws.Core\Planning\DependentsFirst.cs'
+        From = 'blockedBy[name].All(other => done.Contains(other) || blockedBy[other].Contains(name)));'
+        To = 'blockedBy[name].All(other => done.Contains(other)));'
+        Test = 'PlanGraphPropertyTests.A_plan_over_any_dependency_graph_does_each_thing_once_and_nothing_before_what_needs_it'
+    }
+    @{
+        Name = 'plan: a cycle among the dependants is stopped before the entry it needs'
+        File = 'src\Bws.Core\Planning\DependentsFirst.cs'
+        From = 'blockedBy[name].All(other => done.Contains(other) || blockedBy[other].Contains(name)));'
+        To = 'blockedBy[name].All(other => done.Contains(other)));'
+        Test = 'DependencyCycleTests.A_cycle_among_the_dependants_is_stopped_before_the_entry_it_needs'
+    }
+    @{
+        # The cycle test asks the answers about a name as the listing spells it, and the manager may
+        # spell it otherwise - kept with case, the sets would miss the cycle.
+        Name = 'plan: a cycle the manager spells in another case is still a cycle'
+        File = 'src\Bws.Core\Planning\DependentsFirst.cs'
+        From = '? new HashSet<string>(theirs.Value!.Where(inside.Contains), StringComparer.OrdinalIgnoreCase)'
+        To = '? new HashSet<string>(theirs.Value!.Where(inside.Contains), StringComparer.Ordinal)'
+        Test = 'DependencyCycleTests.A_cycle_the_manager_spells_in_another_case_is_still_a_cycle'
+    }
+    @{
+        # Fuzzing finding B: housemates stood in the order of the listing, so one needed by another was
+        # asked to stop first, refused (1051), and died with the process instead. A real shape: mpssvc
+        # needs bfe in one process on the machine this was built on.
+        Name = 'search: housemates go down with what needs them first'
+        File = 'src\Bws.Core\Planning\ForcedStop.cs'
+        From = 'return Aftermath.Weigh(processes, facts, target, InOrder(asked, sharing), action, processId);'
+        To = 'return Aftermath.Weigh(processes, facts, target, sharing, action, processId);'
+        Test = 'PlanGraphPropertyTests.A_plan_over_any_dependency_graph_does_each_thing_once_and_nothing_before_what_needs_it'
+    }
+    @{
+        Name = 'forced stop: housemates go down in the order the manager lets them'
+        File = 'src\Bws.Core\Planning\ForcedStop.cs'
+        From = 'return Aftermath.Weigh(processes, facts, target, InOrder(asked, sharing), action, processId);'
+        To = 'return Aftermath.Weigh(processes, facts, target, sharing, action, processId);'
+        Test = 'ForcedStopTests.Housemates_go_down_in_the_order_the_manager_lets_them_rather_than_the_order_listed'
+    }
+    @{
+        # Rule 5 as a property: once a step going forward has failed, nothing later going forward is
+        # asked. Without the hold, a refused stop of a dependant was followed by the stop it protected.
+        Name = 'search: a run asks nothing forward past a step that failed'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'return (forwardFailed && !putsBack && !behind) || (cascadeFailed && behind)'
+        To = 'return (false && !putsBack && !behind) || (cascadeFailed && behind)'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        # A dependant that refused to stop is still running on the process, so ending the process under
+        # it is exactly what the refusal protected (stability report W-2).
+        Name = 'search: a run ends no process past a cascade step that failed'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'return (forwardFailed && !putsBack && !behind) || (cascadeFailed && behind)'
+        To = 'return (forwardFailed && !putsBack && !behind) || (false && behind)'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        # Stop goes no further forward and still puts back what the run took down - the Ctrl+C on a
+        # virtual machine in 2026-08 that left a restarted service stopped.
+        Name = 'search: a run stopped still puts back what it took down'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'if (abandoned || (cancelled && !putsBack))'
+        To = 'if (abandoned || cancelled)'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        Name = 'search: a run abandoned asks nothing more'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'if (abandoned || (cancelled && !putsBack))'
+        To = 'if (cancelled && !putsBack)'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        # What was never taken down is not given back (stability report W-5): a restart pressed Stop on
+        # before its first step started a service that had been stopped all along.
+        Name = 'search: a run puts back only what it took down'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'StepReason.Restore when !NetEffect.TookDown(results, step.ServiceName) => SkipReason.NothingToPutBack,'
+        To = 'StepReason.Restore when false => SkipReason.NothingToPutBack,'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        # The number in the preview can belong to a process nobody has heard of by the time the step
+        # runs, and ending it would be a step the preview never showed.
+        Name = 'search: a run ends only the process the preview named'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'return holding.IsPresent && holding.Value == step.ProcessId'
+        To = 'return holding.IsPresent'
+        Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
+    }
+    @{
+        # Fuzzing finding D, 2026-10-17: the measurement was taken out of "notRead" and left in
+        # "unreadable", so a refused one came through as a refusal of a field the file never claims.
+        Name = 'search: a refused measurement is not in the snapshot file'
+        File = 'src\Bws.Core\Snapshots\SnapshotJson.cs'
+        From = 'if (entry["unreadable"] is JsonObject unreadable && unreadable.Remove(property) && unreadable.Count == 0)'
+        To = 'if (entry["unreadable"] is JsonObject unreadable && false)'
+        Test = 'SnapshotRoundTripPropertyTests.A_machine_written_to_a_snapshot_and_read_back_is_the_same_machine_with_nothing_unread_lost'
+    }
+    @{
+        Name = 'snapshot: a measurement the machine refused is not in the file either'
+        File = 'src\Bws.Core\Snapshots\SnapshotJson.cs'
+        From = 'if (entry["unreadable"] is JsonObject unreadable && unreadable.Remove(property) && unreadable.Count == 0)'
+        To = 'if (entry["unreadable"] is JsonObject unreadable && false)'
+        Test = 'SnapshotTests.A_measurement_the_machine_refused_is_not_in_the_file_either'
+    }
+    @{
+        # The review of #77: the example held only the absence, so a writer dropping every refusal of an
+        # entry once the measurement was among them kept it green. The refusal of the start type in the
+        # same entries is its positive control.
+        Name = 'snapshot: a refused measurement takes no other refusal with it'
+        File = 'src\Bws.Core\Snapshots\SnapshotJson.cs'
+        From = 'unreadable.Remove(property) && unreadable.Count == 0)'
+        To = 'unreadable.Remove(property) && unreadable.Count >= 0)'
+        Test = 'SnapshotTests.A_measurement_the_machine_refused_is_not_in_the_file_either'
+    }
+    @{
+        # Rule 8 across a file: a refusal written as "never asked" is a snapshot claiming the machine was
+        # merely not asked, when it said no. The oracle counts the fields from the entry's own readings,
+        # so this is caught although both sides of the comparison pass through the mutated line.
+        Name = 'search: a refused field stays refused across a snapshot file'
+        File = 'src\Bws.Core\Snapshots\EntryDocument.cs'
+        From = 'unreadable[Camel(field)] = new UnreadableDocument(reading.ErrorCode, reading.Reason!);'
+        To = 'notRead.Add(Camel(field));'
+        Test = 'SnapshotRoundTripPropertyTests.A_machine_written_to_a_snapshot_and_read_back_is_the_same_machine_with_nothing_unread_lost'
+    }
+    @{
+        Name = 'search: a field never asked stays never asked across a snapshot file'
+        File = 'src\Bws.Core\Snapshots\EntryDocument.cs'
+        From = 'notRead.Add(Camel(field));'
+        To = '_ = field;'
+        Test = 'SnapshotRoundTripPropertyTests.A_machine_written_to_a_snapshot_and_read_back_is_the_same_machine_with_nothing_unread_lost'
+    }
+    @{
+        # The manager refusing to say who depends on an entry is a refusal in the entry, never an
+        # entry nobody depends on - the second would reach the snapshot as a fact.
+        Name = 'search: a refused answer about dependants reaches the entry as a refusal'
+        File = 'src\Bws.Core\RequiredByPass.cs'
+        From = 'RequiredBy = catalog.ReadDependents(entries[index].ServiceName)'
+        To = 'RequiredBy = catalog.ReadDependents(entries[index].ServiceName) is { Outcome: ReadOutcome.Denied } ? Reading<IReadOnlyList<string>>.Absent() : catalog.ReadDependents(entries[index].ServiceName)'
+        Test = 'SnapshotRoundTripPropertyTests.A_machine_written_to_a_snapshot_and_read_back_is_the_same_machine_with_nothing_unread_lost'
+    }
+    @{
+        # Fuzzing finding E, 2026-10-17: a watch that ran out before anything was asked came back as
+        # TimedOut, which the way back counts as a move of this run - so a restart started a housemate
+        # somebody else was stopping, though this tool never asked it to stop.
+        Name = 'plan run: a watch that runs out before anything is asked puts nothing back'
+        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
+        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        Test = 'PlanRunProgressTests.A_restart_that_only_watched_an_entry_stopping_and_ran_out_puts_nothing_back'
+    }
+    @{
+        # The same mutant against the seed the minute-long search found, which is the procedure for a
+        # finding: the input it failed on replayed on every pull request.
+        Name = 'search: the run the first minute-long search found puts back nothing it never asked to stop'
+        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
+        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        Test = 'PlanRunPropertyTests.The_run_the_first_minute_long_search_found_puts_back_nothing_it_never_asked_to_stop'
     }
 )
 

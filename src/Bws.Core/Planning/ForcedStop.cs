@@ -121,12 +121,16 @@ internal static class ForcedStop
                     other.ServiceName, entry.ServiceName, StringComparison.OrdinalIgnoreCase)))
         ];
 
-        if (Needed(catalog, entries, target, cascade, sharing) is { } needed)
+        // One answer per neighbour for both questions below - whether anybody outside needs it, and the
+        // order the neighbours go down in - so ordering them costs no second visit to the manager.
+        var asked = new DependentsAskedOnce(catalog);
+
+        if (Needed(asked, entries, target, cascade, sharing) is { } needed)
         {
             return (needed, null);
         }
 
-        return Aftermath.Weigh(processes, facts, target, sharing, action, processId);
+        return Aftermath.Weigh(processes, facts, target, InOrder(asked, sharing), action, processId);
     }
 
     /// <summary>
@@ -269,6 +273,23 @@ internal static class ForcedStop
                 .Where(entry => entry.Status != EntryStatus.Stopped
                     && dependents.Value!.Contains(entry.ServiceName, StringComparer.OrdinalIgnoreCase))
                 .Select(entry => entry.ServiceName);
+
+    /// <summary>
+    /// The neighbours in the order they can be stopped politely: one that needs another goes first.
+    ///
+    /// <b>The order the listing happened to give until 2026-10-17</b>, the owner's decision on finding B
+    /// of the fuzzing project. A neighbour needed by a neighbour still running is refused a stop by
+    /// the manager (1051), so it then died with the process instead of being stopped, and the report
+    /// carried a failed step for it. Not a shape made up for the test: on the machine this was built
+    /// on, mpssvc needs bfe in one process, RpcSs needs RpcEptMapper in another.
+    ///
+    /// <b>The rule is the one the cascade is ordered by</b>, because two implementations of "what goes
+    /// down first" are two things that have to agree. Putting them back runs in the mirror, which
+    /// <see cref="AddRestores"/> already does by walking this list backwards. The catalogue handed in
+    /// is the one <see cref="Needed"/> asked a moment earlier, so every answer here is already held.
+    /// </summary>
+    private static List<ScmEntry> InOrder(IScmCatalog catalog, IReadOnlyList<ScmEntry> sharing) =>
+        DependentsFirst.Ordered(catalog, sharing);
 
     /// <summary>The plain shape, for the reasons that carry nothing but a name.</summary>
     private static PlanProblem Because(PlanProblemKind kind, ScmEntry target) =>
