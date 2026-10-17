@@ -25,6 +25,11 @@ public sealed class SnapshotRoundTripPropertyTests
     [Trait("search", "weekly")]
     public void A_machine_written_to_a_snapshot_and_read_back_is_the_same_machine_with_nothing_unread_lost()
     {
+        // The oracle's half of the unread comparison comes from a reflection filter. Matching nothing,
+        // it would still disagree with any file holding a refusal - but in words about the file, not
+        // the filter - and agree with a writer that had lost every refusal as well.
+        Assert.NotEmpty(Readings);
+
         var folder = Directory.CreateTempSubdirectory("bws-round-trip-");
 
         try

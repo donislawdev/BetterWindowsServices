@@ -13405,6 +13405,16 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'SnapshotTests.A_measurement_the_machine_refused_is_not_in_the_file_either'
     }
     @{
+        # The review of #77: the example held only the absence, so a writer dropping every refusal of an
+        # entry once the measurement was among them kept it green. The refusal of the start type in the
+        # same entries is its positive control.
+        Name = 'snapshot: a refused measurement takes no other refusal with it'
+        File = 'src\Bws.Core\Snapshots\SnapshotJson.cs'
+        From = 'unreadable.Remove(property) && unreadable.Count == 0)'
+        To = 'unreadable.Remove(property) && unreadable.Count >= 0)'
+        Test = 'SnapshotTests.A_measurement_the_machine_refused_is_not_in_the_file_either'
+    }
+    @{
         # Rule 8 across a file: a refusal written as "never asked" is a snapshot claiming the machine was
         # merely not asked, when it said no. The oracle counts the fields from the entry's own readings,
         # so this is caught although both sides of the comparison pass through the mutated line.

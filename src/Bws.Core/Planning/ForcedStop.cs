@@ -274,7 +274,6 @@ internal static class ForcedStop
                     && dependents.Value!.Contains(entry.ServiceName, StringComparer.OrdinalIgnoreCase))
                 .Select(entry => entry.ServiceName);
 
-    /// <summary>The plain shape, for the reasons that carry nothing but a name.</summary>
     /// <summary>
     /// The neighbours in the order they can be stopped politely: one that needs another goes first.
     ///
@@ -292,6 +291,7 @@ internal static class ForcedStop
     private static List<ScmEntry> InOrder(IScmCatalog catalog, IReadOnlyList<ScmEntry> sharing) =>
         DependentsFirst.Ordered(catalog, sharing);
 
+    /// <summary>The plain shape, for the reasons that carry nothing but a name.</summary>
     private static PlanProblem Because(PlanProblemKind kind, ScmEntry target) =>
         new(kind, target.ServiceName, []);
 

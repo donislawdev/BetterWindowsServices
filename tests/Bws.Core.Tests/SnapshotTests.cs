@@ -91,11 +91,26 @@ public sealed class SnapshotTests
         // "notRead" and left in "unreadable", so a refused measurement came through as a refusal of
         // a field the document never claims. No road to a snapshot measures memory that day, which
         // is why nothing had shown it.
+        //
+        // The refusal of a field the document does claim rides in the same entries, because the
+        // absence alone holds for a writer that drops every refusal - or the whole list once the
+        // measurement is in it - and that is the silence rule 8 forbids, not the fix.
         var refused = Specimens.All
-            .Select(entry => entry with { Memory = Reading<ProcessMemory>.Denied(5, "Access is denied.") })
+            .Select(entry => entry with
+            {
+                Memory = Reading<ProcessMemory>.Denied(5, "Access is denied."),
+                StartType = Reading<StartType>.Denied(5, "Access is denied.")
+            })
             .ToArray();
 
-        Assert.DoesNotContain("\"memory\"", Render(refused), StringComparison.Ordinal);
+        var text = Render(refused);
+
+        Assert.DoesNotContain("\"memory\"", text, StringComparison.Ordinal);
+        Assert.All(
+            JsonDocument.Parse(text).RootElement.GetProperty("entries").EnumerateArray(),
+            entry => Assert.True(
+                entry.TryGetProperty("unreadable", out var unreadable) && unreadable.TryGetProperty("startType", out _),
+                $"{entry.GetProperty("serviceName").GetString()} lost the refusal of its start type"));
     }
 
     /// <summary>
