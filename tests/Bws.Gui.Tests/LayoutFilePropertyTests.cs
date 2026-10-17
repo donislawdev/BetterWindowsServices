@@ -62,6 +62,10 @@ public sealed class LayoutFilePropertyTests
     /// built, and the file is moved aside with its bytes as they were - the door every unreadable layout
     /// goes through. Before 591 the constructor threw, which is what the mutation entry for this test
     /// shows by putting the repeat back.
+    ///
+    /// <b>The file aside is the one the line under the list names</b>, which is what the changelog
+    /// promises a person - review of #76 asked that the file be shown to come from the quarantine, and
+    /// the window's own sentence says that without a copy of how the quarantine spells its names.
     /// </summary>
     [Fact]
     public void A_window_whose_layout_file_names_a_key_twice_opens_and_moves_the_file_aside()
@@ -77,15 +81,25 @@ public sealed class LayoutFilePropertyTests
 
         try
         {
-            var window = WpfHost.On(() => new MainWindow(new PreferencesFile(directory)));
+            var (window, model) = WpfHost.On(() =>
+            {
+                var watched = new MainViewModel();
+
+                return (new MainWindow(new PreferencesFile(directory), watched), watched);
+            });
 
             // Asked before the window closes, because closing writes the layout it opened with.
             var left = Directory.GetFiles(directory);
+            var said = WpfHost.On(() => model.Says.Problem);
 
             WpfHost.On(window.Close);
 
             Assert.DoesNotContain(kept, left);
-            Assert.Equal(written, File.ReadAllText(Assert.Single(left)));
+
+            var aside = Assert.Single(left);
+
+            Assert.Contains(aside, said, StringComparison.Ordinal);
+            Assert.Equal(written, File.ReadAllText(aside));
         }
         finally
         {

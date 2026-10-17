@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows.Controls;
 using Bws.Gui.ViewModels;
 using CsCheck;
@@ -47,30 +48,61 @@ public sealed class KeptWidthPropertyTests
                         return (built.Width, built.MinWidth, (DataGridLength)WpfHost.Resources[column.WidthKey], (double)WpfHost.Resources["ColumnFloor"]);
                     });
 
-                    var wrong = Wrong(refused, column.Id, used, theme) ?? Floor(used, floor, least);
+                    var expected = Drawable(width);
+                    var wrong = Named(refused, expected is null ? [column.Id] : [])
+                        ?? Width(used, expected ?? theme)
+                        ?? Floor(used, floor, least);
 
                     return wrong is null ? true : throw new InvalidOperationException(wrong);
                 },
                 new(300) { Threads = 1, Print = drawn => $"{drawn.Item1.Id} kept as <{drawn.Item2}>" });
     }
 
-    /// <summary>A refused width is the theme's and named, a taken one is a width a screen can show.</summary>
-    private static string? Wrong(List<string> refused, string id, DataGridLength used, DataGridLength theme)
+    /// <summary>
+    /// What a column given this text should get, asked of WPF's own converter and the bound a screen
+    /// can show - NOT of ListColumns, so a grid that quietly took the theme's width for a good one, or
+    /// fell back for a bad one without naming the column, is caught rather than agreed with. Review of
+    /// #76: the first version took the list of refused columns from the product as its oracle.
+    /// </summary>
+    private static DataGridLength? Drawable(string width)
     {
-        if (refused.Any(named => named != id))
+        try
         {
-            return $"Named [{string.Join(", ", refused)}] for a width kept on {id} alone.";
+            return Converter.ConvertFrom(null, CultureInfo.InvariantCulture, width) is DataGridLength length
+                && double.IsFinite(length.Value) && length.Value is >= 0 and <= Widest
+                ? length
+                : null;
         }
-
-        if (refused.Count > 0)
+        catch (FormatException)
         {
-            return used == theme ? null : $"Refused, and the column is {used} rather than the theme's {theme}.";
+            return null;
         }
-
-        return double.IsFinite(used.Value) && used.Value is >= 0 and <= Widest
-            ? null
-            : $"Taken as {used.Value} {used.UnitType}, which no screen shows.";
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
+
+    private static readonly DataGridLengthConverter Converter = new();
+
+    /// <summary>The column named exactly when its width is not drawable, and nothing else named.</summary>
+    private static string? Named(List<string> refused, string[] expected) =>
+        refused.SequenceEqual(expected, StringComparer.Ordinal)
+            ? null
+            : $"Named [{string.Join(", ", refused)}] where [{string.Join(", ", expected)}] was expected.";
+
+    /// <summary>
+    /// The width the column got is exactly the one expected - compared by value and unit, because the
+    /// grid keeps its own desired and displayed values beside them.
+    /// </summary>
+    private static string? Width(DataGridLength used, DataGridLength expected) =>
+        used.Value.Equals(expected.Value) && used.UnitType == expected.UnitType
+            ? null
+            : $"The column is {used.Value} {used.UnitType}, expected {expected.Value} {expected.UnitType}.";
 
     /// <summary>The floor under a column follows the width that was really used - ListColumns.Build says why.</summary>
     private static string? Floor(DataGridLength used, double floor, double least) =>

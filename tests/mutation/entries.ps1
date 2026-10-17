@@ -13256,6 +13256,25 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = '        catch (ArgumentNullException)'
         Test = 'KeptWidthPropertyTests.A_kept_width_of_any_text_is_drawable_or_left_to_the_theme_and_named'
     }
+    @{
+        # Review of #76: the property took the refused list from the product as its oracle, so a width
+        # replaced by the theme's WITHOUT the column being named passed. The oracle is now WPF's own
+        # converter and the drawable bound, and a fallback said to nobody is the silence rule 8 forbids.
+        Name = 'search: a width refused is named rather than replaced in silence'
+        File = 'src\Bws.Gui\ListColumns.cs'
+        From = '            refused.Add(column.Id);'
+        To = '            refused.AddRange([]);'
+        Test = 'KeptWidthPropertyTests.A_kept_width_of_any_text_is_drawable_or_left_to_the_theme_and_named'
+    }
+    @{
+        # The other half the same review found: a good width ignored for the theme's and named as if it
+        # were bad would also have passed, because a named column was all the old oracle asked about.
+        Name = 'search: a width that reads is the one the column gets'
+        File = 'src\Bws.Gui\ListColumns.cs'
+        From = '            if (Parsed(kept) is { } saved)'
+        To = '            if (Parsed(kept) is { } saved && false)'
+        Test = 'KeptWidthPropertyTests.A_kept_width_of_any_text_is_drawable_or_left_to_the_theme_and_named'
+    }
 )
 
 $mutations
