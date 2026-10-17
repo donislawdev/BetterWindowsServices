@@ -423,38 +423,29 @@ public sealed class PlanBuilder(
         //
         // Dropping the repeat rather than the step, which is the distinction BulkPlanBuilder
         // draws about its own input: this is one entry described twice, not two things to do.
+        //
+        // AND NEVER THE TARGET ITSELF, SINCE 2026-10-17 - the owner's decision on finding M1 of the
+        // fuzzing project. Over a dependency cycle through the target the manager's answer reaches
+        // back round to it, and the target became a member of its own cascade: stopped twice, started
+        // twice by a restart, and named in the cascade warning among the things that come down WITH
+        // it. Windows refuses to write such a cycle through its API (ChangeServiceConfig answers
+        // ERROR_CIRCULAR_DEPENDENCY). Whether one can arrive through the registry was never checked,
+        // and a plan that is right either way costs one comparison.
         var running = dependents.Value!
             .Select(Find)
             .OfType<ScmEntry>()
-            .Where(entry => entry.Status != EntryStatus.Stopped)
+            .Where(entry => entry.Status != EntryStatus.Stopped
+                && !target.ServiceName.Equals(entry.ServiceName, StringComparison.OrdinalIgnoreCase))
             .DistinctBy(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return Order(running);
-    }
-
-    /// <summary>
-    /// Puts the cascade in the order it has to happen: an entry may stop only once everything
-    /// that depends on it has stopped.
-    ///
-    /// <b>The rule itself moved to <see cref="DependentsFirst"/> on 2026-08-18, because the bulk
-    /// plan of `C2` asks it about a SELECTION as well as about a cascade.</b> Identical question,
-    /// and two implementations of it would be two things that have to agree about which service
-    /// goes down first - where disagreeing means an outage rather than an oddity.
-    ///
-    /// What stays here is the mapping back to entries, because the steps carry a display name and
-    /// the ordering has no business knowing there is such a thing.
-    /// </summary>
-    private List<ScmEntry> Order(List<ScmEntry> cascade)
-    {
-        var byName = cascade.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
-
-        return
-        [
-            .. DependentsFirst
-                .Order(catalog, [.. cascade.Select(entry => entry.ServiceName)])
-                .Select(name => byName[name])
-        ];
+        // In the order it has to happen: an entry may stop only once everything that depends on it has
+        // stopped. The rule moved to DependentsFirst on 2026-08-18, because the bulk plan of `C2` asks it
+        // about a SELECTION as well, and two implementations would be two things that have to agree about
+        // which service goes down first - where disagreeing means an outage rather than an oddity. The
+        // mapping back to entries followed it on 2026-10-17, when the neighbours of a forced stop became a
+        // third caller.
+        return DependentsFirst.Ordered(catalog, running);
     }
 
     private void AddWarnings(

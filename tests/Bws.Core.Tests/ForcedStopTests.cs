@@ -198,6 +198,32 @@ public sealed class ForcedStopTests
             step => Assert.Equal(StepReason.Restore, step.Reason));
     }
 
+    [Fact]
+    public void Housemates_go_down_in_the_order_the_manager_lets_them_rather_than_the_order_listed()
+    {
+        // The shape on the machine this was built on: mpssvc needs bfe, and both live in one process.
+        // Listed bfe first, which is where an alphabetical listing puts it. Asked to stop first, bfe is
+        // refused while mpssvc runs (1051) and dies with the process instead - finding B of the fuzzing
+        // project, 2026-10-17, fixed in ForcedStop.InOrder on the owner's decision.
+        var entries = new[] { Housemate("Target"), Housemate("bfe"), Housemate("mpssvc") };
+        var catalog = new FakeScmCatalog(entries).DependedOnBy("bfe", "mpssvc");
+
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog)
+            .Build(new ServiceAction(ActionKind.ForceRestart, "Target"));
+
+        Assert.Equal(
+            ["mpssvc", "bfe"],
+            plan.Steps.Where(step => step.Reason == StepReason.SharesTheProcess).Select(step => step.ServiceName));
+
+        // Putting back runs in the mirror, so what a housemate needs is running before it is asked.
+        Assert.Equal(
+            ["Target", "bfe", "mpssvc"],
+            plan.Steps.Where(step => step.Operation == StepOperation.Start).Select(step => step.ServiceName));
+    }
+
+    private static ScmEntry Housemate(string serviceName) =>
+        Running(serviceName, serviceName + " display name") with { ProcessId = Reading<int>.Present(7000) };
+
     /// <summary>
     /// The chain with every entry in a process of its own, which is what 105 of 110 processes on a
     /// real machine look like.

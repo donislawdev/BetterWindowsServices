@@ -84,6 +84,20 @@ public sealed class SnapshotTests
         Assert.DoesNotContain("\"memory\"", Render(Specimens.All), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_measurement_the_machine_refused_is_not_in_the_file_either()
+    {
+        // Finding D of the fuzzing project, 2026-10-17: the admission above was taken out of
+        // "notRead" and left in "unreadable", so a refused measurement came through as a refusal of
+        // a field the document never claims. No road to a snapshot measures memory that day, which
+        // is why nothing had shown it.
+        var refused = Specimens.All
+            .Select(entry => entry with { Memory = Reading<ProcessMemory>.Denied(5, "Access is denied.") })
+            .ToArray();
+
+        Assert.DoesNotContain("\"memory\"", Render(refused), StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// <b>Written 2026-09-02 because the whole suite stayed green while this changed, which is the
     /// only reason it is worth having.</b> Two entries on an ordinary machine hand back an
