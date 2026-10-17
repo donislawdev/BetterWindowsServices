@@ -6,6 +6,13 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <!--
+      The same random input library as the core's tests, the same version, and still never in
+      anything published - ADR-15 says so on its row. It arrives here on 2026-10-16 for the
+      properties over what a command line gets from outside: the arguments somebody types, the line
+      the plan hands them to paste, and every JSON document this tool prints.
+    -->
+    <PackageReference Include="CsCheck" Version="4.7.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
@@ -13,6 +20,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Bws.Tests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,6 +51,13 @@
       listing the OTHER package's components.
     -->
     <Compile Include="..\SourceTree.cs" Link="SourceTree.cs" />
+
+    <!--
+      The one door every random property goes through, linked for the reason SourceTree.cs is.
+      The weekly search counts calls through it, so a property sampling past it would be searched
+      without anybody knowing how much.
+    -->
+    <Compile Include="..\Searching.cs" Link="Searching.cs" />
   </ItemGroup>
 
 </Project>
