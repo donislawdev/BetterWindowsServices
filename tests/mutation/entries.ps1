@@ -13173,6 +13173,89 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = "character is '.' or '_' or '-' or '|')"
         Test = 'EquivalentCommandPropertyTests.Any_name_typed_the_way_the_plan_writes_it_reaches_this_tool_through_PowerShell_as_the_same_ask'
     }
+    @{
+        # Backlog 591, step 3b of the fuzzing project: a layout file naming a key twice threw
+        # ArgumentException out of the reader and kept the window from opening. Duplicates allowed
+        # again is the fault back, and the property damaging a real file found it by a piece written twice.
+        Name = 'search: a layout file naming a key twice is refused while reading'
+        File = 'src\Bws.Gui\ViewModels\ColumnLayout.cs'
+        From = 'new() { AllowDuplicateProperties = false };'
+        To = 'new() { AllowDuplicateProperties = true };'
+        Test = 'LayoutFilePropertyTests.A_damaged_layout_file_is_read_or_named_and_what_is_read_is_whole'
+    }
+    @{
+        # The same fault as a person meets it, and the entry that measures what the changelog says of it:
+        # a real window over such a file. With the repeat allowed again the constructor throws, and the
+        # file is never moved aside, so every start after that one fails the same way.
+        Name = 'layout: a window whose file names a key twice still opens'
+        File = 'src\Bws.Gui\ViewModels\ColumnLayout.cs'
+        From = 'new() { AllowDuplicateProperties = false };'
+        To = 'new() { AllowDuplicateProperties = true };'
+        Test = 'LayoutFilePropertyTests.A_window_whose_layout_file_names_a_key_twice_opens_and_moves_the_file_aside'
+    }
+    @{
+        # The plan promises the grid every column exactly once. A file listing one column twice - which
+        # the hand-shaped layouts write often - would hand the grid that column twice.
+        Name = 'search: a column a file lists twice reaches the grid once'
+        File = 'src\Bws.Gui\ViewModels\ColumnPlan.cs'
+        From = 'if (Columns.Of(column.Id) is null || !seen.Add(column.Id))'
+        To = 'if (Columns.Of(column.Id) is null)'
+        Test = 'LayoutFilePropertyTests.A_layout_file_written_by_hand_is_read_or_named_and_what_is_read_is_whole'
+    }
+    @{
+        # The history refuses an event as XML and in no other way. A number read with Parse throws a
+        # FormatException on a damaged event identifier, and nothing in bws history plans for that.
+        Name = 'search: a damaged event is refused only as xml'
+        File = 'src\Bws.Core\History\ChangeEvents.cs'
+        From = 'int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;'
+        To = 'int.Parse(text!, NumberStyles.None, CultureInfo.InvariantCulture);'
+        Test = 'ChangeEventPropertyTests.A_damaged_event_is_read_or_refused_as_xml_and_never_otherwise'
+    }
+    @{
+        # An empty field is no value, so a driver installed with no account says none rather than
+        # an empty string beside a null - and the events written from any values draw empty ones often.
+        Name = 'search: an empty field in an event is no value'
+        File = 'src\Bws.Core\History\ChangeEvents.cs'
+        From = 'Values.TryGetValue(name, out var value) && value.Length > 0 ? value : null;'
+        To = 'Values.TryGetValue(name, out var value) ? value : null;'
+        Test = 'ChangeEventPropertyTests.An_event_written_from_any_values_gives_those_values_back'
+    }
+    @{
+        # A query that does not fit is left behind AND said. Without the flag the new window opens with
+        # an empty box and no sentence, which is the hand-over quietly showing less than it was given.
+        Name = 'search: a query left behind to make room is said'
+        File = 'src\Bws.Gui\ViewModels\HandOver.cs'
+        From = 'QueryLeftBehind = carried.QueryLeftBehind || carried.Query.Length > 0 };'
+        To = 'QueryLeftBehind = carried.QueryLeftBehind };'
+        Test = 'HandOverPropertyTests.What_a_window_hands_over_comes_back_whole_or_says_what_was_left'
+    }
+    @{
+        # A damaged argument is refused whole and quietly. Decoded without asking whether it is base64
+        # first, it throws out of the reader in a process with administrator rights.
+        Name = 'search: a damaged hand-over is refused rather than thrown over'
+        File = 'src\Bws.Gui\ViewModels\HandOver.cs'
+        From = '        if (text.Length is 0 or > LongestArgument || !Base64Url.IsValid(text))'
+        To = '        if (text.Length is 0 or > LongestArgument)'
+        Test = 'HandOverPropertyTests.A_damaged_hand_over_is_taken_or_refused_whole_and_taken_only_in_a_shape_the_window_writes'
+    }
+    @{
+        # A carriage return inside a value has to be quoted, or the reader takes it for the end of a
+        # line. The export property reads every file back with a reader that refuses a bare one.
+        Name = 'search: a value holding a carriage return is quoted'
+        File = 'src\Bws.Gui\ViewModels\Exporting.cs'
+        From = "            && !value.Contains('\r', StringComparison.Ordinal))"
+        To = "            )"
+        Test = 'CsvPropertyTests.Every_value_exported_reads_back_as_itself_and_none_starts_a_formula'
+    }
+    @{
+        # The converter throws ArgumentException for a width it cannot hold, Infinity and NaN among
+        # them. Not caught, a hand-edited width takes the window down while the columns are built.
+        Name = 'search: a width the converter cannot hold is left to the theme'
+        File = 'src\Bws.Gui\ListColumns.cs'
+        From = '        catch (ArgumentException)'
+        To = '        catch (ArgumentNullException)'
+        Test = 'KeptWidthPropertyTests.A_kept_width_of_any_text_is_drawable_or_left_to_the_theme_and_named'
+    }
 )
 
 $mutations

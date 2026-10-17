@@ -13,6 +13,13 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <!--
+      The same random input library as the core's and the command line's tests, the same version,
+      and still never in anything published - ADR-15 says so on its row. It arrives here on
+      2026-10-17 for the properties over what the window reads from outside: its own layout file,
+      the hand-over between two windows, and the files it exports for a spreadsheet.
+    -->
+    <PackageReference Include="CsCheck" Version="4.7.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
@@ -30,6 +37,14 @@
   -->
   <ItemGroup>
     <Compile Include="..\SourceTree.cs" Link="SourceTree.cs" />
+
+    <!--
+      The one door every random property goes through, and the five ways a stored file is damaged,
+      both linked for the reason SourceTree.cs is. The weekly search counts calls through the first,
+      so a property sampling past it would be searched without anybody knowing how much.
+    -->
+    <Compile Include="..\Searching.cs" Link="Searching.cs" />
+    <Compile Include="..\Damaged.cs" Link="Damaged.cs" />
   </ItemGroup>
 
   <ItemGroup>

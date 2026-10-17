@@ -86,6 +86,11 @@ is not part of this repository.
   word, so the filter stayed dark, the list searched for text no service has, and a second click
   added the filter again. The box now reads `C:\Windows\\ status:stopped` - two backslashes are one
   literal backslash, so the path searched for is still the one you typed.
+- The window opens again when the file that keeps its column layout names the same setting twice,
+  as a hand edit or a piece of the file pasted in twice can leave it. Such a file used to stop the
+  window from opening at every start until somebody deleted it. It is now treated like any other
+  layout file the window cannot read: the usual columns are shown, the file is moved aside rather
+  than overwritten, and the line under the list says where it went.
 
 ## [0.4.0] - 2026-10-07
 

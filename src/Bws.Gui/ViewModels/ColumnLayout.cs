@@ -350,7 +350,7 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
 
         try
         {
-            tree = JsonNode.Parse(content);
+            tree = JsonNode.Parse(content, documentOptions: OneValueAKey);
         }
         catch (JsonException problem)
         {
@@ -446,6 +446,23 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
 
         return new KeptSort(id, descending);
     }
+
+    /// <summary>
+    /// A key named twice is refused while parsing, as JSON this reader cannot take - backlog 591,
+    /// owner's decision 2026-10-17.
+    ///
+    /// <b>Until then a repeated key took the window down at every start.</b> JsonNode accepts the
+    /// repeat and throws ArgumentException at the first look inside the object, which the catch in
+    /// Read was never written for, so the file was not even moved aside. Found by the weekly
+    /// properties over this file on the day they were written, by a real layout with a piece of it
+    /// written twice - the way a merge that kept both sides or a copy pasted once too often leaves it.
+    ///
+    /// <b>Refused rather than read with one of the two values winning.</b> This program never writes
+    /// a key twice, so a second value is somebody else's edit, and choosing either would be guessing
+    /// which they meant. Refused, the file goes the way every other unreadable one goes: moved aside
+    /// and named.
+    /// </summary>
+    private static readonly JsonDocumentOptions OneValueAKey = new() { AllowDuplicateProperties = false };
 
     private static readonly JsonSerializerOptions Shape = new()
     {

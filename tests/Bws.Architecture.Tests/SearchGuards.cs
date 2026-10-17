@@ -137,13 +137,14 @@ public sealed class SearchGuards
         // Every assertion above passes on zero methods, which is what a reader that stopped finding
         // anything would return. A floor rather than an exact count, so adding a property does not
         // turn this red, and set from the count on the day it was last raised: sixteen weekly
-        // properties on 2026-10-16, twenty-one once the five over shaped query text arrived, and
-        // twenty-five with the first four in the command line's own tests.
+        // properties on 2026-10-16, twenty-one once the five over shaped query text arrived,
+        // twenty-five with the first four in the command line's own tests, and thirty-three on
+        // 2026-10-17 with the change history, the layout file, the hand-over and the exports.
         var methods = Methods();
 
         Assert.True(
-            methods.Count(method => method.Weekly) >= 25,
-            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 25 when " +
+            methods.Count(method => method.Weekly) >= 33,
+            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 33 when " +
             "this floor was last raised. Either properties were removed on purpose and this floor goes " +
             "down with them, or the reading stopped seeing them.");
 
