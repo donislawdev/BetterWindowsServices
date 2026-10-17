@@ -30,10 +30,12 @@
   <!--
     The one door the random properties go through, linked rather than referenced for the reason
     SourceTree.cs gives in the other test projects: a shared test assembly would be a new reference
-    edge. It counts the draws for the weekly search in tests/search.
+    edge. It counts the draws for the weekly search in tests/search. Beside it, the five ways a
+    stored file is damaged, shared with the window's tests that read their own files back.
   -->
   <ItemGroup>
     <Compile Include="..\Searching.cs" Link="Searching.cs" />
+    <Compile Include="..\Damaged.cs" Link="Damaged.cs" />
   </ItemGroup>
 
   <!--

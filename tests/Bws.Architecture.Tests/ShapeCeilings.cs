@@ -154,8 +154,11 @@ internal static class ShapeCeilings
     /// <summary>Fixed, for the reason at <see cref="DepthNear"/>.</summary>
     internal const int TestWidthNear = 4;
 
-    /// <summary>Seventeen at 4 parameters or more.</summary>
-    internal const int TestSignaturesNearWidest = 17;
+    /// <summary>
+    /// Sixteen at 4 parameters or more - seventeen until 2026-10-17, when the review of #76 split a
+    /// four-parameter check in KeptWidthPropertyTests into two questions of two.
+    /// </summary>
+    internal const int TestSignaturesNearWidest = 16;
 
     /// <summary>
     /// The floor under a scan, well below the tree on purpose: 192 files and 1113 units under src/,

@@ -285,12 +285,11 @@ public sealed class ParserPropertyTests
         var original = SnapshotJson.Render(
             Snapshot.Of([Entries.Any, Entries.Inspected], note: "property", new FakeClock()));
 
-        Gen.Select(Gen.Int[0, original.Length - 1], Gen.Int[0, 40], Gen.Int[0, 3])
+        Damaged.In(original)
             .Searched(
                 damage =>
                 {
-                    var (at, length, kind) = damage;
-                    var broken = Damage(original, at, length, kind);
+                    var broken = damage.To(original, '}');
 
                     try
                     {
@@ -302,28 +301,10 @@ public sealed class ParserPropertyTests
                     catch (Exception thrown)
                     {
                         throw new InvalidOperationException(
-                            $"Reading a snapshot damaged at {at} by {length} ({kind}) threw " +
+                            $"Reading a snapshot damaged {damage} threw " +
                             $"{thrown.GetType().Name}: {thrown.Message}", thrown);
                     }
                 },
                 new(20_000));
-    }
-
-    /// <summary>
-    /// Four ways a stored file goes wrong, and all four are things that happen to real files
-    /// rather than things somebody would invent: it stops early, a piece falls out, a byte
-    /// flips, or something is inserted.
-    /// </summary>
-    private static string Damage(string text, int at, int length, int kind)
-    {
-        var end = Math.Min(text.Length, at + length);
-
-        return kind switch
-        {
-            0 => text[..at],
-            1 => text[..at] + text[end..],
-            2 => text[..at] + '\uFFFD' + text[Math.Min(text.Length, at + 1)..],
-            _ => text[..at] + new string('}', Math.Max(1, length)) + text[at..]
-        };
     }
 }
