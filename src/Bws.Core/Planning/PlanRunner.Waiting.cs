@@ -109,7 +109,9 @@ public sealed partial class PlanRunner
     /// <param name="asked">
     /// Whether the manager was asked anything. An abandoned watch after a request reports that the
     /// watching ended - the entry may still arrive, which is what TimedOut says - and one before any
-    /// request is a step never attempted.
+    /// request is a step never attempted. A watch that runs out of time before any request is a
+    /// failure in our own words rather than TimedOut, since 2026-10-17, so it is never counted as a
+    /// move this tool made.
     /// </param>
     private StepResult WaitFor(
         PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked)
@@ -141,6 +143,13 @@ public sealed partial class PlanRunner
             Settled.Over => StoppedAgain(step, seen, started),
             Settled.Halted when !asked =>
                 Skipped(step, SkipReason.Cancelled, Where(seen), Holding(seen), Elapsed(started)),
+
+            // RAN OUT BEFORE ANYTHING WAS ASKED IS NOT A TIMED OUT REQUEST, since 2026-10-17 - finding E of
+            // the fuzzing project, on the owner's decision. TimedOut says the entry may still arrive where
+            // this tool sent it, and NetEffect counts it as the run's own move - so a housemate somebody
+            // else was stopping, watched and given up on, was STARTED by the step putting it back, although
+            // this tool never asked it to stop. The same rule as NeverAsked above, in the other direction.
+            _ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),
 
             _ => Result(step, StepOutcome.TimedOut, Where(seen), Holding(seen), Elapsed(started))
         };
@@ -284,6 +293,17 @@ public sealed partial class PlanRunner
             + "Ask again once it has stopped."
         : "It was still starting when the waiting ran out, so it was never asked to stop. "
             + "Ask again once it has started.";
+
+    /// <summary>
+    /// The other half of <see cref="NeverAsked"/>: the entry was already heading where the step wanted
+    /// it, was only watched, and did not get there in time. Said in our words because the manager said
+    /// nothing - nobody asked it anything.
+    /// </summary>
+    private static string NeverArrived(EntryStatus target) => target == EntryStatus.Running
+        ? "It was already starting when its turn came, and the waiting ran out before it started. "
+            + "It was never asked to start, so nothing here counts it as started."
+        : "It was already stopping when its turn came, and the waiting ran out before it stopped. "
+            + "It was never asked to stop, so nothing here starts it again.";
 
     /// <summary>How one watch ended.</summary>
     private enum Settled

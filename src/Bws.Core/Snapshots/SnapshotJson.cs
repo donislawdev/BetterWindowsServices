@@ -260,6 +260,17 @@ public static class SnapshotJson
                 entry.Remove("notRead");
             }
         }
+
+        // AND OUT OF THE REFUSALS, SINCE 2026-10-17 - finding D of the fuzzing project, on the owner's
+        // decision. Only the admission above was taken out, so a measurement the machine refused came
+        // through as "unreadable": {"memory": ...} - the same confession about a field the document
+        // never claims, made in the other list. Unreachable that day, because every road to a snapshot
+        // reads the machine afresh without measuring memory - a road that measures first would have
+        // started writing it without anybody seeing.
+        if (entry["unreadable"] is JsonObject unreadable && unreadable.Remove(property) && unreadable.Count == 0)
+        {
+            entry.Remove("unreadable");
+        }
     }
 
     /// <summary>

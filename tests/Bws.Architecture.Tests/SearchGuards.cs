@@ -44,7 +44,12 @@ public sealed class SearchGuards
 
         ["SearchCanaryTests.A_property_that_fails_is_red_and_says_how_to_reproduce_it"] =
             "The weekly runner's own canary. It fails only when the runner asks it to, to prove a red " +
-            "property reaches the verdict with its seed - so it is run by name, never listed."
+            "property reaches the verdict with its seed - so it is run by name, never listed.",
+
+        ["PlanRunPropertyTests.The_run_the_first_minute_long_search_found_puts_back_nothing_it_never_asked_to_stop"] =
+            "It replays the one input a Sunday-style search found (finding E, 2026-10-17) - the procedure " +
+            "in the runner's header. The searching is the property beside it, and five minutes here " +
+            "would sample the same generator twice under a second name."
     };
 
     [Fact]
@@ -138,13 +143,14 @@ public sealed class SearchGuards
         // anything would return. A floor rather than an exact count, so adding a property does not
         // turn this red, and set from the count on the day it was last raised: sixteen weekly
         // properties on 2026-10-16, twenty-one once the five over shaped query text arrived,
-        // twenty-five with the first four in the command line's own tests, and thirty-three on
-        // 2026-10-17 with the change history, the layout file, the hand-over and the exports.
+        // twenty-five with the first four in the command line's own tests, thirty-three on
+        // 2026-10-17 with the change history, the layout file, the hand-over and the exports, and
+        // thirty-six the same day with a plan over any graph, its run, and a snapshot through a file.
         var methods = Methods();
 
         Assert.True(
-            methods.Count(method => method.Weekly) >= 33,
-            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 33 when " +
+            methods.Count(method => method.Weekly) >= 36,
+            $"Only {methods.Count(method => method.Weekly)} weekly properties found, against 36 when " +
             "this floor was last raised. Either properties were removed on purpose and this floor goes " +
             "down with them, or the reading stopped seeing them.");
 

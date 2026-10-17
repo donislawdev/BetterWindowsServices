@@ -71,6 +71,17 @@ is not part of this repository.
 
 ### Fixed
 
+- `bws kill`, and Force stop and Force restart in the window, now ask the other services living in the
+  same process to stop in an order Windows accepts: a service another of them needs is asked after
+  it. They used to be asked in the order of the list, so a service another one still needed was
+  refused its stop, ended with the process instead, and the report showed a failed step for it.
+- On a machine where services depend on each other in a circle, a plan no longer stops the service
+  you asked about twice, or names it among the services that stop with it, and the services outside
+  the circle are stopped in an order Windows accepts.
+- A restart, a forced one included, no longer starts again a service that somebody else was already
+  stopping when its step came and that did not finish stopping in time. Nothing had asked that
+  service to stop, so its step now says exactly that, and the service is left as it is rather than
+  started at the end of the run.
 - `bws kill`, and Force stop in the window, no longer announce that they end a service's process
   when the ordinary stop in front of that step has already worked. The step finds the service
   stopped and ends nothing, and its progress line now says so up front: "end process 5476

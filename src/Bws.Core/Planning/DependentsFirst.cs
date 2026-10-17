@@ -46,7 +46,12 @@ internal static class DependentsFirst
             // An unreadable answer orders nothing rather than refusing. Turning missing information
             // into a decision is the opposite of what the four read outcomes exist for, and the
             // caller is the one holding the warning that says the cascade could not be read.
-            blockedBy[name] = theirs.IsPresent ? [.. theirs.Value!.Where(inside.Contains)] : [];
+            //
+            // Without case, like every other set here: the cycle test below asks these sets about a
+            // name as the listing spells it, and the manager is free to spell it otherwise.
+            blockedBy[name] = theirs.IsPresent
+                ? new HashSet<string>(theirs.Value!.Where(inside.Contains), StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         var ordered = new List<string>(names.Count);
@@ -55,11 +60,21 @@ internal static class DependentsFirst
 
         while (remaining.Count > 0)
         {
-            var ready = remaining.FirstOrDefault(name => blockedBy[name].All(done.Contains));
+            // A BLOCK BOTH WAYS IS A CYCLE, NOT AN ORDER, AND IS NOT WAITED ON - since 2026-10-17, the
+            // owner's decision on finding C of the fuzzing project. The manager's answer reaches past
+            // the first hop, so every member of a cycle names every other member AND ITSELF. Waited
+            // on, those blocks left the members never ready, and the fallback below then took
+            // whatever stood first - typically an entry the cycle still needed, which the manager
+            // refuses to stop while the cycle runs. Skipping them orders everything outside the
+            // cycle correctly and the members among themselves in the order given, where no order is
+            // right. Without a cycle no block runs both ways, so nothing else changes.
+            var ready = remaining.FirstOrDefault(name =>
+                blockedBy[name].All(other => done.Contains(other) || blockedBy[other].Contains(name)));
 
-            // A cycle would leave nothing ready. None was ever observed, and looping forever over
-            // one is a far worse answer than an order the manager will reject with a message the
-            // step outcome can report.
+            // What is left for a cycle the answers do not show both ways - one only a first hop
+            // reveals, which the measured manager does not give. Looping forever over one is a far
+            // worse answer than an order the manager will reject with a message the step outcome
+            // can report.
             ready ??= remaining[0];
 
             ordered.Add(ready);
@@ -68,5 +83,31 @@ internal static class DependentsFirst
         }
 
         return ordered;
+    }
+
+    /// <summary>
+    /// The same order, for entries rather than names - each entry handed back exactly once.
+    ///
+    /// <b>Here since 2026-10-17, when a second caller arrived</b> (the neighbours of a forced stop,
+    /// finding B of the fuzzing project) beside the cascade PlanBuilder orders, and the mapping back from
+    /// names would otherwise have been written twice. Matched by the very string handed over rather than
+    /// through a dictionary, so two entries spelled alike - which a real machine cannot hold and the
+    /// specimen catalogue holds on purpose - come back as two rather than throwing or folding into one.
+    /// </summary>
+    internal static List<ScmEntry> Ordered(IScmCatalog catalog, IReadOnlyList<ScmEntry> entries)
+    {
+        var left = entries.ToList();
+
+        return [.. Order(catalog, [.. entries.Select(entry => entry.ServiceName)]).Select(name => Taken(left, name))];
+    }
+
+    private static ScmEntry Taken(List<ScmEntry> left, string name)
+    {
+        var at = left.FindIndex(entry => string.Equals(entry.ServiceName, name, StringComparison.Ordinal));
+        var entry = left[at];
+
+        left.RemoveAt(at);
+
+        return entry;
     }
 }
