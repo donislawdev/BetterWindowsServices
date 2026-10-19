@@ -199,7 +199,7 @@ jobs:
 
       # Its own category, so these alerts never replace CodeQL's and CodeQL's never replace these.
       # An upload with no results is what closes an alert that a merged fix made obsolete.
-      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           sarif_file: ${{ runner.temp }}/osv/osv.sarif
           category: osv-scanner
