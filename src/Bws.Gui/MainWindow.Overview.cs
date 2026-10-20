@@ -91,14 +91,20 @@ public partial class MainWindow
         //
         // AND FIVE SINCE 2026-10-15 - the form before a snapshot (W2-d) stands there the same way. It
         // comes only from the bar too, and Snapshotting never holds it and a comparison at once.
+        //
+        // AND SIX SINCE 2026-10-20 - the change history (J2). It comes from the same menu, and whichever
+        // arrives puts the others away (MainViewModel.OpenHistory, SnapshotDoors.Comparing), so this only
+        // has to rank them for the instant in between: what Snapshotting holds first, then the history.
         var comparing = _model.Snapshotting.Shown is not null;
         var preparing = _model.Snapshotting.Form is not null && !comparing;
-        var overview = _model.ShowingOverview && !_model.Snapshotting.InTheMiddle;
-        var elsewhere = overview || comparing || preparing;
+        var history = _model.History.InTheMiddle && !_model.Snapshotting.InTheMiddle;
+        var overview = _model.ShowingOverview && !_model.Snapshotting.InTheMiddle && !history;
+        var elsewhere = overview || comparing || preparing || history;
 
         Overview.Visibility = overview ? Visibility.Visible : Visibility.Collapsed;
         Comparison.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
         TakeForm.Visibility = preparing ? Visibility.Visible : Visibility.Collapsed;
+        ChangeHistory.Visibility = history ? Visibility.Visible : Visibility.Collapsed;
         Entries.Visibility = elsewhere ? Visibility.Collapsed : Visibility.Visible;
 
         // THE EMPTY STATE IS PUT BACK BY CLEARING RATHER THAN BY SETTING, AND THE DIFFERENCE IS A

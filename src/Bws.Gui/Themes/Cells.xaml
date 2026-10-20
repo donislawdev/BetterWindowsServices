@@ -339,4 +339,34 @@
                        Style="{StaticResource CellText}" />
         </Grid>
     </DataTemplate>
+
+    <!--
+        A TABLE SOMEBODY READS AND NOTHING IN IT IS ACTED ON - the comparison's (W1, W2) and the change
+        history's (J2), wearing the list's own row, cell and heading. A name since 2026-10-20, when the
+        second table would have written the same twelve attributes out a second time: GUI rule 7 of the
+        project notes, a set of properties used twice is a missing name. Read only, sortable, rows not
+        reorderable or addable, a line between rows and none between columns - the list's look.
+
+        IN THIS FILE RATHER THAN BESIDE ListGrid, because it names ListCell, and this file is merged after
+        List.xaml in App.xaml - a StaticResource only finds what was loaded before it.
+
+        Each table puts its own trigger on top (BasedOn this), because what makes it give way to a
+        sentence is a fact about its own data.
+    -->
+    <Style x:Key="ReadOnlyTable" TargetType="DataGrid" BasedOn="{StaticResource ListGrid}">
+        <Setter Property="RowStyle" Value="{StaticResource ListRow}" />
+        <Setter Property="CellStyle" Value="{StaticResource ListCell}" />
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource ColumnHeading}" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="CanUserSortColumns" Value="True" />
+        <Setter Property="CanUserReorderColumns" Value="False" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource SurfaceRowLine}" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="SelectionMode" Value="Extended" />
+    </Style>
 </ResourceDictionary>

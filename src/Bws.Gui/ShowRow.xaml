@@ -1,21 +1,24 @@
-<UserControl x:Class="Bws.Gui.DiffFilterRow"
+<UserControl x:Class="Bws.Gui.ShowRow"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Focusable="False"
              IsTabStop="False">
 
     <!--
-        WHICH ROWS OF A COMPARISON THE TABLE SHOWS - owner's decision W2-b of 2026-10-15: a button with
-        a menu, the way Columns opens its own, rather than a drop-down list this window has nowhere else.
-        Bound to the same ViewModels.DiffSheet as the view around it. Beside the button, how many rows
-        are on screen while a choice hides some - rule 8.
+        WHICH ROWS OF A TABLE ARE ON SCREEN - a button with a menu, the way Columns opens its own, rather
+        than a drop-down list this window has nowhere else. Owner's decision W2-b of 2026-10-15 for the
+        comparison, and J2-b of 2026-10-20 for the change history, which is why this is ONE component
+        bound to a ViewModels.IRowChoices rather than a file per table (GUI rules 2 and 5). Beside the
+        button, how many rows are on screen while a choice hides some - rule 8.
 
-        A COMPONENT OF ITS OWN FROM THE START, GUI rule 9: it has its own state (the filter) and its own
-        controls, and the size ratchet counted DiffView one file too close to its ceiling with this
-        inside it.
+        A COMPONENT OF ITS OWN FROM THE START, GUI rule 9: it has its own state (the choices) and its own
+        controls. It was DiffFilterRow until the second table needed it.
 
         THE MARGIN ABOVE IS ON THE PANEL, NOT ON THIS CONTROL, so the row takes its gap with it when
-        nothing differs and the table gives way to a sentence.
+        there is nothing to narrow and the table gives way to a sentence.
+
+        The automation names come from the table that uses it (Named, in the code behind), so a probe
+        asks for "diffShow" or "historyShow" and never for a button it cannot tell apart from another.
 
         Focusable and IsTabStop are off because a UserControl is both by default - `docs/10` trap 8.
     -->
@@ -24,7 +27,7 @@
         <StackPanel.Style>
             <Style TargetType="StackPanel">
                 <Style.Triggers>
-                    <DataTrigger Binding="{Binding Lines.Count}" Value="0">
+                    <DataTrigger Binding="{Binding Offered}" Value="False">
                         <Setter Property="Visibility" Value="Collapsed" />
                     </DataTrigger>
                 </Style.Triggers>
@@ -32,9 +35,8 @@
         </StackPanel.Style>
 
         <Button x:Name="ShowButton"
-                AutomationProperties.AutomationId="diffShow"
-                Content="{Binding Filter.Button}"
-                ToolTip="{DynamicResource gui.diff.show.hint}"
+                Content="{Binding Button}"
+                ToolTip="{Binding Hint}"
                 Margin="{StaticResource MarginBetweenControls}"
                 Click="ShowAsked">
             <Button.ContextMenu>
@@ -44,8 +46,8 @@
             </Button.ContextMenu>
         </Button>
 
-        <TextBlock AutomationProperties.AutomationId="diffShowing"
-                   Text="{Binding Filter.Showing}"
+        <TextBlock x:Name="ShowingText"
+                   Text="{Binding Showing}"
                    VerticalAlignment="Center"
                    Style="{StaticResource SubduedText}" />
     </StackPanel>

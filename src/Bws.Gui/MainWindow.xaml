@@ -340,6 +340,13 @@
                                 DataContext="{Binding Snapshotting.Form}"
                                 Visibility="Collapsed" />
 
+        <!-- Who changed what on this machine, in the same cell and the same way - HistoryView.xaml (J2). -->
+        <local:HistoryView Grid.Row="4"
+                           Grid.ColumnSpan="2"
+                           x:Name="ChangeHistory"
+                           DataContext="{Binding History.Shown}"
+                           Visibility="Collapsed" />
+
         <!--
             EVERYTHING ABOUT ONE ENTRY, `S7`. Opened with Enter from the list and closed with
             Escape - which is the last of the three keys `docs/11` 9.1 asked for on 2026-08-05 and

@@ -13,6 +13,15 @@ namespace Bws.Gui.ViewModels;
 public sealed class DetailLine
 {
     private readonly string _labelKey;
+    private string? _written;
+
+    /// <summary>
+    /// A line whose label is already words rather than a key - the history section's, whose label is a
+    /// time (J2-c, 2026-10-20). Plain text, read in full: nothing here is a column, so nothing has a
+    /// mark, a reading or a cell to agree with.
+    /// </summary>
+    internal static DetailLine Written(string label, string value) =>
+        new(string.Empty, value, "text", ReadOutcome.Present) { _written = label };
 
     internal DetailLine(
         string labelKey, string value, string wears, ReadOutcome outcome, string mark = "", string? reading = null)
@@ -40,7 +49,7 @@ public sealed class DetailLine
     }
 
     /// <summary>What the field is called, in the language of whoever is reading it.</summary>
-    public string Label => Texts.Of(_labelKey);
+    public string Label => _written ?? Texts.Of(_labelKey);
 
     /// <summary>
     /// What this entry says in it: the words the column's own cell uses, followed - for the one
@@ -122,6 +131,7 @@ public sealed class DetailSection
 {
     private readonly string _headingKey;
     private readonly string _noteKey;
+    private string? _written;
 
     internal DetailSection(string headingKey, IReadOnlyList<DetailLine> lines, string noteKey = "")
     {
@@ -130,10 +140,17 @@ public sealed class DetailSection
         Lines = lines;
     }
 
+    /// <summary>
+    /// A section whose note is already words - the history section's, which says how far back the
+    /// System log reaches with a date in it (J2-c, 2026-10-20).
+    /// </summary>
+    internal static DetailSection Written(string headingKey, IReadOnlyList<DetailLine> lines, string note) =>
+        new(headingKey, lines) { _written = note };
+
     public string Heading => Texts.Of(_headingKey);
 
     /// <summary>A sentence about the whole group, or nothing - which is the ordinary case.</summary>
-    public string Note => _noteKey.Length == 0 ? string.Empty : Texts.Of(_noteKey);
+    public string Note => _written ?? (_noteKey.Length == 0 ? string.Empty : Texts.Of(_noteKey));
 
     public IReadOnlyList<DetailLine> Lines { get; }
 }

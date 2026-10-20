@@ -1,0 +1,86 @@
+<UserControl x:Class="Bws.Gui.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Bws.Gui"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHO CHANGED WHAT ON THIS MACHINE, AS FAR BACK AS THE SYSTEM LOG REACHES - `D7` in the window since
+        2026-10-20 (`docs/PROJEKT-DRUGA-POLOWA-AUDYTU-20261014.md` section 10, J2). Bound to a
+        ViewModels.HistorySheet, which stays for as long as this is up and is filled again by every reading.
+
+        IN PLACE OF THE LIST, LIKE THE COMPARISON - opened from "Audit..." (owner's decision J2-a), and the
+        window collapses the list's own controls while this is up, because they act on a list that is not
+        on screen. The comparison's arrangement, row for row: title and the way back on one line, what the
+        answer admits about itself above the table, "Show", then the table or a sentence in its place.
+
+        WHAT THE LOG CAN SPEAK FOR GOES ABOVE THE TABLE, not under it - the command line's reason: somebody
+        who reads the changes first has already believed the log reaches back further than it does.
+
+        Focusable and IsTabStop are off because a UserControl IS a ContentControl and a ContentControl is
+        both by default - `docs/10` trap 8.
+    -->
+    <Grid Margin="{StaticResource PadPanel}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- The title and the way back share a line - the exit must not depend on the height of anything below it. -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       AutomationProperties.AutomationId="historyTitle"
+                       Text="{DynamicResource gui.history.title}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource HeadingText}" />
+
+            <Button Grid.Column="1"
+                    x:Name="BackButton"
+                    AutomationProperties.AutomationId="historyBack"
+                    Content="{DynamicResource gui.history.back}"
+                    ToolTip="{DynamicResource gui.history.back.hint}"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource PrimaryAction}"
+                    Click="Back" />
+        </Grid>
+
+        <!--
+            HOW FAR BACK THE LOG REACHES, AND WHAT THE QUOTES AND THE WORDS OF WINDOWS MEAN - in the notice
+            voice the comparison's caveats use, because each is something the answer has to admit about
+            itself. The AutomationId is on the ItemsControl, never on a panel: a layout panel gets no
+            automation peer. No choice under "Show" hides these - they are not rows.
+        -->
+        <ItemsControl Grid.Row="1"
+                      AutomationProperties.AutomationId="historyAdmissions"
+                      ItemsSource="{Binding Admissions}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               TextWrapping="Wrap"
+                               Margin="{StaticResource MarginAboveStatus}"
+                               Style="{StaticResource NoticeText}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Which lines the table shows, "Show" and its count - ShowRow.xaml (J2-b). -->
+        <local:ShowRow Grid.Row="2"
+                       x:Name="Choices"
+                       Named="history"
+                       DataContext="{Binding Filter}" />
+
+        <!-- The table, or the sentence in its place - HistoryTable.xaml. -->
+        <local:HistoryTable Grid.Row="3"
+                            x:Name="Table"
+                            Margin="{StaticResource MarginTileParts}" />
+    </Grid>
+</UserControl>

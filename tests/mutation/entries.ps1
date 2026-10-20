@@ -1273,8 +1273,8 @@ $mutations = @(
         # Found by reading on 2026-09-24: the new entry wore the old one's "no longer in the listing".
         Name = 'details: a new opening starts without the last notice'
         File = 'src\Bws.Gui\ViewModels\Chosen.cs'
-        From = '        Gone = false;' + [char]10 + [char]10 + '        Follow(row);'
-        To = '        Follow(row);'
+        From = '        Gone = false;' + [char]10 + [char]10 + '        // The log is read the first time any panel opens'
+        To = '        // The log is read the first time any panel opens'
         Test = 'PanelBesideTheListGuards.Opening_the_panel_on_another_entry_does_not_carry_the_last_ones_notice'
     },
     @{
@@ -9872,8 +9872,8 @@ $mutations = @(
         # The other half: whatever went stale since the last F5 goes away at the next one.
         Name = 'kept files: F5 keeps nothing'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.cs'
-        From = 'public Task LoadAsync() => ReadMachineAsync(Relisting.Afresh);'
-        To = 'public Task LoadAsync() => ReadMachineAsync(Relisting.Keeping);'
+        From = 'Task.WhenAll(ReadMachineAsync(Relisting.Afresh), History.Fresh());'
+        To = 'Task.WhenAll(ReadMachineAsync(Relisting.Keeping), History.Fresh());'
         Test = 'KeptFileAnswersTests.F5_verifies_every_file_again'
     },
     @{
@@ -12405,15 +12405,15 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Re-anchored 2026-10-15 (W2): the form before a snapshot hides the list too, asked as one question.
         Name = 'window snapshot: a comparison hides the list'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle;'
-        To = '    public bool ListOnScreen => !_showingOverview;'
+        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle;'
+        To = '    public bool ListOnScreen => !_showingOverview && !History.InTheMiddle;'
         Test = 'SnapshottingTests.Putting_the_comparison_away_answers_once_and_gives_the_list_back'
     }
     @{
         Name = 'window snapshot: Escape puts the comparison away before the query'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '    internal bool PutAwayAView() => Snapshotting.PutAway() || Chosen.Hide();'
-        To = '    internal bool PutAwayAView() => Chosen.Hide();'
+        From = '    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        To = '    internal bool PutAwayAView() => History.PutAway() || Chosen.Hide();'
         Test = 'SnapshotWindowGuards.Escape_puts_the_comparison_away_before_it_touches_the_query'
     }
     @{
@@ -12433,8 +12433,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window snapshot: the button is off while the machine is read'
         File = 'src\Bws.Gui\ActionBar.xaml.cs'
-        From = '        SnapshotsButton.IsEnabled = !busy;'
-        To = '        SnapshotsButton.IsEnabled = true;'
+        From = '        AuditButton.IsEnabled = !busy;'
+        To = '        AuditButton.IsEnabled = true;'
         Test = 'SnapshotWindowGuards.The_button_is_off_while_the_machine_is_read_and_says_why_on_itself'
     }
     @{
@@ -12524,7 +12524,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         File = 'src\Bws.Gui\ActionBar.xaml.cs'
         From = '"snapshotCompareTwo", () => CompareTwoRequest'
         To = '"snapshotCompare2", () => CompareTwoRequest'
-        Test = 'SnapshotWindowGuards.The_bar_offers_taking_comparing_and_comparing_two_under_one_button'
+        Test = 'SnapshotWindowGuards.The_bar_offers_taking_comparing_comparing_two_and_the_history_under_one_button'
     }
     @{
         # Two dialogs come one after the other, and "Open" alone said nothing about which was which.
@@ -12539,7 +12539,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Re-anchored 2026-10-15 after the PR #69 review: the rows are replaced at once now.
         Name = 'window diff filter: a choice takes out the rows it does not show'
         File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
-        From = '        Rows.ShowOnly(_all.Where(choice.Takes));'
+        From = '        Rows.ShowOnly(_all.Where(takes));'
         To = '        Rows.ShowOnly(_all);'
         Test = 'DiffFilterTests.A_choice_narrows_the_rows_in_place_and_says_how_many_are_hidden'
     }
@@ -12573,17 +12573,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'DiffFilterTests.A_choice_narrows_the_rows_in_place_and_says_how_many_are_hidden'
     }
     @{
-        Name = 'window diff filter: the tick on what is shown cannot be taken off'
-        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        Name = 'window show choices: the tick on what is shown cannot be taken off'
+        File = 'src\Bws.Gui\ViewModels\RowChoices.cs'
         From = '                Raise(nameof(IsChosen));'
         To = '                Mark(chosen: false);'
         Test = 'DiffFilterTests.The_tick_on_what_is_shown_cannot_be_taken_off'
     }
     @{
-        Name = 'window diff filter: each item of the menu is bound to its choice'
-        File = 'src\Bws.Gui\DiffFilterRow.xaml.cs'
-        From = '            ShowMenu.Items.Add(new MenuItem { DataContext = choice, Style = style });'
-        To = '            ShowMenu.Items.Add(new MenuItem { Style = style });'
+        Name = 'window show row: each item of the menu is bound to its choice'
+        File = 'src\Bws.Gui\ShowRow.xaml.cs'
+        From = '                ShowMenu.Items.Add(new MenuItem { DataContext = choice, Style = style });'
+        To = '                ShowMenu.Items.Add(new MenuItem { Style = style });'
         Test = 'TwoSnapshotWindowGuards.The_menu_under_show_holds_every_choice_and_a_tick_narrows_the_table'
     }
     @{
@@ -12619,8 +12619,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     }
     @{
         # PR #69 review, 2026-10-15: a notification per row is a notification the grid answers per row.
-        Name = 'window diff filter: a choice tells the table once'
-        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        Name = 'window shown rows: a choice tells the table once'
+        File = 'src\Bws.Gui\ViewModels\RowChoices.cs'
         From = '        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));'
         To = '        _ = NotifyCollectionChangedAction.Reset;'
         Test = 'DiffFilterTests.A_choice_tells_the_table_once_rather_than_once_a_row'
@@ -13458,6 +13458,151 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
         To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
         Test = 'PlanRunPropertyTests.The_run_the_first_minute_long_search_found_puts_back_nothing_it_never_asked_to_stop'
+    }
+    @{
+        # J2, 2026-10-20: the change history in the window. Identical changes share a line (J2-b), and
+        # identical is decided by identity - the internal name without regard to case, the account by SID.
+        Name = 'history groups: the internal name compares without regard to case'
+        File = 'src\Bws.Core\History\ChangeGroup.cs'
+        From = '            change.ServiceName?.ToUpperInvariant(),'
+        To = '            change.ServiceName,'
+        Test = 'ChangeGroupTests.The_internal_name_compares_the_way_the_manager_compares_it'
+    }
+    @{
+        Name = 'history groups: the account is its SID, not its name'
+        File = 'src\Bws.Core\History\ChangeGroup.cs'
+        From = '            change.By?.Sid,'
+        To = '            change.By?.Name,'
+        Test = 'ChangeGroupTests.The_account_is_its_sid_and_its_name_does_not_split_a_group'
+    }
+    @{
+        Name = 'window history: identical changes share a line until somebody chooses otherwise'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '        _arranged = _together;'
+        To = '        _arranged = each;'
+        Test = 'HistoryTests.Identical_changes_share_a_line_by_default_and_the_line_under_show_says_so'
+    }
+    @{
+        Name = 'window history: not by SYSTEM leaves SYSTEM out'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = 'all, change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal));'
+        To = 'all, change => string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal));'
+        Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
+    }
+    @{
+        # GUI rule 3: a refresh keeps the tick somebody set.
+        Name = 'window history: a new reading keeps the tick of the same name'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '        _chosen = whose.FirstOrDefault(choice => string.Equals(choice.Name, name, StringComparison.Ordinal)) ?? whose[0];'
+        To = '        _chosen = whose.LastOrDefault(choice => !string.Equals(choice.Name, name, StringComparison.Ordinal)) ?? whose[0];'
+        Test = 'HistoryTests.A_new_reading_keeps_the_table_and_both_ticks'
+    }
+    @{
+        Name = 'window history: filtered first, then grouped'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '        List<ServiceChange> shown = [.. _all.Where(_takes[_chosen])];'
+        To = '        List<ServiceChange> shown = [.. _all];'
+        Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
+    }
+    @{
+        Name = 'window history: a second ask while a reading is out waits for it'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '        if (Out.IsCompleted)'
+        To = '        if (!Out.IsFaulted)'
+        Test = 'HistoryTests.A_second_ask_while_a_reading_is_out_waits_for_it_rather_than_reading_again'
+    }
+    @{
+        Name = 'window history: F5 reads the log only once somebody asked for it'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '    internal Task Fresh() => _asked ? Again() : Task.CompletedTask;'
+        To = '    internal Task Fresh() => Again();'
+        Test = 'HistoryTests.F5_reads_the_log_again_only_once_somebody_has_asked_for_it'
+    }
+    @{
+        # Rule 8: rows from an earlier reading under a new failure would read as the answer.
+        Name = 'window history: a failure leaves nothing of the reading before it'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '        _latest = null;'
+        To = '        _ = _latest;'
+        Test = 'HistoryTests.A_failure_after_a_good_reading_leaves_nothing_of_the_good_one_on_screen'
+    }
+    @{
+        Name = 'window history: the panel gathers identical changes of its entry'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '        var lines = ChangeGroup.Of(changes).Select(Line).ToList();'
+        To = '        var lines = ChangeGroup.Each(changes).Select(Line).ToList();'
+        Test = 'HistoryTests.The_panel_ends_with_the_entrys_history_identical_changes_together'
+    }
+    @{
+        Name = 'window history: the panel ends with the history section'
+        File = 'src\Bws.Gui\ViewModels\Chosen.cs'
+        From = '        Sections = _history is { } history ? [.. sections, history.SectionFor(row.ServiceName)] : sections;'
+        To = '        Sections = sections;'
+        Test = 'HistoryTests.The_panel_ends_with_the_entrys_history_identical_changes_together'
+    }
+    @{
+        Name = 'window history: opening a panel reads the log'
+        File = 'src\Bws.Gui\ViewModels\Chosen.cs'
+        From = '        _history?.Need();'
+        To = '        _ = _history;'
+        Test = 'HistoryTests.While_the_log_is_read_the_panel_section_says_so_and_fills_when_it_is_back'
+    }
+    @{
+        Name = 'window history: the list is not on screen while the history is'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
+        From = ' && !History.InTheMiddle;'
+        To = ';'
+        Test = 'HistoryTests.Opening_the_view_reads_the_log_and_puts_it_where_the_list_was'
+    }
+    @{
+        Name = 'window history: Escape puts the history away'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
+        From = 'Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        To = 'Snapshotting.PutAway() || Chosen.Hide();'
+        Test = 'HistoryWindowGuards.Escape_puts_the_history_away_before_it_touches_the_query'
+    }
+    @{
+        Name = 'window history: F5 reads the log again with the machine'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.cs'
+        From = '    public Task LoadAsync() => Task.WhenAll(ReadMachineAsync(Relisting.Afresh), History.Fresh());'
+        To = '    public Task LoadAsync() => ReadMachineAsync(Relisting.Afresh);'
+        Test = 'HistoryTests.F5_reads_the_log_again_only_once_somebody_has_asked_for_it'
+    }
+    @{
+        Name = 'window history: the bar offers the change history under audit'
+        File = 'src\Bws.Gui\ActionBar.xaml.cs'
+        From = '"historyOpen", () => HistoryRequest'
+        To = '"historyOpened", () => HistoryRequest'
+        Test = 'SnapshotWindowGuards.The_bar_offers_taking_comparing_comparing_two_and_the_history_under_one_button'
+    }
+    @{
+        Name = 'window show row: a line goes between two groups of choices'
+        File = 'src\Bws.Gui\ShowRow.xaml.cs'
+        From = '                ShowMenu.Items.Add(new Separator());'
+        To = '                _ = ShowMenu;'
+        Test = 'HistoryWindowGuards.Show_over_the_history_offers_its_two_groups_with_a_line_between_them'
+    }
+    @{
+        Name = 'window history: a snapshot form arriving takes the middle from the history'
+        File = 'src\Bws.Gui\SnapshotDoors.cs'
+        From = '            _model.History.PutAway();'
+        To = '            _ = _model.History;'
+        Test = 'HistoryWindowGuards.A_snapshot_form_arriving_takes_the_middle_from_the_history'
+    }
+    @{
+        Name = 'window history: the view is drawn where the list was'
+        File = 'src\Bws.Gui\MainWindow.Overview.cs'
+        From = '        ChangeHistory.Visibility = history ? Visibility.Visible : Visibility.Collapsed;'
+        To = '        ChangeHistory.Visibility = Visibility.Collapsed;'
+        Test = 'HistoryWindowGuards.The_item_under_audit_puts_the_history_in_the_middle_and_the_controls_of_the_list_away'
+    }
+    @{
+        # J1-b in the window: one entry never claims an installation, and says why.
+        Name = 'window history: the panel says why no installation is listed for one entry'
+        File = 'src\Bws.Gui\ViewModels\HistoryWords.cs'
+        From = '                lines.Add(Texts.Of("gui.history.installationsNotByName"));'
+        To = '                _ = lines;'
+        Test = 'HistoryTests.The_panel_ends_with_the_entrys_history_identical_changes_together'
     }
 )
 

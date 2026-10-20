@@ -43,6 +43,7 @@ internal interface IEntryReads
 public sealed class Chosen : Observable
 {
     private readonly IEntryReads? _reads;
+    private readonly IEntryHistory? _history;
     private EntryRow? _row;
     private bool _showing;
     private bool _gone;
@@ -53,8 +54,33 @@ public sealed class Chosen : Observable
     {
     }
 
-    /// <summary>A panel that reads what its entry lacks, the moment it opens - UX-GUI-005.</summary>
-    internal Chosen(IEntryReads reads) => _reads = reads;
+    /// <summary>
+    /// A panel that reads what its entry lacks, the moment it opens - UX-GUI-005 - and, since 2026-10-20,
+    /// shows the entry's change history as its last section (J2-c), from the one reading of the log the
+    /// whole window shares.
+    /// </summary>
+    internal Chosen(IEntryReads reads, IEntryHistory? history = null)
+    {
+        _reads = reads;
+        _history = history;
+
+        if (history is not null)
+        {
+            history.Changed += HistoryRead;
+        }
+    }
+
+    /// <summary>
+    /// A reading of the log came back, so a section built from the one before - or from none, saying
+    /// "reading" - is out of date. Only while the panel is up: a closed panel builds nothing.
+    /// </summary>
+    private void HistoryRead(object? sender, EventArgs e)
+    {
+        if (Showing)
+        {
+            Rebuild();
+        }
+    }
 
     /// <summary>
     /// The row somebody has chosen, or nothing.
@@ -185,6 +211,9 @@ public sealed class Chosen : Observable
         // listing showed the new entry under "This entry is no longer in the listing". The entry
         // somebody just pressed Enter on is on the list, which is what Gone denies.
         Gone = false;
+
+        // The log is read the first time any panel opens, not when the window does - see HistoryReading.
+        _history?.Need();
 
         Follow(row);
 
@@ -422,7 +451,12 @@ public sealed class Chosen : Observable
         // Shown rather than Of: the two names above are the panel's head, and Of would repeat
         // them as the first two lines of the first section - which it did from 2026-08-13 to
         // 2026-09-16. A copy still takes Of, because a copy has no head.
-        Sections = Details.Shown(row.Entry, ReferenceEquals(_readingFor, row) ? _reading : ExtraRead.None);
+        var sections = Details.Shown(row.Entry, ReferenceEquals(_readingFor, row) ? _reading : ExtraRead.None);
+
+        // THE HISTORY LAST, AFTER EVERYTHING THE ENTRY SAYS ABOUT ITSELF (J2-c): the fields are what the
+        // panel is opened for, and the history is the log talking about the entry rather than the entry.
+        // By the internal name, which is the identity - rule 3.
+        Sections = _history is { } history ? [.. sections, history.SectionFor(row.ServiceName)] : sections;
 
         Raise(nameof(ShownName));
         Raise(nameof(ShownLabel));

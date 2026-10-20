@@ -26,20 +26,22 @@ public sealed partial class MainViewModel
     /// Ctrl+F may open the suggestions under a box nobody can see, and whether the box may take the
     /// keyboard. A comparison hides the list exactly as the overview does, so each of the three would
     /// otherwise have answered wrongly while one is up. The form before a snapshot (W2-d) hides it too,
-    /// and <see cref="Snapshotting.InTheMiddle"/> answers for both.
+    /// and <see cref="Snapshotting.InTheMiddle"/> answers for both. The change history (J2) hides it
+    /// the same way, and <see cref="HistoryReading.InTheMiddle"/> answers for it.
     /// </summary>
-    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle;
+    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle;
 
     /// <summary>
-    /// Escape's middle step: a comparison standing where the list was goes first, then the panel about
-    /// one entry - true when either went.
+    /// Escape's middle step: a comparison or the change history standing where the list was goes first,
+    /// then the panel about one entry - true when any of them went. Only one view ever stands where the
+    /// list was, so the order of the first two decides nothing.
     ///
     /// <b>Here rather than as two more links in the window's chain</b>, because the method holding that
     /// chain counts every <c>||</c> against the shape guard's ceiling and stood one under the line it
     /// calls near. The order is the same argument the chain makes: the more recent thing somebody
     /// opened goes first, and a comparison replaces the list the panel sits beside.
     /// </summary>
-    internal bool PutAwayAView() => Snapshotting.PutAway() || Chosen.Hide();
+    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();
 
     /// <summary>
     /// The comparison's state, wired to the line under the window: when a comparison comes or goes, the

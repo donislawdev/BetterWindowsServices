@@ -79,7 +79,7 @@ public sealed class DiffFilterTests
         sheet.Filter.Choices[2].IsChosen = false;
 
         Assert.True(sheet.Filter.Choices[2].IsChosen);
-        Assert.Contains(nameof(DiffChoice.IsChosen), raised);
+        Assert.Contains(nameof(RowChoice.IsChosen), raised);
         Assert.Equal(["Moved"], sheet.Filter.Rows.Select(row => row.ServiceName));
     }
 

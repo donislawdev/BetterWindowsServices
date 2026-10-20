@@ -135,8 +135,7 @@ nothing to download - what it carries, which version, under which licence.
 
 > **Early release.** Both halves do everything on this page, and an automated suite runs on every
 > commit. What is not there yet is under [Honest limits](#honest-limits) - most of it is the second
-> half of the audit story: a stock Windows baseline, who changed what in the window, and restoring
-> from a snapshot.
+> half of the audit story: a stock Windows baseline and restoring from a snapshot.
 
 **One promise to hold it to:** nothing changes without showing the plan first, and the preview is
 what runs. A preview that differs from what then happened is the worst bug this tool can have -
@@ -310,6 +309,13 @@ its SID otherwise - naming an account of a domain would mean asking a domain con
 tool does not go on the network. Start types come in the words Windows used, in the language of
 the machine.
 
+In the window, *Audit...* and then *Change history* shows the same history in place of the list.
+Changes that are identical apart from their time share one line, which says how many times and
+since when - Windows switching a service back and forth by itself is two lines rather than over a
+hundred, and nothing is left out. *Show* above the table puts each change on a line of its own,
+or narrows it to what SYSTEM did not do, to installations, or to start type changes, and says how
+much of the history is on screen. The panel about one entry ends with that entry's history.
+
 ---
 
 ## Nothing happens without a plan
@@ -408,11 +414,11 @@ A tool that quietly fails to cover something is worse than one that says what it
 - **No stock Windows baseline.** The opening screen has a place for *how many of these are not
   from a clean install* and says it is not counted yet rather than showing a number it cannot
   stand behind.
-- **A thin change history, and only on the command line.** `bws history` reads who changed a start
-  type and who installed a service out of the System log, as far back as that log reaches. Windows
-  writes nothing there about a changed account, launch path or recovery list, or about who stopped
-  a service, so none of that is in it - a snapshot and a diff answer *what* changed for those. The
-  window does not show the history yet.
+- **A thin change history.** `bws history` and the window's *Change history* read who changed a
+  start type and who installed a service out of the System log, as far back as that log reaches.
+  Windows writes nothing there about a changed account, launch path or recovery list, or about who
+  stopped a service, so none of that is in it - a snapshot and a diff answer *what* changed for
+  those.
 - **No restore from a snapshot.** A diff tells you what drifted, and putting it back is by hand or
   by script from the commands the diff shows you.
 - **No creating, deleting or repointing a service.** The launch path is read and reported, and it
@@ -627,12 +633,13 @@ by another program, which it then says, leaves alone and saves nothing over. A r
 every operation before offering it, and copies the name or
 everything about the entry, display name and description included. *Export...* writes the rows on screen, in the columns
 you have on and the order you sorted them into, to a CSV file separated the way your Windows region
-settings separate lists, so a double click opens it in columns. *Snapshots...* beside it takes a
+settings separate lists, so a double click opens it in columns. *Audit...* beside it takes a
 snapshot of the machine to a file, the same file `bws snapshot create` writes, with a note kept
 inside it if you type one, and compares one with the machine as it is now, or two with each other,
 showing what changed in place of the list, one row per field. *Show* above that table narrows it -
 to the differences alone, say, or to one field - and *Export...* there writes the comparison to a
-CSV file, what the window says above the table first. Ctrl+C
+CSV file, what the window says above the table first. *Change history* under the same button shows
+who changed a start type or installed a service, from the System log. Ctrl+C
 over the list copies everything about the chosen entry. Escape backs out of the innermost thing
 first. *GitHub* and *Donate*, at the
 right end of the row above the search box, open the project's repository and its support page in
@@ -686,11 +693,11 @@ endorsed by or sponsored by Microsoft. Windows is a trademark of the Microsoft g
 
 ### What about the second half - who changed it, and putting it back?
 
-Half of the first half. `bws history` reads who changed a start type and who installed a service
-from the System log, on the command line - see [And who changed it](#and-who-changed-it). The same
-history in the window, a stock Windows baseline per build, and restoring configuration from a
-snapshot with a dry run and a checkbox per item are the plan. A snapshot at deployment and a diff
-against the machine answer *what* changed for everything the log does not record.
+Half of the first half. `bws history` and the window's *Change history* read who changed a start
+type and who installed a service from the System log - see [And who changed it](#and-who-changed-it).
+A stock Windows baseline per build, and restoring configuration from a snapshot with a dry run and a
+checkbox per item, are the plan. A snapshot at deployment and a diff against the machine answer
+*what* changed for everything the log does not record.
 
 ---
 
@@ -700,12 +707,12 @@ against the machine answer *what* changed for everything the log does not record
 plans with preview, cascade, refusal and the way back, stop, start, restart, force stop, force
 restart and start type, snapshots and diffs between files and against the live machine - in the
 window too, against the live machine - who changed a start type or installed a service, from the
-System log on the command line, signatures,
+System log, in the window and on the command line, signatures,
 privileges, security descriptors, triggers, memory, per-user folding, keyboard and screen reader in
 the window, CSV export, JSON and exit codes on the command line.
 
-**Not there yet:** everything under [Honest limits](#honest-limits), above all the stock baseline,
-the change history in the window and restore from a snapshot.
+**Not there yet:** everything under [Honest limits](#honest-limits), above all the stock baseline
+and restore from a snapshot.
 
 Found a problem, or a service this tool reports differently from `sc.exe`? The
 [issue tracker](https://github.com/donislawdev/BetterWindowsServices/issues) is open, and a diff

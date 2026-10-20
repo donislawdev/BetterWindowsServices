@@ -78,6 +78,10 @@ internal sealed class SnapshotDoors
         if (_model.Snapshotting.InTheMiddle)
         {
             _model.ShowingOverview = false;
+
+            // And the change history, since 2026-10-20 - one view in the middle at a time, the newer
+            // one wins (MainViewModel.OpenHistory makes the same argument the other way round).
+            _model.History.PutAway();
         }
 
         _arrange();
