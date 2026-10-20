@@ -29,11 +29,18 @@ public sealed class DiffFilter : Observable, IRowChoices
 {
     private readonly IReadOnlyList<DiffLine> _all;
     private readonly RowChoiceSet<DiffLine> _choices;
+
+    /// <summary>What each row says as the search reads it, in the order of <see cref="_all"/> - a comparison never changes.</summary>
+    private readonly string[] _said;
+
     private RowChoice _chosen;
+    private string _searchText = string.Empty;
+    private string[] _words = [];
 
     internal DiffFilter(IReadOnlyList<DiffLine> all)
     {
         _all = all;
+        _said = [.. all.Select(line => RowSearch.Said(line.ServiceName, line.DisplayName, line.What, line.Before, line.After))];
         _choices = new RowChoiceSet<DiffLine>((name, count) => Texts.Of("gui.diff.show.counted", name, count), Choose);
         Choices = _choices.Offered(all, Texts.Of("gui.diff.show.all"), Narrower(all));
         Groups = [Choices];
@@ -60,13 +67,40 @@ public sealed class DiffFilter : Observable, IRowChoices
     /// <summary>A comparison that found nothing has no table under it, and no button over one.</summary>
     public bool Offered => _all.Count > 0;
 
+    /// <inheritdoc />
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (!Set(ref _searchText, value ?? string.Empty))
+            {
+                return;
+            }
+
+            _words = RowSearch.Words(_searchText);
+
+            Show();
+        }
+    }
+
+    /// <inheritdoc />
+    public string SearchHint => Texts.Of("gui.diff.search.hint");
+
+    /// <inheritdoc />
+    public string SearchTip => Texts.Of("gui.diff.search.tip");
+
     /// <summary>
     /// How many of the rows are on screen, or empty while all of them are. The noun counts the whole,
     /// so the pair is chosen by it - one row in all is never narrowed, but the language file cannot
     /// know that and CountedWordGuards asks for both halves.
+    ///
+    /// <b>A search that finds nothing is a sentence</b> - the one way the rows come out empty, since a
+    /// tick in the menu always leaves something (`docs/11` 3.8). The table gives way to it (DiffTable).
     /// </summary>
     public string Showing =>
-        Rows.Count == _all.Count ? string.Empty
+        _words.Length > 0 && Rows.Count == 0 && _all.Count > 0 ? Texts.Of("gui.diff.search.nothing", RowSearch.Typed(_words))
+        : Rows.Count == _all.Count ? string.Empty
         : _all.Count == 1 ? Texts.Of("gui.diff.showing.one", Rows.Count, _all.Count)
         : Texts.Of("gui.diff.showing.many", Rows.Count, _all.Count);
 
@@ -79,7 +113,7 @@ public sealed class DiffFilter : Observable, IRowChoices
     {
         ArgumentNullException.ThrowIfNull(choice);
 
-        if (!_choices.TryTakes(choice, out var takes))
+        if (!_choices.TryTakes(choice, out _))
         {
             return;
         }
@@ -88,9 +122,18 @@ public sealed class DiffFilter : Observable, IRowChoices
         _chosen = choice;
         _chosen.Mark(chosen: true);
 
-        // In the comparison's own order - the grid lays its sort over that, and without a sort this
-        // is the order the command line reports in.
-        Rows.ShowOnly(_all.Where(takes));
+        Show();
+    }
+
+    /// <summary>
+    /// The rows the tick and the search leave, in the comparison's own order - the grid lays its sort
+    /// over that, and without a sort this is the order the command line reports in.
+    /// </summary>
+    private void Show()
+    {
+        var takes = _choices.TryTakes(_chosen, out var rule) ? rule : (_ => true);
+
+        Rows.ShowOnly(_all.Where((line, i) => takes(line) && RowSearch.Finds(_said[i], _words)));
 
         Raise(nameof(Button));
         Raise(nameof(Showing));

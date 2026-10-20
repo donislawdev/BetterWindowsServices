@@ -60,6 +60,18 @@ is not part of this repository.
   says how much is on screen. The panel about one entry ends with a "History" section: that entry's
   startup type changes, gathered the same way. The log is read the first time you ask, again on F5, and again
   each time the history is opened. "Back to the list" or Escape returns.
+- A search box and a sort arrow over both tables under "Audit...". The box beside "Show" above a
+  comparison and above the change history keeps the rows with every word you type somewhere in
+  them, upper and lower case alike, together with what "Show" chose, and the line beside it says
+  how many rows are on screen or that nothing matches. In the change history it also reads the time,
+  so 2026-10-16 keeps that day and 2026-10 that month, the display name and the account's SID.
+  Ctrl+F puts the cursor in it, and Escape empties it before it puts the view away. Each table opens
+  sorted, the change history newest first and a comparison by entry, with the arrow on that heading
+  saying so, and a click on any heading sorts by that column.
+- "Export..." beside "Back to the list" in the change history writes it to a comma separated file:
+  first what the window says above the table, what "Show" and the search leave on screen, then the
+  lines as you sorted them, with the number of times on every line and each account's SID beside
+  its name. It is off until the log has been read.
 - A "GitHub" button left of Donate at the right end of the row above the search box. It opens the
   project's repository - the source, the issues and the releases - in your browser, the way Donate
   opens its page, and in a window running as administrator it asks the desktop to open it, so the

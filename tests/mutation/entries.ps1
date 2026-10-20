@@ -8043,9 +8043,10 @@ $mutations = @(
         # CTRL+F IS AN ARRIVAL. A box that already had the keyboard gets no focus event from it,
         # so without this call an empty box reached by Ctrl+F offers nothing.
         Name = 'suggestions: Ctrl+F is an arrival at the box'
-        File = 'src\Bws.Gui\MainWindow.Keyboard.cs'
-        # Re-anchored 2026-09-23: the caret argument went, because Arrived never read it.
-        From = '                    _model.Suggesting.Arrived(Search.Box.Text);'
+        # Re-anchored 2026-09-23: the caret argument went, because Arrived never read it. And 2026-10-20:
+        # Ctrl+F's choice of box left MainWindow.Act for Finding.Begin.
+        File = 'src\Bws.Gui\Finding.cs'
+        From = '            model.Suggesting.Arrived(list.Box.Text);'
         To = ''
         Test = 'KeyboardTests.Control_F_on_an_empty_box_offers_the_questions_that_fit_the_list_and_on_a_full_one_nothing'
     }
@@ -8054,10 +8055,11 @@ $mutations = @(
         # guard Ctrl+F on the first-run screen opens six rows hung off a collapsed target, with
         # nothing under them and nothing but Escape to close them.
         Name = 'suggestions: Ctrl+F on the overview screen opens no list'
-        File = 'src\Bws.Gui\MainWindow.Keyboard.cs'
         # RE-ANCHORED 2026-10-14: asked as "is the list on screen", because a comparison hides it too.
-        From = '                if (_model.ListOnScreen)'
-        To = '                if (_model.ListOnScreen || !_model.ListOnScreen)'
+        # And 2026-10-20 into Finding.Begin, with the rest of what Ctrl+F does.
+        File = 'src\Bws.Gui\Finding.cs'
+        From = '        if (model.ListOnScreen)'
+        To = '        if (model.ListOnScreen || !model.ListOnScreen)'
         Test = 'KeyboardTests.Control_F_on_the_overview_screen_opens_no_list'
     }
     @{
@@ -11550,13 +11552,13 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'search box: escape hands the box over first'
         File = 'src\Bws.Gui\MainWindow.Keyboard.cs'
+        # Re-anchored 2026-10-20: the searches of the views are handed over right after it.
         From = @'
                 Search.Commit();
-
-                return _model.Suggesting.Close()
+                ChangeHistory.Choices.Commit();
 '@
         To = @'
-                return _model.Suggesting.Close()
+                ChangeHistory.Choices.Commit();
 '@
         Test = 'BoxCommitGuards.Escape_straight_after_typing_empties_the_box'
     },
@@ -12412,8 +12414,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window snapshot: Escape puts the comparison away before the query'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
-        To = '    internal bool PutAwayAView() => History.PutAway() || Chosen.Hide();'
+        # Re-anchored 2026-10-20: the search over the view's table goes first now (AS-a).
+        From = '    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        To = '    internal bool PutAwayAView() => MiddleSearchEmptied() || History.PutAway() || Chosen.Hide();'
         Test = 'SnapshotWindowGuards.Escape_puts_the_comparison_away_before_it_touches_the_query'
     }
     @{
@@ -12539,8 +12542,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Re-anchored 2026-10-15 after the PR #69 review: the rows are replaced at once now.
         Name = 'window diff filter: a choice takes out the rows it does not show'
         File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
-        From = '        Rows.ShowOnly(_all.Where(takes));'
-        To = '        Rows.ShowOnly(_all);'
+        # And 2026-10-20: the tick and the search narrow together (AS-a), and this breaks the tick alone.
+        From = '        Rows.ShowOnly(_all.Where((line, i) => takes(line) && RowSearch.Finds(_said[i], _words)));'
+        To = '        Rows.ShowOnly(_all.Where((line, i) => RowSearch.Finds(_said[i], _words)));'
         Test = 'DiffFilterTests.A_choice_narrows_the_rows_in_place_and_says_how_many_are_hidden'
     }
     @{
@@ -12561,8 +12565,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Rule 8: a narrowed table that does not say so reads as the whole comparison.
         Name = 'window diff filter: the line says how many rows are hidden'
         File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
-        From = '        Rows.Count == _all.Count ? string.Empty'
-        To = '        Rows.Count != -1 ? string.Empty'
+        # Re-anchored 2026-10-20: a search that finds nothing is asked about first now.
+        From = '        : Rows.Count == _all.Count ? string.Empty'
+        To = '        : Rows.Count != -1 ? string.Empty'
         Test = 'DiffFilterTests.A_choice_narrows_the_rows_in_place_and_says_how_many_are_hidden'
     }
     @{
@@ -13500,8 +13505,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window history: filtered first, then grouped'
         File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
-        From = '[.. _all.Where(takes)] : [.. _all];'
-        To = '[.. _all.Where(change => takes(change) || true)] : [.. _all];'
+        # Re-anchored 2026-10-20: the tick and the search are asked of each change in one loop (AS-a).
+        From = '            if (takes(_all[i]) && RowSearch.Finds(_said[i], _words))'
+        To = '            if (RowSearch.Finds(_said[i], _words))'
         Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
     }
     @{
@@ -13619,6 +13625,198 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '            return made.Section;'
         To = '            _ = made.Section;'
         Test = 'HistoryTests.One_reading_and_one_entry_make_the_section_once_and_a_new_reading_makes_it_again'
+    }
+
+    # THE SEARCH, THE FIRST SORT AND THE EXPORT IN THE VIEWS OF THE AUDIT - owner's decisions AS-a to AS-d
+    # of 2026-10-20 (docs/PROJEKT-DRUGA-POLOWA-AUDYTU-20261014.md section 11).
+    @{
+        # Every word, not any word - "bits spooler" must find nothing.
+        Name = 'audit search: every word has to be in the row'
+        File = 'src\Bws.Gui\ViewModels\RowSearch.cs'
+        From = @'
+            if (!said.Contains(word, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+'@
+        To = @'
+            if (said.Contains(word, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+'@
+        Test = 'RowSearchTests.Every_word_has_to_be_somewhere_in_the_row_in_any_case'
+    }
+    @{
+        # Rule 26: under Turkish rules a culture's comparison misses BITS for "bits".
+        Name = 'audit search: case is the same in every culture'
+        File = 'src\Bws.Gui\ViewModels\RowSearch.cs'
+        From = '            if (!said.Contains(word, StringComparison.OrdinalIgnoreCase))'
+        To = '            if (!said.Contains(word, StringComparison.CurrentCultureIgnoreCase))'
+        Test = 'RowSearchTests.Case_is_the_same_whatever_the_culture_of_the_machine'
+    }
+    @{
+        Name = 'audit search: a word never spans two values'
+        File = 'src\Bws.Gui\ViewModels\RowSearch.cs'
+        From = "        string.Join('\n', values.Where(value => !string.IsNullOrEmpty(value)));"
+        To = '        string.Join(string.Empty, values.Where(value => !string.IsNullOrEmpty(value)));'
+        Test = 'RowSearchTests.A_word_never_matches_across_the_edge_of_two_values'
+    }
+    @{
+        Name = 'audit search: the field hands what is typed to the table'
+        File = 'src\Bws.Gui\ShowRow.xaml'
+        From = '                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />'
+        To = '                             Text="{Binding SearchText, Mode=OneWay}" />'
+        Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
+    }
+    @{
+        Name = 'audit search: the field has a name a probe can ask for'
+        File = 'src\Bws.Gui\ShowRow.xaml.cs'
+        From = '            AutomationProperties.SetAutomationId(SearchBox, value + "Search");'
+        To = ''
+        Test = 'HistoryWindowGuards.Control_F_under_the_history_takes_its_own_search_and_leaves_the_list_box_alone'
+    }
+    @{
+        Name = 'window history: the search narrows the changes'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '            _words = RowSearch.Words(_searchText);'
+        To = '            _words = [];'
+        Test = 'AuditSearchTests.A_search_narrows_the_changes_before_they_are_grouped'
+    }
+    @{
+        # docs/11 3.8 - a search that leaves nothing is a sentence, not an empty rectangle.
+        Name = 'window history: a search that finds nothing says so'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '            if (_words.Length > 0 && _shown == 0 && _all.Count > 0)'
+        To = '            if (_words.Length > 0 && _shown == 0 && _all.Count < 0)'
+        Test = 'AuditSearchTests.A_search_and_a_tick_narrow_together_and_a_search_that_finds_nothing_says_so'
+    }
+    @{
+        # Over a log just cleared the sentences above the table say it is empty - no second sentence.
+        Name = 'window history: no sentence about a search over an empty log'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '            if (_words.Length > 0 && _shown == 0 && _all.Count > 0)'
+        To = '            if (_words.Length > 0 && _shown == 0)'
+        Test = 'AuditSearchTests.The_search_stays_when_the_log_is_read_again_and_says_nothing_over_an_empty_log'
+    }
+    @{
+        # Rule 3: the account is its SID, and the search reads it though the table shows the name.
+        Name = 'window history: the search reads the sid'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = '            change.By?.Sid))'
+        To = '            null))'
+        Test = 'AuditSearchTests.The_search_reads_the_display_name_and_the_sid_the_table_leaves_out'
+    }
+    @{
+        Name = 'window diff filter: the search narrows the comparison'
+        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        From = '            _words = RowSearch.Words(_searchText);'
+        To = '            _words = [];'
+        Test = 'AuditSearchTests.A_search_over_a_comparison_narrows_with_its_choice_and_says_when_nothing_is_left'
+    }
+    @{
+        Name = 'window diff filter: a search that finds nothing says so'
+        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        From = '        _words.Length > 0 && Rows.Count == 0 && _all.Count > 0 ? Texts.Of("gui.diff.search.nothing", RowSearch.Typed(_words))'
+        To = '        _words.Length < 0 && Rows.Count == 0 && _all.Count > 0 ? Texts.Of("gui.diff.search.nothing", RowSearch.Typed(_words))'
+        Test = 'AuditSearchTests.A_search_over_a_comparison_narrows_with_its_choice_and_says_when_nothing_is_left'
+    }
+    @{
+        Name = 'window diff table: gives way when the search leaves no row'
+        File = 'src\Bws.Gui\DiffTable.xaml'
+        From = '                        <DataTrigger Binding="{Binding Filter.Rows.Count}" Value="0">'
+        To = '                        <DataTrigger Binding="{Binding Lines.Count}" Value="0">'
+        Test = 'AuditSearchTests.The_comparison_opens_sorted_by_entry_and_gives_way_when_the_search_leaves_nothing'
+    }
+    @{
+        # AS-d: the owner never pressed a heading, because nothing said one sorts.
+        Name = 'audit tables: the first sort is a real sort'
+        File = 'src\Bws.Gui\FirstSort.cs'
+        From = '        grid.Items.SortDescriptions.Add(new SortDescription(path, direction));'
+        To = ''
+        Test = 'HistoryWindowGuards.The_history_opens_newest_first_with_the_mark_on_when_and_again_on_the_next_opening'
+    }
+    @{
+        Name = 'audit tables: the first sort is marked on its heading'
+        File = 'src\Bws.Gui\FirstSort.cs'
+        From = '            column.SortDirection = string.Equals(column.SortMemberPath, path, StringComparison.Ordinal) ? direction : null;'
+        To = '            column.SortDirection = null;'
+        Test = 'AuditSearchTests.The_comparison_opens_sorted_by_entry_and_gives_way_when_the_search_leaves_nothing'
+    }
+    @{
+        # The cheaper loss first: a view's search does not outlive the view.
+        Name = 'window escape: the search over a view goes before the view'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
+        From = '    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        To = '    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
+    }
+    @{
+        # G-9 for the view's search: Escape inside the 400 ms must find the text that is there.
+        Name = 'window escape: the search over a view is handed over first'
+        File = 'src\Bws.Gui\MainWindow.Keyboard.cs'
+        From = '                ChangeHistory.Choices.Commit();'
+        To = ''
+        Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
+    }
+    @{
+        # Under a view the list's box is collapsed - Ctrl+F put the caret nowhere.
+        Name = 'window ctrl+f: under a view, the view''s own search'
+        File = 'src\Bws.Gui\Finding.cs'
+        From = '        if (model.MiddleChoices is { Offered: true })'
+        To = '        if (model.MiddleChoices is { Offered: false })'
+        Test = 'HistoryWindowGuards.Control_F_under_the_history_takes_its_own_search_and_leaves_the_list_box_alone'
+    }
+    @{
+        Name = 'window history export: nothing to write before a reading'
+        File = 'src\Bws.Gui\ViewModels\HistorySheet.cs'
+        From = '    public bool Exportable => Admissions.Count > 0;'
+        To = '    public bool Exportable => true;'
+        Test = 'HistoryExportingTests.There_is_nothing_to_write_until_a_reading_has_come_back_and_nothing_after_a_failure'
+    }
+    @{
+        Name = 'window history export: the button waits for a reading'
+        File = 'src\Bws.Gui\HistoryView.xaml'
+        From = '                        IsEnabled="{Binding Exportable}"'
+        To = ''
+        Test = 'HistoryWindowGuards.The_export_waits_for_a_reading'
+    }
+    @{
+        Name = 'window history export: the file is written'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '            await Task.Run(() => AtomicFile.Write(path, text)).ConfigureAwait(true);'
+        To = '            await Task.CompletedTask.ConfigureAwait(true);'
+        Test = 'HistoryExportingTests.The_window_writes_it_with_the_mark_a_spreadsheet_needs_and_says_how_many_lines'
+    }
+    @{
+        # A spreadsheet sums numbers, and a blank is not one.
+        Name = 'window history export: times is a number on every line'
+        File = 'src\Bws.Gui\ViewModels\HistoryExporting.cs'
+        From = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
+        To = '                [row.When, row.Times, row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
+        Test = 'HistoryExportingTests.A_line_carries_its_count_as_a_number_and_the_account_by_sid'
+    }
+    @{
+        # AS-c and rule 3: the account in the file is its SID beside its name.
+        Name = 'window history export: the account goes in by sid'
+        File = 'src\Bws.Gui\ViewModels\HistoryExporting.cs'
+        From = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
+        To = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, string.Empty],'
+        Test = 'HistoryExportingTests.A_line_carries_its_count_as_a_number_and_the_account_by_sid'
+    }
+    @{
+        Name = 'window history export: the search is said in the file'
+        File = 'src\Bws.Gui\ViewModels\HistoryExporting.cs'
+        From = '            yield return Texts.Of("gui.history.export.searched", RowSearch.Typed(words));'
+        To = '            _ = words;'
+        Test = 'HistoryExportingTests.A_search_is_said_in_the_file_and_only_the_lines_it_leaves_go_in'
+    }
+    @{
+        Name = 'window diff export: the search is said in the file'
+        File = 'src\Bws.Gui\ViewModels\DiffExporting.cs'
+        From = '            yield return Texts.Of("gui.diff.export.searched", RowSearch.Typed(words));'
+        To = '            _ = words;'
+        Test = 'DiffExportingTests.A_search_over_the_comparison_is_said_in_the_file'
     }
 )
 

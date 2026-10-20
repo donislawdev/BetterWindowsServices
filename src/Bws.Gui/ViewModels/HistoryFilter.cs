@@ -22,7 +22,9 @@ namespace Bws.Gui.ViewModels;
 /// "not by Windows", because an installation SYSTEM carried out may well have been somebody's
 /// installer, and a filter promising more than the log says would be a guess.
 ///
-/// <b>Filtered first, then grouped</b>, so a line never counts changes the table is not showing.
+/// <b>Filtered first - the tick, then the search - and grouped last</b>, so a line never counts changes
+/// the table is not showing. The counts in the menu are the whole reading's: a choice says how many
+/// changes it stands for, not how many of them the search has left.
 /// </summary>
 public sealed class HistoryFilter : Observable, IRowChoices
 {
@@ -36,12 +38,21 @@ public sealed class HistoryFilter : Observable, IRowChoices
     private RowChoice _arranged;
     private RowChoice _chosen;
     private int _shown;
+    private string _searchText = string.Empty;
+    private string[] _words = [];
+
+    /// <summary>
+    /// What each change says, in the order of <see cref="_all"/> - worked out once per reading rather
+    /// than on every keystroke, because the words of a change are the same until the log is read again.
+    /// </summary>
+    private string[] _said;
 
     internal HistoryFilter(IReadOnlyList<ServiceChange> all)
     {
         ArgumentNullException.ThrowIfNull(all);
 
         _all = all;
+        _said = Said(all);
         _whose = new RowChoiceSet<ServiceChange>((name, count) => Texts.Of("gui.history.show.counted", name, count), Choose);
         _together = new RowChoice(Texts.Of("gui.history.show.together"), Texts.Of("gui.history.show.together"), Arrange);
 
@@ -78,10 +89,41 @@ public sealed class HistoryFilter : Observable, IRowChoices
     public bool Offered => _all.Count > 0;
 
     /// <inheritdoc />
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (!Set(ref _searchText, value ?? string.Empty))
+            {
+                return;
+            }
+
+            _words = RowSearch.Words(_searchText);
+
+            Show();
+        }
+    }
+
+    /// <inheritdoc />
+    public string SearchHint => Texts.Of("gui.history.search.hint");
+
+    /// <inheritdoc />
+    public string SearchTip => Texts.Of("gui.history.search.tip");
+
+    /// <inheritdoc />
     public string Showing
     {
         get
         {
+            // A SEARCH THAT FINDS NOTHING IS A SENTENCE, the only way this table can come out empty - a
+            // tick in the menu always leaves something (RowChoiceSet), so `docs/11` 3.8 asks it here.
+            // Never over an empty log: the sentences above the table already say there is nothing.
+            if (_words.Length > 0 && _shown == 0 && _all.Count > 0)
+            {
+                return Texts.Of("gui.history.search.nothing", RowSearch.Typed(_words));
+            }
+
             var narrowed = _shown < _all.Count;
             var gathered = Rows.Count < _shown;
             var oneLine = Rows.Count == 1;
@@ -128,6 +170,7 @@ public sealed class HistoryFilter : Observable, IRowChoices
         var name = _chosen.Name;
 
         _all = all;
+        _said = Said(all);
 
         var whose = WhoseOf(all);
 
@@ -178,10 +221,19 @@ public sealed class HistoryFilter : Observable, IRowChoices
         Raise(nameof(Showing));
     }
 
-    /// <summary>The lines for the two ticks as they stand, in the history's own order - newest first.</summary>
+    /// <summary>The lines for the two ticks and the search as they stand, in the history's own order - newest first.</summary>
     private List<HistoryRow> Made()
     {
-        List<ServiceChange> shown = _whose.TryTakes(_chosen, out var takes) ? [.. _all.Where(takes)] : [.. _all];
+        var takes = _whose.TryTakes(_chosen, out var rule) ? rule : (_ => true);
+        var shown = new List<ServiceChange>();
+
+        for (var i = 0; i < _all.Count; i++)
+        {
+            if (takes(_all[i]) && RowSearch.Finds(_said[i], _words))
+            {
+                shown.Add(_all[i]);
+            }
+        }
 
         _shown = shown.Count;
 
@@ -189,6 +241,21 @@ public sealed class HistoryFilter : Observable, IRowChoices
 
         return [.. groups.Select(group => new HistoryRow(group))];
     }
+
+    /// <summary>
+    /// What a change says as the search reads it: the time, the entry and its display name, the change,
+    /// the account by name and by SID - the words of the table, and the two names the table leaves out.
+    /// </summary>
+    private static string[] Said(IReadOnlyList<ServiceChange> all) =>
+    [
+        .. all.Select(change => RowSearch.Said(
+            HistoryWords.When(change.At),
+            HistoryWords.Entry(change),
+            change.DisplayName,
+            HistoryWords.What(change),
+            HistoryWords.Who(change.By),
+            change.By?.Sid))
+    ];
 
     /// <summary>
     /// Whose and what, after every change: the changes SYSTEM did not make, installations, startup type

@@ -35,7 +35,7 @@ public sealed partial class MainViewModel
     /// </summary>
     private HistoryReading HistoryOf(IChangeHistoryReader? reader)
     {
-        var history = new HistoryReading(reader);
+        var history = new HistoryReading(reader, () => Says);
 
         history.PropertyChanged += (_, changed) =>
         {

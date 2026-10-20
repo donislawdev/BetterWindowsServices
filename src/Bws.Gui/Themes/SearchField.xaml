@@ -47,12 +47,12 @@
         name, so it looks like every other field in the window and follows the overrides in
         Surfaces.xaml: fill, the fill under the pointer, the edge.
 
-        THE RED EDGE OF A MISTAKE IS THE FRAME'S. Until this day it was ReportingBox's error template
-        round the text box, and the text box is now the middle third of the field - a red frame round
-        a third would read as a mistake in a part of it. It answers to the same fact the red
-        sentence does, Says.AnswerLineIsProblem.
+        THE FRAME ITSELF IS FieldFrame SINCE 2026-10-20, when the search over a table of the audit
+        (ShowRow.xaml, AS-a) became the second field to wear it - GUI rule 7. That field stands under
+        a table's choices, which have no Says, so the red edge below stays the list's alone: on the
+        table's field the same trigger would be a binding that fails on every row.
     -->
-    <Style x:Key="SearchFieldFrame" TargetType="Border">
+    <Style x:Key="FieldFrame" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource TextControlBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TextControlElevationBorderBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource BorderAllSides}" />
@@ -61,6 +61,17 @@
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource TextControlBackgroundPointerOver}" />
             </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        THE RED EDGE OF A MISTAKE IS THE FRAME'S. Until 2026-09-25 it was ReportingBox's error template
+        round the text box, and the text box is now the middle third of the field - a red frame round
+        a third would read as a mistake in a part of it. It answers to the same fact the red
+        sentence does, Says.AnswerLineIsProblem.
+    -->
+    <Style x:Key="SearchFieldFrame" TargetType="Border" BasedOn="{StaticResource FieldFrame}">
+        <Style.Triggers>
             <DataTrigger Binding="{Binding Says.AnswerLineIsProblem}" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource MeaningRejected}" />
             </DataTrigger>

@@ -40,8 +40,33 @@ public sealed partial class MainViewModel
     /// chain counts every <c>||</c> against the shape guard's ceiling and stood one under the line it
     /// calls near. The order is the same argument the chain makes: the more recent thing somebody
     /// opened goes first, and a comparison replaces the list the panel sits beside.
+    ///
+    /// <b>THE SEARCH OVER THE VIEW'S TABLE GOES BEFORE THE VIEW, since 2026-10-20 (AS-a).</b> On the list
+    /// the query is the last thing Escape takes, because it outlives the panel. A view's search does not
+    /// outlive the view - the sheet goes with it - so the cheaper loss comes first: the search, then on
+    /// the next press the view.
     /// </summary>
-    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();
+    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();
+
+    /// <summary>
+    /// The choices over the table standing where the list was - the comparison's or the change history's -
+    /// or nothing while the list, the overview or the form before a snapshot is there. Only one view ever
+    /// stands there, so at most one of the two answers.
+    /// </summary>
+    internal IRowChoices? MiddleChoices => (IRowChoices?)Snapshotting.Shown?.Filter ?? History.Shown?.Filter;
+
+    /// <summary>Empties the search over the table in the middle - true when there was one to empty.</summary>
+    private bool MiddleSearchEmptied()
+    {
+        if (MiddleChoices is not { SearchText.Length: > 0 } choices)
+        {
+            return false;
+        }
+
+        choices.SearchText = string.Empty;
+
+        return true;
+    }
 
     /// <summary>
     /// The comparison's state, wired to the line under the window: when a comparison comes or goes, the

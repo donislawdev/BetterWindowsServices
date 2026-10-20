@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows.Controls;
 using System.Windows.Data;
 using Bws.Gui.ViewModels;
@@ -18,6 +19,9 @@ public partial class DiffTable : UserControl
     public DiffTable()
     {
         InitializeComponent();
+
+        // By entry, with the mark on its heading saying so (AS-d).
+        FirstSort.Keep(Lines, nameof(DiffLine.ServiceName), ListSortDirection.Ascending);
 
         DataContextChanged += (_, _) => Head();
     }

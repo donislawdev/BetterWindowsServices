@@ -29,7 +29,16 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- The title and the way back share a line - the exit must not depend on the height of anything below it. -->
+        <!--
+            THE TITLE, THE EXPORT AND THE WAY BACK SHARE A LINE - the comparison's arrangement and its
+            reason: the exit must not depend on the height of anything below it, and the export is about
+            the whole history, sentences and all (AS-c, 2026-10-20), not about the table under it.
+
+            THE EXPORT WAITS FOR A READING - there is nothing to write while the log is first being read or
+            could not be. Off rather than hidden, so the line does not shift when the reading arrives, and
+            its hint shows on the button while it is off (`docs/10`: a disabled control shows no tooltip
+            unless told to).
+        -->
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -43,14 +52,25 @@
                        VerticalAlignment="Center"
                        Style="{StaticResource HeadingText}" />
 
-            <Button Grid.Column="1"
-                    x:Name="BackButton"
-                    AutomationProperties.AutomationId="historyBack"
-                    Content="{DynamicResource gui.history.back}"
-                    ToolTip="{DynamicResource gui.history.back.hint}"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource PrimaryAction}"
-                    Click="Back" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Button x:Name="ExportButton"
+                        AutomationProperties.AutomationId="historyExport"
+                        Content="{DynamicResource gui.history.export}"
+                        ToolTip="{DynamicResource gui.history.export.hint}"
+                        ToolTipService.ShowOnDisabled="True"
+                        IsEnabled="{Binding Exportable}"
+                        Margin="{StaticResource MarginBetweenControls}"
+                        Click="Export" />
+
+                <Button x:Name="BackButton"
+                        AutomationProperties.AutomationId="historyBack"
+                        Content="{DynamicResource gui.history.back}"
+                        ToolTip="{DynamicResource gui.history.back.hint}"
+                        Style="{StaticResource PrimaryAction}"
+                        Click="Back" />
+            </StackPanel>
         </Grid>
 
         <!--

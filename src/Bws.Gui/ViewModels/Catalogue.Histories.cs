@@ -18,8 +18,8 @@ public static partial class Catalogue
     /// have. <b>Data</b> is the history as it opens - identical changes together, every account.
     /// <b>Empty</b> is a log just cleared. <b>Wrong</b> is a log Windows would not hand over.
     /// <b>Loading</b> is the first reading still out. <b>Extreme</b> is a log losing its oldest events,
-    /// each change on its own line, narrowed to what SYSTEM did not do, under the longest name the
-    /// catalogue has.
+    /// each change on its own line, narrowed to what SYSTEM did not do and searched for the driver,
+    /// under the longest name the catalogue has.
     /// </summary>
     private static Built[] HistoryViews()
     {
@@ -28,17 +28,21 @@ public static partial class Catalogue
         var wrong = new HistorySheet();
         var loading = new HistorySheet();
         var extreme = Read(Recorded.Overwritten());
+        var unmatched = Read(Recorded.Ordinary());
 
         wrong.Failed(Texts.Of("gui.history.readFailed", "Access is denied."));
         Narrowed(extreme.Filter);
+        extreme.Filter.SearchText = "Specimen64";
+        unmatched.Filter.SearchText = "nothing like this";
 
         return
         [
             View(() => new HistoryView(), data: data, empty: empty, wrong: wrong, loading: loading, extreme: extreme),
 
-            // No empty cell: a log with no change in it has no table, and no row over one.
+            // The empty cell is a search that finds nothing - the one way the row stands over no line. A
+            // log with no change in it has no table, and no row over one.
             View(() => new ShowRow { Named = "history" }, key: nameof(ShowRow) + " over the change history",
-                data: data.Filter, extreme: extreme.Filter),
+                data: data.Filter, empty: unmatched.Filter, extreme: extreme.Filter),
 
             View(() => new HistoryTable(), data: data, wrong: wrong, loading: loading, extreme: extreme)
         ];

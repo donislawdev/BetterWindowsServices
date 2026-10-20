@@ -38,8 +38,22 @@ public sealed class HistorySheet : Observable
     public IReadOnlyList<string> Admissions
     {
         get => _admissions;
-        private set => Set(ref _admissions, value);
+        private set
+        {
+            if (Set(ref _admissions, value))
+            {
+                Raise(nameof(Exportable));
+            }
+        }
     }
+
+    /// <summary>
+    /// Whether there is a history to write to a file (AS-c) - once a reading has come back, an empty log
+    /// too, because "nothing changed since the log began" is an answer somebody may need on paper. Not
+    /// while the first reading is out, and not after a failure: the sentences are what a reading has to
+    /// say about itself, and with no reading there are none.
+    /// </summary>
+    public bool Exportable => Admissions.Count > 0;
 
     /// <summary>The sentence in place of the table - reading, or why the log could not be read - or nothing.</summary>
     public string Said

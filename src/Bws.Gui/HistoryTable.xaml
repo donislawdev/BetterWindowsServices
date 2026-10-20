@@ -14,14 +14,19 @@
         heading through ReadOnlyTable. Read only, and nothing on it opens a plan: a line here is what the
         log recorded, not a service somebody can act on - an installation names no entry at all.
 
-        NEWEST FIRST UNTIL SOMEBODY SORTS. The time column sorts as text, which is right because every
+        NEWEST FIRST UNTIL SOMEBODY SORTS, AND THE HEADING SAYS SO (AS-d, 2026-10-20): FirstSort lays the
+        sort on "When" and its mark with it. The time column sorts as text, which is right because every
         time is in one shape that sorts the way it reads (HistoryWords.When). The count column sorts by
         the number behind it - the text is empty for one, and text puts "9" after "56".
+
+        GONE WHEN NO LINE IS LEFT - an empty log, or a search that finds nothing. The sentences above the
+        table say the first, the line beside the search the second (HistoryFilter.Showing).
 
         Focusable and IsTabStop are off on the UserControl, `docs/10` trap 8 - the grid inside is the stop.
     -->
     <Grid>
-        <DataGrid AutomationProperties.AutomationId="historyLines"
+        <DataGrid x:Name="Lines"
+                  AutomationProperties.AutomationId="historyLines"
                   ItemsSource="{Binding Filter.Rows}">
             <DataGrid.Style>
                 <Style TargetType="DataGrid" BasedOn="{StaticResource ReadOnlyTable}">

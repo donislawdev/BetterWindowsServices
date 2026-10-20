@@ -45,7 +45,8 @@ public partial class ShowRow : UserControl
 
     /// <summary>
     /// The name of the table this row narrows, which the automation names start with - "diff" gives
-    /// "diffShow" and "diffShowing", the names the comparison's row had before it was shared.
+    /// "diffShow" and "diffShowing", the names the comparison's row had before it was shared, and
+    /// "diffSearch" for the field.
     /// </summary>
     public string Named
     {
@@ -53,10 +54,24 @@ public partial class ShowRow : UserControl
         set
         {
             _named = value;
+            AutomationProperties.SetAutomationId(SearchBox, value + "Search");
             AutomationProperties.SetAutomationId(ShowButton, value + "Show");
             AutomationProperties.SetAutomationId(ShowingText, value + "Showing");
         }
     }
+
+    /// <summary>
+    /// The field, so the window can put the caret in it on Ctrl+F - the window's shortcut, decided beside
+    /// every other one, the reason SearchRow gives for exposing the list's field rather than handling it.
+    /// </summary>
+    internal TextBox Box => SearchBox;
+
+    /// <summary>
+    /// Hands what is typed to the choices now rather than when the 400 ms run out - so Escape pressed
+    /// straight after typing empties the search that is there, not the one before it (G-9, SearchRow.Commit).
+    /// </summary>
+    internal void Commit() =>
+        SearchBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
 
     private void ShowAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(ShowButton);
 
