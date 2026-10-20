@@ -109,18 +109,28 @@ public sealed class ScopeBarGuards
                 .OfType<RadioButton>()
                 .Select(position => (
                     Name: System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(position)!.GetName(),
-                    Drawn: Descendants(position).OfType<TextBlock>().Select(text => text.Text).ToArray(),
-                    Choice: (ScopeChoice)position.DataContext))
+                    Drawn: Descendants(position).OfType<TextBlock>().Where(text => text.IsVisible).Select(text => text.Text).ToArray(),
+                    Choice: position.DataContext as ScopeChoice))
                 .ToArray();
         });
 
-        Assert.Equal(3, positions.Length);
+        // Three list tabs and, since 2026-10-20, the Tools tab after them - the same style and group.
+        Assert.Equal(4, positions.Length);
 
-        foreach (var (name, drawn, choice) in positions)
+        foreach (var (name, drawn, choice) in positions[..3])
         {
-            Assert.Equal(WpfHost.On(() => choice.Label), name);
-            Assert.Contains(WpfHost.On(() => choice.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)), drawn);
+            Assert.NotNull(choice);
+            Assert.Equal(WpfHost.On(() => choice!.Label), name);
+            Assert.Contains(WpfHost.On(() => choice!.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)), drawn);
         }
+
+        // The Tools tab is a page with no list, so it carries its name and no number - the count of the
+        // template collapses when the tab has nothing in Tag.
+        var (toolsName, toolsDrawn, toolsChoice) = positions[3];
+
+        Assert.Null(toolsChoice);
+        Assert.Equal(Texts.Of("gui.tools.tab"), toolsName);
+        Assert.DoesNotContain(toolsDrawn, text => text.Any(char.IsDigit));
 
         WpfHost.On(window.Close);
     }

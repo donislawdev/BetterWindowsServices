@@ -1,4 +1,5 @@
 using Bws.Core.Planning;
+using Bws.Core.Tools;
 
 namespace Bws.Cli;
 
@@ -78,10 +79,33 @@ internal static class Arguments
             // The change history. The word is the owner's - see CommandKind.History.
             "history" => CommandKind.History,
 
+            // The tools, every one under this word - owner's decision T-c. The word after it is read
+            // by TryTool below rather than here, because it names a tool rather than a command.
+            "tool" => CommandKind.Tool,
+
             // The word every other tool puts this under, and the spelling SPDX uses for the
             // field. This repository writes the noun the British way in its own prose, and the
             // command follows the tools rather than the prose - see CommandKind.License.
             "license" => CommandKind.License,
+            _ => CommandKind.None
+        };
+
+        return kind != CommandKind.None;
+    }
+
+    /// <summary>
+    /// Which command the word after <c>tool</c> stands for, or nothing when no tool is called that.
+    ///
+    /// <b>The catalogue decides which tools exist, and this decides what each is on the command line</b> -
+    /// the same split the window makes between the catalogue and the section it draws for each tool. An
+    /// arm per tool rather than a rule, and the default refuses: a tool added to the catalogue and not
+    /// here is caught by a test walking the catalogue (ToolCommandTests), not discovered by a person.
+    /// </summary>
+    internal static bool TryTool(string argument, out CommandKind kind)
+    {
+        kind = ToolCatalog.Named(argument) switch
+        {
+            { } tool when tool == ToolCatalog.Fix => CommandKind.Fixes,
             _ => CommandKind.None
         };
 

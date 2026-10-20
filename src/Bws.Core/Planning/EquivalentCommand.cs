@@ -41,6 +41,23 @@ public static class EquivalentCommand
     private const string Tool = "bws";
 
     /// <summary>
+    /// The noun every tool sits under on the command line - owner's decision T-c of 2026-10-20, and frozen
+    /// with the verbs in `docs/02`.
+    /// </summary>
+    private const string Tools = "tool";
+
+    /// <summary>
+    /// The line that runs one item of a tool - <c>bws tool fix printer</c> - for the card in the window that
+    /// offers the same thing (owner's decision T-h).
+    ///
+    /// <b>Here because this is the one place the tool's own name is written</b>, and a card printing a line
+    /// that does not run would be a lesson in the wrong command. Bridged like every line this class writes:
+    /// a test in the command line reads it back and gets the fix it names. Names rather than the fix itself,
+    /// because the tools sit beside the plans in the core and the plans should not have to know they exist.
+    /// </summary>
+    public static string ForTool(string tool, string item) => string.Join(' ', Tool, Tools, tool, item);
+
+    /// <summary>
     /// Asking for the entries that break to be taken down as well.
     ///
     /// <b>Bridged rather than trusted:</b> a guard in the command line's own tests asserts this

@@ -46,7 +46,11 @@ public enum EntryScope
 /// </summary>
 public sealed class ScopeChoice : Observable
 {
-    private readonly Func<EntryScope> _read;
+    /// <summary>
+    /// The scope the window is on, or nothing while the page on screen is not a list - the Tools tab
+    /// since 2026-10-20, and then no position is the page.
+    /// </summary>
+    private readonly Func<EntryScope?> _read;
     private readonly Action<EntryScope> _write;
     private readonly Func<EntryScope, int> _count;
     private readonly string _labelKey;
@@ -56,7 +60,7 @@ public sealed class ScopeChoice : Observable
         string labelKey,
         string hintKey,
         EntryScope scope,
-        Func<EntryScope> read,
+        Func<EntryScope?> read,
         Action<EntryScope> write,
         Func<EntryScope, int> count)
     {
@@ -234,7 +238,7 @@ public static class Scopes
 
     /// <summary>The positions, in the order they are shown.</summary>
     internal static IReadOnlyList<ScopeChoice> Positions(
-        Func<EntryScope> read, Action<EntryScope> write, Func<EntryScope, int> count) =>
+        Func<EntryScope?> read, Action<EntryScope> write, Func<EntryScope, int> count) =>
     [
         // SERVICES FIRST BECAUSE IT IS WHERE THE WINDOW OPENS, and the order is the reading order
         // of the two kinds rather than their size. Drivers are the larger half on this machine and

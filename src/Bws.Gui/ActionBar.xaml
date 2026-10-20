@@ -132,9 +132,7 @@
             The line between what is done to a service and what is done to the listing. A shape
             rather than a gap, because a gap at this width reads as an accident.
         -->
-        <Rectangle Width="1"
-                   Fill="{StaticResource SurfaceRowLine}"
-                   Margin="{StaticResource MarginBetweenControls}" />
+        <Rectangle Style="{StaticResource BarRule}" />
 
         <!--
             READING THE MACHINE AGAIN, and it is not one of the three above it: nothing it does

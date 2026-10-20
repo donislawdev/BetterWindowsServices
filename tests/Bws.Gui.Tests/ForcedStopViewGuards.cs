@@ -83,7 +83,7 @@ public sealed class ForcedStopViewGuards
 
         var offered = WpfHost.On(() => Sheeted(window).Failures.First(one => one.HasOffer));
 
-        Assert.True(await WpfHost.On(() => window.Force(offered)));
+        Assert.True(await WpfHost.On(() => window.OpenFresh(offered.Offer!)));
         WpfHost.Settled();
 
         var plan = WpfHost.On(() => Sheeted(window).Plan!);

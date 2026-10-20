@@ -215,6 +215,10 @@ public partial class MainWindow : Window
         // AND THE CHANGE HISTORY, 2026-10-20 (J2) - from the same menu, into the same middle, the same way.
         HistoryDoors.Open(this, Actions, ChangeHistory, _model, rearrange);
 
+        // A card on the Tools tab opens the ordinary plan sheet for its entry, through the door a plan for
+        // one named entry comes through - OpenFresh says why one door rather than two.
+        Toolbox.CardRequest += async (_, asked) => await OpenFresh(asked.Card.Ask).ConfigureAwait(true);
+
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
         // reaches into the model would be a second road to everything the model owns.
@@ -325,7 +329,15 @@ public partial class MainWindow : Window
         // THE WAY OUT FROM UNDER A FAILURE, AND IT OPENS A PLAN RATHER THAN CARRYING ONE OUT. The
         // same shape as the first - an async lambda awaiting the work - because working a plan out
         // asks the manager and that moved off this thread on 2026-09-03.
-        PlanPanel.ForceRequest += async (_, asked) => await Force(asked.Failure).ConfigureAwait(true);
+        PlanPanel.ForceRequest += async (_, asked) =>
+        {
+            // Most failures offer nothing, and the template draws no button for them - so a press here
+            // without an offer is not something a person can make. Asked rather than assumed anyway.
+            if (asked.Failure.Offer is { } offer)
+            {
+                await OpenFresh(offer).ConfigureAwait(true);
+            }
+        };
 
         // THE OFFERS UNDER A SENTENCE OF THE PLAN - "keeps running" (spec C4, the owner's variant O1
         // of 2026-09-24) and dependants in the way (W-4, 2026-09-30). The same question asked again

@@ -1,5 +1,5 @@
 <meta name="title" content="Dokumentacja wiersza poleceń - przełączniki i kody wyjścia bws">
-<meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type, snapshot i history, oraz gdzie działa każda flaga.">
+<meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type, snapshot, history i tool, oraz gdzie działa każda flaga.">
 <meta name="nav" content="Dokumentacja CLI">
 
 <section class="band page-title">
@@ -13,7 +13,7 @@
 <section class="band band-tight">
   <div class="wrap">
     <h2>Komendy</h2>
-    <p>Dziewięć czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie.</p>
+    <p>Dziesięć czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie. <code>tool</code> też jest rzeczownikiem, a sam wypisuje listę narzędzi.</p>
 <pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
@@ -23,6 +23,8 @@
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
 <span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span> [NAME] [--dry-run] [--timeout SECONDS] [--json] [--timing]
 <span class="k">bws license</span> [--components]
 <span class="k">bws --help</span>
 <span class="k">bws --version</span></code></pre>
@@ -60,6 +62,10 @@ There is no command lst. Did you mean list?</code></pre>
       <div>
         <h3><code>history</code> - kto to zmienił, z dziennika System</h3>
         <p>Zmiany typu startu i instalacje usług z dziennika System, od najnowszej, z kontem, które zapisał Windows. Pierwsza linia mówi, jak daleko wstecz sięga dziennik i czy był czyszczony, bo historia jest tylko tak długa jak dziennik. Z nazwą to zmiany typu startu tej jednej usługi - instalacje są wymienione tylko bez nazwy, bo Windows zapisuje instalację pod nazwą wyświetlaną, nigdy pod nazwą usługi. Konto ma nazwę tam, gdzie ta maszyna nazwie je sama, a w przeciwnym razie stoi jego SID. Typy startu są w słowach, które zapisał Windows.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - gotowe odpowiedzi na częste problemy</h3>
+        <p>Te same narzędzia, które okno pokazuje na zakładce Tools. <code>bws tool</code> wypisuje je, a <code>bws tool fix</code> wypisuje szybkie naprawy: <code>printer</code>, <code>sound</code>, <code>indexing</code> i <code>search</code>. Każda to restart jednej usługi Windows razem z tym, co od niej zależy, wybrany dlatego, że tak radzą strony pomocy Microsoftu. <code>bws tool fix printer</code> to dokładnie <code>bws restart Spooler --dependents</code> - ten sam plan, to samo wyjście i te same kody wyjścia - i jak każda komenda, która coś zmienia, nie pyta wcześniej, więc <code>--dry-run</code> pozwala obejrzeć plan przed wykonaniem.</p>
       </div>
       <div>
         <h3><code>license</code> - co jest w środku pobranego pliku</h3>

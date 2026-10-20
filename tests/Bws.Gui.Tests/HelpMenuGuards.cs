@@ -57,16 +57,37 @@ public sealed class HelpMenuGuards
     }
 
     /// <summary>
-    /// G-9 of the external stability report: the overview puts the row holding Help away, and F1
-    /// there opened the menu under a button that was not on screen. A key whose button is away
-    /// opens nothing and is handed back, so the press is not swallowed by a menu nobody sees.
+    /// G-9 of the external stability report, and what the owner's decision T-e of 2026-10-20 did to it.
+    /// The overview used to put the row holding Help away, and F1 there opened the menu under a button
+    /// that was not on screen - so the key was handed back instead. Since T-e the bar holding Help stays on
+    /// every page, so over the overview the button is there and F1 opens its menu as it does anywhere.
+    /// The check that hands the key back (MainWindow.Act asks whether the button is on screen) is still in
+    /// place for any page that hides the bar again.
     /// </summary>
     [Fact]
-    public void F1_on_the_overview_opens_no_menu_under_a_button_that_is_put_away()
+    public void F1_on_the_overview_opens_the_menu_under_a_button_that_now_stays()
     {
         var window = WpfHost.Window();
 
         WpfHost.On(() => ((ViewModels.MainViewModel)window.DataContext).ShowingOverview = true);
+
+        Assert.Equal(System.Windows.Visibility.Visible, WpfHost.On(() => window.Scope.Visibility));
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Help, out _)));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// The protection G-9 bought, held without the page that used to need it: a key whose button is put
+    /// away opens nothing and is handed back. No page hides the bar since T-e, so the bar is put away here
+    /// by hand - the next page that hides it meets a guard that already works.
+    /// </summary>
+    [Fact]
+    public void A_shortcut_whose_button_is_put_away_opens_nothing()
+    {
+        var window = WpfHost.Window();
+
+        WpfHost.On(() => window.Scope.Help.Visibility = System.Windows.Visibility.Collapsed);
 
         Assert.False(WpfHost.On(() => window.Act(Shortcut.Help, out _)));
         Assert.False(WpfHost.On(() => window.Scope.Help.ContextMenu!.IsOpen));

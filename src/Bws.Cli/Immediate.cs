@@ -71,6 +71,17 @@ internal static class Immediate
             return ExitCode.Ok;
         }
 
+        // THE TWO LISTS UNDER `bws tool`, SINCE 2026-10-20, and they wait for a clean line for the reason
+        // the licence does. `bws tool fix --dry-run` must not print the list and swallow the switch: the
+        // switch belongs to a fix somebody named, so the line falls through to Refusals, which names
+        // where it works - "tool fix NAME".
+        if (options.Kind is CommandKind.Tool or CommandKind.Fixes && options.NothingWrong)
+        {
+            Output.Data(options.Kind == CommandKind.Tool ? ToolText.Tools() : ToolText.Fixes());
+
+            return ExitCode.Ok;
+        }
+
         return null;
     }
 }

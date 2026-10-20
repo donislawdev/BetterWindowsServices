@@ -144,7 +144,7 @@ public sealed class AppearanceGuards
     /// </summary>
     private static readonly string[] StyleFiles =
     [
-            "Text.xaml", "Overview.xaml", "Chips.xaml",
+            "Text.xaml", "Overview.xaml", "Tools.xaml", "Tabs.xaml", "Chips.xaml",
 
             // Menus.xaml left Controls.xaml on 2026-09-05 when the markup ratchet fired on it -
             // the picker learned to nest and a column heading learned to filter, four styles in

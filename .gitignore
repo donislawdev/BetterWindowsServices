@@ -80,7 +80,10 @@ docs/
 CLAUDE.md
 
 # Developer tools.  Anything here that matters has to be described in docs/ well enough to be rebuilt from the description.
-tools/
+# ANCHORED TO THE ROOT since 2026-10-20: unanchored, "tools/" matched every directory of that name
+# anywhere - and with core.ignorecase on Windows also src/Bws.Core/Tools, the product's own tools,
+# which a commit would have left out without a word while the build here stayed green.
+/tools/
 
 # The developer changelog. 
 CHANGELOG-DEV.md

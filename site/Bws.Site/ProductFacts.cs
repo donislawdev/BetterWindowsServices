@@ -105,14 +105,18 @@ internal sealed class ProductFacts
     }
 
     /// <summary>
-    /// The verb as somebody types it. Three of the eight are not the enumeration name lower-cased,
-    /// and printing "setstarttype" on a page would be printing a word nobody can type.
+    /// The verb as somebody types it. Five are not the enumeration name lower-cased, and printing
+    /// "setstarttype" on a page would be printing a word nobody can type. The two under
+    /// <c>bws tool fix</c> arrived 2026-10-20 and mirror OptionSurface.Spelling, which gives the one
+    /// that runs a fix its NAME so a page saying where a switch works names a line that runs.
     /// </summary>
     private static string Spelling(string kind) => kind switch
     {
         "SnapshotCreate" => "snapshot create",
         "SnapshotDiff" => "snapshot diff",
         "SetStartType" => "start-type",
+        "Fixes" => "tool fix",
+        "Fix" => "tool fix NAME",
         _ => kind.ToLowerInvariant(),
     };
 

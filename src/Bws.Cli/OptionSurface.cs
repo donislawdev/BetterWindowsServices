@@ -116,6 +116,37 @@ internal enum CommandKind
     History,
 
     /// <summary>
+    /// The tools this build carries, listed - <c>bws tool</c>, the same list the window's Tools tab shows.
+    ///
+    /// <b>A noun with its own answer, unlike snapshot</b>, which needs a word after it. Somebody typing the
+    /// noun alone is asking what is under it, and the answer needs nothing - no manager, no disk - so it
+    /// is given where help and the licence are (Immediate). The word is the owner's decision T-c of
+    /// 2026-10-20: every tool under ONE word, so the top level stays short however many arrive.
+    /// </summary>
+    Tool,
+
+    /// <summary>
+    /// The quick fixes, listed - <c>bws tool fix</c>. Answered without the machine, like <see cref="Tool"/>.
+    ///
+    /// <b>Its own kind rather than <see cref="Fix"/> with no name, and the reason is the switch table.</b>
+    /// The switches of a fix belong to a fix somebody named, so on the list they are refused with a
+    /// sentence pointing at <c>tool fix NAME</c> - where a shared kind would have accepted them and then
+    /// printed the list, ignoring what was asked.
+    /// </summary>
+    Fixes,
+
+    /// <summary>
+    /// One quick fix carried out - <c>bws tool fix printer</c>.
+    ///
+    /// <b>Exactly <see cref="Restart"/> with --dependents, and that is the design rather than a shortcut.</b>
+    /// The reader turns the fix into its service and the dependants at once (CommandLine.Reading), so
+    /// from there it runs down the same branch, builds the same plan, prints the same text and JSON and
+    /// ends on the same codes. A fix that answered in a shape of its own would be a second contract for
+    /// one restart.
+    /// </summary>
+    Fix,
+
+    /// <summary>
     /// What this program is licensed under, and what it carries that somebody else wrote.
     ///
     /// <b>The one verb here that reads nothing at all</b> - no service manager, no disk, no
@@ -214,7 +245,11 @@ internal static class OptionSurface
         // could hide one would be exactly that, spelled as an option.
         ("--full", [CommandKind.Show]),
 
-        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History]),
+        // NOT on the two lists, tool and tool fix - a decision of 2026-10-20, written down so it is not
+        // taken for an oversight. They are read by people, and a JSON shape of the catalogue would be a
+        // second public contract nobody has asked for yet. Adding it later is additive - taking it back
+        // would not be.
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -232,10 +267,10 @@ internal static class OptionSurface
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side. history reads the System log
         // instead of the manager, and says how long that took.
-        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History]),
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
-            CommandKind.Kill]),
+            CommandKind.Kill, CommandKind.Fix]),
 
         // Not on start, and this one was missed the first time round. Starting is not the
         // mirror of stopping: the manager brings up whatever the entry needs by itself, and
@@ -252,7 +287,10 @@ internal static class OptionSurface
         // so either switch here would be a word that does nothing, which is the silence this table
         // was built to end. The stop that --stop adds does move an entry, and why --timeout still
         // stays off even beside it is written at --stop above.
-        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill]),
+        // A fix is a restart, so it waits the way a restart does. --dependents is NOT here and must not be:
+        // a fix always takes its dependants along, and accepting the word would make it a switch that
+        // does nothing - the silence this table was built to end.
+        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill, CommandKind.Fix]),
 
         // The only verb with anything to say about components, and NOT accepted anywhere else
         // even though a listing could be imagined to carry one. It turns the notice into the
@@ -315,6 +353,12 @@ internal static class OptionSurface
         // in the sentence telling somebody where a switch DOES work, so the answer to "then where"
         // would be a word that does not exist.
         CommandKind.SetStartType => "start-type",
+
+        // Two kinds with one spelling would make "--dry-run does not apply to tool fix. It works with:
+        // ..., tool fix" - a sentence refusing a command and then naming it. So the one that runs a fix
+        // carries the word it needs, and the refusal points at it.
+        CommandKind.Fixes => "tool fix",
+        CommandKind.Fix => "tool fix NAME",
         _ => kind.ToString().ToLowerInvariant()
     };
 
@@ -344,9 +388,12 @@ internal static class OptionSurface
     ///
     /// <b>history sits after snapshot and before license</b>, beside the other half of the audit story,
     /// and ahead of the one verb nothing typed in a hurry was meant to be.
+    ///
+    /// <b>tool sits after history and before license</b> since 2026-10-20, for the second reason license
+    /// is last: a word typed in a hurry was far likelier meant for anything above it.
     /// </remarks>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "history", "license"];
+        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "history", "tool", "license"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -404,6 +451,11 @@ internal static class OptionSurface
         // A name it can do without, and the phrase says so - "one name" would send somebody who
         // typed two looking for which one is required.
         CommandKind.History => "cli.takes.oneNameAtMost",
+
+        // The words after tool and tool fix are names of tools and fixes, not of services - and the
+        // sentence says so, because "one name" there would send somebody to type Spooler.
+        CommandKind.Tool => "cli.takes.oneTool",
+        CommandKind.Fixes or CommandKind.Fix => "cli.takes.oneFix",
 
         // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
         // in the window: a fifth shape must fail here loudly rather than quietly claim to take one

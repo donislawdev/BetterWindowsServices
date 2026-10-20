@@ -322,6 +322,28 @@ with that entry's history.
 
 ---
 
+## Tools - ready-made answers to common problems
+
+A *Tools* tab beside the three lists, and `bws tool` in a terminal - the same tools in both. The
+first is *Quick fixes*: a restart of one Windows service together with what depends on it, for a
+problem you can name, each one chosen because Microsoft's own troubleshooting pages suggest it.
+
+```
+$ bws tool fix
+  printer    Spooler                The printer does not print, or jobs are stuck in the queue
+  sound      AudioEndpointBuilder   No sound, and Windows says the audio services are not responding
+  indexing   WSearch                Search does not find files, because indexing is paused
+  search     FontCache              The search box does not respond
+```
+
+A fix is not a new kind of operation. `bws tool fix printer` is exactly `bws restart Spooler
+--dependents` - the same plan, the same output, the same exit codes - and in the window a card opens
+the same plan sheet the Restart button does, saying which fix it came from. Nothing changes until the
+button at its foot is pressed, and `--dry-run` shows the plan from a terminal. A restart helps when a
+service got stuck. It does not repair a driver or a setting, and the cards say so.
+
+---
+
 ## Nothing happens without a plan
 
 Every operation that writes builds a plan first, and the same plan serves five purposes: the
@@ -558,6 +580,8 @@ bws snapshot create [FILE] [--note TEXT] [--follow-network] [--force] [--json] [
 bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]
 bws history [NAME] [--json] [--timing]
+bws tool
+bws tool fix [NAME] [--dry-run] [--timeout SECONDS] [--json] [--timing]
 bws license [--components]
 bws --help
 bws --version
@@ -628,7 +652,8 @@ session will last.
 shows every component of the window in every state, and reads nothing from your machine.
 
 Three lists on the switch above the search box - *Services*, *Drivers*, *All* - each saying
-how big it is. The search box takes the query language and suggests as you type - Tab or Enter
+how big it is, and *Tools* after them, a page of ready-made fixes that each open a plan. The row
+stays on every page, so a list's tab is also the way back to it from the overview or a comparison. The search box takes the query language and suggests as you type - Tab or Enter
 writes the highlighted word. The filter
 buttons write into the box. *Columns* chooses what the list shows, a right-click on a column heading
 narrows the list to that value or puts the column away, and the layout you leave is the layout it

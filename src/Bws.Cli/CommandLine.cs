@@ -179,6 +179,13 @@ internal sealed partial record CommandLine
     /// Its own field rather than a rejected word, because the two need different answers.
     /// A rejected word is something nobody has heard of. This is a command that exists and
     /// is half typed.
+    ///
+    /// <b>Also the word after <c>tool</c> or <c>tool fix</c> that names no tool or fix, since
+    /// 2026-10-20</b> - which noun it followed is <see cref="Kind"/>: <see cref="CommandKind.Tool"/>,
+    /// <see cref="CommandKind.Fixes"/>, or nothing yet for snapshot. One field for the three rather
+    /// than one each, because this record stands on the size ratchet's ceiling for state and the three
+    /// are one fact: a noun followed by a word it does not have. Never empty for the tools, because
+    /// both nouns answer on their own.
     /// </summary>
     internal string? BadSubcommand { get; private init; }
 

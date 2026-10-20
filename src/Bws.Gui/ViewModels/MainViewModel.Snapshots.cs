@@ -27,9 +27,10 @@ public sealed partial class MainViewModel
     /// keyboard. A comparison hides the list exactly as the overview does, so each of the three would
     /// otherwise have answered wrongly while one is up. The form before a snapshot (W2-d) hides it too,
     /// and <see cref="Snapshotting.InTheMiddle"/> answers for both. The change history (J2) hides it
-    /// the same way, and <see cref="HistoryReading.InTheMiddle"/> answers for it.
+    /// the same way, and <see cref="HistoryReading.InTheMiddle"/> answers for it. The Tools tab (since
+    /// 2026-10-20) takes the whole page rather than the middle, and hides the list all the same.
     /// </summary>
-    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle;
+    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools;
 
     /// <summary>
     /// Escape's middle step: a comparison or the change history standing where the list was goes first,
@@ -45,8 +46,13 @@ public sealed partial class MainViewModel
     /// the query is the last thing Escape takes, because it outlives the panel. A view's search does not
     /// outlive the view - the sheet goes with it - so the cheaper loss comes first: the search, then on
     /// the next press the view.
+    ///
+    /// <b>THE TOOLS PAGE IS ONE OF THESE STEPS SINCE 2026-10-20</b>: Escape there goes back to the list,
+    /// where the query and the scope are as they were left. Only one page is ever up, and the Tools page
+    /// puts the middle views away when it arrives, so its place in the chain decides nothing either.
     /// </summary>
-    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();
+    internal bool PutAwayAView() =>
+        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();
 
     /// <summary>
     /// The choices over the table standing where the list was - the comparison's or the change history's -

@@ -5240,7 +5240,8 @@ $mutations = @(
         # The owner's complaint of 2026-08-19 put back: no focus visual, and the ring has to come
         # from somewhere else or not at all.
         Name = 'scope: the keyboard ring is a focus visual rather than a state of the control'
-        File = 'src\Bws.Gui\ScopeBar.xaml'
+        # Re-anchored 2026-10-20: the tab's style left ScopeBar.xaml for a theme file with the Tools tab.
+        File = 'src\Bws.Gui\Themes\Tabs.xaml'
         From = '<Setter Property="FocusVisualStyle" Value="{StaticResource ScopeFocusRing}" />'
         To = '<Setter Property="FocusVisualStyle" Value="{x:Null}" />'
         Test = 'ScopeBarGuards.The_scope_ring_is_drawn_for_the_keyboard_rather_than_for_a_click'
@@ -7525,9 +7526,10 @@ $mutations = @(
         # THE NUMBER REACHES THE WINDOW. A template with the count taken out draws three positions
         # exactly as they were for a month, and every model test stays green.
         Name = 'scope counts: every position draws its count'
+        # Re-anchored 2026-10-20: the count reaches the template through Tag, so the Tools tab can carry none.
         File = 'src\Bws.Gui\ScopeBar.xaml'
-        From = '                                    <TextBlock Text="{Binding Count}"'
-        To = '                                    <TextBlock Text=""'
+        From = '                                 Tag="{Binding Count}"'
+        To = '                                 Tag="{Binding Label}"'
         Test = 'Bws.Gui.Tests.ScopeBarGuards.Every_position_draws_its_count_and_keeps_its_name'
     }
     @{
@@ -8058,8 +8060,9 @@ $mutations = @(
         # RE-ANCHORED 2026-10-14: asked as "is the list on screen", because a comparison hides it too.
         # And 2026-10-20 into Finding.Begin, with the rest of what Ctrl+F does.
         File = 'src\Bws.Gui\Finding.cs'
-        From = '        if (model.ListOnScreen)'
-        To = '        if (model.ListOnScreen || !model.ListOnScreen)'
+        # And 2026-10-20 beside the Tools tab, whose leaving opens no list either.
+        From = '        if (model.ListOnScreen && !leftTheTools)'
+        To = '        if ((model.ListOnScreen || !model.ListOnScreen) && !leftTheTools)'
         Test = 'KeyboardTests.Control_F_on_the_overview_screen_opens_no_list'
     }
     @{
@@ -11532,8 +11535,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'hand-over: a sheet from a failure hands over the entry it is about'
         File = 'src\Bws.Gui\MainWindow.Menu.cs'
-        From = '_asked = (offer.Kind, null, false, false, [offer.ServiceName]);'
-        To = '_asked = (offer.Kind, null, false, false, null);'
+        # Re-anchored 2026-10-20: the dependants ride along since a quick fix's card came through the same door.
+        From = '_asked = (offer.Kind, null, false, offer.Dependents, [offer.ServiceName]);'
+        To = '_asked = (offer.Kind, null, false, offer.Dependents, null);'
         Test = 'HandOverGuards.A_sheet_opened_from_a_failure_hands_over_the_entry_it_is_about'
     },
     @{
@@ -11575,7 +11579,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         File = 'src\Bws.Gui\ButtonMenu.cs'
         From = 'if (at is UIElement { Visibility: not Visibility.Visible })'
         To = 'if (at is UIElement { Visibility: Visibility.Hidden })'
-        Test = 'HelpMenuGuards.F1_on_the_overview_opens_no_menu_under_a_button_that_is_put_away'
+        # Re-pointed 2026-10-20: the overview no longer puts the bar away (decision T-e), so the guard collapses it itself.
+        Test = 'HelpMenuGuards.A_shortcut_whose_button_is_put_away_opens_nothing'
     },
     @{
         Name = 'mishaps: a window that has not loaded is nobody to tell'
@@ -12407,16 +12412,18 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Re-anchored 2026-10-15 (W2): the form before a snapshot hides the list too, asked as one question.
         Name = 'window snapshot: a comparison hides the list'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle;'
-        To = '    public bool ListOnScreen => !_showingOverview && !History.InTheMiddle;'
+        # Re-anchored 2026-10-20: the Tools tab joined the end of the line.
+        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools;'
+        To = '    public bool ListOnScreen => !_showingOverview && !History.InTheMiddle && !Tabs.ShowingTools;'
         Test = 'SnapshottingTests.Putting_the_comparison_away_answers_once_and_gives_the_list_back'
     }
     @{
         Name = 'window snapshot: Escape puts the comparison away before the query'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the search over the view's table goes first now (AS-a).
-        From = '    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
-        To = '    internal bool PutAwayAView() => MiddleSearchEmptied() || History.PutAway() || Chosen.Hide();'
+        # And 2026-10-20: the chain moved to its own line when the Tools tab joined it.
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        To = '        MiddleSearchEmptied() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
         Test = 'SnapshotWindowGuards.Escape_puts_the_comparison_away_before_it_touches_the_query'
     }
     @{
@@ -13164,8 +13171,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # verb dropped from the copy is a kind of command nobody draws, and the guard beside it says so.
         Name = 'search: the words a property draws reach every kind of command'
         File = 'tests\Bws.Cli.Tests\CommandLinePropertyTests.cs'
-        From = '"history", "license", "snapshot"]'
-        To = '"history", "snapshot"]'
+        # Re-anchored 2026-10-20: tool joined the end of the list.
+        From = '"history", "license", "snapshot", "tool"]'
+        To = '"history", "snapshot", "tool"]'
         Test = 'CommandLinePropertyTests.The_words_drawn_above_reach_every_kind_of_command'
     }
     @{
@@ -13556,15 +13564,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window history: the list is not on screen while the history is'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = ' && !History.InTheMiddle;'
-        To = ';'
+        # Re-anchored 2026-10-20: the Tools tab joined the end of the line.
+        From = ' && !History.InTheMiddle && !Tabs.ShowingTools;'
+        To = ' && !Tabs.ShowingTools;'
         Test = 'HistoryTests.Opening_the_view_reads_the_log_and_puts_it_where_the_list_was'
     }
     @{
         Name = 'window history: Escape puts the history away'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = 'Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
-        To = 'Snapshotting.PutAway() || Chosen.Hide();'
+        # Re-anchored 2026-10-20: the Tools tab joined the chain after the history.
+        From = 'Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        To = 'Snapshotting.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
         Test = 'HistoryWindowGuards.Escape_puts_the_history_away_before_it_touches_the_query'
     }
     @{
@@ -13747,8 +13757,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # The cheaper loss first: a view's search does not outlive the view.
         Name = 'window escape: the search over a view goes before the view'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '    internal bool PutAwayAView() => MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
-        To = '    internal bool PutAwayAView() => Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        # Re-anchored 2026-10-20: the chain moved to its own line when the Tools tab joined it.
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        To = '        Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
         Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
     }
     @{
@@ -13825,6 +13836,101 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '            yield return Texts.Of("gui.diff.export.searched", RowSearch.Typed(words));'
         To = '            _ = words;'
         Test = 'DiffExportingTests.A_search_over_the_comparison_is_said_in_the_file'
+    }
+    @{
+        # docs/PROJEKT-TOOLS-20261020.md: a fix IS a restart with dependants - without them the manager
+        # refuses the stop on exactly the machines that have the problem.
+        Name = 'tools core: a fix asks for its dependants'
+        File = 'src\Bws.Core\Tools\QuickFixes.cs'
+        From = '    public ServiceAction Ask => new(ActionKind.Restart, ServiceName, IncludeDependents: true);'
+        To = '    public ServiceAction Ask => new(ActionKind.Restart, ServiceName);'
+        Test = 'QuickFixTests.Every_fix_asks_for_a_restart_of_its_service_with_what_depends_on_it'
+    }
+    @{
+        # The reader turns a fix into restart --dependents at once, so the rest of the run cannot differ.
+        Name = 'tools cli: a fix is read with its dependants'
+        File = 'src\Bws.Cli\CommandLine.Reading.cs'
+        From = '                    dependents = true;'
+        To = '                    dependents = false;'
+        Test = 'ToolCommandTests.Every_fix_reads_as_a_restart_of_its_service_with_its_dependants'
+    }
+    @{
+        # The lists are answered before the line is judged, so a switch beside one must not be swallowed.
+        Name = 'tools cli: the lists wait for a clean line'
+        File = 'src\Bws.Cli\Immediate.cs'
+        From = '        if (options.Kind is CommandKind.Tool or CommandKind.Fixes && options.NothingWrong)'
+        To = '        if (options.Kind is CommandKind.Tool or CommandKind.Fixes)'
+        Test = 'ToolCommandTests.Neither_list_swallows_a_switch_somebody_typed'
+    }
+    @{
+        # `bws fix printer` - the mistake somebody reading the ideas report will make - is offered the line.
+        Name = 'tools cli: a tool typed as a command is offered tool NAME'
+        File = 'src\Bws.Cli\Refusals.cs'
+        From = '            var nearest = ToolCatalog.Named(options.BadVerb) is { } tool'
+        To = '            var nearest = ToolCatalog.Named(options.BadVerb + "?") is { } tool'
+        Test = 'ToolCommandTests.A_mistyped_tool_or_fix_is_offered_the_nearest_one'
+    }
+    @{
+        # The card prints this line, so a line that does not run would teach the wrong command.
+        Name = 'tools core: the line a card shows names the tool noun'
+        File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
+        From = '    public static string ForTool(string tool, string item) => string.Join('' '', Tool, Tools, tool, item);'
+        To = '    public static string ForTool(string tool, string item) => string.Join('' '', Tool, tool, item);'
+        Test = 'ToolCommandTests.The_line_a_card_shows_reads_back_as_the_fix_it_names'
+    }
+    @{
+        # T-a: no list tab is the page while the Tools page is.
+        Name = 'window tools: no list tab is marked on the Tools page'
+        File = 'src\Bws.Gui\ViewModels\Tabs.cs'
+        From = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), ShowTheList, count);'
+        To = '        Positions = Scopes.Positions(() => current(), ShowTheList, count);'
+        Test = 'ToolsTabGuards.The_tab_takes_the_page_and_leaves_the_query_and_the_scope_waiting'
+    }
+    @{
+        Name = 'window tools: the page is drawn when the tab is on'
+        File = 'src\Bws.Gui\MainWindow.Overview.cs'
+        From = '        Toolbox.Visibility = _model.Tabs.ShowingTools ? Visibility.Visible : Visibility.Collapsed;'
+        To = '        Toolbox.Visibility = Visibility.Collapsed;'
+        Test = 'ToolsTabGuards.The_tab_takes_the_page_and_leaves_the_query_and_the_scope_waiting'
+    }
+    @{
+        Name = 'window tools: Escape leaves the Tools page'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        To = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
+        Test = 'ToolsTabGuards.Escape_goes_back_to_the_list_as_it_was_left'
+    }
+    @{
+        # A card opens a restart WITH dependants, through the door a failure's offer uses.
+        Name = 'window tools: a card opens the plan with its dependants'
+        File = 'src\Bws.Gui\MainWindow.Menu.cs'
+        From = '            .PlanAsync(new BulkAction(offer.Kind, [offer.ServiceName], IncludeDependents: offer.Dependents))'
+        To = '            .PlanAsync(new BulkAction(offer.Kind, [offer.ServiceName]))'
+        Test = 'ToolsTabGuards.Pressing_a_card_opens_the_restart_with_its_dependants_and_says_where_it_came_from'
+    }
+    @{
+        # A first reading that failed is not "waiting".
+        Name = 'window tools: a card after a failed reading says so'
+        File = 'src\Bws.Gui\ViewModels\ToolsPage.cs'
+        From = '            return _failed() ? Texts.Of("gui.tools.unavailable.unread") : Texts.Of("gui.tools.unavailable.reading");'
+        To = '            return Texts.Of("gui.tools.unavailable.reading");'
+        Test = 'ToolsTabGuards.Before_the_first_reading_a_card_waits_and_after_a_failed_one_it_says_so'
+    }
+    @{
+        # T-e: a tab is a road out of the overview, and leaving by it counts as having seen it.
+        Name = 'window tools: leaving the overview by any road writes it down'
+        File = 'src\Bws.Gui\MainWindow.Overview.cs'
+        From = '                _kept?.TheOverviewWasSeen(_model.Says);'
+        To = '                _ = _model.Says;'
+        Test = 'ToolsTabGuards.Leaving_the_overview_by_a_tab_counts_as_having_seen_it'
+    }
+    @{
+        # T-e: the marked list tab over the overview is the way back to the list.
+        Name = 'window tools: a list tab leaves the overview'
+        File = 'src\Bws.Gui\ViewModels\Tabs.cs'
+        From = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), ShowTheList, count);'
+        To = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), _scope, count);'
+        Test = 'ToolsTabGuards.The_bar_stays_over_the_overview_and_its_marked_tab_is_the_way_back_to_the_list'
     }
 )
 

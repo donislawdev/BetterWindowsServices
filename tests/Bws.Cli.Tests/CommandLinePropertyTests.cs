@@ -37,9 +37,12 @@ public sealed class CommandLinePropertyTests
     public void The_words_drawn_above_reach_every_kind_of_command()
     {
         // "snapshot" is a noun and reaches nothing alone - the two words after it are what it reaches.
+        // "tool" reaches its list alone, and the list of fixes and one fix by the words after it.
         var reached = Verbs
             .Select(verb => CommandLine.Read([verb]).Kind)
             .Concat(new[] { "create", "diff" }.Select(word => CommandLine.Read(["snapshot", word]).Kind))
+            .Append(CommandLine.Read(["tool", "fix"]).Kind)
+            .Append(CommandLine.Read(["tool", "fix", "printer"]).Kind)
             .ToHashSet();
 
         var missing = Enum.GetValues<CommandKind>().Where(kind => kind != CommandKind.None && !reached.Contains(kind)).ToArray();
@@ -95,7 +98,7 @@ public sealed class CommandLinePropertyTests
     }
 
     private static readonly string[] Verbs =
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "history", "license", "snapshot"];
+        ["list", "show", "stop", "start", "restart", "start-type", "kill", "history", "license", "snapshot", "tool"];
 
     private static readonly Gen<string> Cased = Gen.OneOfConst(Verbs).SelectMany(verb =>
         Gen.OneOfConst(verb, verb.ToUpperInvariant(), char.ToUpperInvariant(verb[0]) + verb[1..]));
@@ -104,7 +107,7 @@ public sealed class CommandLinePropertyTests
         (3, Gen.OneOfConst([.. Enum.GetValues<StartSetting>().Select(setting => StartTypeWords.Of(setting) ?? "none")])),
         (3, Gen.OneOfConst("5", "0", "-1", "600", "601", "99999999999", "1.5", "abc", "", " ", "\t")),
         (2, Gen.OneOfConst("status:running", "!!!", "name:\"x", "\"\"", "name:spool*", "pid:>4")),
-        (2, Gen.OneOfConst("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore")));
+        (2, Gen.OneOfConst("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore", "fix", "printer", "prnter")));
 
     private static readonly Gen<string> Switch = Gen.Frequency(
         (8, Gen.OneOfConst([.. OptionSurface.Surface.Select(entry => entry.Option)])),

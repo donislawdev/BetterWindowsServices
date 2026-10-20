@@ -84,7 +84,7 @@ internal static class ForcedStopFixture
 
         var offered = WpfHost.On(() => Sheeted(window).Failures.First(one => one.HasOffer));
 
-        Assert.True(await WpfHost.On(() => window.Force(offered)));
+        Assert.True(await WpfHost.On(() => window.OpenFresh(offered.Offer!)));
         WpfHost.Settled();
 
         return window;

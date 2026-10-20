@@ -215,6 +215,13 @@
     -->
     <Thickness x:Key="MarginTile">0,0,12,0</Thickness>
 
+    <!--
+        Between one card of the Tools tab and the next, BELOW as well as to the right - the overview's
+        cards stand in one row and these wrap into several, so the gap between rows is the same twelve
+        points as the gap between cards. Since 2026-10-20.
+    -->
+    <Thickness x:Key="MarginToolCard">0,0,12,12</Thickness>
+
     <!-- Between a card's number and its words, and above each block that follows the cards. -->
     <Thickness x:Key="MarginTileLabel">0,2,0,0</Thickness>
     <Thickness x:Key="MarginTileParts">0,14,0,0</Thickness>

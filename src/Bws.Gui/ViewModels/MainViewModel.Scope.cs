@@ -17,8 +17,11 @@ namespace Bws.Gui.ViewModels;
 /// </summary>
 public sealed partial class MainViewModel
 {
-    /// <summary>The positions of the scope switch, in the order they are shown.</summary>
-    public IReadOnlyList<ScopeChoice> ScopePositions { get; }
+    /// <summary>
+    /// The positions of the scope switch, in the order they are shown - held by the bar of tabs since
+    /// 2026-10-20 (<see cref="ViewModels.Tabs"/>), and read through here by everything that asked before.
+    /// </summary>
+    public IReadOnlyList<ScopeChoice> ScopePositions => Tabs.Positions;
 
     /// <summary>
     /// Which list the window is showing - <see cref="EntryScope"/>.

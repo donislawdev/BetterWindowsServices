@@ -29,8 +29,16 @@ internal static class Finding
     /// the row holding the box is collapsed: a popup hung off a collapsed target opens somewhere on the
     /// screen with nothing under it, and nothing would close it but Escape.
     /// </summary>
+    /// <remarks>
+    /// <b>ON THE TOOLS TAB, BACK TO THE LIST FIRST</b>, since 2026-10-20: the page has nothing to search yet,
+    /// and Ctrl+F is a person asking for the list's box. Leaving it shows the box, and the window gives it the
+    /// keyboard once it is laid out (GiveTheBoxTheKeyboard) - so the list under the box is not opened by this
+    /// press, because a popup hung off a row that has not been laid out yet opens somewhere with nothing under it.
+    /// </remarks>
     internal static void Begin(MainViewModel model, SearchRow list, ShowRow history, ShowRow comparison)
     {
+        var leftTheTools = model.Tabs.LeaveTheTools();
+
         if (model.MiddleChoices is { Offered: true })
         {
             var box = model.History.InTheMiddle ? history.Box : comparison.Box;
@@ -44,7 +52,7 @@ internal static class Finding
         list.Box.Focus();
         list.Box.SelectAll();
 
-        if (model.ListOnScreen)
+        if (model.ListOnScreen && !leftTheTools)
         {
             model.Suggesting.Arrived(list.Box.Text);
         }

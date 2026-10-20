@@ -1,5 +1,5 @@
 <meta name="title" content="Command line reference - every switch and exit code of bws">
-<meta name="description" content="Every command, switch and exit code of the bws command line: list, show, stop, start, restart, kill, start-type, snapshot and history, with where each flag works.">
+<meta name="description" content="Every command, switch and exit code of bws: list, show, stop, start, restart, kill, start-type, snapshot, history and tool, with where each flag works.">
 <meta name="nav" content="CLI reference">
 
 <!--
@@ -20,7 +20,7 @@
 <section class="band band-tight">
   <div class="wrap">
     <h2>The commands</h2>
-    <p>Nine verbs. <code>snapshot</code> is a noun and takes a word after it.</p>
+    <p>Ten verbs. <code>snapshot</code> is a noun and takes a word after it. <code>tool</code> is a noun too, and on its own it lists the tools.</p>
 <pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
@@ -30,6 +30,8 @@
 <span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
 <span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
 <span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span> [NAME] [--dry-run] [--timeout SECONDS] [--json] [--timing]
 <span class="k">bws license</span> [--components]
 <span class="k">bws --help</span>
 <span class="k">bws --version</span></code></pre>
@@ -67,6 +69,10 @@ There is no command lst. Did you mean list?</code></pre>
       <div>
         <h3><code>history</code> - who changed it, from the System log</h3>
         <p>Start type changes and installations out of the System log, newest first, with the account Windows recorded. The first line says how far back the log reaches and whether it was cleared, because a history is only as long as the log. With a name it is that service's start type changes - installations are listed without a name only, because Windows records an installation under the display name and never the service name. An account is named where this machine can name it on its own and shown as its SID otherwise, and start types come in the words Windows wrote.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - ready-made answers to common problems</h3>
+        <p>The same tools the window shows on its Tools tab. <code>bws tool</code> lists them and <code>bws tool fix</code> lists the quick fixes: <code>printer</code>, <code>sound</code>, <code>indexing</code> and <code>search</code>, each a restart of one Windows service together with what depends on it, chosen because Microsoft's own troubleshooting pages suggest it. <code>bws tool fix printer</code> is exactly <code>bws restart Spooler --dependents</code> - the same plan, the same output and the same exit codes - and like every command here that changes something it does not ask first, so <code>--dry-run</code> is the way to look before it runs.</p>
       </div>
       <div>
         <h3><code>license</code> - what is inside the file you downloaded</h3>
