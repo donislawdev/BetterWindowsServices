@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Security.Principal;
 using Windows.Win32;
 using Windows.Win32.Security;
@@ -71,18 +70,24 @@ public static class Session
     /// <summary>
     /// The elevation type of this process's token, or nothing when Windows would not say.
     /// </summary>
-    internal static TOKEN_ELEVATION_TYPE? ElevationType()
+    internal static unsafe TOKEN_ELEVATION_TYPE? ElevationType()
     {
         using var identity = WindowsIdentity.GetCurrent();
-        Span<byte> answer = stackalloc byte[sizeof(int)];
 
-        if (!PInvoke.GetTokenInformation(identity.AccessToken, TOKEN_INFORMATION_CLASS.TokenElevationType, answer, out var written)
-            || written != sizeof(int))
+        // Windows writes the answer straight into a local of the type it answers with. CsWin32
+        // 0.3.355 generated a span overload for this call, 0.3.360 generates only the pointer and
+        // the length, and a local on the stack does not move, so nothing needs pinning.
+        TOKEN_ELEVATION_TYPE answer;
+
+        if (!PInvoke.GetTokenInformation(
+                identity.AccessToken, TOKEN_INFORMATION_CLASS.TokenElevationType,
+                &answer, (uint)sizeof(TOKEN_ELEVATION_TYPE), out var written)
+            || written != sizeof(TOKEN_ELEVATION_TYPE))
         {
             return null;
         }
 
-        return (TOKEN_ELEVATION_TYPE)BinaryPrimitives.ReadInt32LittleEndian(answer);
+        return answer;
     }
 
     /// <summary>
