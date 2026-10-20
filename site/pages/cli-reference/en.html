@@ -20,7 +20,7 @@
 <section class="band band-tight">
   <div class="wrap">
     <h2>The commands</h2>
-    <p>Ten verbs. <code>snapshot</code> is a noun and takes a word after it. <code>tool</code> is a noun too, and on its own it lists the tools.</p>
+    <p>Eleven commands. <code>snapshot</code> is a noun and takes a word after it. <code>tool</code> is a noun too, and on its own it lists the tools.</p>
 <pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
@@ -85,6 +85,71 @@ There is no command lst. Did you mean list?</code></pre>
 
 <section class="band band-tight">
   <div class="wrap">
+    <h2>Examples</h2>
+    <p class="lede">The plans below were checked with <code>--dry-run</code> against the program this page describes. A command that changes something does not ask first, so <code>--dry-run</code> is the way to look before it runs. <code>Spooler</code> stands for any service - put the name of yours in its place.</p>
+    <div class="examples">
+    <h3>Find and read</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">every service and driver on this machine</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">what should be up and is not</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">what each running entry's process is using</span>
+<span class="k">bws show Spooler</span>                               <span class="c">everything known about one entry</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">the fields that are genuinely empty as well</span></code></pre>
+    <h3>Look first, then change</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">the plan, and nothing else</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">restart it together with what depends on it</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">allow two minutes per step without progress</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">start it a little after the other automatic entries</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">disable it and stop it in one plan</span></code></pre>
+    <h3>A service that will not stop</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">the process, and every service living in it</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">end the process only if a stop fails, then bring it all back</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">one step instead of two: the process ended at once</span></code></pre>
+    <h3>Snapshots and drift</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">freeze the machine, with a note kept inside</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">two files - two days, or two machines</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">the file against this machine as it is now</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">the same, ending with 5 when the configuration drifted</span></code></pre>
+    <h3>Who changed it</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">every start type change and installation the System log holds</span>
+<span class="k">bws history Spooler</span>  <span class="c">the start type changes of one service</span>
+<span class="k">bws history --json</span>   <span class="c">the same as a document, with log and changes</span></code></pre>
+    <h3>Quick fixes</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">the tools there are</span>
+<span class="k">bws tool fix</span>                  <span class="c">the quick fixes, and the service behind each one</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">the plan for restarting the two audio services</span>
+<span class="k">bws tool fix printer</span>          <span class="c">restart the Print Spooler with what depends on it</span></code></pre>
+    <h3>What is inside the file</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">every component, its version, its licence and where it came from</span>
+<span class="k">bws --version</span>             <span class="c">the version of this executable</span></code></pre>
+    <h3>In a PowerShell script</h3>
+<pre class="wrap-lines"><code><span class="c"># the entries that should be up and are not, as objects</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># the unsigned files, into a spreadsheet</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># what one service needs</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># a nightly check that branches on the exit code</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>In cmd and a batch file</h3>
+<pre class="wrap-lines"><code><span class="c">rem a second command only when the first did not end cleanly</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem in a batch file with delayed expansion turned on, the ! needs a caret</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
     <h2>Switches</h2>
     <p>{{switch_count}} of them. The third column is the verbs each one belongs to - a switch passed to a verb that has no use for it is an error with that list in it, rather than a flag quietly ignored.</p>
     {{table:switches}}
@@ -121,7 +186,7 @@ There is no command lst. Did you mean list?</code></pre>
 
 <section class="band band-tight">
   <div class="wrap">
-    <h2>The window's one argument</h2>
-    <p><code>BetterWindowsServices.exe</code> knows one: <code>--catalogue</code> opens a developer's sheet showing every component of the window in every state, and reads nothing from your machine.</p>
+    <h2>The window's argument</h2>
+    <p><code>BetterWindowsServices.exe</code> takes one argument meant for a person: <code>--catalogue</code> opens a developer's sheet showing every component of the window in every state, and reads nothing from your machine. A second one, <code>--carry</code>, is how a window hands what it was showing to the copy of itself it restarts as administrator. Nobody types it, and anything in it that window could not have written is refused.</p>
   </div>
 </section>

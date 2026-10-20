@@ -18,7 +18,7 @@
 
 <section class="band band-tight">
   <div class="wrap">
-    <h2>Five that answer a real question</h2>
+    <h2>Six that answer a real question</h2>
     <div class="grid">
       <div class="card"><h3>What should be up and is not</h3><p><code>start:auto !status:running</code></p><p>The first query most people write, and the one <code>services.msc</code> cannot answer at all.</p></div>
       <div class="card"><h3>Services whose file is gone</h3><p><code>file:missing</code></p><p>An entry pointing at a binary that is not on disk. Usually an uninstall that left the registration behind.</p></div>
@@ -59,6 +59,94 @@
     <h3>Three words every field accepts</h3>
     {{list:reserved-words}}
     <p class="note"><strong>A mistyped value is an error, never an empty result.</strong> <code>status:runing</code> answers <em>Did you mean running?</em> and ends with code <code>2</code>. An empty list would look like an answer, and the difference between "nothing matches" and "you typed it wrong" is the difference between a machine that is clean and an audit that proved nothing. A query that would narrow nothing is refused on the command line too, so a script does not operate on the whole machine because of a typo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>More examples</h2>
+    <p class="lede">Each one works the same in the search box of the window and after <code>bws list --query</code>, and each was run on a real Windows before it was written here. What it finds depends on the machine - and for a question about trouble, an empty answer is the one you want.</p>
+    <div class="examples">
+    <h3>State and start type</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Stuck on stopping or starting - the wait the snap-in shows and never ends.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Set to start automatically, stopped, and not waiting for a trigger - the short list worth reading after a restart.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatic, started a little after the other automatic entries.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Running although nothing starts it at boot - something asked for it, a trigger started it, or somebody did.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Accounts</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Running as LocalSystem, the strongest account, from a file Microsoft did not sign. A query about the publisher reads signatures by itself, so it takes a few seconds.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Services running under any other account - a virtual one, a managed one or a person's own.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>A virtual account of the service's own. The quotes keep the words together, because of the space.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Files and signatures</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>No signature, a chain Windows does not trust, or a file changed after it was signed.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Signed, trusted, and not by Microsoft - the software other companies put on this machine.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Drivers loaded while Windows starts whose signature Windows does not trust. On a healthy machine, none.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>A service with a process of its own whose file lives outside the Windows folder.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Launched from inside somebody's profile, the last place a service is expected.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>A backslash in front of a space makes the space part of the word, so a path ending in a backslash is written with two when another term follows it. At the end of the query one is enough.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Triggers and dependencies</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Waiting for a device to arrive, so stopped for a reason.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Started when a request arrives at a network endpoint - a port, a named pipe or an RPC interface.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Entries a trigger can stop, not only start.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Entries that need WMI to run.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Everything the Print Spooler needs to run, and what those need in turn.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privileges and processes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Asks to act as part of the operating system.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Can act on a client's behalf while running under an account other than LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Carries a service SID of its own in its process, so permissions can name it alone. sidtype:restricted asks for the ones whose process is write-restricted as well.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Running inside a shared svchost, together with others.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>A process using more than 200 MB. Memory is read by itself when a query asks about it.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>In a process whose id is between 1000 and 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Names and text</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>What it finds</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>A bare word, searched in the name, the display name, the account and the launch path.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Exactly this name, and nothing that merely contains it.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Names that start with win, written with a wildcard.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Names that end in svc, written as a regular expression.</td></tr>
+          <tr><td><code>description:none</code></td><td>No description at all, which is most drivers.</td></tr>
+          <tr><td><code>description:?</code></td><td>A description Windows could not hand over, usually because it points at a language file that is not there.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>The per-user templates Windows copies for each signed-in session.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
   </div>
 </section>
 

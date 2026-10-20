@@ -28,9 +28,9 @@ internal static class CriticalEntries
     /// <b>A STARTER LIST AND IT SAYS SO, because a list that pretends to be complete is worse than
     /// one that admits it is not.</b> These are the entries whose stopping stops a Windows machine
     /// rather than inconveniencing it: the two halves of RPC, which nearly everything else calls
-    /// into, the account manager and key isolation, which live in the process Windows treats as
-    /// critical, the session manager, and plug and play. There will be others on somebody else's
-    /// machine.
+    /// into, and the DCOM launcher beside them, the account manager and key isolation, which live
+    /// in the process Windows treats as critical, the session manager, and plug and play. There
+    /// will be others on somebody else's machine.
     ///
     /// <b>Compared without case, like every service name in this project</b> - `ADR-14`.
     /// </summary>

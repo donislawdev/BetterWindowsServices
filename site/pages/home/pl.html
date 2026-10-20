@@ -60,7 +60,7 @@
         <li><strong>„Zatrzymywanie..." bez końca</strong>, bez wyjścia innego niż Menedżer zadań i zgadywanie procesu.</li>
         <li><strong>Brak historii.</strong> Nikt nie wie, kto ustawił ten typ uruchomienia na Wyłączony ani kiedy.</li>
         <li><strong>Ukryte dane.</strong> Proces, wyzwalacze, przywileje, deskryptor bezpieczeństwa, podpis pliku - po wszystko trzeba iść do <code>sc.exe</code> z pamięci albo do rejestru.</li>
-        <li><strong>Brak równorzędnego wiersza poleceń.</strong> <code>sc.exe</code> ma składnię z lat dziewięćdziesiątych, a <code>Get-Service</code> nie pokazuje konta, na którym działa usługa, nie mówiąc o opisie.</li>
+        <li><strong>Brak równorzędnego wiersza poleceń.</strong> <code>sc.exe</code> ma składnię z lat dziewięćdziesiątych, a <code>Get-Service</code> dostarczany z Windowsem, w Windows PowerShell 5.1, nie pokazuje konta, na którym działa usługa, nie mówiąc o opisie. PowerShell 7 pokazuje jedno i drugie, ale instaluje się go osobno.</li>
       </ul>
       <div class="card card-quiet">
         <h3>Inne narzędzia naprawiają po kawałku</h3>
@@ -79,7 +79,8 @@
     <div class="grid">
       <div class="card"><h3>Pytaj, zamiast przewijać</h3><p><code>start:auto !status:running</code> to <em>co powinno chodzić i nie chodzi</em>. Jeden język, w polu wyszukiwania i w <code>bws list --query</code>, z polami podpowiadanymi w trakcie pisania.</p></div>
       <div class="card"><h3>Plan, zanim cokolwiek się stanie</h3><p>Każde zatrzymanie, uruchomienie, restart i zmiana typu uruchomienia ma podgląd razem z usługami, które pociągnie za sobą - a podgląd jest tym, co się wykona.</p></div>
-      <div class="card"><h3>Powie, co się rozjechało</h3><p><code>bws snapshot create</code> zamraża maszynę w pliku, a <code>bws snapshot diff</code> mówi, co się od tego czasu zmieniło - konfiguracja osobno od tego, co się po prostu uruchomiło albo zatrzymało.</p></div>
+      <div class="card"><h3>Powie, co się rozjechało i kto to zmienił</h3><p><code>bws snapshot create</code> zamraża maszynę w pliku, a <code>bws snapshot diff</code> mówi, co się od tego czasu zmieniło - konfiguracja osobno od tego, co się po prostu uruchomiło albo zatrzymało. <code>bws history</code> mówi z dziennika System, kto zmienił typ uruchomienia i kto zainstalował usługę. Okno robi wszystkie trzy rzeczy pod <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Naprawi typowy problem jednym kliknięciem</h3><p>Zakładka <em>Tools</em> i <code>bws tool fix</code> restartują usługę stojącą za drukarką, która nie drukuje, dźwiękiem, który zniknął, albo wyszukiwaniem, które stanęło - razem z tym, co od niej zależy, przez ten sam plan co wszystko inne.</p></div>
       <div class="card"><h3>Zatrzyma usługę, która nie chce się zatrzymać</h3><p>Najpierw prosi uprzejmie, a proces kończy dopiero wtedy, gdy to nie zadziała - wymieniając po nazwie każdą inną usługę, która w nim mieszka.</p></div>
       <div class="card"><h3>Pokaże to, co <code>services.msc</code> ukrywa</h3><p>Kto podpisał plik i czy Windows temu ufa, wyzwalacze, przywileje, deskryptor bezpieczeństwa, proces i jego pamięć. Jako kolumny i jako rzeczy, po których można szukać.</p></div>
       <div class="card"><h3>Powie, czego nie zdołał odczytać</h3><p>Pole, którego nie dało się odczytać, jest zgłoszone jako nieodczytane, nigdy jako puste. Snapshot zrobiony bez praw administratora mówi to w środku pliku.</p></div>
@@ -153,23 +154,10 @@ Plan: stop Winmgmt  (2 steps)
 <span class="k">bws kill Spooler --dry-run</span>                        <span class="c">co zabrałoby zakończenie procesu</span>
 <span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">co da zdjęcie z automatu</span>
 <span class="k">bws snapshot create before.json</span>                   <span class="c">zamroź maszynę przed zmianą</span>
-<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co się zmieniło, 5 jeśli konfiguracja</span></code></pre>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co się zmieniło, 5 jeśli konfiguracja</span>
+<span class="k">bws history Spooler</span>                               <span class="c">kto i kiedy zmienił typ uruchomienia</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">co zrobiłaby szybka naprawa zablokowanej drukarki</span></code></pre>
     <a class="more" href="/pl/dokumentacja-cli/">Każda komenda, przełącznik i kod wyjścia</a>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <span class="eyebrow">Uczciwe ograniczenia</span>
-    <h2>Czego jeszcze nie ma</h2>
-    <p class="lede">Narzędzie, które po cichu czegoś nie obsługuje, jest gorsze od takiego, które mówi, czego nie potrafi. To wczesne wydanie - obie połowy robią wszystko, co jest na tej stronie, a zestaw testów biegnie przy każdym commicie. Druga połowa historii o audycie dopiero powstaje.</p>
-    <div class="grid grid-quarters">
-      <div class="card"><h3>Snapshoty tylko w wierszu poleceń</h3><p>Okno pokazuje, szuka i zmienia, a snapshotów nie robi ani nie porównuje. Do tego jest <code>bws snapshot</code> obok.</p></div>
-      <div class="card"><h3>Brak wzorca czystego Windowsa</h3><p>Ekran startowy ma miejsce na <em>ile z nich nie pochodzi z czystej instalacji</em> i mówi, że tego jeszcze nie liczy, zamiast pokazywać liczbę, za którą nie może ręczyć.</p></div>
-      <div class="card"><h3>Cienki dziennik zmian, bez przywracania</h3><p>Kto zmienił typ uruchomienia albo zainstalował usługę - to przychodzi z dziennika System, w oknie i w wierszu poleceń, i tylko tak daleko wstecz, jak sięga ten dziennik. Różnica mówi, co się rozjechało, a przywrócenie robi się ręcznie albo skryptem z komend, które ta różnica pokazuje.</p></div>
-      <div class="card"><h3>Tylko maszyna lokalna</h3><p>Zarządzania zdalnego w tej wersji nie ma. Żeby porównać dwie maszyny, zrób snapshot na każdej i porównaj pliki. Tylko Windows, tylko 64 bity.</p></div>
-    </div>
-    <a class="more" href="/pl/faq/">Reszta ograniczeń i pytania, które ludzie zadają</a>
   </div>
 </section>
 

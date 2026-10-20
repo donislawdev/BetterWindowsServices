@@ -21,7 +21,7 @@
       </div>
       <div class="card card-quiet">
         <h3><code>Get-Service</code> i polecenia <code>*-Service</code></h3>
-        <p>Porządne obiekty, potok i płytki widok. <code>Get-Service</code> nie pokazuje konta, na którym działa usługa, i nie pokazuje jej opisu. Typ uruchomienia pojawił się dopiero w PowerShellu 6.</p>
+        <p>Porządne obiekty, potok i płytki widok. W Windows PowerShell 5.1, tym dostarczanym z Windowsem, <code>Get-Service</code> nie pokazuje konta, na którym działa usługa, ani jej opisu. PowerShell 7 pokazuje jedno i drugie, a do tego ścieżkę uruchomienia, ale instaluje się go osobno.</p>
         <p><code>Stop-Service -Force</code> znaczy „nawet jeśli coś od tego zależy" - zatrzymuje zależne i mówi o tym po fakcie, a nie przed.</p>
       </div>
     </div>
@@ -56,6 +56,11 @@
             <td><code>bws snapshot diff before.json --live</code></td>
           </tr>
           <tr>
+            <td>Kto i kiedy zmienił typ uruchomienia</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, a potem czytanie treści każdego zdarzenia</td>
+            <td><code>bws history Spooler</code>, którego pierwsza linia mówi, jak daleko wstecz sięga dziennik</td>
+          </tr>
+          <tr>
             <td>Wyjście czytelne dla maszyny</td>
             <td>Obiekty z PowerShella, tekst z <code>sc.exe</code></td>
             <td><code>--json</code> przy każdej komendzie, na wyjściu standardowym, a ostrzeżenia na wyjściu błędów</td>
@@ -72,7 +77,7 @@
     <h2>Kiedy zostać przy tym, co masz</h2>
     <ul class="points">
       <li><strong>Jesteś na maszynie, której dotkniesz raz.</strong> Oba są już tam i nic nie musi przechodzić przez politykę.</li>
-      <li><strong>Musisz zmienić konto, ścieżkę uruchomienia albo akcje odzyskiwania.</strong> <code>sc.exe</code> robi wszystkie trzy. Ten program je czyta i pokazuje, a nie zmienia.</li>
+      <li><strong>Musisz zmienić konto, ścieżkę uruchomienia albo akcje odzyskiwania.</strong> <code>sc.exe</code> robi wszystkie trzy. Ten program pokazuje konto i ścieżkę uruchomienia, a nie zmienia żadnego z nich, a akcje odzyskiwania czyta tylko po to, żeby ostrzec, zanim zakończy proces.</li>
       <li><strong>Musisz utworzyć albo usunąć usługę.</strong> <code>sc create</code> i <code>sc delete</code>. Tutaj tego nie ma, świadomie.</li>
       <li><strong>Jesteś już w środku potoku PowerShella.</strong> <code>bws list --json</code> wraca jako obiekty przez <code>ConvertFrom-Json</code>, więc dołącza do potoku, zamiast go zastępować.</li>
     </ul>

@@ -74,7 +74,7 @@
         <li><strong>"Stopping..." forever</strong>, with no way out except Task Manager and guessing the process.</li>
         <li><strong>No history.</strong> Nobody knows who set that start type to Disabled, or when.</li>
         <li><strong>Hidden data.</strong> The process, the triggers, the privileges, the security descriptor, who signed the binary - all of it needs <code>sc.exe</code> from memory, or the registry.</li>
-        <li><strong>No command line parity.</strong> <code>sc.exe</code> has a syntax from the nineties, and <code>Get-Service</code> does not show the account a service runs as, let alone its description.</li>
+        <li><strong>No command line parity.</strong> <code>sc.exe</code> has a syntax from the nineties, and the <code>Get-Service</code> that comes with Windows, in Windows PowerShell 5.1, does not show the account a service runs as, let alone its description. PowerShell 7 shows both, and it is installed separately.</li>
       </ul>
       <div class="card card-quiet">
         <h3>The other tools each fix part of it</h3>
@@ -93,7 +93,8 @@
     <div class="grid">
       <div class="card"><h3>Ask, instead of scroll</h3><p><code>start:auto !status:running</code> is <em>what should be up and is not</em>. One language, in the search box and in <code>bws list --query</code>, with the fields offered as you type.</p></div>
       <div class="card"><h3>Show the plan before anything happens</h3><p>Every stop, start, restart and start type change is previewed with the services it takes down with it, and the preview is what runs.</p></div>
-      <div class="card"><h3>Tell you what drifted</h3><p><code>bws snapshot create</code> freezes the machine into a file, and <code>bws snapshot diff</code> says what changed since, configuration apart from what merely started or stopped.</p></div>
+      <div class="card"><h3>Tell you what drifted, and who changed it</h3><p><code>bws snapshot create</code> freezes the machine into a file, and <code>bws snapshot diff</code> says what changed since, configuration apart from what merely started or stopped. <code>bws history</code> says who changed a start type and who installed a service, out of the System log. The window does all three under <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Fix a common problem in one press</h3><p>The <em>Tools</em> tab and <code>bws tool fix</code> restart the service behind a printer that does not print, sound that is gone or a search that is stuck, together with what depends on it, through the same plan as everything else.</p></div>
       <div class="card"><h3>Stop a service that will not stop</h3><p>It asks politely first and ends the process only if that fails, naming every other service that lives in it.</p></div>
       <div class="card"><h3>Show what <code>services.msc</code> hides</h3><p>Who signed the binary and whether Windows trusts it, triggers, privileges, the security descriptor, the process and its memory. As columns, and as things to search on.</p></div>
       <div class="card"><h3>Say when it could not read something</h3><p>A field it could not read is reported as not read, never shown as empty. A snapshot taken without administrator rights says so inside the file.</p></div>
@@ -167,23 +168,10 @@ Plan: stop Winmgmt  (2 steps)
 <span class="k">bws kill Spooler --dry-run</span>                        <span class="c">what ending its process would take with it</span>
 <span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">what taking it off automatic would do</span>
 <span class="k">bws snapshot create before.json</span>                   <span class="c">freeze the machine before a change</span>
-<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">what has changed since, 5 if the setup has</span></code></pre>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">what has changed since, 5 if the setup has</span>
+<span class="k">bws history Spooler</span>                               <span class="c">who changed its start type, and when</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">what the quick fix for a stuck printer would do</span></code></pre>
     <a class="more" href="/cli-reference/">Every command, switch and exit code</a>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <span class="eyebrow">Honest limits</span>
-    <h2>What is not there yet</h2>
-    <p class="lede">A tool that quietly fails to cover something is worse than one that says what it cannot do. This is an early release - both halves do everything on this page, and an automated suite runs on every commit. The second half of the audit story is still to come.</p>
-    <div class="grid grid-quarters">
-      <div class="card"><h3>Snapshots are on the command line only</h3><p>The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</p></div>
-      <div class="card"><h3>No stock Windows baseline</h3><p>The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</p></div>
-      <div class="card"><h3>A thin change history, no restore</h3><p>Who changed a start type or installed a service comes from the System log, in the window and on the command line, and only as far back as that log reaches. A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</p></div>
-      <div class="card"><h3>Local machine only</h3><p>Remote management is not in this version. To compare two machines, take a snapshot on each and diff the two files. Windows only, 64-bit only.</p></div>
-    </div>
-    <a class="more" href="/faq/">The rest of the limits, and the questions people ask</a>
   </div>
 </section>
 

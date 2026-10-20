@@ -34,8 +34,13 @@ next administrator finds out it exists.
   language, in the search box and in `bws list --query`, with the fields offered as you type.
 - **Show the plan before anything happens** - every stop, start, restart and start type change is
   previewed with the services it takes down with it, and the preview is what runs.
-- **Tell you what drifted** - `bws snapshot create` freezes the machine into a file, and
-  `bws snapshot diff` says what changed since, configuration apart from what merely started or stopped.
+- **Tell you what drifted, and who changed it** - `bws snapshot create` freezes the machine into a
+  file, and `bws snapshot diff` says what changed since, configuration apart from what merely started
+  or stopped. `bws history` says who changed a start type and who installed a service, out of the
+  System log. The window does all three under *Audit...*.
+- **Fix a common problem in one press** - the *Tools* tab and `bws tool fix` restart the service
+  behind a printer that does not print, sound that is gone or a search that is stuck, together with
+  what depends on it, through the same plan as everything else.
 - **Stop a service that will not stop** - it asks politely first and ends the process only if that
   fails, naming every other service that lives in it.
 - **Show what `services.msc` hides** - who signed the binary and whether Windows trusts it, triggers,
@@ -148,7 +153,7 @@ report it.
 **In the window:** start `BetterWindowsServices.exe`. It opens on a few numbers about this
 machine - what is running, what should have started and did not, what points at a file that is
 gone. Click one and its question lands in the search box as a query you can edit. Right-click a
-row, choose *What stopping would do*, and the plan appears: the steps, what comes down with them,
+row, choose *Stop...*, and the plan appears: the steps, what comes down with them,
 a warning if one of them is something the machine needs, and the `bws` line that asks for the same
 thing. The button under it is named after what it will do - *Stop Winmgmt* - and runs exactly that
 plan, and afterwards the panel says what did not work and how to get back.
@@ -169,6 +174,8 @@ bws kill Spooler --dry-run                        what ending its process would 
 bws start-type Spooler manual --dry-run           what taking it off automatic would do
 bws snapshot create before.json                   freeze the machine before a change
 bws snapshot diff before.json --live --exit-code  what has changed since, 5 if the setup has
+bws history Spooler                               who changed its start type, and when
+bws tool fix printer --dry-run                    what the quick fix for a stuck printer would do
 ```
 
 A preview is the plan, printed:
@@ -193,6 +200,7 @@ branch on - the full list is in the [reference](#reference) below.
 
 - [Why this exists](#why-this-exists)
 - [What changed since yesterday - snapshots and drift](#what-changed-since-yesterday---snapshots-and-drift)
+- [Tools - ready-made answers to common problems](#tools---ready-made-answers-to-common-problems)
 - [Nothing happens without a plan](#nothing-happens-without-a-plan)
 - [Ask the machine a question - the query language](#ask-the-machine-a-question---the-query-language)
 - [Honest limits](#honest-limits)
@@ -223,8 +231,9 @@ hours a week in it hitting the same walls:
 - **Hidden data.** The process, the triggers, the privileges, the security descriptor, who signed
   the binary - all of it needs `sc.exe` from memory, or the registry.
 - **No command line parity.** `sc.exe` has a syntax from the nineties (`sc config X start= auto`,
-  and the space after the equals sign is mandatory), and `Get-Service` does not show the account
-  a service runs as, let alone its description.
+  and the space after the equals sign is mandatory), and the `Get-Service` that comes with Windows,
+  in Windows PowerShell 5.1, does not show the account a service runs as, let alone its
+  description. PowerShell 7 shows both, and it is installed separately.
 
 The other tools each fix part of it. Process Hacker and System Informer show a rich list and can
 force a kill, and have no audit and no command line. `sc.exe` and `PsService` can do everything and
@@ -282,6 +291,12 @@ production* - take one on each and diff them anywhere.
 A snapshot describes the whole machine, down to every launch path and security descriptor, so file
 it accordingly. It is written with whatever permissions its directory already has, and the tool
 narrows nothing.
+
+In the window, *Audit...* does the same. *Take snapshot...* writes the same file, with a note if you
+type one, and *Compare with this machine...* or *Compare two snapshots...* shows what changed in
+place of the list, one row per field, with everything that makes the comparison less than exact
+said above the table. *Show* narrows it to the differences or to one field, and *Export...* writes
+it to a CSV file.
 
 ### And who changed it
 
@@ -597,7 +612,7 @@ bws --version
 | `--signatures` | read who signed each binary and whether Windows trusts it. Several seconds over a whole machine, so it is off unless asked, and a query about signatures turns it on by itself |
 | `--memory` | read what each running entry's process is using. Off by default because it is a measurement, not a setting |
 | `--required-by` | read which entries break if one is stopped, asked of Windows directly. A call per entry, so off unless asked. `show` and `snapshot create` always read it |
-| `--follow-network` | let the tool look at a launch path on another machine. Off by default for safety: one unreachable share costs twenty one seconds and the connection authenticates as you |
+| `--follow-network` | let the tool reach off this machine: a launch path on another machine's share, and a certificate this machine does not already hold. Off by default for safety: one unreachable share costs twenty one seconds and the connection authenticates as you, and fetching a certificate is a connection to a third party |
 | `--json` | the same document, machine readable, on standard output |
 | `--timing` | how long each part of the read took, on standard error |
 | `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, replace a snapshot that is already there - a file that is not a snapshot is never replaced |
@@ -649,34 +664,38 @@ session will last.
 
 ## The window
 
-`BetterWindowsServices.exe`, one argument it knows: `--catalogue` opens a developer's sheet that
-shows every component of the window in every state, and reads nothing from your machine.
+`BetterWindowsServices.exe` takes one argument meant for a person: `--catalogue` opens a
+developer's sheet that shows every component of the window in every state, and reads nothing from
+your machine. A second one, `--carry`, is how a window hands what it was showing to the copy of
+itself it restarts as administrator. Nobody types it, and anything in it that window could not have
+written is refused.
 
-Three lists on the switch above the search box - *Services*, *Drivers*, *All* - each saying
-how big it is, and *Tools* after them, a page of ready-made fixes that each open a plan. The row
-stays on every page, so a list's tab is also the way back to it from the overview or a comparison. The search box takes the query language and suggests as you type - Tab or Enter
-writes the highlighted word. The filter
-buttons write into the box. *Columns* chooses what the list shows, a right-click on a column heading
-narrows the list to that value or puts the column away, and the layout you leave is the layout it
-opens in - unless the file holding it is one the window cannot use, from a newer version or held
-by another program, which it then says, leaves alone and saves nothing over. A row's menu previews
-every operation before offering it, and copies the name or
-everything about the entry, display name and description included. *Export...* writes the rows on screen, in the columns
-you have on and the order you sorted them into, to a CSV file separated the way your Windows region
-settings separate lists, so a double click opens it in columns. *Audit...* beside it takes a
-snapshot of the machine to a file, the same file `bws snapshot create` writes, with a note kept
-inside it if you type one, and compares one with the machine as it is now, or two with each other,
-showing what changed in place of the list, one row per field. *Show* above that table narrows it -
-to the differences alone, say, or to one field - the search box beside it keeps the rows with every
-word you type, and *Export...* there writes the comparison to a CSV file, what the window says above
-the table first. *Change history* under the same button shows who changed a startup type or
-installed a service, from the System log, with the same search and its own *Export...*. Ctrl+F
-under either puts the cursor in its search. Ctrl+C
-over the list copies everything about the chosen entry. Escape backs out of the innermost thing
-first. *GitHub* and *Donate*, at the
-right end of the row above the search box, open the project's repository and its support page in
-your browser - and in a window running as administrator they ask the desktop to open it, so the
-browser does not get those rights.
+The row across the top holds the three lists - *Services*, *Drivers*, *All*, each saying how big it
+is - then *Tools*, a page of ready-made fixes that each open a plan, and *GitHub*, *Donate* and
+*Help* at its right end. The row stays on every page, so a list's tab is also the way back to it
+from the overview or a comparison. *GitHub* and *Donate* open the project's repository and its
+support page in your browser - and in a window running as administrator they ask the desktop to
+open it, so the browser does not get those rights.
+
+The search box takes the query language and suggests as you type - Tab or Enter writes the
+highlighted word - and the filter buttons write into the box. *Columns* chooses what the list
+shows, a right-click on a column heading narrows the list to that value or puts the column away,
+and the layout you leave is the layout it opens in - unless the file holding it is one the window
+cannot use, from a newer version or held by another program, which it then says, leaves alone and
+saves nothing over. A row's menu previews every operation before offering it, and copies the name
+or everything about the entry, display name and description included. Ctrl+C over the list copies
+everything about the chosen entry, and Escape backs out of the innermost thing first.
+
+*Export...* writes the rows on screen, in the columns you have on and the order you sorted them
+into, to a CSV file separated the way your Windows region settings separate lists, so a double
+click opens it in columns. *Audit...* beside it takes a snapshot of the machine to a file, the same
+file `bws snapshot create` writes, with a note kept inside it if you type one, and compares one with
+the machine as it is now, or two with each other, showing what changed in place of the list, one
+row per field. *Show* above that table narrows it - to the differences alone, say, or to one field -
+the search box beside it keeps the rows with every word you type, and *Export...* there writes the
+comparison to a CSV file, what the window says above the table first. *Change history* under the
+same button shows who changed a startup type or installed a service, from the System log, with the
+same search and its own *Export...*. Ctrl+F under either puts the cursor in its search.
 
 ![The Better Windows Services window with the three lists above the search box - Services 335, Drivers 465, All 800 - an empty search box, the filter buttons open in rows for state, startup type, signature, disagreements and triggers, the row of operation buttons, the list with display name, description, status, startup type, account, memory and what each entry depends on, and a line under it saying that 23 per-user instances are folded under the templates they came from.](site/assets/window-list.png)
 
@@ -695,10 +714,11 @@ test suite runs both and compares them entry by entry.
 ### Does it need the internet?
 
 Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The
-one time it can touch a network at all is when a service's launch path points at another
-machine's share and you pass `--follow-network` to let it look there - off by default, and the
-help says why. The *GitHub* and *Donate* buttons in the window and the page in its *Help* menu each
-hand one fixed address to your browser when you press them, and your browser is what connects.
+one time it can touch a network at all is when you pass `--follow-network`: then it may look at a
+launch path on another machine's share, and let Windows fetch a certificate this machine does not
+already hold - off by default, and the help says why. The *GitHub* and *Donate* buttons in the
+window and the page in its *Help* menu each hand one fixed address to your browser when you press
+them, and your browser is what connects.
 
 ### Does it need administrator rights?
 
@@ -715,8 +735,9 @@ Yes to both. GPL-3.0, no strings attached. A snapshot you take is your file.
 Not by itself. Nothing is changed without a plan you have seen, drivers are refused, and a plan
 that would take down something the machine needs says so. What it cannot protect you from is
 carrying out a plan you did not read. The list of services the machine needs is a starter list of
-seven - the two halves of RPC, the account manager, key isolation, the session manager and plug and
-play - and Remote Desktop is not on it, so over a remote session, read the plan.
+seven - the two halves of RPC and the DCOM launcher, the account manager, key isolation, the session
+manager and plug and play - and Remote Desktop is not on it, so over a remote session, read the
+plan.
 
 ### Is this a Microsoft product?
 
@@ -737,11 +758,11 @@ checkbox per item, are the plan. A snapshot at deployment and a diff against the
 
 **Working end to end:** the window and the command line over the same engine, the query language,
 plans with preview, cascade, refusal and the way back, stop, start, restart, force stop, force
-restart and start type, snapshots and diffs between files and against the live machine - in the
-window too, against the live machine - who changed a start type or installed a service, from the
-System log, in the window and on the command line, signatures,
-privileges, security descriptors, triggers, memory, per-user folding, keyboard and screen reader in
-the window, CSV export, JSON and exit codes on the command line.
+restart and start type, snapshots and diffs between two files and against the live machine, in the
+window and on the command line, who changed a start type or installed a service, from the System
+log, in both, the quick fixes of the *Tools* tab and `bws tool`, signatures, privileges, security
+descriptors, triggers, memory, per-user folding, keyboard and screen reader in the window, CSV
+export of the list, a comparison and the change history, JSON and exit codes on the command line.
 
 **Not there yet:** everything under [Honest limits](#honest-limits), above all the stock baseline
 and restore from a snapshot.

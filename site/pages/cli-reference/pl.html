@@ -13,7 +13,7 @@
 <section class="band band-tight">
   <div class="wrap">
     <h2>Komendy</h2>
-    <p>Dziesięć czasowników. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie. <code>tool</code> też jest rzeczownikiem, a sam wypisuje listę narzędzi.</p>
+    <p>Jedenaście komend. <code>snapshot</code> jest rzeczownikiem i wymaga słowa po sobie. <code>tool</code> też jest rzeczownikiem, a sam wypisuje listę narzędzi.</p>
 <pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 <span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
 <span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
@@ -78,6 +78,71 @@ There is no command lst. Did you mean list?</code></pre>
 
 <section class="band band-tight">
   <div class="wrap">
+    <h2>Przykłady</h2>
+    <p class="lede">Plany niżej sprawdzono z <code>--dry-run</code> na programie, który opisuje ta strona. Komenda, która coś zmienia, nie pyta wcześniej, więc <code>--dry-run</code> jest sposobem, żeby zajrzeć, zanim się wykona. <code>Spooler</code> stoi tu za dowolną usługę - wstaw w to miejsce nazwę swojej.</p>
+    <div class="examples">
+    <h3>Szukanie i czytanie</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">każda usługa i sterownik na tej maszynie</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">co powinno chodzić i nie chodzi</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">ile używa proces każdego działającego wpisu</span>
+<span class="k">bws show Spooler</span>                               <span class="c">wszystko, co wiadomo o jednym wpisie</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">także pola, które są naprawdę puste</span></code></pre>
+    <h3>Najpierw podgląd, potem zmiana</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">sam plan i nic więcej</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">restart razem z tym, co od niej zależy</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">dwie minuty na krok bez postępu</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">start chwilę po innych wpisach automatycznych</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">wyłączenie i zatrzymanie w jednym planie</span></code></pre>
+    <h3>Usługa, która nie chce się zatrzymać</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">proces i każda usługa, która w nim mieszka</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">proces kończony tylko wtedy, gdy zatrzymanie zawiedzie, potem powrót wszystkiego</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">jeden krok zamiast dwóch: proces kończony od razu</span></code></pre>
+    <h3>Snapshoty i dryf</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">zamrożenie maszyny, z notatką zapisaną w środku</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">dwa pliki - dwa dni albo dwie maszyny</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">plik wobec tej maszyny w tej chwili</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">to samo, z kodem 5, gdy konfiguracja się rozjechała</span></code></pre>
+    <h3>Kto to zmienił</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">każda zmiana typu uruchomienia i instalacja z dziennika System</span>
+<span class="k">bws history Spooler</span>  <span class="c">zmiany typu uruchomienia jednej usługi</span>
+<span class="k">bws history --json</span>   <span class="c">to samo jako dokument, z log i changes</span></code></pre>
+    <h3>Szybkie naprawy</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">jakie są narzędzia</span>
+<span class="k">bws tool fix</span>                  <span class="c">szybkie naprawy i usługa stojąca za każdą</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">plan restartu dwóch usług dźwięku</span>
+<span class="k">bws tool fix printer</span>          <span class="c">restart bufora wydruku razem z tym, co od niego zależy</span></code></pre>
+    <h3>Co jest w pliku</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">każdy składnik z wersją, licencją i źródłem</span>
+<span class="k">bws --version</span>             <span class="c">wersja tego pliku wykonywalnego</span></code></pre>
+    <h3>W skrypcie PowerShella</h3>
+<pre class="wrap-lines"><code><span class="c"># wpisy, które powinny chodzić i nie chodzą, jako obiekty</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># niepodpisane pliki do arkusza</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># czego potrzebuje jedna usługa</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># nocne sprawdzenie, które rozgałęzia się po kodzie wyjścia</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'brak dryfu konfiguracji' }</span>
+<span class="k">  5 { 'konfiguracja się rozjechała' }</span>
+<span class="k">  default { "brak czystej odpowiedzi, kod wyjścia $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>W cmd i pliku wsadowym</h3>
+<pre class="wrap-lines"><code><span class="c">rem druga komenda tylko wtedy, gdy pierwsza nie skończyła się czysto</span>
+<span class="k">bws restart Spooler || echo restart nie skonczyl sie czysto</span>
+
+<span class="c">rem w pliku wsadowym z włączonym opóźnionym rozwijaniem ! potrzebuje daszka</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
     <h2>Przełączniki</h2>
     <p>Jest ich {{switch_count}}. Trzecia kolumna to czasowniki, do których każdy należy - przełącznik podany czasownikowi, który nie ma z niego pożytku, jest błędem z tą listą w treści, a nie flagą po cichu zignorowaną.</p>
     {{table:switches}}
@@ -114,7 +179,7 @@ There is no command lst. Did you mean list?</code></pre>
 
 <section class="band band-tight">
   <div class="wrap">
-    <h2>Jedyny argument okna</h2>
-    <p><code>BetterWindowsServices.exe</code> zna jeden: <code>--catalogue</code> otwiera arkusz dla programisty, pokazujący każdy komponent okna w każdym stanie, i nie czyta niczego z Twojej maszyny.</p>
+    <h2>Argument okna</h2>
+    <p><code>BetterWindowsServices.exe</code> przyjmuje jeden argument przeznaczony dla człowieka: <code>--catalogue</code> otwiera arkusz dla programisty, pokazujący każdy komponent okna w każdym stanie, i nie czyta niczego z Twojej maszyny. Drugi, <code>--carry</code>, służy oknu do przekazania tego, co pokazywało, swojej kopii uruchamianej ponownie jako administrator. Nikt go nie wpisuje, a wszystko, czego tamto okno nie mogło samo zapisać, jest odrzucane.</p>
   </div>
 </section>
