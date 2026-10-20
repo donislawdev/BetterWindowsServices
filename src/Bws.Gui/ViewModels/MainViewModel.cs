@@ -165,7 +165,16 @@ public sealed partial class MainViewModel : Checked
         // above: the setter is what reapplies the query, lets go of the selection and tells the
         // list. Writing the scope directly would move the switch and leave the window showing the
         // other list.
-        ScopePositions = Scopes.Positions(() => _scoping.Current, scope => Scope = scope, _scoping.CountOf);
+        //
+        // IN THE BAR OF TABS SINCE 2026-10-20, beside the Tools tab and its page - Tabs says why. Every
+        // reader is fetched rather than handed over, for the reason Says is above.
+        Tabs = new Tabs(
+            new ToolsPage(() => _readings.EverRead, () => _readings.Failed, name => DisplayNameOf(name) is not null, () => Says.NotElevated),
+            () => _scoping.Current,
+            _scoping.CountOf,
+            scope => Scope = scope,
+            ClearTheMiddle,
+            SayTheAnswer);
     }
 
     /// <summary>
@@ -381,7 +390,8 @@ public sealed partial class MainViewModel : Checked
     /// switch could not reach while it was the query. <see cref="ListState"/> takes them already
     /// answered, which is the arrangement its own comment argues for at length.
     /// </summary>
-    private void TellTheList() =>
+    private void TellTheList()
+    {
         Says.AboutTheList(
             _readings.FirstLook,
             _readings.Failed,
@@ -390,6 +400,11 @@ public sealed partial class MainViewModel : Checked
             _scoping.InScope.Count,
             _scoping.Current,
             Scopes.AsksElsewhere(_scoping.Current, AsTyped()));
+
+        // The cards on the Tools tab ask the same reading whether their entry exists, and this is called
+        // when a reading starts, ends and fails - so they are asked again here (only while the page is up).
+        Tabs.Rethink();
+    }
 
     /// <summary>
     /// The query in the box, parsed once for everything that asks about it - the narrowing, the

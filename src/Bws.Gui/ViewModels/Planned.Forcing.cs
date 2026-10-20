@@ -19,7 +19,7 @@ namespace Bws.Gui.ViewModels;
 /// </summary>
 public sealed class PlanFailure
 {
-    internal PlanFailure(string text, Escalation? offer)
+    internal PlanFailure(string text, NamedAsk? offer)
     {
         Text = text;
         Offer = offer;
@@ -29,7 +29,7 @@ public sealed class PlanFailure
     public string Text { get; }
 
     /// <summary>The stronger ask this failure allows, or nothing at all. Most failures allow none.</summary>
-    internal Escalation? Offer { get; }
+    internal NamedAsk? Offer { get; }
 
     /// <summary>What the offer says on it. Empty when there is none, which the template reads.</summary>
     public string Label => Offer?.Label ?? string.Empty;
@@ -39,11 +39,18 @@ public sealed class PlanFailure
 }
 
 /// <summary>
-/// A stronger ask, worked out from a step that did not get there.
+/// An ask about ONE named entry, opened on a sheet of its own with the reason it was opened - the
+/// stronger ask worked out from a step that did not get there, and since 2026-10-20 a quick fix's card
+/// on the Tools tab (MainWindow.OpenFresh takes both).
 ///
 /// <b>Everything the next sheet needs and nothing about the one it came from.</b> Pressing the
 /// offer builds a plan from scratch against the machine as it is at that moment - so what travels
 /// is the ask, not a half-made plan somebody could carry out later against a machine that moved.
+///
+/// <b>Named Escalation until the fixes arrived</b>, when the second door made the old name a claim
+/// about only one of them. One record and one door rather than two, because what they share is the
+/// part that has to be right: a plan for a named entry, the dependants as asked, the reason on the
+/// sheet, and the ask remembered for a restart as administrator.
 /// </summary>
 /// <param name="Kind">
 /// Which forcing ask, decided by the ask that failed rather than by the step.
@@ -58,7 +65,12 @@ public sealed class PlanFailure
 /// The sheet it came from is closed by then - one question per sheet - so this sentence is the
 /// only thing left saying what happened before.
 /// </param>
-internal sealed record Escalation(ActionKind Kind, string ServiceName, string Label, string Because);
+/// <param name="Dependents">
+/// Whether the entries standing on this one are taken down first and brought back after. Never for an
+/// escalation - the forcing plan decides what dies with the process - and always for a quick fix,
+/// which is a restart with dependants by definition (QuickFix.Ask).
+/// </param>
+internal sealed record NamedAsk(ActionKind Kind, string ServiceName, string Label, string Because, bool Dependents = false);
 
 /// <summary>
 /// The one ask this panel can offer that ends a process, and everything that stands between
@@ -313,7 +325,7 @@ public sealed partial class Planned
     /// it ended the process under the dependants. Error 5 is a refusal of rights, and a stronger ask
     /// does not bring rights with it.
     /// </summary>
-    private static Escalation? Offered(PlanRun run, StepResult result)
+    private static NamedAsk? Offered(PlanRun run, StepResult result)
     {
         if (result.Step.Operation != StepOperation.Stop
             || result.Status == EntryStatus.Stopped
@@ -324,7 +336,7 @@ public sealed partial class Planned
             return null;
         }
 
-        return new Escalation(kind, result.Step.ServiceName, Label(kind), Because(result));
+        return new NamedAsk(kind, result.Step.ServiceName, Label(kind), Because(result));
     }
 
     /// <summary>

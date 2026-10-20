@@ -1,4 +1,5 @@
 using Bws.Core.Planning;
+using Bws.Core.Tools;
 
 namespace Bws.Cli;
 
@@ -43,7 +44,13 @@ internal static class Refusals
         {
             // Named as a command rather than an option, and offered the nearest one. "Unknown option:
             // lst" was wrong twice over: lst is not an option, and the answer helped with nothing.
-            var nearest = Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
+            //
+            // A TOOL TYPED AS IF IT WERE A COMMAND - `bws fix printer` - is offered the line it lives
+            // under, since 2026-10-20. Every tool sits under one word (owner's decision T-c), and the
+            // ideas report wrote `bws fix`, so this is the mistake somebody reading it will make.
+            var nearest = ToolCatalog.Named(options.BadVerb) is { } tool
+                ? OptionSurface.Spelling(CommandKind.Tool) + " " + tool.Name
+                : Suggestions.Nearest(options.BadVerb, OptionSurface.Verbs);
 
             Console.Error.WriteLine(nearest is null
                 ? Texts.Of("cli.unknownCommand", options.BadVerb, string.Join(", ", OptionSurface.Verbs))
@@ -60,13 +67,9 @@ internal static class Refusals
             //
             // Two sentences rather than one, because the two cases are different and one wording
             // has to lie about one of them. Snapshot on its own is a command that is half typed.
-            // Snapshot followed by a word we do not know is a command that does not exist.
-            var available = string.Join(", ", OptionSurface.Subcommands);
-
-            Console.Error.WriteLine(options.BadSubcommand.Length == 0
-                ? Texts.Of("cli.subcommandMissing", available)
-                : Texts.Of("cli.unknownSubcommand", options.BadSubcommand, available));
-
+            // Snapshot followed by a word we do not know is a command that does not exist. Which
+            // noun it was, and so which sentence, is NotASubcommand's.
+            Console.Error.WriteLine(NotASubcommand(options.Kind, options.BadSubcommand));
             Console.Error.WriteLine(Texts.Of("cli.usage"));
             return ExitCode.Usage;
         }
@@ -138,6 +141,41 @@ internal static class Refusals
         }
 
         return AboutTheAsk(options);
+    }
+
+    /// <summary>
+    /// The sentence for a noun followed by a word it does not have: snapshot, tool, or tool fix.
+    ///
+    /// <b>The noun is read from the kind</b>, which is what CommandLine.BadSubcommand says it carries:
+    /// <see cref="CommandKind.Tool"/> after <c>tool</c>, <see cref="CommandKind.Fixes"/> after
+    /// <c>tool fix</c>, and nothing yet after snapshot. The two tool nouns offer the nearest name the way
+    /// a mistyped command does, because a fix is a word somebody types from memory.
+    /// </summary>
+    private static string NotASubcommand(CommandKind noun, string typed)
+    {
+        if (noun == CommandKind.Tool)
+        {
+            var tools = ToolCatalog.All.Select(tool => tool.Name).ToList();
+
+            return Suggestions.Nearest(typed, tools) is { } tool
+                ? Texts.Of("cli.tool.unknownDidYouMean", typed, tool)
+                : Texts.Of("cli.tool.unknown", typed, string.Join(", ", tools));
+        }
+
+        if (noun == CommandKind.Fixes)
+        {
+            var fixes = QuickFixes.All.Select(fix => fix.Name).ToList();
+
+            return Suggestions.Nearest(typed, fixes) is { } fix
+                ? Texts.Of("cli.fix.unknownDidYouMean", typed, fix)
+                : Texts.Of("cli.fix.unknown", typed, string.Join(", ", fixes));
+        }
+
+        var available = string.Join(", ", OptionSurface.Subcommands);
+
+        return typed.Length == 0
+            ? Texts.Of("cli.subcommandMissing", available)
+            : Texts.Of("cli.unknownSubcommand", typed, available);
     }
 
     /// <summary>

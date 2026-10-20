@@ -308,7 +308,7 @@ public partial class MainWindow
     /// changed - so the sheet on the screen becomes the same sheet with more steps.
     ///
     /// <b>THE SAME SHEET HERE, WHERE THE OFFER UNDER A FAILURE OPENS A NEW ONE, and the difference
-    /// is the one <see cref="Force"/> names.</b> That sheet is a record of a run and may not grow a
+    /// is the one <see cref="OpenFresh"/> names.</b> That sheet is a record of a run and may not grow a
     /// second question. This one has not run - it is still the question, and taking the offer
     /// changes the question before anybody answers it. PlanSentence offers nothing on a record.
     ///
@@ -326,7 +326,7 @@ public partial class MainWindow
     ///
     /// <b>THE DEPENDANTS ARE ASKED OVER THE NAMES OF THE PLAN ON THE SHEET, NOT OVER THE PICKED ROWS</b>
     /// - found by the second analysis of its design. A forcing sheet opened from a failure
-    /// (<see cref="Force"/>) is about the entry that failed, which can be a dependant of the row that
+    /// (<see cref="OpenFresh"/>) is about the entry that failed, which can be a dependant of the row that
     /// was picked. Asked again over the picked rows, the offer would have built a plan for a different
     /// entry than the one on the screen - the preview and the question parting company, which is the
     /// worst fault this product can have. The first offer keeps going through Preview: a startup
@@ -356,15 +356,15 @@ public partial class MainWindow
         var ticket = ++_previews;
         var plan = await _model.PlanAsync(again).ConfigureAwait(true);
 
-        // The same counter every preview goes through, for the reason Force gives.
+        // The same counter every preview goes through, for the reason OpenFresh gives.
         if (ticket != _previews)
         {
             return false;
         }
 
-        var shownAs = again.ServiceNames.Count != 1 ? null : _model.Rows
-            .FirstOrDefault(row => string.Equals(row.ServiceName, again.ServiceNames[0], StringComparison.OrdinalIgnoreCase))
-            ?.DisplayName;
+        // Over every row the window holds, the way OpenFresh names its entry - so the two doors that
+        // rebuild a sheet call the entry the same thing whatever the query left on screen.
+        var shownAs = again.ServiceNames.Count != 1 ? null : _model.DisplayNameOf(again.ServiceNames[0]);
 
         if (!_model.Planned.Show(plan, shownAs))
         {
@@ -397,13 +397,24 @@ public partial class MainWindow
     /// up while a menu preview is still being worked out cannot be overtaken by it. The two are the
     /// same kind of event and the window has no way to tell a person which of two answers it is
     /// showing.
+    ///
+    /// <b>AND A QUICK FIX'S CARD COMES THROUGH HERE TOO, SINCE 2026-10-20</b> - named Force until then.
+    /// A card is the same ask: one entry by its manager's name, nothing picked, a reason the sheet has
+    /// no other way to know, and the dependants asked for (<see cref="NamedAsk.Dependents"/>). One door
+    /// rather than two, because a second would be a second copy of the four things below that must be
+    /// right - the counter, the title, the reason and the ask kept for a restart as administrator.
     /// </summary>
-    internal async Task<bool> Force(PlanFailure failure)
+    internal async Task<bool> OpenFresh(NamedAsk offer)
     {
-        ArgumentNullException.ThrowIfNull(failure);
+        ArgumentNullException.ThrowIfNull(offer);
 
-        if (failure.Offer is not { } offer)
+        // NOT WHILE A PLAN IS BEING CARRIED OUT - the refusal Preview makes, for the same reason
+        // (Planned.CanClose). A sheet reporting a failure is never under a run, so this is the card's
+        // line: the sheet is a layer over the page, and a card is not meant to be reachable under it.
+        if (_model.Planned.Busy)
         {
+            _model.Says.CouldNotDo(Texts.Of("gui.plan.blocked.running"));
+
             return false;
         }
 
@@ -412,10 +423,13 @@ public partial class MainWindow
         // standing under a press somebody has already made reads as a button that did nothing.
         _model.Planned.Hide();
 
+        // Mutually exclusive with the details panel, for the reason Preview gives.
+        _model.Chosen.Hide();
+
         var asked = ++_previews;
 
         var plan = await _model
-            .PlanAsync(new BulkAction(offer.Kind, [offer.ServiceName]))
+            .PlanAsync(new BulkAction(offer.Kind, [offer.ServiceName], IncludeDependents: offer.Dependents))
             .ConfigureAwait(true);
 
         if (asked != _previews)
@@ -428,10 +442,10 @@ public partial class MainWindow
         // and the row it belongs to is the one thing that knows what to call it. A row that has
         // gone from the listing since gives nothing, and the title falls back to the internal name,
         // which is exactly what it does for every plan not built by this window.
-        var shownAs = _model.Rows
-            .FirstOrDefault(row => string.Equals(
-                row.ServiceName, offer.ServiceName, StringComparison.OrdinalIgnoreCase))
-            ?.DisplayName;
+        //
+        // OVER EVERY ROW THE WINDOW HOLDS SINCE 2026-10-20, not the rows the query left on screen. A
+        // card is pressed from the Tools tab, where the list behind may be narrowed to anything.
+        var shownAs = _model.DisplayNameOf(offer.ServiceName);
 
         var shown = _model.Planned.Show(plan, shownAs, offer.Because);
 
@@ -439,8 +453,9 @@ public partial class MainWindow
         {
             // The entry from the failure rides along, because it need not be the picked row - and a
             // restart as administrator from this sheet has to ask about it rather than about that
-            // row. Backlog 504.
-            _asked = (offer.Kind, null, false, false, [offer.ServiceName]);
+            // row. Backlog 504. The dependants ride along too, so a fix asked again with the rights
+            // is the same plan.
+            _asked = (offer.Kind, null, false, offer.Dependents, [offer.ServiceName]);
 
             // WHERE THE KEYBOARD LANDS IS PART OF THIS SLICE RATHER THAN A COURTESY. This is the
             // one sheet in the window whose main button ends a process, so Enter arriving on it

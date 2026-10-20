@@ -1,4 +1,5 @@
 using Bws.Core.Planning;
+using Bws.Core.Tools;
 
 namespace Bws.Cli;
 
@@ -150,6 +151,46 @@ internal sealed partial record CommandLine
                     // with "there is no command baseline.json". The first sentence is the true
                     // one - the second answers a question nobody asked.
                     badVerb ??= badSubcommand is null ? argument : null;
+                    continue;
+                }
+
+                // THE WORD AFTER "tool" NAMES A TOOL, AND THE ONE AFTER "tool fix" NAMES A FIX, SINCE
+                // 2026-10-20 - and neither is the name of a service, so both are read here, ahead of the
+                // branch that takes one. A word that names nothing is kept as the half typed subcommand it
+                // is, the way the word after snapshot is, and further words fall through to the ones with
+                // nowhere to go.
+                if (kind == CommandKind.Tool && badSubcommand is null)
+                {
+                    if (Arguments.TryTool(argument, out var tool))
+                    {
+                        kind = tool;
+                    }
+                    else
+                    {
+                        badSubcommand = argument;
+                    }
+
+                    continue;
+                }
+
+                // A FIX TURNS INTO ITS SERVICE AND ITS DEPENDANTS HERE, AT ONCE, and that one line is what
+                // makes `bws tool fix printer` and `bws restart Spooler --dependents` the same command from
+                // this point on - the same branch, plan, text, JSON and codes. The dependants are set
+                // without the switch being GIVEN, so --dependents typed beside a fix is still refused as a
+                // switch that would do nothing.
+                if (kind == CommandKind.Fixes && badSubcommand is null)
+                {
+                    var fix = QuickFixes.Named(argument);
+
+                    if (fix is null)
+                    {
+                        badSubcommand = argument;
+                        continue;
+                    }
+
+                    kind = CommandKind.Fix;
+                    serviceName = fix.ServiceName;
+                    dependents = true;
                     continue;
                 }
 

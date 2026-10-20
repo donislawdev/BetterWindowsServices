@@ -21,9 +21,13 @@ internal static class WriteCommands
     /// matters it is asked about by name rather than through this: the switch table refuses
     /// --timeout and --dependents on it, and the plan builder gives it no cascade.
     /// </summary>
+    /// <remarks>
+    /// <b>A quick fix is one of them since 2026-10-20</b>, and only the one with a name: the list under
+    /// <c>bws tool fix</c> reads nothing and changes nothing.
+    /// </remarks>
     internal static bool Writes(CommandKind kind) =>
         kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart
-            or CommandKind.SetStartType or CommandKind.Kill;
+            or CommandKind.SetStartType or CommandKind.Kill or CommandKind.Fix;
 
     /// <summary>
     /// Which ask a write command is. Read only where <see cref="Writes"/> is already true.
@@ -49,6 +53,10 @@ internal static class WriteCommands
         CommandKind.Stop => ActionKind.Stop,
         CommandKind.Start => ActionKind.Start,
         CommandKind.Restart => ActionKind.Restart,
+
+        // A fix IS a restart with dependants - QuickFix.Ask in the core, and the reader has already put
+        // the fix's service and the dependants on the line (CommandLine.Reading).
+        CommandKind.Fix => ActionKind.Restart,
         CommandKind.SetStartType => ActionKind.SetStartType,
         _ => throw new InvalidOperationException(
             "This command does not change anything, so it has no action. Writes says which do.")

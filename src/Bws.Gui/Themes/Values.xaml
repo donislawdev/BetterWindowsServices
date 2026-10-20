@@ -258,6 +258,12 @@
     -->
     <system:Double x:Key="HeightScopeUnderline">3</system:Double>
 
+    <!--
+        A rule standing up between two groups in a bar - BarRule in Actions.xaml. One point, the width of
+        every other rule in this window. A name since 2026-10-20, when the bar of tabs took the second one.
+    -->
+    <system:Double x:Key="WidthBarRule">1</system:Double>
+
     <!-- The panel's one edge, on the side the list is. -->
     <Thickness x:Key="BorderPanelEdge">1,0,0,0</Thickness>
 

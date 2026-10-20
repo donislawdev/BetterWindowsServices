@@ -58,6 +58,17 @@ public static partial class Catalogue
         nameof(DataGridCell) => "only exists inside a row, which only exists inside the list",
         nameof(ToolTip) => "only appears over something. Rest the pointer on a sample above",
 
+        // The rule between two groups of a bar (BarRule), 2026-10-20 - the guard asked. It takes its
+        // height from the bar it stands in, so on its own it is a line of no length. Both bars are on
+        // this sheet with it in place.
+        nameof(Rectangle) => "a rule standing between two groups of a bar. See it in ActionBar and ScopeBar below",
+
+        // A tab in the bar across the top (ScopePosition), since 2026-10-20 - the guard asked when the style
+        // left ScopeBar.xaml for a theme file. Every tab shares one group, so a sample here would take the
+        // mark off the bar drawn on the same sheet - and the bar is where its states are: marked, not, and
+        // the Tools tab with no number. Before the move it had no sample of its own either.
+        nameof(RadioButton) => "a tab in the bar across the top. See all four in ScopeBar below",
+
         // A focus ring. It has no control of its own - it is drawn AROUND whichever control has
         // the keyboard, which is why this screen asks the reader to press Tab rather than
         // pretending to show one.

@@ -16,7 +16,7 @@ namespace Bws.Gui.ViewModels;
 ///
 /// <b>A QUESTION CROSSES, NEVER AN ANSWER.</b> Nothing here is a fact about the machine: the new
 /// session reads the machine itself, matches the names against what it read, and builds the plan
-/// again from scratch - the way MainWindow.Force does and for its reason, that a carried plan would
+/// again from scratch - the way MainWindow.OpenFresh does and for its reason, that a carried plan would
 /// be an answer about a machine that has since moved. Nothing is carried out either: rule 9 of the
 /// project holds, and the new window only fills in what the old one showed.
 ///

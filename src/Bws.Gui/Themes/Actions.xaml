@@ -72,4 +72,16 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+
+    <!--
+        THE LINE BETWEEN TWO GROUPS IN A BAR - a shape rather than a gap, because a gap at this width reads
+        as an accident (ActionBar.xaml says it first). A name since 2026-10-20, when the bar of tabs needed
+        the same line between the lists and the Tools tab: the second use of a set of values is a style
+        (GUI rule 7). Full height of its bar, by stretching, so it never needs a height of its own.
+    -->
+    <Style x:Key="BarRule" TargetType="Rectangle">
+        <Setter Property="Width" Value="{StaticResource WidthBarRule}" />
+        <Setter Property="Fill" Value="{StaticResource SurfaceRowLine}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+    </Style>
 </ResourceDictionary>

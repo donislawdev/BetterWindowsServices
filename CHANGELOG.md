@@ -13,6 +13,16 @@ is not part of this repository.
 
 ### Added
 
+- A *Tools* tab in the window and `bws tool` on the command line - ready-made answers to common
+  problems, the same ones in both. The first is *Quick fixes*: `printer` (the Print Spooler),
+  `sound` (the Windows Audio Endpoint Builder and Windows Audio), `indexing` (Windows Search) and
+  `search` (the Windows Font Cache Service, which Microsoft suggests for a search box that does not
+  respond). Each is a restart of one service together with what depends on it, through the ordinary
+  plan: `bws tool fix printer` is exactly `bws restart Spooler --dependents`, with the same output and
+  exit codes, and a card in the window opens the same plan sheet, saying which fix it came from.
+  `bws tool` and `bws tool fix` list what there is. A card for a service this machine does not have
+  says so and cannot be pressed.
+
 - `bws history [NAME]` - who changed the start type of a service, and who installed one, read out of
   the System log, newest first. The first line says how far back the log reaches and whether, when
   and by whom it was cleared, or that it is overwriting its oldest events. With a name it lists that
@@ -79,6 +89,10 @@ is not part of this repository.
 
 ### Changed
 
+- The row across the top of the window - *Services*, *Drivers*, *All*, now *Tools*, and *GitHub*,
+  *Donate* and *Help* - stays on every page. It used to go away over the first-run overview and the
+  views of the audit, which left the first screen without Help. Over the overview or a comparison the
+  list's own tab stays marked, and pressing it goes back to the list.
 - A comparison no longer lists, entry by entry, a field Windows refused to both sides. On a real
   machine a few service descriptions point at a language file that is not there, and Windows refuses
   them to every reader - so every comparison listed the same entries as "not fully compared" while

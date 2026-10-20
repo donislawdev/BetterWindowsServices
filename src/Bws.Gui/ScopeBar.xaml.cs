@@ -37,4 +37,17 @@ public partial class ScopeBar : UserControl
     /// Donate is: the window hangs the menu on it and answers F1 with the same menu.
     /// </summary>
     internal Button Help => HelpButton;
+
+    /// <summary>
+    /// A list tab was pressed - including the one already marked, which a radio button does not report
+    /// through its mark. Over the overview or a view of the audit that press is the way back to the list
+    /// (owner's decision T-e), so it is said to the position, which says it to the model.
+    /// </summary>
+    private void PositionPressed(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement { DataContext: ViewModels.ScopeChoice position })
+        {
+            position.IsOn = true;
+        }
+    }
 }

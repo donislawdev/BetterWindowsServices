@@ -317,7 +317,7 @@ internal static class WpfHost
     internal static readonly string[] ThemeFiles =
                  [
                      "Values.xaml", "Spacing.xaml", "Type.xaml", "Colours.xaml", "Surfaces.xaml", "Columns.xaml",
-                     "Text.xaml", "Overview.xaml", "Chips.xaml",
+                     "Text.xaml", "Overview.xaml", "Tools.xaml", "Tabs.xaml", "Chips.xaml",
 
                      // Menus.xaml after Controls.xaml, which is App.xaml's order and is load
                      // bearing: the menu styles extend the implicit MenuItem style found there.

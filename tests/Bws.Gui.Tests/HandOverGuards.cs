@@ -159,9 +159,9 @@ public sealed class HandOverGuards
     public async Task A_sheet_opened_from_a_failure_hands_over_the_entry_it_is_about()
     {
         var window = await PlanFixture.Ready();
-        var failure = new PlanFailure("the stop gave up", new Escalation(ActionKind.ForceStop, "Dnscache", "End its process", "It did not stop."));
+        var failure = new PlanFailure("the stop gave up", new NamedAsk(ActionKind.ForceStop, "Dnscache", "End its process", "It did not stop."));
 
-        Assert.True(await WpfHost.On(() => window.Force(failure)));
+        Assert.True(await WpfHost.On(() => window.OpenFresh(failure.Offer!)));
         WpfHost.Settled();
 
         var handed = WpfHost.On(() => window.HandOverNow());

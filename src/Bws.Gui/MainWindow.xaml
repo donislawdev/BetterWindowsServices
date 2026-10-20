@@ -326,6 +326,15 @@
                             x:Name="Overview"
                             Visibility="Collapsed" />
 
+        <!--
+            The Tools tab, in the same cell - and the rows above it collapse while it is up, so it has the
+            page below the tabs (T-a). Why it is a page and not a view in the middle: ToolsView.xaml.
+        -->
+        <local:ToolsView Grid.Row="4"
+                         Grid.ColumnSpan="2"
+                         x:Name="Toolbox"
+                         Visibility="Collapsed" />
+
         <!-- What changed since a snapshot, in the same cell and the same way - DiffView.xaml. -->
         <local:DiffView Grid.Row="4"
                         Grid.ColumnSpan="2"

@@ -306,6 +306,24 @@ public static partial class Catalogue
         return (typing, refusing);
     }
 
+    /// <summary>
+    /// The two views that take the whole middle of the window rather than a band of it - the overview and,
+    /// since 2026-10-20, the Tools tab. Out of <see cref="Views"/> that day, when it stood on the size
+    /// ratchet's band for length - the seam is a subject: these are pages, everything left there is a part.
+    /// </summary>
+    private static Built[] PageViews(Prepared ready) =>
+    [
+        View(() => new OverviewView(),
+            data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
+
+        // The specimens hold one of the four services the fixes restart, so "with data" shows a live card
+        // beside three saying the machine has no such service - what a real machine without them shows.
+        // Empty is a machine with nothing, wrong one that could not be read, loading every card waiting,
+        // and the extreme cell a session without rights, where each card says carrying it out needs them.
+        View(() => new ToolsView(),
+            data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading, extreme: ready.Unelevated)
+    ];
+
     private static async Task ShowPlanAsync(MainViewModel model, ActionKind kind, params string[] names)
     {
         var plan = await model.PlanAsync(new BulkAction(kind, names)).ConfigureAwait(false);
@@ -355,8 +373,7 @@ public static partial class Catalogue
             View(() => new EmptyState(),
                 empty: ready.Narrowed.Says, wrong: ready.Wrong.Says),
 
-            View(() => new OverviewView(),
-                data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
+            .. PageViews(ready),
 
             .. AuditViews(compared),
 

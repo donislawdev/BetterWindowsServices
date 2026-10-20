@@ -1,0 +1,184 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:media="clr-namespace:System.Windows.Media;assembly=PresentationCore">
+
+    <!--
+        WHAT A TAB IN THE BAR ACROSS THE TOP IS - the three lists and, since 2026-10-20, the Tools page.
+        Moved out of ScopeBar.xaml that day, when the Tools tab took this style and the view stood over
+        the size ratchet's band for markup: the bar is a LAYOUT and this is the LOOK of one of its
+        parts, which is the line every other theme file draws. Nothing below changed in the move except
+        the count arriving in Tag, which the comment at the count says.
+    -->
+
+    <!--
+        THE RING ITSELF, AS A FOCUS VISUAL RATHER THAN AS A STATE OF THE CONTROL. A focus
+        visual has no TargetType and is put on an adorner by the framework, which is why the
+        template below is bare and why it can be drawn over the row without taking part in its
+        layout.
+
+        The two values are the ones the trigger used, by name, so the ring looks the same to
+        somebody arriving with the Tab key as it did before - `ADR-23`, and nothing new is
+        declared for a change that is about WHEN the ring appears rather than what it is.
+    -->
+    <Style x:Key="ScopeFocusRing">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{StaticResource FocusRing}"
+                            BorderThickness="{StaticResource FocusRingThickness}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        A TAB WITH A LINE UNDER IT, AND THE FIRST VERSION WAS A CHIP. That version borrowed the
+        filter chip's style whole - one BasedOn, no new brush, an argued contrast pair already
+        enforced by ContrastGuards - and it was the cheapest correct-looking thing to build. The
+        owner looked at it on 2026-08-19 and said it must not look like a chip, because that is
+        confusing. They were right and no guard in this project could have said so: 976 tests
+        pass over either version, and `docs/11` complaint 12 is exactly this shape.
+        <b>Scope is not a filter, so it must not wear a filter's clothes.</b>
+
+        WRITTEN OUT RATHER THAN BasedOn, WHICH IS TRAP 4 OF `docs/10` MET HEAD ON. Basing on the
+        library's ToggleButton style and overriding brushes is what the chip does, and it is
+        right there because it wants the library's chrome. This wants none of it - no fill, no
+        border, no corner radius - so inheriting a template and then hiding every part of it
+        would be a worse lie than replacing it. The cost is named: every state this control has
+        is now this file's job, so hover, keyboard focus and the checked mark are all below.
+
+        THE FOCUS RING IS DRAWN BY WPF AS A FOCUS VISUAL SINCE 2026-08-25, AND THAT IS THE
+        OWNER'S SECOND COMPLAINT ANSWERED AT ITS CAUSE. It was a template trigger on
+        IsKeyboardFocused, and IsKeyboardFocused says nothing about how the focus arrived:
+        clicking a RadioButton focuses it, so the white border lit up on an ordinary mouse
+        click. That is what "the white border and the switching look very ugly" was about -
+        the owner picked it out of four candidates on 2026-08-25, and the other three were
+        offered beside it.
+
+        A FocusVisualStyle is drawn by the framework only while the keyboard is the input
+        device somebody is actually using, which is the distinction the trigger could not
+        make. It also draws in the adorner layer, above everything, so it cannot move a
+        single pixel of this row - the reason the trigger version had to reserve a border
+        it was not painting.
+
+        The Border below keeps its transparent brush and its thickness anyway, and neither is
+        about the ring any more: the brush is what makes the whole position take a click
+        rather than only the letters, and the thickness is the spacing this row was measured
+        with. `docs/10`: a transparent brush takes hit testing, no brush does not.
+
+        Transparent through x:Static, which is the idiom Cells.xaml already uses twice - a value
+        pointing at a name rather than invented in place, so ADR-23 holds. A Grid with no
+        background at all would take clicks only where the letters are.
+    -->
+    <Style x:Key="ScopePosition" TargetType="RadioButton">
+        <!--
+            Set here rather than in the template below, so that a second row of positions can
+            never be added without meeting this line and deciding whether it shares the group.
+        -->
+        <Setter Property="GroupName" Value="scope" />
+
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ScopeFocusRing}" />
+
+        <Setter Property="Margin" Value="{StaticResource MarginGroup}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFace}" />
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
+        <Setter Property="FontWeight" Value="{StaticResource TextWeightNormal}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSubdued}" />
+        <Setter Property="Background" Value="{x:Static media:Brushes.Transparent}" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Ring"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{x:Static media:Brushes.Transparent}"
+                            BorderThickness="{StaticResource FocusRingThickness}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!--
+                                THE COUNT BESIDE THE LABEL, SINCE 2026-09-15 - point 8(c) of
+                                `docs/11` 2.14, the owner's decision with the design shown
+                                first. IN THE TEMPLATE AND NOT IN THE CONTENT, for three
+                                reasons that point the same way: the content stays a string,
+                                so the position's automation name stays "Services" and the
+                                three probes that find positions by that name keep finding
+                                them - the label is drawn exactly as it was, by the same
+                                presenter - and a TextBlock in a template gets no node of its
+                                own in the automation tree - `docs/10` trap 16, read from the
+                                side where it helps - so the tree keeps one node per position.
+
+                                THE NUMBER IS THE SIZE OF THE LIST, not what the query found
+                                in it, and it is always quiet: small and subdued whichever
+                                position is on, where the label beside it brightens and
+                                thickens. A horizontal StackPanel is safe here for the reason
+                                trap 18 records about this file - a word and a number, nothing
+                                that has to wrap.
+                            -->
+                            <!--
+                                THE NUMBER ARRIVES IN Tag SINCE 2026-10-20, when the Tools tab took this
+                                style - a page with no list has no size to show. A parameter of the one
+                                style rather than a second style (GUI rule 2), and a tab with nothing in
+                                Tag draws no number and no gap for one.
+                            -->
+                            <StackPanel Grid.Row="0"
+                                        Orientation="Horizontal"
+                                        Margin="{StaticResource PadCell}"
+                                        VerticalAlignment="Center">
+                                <ContentPresenter x:Name="Label"
+                                                  Margin="{StaticResource MarginBetweenControls}"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"
+                                                  TextElement.FontFamily="{TemplateBinding FontFamily}"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}" />
+
+                                <TextBlock x:Name="Size"
+                                           Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                           Style="{StaticResource ScopeCountText}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <!--
+                                Always here and only sometimes coloured, for the same reason the
+                                ring keeps its thickness: a line that appears and disappears
+                                would make the row taller and shorter as somebody clicks along
+                                it.
+                            -->
+                            <Rectangle x:Name="Underline"
+                                       Grid.Row="1"
+                                       Height="{StaticResource HeightScopeUnderline}"
+                                       Fill="{x:Static media:Brushes.Transparent}" />
+                        </Grid>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Tag" Value="{x:Null}">
+                            <Setter TargetName="Size" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Label" Property="Margin" Value="{StaticResource MarginNone}" />
+                        </Trigger>
+
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Underline" Property="Fill" Value="{StaticResource SurfaceSelected}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                            <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
+                        </Trigger>
+
+                        <!--
+                            Hover brightens the WORDS rather than filling anything, so the one
+                            filled shape in this row stays the line under the position somebody
+                            is actually on.
+                        -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource TextOnSurface}" />
+                        </Trigger>
+
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

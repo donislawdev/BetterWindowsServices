@@ -46,7 +46,9 @@ public sealed class ScreenWithNoListGuards
             WpfHost.On(() => model.ShowingOverview = true);
             WpfHost.Settled();
 
-            Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.Scope.Visibility));
+            // THE BAR OF TABS STAYS SINCE 2026-10-20 - owner's decision T-e. It went with the other three
+            // until then, and by then it held Help and the Tools tab, so the first screen had neither.
+            Assert.Equal(Visibility.Visible, WpfHost.On(() => window.Scope.Visibility));
             Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.Search.Visibility));
             Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.Filters.Visibility));
             Assert.Equal(Visibility.Collapsed, WpfHost.On(() => window.Actions.Visibility));

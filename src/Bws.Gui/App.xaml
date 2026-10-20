@@ -60,7 +60,13 @@
         it is an implicit style and nothing outside names a key of it, so its place among the other
         style files carries no further meaning - which is why the sentence below about Cells.xaml
         being last is still true. It exists because the markup ratchet fired on OverviewView.xaml
-        three edits running while that screen was being rebuilt as cards.
+        three edits running while that screen was being rebuilt as cards. ("Nothing outside names a key
+        of it" stopped being true on 2026-10-20: Tools.xaml borrows its focus ring.)
+
+        Tools.xaml IS AFTER Overview.xaml, since 2026-10-20, for that one reason: its card wears the
+        overview's focus ring, resolved through StaticResource. Tabs.xaml, the look of a tab in the bar
+        across the top (out of ScopeBar.xaml the same day), only has to come after Text.xaml, whose count
+        style it wears - beside Tools.xaml because the two arrived together.
 
         Marks.xaml IS BEFORE Cells.xaml AND THAT IS THE SAME RULE AGAIN, since 2026-08-25.
         It holds the coloured shapes that sit beside three of the words in a row, and the
@@ -82,6 +88,8 @@
                 <ResourceDictionary Source="Themes/Columns.xaml" />
                 <ResourceDictionary Source="Themes/Text.xaml" />
                 <ResourceDictionary Source="Themes/Overview.xaml" />
+                <ResourceDictionary Source="Themes/Tools.xaml" />
+                <ResourceDictionary Source="Themes/Tabs.xaml" />
                 <ResourceDictionary Source="Themes/Chips.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
 

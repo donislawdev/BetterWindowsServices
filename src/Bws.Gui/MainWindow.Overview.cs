@@ -40,17 +40,41 @@ public partial class MainWindow
     /// </summary>
     private void IntroduceTheOverview()
     {
+        Action arrange = () =>
+        {
+            ArrangeTheMiddle();
+            ArrangeTheChrome();
+
+            // The list is back, so the keyboard goes where somebody searching it types -
+            // quietly and after layout, GiveTheBoxTheKeyboard says why. It does nothing while the
+            // overview is what is showing.
+            GiveTheBoxTheKeyboard();
+        };
+
+        // THE TOOLS TAB MOVES THE SAME CONTROLS, since 2026-10-20, so it is arranged by the same lines
+        // rather than by a copy of them - one place owns the cell the pages compete for.
+        _model.Tabs.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName == nameof(Tabs.ShowingTools))
+            {
+                arrange();
+            }
+        };
+
         _model.PropertyChanged += (_, changed) =>
         {
             if (changed.PropertyName == nameof(MainViewModel.ShowingOverview))
             {
-                ArrangeTheMiddle();
-                ArrangeTheChrome();
+                arrange();
+            }
 
-                // The list is back, so the keyboard goes where somebody searching it types -
-                // quietly and after layout, GiveTheBoxTheKeyboard says why. It does nothing while the
-                // overview is what is showing.
-                GiveTheBoxTheKeyboard();
+            // THE OVERVIEW IS SEEN THE MOMENT IT GOES, BY WHATEVER ROAD, since 2026-10-20. Its own two
+            // buttons say so through Finished below, and the tabs over it (T-e) are a third and fourth road -
+            // a list tab and the Tools tab both put it away. Written once: KeepTheProfile writes nothing when
+            // the fact is already written.
+            if (changed.PropertyName == nameof(MainViewModel.ShowingOverview) && !_model.ShowingOverview)
+            {
+                _kept?.TheOverviewWasSeen(_model.Says);
             }
         };
 
@@ -95,12 +119,18 @@ public partial class MainWindow
         // AND SIX SINCE 2026-10-20 - the change history (J2). It comes from the same menu, and whichever
         // arrives puts the others away (MainViewModel.OpenHistory, SnapshotDoors.Comparing), so this only
         // has to rank them for the instant in between: what Snapshotting holds first, then the history.
+        //
+        // AND THE TOOLS PAGE SINCE 2026-10-20, which puts every one of them away when it arrives (Tabs), so
+        // it needs no rank among them. Whether anything at all stands where the list was is the question
+        // ListOnScreen already answers for the rest of the window - asked here rather than spelled out a
+        // second time beside it.
         var comparing = _model.Snapshotting.Shown is not null;
         var preparing = _model.Snapshotting.Form is not null && !comparing;
         var history = _model.History.InTheMiddle && !_model.Snapshotting.InTheMiddle;
         var overview = _model.ShowingOverview && !_model.Snapshotting.InTheMiddle && !history;
-        var elsewhere = overview || comparing || preparing || history;
+        var elsewhere = !_model.ListOnScreen;
 
+        Toolbox.Visibility = _model.Tabs.ShowingTools ? Visibility.Visible : Visibility.Collapsed;
         Overview.Visibility = overview ? Visibility.Visible : Visibility.Collapsed;
         Comparison.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
         TakeForm.Visibility = preparing ? Visibility.Visible : Visibility.Collapsed;
@@ -157,12 +187,17 @@ public partial class MainWindow
     /// <b>THE STATUS ROW IS NOT HERE AND MUST NOT BE.</b> It carries the sentence about running
     /// without administrator rights, which backlog 16 put first because it is a fact about the
     /// whole list - and before anybody has asked for anything is exactly when it matters most.
+    ///
+    /// <b>NOR IS THE BAR OF TABS, SINCE 2026-10-20 - owner's decision T-e.</b> It went with the other three
+    /// from 2026-09-01, and by October it held Help, GitHub and Donate as well, so the first-run screen
+    /// had no Help. With the Tools tab in it, hiding it would hide the one thing the tab exists for from
+    /// the screen every new person sees first. It stays on every page, and the marked list tab over the
+    /// overview or a view of the audit is the way back to the list.
     /// </summary>
     private void ArrangeTheChrome()
     {
         var chrome = _model.ListOnScreen ? Visibility.Visible : Visibility.Collapsed;
 
-        Scope.Visibility = chrome;
         Search.Visibility = chrome;
         Filters.Visibility = chrome;
         Actions.Visibility = chrome;
