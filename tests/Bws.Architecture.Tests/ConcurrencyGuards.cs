@@ -167,6 +167,16 @@ public sealed class ConcurrencyGuards
             "one read that is started and not awaited, which is the loading sample and is " +
             "listed as such in BackgroundWorkGuards.",
 
+        ["HistoryReading.cs"] =
+            "Reading the System log for the change history off the interface thread, added " +
+            "2026-10-20 (J2). Measured through bws history --timing that day: 57-91 ms over 328 " +
+            "changes, and a log on a busy server NOT MEASURED, so it runs where a slow log cannot " +
+            "stop the window drawing. The whole Read runs inside one Task.Run, because an event log " +
+            "query handle may only be used on the thread that made it (EvtQuery's documentation, " +
+            "F21). Nothing crosses back but the history or the failure, through an await. One " +
+            "reading at a time is held by the task kept in Out, which only the interface thread " +
+            "replaces - HistoryTests holds that a second ask reads once.",
+
         ["ShellHandover.cs"] =
             "The Donate button's call into the shell, off the interface thread, added 2026-09-23 " +
             "after a review asked why the window waited on another process with no limit. The " +

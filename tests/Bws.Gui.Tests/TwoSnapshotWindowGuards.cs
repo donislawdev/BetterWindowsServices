@@ -84,7 +84,7 @@ public sealed class TwoSnapshotWindowGuards : IDisposable
     }
 
     private static MenuItem Item(MainWindow window, string id) =>
-        window.Actions.SnapshotsMenu.Items.OfType<MenuItem>().Single(item => System.Windows.Automation.AutomationProperties.GetAutomationId(item) == id);
+        window.Actions.AuditMenu.Items.OfType<MenuItem>().Single(item => System.Windows.Automation.AutomationProperties.GetAutomationId(item) == id);
 
     /// <summary>Two files compared in a window: a state that moved and an entry that came.</summary>
     private async Task<(MainWindow Window, MainViewModel Model)> Compared()

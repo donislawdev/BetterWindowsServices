@@ -137,9 +137,11 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- Which rows the table shows, "Show" and its count - DiffFilterRow.xaml (W2-b). -->
-        <local:DiffFilterRow Grid.Row="4"
-                             x:Name="Choices" />
+        <!-- Which rows the table shows, "Show" and its count - ShowRow.xaml (W2-b). -->
+        <local:ShowRow Grid.Row="4"
+                       x:Name="Choices"
+                       Named="diff"
+                       DataContext="{Binding Filter}" />
 
         <!-- The table, or the sentence in its place when nothing differs - DiffTable.xaml. -->
         <local:DiffTable Grid.Row="5"

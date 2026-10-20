@@ -1,7 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-
 namespace Bws.Gui.ViewModels;
 
 /// <summary>
@@ -19,35 +15,50 @@ namespace Bws.Gui.ViewModels;
 /// how much - rule 8: a table that lost rows without a word would read as the whole comparison. The
 /// sentences above the table are not rows and no choice hides them.
 ///
-/// <b>The collection stays and its contents are replaced in one notification</b> (<see cref="DiffRows"/>).
+/// <b>The collection stays and its contents are replaced in one notification</b> (<see cref="ShownRows{TRow}"/>).
 /// Staying is what keeps the order somebody sorted the table into - the grid sorts a view over this
 /// collection, and a collection swapped for another would take the sort with it. One notification
 /// rather than one per row since a review of 2026-10-15: the first version removed and inserted row by
 /// row, and the list measured a notification per row at about 285 ms for 810 rows (RowList), which a
 /// comparison of two different machines reaches.
+///
+/// <b>One group of choices</b>, drawn by the same ShowRow as the change history's two - see
+/// <see cref="IRowChoices"/>.
 /// </summary>
-public sealed class DiffFilter : Observable
+public sealed class DiffFilter : Observable, IRowChoices
 {
     private readonly IReadOnlyList<DiffLine> _all;
-    private DiffChoice _chosen;
+    private readonly RowChoiceSet<DiffLine> _choices;
+    private RowChoice _chosen;
 
     internal DiffFilter(IReadOnlyList<DiffLine> all)
     {
         _all = all;
-        Choices = Offered(all);
+        _choices = new RowChoiceSet<DiffLine>((name, count) => Texts.Of("gui.diff.show.counted", name, count), Choose);
+        Choices = _choices.Offered(all, Texts.Of("gui.diff.show.all"), Narrower(all));
+        Groups = [Choices];
         _chosen = Choices[0];
         _chosen.Mark(chosen: true);
-        Rows = new DiffRows(all);
+        Rows = new ShownRows<DiffLine>(all);
     }
 
     /// <summary>What the menu under the button offers, "All rows" first.</summary>
-    public IReadOnlyList<DiffChoice> Choices { get; }
+    public IReadOnlyList<RowChoice> Choices { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<IReadOnlyList<RowChoice>> Groups { get; }
 
     /// <summary>The rows the table shows - every row until somebody chooses otherwise.</summary>
-    public DiffRows Rows { get; }
+    public ShownRows<DiffLine> Rows { get; }
 
     /// <summary>The words on the button, naming what is shown.</summary>
     public string Button => Texts.Of("gui.diff.show", _chosen.Name);
+
+    /// <inheritdoc />
+    public string Hint => Texts.Of("gui.diff.show.hint");
+
+    /// <summary>A comparison that found nothing has no table under it, and no button over one.</summary>
+    public bool Offered => _all.Count > 0;
 
     /// <summary>
     /// How many of the rows are on screen, or empty while all of them are. The noun counts the whole,
@@ -64,11 +75,11 @@ public sealed class DiffFilter : Observable
     /// shown changes nothing - the menu has no "none", because a table with no choice is a table with
     /// no rows and no reason.
     /// </summary>
-    internal void Choose(DiffChoice choice)
+    internal void Choose(RowChoice choice)
     {
         ArgumentNullException.ThrowIfNull(choice);
 
-        if (!Choices.Contains(choice))
+        if (!_choices.TryTakes(choice, out var takes))
         {
             return;
         }
@@ -79,130 +90,30 @@ public sealed class DiffFilter : Observable
 
         // In the comparison's own order - the grid lays its sort over that, and without a sort this
         // is the order the command line reports in.
-        Rows.ShowOnly(_all.Where(choice.Takes));
+        Rows.ShowOnly(_all.Where(takes));
 
         Raise(nameof(Button));
         Raise(nameof(Showing));
     }
 
     /// <summary>
-    /// The choices this comparison can offer: every row, the differences alone, each field that
-    /// differs, the rows one side could not see, the fields one side holds no value for.
+    /// The narrower choices this comparison can offer, in the menu's order: the differences alone, each
+    /// field that differs, the rows one side could not see, the fields one side holds no value for. Which
+    /// of them are offered is <see cref="RowChoiceSet{TRow}"/>'s rule.
     ///
     /// <b>A field is named by the words its rows already say</b> - "Status (running state)" in the
     /// menu is what the table's What column says on each of those rows.
     /// </summary>
-    private List<DiffChoice> Offered(IReadOnlyList<DiffLine> all)
+    private static IEnumerable<(string Name, Func<DiffLine, bool> Takes)> Narrower(IReadOnlyList<DiffLine> all)
     {
-        var offered = new List<DiffChoice> { new(this, Texts.Of("gui.diff.show.all"), all.Count, _ => true) };
-
-        Offer(offered, Texts.Of("gui.diff.show.differences"), all, line => line.Kind is DiffLineKind.Added or DiffLineKind.Removed or DiffLineKind.Changed);
+        yield return (Texts.Of("gui.diff.show.differences"), line => line.Kind is DiffLineKind.Added or DiffLineKind.Removed or DiffLineKind.Changed);
 
         foreach (var field in all.Where(line => line.Kind == DiffLineKind.Changed).GroupBy(line => line.Field))
         {
-            Offer(offered, field.First().What, all, line => line.Kind == DiffLineKind.Changed && line.Field == field.Key);
+            yield return (field.First().What, line => line.Kind == DiffLineKind.Changed && line.Field == field.Key);
         }
 
-        Offer(offered, Texts.Of("gui.diff.show.uncertain"), all, line => line.Kind == DiffLineKind.Uncertain);
-        Offer(offered, Texts.Of("gui.diff.show.notCompared"), all, line => line.Kind == DiffLineKind.NotCompared);
-
-        return offered;
-    }
-
-    /// <summary>Offers a choice only when it shows something and less than everything.</summary>
-    private void Offer(List<DiffChoice> offered, string name, IReadOnlyList<DiffLine> all, Func<DiffLine, bool> takes)
-    {
-        var count = all.Count(takes);
-
-        if (count > 0 && count < all.Count)
-        {
-            offered.Add(new DiffChoice(this, name, count, takes));
-        }
-    }
-}
-
-/// <summary>
-/// One item of the menu under "Show": a name, how many rows it shows, and whether it is what the
-/// table shows now.
-///
-/// <b>A tick that cannot be taken off.</b> The menu item is bound two way the way a column choice is,
-/// and ticking another choice is what moves the tick - so a click on the ticked one says "this" again
-/// rather than "nothing", and the tick is put straight back.
-/// </summary>
-public sealed class DiffChoice : Observable
-{
-    private readonly DiffFilter _filter;
-    private bool _chosen;
-
-    internal DiffChoice(DiffFilter filter, string name, int count, Func<DiffLine, bool> takes)
-    {
-        _filter = filter;
-        Name = name;
-        Label = Texts.Of("gui.diff.show.counted", name, count);
-        Takes = takes;
-    }
-
-    /// <summary>What is shown, the way the button says it.</summary>
-    public string Name { get; }
-
-    /// <summary>What is shown and how many rows that is, the way the menu says it.</summary>
-    public string Label { get; }
-
-    /// <summary>Whether this is what the table shows now.</summary>
-    public bool IsChosen
-    {
-        get => _chosen;
-        set
-        {
-            if (value)
-            {
-                _filter.Choose(this);
-            }
-            else
-            {
-                Raise(nameof(IsChosen));
-            }
-        }
-    }
-
-    /// <summary>Whether a row is one this choice shows.</summary>
-    internal Func<DiffLine, bool> Takes { get; }
-
-    internal void Mark(bool chosen) => Set(ref _chosen, chosen, nameof(IsChosen));
-}
-
-/// <summary>
-/// The rows a comparison's table shows, replaced all at once when "Show" changes.
-///
-/// <b>RowList.ResetTo's mechanism, and its measurement is the reason</b>: a notification per row is
-/// a notification the grid answers per row. The second place this is done, so a small type rather than
-/// a shared base - the list's version carries a contract about the selection and the scroll position
-/// (`A10`) that a comparison's table does not have.
-/// </summary>
-public sealed class DiffRows : ObservableCollection<DiffLine>
-{
-    internal DiffRows(IEnumerable<DiffLine> rows)
-        : base(rows)
-    {
-    }
-
-    /// <summary>
-    /// Replaces every row with these, saying so once. The three notifications are the three WPF needs
-    /// - RowList.ResetTo says why each one.
-    /// </summary>
-    internal void ShowOnly(IEnumerable<DiffLine> rows)
-    {
-        CheckReentrancy();
-
-        Items.Clear();
-
-        foreach (var row in rows)
-        {
-            Items.Add(row);
-        }
-
-        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        yield return (Texts.Of("gui.diff.show.uncertain"), line => line.Kind == DiffLineKind.Uncertain);
+        yield return (Texts.Of("gui.diff.show.notCompared"), line => line.Kind == DiffLineKind.NotCompared);
     }
 }

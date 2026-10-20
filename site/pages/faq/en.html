@@ -43,7 +43,7 @@
       </div>
       <div>
         <h3>What about the second half - who changed it, and putting it back?</h3>
-        <p>Half of the first half. <code>bws history</code> reads who changed a start type and who installed a service out of the System log, on the command line. The same history in the window, a stock Windows baseline per build, and restoring configuration from a snapshot with a dry run and a checkbox per item are the plan. A snapshot at deployment and a diff against the machine answer <em>what</em> changed for everything the log does not record.</p>
+        <p>Half of the first half. <code>bws history</code> and the window's <em>Change history</em> read who changed a start type and who installed a service out of the System log. A stock Windows baseline per build, and restoring configuration from a snapshot with a dry run and a checkbox per item, are the plan. A snapshot at deployment and a diff against the machine answer <em>what</em> changed for everything the log does not record.</p>
       </div>
     </div>
   </div>
@@ -57,7 +57,7 @@
     <ul class="points points-alarm">
       <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</li>
       <li><strong>No stock Windows baseline.</strong> The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</li>
-      <li><strong>A thin change history, and only on the command line.</strong> <code>bws history</code> reads who changed a start type and who installed a service, as far back as the System log reaches. Windows writes nothing there about a changed account, launch path or recovery list, or about who stopped a service.</li>
+      <li><strong>A thin change history.</strong> <code>bws history</code> and the window's <em>Change history</em> read who changed a start type and who installed a service, as far back as the System log reaches. Windows writes nothing there about a changed account, launch path or recovery list, or about who stopped a service.</li>
       <li><strong>No restore from a snapshot.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
       <li><strong>No creating, deleting or repointing a service.</strong> The launch path is read and reported, and it is not edited.</li>
       <li><strong>No recovery actions.</strong> Not read, not shown, not searchable.</li>

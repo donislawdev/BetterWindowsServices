@@ -23,23 +23,9 @@
     <Grid>
         <DataGrid x:Name="Lines"
                   AutomationProperties.AutomationId="diffLines"
-                  ItemsSource="{Binding Filter.Rows}"
-                  RowStyle="{StaticResource ListRow}"
-                  CellStyle="{StaticResource ListCell}"
-                  ColumnHeaderStyle="{StaticResource ColumnHeading}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserSortColumns="True"
-                  CanUserReorderColumns="False"
-                  CanUserAddRows="False"
-                  GridLinesVisibility="Horizontal"
-                  HorizontalGridLinesBrush="{StaticResource SurfaceRowLine}"
-                  HeadersVisibility="Column"
-                  HorizontalScrollBarVisibility="Auto"
-                  SelectionUnit="FullRow"
-                  SelectionMode="Extended">
+                  ItemsSource="{Binding Filter.Rows}">
             <DataGrid.Style>
-                <Style TargetType="DataGrid" BasedOn="{StaticResource ListGrid}">
+                <Style TargetType="DataGrid" BasedOn="{StaticResource ReadOnlyTable}">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Lines.Count}" Value="0">
                             <Setter Property="Visibility" Value="Collapsed" />

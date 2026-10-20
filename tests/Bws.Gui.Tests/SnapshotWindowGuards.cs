@@ -22,14 +22,14 @@ public sealed class SnapshotWindowGuards : IDisposable
     public void Dispose() => Directory.Delete(_folder, recursive: true);
 
     [Fact]
-    public void The_bar_offers_taking_comparing_and_comparing_two_under_one_button()
+    public void The_bar_offers_taking_comparing_comparing_two_and_the_history_under_one_button()
     {
         var window = WpfHost.Window();
 
         Assert.Equal(
-            ["snapshotTake", "snapshotCompare", "snapshotCompareTwo"],
-            WpfHost.On(() => window.Actions.SnapshotsMenu.Items.OfType<System.Windows.Controls.MenuItem>().Select(AutomationProperties.GetAutomationId).ToList()));
-        Assert.True(WpfHost.On(() => window.Actions.SnapshotsButton.IsEnabled));
+            ["snapshotTake", "snapshotCompare", "snapshotCompareTwo", "historyOpen"],
+            WpfHost.On(() => window.Actions.AuditMenu.Items.OfType<System.Windows.Controls.MenuItem>().Select(AutomationProperties.GetAutomationId).ToList()));
+        Assert.True(WpfHost.On(() => window.Actions.AuditButton.IsEnabled));
     }
 
     [Fact]
@@ -109,13 +109,13 @@ public sealed class SnapshotWindowGuards : IDisposable
 
         WpfHost.Until(() => model.Snapshotting.Busy, "the reading to start");
 
-        Assert.False(WpfHost.On(() => window.Actions.SnapshotsButton.IsEnabled));
-        Assert.Equal(Texts.Of("gui.action.snapshots.busy"), WpfHost.On(() => window.Actions.SnapshotsButton.ToolTip));
+        Assert.False(WpfHost.On(() => window.Actions.AuditButton.IsEnabled));
+        Assert.Equal(Texts.Of("gui.action.audit.busy"), WpfHost.On(() => window.Actions.AuditButton.ToolTip));
 
         machine.ReleaseReadings();
         await taking.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.True(WpfHost.On(() => window.Actions.SnapshotsButton.IsEnabled));
+        Assert.True(WpfHost.On(() => window.Actions.AuditButton.IsEnabled));
     }
 
     private async Task<(MainWindow Window, MainViewModel Model)> Compared()

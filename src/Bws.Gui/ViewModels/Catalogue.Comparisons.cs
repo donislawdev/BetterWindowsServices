@@ -83,6 +83,14 @@ public static partial class Catalogue
     }
 
     /// <summary>
+    /// Everything "Audit..." opens - the comparison, the form before a snapshot and the change history -
+    /// as one group of cells. One subject under one button, and since 2026-10-20 one call in the list of
+    /// everything, which stood at the share of its ceiling the shape guard counts as near.
+    /// </summary>
+    private static Built[] AuditViews((DiffSheet Data, DiffSheet Empty, DiffSheet Extreme) compared) =>
+        [.. DiffViews(compared), .. SnapshotFormViews(), .. HistoryViews()];
+
+    /// <summary>
     /// The comparison view and the table inside it, each over the three comparisons above.
     ///
     /// <b>Over a comparison rather than over a model</b> - a comparison is worked out once and never
@@ -96,8 +104,9 @@ public static partial class Catalogue
         View(() => new DiffView(), data: compared.Data, empty: compared.Empty, extreme: compared.Extreme),
 
         // No empty cell: when nothing differs there is no table to narrow, and the row is not there at
-        // all - a cell would be a rectangle CatalogueViewGuards rightly refuses.
-        View(() => new DiffFilterRow(), data: compared.Data, extreme: compared.Extreme),
+        // all - a cell would be a rectangle CatalogueViewGuards rightly refuses. Bound to the filter
+        // rather than the sheet, the way DiffView hands it over - ShowRow knows choices, not comparisons.
+        View(() => new ShowRow { Named = "diff" }, data: compared.Data.Filter, extreme: compared.Extreme.Filter),
         View(() => new DiffTable(), data: compared.Data, empty: compared.Empty, extreme: compared.Extreme)
     ];
 

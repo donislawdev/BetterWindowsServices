@@ -212,7 +212,7 @@ public static partial class Catalogue
     private static async Task<(MainViewModel Ordinary, MainViewModel Driver, MainViewModel Longest, MainViewModel Gone, Chosen Reading)> PreparePanelsAsync(IClock clock)
     {
         var chosen = new[] { "Spooler", "disk", LongestSpecimen().ServiceName, "Spooler" }
-            .Select(name => (Model: new MainViewModel(new Frozen(Specimens()), clock, new Vouching(), new Measuring()), Name: name))
+            .Select(name => (Model: new MainViewModel(new Frozen(Specimens()), clock, new Vouching(), new Measuring(), history: new Recorded(Recorded.Ordinary())), Name: name))
             .ToArray();
 
         // Chosen AND shown: picking a row does not open the panel in the product either -
@@ -228,6 +228,9 @@ public static partial class Catalogue
             model.Chosen.Show();
 
             await model.Chosen.CatchingUp.ConfigureAwait(false);
+
+            // And the log, so the history section at the foot of the panel holds its lines (J2-c).
+            await model.History.Out.ConfigureAwait(false);
         }
 
         // The entry the panel follows is asked about against a listing that no longer holds it -
@@ -355,8 +358,7 @@ public static partial class Catalogue
             View(() => new OverviewView(),
                 data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading),
 
-            .. DiffViews(compared),
-            .. SnapshotFormViews(),
+            .. AuditViews(compared),
 
             View(() => new DetailsView(),
                 data: ready.ChoseOrdinary.Chosen, wrong: ready.ChoseGone.Chosen, loading: ready.ChoseReading, extreme: ready.ChoseLongest.Chosen),

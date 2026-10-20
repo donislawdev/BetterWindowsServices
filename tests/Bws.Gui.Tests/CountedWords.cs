@@ -70,7 +70,11 @@ internal static class CountedWords
         "failures",
         // 2026-10-15, bws history (J1): "{0} start type changes do not name their entry". A plural noun,
         // and its one is a sentence of its own - cli.history.unnamed.one says "change".
-        "changes"
+        "changes",
+        // 2026-10-20, the change history in the window (J2): "{2} times since {3}" on a line standing for
+        // several identical changes, and "{1} lines" under "Show". Both plural nouns, both in pairs - a
+        // line standing for one change says no count at all, and one line is its own sentence.
+        "times", "lines"
     ];
 
     /// <summary>

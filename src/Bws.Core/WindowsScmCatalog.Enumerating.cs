@@ -27,7 +27,7 @@ public sealed partial class WindowsScmCatalog
     // A list rather than a sequence, because the caller needs a count before it starts and an
     // index while it runs. It was already building one internally - the sequence was hiding
     // that behind a type that promised less than it delivered.
-    private static List<EnumeratedEntry> Enumerate(SafeHandle manager)
+    private static unsafe List<EnumeratedEntry> Enumerate(SafeHandle manager)
     {
         uint resume = 0;
         var stalled = 0;
@@ -44,7 +44,7 @@ public sealed partial class WindowsScmCatalog
             // how much room it wants, which is the documented way to size this.
             var probed = PInvoke.EnumServicesStatusEx(
                 manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
-                ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default,
+                ENUM_SERVICE_STATE.SERVICE_STATE_ALL, null, 0,
                 out var needed, out _, ref resume, null!);
 
             var probeError = Marshal.GetLastWin32Error();
@@ -189,11 +189,14 @@ public sealed partial class WindowsScmCatalog
             // Pinned across the call and the reading, for the reason set out in full at
             // ReadConfiguration: each record here carries two absolute pointers into this very
             // block, and the array is free to move the instant the interop wrapper returns.
+            // CsWin32 0.3.360 stopped offering a span here for that same reason - its release
+            // notes for 0.3.358 keep buffers holding interior pointers as native pointers - so
+            // the pointer this block was already pinned for is now what the call takes.
             fixed (byte* pinned = buffer)
             {
                 var read = PInvoke.EnumServicesStatusEx(
                     manager, SC_ENUM_TYPE.SC_ENUM_PROCESS_INFO, AllEntryTypes,
-                    ENUM_SERVICE_STATE.SERVICE_STATE_ALL, new Span<byte>(pinned, buffer.Length),
+                    ENUM_SERVICE_STATE.SERVICE_STATE_ALL, pinned, (uint)buffer.Length,
                     out _, out var returned, ref resume, null!);
 
                 var error = Marshal.GetLastWin32Error();

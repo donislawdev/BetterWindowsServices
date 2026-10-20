@@ -165,24 +165,27 @@
                 Click="ExportAsked" />
 
         <!--
-            THE MACHINE AS A FILE, AND A FILE AGAINST THE MACHINE - `D1` and `D2` in the window since
-            2026-10-14. One button with a menu rather than two buttons, owner's decision (W-a): this
-            bar is a horizontal StackPanel that cannot break a line (`docs/10` trap 18), and the
-            narrowest window already fits it with little to spare. On this side of the line because
-            nothing either item does reaches a service. Three dots: each asks for a file first.
+            THE MACHINE AS A FILE, A FILE AGAINST THE MACHINE, AND WHO CHANGED WHAT - `D1` and `D2` in the
+            window since 2026-10-14, `D7` since 2026-10-20. One button with a menu rather than several,
+            owner's decision (W-a): this bar is a horizontal StackPanel that cannot break a line (`docs/10`
+            trap 18), and at the narrowest window it has 17 units to spare - measured 2026-10-20, too few
+            for a fifth button. "Snapshots..." until the change history joined it, then "Audit..." (owner's
+            decision J2-a): the product's own word for snapshots, comparison and the change log together,
+            and a word that does not hide the history under the name of something else. On this side of the
+            line because nothing any item does reaches a service.
 
             ShowOnDisabled because the button is off while a snapshot is being read, and the reason
             is on it - `docs/10` trap 14.
         -->
-        <Button x:Name="SnapshotsButton"
-                AutomationProperties.AutomationId="actionSnapshots"
-                Content="{DynamicResource gui.action.snapshots}"
-                ToolTip="{DynamicResource gui.action.snapshots.hint}"
+        <Button x:Name="AuditButton"
+                AutomationProperties.AutomationId="actionAudit"
+                Content="{DynamicResource gui.action.audit}"
+                ToolTip="{DynamicResource gui.action.audit.hint}"
                 ToolTipService.ShowOnDisabled="True"
                 Margin="{StaticResource MarginBetweenControls}"
-                Click="SnapshotsAsked">
+                Click="AuditAsked">
             <Button.ContextMenu>
-                <ContextMenu x:Name="SnapshotsMenu" />
+                <ContextMenu x:Name="AuditMenu" />
             </Button.ContextMenu>
         </Button>
 

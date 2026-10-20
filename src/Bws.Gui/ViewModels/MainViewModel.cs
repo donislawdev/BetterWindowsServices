@@ -1,4 +1,5 @@
 using Bws.Core;
+using Bws.Core.History;
 using Bws.Core.Querying;
 
 namespace Bws.Gui.ViewModels;
@@ -106,7 +107,11 @@ public sealed partial class MainViewModel : Checked
 
             // NOT on the reading path, unlike the three above: asked once, while a plan that ends a
             // process is being built, so the window can refuse one up front - PlanBuilder.Ask.
-            new WindowsEndingFactsReader())
+            new WindowsEndingFactsReader(),
+
+            // Not on it either: the System log is read when somebody first asks for the change
+            // history - HistoryReading says why not at start.
+            new WindowsChangeHistoryReader())
     {
     }
 
@@ -120,11 +125,13 @@ public sealed partial class MainViewModel : Checked
         IClock clock,
         IBinaryInspector? inspector = null,
         IProcessMemoryReader? reader = null,
-        IEndingFactsReader? processes = null)
+        IEndingFactsReader? processes = null,
+        IChangeHistoryReader? history = null)
     {
         _index = new RowIndex(clock);
         _catalog = catalog;
         _processes = processes;
+        History = HistoryOf(history);
 
         // Says is fetched rather than handed over, because a caller may replace it after this
         // constructor has run - see the argument on Readings._look. The last argument is fetched
@@ -135,7 +142,9 @@ public sealed partial class MainViewModel : Checked
 
         // THE PANEL READS WHAT ITS ENTRY LACKS, THROUGH THE SAME READINGS - UX-GUI-005. After them,
         // because it is handed them.
-        Chosen = new Chosen(_readings);
+        // The history section only when there is a log to read it from. A model built for a test without
+        // one has a panel of fields alone, as it had before J2, rather than a fifth section apologising.
+        Chosen = new Chosen(_readings, history is null ? null : History);
         Snapshotting = Comparing(catalog, inspector, clock);
 
         // Reading the field and writing the property, which is deliberate and is the difference
@@ -313,12 +322,13 @@ public sealed partial class MainViewModel : Checked
 
 
     /// <summary>
-    /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks for.
+    /// Reads the machine in full and fills the list. The first reading, and whatever F5 asks for - and,
+    /// once somebody has asked for the change history, the System log again with it (J2).
     ///
     /// Handed straight on, because the window binds to this class and the state machine behind it
     /// is not something a window should have to know the name of.
     /// </summary>
-    public Task LoadAsync() => ReadMachineAsync(Relisting.Afresh);
+    public Task LoadAsync() => Task.WhenAll(ReadMachineAsync(Relisting.Afresh), History.Fresh());
 
     /// <summary>
     /// Reads the machine in full after a plan, keeping what the window already knows about files.
