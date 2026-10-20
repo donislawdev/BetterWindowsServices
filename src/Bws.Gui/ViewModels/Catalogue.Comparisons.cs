@@ -103,12 +103,16 @@ public static partial class Catalogue
     [
         View(() => new DiffView(), data: compared.Data, empty: compared.Empty, extreme: compared.Extreme),
 
-        // No empty cell: when nothing differs there is no table to narrow, and the row is not there at
-        // all - a cell would be a rectangle CatalogueViewGuards rightly refuses. Bound to the filter
-        // rather than the sheet, the way DiffView hands it over - ShowRow knows choices, not comparisons.
-        View(() => new ShowRow { Named = "diff" }, data: compared.Data.Filter, extreme: compared.Extreme.Filter),
+        // The empty cell is a search that finds nothing (AS-a, 2026-10-20) - over a filter of its own, so
+        // the data cell keeps every row. When nothing differs there is no table to narrow and the row is
+        // not there at all, which a cell could not show. Bound to the filter rather than the sheet, the
+        // way DiffView hands it over - ShowRow knows choices, not comparisons.
+        View(() => new ShowRow { Named = "diff" }, data: compared.Data.Filter, empty: Unmatched(compared.Data), extreme: compared.Extreme.Filter),
         View(() => new DiffTable(), data: compared.Data, empty: compared.Empty, extreme: compared.Extreme)
     ];
+
+    /// <summary>The rows of a comparison under a search that finds none of them.</summary>
+    private static DiffFilter Unmatched(DiffSheet compared) => new(compared.Lines) { SearchText = "nothing like this" };
 
     /// <summary>The longest specimen with its description moved, so the extreme cell has a long value in a cell.</summary>
     private static ScmEntry Changed(ScmEntry entry) =>

@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Xml;
 using Bws.Core.History;
+using Bws.Core.Snapshots;
 
 namespace Bws.Gui.ViewModels;
 
@@ -51,6 +53,7 @@ internal interface IEntryHistory
 public sealed class HistoryReading : Observable, IEntryHistory
 {
     private readonly IChangeHistoryReader? _reader;
+    private readonly Func<Says>? _says;
     private ChangeHistory? _latest;
     private string _failure = string.Empty;
     private bool _asked;
@@ -64,9 +67,11 @@ public sealed class HistoryReading : Observable, IEntryHistory
     private (ChangeHistory History, string Name, DetailSection Section)? _made;
 
     /// <param name="reader">The log, or nothing for a model built without one - a test's state, which says so.</param>
-    internal HistoryReading(IChangeHistoryReader? reader)
+    /// <param name="says">The line under the window, for what an export did - Snapshotting is handed the same.</param>
+    internal HistoryReading(IChangeHistoryReader? reader, Func<Says>? says = null)
     {
         _reader = reader;
+        _says = says;
     }
 
     /// <inheritdoc />
@@ -148,6 +153,53 @@ public sealed class HistoryReading : Observable, IEntryHistory
         _made = (history, serviceName, section);
 
         return section;
+    }
+
+    /// <summary>
+    /// Writes the history on screen to a file - its sentences, then the lines the table shows in the order
+    /// it shows them - and says how many went where, or why none did (AS-c). Hands back the sentence about
+    /// a failure, for a guard to read, the way the comparison's export does.
+    ///
+    /// <b>The text is made here and written off the window's thread</b>, atomically - the comparison's
+    /// argument: the folder somebody chose may be a share on the network, and a file cut off half way
+    /// must not stand where a whole one stood (rule 24 of the project notes).
+    /// </summary>
+    /// <param name="rows">The lines as the table has them, sorted the way somebody sorted them.</param>
+    internal async Task<string?> ExportAsync(string path, IReadOnlyList<HistoryRow> rows)
+    {
+        if (Shown is not { Exportable: true } sheet)
+        {
+            return null;
+        }
+
+        var text = Exporting.Mark + HistoryExporting.AsCsv(sheet, rows, Exporting.Separator(CultureInfo.CurrentCulture));
+        string? trouble;
+
+        try
+        {
+            await Task.Run(() => AtomicFile.Write(path, text)).ConfigureAwait(true);
+
+            trouble = null;
+        }
+        catch (IOException failure)
+        {
+            trouble = Texts.Of("gui.history.export.failed", failure.Message);
+        }
+        catch (UnauthorizedAccessException failure)
+        {
+            trouble = Texts.Of("gui.history.export.failed", failure.Message);
+        }
+
+        if (trouble is null)
+        {
+            _says?.Invoke().Did(HistoryExporting.Done(rows.Count, Path.GetFileName(path)));
+        }
+        else
+        {
+            _says?.Invoke().CouldNotDo(trouble);
+        }
+
+        return trouble;
     }
 
     /// <summary>The panel's heading for the section, a key like every other section's.</summary>

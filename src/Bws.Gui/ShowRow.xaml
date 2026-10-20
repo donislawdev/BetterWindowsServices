@@ -20,23 +20,83 @@
         The automation names come from the table that uses it (Named, in the code behind), so a probe
         asks for "diffShow" or "historyShow" and never for a button it cannot tell apart from another.
 
+        AND THE SEARCH, FIRST IN THE ROW, since 2026-10-20 - owner's decisions AS-a and AS-b: plain text,
+        every word somewhere in the row, together with the ticks under "Show". First because it is what
+        somebody reaches for, and the count after both because it answers for both. Here rather than a
+        file of its own, because it asks the same question the button asks - which rows are on screen -
+        and the count beside them is one answer, not two (GUI rule 9 counts subjects, not controls).
+
         Focusable and IsTabStop are off because a UserControl is both by default - `docs/10` trap 8.
     -->
-    <StackPanel Orientation="Horizontal"
-                Margin="{StaticResource MarginTileParts}">
-        <StackPanel.Style>
-            <Style TargetType="StackPanel">
+    <Grid Margin="{StaticResource MarginTileParts}">
+        <Grid.Style>
+            <Style TargetType="Grid">
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding Offered}" Value="False">
                         <Setter Property="Visibility" Value="Collapsed" />
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
-        </StackPanel.Style>
+        </Grid.Style>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource WidthTableSearch}" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <Button x:Name="ShowButton"
+        <!--
+            THE LIST'S FIELD, PART FOR PART - the frame, the magnifier, the box, the words behind an empty
+            box and the line along the foot (SearchRow.xaml says why each). FieldFrame rather than the
+            list's SearchFieldFrame, whose red edge answers to the list's query. Updated 400 ms after the
+            last key, the list's own delay: the table is filtered again on every update.
+        -->
+        <Grid Grid.Column="0"
+              x:Name="SearchField"
+              Margin="{StaticResource MarginBetweenControls}">
+            <Border Style="{StaticResource FieldFrame}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Path Grid.Column="0" Style="{StaticResource SearchMark}" />
+
+                    <!-- Named for a screen reader by the words behind the empty box, which it cannot see. -->
+                    <TextBox Grid.Column="1"
+                             x:Name="SearchBox"
+                             Style="{StaticResource SearchFieldBox}"
+                             AutomationProperties.Name="{Binding SearchHint}"
+                             ToolTip="{Binding SearchTip}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding SearchHint}"
+                               Margin="{StaticResource PadSearchText}"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource SearchFieldLine}" />
+        </Grid>
+
+        <Button Grid.Column="1"
+                x:Name="ShowButton"
                 Content="{Binding Button}"
                 ToolTip="{Binding Hint}"
+                VerticalAlignment="Center"
                 Margin="{StaticResource MarginBetweenControls}"
                 Click="ShowAsked">
             <Button.ContextMenu>
@@ -46,9 +106,12 @@
             </Button.ContextMenu>
         </Button>
 
-        <TextBlock x:Name="ShowingText"
+        <!-- Wraps rather than runs off: at the narrowest window the field and the button keep their width and this gets what is left. -->
+        <TextBlock Grid.Column="2"
+                   x:Name="ShowingText"
                    Text="{Binding Showing}"
+                   TextWrapping="Wrap"
                    VerticalAlignment="Center"
                    Style="{StaticResource SubduedText}" />
-    </StackPanel>
+    </Grid>
 </UserControl>

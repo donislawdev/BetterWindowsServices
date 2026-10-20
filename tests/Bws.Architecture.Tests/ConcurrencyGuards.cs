@@ -175,7 +175,10 @@ public sealed class ConcurrencyGuards
             "query handle may only be used on the thread that made it (EvtQuery's documentation, " +
             "F21). Nothing crosses back but the history or the failure, through an await. One " +
             "reading at a time is held by the task kept in Out, which only the interface thread " +
-            "replaces - HistoryTests holds that a second ask reads once.",
+            "replaces - HistoryTests holds that a second ask reads once. And since 2026-10-20 (AS-c) " +
+            "the export's write, the comparison's argument in Snapshotting.cs: the text is made on " +
+            "the interface thread from what it shows, and only AtomicFile.Write goes to the pool, " +
+            "because the folder somebody chose may be a share on the network.",
 
         ["ShellHandover.cs"] =
             "The Donate button's call into the shell, off the interface thread, added 2026-09-23 " +

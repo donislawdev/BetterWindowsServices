@@ -314,7 +314,11 @@ Changes that are identical apart from their time share one line, which says how 
 since when - Windows switching a service back and forth by itself is two lines rather than over a
 hundred, and nothing is left out. *Show* above the table puts each change on a line of its own,
 or narrows it to what SYSTEM did not do, to installations, or to startup type changes, and says how
-much of the history is on screen. The panel about one entry ends with that entry's history.
+much of the history is on screen. The search box beside it keeps the lines with every word you type
+in them - a date such as 2026-10-16 keeps that day - and *Export...* writes what is on screen to a
+CSV file, the sentences above the table first and each account's SID beside its name. The table
+opens newest first, and a click on a heading sorts by that column. The panel about one entry ends
+with that entry's history.
 
 ---
 
@@ -637,9 +641,11 @@ settings separate lists, so a double click opens it in columns. *Audit...* besid
 snapshot of the machine to a file, the same file `bws snapshot create` writes, with a note kept
 inside it if you type one, and compares one with the machine as it is now, or two with each other,
 showing what changed in place of the list, one row per field. *Show* above that table narrows it -
-to the differences alone, say, or to one field - and *Export...* there writes the comparison to a
-CSV file, what the window says above the table first. *Change history* under the same button shows
-who changed a startup type or installed a service, from the System log. Ctrl+C
+to the differences alone, say, or to one field - the search box beside it keeps the rows with every
+word you type, and *Export...* there writes the comparison to a CSV file, what the window says above
+the table first. *Change history* under the same button shows who changed a startup type or
+installed a service, from the System log, with the same search and its own *Export...*. Ctrl+F
+under either puts the cursor in its search. Ctrl+C
 over the list copies everything about the chosen entry. Escape backs out of the innermost thing
 first. *GitHub* and *Donate*, at the
 right end of the row above the search box, open the project's repository and its support page in

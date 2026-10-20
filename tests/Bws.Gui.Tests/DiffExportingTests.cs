@@ -47,6 +47,20 @@ public sealed class DiffExportingTests : IDisposable
     }
 
     [Fact]
+    public void A_search_over_the_comparison_is_said_in_the_file()
+    {
+        // AS-a, 2026-10-20: "1 of 3 rows" under "All rows" would read as a menu that lost count.
+        var sheet = DiffFilterTests.Mixed();
+
+        sheet.Filter.SearchText = "added";
+
+        var lines = Lines(DiffExporting.AsCsv(sheet, sheet.Filter.Rows, ","));
+
+        Assert.True(Index(lines, Texts.Of("gui.diff.export.searched", "added")) > 0, "no sentence about the search");
+        Assert.True(Index(lines, Texts.Of("gui.diff.export.shown.many", sheet.Filter.Button, 1, 3)) > 0, "no sentence about how many");
+    }
+
+    [Fact]
     public void A_value_from_a_snapshot_that_a_spreadsheet_would_run_arrives_inert()
     {
         // A display name comes from whoever installed the service, and a snapshot file from whoever

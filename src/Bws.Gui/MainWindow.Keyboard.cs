@@ -149,28 +149,10 @@ public partial class MainWindow
                 return true;
 
             case Shortcut.FocusQuery:
-                // Selected, not just focused. Ctrl+F in every other program starts a new search
-                // rather than appending to the last one, and a person who wanted to keep the old
-                // text still has it - one key press away, unselected by typing nothing.
-                //
-                // AND A PERSON HAS ARRIVED, which the list under the box wants to know: an empty
-                // box offers the questions that fit the list on screen, a box with text in it -
-                // selected, so nothing to complete - offers nothing. Said here rather than left to the focus event, because
-                // a box that already had the keyboard gets no focus event from this.
-                //
-                // NOT ON THE OVERVIEW SCREEN NOR UNDER A COMPARISON (since 2026-10-14), where the row
-                // holding the box is collapsed: a popup
-                // hung off a collapsed target opens somewhere on the screen with nothing under it,
-                // and nothing would close it but Escape - the box never had the keyboard to lose.
-                // Asked of the model rather than of the box's visibility, because a window these
-                // tests build is never shown and answers false about the visibility of everything.
-                Search.Box.Focus();
-                Search.Box.SelectAll();
-
-                if (_model.ListOnScreen)
-                {
-                    _model.Suggesting.Arrived(Search.Box.Text);
-                }
+                // Which box takes the caret, and what the list under it is told, is Finding.cs -
+                // since 2026-10-20, when the views of the audit got searches of their own and the
+                // choice of box would have taken this method over its share of the shape ceiling.
+                Finding.Begin(_model, Search, ChangeHistory.Choices, Comparison.Choices);
 
                 return true;
 
@@ -222,8 +204,11 @@ public partial class MainWindow
                 //
                 // THE BOX FIRST HANDS OVER WHAT IT SAYS, since 2026-10-05 - G-9. Pressed inside the
                 // 400 ms the box waits after typing, Escape found the model's query still empty,
-                // did nothing, and the text arrived a moment later. SearchRow.Commit says more.
+                // did nothing, and the text arrived a moment later. SearchRow.Commit says more. The
+                // search over a view's table the same, since 2026-10-20 - it waits as long.
                 Search.Commit();
+                ChangeHistory.Choices.Commit();
+                Comparison.Choices.Commit();
 
                 return _model.Suggesting.Close()
                     || _model.Planned.Busy

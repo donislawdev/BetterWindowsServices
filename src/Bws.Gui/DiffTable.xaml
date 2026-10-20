@@ -19,6 +19,12 @@
         THE ROWS ARE THE FILTER'S, the empty state is the sheet's (W2-b): the table shows what "Show"
         leaves on screen, and it gives way to the sentence only when the comparison itself found
         nothing - a choice that narrows the rows never makes the comparison say "no differences".
+
+        GONE WHEN THE SEARCH LEAVES NO ROW, since 2026-10-20 (AS-a) - the one way the filter's rows come
+        out empty while the comparison found something. The line beside the search says so
+        (DiffFilter.Showing), and "no differences" stays the comparison's alone.
+
+        BY ENTRY UNTIL SOMEBODY SORTS, AND THE HEADING SAYS SO (AS-d): FirstSort.
     -->
     <Grid>
         <DataGrid x:Name="Lines"
@@ -27,7 +33,7 @@
             <DataGrid.Style>
                 <Style TargetType="DataGrid" BasedOn="{StaticResource ReadOnlyTable}">
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding Lines.Count}" Value="0">
+                        <DataTrigger Binding="{Binding Filter.Rows.Count}" Value="0">
                             <Setter Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                     </Style.Triggers>

@@ -277,6 +277,14 @@
     -->
     <system:Double x:Key="WidthSearchMessage">420</system:Double>
 
+    <!--
+        The search field over a table of the audit - the comparison's and the change history's (AS-a,
+        2026-10-20). A column of its own beside "Show" rather than the rest of the row, because a field
+        as wide as the window reads as the list's search, and this one only narrows the table under it.
+        Chosen to hold a date and a name side by side at the body size, not measured against a window.
+    -->
+    <GridLength x:Key="WidthTableSearch">320</GridLength>
+
     <!-- The line under the search field while the keyboard is in it - twice the resting one, the way Windows draws a focused field. -->
     <Thickness x:Key="BorderFocusLine">0,0,0,2</Thickness>
 

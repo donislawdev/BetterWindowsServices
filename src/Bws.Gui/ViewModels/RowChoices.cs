@@ -18,6 +18,10 @@ namespace Bws.Gui.ViewModels;
 /// - which rows. The change history has two - identical changes together or each on its own, and whose
 /// changes. One tick per group, and the menu draws a line between groups so the two ticks read as two
 /// answers to two questions.
+///
+/// <b>AND THE SEARCH BESIDE THE BUTTON, since 2026-10-20 (AS-a)</b> - the same question, which rows are
+/// on screen, asked by typing rather than by choosing, so it narrows together with the ticks and
+/// <see cref="Showing"/> answers for both.
 /// </summary>
 public interface IRowChoices
 {
@@ -41,6 +45,18 @@ public interface IRowChoices
     /// whose every choice shows nothing would teach that the menu lies.
     /// </summary>
     bool Offered { get; }
+
+    /// <summary>
+    /// What is typed in the search beside the button - the table shows only the rows with every word in
+    /// them (<see cref="RowSearch"/>, AS-b of 2026-10-20). Empty for no search.
+    /// </summary>
+    string SearchText { get; set; }
+
+    /// <summary>The words in the empty search field, naming what it searches.</summary>
+    string SearchHint { get; }
+
+    /// <summary>What can be typed in the search field and what it looks at, for its tooltip.</summary>
+    string SearchTip { get; }
 }
 
 /// <summary>

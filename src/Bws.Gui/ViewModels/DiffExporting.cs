@@ -89,6 +89,13 @@ internal static class DiffExporting
             yield return caveat;
         }
 
+        // The search too, since 2026-10-20 (AS-a) - "3 of 25 rows" under "All rows" would otherwise read
+        // as a menu that lost count.
+        if (RowSearch.Words(sheet.Filter.SearchText) is { Length: > 0 } words)
+        {
+            yield return Texts.Of("gui.diff.export.searched", RowSearch.Typed(words));
+        }
+
         if (shown < sheet.Lines.Count)
         {
             yield return sheet.Lines.Count == 1

@@ -213,7 +213,7 @@ public partial class MainWindow : Window
         SnapshotDoors.Open(this, Actions, new SnapshotDoors.Middle(Comparison, TakeForm), _model, rearrange);
 
         // AND THE CHANGE HISTORY, 2026-10-20 (J2) - from the same menu, into the same middle, the same way.
-        HistoryDoors.Open(Actions, ChangeHistory, _model, rearrange);
+        HistoryDoors.Open(this, Actions, ChangeHistory, _model, rearrange);
 
         // THE BAR OVER THE LIST, 2026-08-25. It asks and the window answers, which is the same
         // arrangement the plan panel uses for its own two buttons - a part of the window that
