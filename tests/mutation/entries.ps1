@@ -13752,6 +13752,14 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
     }
     @{
+        # A review of #82: a history read again and found empty keeps the text with the box gone.
+        Name = 'window escape: only a search somebody can see is emptied'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
+        From = '        if (MiddleChoices is not { Offered: true, SearchText.Length: > 0 } choices)'
+        To = '        if (MiddleChoices is not { SearchText.Length: > 0 } choices)'
+        Test = 'HistoryWindowGuards.Escape_over_a_history_read_again_and_found_empty_puts_it_away_at_once'
+    }
+    @{
         # G-9 for the view's search: Escape inside the 400 ms must find the text that is there.
         Name = 'window escape: the search over a view is handed over first'
         File = 'src\Bws.Gui\MainWindow.Keyboard.cs'

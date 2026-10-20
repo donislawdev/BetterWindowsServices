@@ -156,6 +156,29 @@ public sealed class HistoryWindowGuards
     }
 
     [Fact]
+    public async Task Escape_over_a_history_read_again_and_found_empty_puts_it_away_at_once()
+    {
+        // A review of #82: a search typed, then F5 reads a log just cleared. The row holding the box is
+        // gone with the table, the text stays - and the first Escape must not be spent on a box nobody sees.
+        var log = new HistoryLog(HistoryLog.Ordinary());
+        var model = Model(log);
+        var window = WpfHost.Window(model);
+
+        await Open(window, model);
+        WpfHost.On(() => model.History.Shown!.Filter.SearchText = "bits");
+
+        log.History = HistoryLog.Empty();
+        await WpfHost.On(() => model.History.Fresh()).WaitAsync(TimeSpan.FromSeconds(10));
+        WpfHost.Settled();
+
+        Assert.False(model.History.Shown!.Filter.Offered);
+        Assert.Equal("bits", model.History.Shown.Filter.SearchText);
+
+        Assert.True(WpfHost.On(() => window.Act(Shortcut.Back, out _)));
+        Assert.Null(model.History.Shown);
+    }
+
+    [Fact]
     public async Task Control_F_under_the_history_takes_its_own_search_and_leaves_the_list_box_alone()
     {
         // The list's box is collapsed under the history - Ctrl+F put the caret nowhere before AS-a.

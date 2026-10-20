@@ -55,10 +55,17 @@ public sealed partial class MainViewModel
     /// </summary>
     internal IRowChoices? MiddleChoices => (IRowChoices?)Snapshotting.Shown?.Filter ?? History.Shown?.Filter;
 
-    /// <summary>Empties the search over the table in the middle - true when there was one to empty.</summary>
+    /// <summary>
+    /// Empties the search over the table in the middle - true when there was one to empty.
+    ///
+    /// <b>Only a search somebody can see</b>, since a review of #82: a history read again and found
+    /// empty keeps what was typed, while the row holding the box is gone (<see cref="IRowChoices.Offered"/>).
+    /// Emptying it there spent a press on nothing visible, and the view went only on the second. The
+    /// condition is Ctrl+F's own (Finding.Begin).
+    /// </summary>
     private bool MiddleSearchEmptied()
     {
-        if (MiddleChoices is not { SearchText.Length: > 0 } choices)
+        if (MiddleChoices is not { Offered: true, SearchText.Length: > 0 } choices)
         {
             return false;
         }
