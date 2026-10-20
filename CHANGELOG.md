@@ -51,14 +51,14 @@ is not part of this repository.
   with administrator rights, and takes a note that is kept inside the snapshot and shown whenever it
   is compared, as `bws snapshot create --note` does.
 - The change history in the window. "Change history" under "Audit..." shows, in place of the list,
-  who changed the start type of a service and who installed one, from the System log - what
+  who changed the startup type of a service and who installed one, from the System log - what
   `bws history` reads - with the same sentences above it about how far back the log reaches and
   whether it was cleared. Changes that are identical apart from their time share one line, which
   says how many times and since when, so Windows switching a service back and forth by itself takes
   two lines rather than a page. "Show" above the table puts each change on a line of its own, or
-  narrows it to the changes SYSTEM did not make, to installations or to start type changes, and says
-  how much is on screen. The panel about one entry ends with a "History" section: that entry's start
-  type changes, gathered the same way. The log is read the first time you ask, again on F5, and again
+  narrows it to the changes SYSTEM did not make, to installations or to startup type changes, and
+  says how much is on screen. The panel about one entry ends with a "History" section: that entry's
+  startup type changes, gathered the same way. The log is read the first time you ask, again on F5, and again
   each time the history is opened. "Back to the list" or Escape returns.
 - A "GitHub" button left of Donate at the right end of the row above the search box. It opens the
   project's repository - the source, the issues and the releases - in your browser, the way Donate

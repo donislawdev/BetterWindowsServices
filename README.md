@@ -313,7 +313,7 @@ In the window, *Audit...* and then *Change history* shows the same history in pl
 Changes that are identical apart from their time share one line, which says how many times and
 since when - Windows switching a service back and forth by itself is two lines rather than over a
 hundred, and nothing is left out. *Show* above the table puts each change on a line of its own,
-or narrows it to what SYSTEM did not do, to installations, or to start type changes, and says how
+or narrows it to what SYSTEM did not do, to installations, or to startup type changes, and says how
 much of the history is on screen. The panel about one entry ends with that entry's history.
 
 ---
@@ -639,7 +639,7 @@ inside it if you type one, and compares one with the machine as it is now, or tw
 showing what changed in place of the list, one row per field. *Show* above that table narrows it -
 to the differences alone, say, or to one field - and *Export...* there writes the comparison to a
 CSV file, what the window says above the table first. *Change history* under the same button shows
-who changed a start type or installed a service, from the System log. Ctrl+C
+who changed a startup type or installed a service, from the System log. Ctrl+C
 over the list copies everything about the chosen entry. Escape backs out of the innermost thing
 first. *GitHub* and *Donate*, at the
 right end of the row above the search box, open the project's repository and its support page in
