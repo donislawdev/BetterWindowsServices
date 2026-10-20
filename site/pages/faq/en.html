@@ -1,12 +1,12 @@
 <meta name="title" content="Questions about Better Windows Services, and its honest limits">
-<meta name="description" content="Does it need the internet? Administrator rights? Will it break my server? What it does, what it does not do yet, and what it refuses to do by design.">
+<meta name="description" content="Does it need the internet? Administrator rights? Will it break my server? What it does, and what it refuses to do by design.">
 <meta name="nav" content="FAQ">
 
 <section class="band page-title">
   <div class="wrap">
     <span class="eyebrow">Questions</span>
     <h1>Questions, and the limits</h1>
-    <p class="lede">A tool that quietly fails to cover something is worse than one that says what it cannot do. The limits are on this page too, in three groups: not built yet, by design, and what Windows does that this tool reports as it is.</p>
+    <p class="lede">A tool that quietly fails to cover something is worse than one that says what it cannot do. The limits are on this page too, in two groups: what it refuses by design, and what Windows does that this tool reports as it is.</p>
   </div>
 </section>
 
@@ -19,7 +19,7 @@
       </div>
       <div>
         <h3>Does it need the internet?</h3>
-        <p>Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The one time it can touch a network at all is when a service's launch path points at another machine's share and you pass <code>--follow-network</code> to let it look there - off by default, and the help says why.</p>
+        <p>Never. No telemetry, no update check, no crash reporting, no account, no client of anything. The one time it can touch a network at all is when you pass <code>--follow-network</code>: then it may look at a launch path on another machine's share, and let Windows fetch a certificate this machine does not already hold - off by default, and the help says why. The <em>GitHub</em> and <em>Donate</em> buttons in the window and the page in its <em>Help</em> menu each hand one fixed address to your browser when you press them, and your browser is what connects.</p>
       </div>
       <div>
         <h3>Does it need administrator rights?</h3>
@@ -31,7 +31,7 @@
       </div>
       <div>
         <h3>Will it break my server?</h3>
-        <p>Not by itself. Nothing is changed without a plan you have seen, drivers are refused, and a plan that would take down something the machine needs says so. What it cannot protect you from is carrying out a plan you did not read. The list of services the machine needs is a starter list of seven - the two halves of RPC, the account manager, key isolation, the session manager and plug and play - and <strong>Remote Desktop is not on it</strong>, so over a remote session, read the plan.</p>
+        <p>Not by itself. Nothing is changed without a plan you have seen, drivers are refused, and a plan that would take down something the machine needs says so. What it cannot protect you from is carrying out a plan you did not read. The list of services the machine needs is a starter list of seven - the two halves of RPC and the DCOM launcher, the account manager, key isolation, the session manager and plug and play - and <strong>Remote Desktop is not on it</strong>, so over a remote session, read the plan.</p>
       </div>
       <div>
         <h3>Is this a Microsoft product?</h3>
@@ -41,27 +41,7 @@
         <h3>Why is the window dark when my Windows is light?</h3>
         <p>It is dark and it stays dark whatever Windows is set to, including a high contrast theme. That is checked rather than assumed - it keeps its own colours and stays readable, and it does not follow that setting.</p>
       </div>
-      <div>
-        <h3>What about the second half - who changed it, and putting it back?</h3>
-        <p>Half of the first half. <code>bws history</code> and the window's <em>Change history</em> read who changed a start type and who installed a service out of the System log. A stock Windows baseline per build, and restoring configuration from a snapshot with a dry run and a checkbox per item, are the plan. A snapshot at deployment and a diff against the machine answer <em>what</em> changed for everything the log does not record.</p>
-      </div>
     </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <span class="eyebrow">Honest limits</span>
-    <h2>Not built yet</h2>
-    <p class="lede">Most of this is the second half of the audit story.</p>
-    <ul class="points points-alarm">
-      <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare snapshots. Use <code>bws snapshot</code> beside it.</li>
-      <li><strong>No stock Windows baseline.</strong> The opening screen has a place for <em>how many of these are not from a clean install</em> and says it is not counted yet rather than showing a number it cannot stand behind.</li>
-      <li><strong>A thin change history.</strong> <code>bws history</code> and the window's <em>Change history</em> read who changed a start type and who installed a service, as far back as the System log reaches. Windows writes nothing there about a changed account, launch path or recovery list, or about who stopped a service.</li>
-      <li><strong>No restore from a snapshot.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
-      <li><strong>No creating, deleting or repointing a service.</strong> The launch path is read and reported, and it is not edited.</li>
-      <li><strong>No recovery actions.</strong> Not read, not shown, not searchable.</li>
-    </ul>
   </div>
 </section>
 

@@ -595,6 +595,17 @@ tr:last-child td { border-bottom: 0; }
 .compare td .no { color: var(--text-2); }
 .compare td .part { color: var(--warning); }
 
+/* ---- Examples ------------------------------------------------------------------------- */
+
+/* The groups of examples on the query language and command line pages: a heading per group,
+   then its table or its block of commands. A query in the first column wraps rather than
+   pushing the description into a strip a few words wide - the longest on the query page runs
+   to eighty characters. */
+.examples h3 { font-size: var(--fs-3); margin-top: var(--s-6); }
+.examples h3 + .table-wrap, .examples h3 + pre { margin-top: var(--s-3); }
+.examples td:first-child { width: 45%; white-space: normal; }
+.examples td:first-child code { white-space: normal; overflow-wrap: anywhere; }
+
 /* ---- Pictures of the window ------------------------------------------------------- */
 
 /* Real captures of the window, since 2026-09-24, in the frame the mock window drawn in HTML had
@@ -720,6 +731,12 @@ figcaption {
   .hero { padding-block: var(--s-7); }
   .btn { width: 100%; }
   th, td { padding: var(--s-2) var(--s-3); }
+
+  /* A group of examples stacks on a phone - the query on a line of its own, then what it finds -
+     rather than two columns a dozen characters wide each, where a query broke every few letters. */
+  .examples thead { display: none; }
+  .examples td { display: block; width: auto; }
+  .examples td:first-child { width: auto; border-bottom: 0; padding-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -42,6 +42,7 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
         <li><strong>Two files, not just a file and this machine.</strong> Take one on staging and one on production and diff them anywhere - the answer to <em>why does staging differ</em> does not need either machine present.</li>
       </ul>
     </div>
+    <p><strong>The window does the same under <em>Audit...</em>.</strong> <em>Take snapshot...</em> writes the same file, with a note if you type one, and <em>Compare with this machine...</em> or <em>Compare two snapshots...</em> shows what changed in place of the list, one row per field, with everything that makes the comparison less than exact said above the table. <em>Show</em> narrows it to the differences or to one field, and <em>Export...</em> writes it to a CSV file.</p>
   </div>
 </section>
 
@@ -58,19 +59,6 @@ Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in runnin
 #   5 - the configuration drifted, and drift.json says what
 #   3 - it ran and could not read everything, so the answer is partial</span></code></pre>
     <p>That is the whole mechanism: a baseline taken when the machine was known good, and a question asked every night. The first night it answers <code>5</code>, somebody finds out on the first night rather than on the morning something breaks.</p>
-  </div>
-</section>
-
-<section class="band band-tight">
-  <div class="wrap">
-    <h2>What this does not do yet</h2>
-    <p class="lede">The second half of the audit story is not finished, and saying so is cheaper than somebody discovering it.</p>
-    <ul class="points points-alarm">
-      <li><strong>Snapshots are on the command line only.</strong> The window shows, searches and changes, and it does not take or compare them.</li>
-      <li><strong>A thin change history.</strong> <code>bws history</code> and the window's <em>Change history</em> read <em>who</em> changed a start type and who installed a service out of the System log, as far back as that log reaches. For everything else a snapshot at deployment and a diff against the machine answer <em>what</em> changed, which is most of the question.</li>
-      <li><strong>No stock Windows baseline.</strong> <em>How many of these are not from a clean install</em> is not counted yet, and the opening screen says so rather than showing a number it cannot stand behind.</li>
-      <li><strong>No restore.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
-    </ul>
     <a class="more" href="/audit-windows-services/">Using this for an audit</a>
   </div>
 </section>

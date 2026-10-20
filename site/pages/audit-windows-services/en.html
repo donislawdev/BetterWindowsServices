@@ -58,19 +58,6 @@
       <li><strong>It says what it could not read.</strong> A field this session had no rights to is recorded as not read - never as empty - so a later comparison can say <em>not compared</em> instead of quietly calling it unchanged.</li>
       <li><strong>It is a description of the whole machine.</strong> File it accordingly: it is written with whatever permissions its directory already has, and the tool narrows nothing.</li>
     </ul>
-  </div>
-</section>
-
-<section class="band band-tight">
-  <div class="wrap">
-    <h2>What this does not give you</h2>
-    <p class="lede">Worth knowing before you build a process on it.</p>
-    <ul class="points points-alarm">
-      <li><strong>It does not say who.</strong> The event log is not read yet. A baseline and a diff answer <em>what</em> changed and roughly when it was noticed, not which account did it.</li>
-      <li><strong>There is no stock Windows baseline.</strong> <em>Which of these are not from a clean install</em> is not counted, so the baseline has to be one you took.</li>
-      <li><strong>There is no restore.</strong> A diff tells you what drifted, and putting it back is by hand or by script from the commands the diff shows you.</li>
-      <li><strong>One machine at a time.</strong> There is no remote management - the answer for a fleet is a snapshot per machine, collected however you already collect files.</li>
-    </ul>
     <a class="more" href="/snapshots-and-drift/">How snapshots and diffs work</a>
   </div>
 </section>
