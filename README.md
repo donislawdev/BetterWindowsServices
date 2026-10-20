@@ -612,7 +612,7 @@ bws --version
 | `--signatures` | read who signed each binary and whether Windows trusts it. Several seconds over a whole machine, so it is off unless asked, and a query about signatures turns it on by itself |
 | `--memory` | read what each running entry's process is using. Off by default because it is a measurement, not a setting |
 | `--required-by` | read which entries break if one is stopped, asked of Windows directly. A call per entry, so off unless asked. `show` and `snapshot create` always read it |
-| `--follow-network` | let the tool reach off this machine: a launch path on another machine's share, and a certificate this machine does not already hold. Off by default for safety: one unreachable share costs twenty one seconds and the connection authenticates as you, and fetching a certificate is a connection to a third party |
+| `--follow-network` | let the tool reach off this machine: a launch path on another machine's share, and a certificate this machine does not already hold. Off by default for safety: one unreachable share costs twenty-one seconds and the connection authenticates as you, and fetching a certificate is a connection to a third party |
 | `--json` | the same document, machine readable, on standard output |
 | `--timing` | how long each part of the read took, on standard error |
 | `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, replace a snapshot that is already there - a file that is not a snapshot is never replaced |
