@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Bws.Gui.ViewModels;
 
@@ -87,6 +88,74 @@ public sealed class RowChoice : Observable
     }
 
     internal void Mark(bool chosen) => Set(ref _isChosen, chosen, nameof(IsChosen));
+}
+
+/// <summary>
+/// One group of choices that narrow a table to the rows a rule takes, and the rule both tables offer
+/// them by: every row first, then each narrower choice only when it shows something AND less than
+/// everything - a choice that shows nothing teaches that the menu lies, and one that shows everything is
+/// "every row" said twice (W2-b).
+///
+/// <b>One copy of that rule, since a review of 2026-10-20 (#81)</b>: the comparison's filter and the
+/// change history's had it line for line, and a rule in two places is two places for it to drift - the
+/// mutation registry had to hold both. Each filter keeps only what is its own: the rules that narrow,
+/// the words they are called, and what happens when one is ticked.
+///
+/// <b>The counted label comes in as a function rather than a key</b>, so each key stays whole at its own
+/// call to Texts.Of - the shape TextKeyGuards finds a key in.
+/// </summary>
+/// <typeparam name="TRow">What one row of the table is.</typeparam>
+internal sealed class RowChoiceSet<TRow>
+{
+    private readonly Dictionary<RowChoice, Func<TRow, bool>> _takes = new();
+    private readonly Func<string, int, string> _counted;
+    private readonly Action<RowChoice> _chosen;
+
+    /// <param name="counted">The words for a choice and how many rows it shows.</param>
+    /// <param name="chosen">What ticking a choice of this group does.</param>
+    internal RowChoiceSet(Func<string, int, string> counted, Action<RowChoice> chosen)
+    {
+        _counted = counted;
+        _chosen = chosen;
+    }
+
+    /// <summary>
+    /// The choices this table can offer now - every row, then each narrower rule that leaves something
+    /// out and keeps something in. Made again from nothing each time, because the counts are this
+    /// table's.
+    /// </summary>
+    internal List<RowChoice> Offered(
+        IReadOnlyList<TRow> all, string everything, IEnumerable<(string Name, Func<TRow, bool> Takes)> narrower)
+    {
+        _takes.Clear();
+
+        var offered = new List<RowChoice> { Made(everything, all.Count, _ => true) };
+
+        foreach (var (name, takes) in narrower)
+        {
+            var count = all.Count(takes);
+
+            if (count > 0 && count < all.Count)
+            {
+                offered.Add(Made(name, count, takes));
+            }
+        }
+
+        return offered;
+    }
+
+    /// <summary>The rule behind a choice of this group, or false for a choice that is not one of them.</summary>
+    internal bool TryTakes(RowChoice choice, [MaybeNullWhen(false)] out Func<TRow, bool> takes) =>
+        _takes.TryGetValue(choice, out takes);
+
+    private RowChoice Made(string name, int count, Func<TRow, bool> takes)
+    {
+        var choice = new RowChoice(name, _counted(name, count), _chosen);
+
+        _takes[choice] = takes;
+
+        return choice;
+    }
 }
 
 /// <summary>

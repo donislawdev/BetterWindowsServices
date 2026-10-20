@@ -29,7 +29,7 @@ public sealed class HistoryFilter : Observable, IRowChoices
     /// <summary>The account Windows changes itself under - well known, the same on every machine.</summary>
     internal const string SystemSid = "S-1-5-18";
 
-    private readonly Dictionary<RowChoice, Func<ServiceChange, bool>> _takes = new();
+    private readonly RowChoiceSet<ServiceChange> _whose;
     private readonly RowChoice _together;
     private IReadOnlyList<ServiceChange> _all;
     private IReadOnlyList<IReadOnlyList<RowChoice>> _groups;
@@ -42,6 +42,7 @@ public sealed class HistoryFilter : Observable, IRowChoices
         ArgumentNullException.ThrowIfNull(all);
 
         _all = all;
+        _whose = new RowChoiceSet<ServiceChange>((name, count) => Texts.Of("gui.history.show.counted", name, count), Choose);
         _together = new RowChoice(Texts.Of("gui.history.show.together"), Texts.Of("gui.history.show.together"), Arrange);
 
         var each = new RowChoice(Texts.Of("gui.history.show.each"), Texts.Of("gui.history.show.each"), Arrange);
@@ -127,7 +128,6 @@ public sealed class HistoryFilter : Observable, IRowChoices
         var name = _chosen.Name;
 
         _all = all;
-        _takes.Clear();
 
         var whose = WhoseOf(all);
 
@@ -158,7 +158,7 @@ public sealed class HistoryFilter : Observable, IRowChoices
     /// <summary>Whose and what - the second group's tick.</summary>
     private void Choose(RowChoice choice)
     {
-        if (!_takes.ContainsKey(choice))
+        if (!_whose.TryTakes(choice, out _))
         {
             return;
         }
@@ -181,7 +181,7 @@ public sealed class HistoryFilter : Observable, IRowChoices
     /// <summary>The lines for the two ticks as they stand, in the history's own order - newest first.</summary>
     private List<HistoryRow> Made()
     {
-        List<ServiceChange> shown = [.. _all.Where(_takes[_chosen])];
+        List<ServiceChange> shown = _whose.TryTakes(_chosen, out var takes) ? [.. _all.Where(takes)] : [.. _all];
 
         _shown = shown.Count;
 
@@ -191,37 +191,15 @@ public sealed class HistoryFilter : Observable, IRowChoices
     }
 
     /// <summary>
-    /// Every change first, then each narrower choice that leaves something out and keeps something in -
-    /// a choice that shows nothing teaches that the menu lies, and one that shows everything is "every
-    /// change" said twice. The comparison's rule (W2-b).
+    /// Whose and what, after every change: the changes SYSTEM did not make, installations, startup type
+    /// changes. Which of them are offered is <see cref="RowChoiceSet{TRow}"/>'s rule, the comparison's too.
     /// </summary>
-    private List<RowChoice> WhoseOf(IReadOnlyList<ServiceChange> all)
-    {
-        var offered = new List<RowChoice> { Made(Texts.Of("gui.history.show.all"), all.Count, _ => true) };
-
-        Offer(offered, Texts.Of("gui.history.show.notSystem"), all, change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal));
-        Offer(offered, Texts.Of("gui.history.show.installed"), all, change => change.Kind == ChangeKind.Installed);
-        Offer(offered, Texts.Of("gui.history.show.startType"), all, change => change.Kind == ChangeKind.StartTypeChanged);
-
-        return offered;
-    }
-
-    private void Offer(List<RowChoice> offered, string name, IReadOnlyList<ServiceChange> all, Func<ServiceChange, bool> takes)
-    {
-        var count = all.Count(takes);
-
-        if (count > 0 && count < all.Count)
-        {
-            offered.Add(Made(name, count, takes));
-        }
-    }
-
-    private RowChoice Made(string name, int count, Func<ServiceChange, bool> takes)
-    {
-        var choice = new RowChoice(name, Texts.Of("gui.history.show.counted", name, count), Choose);
-
-        _takes[choice] = takes;
-
-        return choice;
-    }
+    private List<RowChoice> WhoseOf(IReadOnlyList<ServiceChange> all) => _whose.Offered(
+        all,
+        Texts.Of("gui.history.show.all"),
+        [
+            (Texts.Of("gui.history.show.notSystem"), change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)),
+            (Texts.Of("gui.history.show.installed"), change => change.Kind == ChangeKind.Installed),
+            (Texts.Of("gui.history.show.startType"), change => change.Kind == ChangeKind.StartTypeChanged)
+        ]);
 }

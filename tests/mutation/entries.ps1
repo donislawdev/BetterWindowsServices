@@ -12544,15 +12544,15 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'DiffFilterTests.A_choice_narrows_the_rows_in_place_and_says_how_many_are_hidden'
     }
     @{
-        Name = 'window diff filter: a choice that shows nothing is not offered'
-        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        Name = 'window show choices: a choice that shows nothing is not offered'
+        File = 'src\Bws.Gui\ViewModels\RowChoices.cs'
         From = '        if (count > 0 && count < all.Count)'
         To = '        if (count >= 0 && count < all.Count)'
         Test = 'DiffFilterTests.Each_choice_carries_its_count_and_only_choices_that_narrow_anything_are_offered'
     }
     @{
-        Name = 'window diff filter: a choice that shows everything is not offered'
-        File = 'src\Bws.Gui\ViewModels\DiffFilter.cs'
+        Name = 'window show choices: a choice that shows everything is not offered'
+        File = 'src\Bws.Gui\ViewModels\RowChoices.cs'
         From = '        if (count > 0 && count < all.Count)'
         To = '        if (count > 0 && count <= all.Count)'
         Test = 'TwoSnapshotWindowGuards.The_menu_under_show_holds_every_choice_and_a_tick_narrows_the_table'
@@ -13485,8 +13485,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window history: not by SYSTEM leaves SYSTEM out'
         File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
-        From = 'all, change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal));'
-        To = 'all, change => string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal));'
+        From = 'change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)'
+        To = 'change => string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)'
         Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
     }
     @{
@@ -13500,8 +13500,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window history: filtered first, then grouped'
         File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
-        From = '        List<ServiceChange> shown = [.. _all.Where(_takes[_chosen])];'
-        To = '        List<ServiceChange> shown = [.. _all];'
+        From = '[.. _all.Where(takes)] : [.. _all];'
+        To = '[.. _all.Where(change => takes(change) || true)] : [.. _all];'
         Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
     }
     @{
@@ -13603,6 +13603,22 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '                lines.Add(Texts.Of("gui.history.installationsNotByName"));'
         To = '                _ = lines;'
         Test = 'HistoryTests.The_panel_ends_with_the_entrys_history_identical_changes_together'
+    }
+    @{
+        # Review of #81: the panel said the log could not be read while the view said it was reading.
+        Name = 'window history: a new reading is not the last one''s failure'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '        _failure = string.Empty;'
+        To = '        _ = _failure;'
+        Test = 'HistoryTests.A_new_reading_after_a_failure_says_reading_in_the_panel_rather_than_the_old_failure'
+    }
+    @{
+        # Review of #81: the panel rebuilds once a second while its row moves, and the section with it.
+        Name = 'window history: one reading and one entry make the section once'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.cs'
+        From = '            return made.Section;'
+        To = '            _ = made.Section;'
+        Test = 'HistoryTests.One_reading_and_one_entry_make_the_section_once_and_a_new_reading_makes_it_again'
     }
 )
 

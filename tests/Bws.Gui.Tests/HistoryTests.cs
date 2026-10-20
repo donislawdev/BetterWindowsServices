@@ -194,7 +194,54 @@ public sealed class HistoryTests
         await model.LoadAsync();
 
         Assert.Empty(model.History.Shown!.Filter.Rows);
+        Assert.Empty(model.History.Shown.Admissions);
+        Assert.False(model.History.Shown.Filter.Offered);
         Assert.Equal(Texts.Of("gui.history.readFailed", "An event too large to render."), model.History.Shown.Said);
+    }
+
+    [Fact]
+    public async Task A_new_reading_after_a_failure_says_reading_in_the_panel_rather_than_the_old_failure()
+    {
+        // The view says "reading" the moment F5 is pressed, and the panel beside it must not go on saying
+        // the log could not be read (review of #81).
+        var log = new HistoryLog(HistoryLog.Ordinary()) { FailWith = new Win32Exception(5) };
+        var model = await Shown(log, "BITS");
+
+        Assert.Equal(Texts.Of("gui.history.readFailed", new Win32Exception(5).Message), model.Chosen.Sections[^1].Note);
+
+        log.FailWith = null;
+        log.Hold();
+
+        var again = model.LoadAsync();
+
+        Assert.Equal(Texts.Of("gui.history.reading"), model.Chosen.Sections[^1].Note);
+
+        log.Release();
+        await again;
+
+        Assert.Equal(2, model.Chosen.Sections[^1].Lines.Count);
+    }
+
+    [Fact]
+    public async Task One_reading_and_one_entry_make_the_section_once_and_a_new_reading_makes_it_again()
+    {
+        // The panel rebuilds every time its row moves - once a second while a service changes state - and
+        // the section is the same until the log is read again (review of #81).
+        var log = new HistoryLog(HistoryLog.Ordinary());
+        var model = Model(log);
+
+        await model.OpenHistory();
+
+        var first = model.History.SectionFor("BITS");
+
+        Assert.Same(first, model.History.SectionFor("bits"));
+
+        // A new reading is a new history, as WindowsChangeHistoryReader makes one per Read - this double
+        // hands back whatever it holds, so it is handed a new one.
+        log.History = HistoryLog.Ordinary();
+        await model.LoadAsync();
+
+        Assert.NotSame(first, model.History.SectionFor("BITS"));
     }
 
     [Fact]
@@ -317,6 +364,8 @@ public sealed class HistoryTests
         model.Chosen.Row = model.Rows.Single();
         model.Chosen.Show();
 
+        // Fields first, so an empty panel cannot pass for one without a history section (review of #81).
+        Assert.NotEmpty(model.Chosen.Sections);
         Assert.DoesNotContain(model.Chosen.Sections, section => section.Heading == Texts.Of("gui.details.section.history"));
     }
 

@@ -28,13 +28,14 @@ namespace Bws.Gui.ViewModels;
 public sealed class DiffFilter : Observable, IRowChoices
 {
     private readonly IReadOnlyList<DiffLine> _all;
-    private readonly Dictionary<RowChoice, Func<DiffLine, bool>> _takes = new();
+    private readonly RowChoiceSet<DiffLine> _choices;
     private RowChoice _chosen;
 
     internal DiffFilter(IReadOnlyList<DiffLine> all)
     {
         _all = all;
-        Choices = ChoicesOf(all);
+        _choices = new RowChoiceSet<DiffLine>((name, count) => Texts.Of("gui.diff.show.counted", name, count), Choose);
+        Choices = _choices.Offered(all, Texts.Of("gui.diff.show.all"), Narrower(all));
         Groups = [Choices];
         _chosen = Choices[0];
         _chosen.Mark(chosen: true);
@@ -78,7 +79,7 @@ public sealed class DiffFilter : Observable, IRowChoices
     {
         ArgumentNullException.ThrowIfNull(choice);
 
-        if (!_takes.TryGetValue(choice, out var takes))
+        if (!_choices.TryTakes(choice, out var takes))
         {
             return;
         }
@@ -96,47 +97,23 @@ public sealed class DiffFilter : Observable, IRowChoices
     }
 
     /// <summary>
-    /// The choices this comparison can offer: every row, the differences alone, each field that
-    /// differs, the rows one side could not see, the fields one side holds no value for.
+    /// The narrower choices this comparison can offer, in the menu's order: the differences alone, each
+    /// field that differs, the rows one side could not see, the fields one side holds no value for. Which
+    /// of them are offered is <see cref="RowChoiceSet{TRow}"/>'s rule.
     ///
     /// <b>A field is named by the words its rows already say</b> - "Status (running state)" in the
     /// menu is what the table's What column says on each of those rows.
     /// </summary>
-    private List<RowChoice> ChoicesOf(IReadOnlyList<DiffLine> all)
+    private static IEnumerable<(string Name, Func<DiffLine, bool> Takes)> Narrower(IReadOnlyList<DiffLine> all)
     {
-        var offered = new List<RowChoice> { Made(Texts.Of("gui.diff.show.all"), all.Count, _ => true) };
-
-        Offer(offered, Texts.Of("gui.diff.show.differences"), all, line => line.Kind is DiffLineKind.Added or DiffLineKind.Removed or DiffLineKind.Changed);
+        yield return (Texts.Of("gui.diff.show.differences"), line => line.Kind is DiffLineKind.Added or DiffLineKind.Removed or DiffLineKind.Changed);
 
         foreach (var field in all.Where(line => line.Kind == DiffLineKind.Changed).GroupBy(line => line.Field))
         {
-            Offer(offered, field.First().What, all, line => line.Kind == DiffLineKind.Changed && line.Field == field.Key);
+            yield return (field.First().What, line => line.Kind == DiffLineKind.Changed && line.Field == field.Key);
         }
 
-        Offer(offered, Texts.Of("gui.diff.show.uncertain"), all, line => line.Kind == DiffLineKind.Uncertain);
-        Offer(offered, Texts.Of("gui.diff.show.notCompared"), all, line => line.Kind == DiffLineKind.NotCompared);
-
-        return offered;
-    }
-
-    /// <summary>Offers a choice only when it shows something and less than everything.</summary>
-    private void Offer(List<RowChoice> offered, string name, IReadOnlyList<DiffLine> all, Func<DiffLine, bool> takes)
-    {
-        var count = all.Count(takes);
-
-        if (count > 0 && count < all.Count)
-        {
-            offered.Add(Made(name, count, takes));
-        }
-    }
-
-    /// <summary>A choice with its count in the menu's words, and the rows it shows kept here.</summary>
-    private RowChoice Made(string name, int count, Func<DiffLine, bool> takes)
-    {
-        var choice = new RowChoice(name, Texts.Of("gui.diff.show.counted", name, count), Choose);
-
-        _takes[choice] = takes;
-
-        return choice;
+        yield return (Texts.Of("gui.diff.show.uncertain"), line => line.Kind == DiffLineKind.Uncertain);
+        yield return (Texts.Of("gui.diff.show.notCompared"), line => line.Kind == DiffLineKind.NotCompared);
     }
 }

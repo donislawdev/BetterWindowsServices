@@ -56,6 +56,13 @@ public sealed class HistoryReading : Observable, IEntryHistory
     private bool _asked;
     private HistorySheet? _shown;
 
+    /// <summary>
+    /// The last section made, for which reading and which entry. The panel builds itself again every time
+    /// the row it follows moves - once a second while a service is changing state - and the section only
+    /// changes with a new reading or another entry. Since a review of 2026-10-20 (#81).
+    /// </summary>
+    private (ChangeHistory History, string Name, DetailSection Section)? _made;
+
     /// <param name="reader">The log, or nothing for a model built without one - a test's state, which says so.</param>
     internal HistoryReading(IChangeHistoryReader? reader)
     {
@@ -127,10 +134,20 @@ public sealed class HistoryReading : Observable, IEntryHistory
             return DetailSection.Written(Heading, [], _failure.Length > 0 ? _failure : Texts.Of("gui.history.reading"));
         }
 
+        // The same reading and the same entry give the same section - compared by reference, because a new
+        // reading is a new ChangeHistory, and by name the way ChangeHistory.Of compares it.
+        if (_made is { } made && ReferenceEquals(made.History, history) && string.Equals(made.Name, serviceName, StringComparison.OrdinalIgnoreCase))
+        {
+            return made.Section;
+        }
+
         var changes = history.Of(serviceName);
         var lines = ChangeGroup.Of(changes).Select(Line).ToList();
+        var section = DetailSection.Written(Heading, lines, string.Join(" ", HistoryWords.Admissions(history, changes, oneEntry: true)));
 
-        return DetailSection.Written(Heading, lines, string.Join(" ", HistoryWords.Admissions(history, changes, oneEntry: true)));
+        _made = (history, serviceName, section);
+
+        return section;
     }
 
     /// <summary>The panel's heading for the section, a key like every other section's.</summary>
@@ -172,15 +189,19 @@ public sealed class HistoryReading : Observable, IEntryHistory
     /// </summary>
     private async Task ReadAsync()
     {
+        // A NEW READING IS NOT THE LAST ONE'S FAILURE - since a review of 2026-10-20 (#81). Kept, the panel
+        // went on saying the log could not be read while the view beside it said it was reading. Cleared
+        // here, and the panel is told, so it says "reading" - or keeps showing a good earlier reading,
+        // which stays in _latest until the new answer replaces it.
+        _failure = string.Empty;
         Shown?.Reading();
+        Changed?.Invoke(this, EventArgs.Empty);
 
         try
         {
             _latest = _reader is { } reader
                 ? await Task.Run(reader.Read).ConfigureAwait(true)
                 : throw new InvalidDataException(Texts.Of("gui.history.noReader"));
-
-            _failure = string.Empty;
         }
         catch (Win32Exception failure)
         {
