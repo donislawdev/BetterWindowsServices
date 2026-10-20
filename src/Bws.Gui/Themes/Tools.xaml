@@ -69,7 +69,13 @@
         off, and the binding is to the card's own Available rather than up the tree to the button, which
         GUI rule 9 forbids.
     -->
+    <!--
+        The size is written out although the base already carries it: semibold has a higher floor than
+        plain text (TypeScaleGuards), and the guard asks the style that sets the weight to name its size,
+        so a base that shrinks later cannot take a heavy title under the floor without a word.
+    -->
     <Style x:Key="ToolTitleText" TargetType="TextBlock" BasedOn="{StaticResource OverviewLabelText}">
+        <Setter Property="FontSize" Value="{StaticResource TextSizeHeader}" />
         <Setter Property="FontWeight" Value="{StaticResource TextWeightHeader}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Style.Triggers>

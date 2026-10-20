@@ -79,13 +79,18 @@ public sealed class Tabs : Observable
                 return;
             }
 
+            // THE FLAG FIRST, THEN THE MIDDLE CLEARED - a review of #83. Putting the overview or a view of
+            // the audit away raises notifications, and the window arranges itself and the line under it
+            // speaks on each of them. With the flag still down at that moment the list was "on screen"
+            // for the length of the clearing - its controls drawn and its sentence said on the way to a
+            // page that has neither.
+            _showingTools = value;
+
             if (value)
             {
                 _clearTheMiddle();
                 Tools.Rethink();
             }
-
-            _showingTools = value;
 
             // The list tabs read this to know they are not the page any more.
             foreach (var position in Positions)

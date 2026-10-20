@@ -581,7 +581,8 @@ bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]
 bws history [NAME] [--json] [--timing]
 bws tool
-bws tool fix [NAME] [--dry-run] [--timeout SECONDS] [--json] [--timing]
+bws tool fix
+bws tool fix NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
 bws license [--components]
 bws --help
 bws --version

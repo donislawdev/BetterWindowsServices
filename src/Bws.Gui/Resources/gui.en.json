@@ -119,7 +119,7 @@
   "gui.tools.fix.indexing": "Search does not find files",
   "gui.tools.fix.indexing.what": "Indexing is paused or stuck. Restarts the Windows Search service, which Microsoft suggests to resume indexing. The search box on the taskbar is not a service, so this does not reach it.",
   "gui.tools.fix.search": "The search box does not respond",
-  "gui.tools.fix.search.what": "Restarts the Windows Font Cache Service. Surprising, and the first thing Microsoft's own page suggests for a search box that does not respond.",
+  "gui.tools.fix.search.what": "Restarts the Windows Font Cache Service, which is the first thing Microsoft's own troubleshooting page suggests for a search box that does not respond.",
   "gui.tools.fix.effect": "Changes this machine. Shows the plan first.",
   "gui.tools.fix.effect.unelevated": "Changes this machine. Shows the plan first. Carrying it out needs administrator rights.",
   "gui.tools.fix.hint": "Opens the plan for restarting {0} and what depends on it. Nothing changes until you press the button at its foot.",

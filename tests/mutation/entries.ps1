@@ -13932,6 +13932,23 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), _scope, count);'
         Test = 'ToolsTabGuards.The_bar_stays_over_the_overview_and_its_marked_tab_is_the_way_back_to_the_list'
     }
+    @{
+        # A review of #83: the flag down while the middle is cleared shows the list for a moment.
+        Name = 'window tools: the page is up before the middle is cleared'
+        File = 'src\Bws.Gui\ViewModels\Tabs.cs'
+        From = '                _clearTheMiddle();'
+        To = '                _showingTools = false; _clearTheMiddle(); _showingTools = true;'
+        Test = 'ToolsTabGuards.On_the_way_from_the_overview_to_the_tools_page_the_list_is_never_on_screen'
+    }
+    @{
+        # A review of #83: the license entry above takes one verb out of the drawn list - this takes the
+        # newest, so a property that stopped drawing tool would go red too.
+        Name = 'search: the words a property draws include tool'
+        File = 'tests\Bws.Cli.Tests\CommandLinePropertyTests.cs'
+        From = '"history", "license", "snapshot", "tool"]'
+        To = '"history", "license", "snapshot"]'
+        Test = 'CommandLinePropertyTests.The_words_drawn_above_reach_every_kind_of_command'
+    }
 )
 
 $mutations

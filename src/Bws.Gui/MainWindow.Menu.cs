@@ -362,9 +362,9 @@ public partial class MainWindow
             return false;
         }
 
-        var shownAs = again.ServiceNames.Count != 1 ? null : _model.Rows
-            .FirstOrDefault(row => string.Equals(row.ServiceName, again.ServiceNames[0], StringComparison.OrdinalIgnoreCase))
-            ?.DisplayName;
+        // Over every row the window holds, the way OpenFresh names its entry - so the two doors that
+        // rebuild a sheet call the entry the same thing whatever the query left on screen.
+        var shownAs = again.ServiceNames.Count != 1 ? null : _model.DisplayNameOf(again.ServiceNames[0]);
 
         if (!_model.Planned.Show(plan, shownAs))
         {

@@ -108,6 +108,33 @@ public sealed class ToolsTabGuards
     }
 
     [Fact]
+    public async Task On_the_way_from_the_overview_to_the_tools_page_the_list_is_never_on_screen()
+    {
+        // A review of #83: the overview going away raises a notification the window arranges itself on,
+        // and with the page's flag still down at that moment the list was "on screen" for the length of
+        // the clearing - its controls drawn and its sentence said on the way to a page with neither.
+        var (_, model) = await Ready();
+        var seen = new List<bool>();
+
+        WpfHost.On(() =>
+        {
+            model.ShowingOverview = true;
+            model.PropertyChanged += (_, changed) =>
+            {
+                if (changed.PropertyName == nameof(MainViewModel.ShowingOverview))
+                {
+                    seen.Add(model.ListOnScreen);
+                }
+            };
+
+            model.Tabs.ToolsTabOn = true;
+        });
+
+        Assert.NotEmpty(seen);
+        Assert.All(seen, onScreen => Assert.False(onScreen));
+    }
+
+    [Fact]
     public async Task Leaving_the_overview_by_a_tab_counts_as_having_seen_it()
     {
         // The overview's own two buttons always wrote it down. A tab is a third road (T-e), and without this
