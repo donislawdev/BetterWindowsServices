@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - um substituto do services.msc com busca">
+<meta name="description" content="Substituto livre e gratuito do services.msc. Pesquise serviços com uma linguagem de consulta, veja cada mudança antes de executar e o que se desviou desde ontem.">
+<meta name="nav" content="Início">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  A página inicial. Cada frase tem um correspondente no README.md, que foi conferido com o programa
+  em execução antes de ser escrito lá - o plano, a comparação e a consulta abaixo são saídas reais,
+  não ilustrações.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Pesquise seus serviços do Windows, veja cada mudança antes de executar e <em>descubra o que se desviou</em> desde ontem</h1>
+      <p class="lede"><strong>{{product}}</strong> é o <code>services.msc</code> reconstruído para quem administra máquinas Windows - uma janela e uma linha de comando sobre um único motor. Faça uma pergunta à máquina em vez de rolar oitocentas linhas. Veja o que uma mudança fará <strong>antes de clicar em qualquer coisa</strong>. E o que o <code>services.msc</code> nunca teve: <strong>congelar cada serviço em um arquivo e, uma semana depois, perguntar o que mudou.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Baixar para Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Ver o código no GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Livre e gratuito, GPL-3.0</li>
+        <li>Um único arquivo, ou um instalador</li>
+        <li>Sem direitos de administrador para consultar</li>
+        <li>Nunca se conecta à internet</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="A janela com cinco entradas selecionadas e o plano para iniciá-las mostrado sobre a lista: cinco etapas, uma nota de que duas delas já estão nesse estado, uma linha bws start para cada entrada e o botão Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Entradas selecionadas, um plano mostrado antes de qualquer coisa acontecer e a linha <code>bws</code> que pede exatamente o mesmo. O programa fala inglês - a janela lê um arquivo de idioma colocado ao lado dela, então uma tradução é possível sem recompilar.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Capturas reais da janela, gravadas em 2026-09-25 e 2026-09-26 e exibidas aqui desde 2026-10-07 -
+  as primeiras, de 2026-09-24, substituíram uma janela simulada desenhada em HTML. A sessão é o
+  mesmo GIF que o README traz, um só arquivo para os dois, por decisão do proprietário de
+  2026-10-07. De 2026-09-24 até esse dia era um vídeo com controles, porque a WCAG 2.2.2 pede que
+  um laço em movimento com mais de cinco segundos possa ser pausado, e um GIF não pode - esse é o
+  preço do GIF, dito aqui em vez de esquecido.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Meio minuto com ele</span>
+    <h2>Como é no uso</h2>
+    <p class="lede">Uma sessão real, em um Windows instalado em polonês - os nomes de exibição vêm do Windows, então estão no idioma dele. A janela em si fala inglês.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Quatro entradas selecionadas e o plano para iniciá-las, uma reinicialização forçada do Local Session Manager cujo plano avisa que a máquina não funciona sem ele e pede o nome dele antes de o botão agir, as perguntas iniciais sob a caixa de busca vazia e o Print Spooler encontrado digitando parte do nome e iniciado." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Quatro entradas selecionadas e o plano para iniciá-las, uma reinicialização forçada que pede o nome de um serviço de que a máquina precisa, as perguntas sob uma caixa de busca vazia e o Print Spooler encontrado digitando e iniciado.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="A tela inicial: três cartões de números sobre esta máquina - serviços em execução, serviços de início automático que não subiram e serviços de início automático cujo arquivo sumiu - e um botão Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Abre com alguns números sobre esta máquina. Cada um é uma pergunta - clique nele e a pergunta vai para a caixa de busca.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="A lista de serviços com as três listas acima da caixa de busca, uma caixa de busca vazia, os botões de filtro abertos em linhas para estado, tipo de inicialização, assinatura, divergências e gatilhos, e a lista abaixo." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Os botões de filtro escrevem na caixa de busca, de modo que o que você clicou é uma consulta que pode ler e editar.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Por que isto existe</span>
+    <h2>O <code>services.msc</code> quase não mudou desde o Windows 2000</h2>
+    <p class="lede">Administradores passam horas por semana nele esbarrando nas mesmas paredes.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Sem busca.</strong> A única navegação é saltar para a primeira letra de um nome de exibição.</li>
+        <li><strong>Sem filtro.</strong> Não há como perguntar <em>mostre o que está configurado para iniciar automaticamente e não está em execução</em>.</li>
+        <li><strong>Uma linha por vez.</strong> Reiniciar doze serviços são doze cliques com o botão direito e doze esperas.</li>
+        <li><strong>"Parando..." para sempre</strong>, sem saída além do Gerenciador de Tarefas e de adivinhar o processo.</li>
+        <li><strong>Sem histórico.</strong> Ninguém sabe quem definiu esse tipo de inicialização como Desabilitado, nem quando.</li>
+        <li><strong>Dados ocultos.</strong> O processo, os gatilhos, os privilégios, o descritor de segurança, quem assinou o executável - tudo exige o <code>sc.exe</code> de cabeça, ou o Registro.</li>
+        <li><strong>Sem paridade na linha de comando.</strong> O <code>sc.exe</code> tem uma sintaxe dos anos noventa, e o <code>Get-Service</code> que vem com o Windows, no Windows PowerShell 5.1, não mostra a conta sob a qual um serviço roda, quanto mais a descrição. O PowerShell 7 mostra as duas coisas e se instala separadamente.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>As outras ferramentas resolvem cada uma uma parte</h3>
+        <p>O Process Hacker e o System Informer mostram uma lista rica e podem encerrar um processo à força, mas não têm auditoria nem linha de comando. O <code>sc.exe</code> e o <code>PsService</code> podem fazer tudo e não dizem nada. Os cmdlets <code>*-Service</code> do PowerShell são programáveis e superficiais.</p>
+        <p>Ninguém combina uma lista pesquisável, uma pré-visualização antes de cada mudança e um registro do que mudou ao longo do tempo - e o registro é o motivo para manter esta ferramenta em uma máquina depois da primeira tarde.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">A comparação completa</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">O que ele faz</span>
+    <h2>Uma janela e uma linha de comando sobre um único motor</h2>
+    <div class="grid">
+      <div class="card"><h3>Perguntar, em vez de rolar</h3><p><code>start:auto !status:running</code> é <em>o que deveria estar no ar e não está</em>. Uma única linguagem, na caixa de busca e em <code>bws list --query</code>, com os campos sugeridos enquanto você digita.</p></div>
+      <div class="card"><h3>Mostrar o plano antes de qualquer coisa acontecer</h3><p>Cada parada, início, reinício e mudança de tipo de inicialização é pré-visualizado com os serviços que arrasta consigo, e a pré-visualização é o que executa.</p></div>
+      <div class="card"><h3>Dizer o que se desviou e quem mudou</h3><p><code>bws snapshot create</code> congela a máquina em um arquivo, e <code>bws snapshot diff</code> diz o que mudou desde então, a configuração à parte do que apenas iniciou ou parou. <code>bws history</code> diz, pelo log do Sistema, quem mudou um tipo de inicialização e quem instalou um serviço. A janela faz as três coisas em <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Corrigir um problema comum com um clique</h3><p>A aba <em>Tools</em> e o <code>bws tool fix</code> reiniciam o serviço por trás de uma impressora que não imprime, de um som que sumiu ou de uma busca travada, junto com o que depende dele, pelo mesmo plano de tudo o mais.</p></div>
+      <div class="card"><h3>Parar um serviço que não para</h3><p>Pede com educação primeiro e só encerra o processo se isso falhar, nomeando todos os outros serviços que vivem nele.</p></div>
+      <div class="card"><h3>Mostrar o que o <code>services.msc</code> esconde</h3><p>Quem assinou o executável e se o Windows confia nele, gatilhos, privilégios, o descritor de segurança, o processo e sua memória. Como colunas e como critérios de busca.</p></div>
+      <div class="card"><h3>Avisar quando não conseguiu ler algo</h3><p>Um campo que não conseguiu ler é informado como não lido, nunca mostrado como vazio. Um instantâneo feito sem direitos de administrador diz isso dentro do próprio arquivo.</p></div>
+      <div class="card"><h3>Encaixar em scripts</h3><p><code>--json</code> em cada comando, um código de saída para cada desfecho e <code>5</code> quando uma comparação encontra deriva.</p></div>
+      <div class="card"><h3>Rodar de um único arquivo, offline</h3><p>Descompacte e execute, ou instale para a máquina toda. Sem .NET para instalar, e nunca se conecta à internet. Consultar não exige direitos de administrador. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">O que o services.msc nunca fez</span>
+    <h2>O que mudou desde ontem</h2>
+    <p class="lede">Um instantâneo é a máquina inteira em um momento - cada serviço e cada driver, com seu tipo de inicialização, conta, caminho de lançamento, o hash e o signatário do arquivo, as dependências, os gatilhos, os privilégios e o descritor de segurança. É JSON com um campo por linha, então cabe em um repositório e o <code>git diff</code> o lê.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Configuração e estado de execução são informados separadamente.</strong> Dois instantâneos feitos com um dia de intervalo diferem no que por acaso está em execução, e quase nada disso é deriva - o tipo de inicialização que mudou é a linha a ler.</li>
+        <li><strong>O que não pôde ser comparado é listado, não escondido.</strong> Um campo que um instantâneo nunca leu sai como <em>not compared</em>, de modo que uma comparação que diz <em>nada mudou</em> significa que nada mudou no que os dois lados podiam ver.</li>
+        <li><strong><code>--exit-code</code> termina com <code>5</code> quando a configuração difere</strong>, de modo que uma tarefa agendada pode fazer um instantâneo na implantação e avisar alguém na primeira noite em que a máquina se desviar.</li>
+        <li><strong>Duas máquinas, dois arquivos.</strong> Faça um instantâneo no ambiente de homologação e outro em produção, e compare-os em qualquer lugar.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Como funcionam os instantâneos e a deriva</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nada acontece sem um plano</span>
+    <h2>A pré-visualização é a execução</h2>
+    <p class="lede">Toda operação que grava constrói primeiro um plano, e esse mesmo plano é a pré-visualização, a cascata de serviços dependentes, a recusa antes de você clicar em qualquer coisa, a linha de comando que pede o mesmo e o caminho de volta depois.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Execute sem <code>--dry-run</code> e essas são as etapas</strong>, nessa ordem, com os mesmos motivos ao lado. Não existe um segundo caminho de código para a execução de verdade.</li>
+        <li><strong>O que cai junto está no plano.</strong> Os serviços que deixariam de funcionar são etapas próprias, e um plano que derrubaria algo de que a máquina precisa diz isso nos avisos.</li>
+        <li><strong>A recusa vem antes do botão.</strong> Um driver, um serviço para o qual o gerenciador não aceita parada, um processo que o sistema protege - recusados quando o plano é construído, com o motivo. A janela deixa o botão cinza e diz o porquê ao lado.</li>
+        <li><strong>A parada forçada tem duas etapas, e a segunda é condicional.</strong> O <code>bws kill</code> pede ao serviço que pare e só encerra o processo se isso não funcionar, nomeando todos os outros serviços que vivem nele.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Quando um serviço não para</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Dois minutos com ele</span>
+    <h2>Pela linha de comando</h2>
+    <p class="lede">O mesmo motor da janela, para scripts, tarefas agendadas e CI. Os dados vão para a saída padrão e todo o resto para o erro padrão, de modo que <code>bws list --json | jq</code> funciona e um aviso nunca cai no seu JSON.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">o que deveria estar no ar e não está</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">serviços cujo executável sumiu</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">sem assinatura, sem as cópias por sessão</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">tudo o que se sabe sobre uma entrada</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">o que pará-lo arrastaria junto</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">o que encerrar o processo dele levaria junto</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">o que tirá-lo do automático faria</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">congelar a máquina antes de uma mudança</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">o que mudou desde então, 5 se a configuração mudou</span>
+<span class="k">bws history Spooler</span>                               <span class="c">quem mudou o tipo de inicialização dele, e quando</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">o que a correção rápida de uma impressora travada faria</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Cada comando, opção e código de saída</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Como obter</span>
+    <h2>Descompacte e execute, ou instale</h2>
+    <p class="lede">Windows 10 1809 ou Windows Server 2019 e posteriores, de 64 bits. Os arquivos compactados não precisam de instalador e não gravam nada no Registro, e consultar não exige direitos de administrador. Mudar qualquer coisa exige uma sessão com privilégios elevados, e as duas metades dizem isso em vez de falhar em silêncio - a janela oferece <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Arquivo</th><th>O que é</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>A janela, um executável autônomo - sem .NET para instalar</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>A linha de comando, um executável autônomo, para scripts e CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>O instalador: os dois programas para todas as contas da máquina, a janela no menu Iniciar e o <code>bws</code> no PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Os executáveis levam uma assinatura Authenticode, de modo que o Windows nomeia o editor em vez de avisar sobre um desconhecido.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Baixar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Requisitos e compilação a partir do código-fonte</a>
+    </div>
+  </div>
+</section>

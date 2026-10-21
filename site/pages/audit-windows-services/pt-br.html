@@ -1,0 +1,64 @@
+<meta name="title" content="Auditar serviços do Windows - provar o que mudou em uma máquina">
+<meta name="description" content="Congele cada serviço na implantação e pergunte toda noite se a máquina ainda confere. Deriva, executáveis sem assinatura e arquivos ausentes, em uma consulta.">
+<meta name="nav" content="Auditar a deriva dos serviços">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guia</span>
+    <h1>Auditar serviços do Windows</h1>
+    <p class="lede">Uma auditoria não é uma lista do que há na máquina. É a diferença entre o que há na máquina e o que deveria haver - e nenhum Windows de fábrica registra a segunda metade.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Três perguntas, e o que as responde</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>O que mudou desde que esta máquina foi construída?</h3>
+        <p>Um instantâneo feito na implantação e uma comparação com a máquina esta noite. A configuração é informada à parte do que apenas iniciou ou parou, de modo que o único tipo de inicialização que alguém mudou não fique enterrado sob quarenta serviços que por acaso estão em execução.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Por que a homologação difere da produção?</h3>
+        <p>Faça um instantâneo em cada uma e compare os dois arquivos - em qualquer lugar, sem nenhuma das duas máquinas presente. Os arquivos trazem o nome da máquina e a conta que os fez.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>O que há aqui que não deveria haver?</h3>
+        <p>Consultas que encontram as formas que merecem um olhar: um serviço cujo executável sumiu, um sem assinatura, um em execução embora desabilitado, um que pede direitos de depuração.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>A forma noturna</h2>
+<pre><code><span class="c"># o dia em que a máquina entra em serviço</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># toda noite, a partir de uma tarefa agendada</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - sem deriva de configuração
+#   5 - a configuração se desviou, e drift.json diz o quê
+#   3 - rodou e não conseguiu ler tudo, então a resposta é parcial</span></code></pre>
+    <p>O código de saída <code>5</code> é o que faz disto uma auditoria em vez de um relatório que ninguém lê: a tarefa fica em silêncio até a máquina se desviar, e na noite em que isso acontece, alguém é avisado.</p>
+    <p class="note"><strong>Faça a linha de base em uma sessão com privilégios elevados.</strong> Sem direitos de administrador o gerenciador lista menos entradas e recusa mais das que lista. O instantâneo registra se a conta que o fez era administradora, de modo que a comparação pode dizer isso em vez de informar como removidas entradas que ninguém removeu - mas uma linha de base sem metade da máquina continua sendo uma linha de base sem metade da máquina.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O que um instantâneo vale como prova</h2>
+    <ul class="points points-ok">
+      <li><strong>É JSON com um campo por linha</strong>, então cabe em um repositório e o <code>git diff</code> o lê. Um auditor que não tenha esta ferramenta ainda pode ler o arquivo, e um sistema de controle de versão já responde ao <em>quando</em>.</li>
+      <li><strong>Guarda o que o snap-in nunca mostrou:</strong> o caminho de lançamento e os argumentos, o hash e o signatário do arquivo, as dependências nos dois sentidos, os gatilhos, os privilégios exigidos, o tipo de SID e o descritor de segurança.</li>
+      <li><strong>Diz o que não conseguiu ler.</strong> Um campo sobre o qual esta sessão não tinha direitos é registrado como não lido - nunca como vazio - de modo que uma comparação posterior pode dizer <em>not compared</em> em vez de chamá-lo, em silêncio, de inalterado.</li>
+      <li><strong>É uma descrição da máquina inteira.</strong> Arquive-o de acordo: ele é gravado com as permissões que o diretório dele já tem, e a ferramenta não restringe nada.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Como funcionam os instantâneos e as comparações</a>
+  </div>
+</section>

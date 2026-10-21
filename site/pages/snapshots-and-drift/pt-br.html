@@ -1,0 +1,65 @@
+<meta name="title" content="Instantâneos e deriva - o que mudou nesta máquina desde ontem">
+<meta name="description" content="Congele cada serviço do Windows em um arquivo JSON e pergunte o que mudou. A configuração é informada à parte do estado de execução, e o código 5 pode avisar alguém.">
+<meta name="nav" content="Instantâneos e deriva">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">O que o services.msc nunca fez</span>
+    <h1>Instantâneos e deriva</h1>
+    <p class="lede">Toda outra ferramenta diz como uma máquina está agora. A pergunta que um administrador realmente tem é <em>o que é diferente de quando funcionava</em> - e nenhum Windows de fábrica a responde.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O que um instantâneo guarda</h2>
+    <p>A máquina inteira em um momento: cada serviço e cada driver, com seu tipo de inicialização, conta, caminho de lançamento e argumentos, o hash e o signatário do arquivo que ele executa, suas dependências e o que depende dele, seus gatilhos, seus privilégios exigidos, seu tipo de SID e seu descritor de segurança - mais o nome da máquina, a conta que o fez e <strong>se essa conta era administradora</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>É JSON com um campo por linha. Isso é de propósito: significa que um instantâneo cabe em um repositório e o <code>git diff</code> o lê, de modo que a comparação da própria ferramenta não é a única maneira de olhar um.</p>
+    <p class="note"><strong>Arquive-o como o que ele é.</strong> Um instantâneo descreve a máquina inteira, até cada caminho de lançamento e cada descritor de segurança. Ele é gravado com as permissões que o diretório dele já tem, e a ferramenta não restringe nada - então um diretório que outras pessoas podem ler é um em que elas podem ler tudo isso.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Depois, perguntar o que é diferente</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Configuração e estado de execução são informados separadamente.</strong> Dois instantâneos feitos com um dia de intervalo diferem no que por acaso está em execução, e quase nada disso é deriva. Misturada, a única linha que importa - um tipo de inicialização que alguém mudou - fica enterrada sob quarenta que não importam.</li>
+        <li><strong>O que não pôde ser comparado é listado, não escondido.</strong> Um campo que um dos dois instantâneos nunca leu, porque aquela sessão não tinha direitos sobre ele, sai como <em>not compared</em> sob a sua entrada, e o resumo conta essas entradas. Assim, uma comparação que diz <em>nada mudou</em> significa que nada mudou no que os dois lados podiam ver.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Um instantâneo com privilégios elevados contra um sem eles mentiria</strong>, informando como removidas entradas que ninguém removeu. Cada arquivo registra se a conta que o fez era administradora, e a comparação diz isso.</li>
+        <li><strong>Dois arquivos, não só um arquivo e esta máquina.</strong> Faça um na homologação e outro em produção e compare-os em qualquer lugar - a resposta para <em>por que a homologação difere</em> não precisa de nenhuma das duas máquinas presentes.</li>
+      </ul>
+    </div>
+    <p><strong>A janela faz o mesmo em <em>Audit...</em>.</strong> <em>Take snapshot...</em> grava o mesmo arquivo, com uma nota se você digitar uma, e <em>Compare with this machine...</em> ou <em>Compare two snapshots...</em> mostra o que mudou no lugar da lista, uma linha por campo, com tudo o que torna a comparação menos que exata dito acima da tabela. <em>Show</em> a restringe às diferenças ou a um campo, e <em>Export...</em> a grava em um arquivo CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O código de saída é o ponto</h2>
+    <p><code>--exit-code</code> termina com <code>5</code> quando a configuração difere - uma entrada adicionada ou removida, ou uma configurada de outro jeito. Um serviço que apenas parou ou iniciou sozinho é informado e não conta, e nem as cópias por usuário que o Windows faz para cada sessão aberta, que são deixadas de fora e contadas. Não é uma falha - encontrar deriva é para o que esta ferramenta serve, e encontrá-la não é uma falha - e por isso ele tem um número próprio em vez de tomar emprestado o que significa que algo deu errado.</p>
+<pre><code><span class="c"># o dia em que a máquina entra em serviço</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># toda noite, a partir de uma tarefa agendada</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - sem deriva de configuração
+#   5 - a configuração se desviou, e drift.json diz o quê
+#   3 - rodou e não conseguiu ler tudo, então a resposta é parcial</span></code></pre>
+    <p>Esse é todo o mecanismo: uma linha de base feita quando se sabia que a máquina estava boa, e uma pergunta feita toda noite. Se na primeira noite ele responder <code>5</code>, alguém descobre na primeira noite e não na manhã em que algo quebrar.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Usar isto para uma auditoria</a>
+  </div>
+</section>

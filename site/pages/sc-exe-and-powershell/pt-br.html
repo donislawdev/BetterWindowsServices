@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe e Get-Service, comparados a uma ferramenta feita para auditoria">
+<meta name="description" content="O sc.exe faz tudo e não diz nada. O Get-Service é programável e superficial. Onde cada um ainda é o melhor, e onde consulta e plano se saem melhor.">
+<meta name="nav" content="sc.exe e PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guia</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> e isto</h1>
+    <p class="lede">Os dois já estão na máquina, e os dois continuarão úteis. Esta página trata de onde eles param - e diz com clareza onde ainda são a melhor resposta.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Onde cada um para</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Ele alcança quase tudo que o gerenciador de controle de serviços sabe, e não diz nada sobre como perguntar. A sintaxe é dos anos noventa - <code>sc config X start= auto</code>, em que o espaço depois do sinal de igual é obrigatório e a sua ausência é uma falha silenciosa em fazer o que você queria.</p>
+        <p>Ele responde sobre uma entrada por vez. Não há filtro, nem saída que um script possa analisar sem escrever um analisador, nem pré-visualização: o <code>sc stop</code> ou funciona ou devolve um número.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> e os cmdlets <code>*-Service</code></h3>
+        <p>Objetos de verdade, um pipeline e uma visão superficial. No Windows PowerShell 5.1, o que vem com o Windows, o <code>Get-Service</code> não mostra a conta sob a qual um serviço roda nem a descrição dele. O PowerShell 7 mostra as duas coisas, e o caminho de lançamento também, e se instala separadamente.</p>
+        <p><code>Stop-Service -Force</code> significa "mesmo que algo dependa dele" - ele para os dependentes, e conta depois e não antes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>As mesmas perguntas, de três jeitos</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Pergunta</th><th>Com o que há na máquina</th><th>Aqui</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>O que deveria estar no ar e não está</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Quais serviços têm um executável sem assinatura</td>
+            <td class="no">Ler cada caminho de lançamento, resolvê-lo, chamar <code>Get-AuthenticodeSignature</code> em cada um - um script, não um comando</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>O que pará-lo derrubaria junto</td>
+            <td><code>sc enumdepend X</code>, depois ler a lista e decidir você mesmo</td>
+            <td><code>bws stop X --dry-run --dependents</code>, que é o plano que executaria</td>
+          </tr>
+          <tr>
+            <td>O que mudou desde a semana passada</td>
+            <td class="no">Nada, a menos que você tenha escrito o coletor</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Quem mudou o tipo de inicialização, e quando</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, depois ler a mensagem de cada evento</td>
+            <td><code>bws history Spooler</code>, cuja primeira linha diz até onde o log alcança</td>
+          </tr>
+          <tr>
+            <td>Saída legível por máquina</td>
+            <td>Objetos do PowerShell, texto do <code>sc.exe</code></td>
+            <td><code>--json</code> em cada comando, na saída padrão, com os avisos no erro padrão</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Onde esta ferramenta discorda do <code>sc.exe</code> sobre um serviço, isso é um bug daqui.</strong> Parte do conjunto de testes executa os dois contra a máquina em que está e os compara entrada por entrada, e uma diferença entre os dois é a coisa mais útil que você pode colocar em um relato de problema.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Quando continuar usando o que você tem</h2>
+    <ul class="points">
+      <li><strong>Você está em uma máquina que vai mexer uma única vez.</strong> Os dois já estão lá e nada precisa passar por uma política.</li>
+      <li><strong>Você precisa mudar a conta, o caminho de lançamento ou as ações de recuperação.</strong> O <code>sc.exe</code> faz as três coisas. Esta ferramenta mostra a conta e o caminho de lançamento e não muda nenhum dos dois, e lê as ações de recuperação só para avisar antes de encerrar um processo.</li>
+      <li><strong>Você precisa criar ou excluir um serviço.</strong> <code>sc create</code> e <code>sc delete</code>. Não aqui, de propósito.</li>
+      <li><strong>Você já está no meio de um pipeline do PowerShell.</strong> O <code>bws list --json</code> volta como objetos pelo <code>ConvertFrom-Json</code>, então entra no pipeline em vez de substituí-lo.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Juntos, em vez de no lugar</h2>
+    <p>A ferramenta que responde <em>o que há de errado com esta máquina</em> e as ferramentas que mudam uma configuração não são a mesma ferramenta. Faça a pergunta aqui, leia o plano aqui e use o que preferir para executá-lo - o plano imprime a linha de comando que pede o mesmo, e essa linha foi feita para ser copiada.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Baixar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">A linguagem de consulta</a>
+    </div>
+  </div>
+</section>

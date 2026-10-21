@@ -10,6 +10,7 @@
     "de": "windows-dienst-laesst-sich-nicht-beenden",
     "fr": "service-windows-impossible-a-arreter",
     "es": "servicio-de-windows-que-no-se-detiene",
-    "it": "servizio-windows-che-non-si-ferma"
+    "it": "servizio-windows-che-non-si-ferma",
+    "pt-br": "servico-do-windows-que-nao-para"
   }
 }
