@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe și Get-Service, comparate cu un instrument făcut pentru audit">
+<meta name="description" content="sc.exe poate orice și nu spune nimic. Get-Service se automatizează, dar e superficial. Unde rămâne fiecare cel mai bun și unde fac mai bine interogarea și planul.">
+<meta name="nav" content="sc.exe și PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ghid</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> și acesta</h1>
+    <p class="lede">Ambele sunt deja pe mașină și ambele vor rămâne utile. Această pagină este despre locul în care se opresc - și spune pe față unde rămân răspunsul mai bun.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Unde se oprește fiecare</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Poate ajunge la aproape tot ce știe managerul de control al serviciilor și nu vă spune nimic despre cum să întrebați. Sintaxa este din anii nouăzeci - <code>sc config X start= auto</code>, unde spațiul de după semnul egal este obligatoriu, iar absența lui este un eșec tăcut de a face ce ați vrut.</p>
+        <p>Răspunde despre o singură intrare pe rând. Nu există filtrare, nicio ieșire pe care un script s-o poată analiza fără a scrie un parser și nicio previzualizare: <code>sc stop</code> fie funcționează, fie întoarce un număr.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> și cmdleturile <code>*-Service</code></h3>
+        <p>Obiecte propriu-zise, un pipeline și o vedere superficială. În Windows PowerShell 5.1, cel care vine cu Windows, <code>Get-Service</code> nu arată contul sub care rulează un serviciu și nici descrierea lui. PowerShell 7 le arată pe amândouă, și calea de lansare, și se instalează separat.</p>
+        <p><code>Stop-Service -Force</code> înseamnă "chiar dacă ceva depinde de el" - oprește serviciile dependente și vă spune asta după, nu înainte.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Aceleași întrebări, în trei feluri</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Întrebare</th><th>Cu ce este pe mașină</th><th>Aici</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Ce ar trebui să ruleze și nu rulează</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Ce servicii au un executabil nesemnat</td>
+            <td class="no">Citiți fiecare cale de lansare, rezolvați-o, apelați <code>Get-AuthenticodeSignature</code> pe fiecare - un script, nu o comandă</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Ce ar trage după sine oprirea acestuia</td>
+            <td><code>sc enumdepend X</code>, apoi citiți lista și decideți singur</td>
+            <td><code>bws stop X --dry-run --dependents</code>, care este planul ce ar rula</td>
+          </tr>
+          <tr>
+            <td>Ce s-a schimbat de săptămâna trecută</td>
+            <td class="no">Nimic, decât dacă ați scris singur colectorul</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Cine a schimbat tipul de pornire și când</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, apoi citiți mesajul fiecărui eveniment</td>
+            <td><code>bws history Spooler</code>, a cărui primă linie spune cât de departe ajunge jurnalul</td>
+          </tr>
+          <tr>
+            <td>Ieșire care poate fi citită de mașină</td>
+            <td>Obiecte din PowerShell, text din <code>sc.exe</code></td>
+            <td><code>--json</code> la fiecare comandă, la ieșirea standard, cu avertismentele la eroarea standard</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Acolo unde acest instrument nu este de acord cu <code>sc.exe</code> despre un serviciu, este o eroare aici.</strong> O parte din suita de teste le rulează pe amândouă pe mașina pe care se află și le compară intrare cu intrare, iar o diferență între cele două este cel mai util lucru pe care îl puteți pune într-o sesizare.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Când să continuați să folosiți ce aveți</h2>
+    <ul class="points">
+      <li><strong>Sunteți pe o mașină pe care o veți atinge o singură dată.</strong> Ambele sunt deja acolo și nimic nu trebuie trecut de o politică.</li>
+      <li><strong>Trebuie să schimbați contul, calea de lansare sau acțiunile de recuperare.</strong> <code>sc.exe</code> le face pe toate trei. Acest instrument arată contul și calea de lansare și nu schimbă niciuna, iar acțiunile de recuperare le citește doar ca să avertizeze înainte să încheie un proces.</li>
+      <li><strong>Trebuie să creați sau să ștergeți un serviciu.</strong> <code>sc create</code> și <code>sc delete</code>. Nu aici, intenționat.</li>
+      <li><strong>Sunteți deja adânc într-un pipeline PowerShell.</strong> <code>bws list --json</code> se întoarce ca obiecte prin <code>ConvertFrom-Json</code>, deci se alătură pipeline-ului în loc să-l înlocuiască.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Împreună, nu în loc</h2>
+    <p>Instrumentul care răspunde la <em>ce este în neregulă cu această mașină</em> și instrumentele care schimbă o setare nu sunt același instrument. Puneți întrebarea aici, citiți planul aici și folosiți ce doriți pentru a-l executa - planul tipărește linia de comandă care cere același lucru, iar acea linie este făcută pentru a fi copiată.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Limbajul de interogare</a>
+    </div>
+  </div>
+</section>

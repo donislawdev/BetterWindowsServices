@@ -1,0 +1,178 @@
+<meta name="title" content="Limbajul de interogare - puneți serviciilor Windows o întrebare">
+<meta name="description" content="Un singur limbaj de interogare pentru caseta de căutare și pentru bws list --query. Fiecare câmp, fiecare valoare și întrebarea pe care services.msc nu o poate pune.">
+<meta name="nav" content="Limbaj de interogare">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Tabelul de câmpuri este CONSTRUIT din Bws.Core - QueryFields.Names și QueryFields.ValuesOf sunt
+  API public, menit oricărui lucru care le oferă unei persoane, deci această pagină nu poate numi un
+  câmp pe care programul nu îl are și nici nu poate omite unul pe care îl are. Frazele de lângă ele
+  sunt în site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Limbajul de interogare</span>
+    <h1>Puneți mașinii o întrebare</h1>
+    <p class="lede">Un singur limbaj, în caseta de căutare a ferestrei și în <code>bws list --query</code>. Un cuvânt simplu caută în nume, numele afișat, cont și calea de lansare. Un câmp îl restrânge. {{field_count}} câmpuri, iar același text înseamnă același lucru în ambele jumătăți ale instrumentului.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Șase care răspund la o întrebare reală</h2>
+    <div class="grid">
+      <div class="card"><h3>Ce ar trebui să fie pornit și nu este</h3><p><code>start:auto !status:running</code></p><p>Prima interogare pe care o scriu majoritatea oamenilor, și cea la care <code>services.msc</code> nu poate răspunde deloc.</p></div>
+      <div class="card"><h3>Servicii al căror fișier a dispărut</h3><p><code>file:missing</code></p><p>O intrare care indică spre un executabil ce nu se află pe disc. De obicei, o dezinstalare care a lăsat înregistrarea în urmă.</p></div>
+      <div class="card"><h3>Nesemnate, fără zgomotul sesiunilor</h3><p><code>signed:no peruser:no</code></p><p>Familiile pe utilizator fac câte o copie pe sesiune și umplu lista cu aproape-duplicate. Aceasta întreabă despre restul.</p></div>
+      <div class="card"><h3>Rulează deși este dezactivat</h3><p><code>mismatch:running</code></p><p>Configurație și stare care nu concordă - o intrare pe care managerul este setat să n-o pornească niciodată, rulând totuși.</p></div>
+      <div class="card"><h3>Tot ce cere drepturi de depanare</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Un privilegiu care permite unui proces să deschidă oricare altul. Merită să știți ce servicii îl cer.</p></div>
+      <div class="card"><h3>Ce n-a putut citi instrumentul</h3><p><code>account:?</code></p><p>Intrările la care această sesiune n-a putut citi contul. O întrebare pe care <code>services.msc</code> nici măcar nu o poate pune.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cum se scrie o interogare</h2>
+    <div class="split">
+      <div>
+        <h3>Termeni</h3>
+        <ul class="prose-list">
+          <li>Termenii se separă prin spații și toți trebuie să se potrivească - nu există cuvântul-cheie <code>and</code> pentru că n-ar putea însemna altceva.</li>
+          <li>Același câmp scris de două ori este singura excepție: <code>status:running status:stopped</code> înseamnă oricare dintre ele, pentru că asta scrie bifarea a două filtre. Două limite pe un număr tot restrâng - <code>pid:&gt;1000 pid:&lt;2000</code> este intervalul dintre ele.</li>
+          <li><code>!</code> în fața unui termen îl neagă: <code>!status:running</code>. Într-un fișier batch cu <code>setlocal EnableDelayedExpansion</code>, cmd înghite acel <code>!</code> fără un cuvânt, iar interogarea înseamnă în tăcere altceva - scrieți acolo <code>^!</code> între ghilimele.</li>
+          <li>O virgulă în interiorul unui câmp înseamnă <em>sau</em>: <code>start:manual,disabled</code>.</li>
+          <li>Ghilimelele protejează orice conține spații sau două puncte: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>O cale lipită ca atare - <code>C:\Windows\System32\svchost.exe</code> - este căutată, nu citită ca un câmp numit C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Cum se potrivește textul</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> se potrivește cu orice îl <em>conține</em> - implicit, pentru că asta se așteaptă oamenii de la o casetă de căutare.</li>
+          <li><code>name:=spooler</code> este exact.</li>
+          <li><code>name:spool*</code> acceptă metacaractere, <code>*</code> și <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> este o expresie regulată și, între bare oblice, se scrie așa cum se scriu expresiile regulate: <code>\?</code>, <code>\\</code> și o virgulă înseamnă acolo ce înseamnă acolo. O bară oblică care nu se închide niciodată este o eroare - pentru a căuta bara însăși, scrieți <code>\/</code> sau folosiți ghilimele.</li>
+          <li>Majusculele sunt ignorate, inclusiv în afara ASCII - un nume afișat în poloneză sau greacă se potrivește oricum ar fi tastat.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Trei cuvinte pe care le acceptă fiecare câmp</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>O valoare scrisă greșit este o eroare, niciodată un rezultat gol.</strong> <code>status:runing</code> răspunde <em>Did you mean running?</em> și se încheie cu codul <code>2</code>. O listă goală ar arăta ca un răspuns, iar diferența dintre "nimic nu se potrivește" și "ați scris greșit" este diferența dintre o mașină curată și un audit care n-a dovedit nimic. O interogare care n-ar restrânge nimic este refuzată și în linia de comandă, ca un script să nu opereze pe toată mașina din cauza unei greșeli de tastare.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mai multe exemple</h2>
+    <p class="lede">Fiecare funcționează la fel în caseta de căutare a ferestrei și după <code>bws list --query</code>, iar fiecare a fost rulat pe un Windows real înainte de a fi scris aici. Ce găsește depinde de mașină - iar pentru o întrebare despre probleme, un răspuns gol este cel pe care îl doriți.</p>
+    <div class="examples">
+    <h3>Stare și tip de pornire</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Blocat la oprire sau la pornire - așteptarea pe care snap-in-ul o arată și care nu se termină niciodată.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Setat să pornească automat, oprit și care nu așteaptă un declanșator - lista scurtă care merită citită după o repornire.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automat, pornit puțin după celelalte intrări automate.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Rulează deși nimic nu îl pornește la boot - ceva l-a cerut, l-a pornit un declanșator sau cineva.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Conturi</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Rulează ca LocalSystem, cel mai puternic cont, dintr-un fișier pe care Microsoft nu l-a semnat. O interogare despre editor citește singură semnăturile, deci durează câteva secunde.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Servicii care rulează sub orice alt cont - unul virtual, unul gestionat sau al unei persoane.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Un cont virtual al serviciului însuși. Ghilimelele țin cuvintele laolaltă, din cauza spațiului.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Fișiere și semnături</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Fără semnătură, un lanț în care Windows nu are încredere sau un fișier modificat după ce a fost semnat.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Semnat, de încredere și nu de Microsoft - software-ul pe care alte companii l-au pus pe această mașină.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Drivere încărcate la pornirea Windows a căror semnătură nu inspiră încredere Windows-ului. Pe o mașină sănătoasă, niciunul.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Un serviciu cu propriul proces al cărui fișier se află în afara folderului Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Lansat din interiorul profilului cuiva, ultimul loc în care se așteaptă un serviciu.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>O bară oblică inversă înaintea unui spațiu face spațiul parte din cuvânt, așa că o cale care se termină cu bară oblică inversă se scrie cu două atunci când după ea urmează alt termen. La sfârșitul interogării una este de ajuns.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Declanșatoare și dependențe</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Așteaptă sosirea unui dispozitiv, deci oprit dintr-un motiv.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Pornit când o cerere ajunge la un punct final de rețea - un port, o conductă numită sau o interfață RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Intrări pe care un declanșator le poate opri, nu doar porni.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Intrări care au nevoie de WMI pentru a rula.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Tot ce are nevoie Print Spooler ca să ruleze și ce au nevoie la rândul lor acelea.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilegii și procese</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Cere să acționeze ca parte a sistemului de operare.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Poate acționa în numele unui client rulând sub alt cont decât LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Poartă propriul SID de serviciu în procesul său, deci permisiunile îl pot numi doar pe el. sidtype:restricted întreabă despre cele al căror proces este și restricționat la scriere.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Rulează în interiorul unui svchost partajat, împreună cu altele.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Un proces care folosește mai mult de 200 MB. Memoria este citită singură când o interogare întreabă despre ea.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>Într-un proces al cărui id se află între 1000 și 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Nume și text</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Interogare</th><th>Ce găsește</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Un cuvânt simplu, căutat în nume, numele afișat, cont și calea de lansare.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Exact acest nume și nimic care îl conține doar.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Nume care încep cu win, scrise cu metacaracter.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Nume care se termină în svc, scrise ca expresie regulată.</td></tr>
+          <tr><td><code>description:none</code></td><td>Nicio descriere deloc, ceea ce este cazul majorității driverelor.</td></tr>
+          <tr><td><code>description:?</code></td><td>O descriere pe care Windows n-a putut-o preda, de obicei pentru că indică un fișier de limbă care lipsește.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Șabloanele pe utilizator pe care Windows le copiază pentru fiecare sesiune autentificată.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Fiecare câmp</h2>
+    <p>Construit din programul însuși, deci acest tabel nu se poate abate de la ce acceptă instrumentul. Un câmp fără listă de valori acceptă text, un număr sau o dimensiune - a treia coloană spune care.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Două lucruri bune de știut</h2>
+    <div class="qa">
+      <div>
+        <h3>Unele câmpuri sunt scumpe, iar a le cere pornește citirea</h3>
+        <p>Semnăturile durează câteva secunde pe o mașină întreagă, iar memoria este o măsurătoare și nu o setare, așa că niciuna nu este citită pentru o listă decât dacă se cere. O interogare care menționează una pornește singură acea citire - nu trebuie să vă amintiți <code>--signatures</code> pe lângă <code>signed:no</code>. În fereastră, o interogare despre semnături spune că răspunsul este incomplet până sosesc, în loc să arate o listă mai scurtă ca și cum ar fi răspunsul.</p>
+      </div>
+      <div>
+        <h3>Un rezultat judecat după ceva necitibil spune asta</h3>
+        <p>Dacă intrările au fost judecate după un câmp pe care această sesiune nu l-a putut citi, rezultatul poartă o linie care spune câte - pentru că un astfel de rezultat poate lipsi intrări sau poate conține unele care nu îi aparțin. Este aceeași regulă pe care o respectă tot instrumentul: o citire eșuată este vizibilă în răspuns, niciodată înghițită. Un editor primește același tratament când doar certificatul îl afirmă: lângă orice verdict altul decât <code>trusted</code> numele este afișat ca <em>not verified</em>, iar <code>publisher:</code> socotește intrarea nesigură pe o linie proprie - deci <code>!publisher:microsoft</code> păstrează un fișier Microsoft pe care cineva l-a modificat după semnare.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Referința liniei de comandă</a>
+  </div>
+</section>

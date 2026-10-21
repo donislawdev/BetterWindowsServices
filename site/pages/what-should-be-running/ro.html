@@ -1,0 +1,86 @@
+<meta name="title" content="Ce servicii Windows ar trebui să ruleze pe această mașină?">
+<meta name="description" content="Nimeni nu poate răspunde în general, iar listele care pretind asta descriu altă mașină. Întrebarea la care se poate răspunde: ce s-a schimbat.">
+<meta name="nav" content="Ce ar trebui să ruleze">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ghid</span>
+    <h1>Ce servicii ar trebui să ruleze?</h1>
+    <p class="lede">Răspunsul sincer este că nimeni nu vi-l poate spune, iar orice listă care pretinde asta descrie o mașină care nu este a dumneavoastră. Ceea ce <em>se poate</em> răspunde este mai îngust și mult mai util: ce nu se potrivește pe această mașină și ce este diferit față de când funcționa.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De ce întrebarea generală nu are răspuns</h2>
+    <ul class="points points-alarm">
+      <li><strong>Setul diferă după ediția, versiunea și rolul Windows.</strong> Un controler de domeniu, un laptop și o gazdă de containere nu sunt de acord aproape în nimic, iar o listă scrisă pentru unul este greșită pentru celelalte.</li>
+      <li><strong>Jumătate din ce este instalat nu vine de la Windows.</strong> Drivere, agenți, servicii de actualizare, daemoni de licență - fiecare a fost pus acolo de ceva, iar nicio listă generală nu știe de ce.</li>
+      <li><strong>Majoritatea serviciilor sunt făcute să fie oprite.</strong> Un Windows modern pornește o fracțiune din ce înregistrează: restul așteaptă un declanșator - sosirea unui dispozitiv, deschiderea unui port, intrarea într-un domeniu - iar oprit este starea lor corectă.</li>
+      <li><strong>Listele de tipul "dezactivați acestea pentru performanță" sunt felul în care se strică mașinile.</strong> Serviciul care pare inactiv este cel pe care altceva îl pornește la cerere, iar defecțiunea apare o săptămână mai târziu, undeva fără legătură.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Întrebările care au răspunsuri</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Ce ar trebui să fie pornit și nu este</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows a primit ordin să pornească acestea și nu rulează. Pe o mașină sănătoasă aceasta este o listă scurtă - câteva intrări care pornesc târziu și se opresc din nou. Orice altceva merită o privire.</p>
+      </div>
+      <div class="card">
+        <h3>Ce este dezactivat și totuși rulează</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Configurația și starea nu concordă. De obicei cineva l-a dezactivat fără să-l oprească, iar următoarea repornire va fi o surpriză.</p>
+      </div>
+      <div class="card">
+        <h3>Ce indică un fișier care a dispărut</h3>
+        <p><code>file:missing</code></p>
+        <p>O dezinstalare care a lăsat înregistrarea în urmă. Inofensivă până când ceva încearcă să-l pornească și un indiciu despre ce se afla pe această mașină.</p>
+      </div>
+      <div class="card">
+        <h3>Ce n-a semnat nimeni</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Nu este dovada a nimic singură și este locul potrivit de unde să începeți să citiți. Al doilea termen elimină familiile pe utilizator, care altfel umplu lista cu aproape-duplicate.</p>
+      </div>
+      <div class="card">
+        <h3>Ce cere cele mai puternice privilegii</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Un privilegiu care permite unui proces să deschidă oricare altul. Câteva servicii legitime îl cer și merită să știți care dintre ele o fac pe mașina dumneavoastră.</p>
+      </div>
+      <div class="card">
+        <h3>Ce așteaptă un declanșator</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Oprit pentru că încă nimic nu l-a cerut, și nu pentru că ceva este greșit. A ști care sunt acestea este felul în care prima listă încetează să mai fie alarmantă.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cea care le bate pe toate</h2>
+    <p class="lede">Întrebați mașina însăși, de când funcționa.</p>
+    <p>Faceți un instantaneu în ziua în care mașina intră în serviciu. Atunci <em>ar trebui să ruleze asta</em> devine <em>rula asta când totul funcționa</em> - o întrebare despre mașina dumneavoastră și nu despre o mașină dintr-un articol.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... o săptămână, o actualizare sau un incident mai târziu</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Configurația este raportată separat de starea de rulare, deci răspunsul nu este patruzeci de servicii care se întâmplă să fie pornite - este tipul de pornire pe care l-a schimbat cineva.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Auditarea unei mașini pentru derivă</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Înainte să opriți ceva</h2>
+    <p>Fiecare oprire din acest instrument își arată mai întâi planul: pașii, ce cade odată cu ei și un avertisment când unul dintre ei este ceva fără de care mașina nu funcționează. Lista acestora este o listă de pornire de șapte - cele două jumătăți ale RPC și lansatorul DCOM, managerul de conturi, izolarea cheilor, managerul de sesiuni și plug and play - iar <strong>Remote Desktop nu este pe ea</strong>, deci într-o sesiune la distanță citiți planul.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Fiecare câmp despre care puteți întreba</a>
+    </div>
+  </div>
+</section>

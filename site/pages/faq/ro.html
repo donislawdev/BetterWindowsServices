@@ -1,0 +1,78 @@
+<meta name="title" content="Întrebări despre Better Windows Services și limitele lui oneste">
+<meta name="description" content="Are nevoie de internet? De drepturi de administrator? Îmi strică serverul? Ce face și ce refuză să facă prin construcție.">
+<meta name="nav" content="Întrebări frecvente">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Întrebări</span>
+    <h1>Întrebări și limite</h1>
+    <p class="lede">Un instrument care nu acoperă ceva în tăcere este mai rău decât unul care spune ce nu poate face. Limitele sunt și ele pe această pagină, în două grupuri: ce refuză prin construcție și ce face Windows și acest instrument raportează așa cum este.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Cu ce se deosebește de <code>sc.exe</code>, <code>Get-Service</code> sau <code>services.msc</code>?</h3>
+        <p><code>sc query</code> și <code>Get-Service</code> vă spun ce rulează. <code>services.msc</code> vă lasă să schimbați, un rând pe rând, fără o cale de a pune o întrebare și fără nicio evidență după aceea. Acest instrument pune întrebarea (<code>start:auto !status:running</code>), vă arată planul înainte să acționeze și păstrează un instantaneu pe care îl puteți compara peste o săptămână. Acolo unde nu este de acord cu <code>sc.exe</code> despre un serviciu, este o eroare - o parte din suita de teste le rulează pe amândouă și le compară intrare cu intrare. <a href="{{url:sc-exe-and-powershell}}">Comparația mai lungă este aici.</a></p>
+      </div>
+      <div>
+        <h3>Are nevoie de internet?</h3>
+        <p>Niciodată. Fără telemetrie, fără verificare de actualizări, fără raportare de erori, fără cont, fără client de orice fel. Singura dată când poate atinge o rețea este când dați <code>--follow-network</code>: atunci poate privi o cale de lansare pe un share al altei mașini și poate lăsa Windows să preia un certificat pe care această mașină nu îl are deja - dezactivat implicit, iar ajutorul spune de ce. Butoanele <em>GitHub</em> și <em>Donate</em> din fereastră și pagina din meniul <em>Help</em> predau fiecare browserului dumneavoastră o singură adresă fixă când le apăsați, iar browserul este cel care se conectează.</p>
+      </div>
+      <div>
+        <h3>Are nevoie de drepturi de administrator?</h3>
+        <p>Pentru a privi, nu. Pentru a schimba, da. Fără ele managerul arată mai puține intrări și refuză mai multe, iar ambele jumătăți spun asta sus, în loc să se prefacă că lista este toată mașina. Fereastra oferă <em>Restart as admin</em>. Nu își ridică niciodată singură drepturile.</p>
+      </div>
+      <div>
+        <h3>Este gratuit? Îl pot folosi la serviciu?</h3>
+        <p>Da la amândouă. GPL-3.0, fără condiții ascunse. Un instantaneu pe care îl faceți este fișierul dumneavoastră.</p>
+      </div>
+      <div>
+        <h3>Îmi va strica serverul?</h3>
+        <p>Nu de la sine. Nimic nu se schimbă fără un plan pe care l-ați văzut, driverele sunt refuzate, iar un plan care ar doborî ceva de care mașina are nevoie spune asta. Ceea ce nu vă poate proteja este executarea unui plan pe care nu l-ați citit. Lista serviciilor de care mașina are nevoie este o listă de pornire de șapte - cele două jumătăți ale RPC și lansatorul DCOM, managerul de conturi, izolarea cheilor, managerul de sesiuni și plug and play - iar <strong>Remote Desktop nu este pe ea</strong>, deci într-o sesiune la distanță citiți planul.</p>
+      </div>
+      <div>
+        <h3>Este un produs Microsoft?</h3>
+        <p>Nu. {{product}} este un proiect open source independent și nu este afiliat cu Microsoft, nici aprobat sau sponsorizat de Microsoft. Windows este o marcă comercială a grupului de companii Microsoft.</p>
+      </div>
+      <div>
+        <h3>Este programul în limba mea?</h3>
+        <p>Nu - programul vorbește engleza, motiv pentru care acest site este tradus. Fereastra citește un fișier de limbă, <code>languages\gui.&lt;cod&gt;.json</code>, așezat lângă executabil și îl alege după limba Windows, fără comutator, deci o traducere este o contribuție care se poate adăuga fără recompilarea programului. Numele serviciilor din listă sunt ceea ce spune Windows-ul dumneavoastră că sunt - în limba în care este configurat Windows-ul dumneavoastră.</p>
+      </div>
+      <div>
+        <h3>De ce este fereastra întunecată când Windows-ul meu este luminos?</h3>
+        <p>Este întunecată și rămâne întunecată indiferent cum este setat Windows, inclusiv o temă cu contrast ridicat. Asta este verificat, nu presupus - își păstrează culorile proprii și rămâne lizibilă și nu urmează acea setare.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Prin construcție</h2>
+    <ul class="points">
+      <li><strong>Doar mașina locală.</strong> Administrarea la distanță nu este în această versiune. Pentru a compara două mașini, faceți un instantaneu pe fiecare și comparați cele două fișiere.</li>
+      <li><strong>Doar Windows, doar pe 64 de biți</strong>, Windows 10 1809 sau Windows Server 2019 și mai noi.</li>
+      <li><strong>Operațiile asupra driverelor sunt refuzate, nu încercate</strong>, pentru că oprirea unui driver de nucleu adesea nu se poate anula fără repornire.</li>
+      <li><strong>Instrumentul nu își ridică singur drepturile.</strong> Când managerul refuză, spune asta și se încheie cu codul de ieșire <code>3</code>. Fereastra se oferă să repornească singură ca administrator și nu face nimic altceva în privința asta.</li>
+      <li><strong>Revocarea certificatelor nu este verificată.</strong> Ar necesita accesul la rețea, iar acest instrument nu face niciodată asta. Deci <em>Trusted</em> înseamnă că lanțul era valid pe această mașină, nu că nimeni n-a revocat certificatul de atunci.</li>
+      <li><strong>Fereastra despachetează o parte din cadrul de interfață al Windows înainte să pornească.</strong> Ca un singur fișier, poartă câteva biblioteci native pe care Windows le poate încărca doar de pe disc. Fără drepturi de administrator le scrie, la prima pornire a fiecărei versiuni, într-un folder <code>.net</code> sub folderul temporar al contului și le încarcă de acolo. Cu drepturi de administrator folosește în schimb <code>ProgramData\BetterWindowsServices</code> de pe unitatea Windows - un folder pe care îl creează astfel încât doar administratorii să îl poată modifica și pe care îl verifică la fiecare pornire. Dacă folderul nu poate fi creat sau alții îl pot modifica, fereastra nu pornește și spune ce folder și ce trebuie făcut. Mutarea acolo înseamnă că o fereastră cu drepturi ridicate se pornește singură a doua oară, ceea ce durează o fracțiune de secundă, iar fiecare versiune își lasă acolo bibliotecile (cam 8 MB) până când cineva șterge folderul. Linia de comandă nu poartă astfel de biblioteci și nu despachetează nimic.</li>
+      <li><strong>O sesiune cu drepturi ridicate numește setările .NET pe care le moștenește, în loc să le refuze.</strong> Un profiler, o opțiune de urmărire sau de dump ori un port de diagnostic setat în mediu nu pot fi dezactivate din interiorul unui program .NET, așa că, cu drepturi de administrator, ambele jumătăți le listează pe cele pe care le găsesc. Cârligele de pornire sunt dezactivate complet.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lucruri pe care le face Windows și acest instrument le raportează așa cum sunt</h2>
+    <ul class="points">
+      <li><strong>Un serviciu găzduit în <code>svchost</code></strong> are o cale de lansare care numește gazda, deci <em>fișierul este acolo</em> și <em>cine l-a semnat</em> spun amândouă mai puțin decât pentru un serviciu cu propriul proces.</li>
+      <li><strong>Un fișier cu semnătură proprie și cu intrare într-un catalog Windows</strong> poate numi doi semnatari diferiți. Editorul afișat este cel din interiorul fișierului - cel care rămâne același când fișierul este privit pe altă mașină - și poate diferi de ce raportează PowerShell.</li>
+      <li><strong>Fără drepturi de administrator, managerul listează mai puține intrări și refuză mai multe din ce listează.</strong> Ambele jumătăți spun asta sus, iar un instantaneu o consemnează, pentru că altfel compararea unui instantaneu cu drepturi ridicate cu unul fără ele ar raporta ca eliminate intrări pe care nimeni nu le-a eliminat.</li>
+    </ul>
+    <p class="note"><strong>Ați găsit o problemă sau un serviciu pe care acest instrument îl raportează altfel decât <code>sc.exe</code>?</strong> <a href="{{issues}}">Urmăritorul de probleme</a> este deschis, iar o comparație între cele două este cel mai util lucru pe care îl puteți lipi acolo.</p>
+  </div>
+</section>

@@ -13,6 +13,7 @@
     "it": "sc-exe-e-powershell",
     "pt-br": "sc-exe-e-powershell",
     "nl": "sc-exe-en-powershell",
-    "cs": "sc-exe-a-powershell"
+    "cs": "sc-exe-a-powershell",
+    "ro": "sc-exe-si-powershell"
   }
 }
