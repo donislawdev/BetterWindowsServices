@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe и Get-Service в сравнении с инструментом для аудита">
+<meta name="description" content="sc.exe умеет всё и ничего не говорит. Get-Service пригоден для скриптов и поверхностен. Где каждый ещё лучше и где язык запросов и план справляются лучше.">
+<meta name="nav" content="sc.exe и PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Руководство</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> и это</h1>
+    <p class="lede">Оба уже есть на машине, и оба останутся полезными. Эта страница о том, где они заканчиваются, - и она прямо говорит, где они всё ещё лучший ответ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Где заканчивается каждый</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Он может дотянуться почти до всего, что знает диспетчер управления службами, и ничего не говорит о том, как спрашивать. Синтаксис из девяностых - <code>sc config X start= auto</code>, где пробел после знака равенства обязателен, а его отсутствие - молчаливый отказ сделать то, что вы имели в виду.</p>
+        <p>Он отвечает об одной записи за раз. Нет фильтрации, нет вывода, который скрипт мог бы разобрать, не написав разборщик, и нет предпросмотра: <code>sc stop</code> либо срабатывает, либо возвращает число.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> и командлеты <code>*-Service</code></h3>
+        <p>Настоящие объекты, конвейер и поверхностный взгляд. В Windows PowerShell 5.1, которая поставляется с Windows, <code>Get-Service</code> не показывает учётную запись, под которой работает служба, и её описание. PowerShell 7 показывает и то и другое, и ещё путь запуска, и ставится отдельно.</p>
+        <p><code>Stop-Service -Force</code> означает «даже если что-то от неё зависит» - он останавливает зависимые службы и сообщает вам об этом после, а не до.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Те же вопросы тремя способами</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Вопрос</th><th>С тем, что есть на машине</th><th>Здесь</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Что должно работать и не работает</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>У каких служб неподписанный исполняемый файл</td>
+            <td class="no">Прочитать каждый путь запуска, разрешить его, вызвать <code>Get-AuthenticodeSignature</code> для каждого - скрипт, а не команда</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Что унесёт с собой остановка этой</td>
+            <td><code>sc enumdepend X</code>, затем прочитать список и решить самому</td>
+            <td><code>bws stop X --dry-run --dependents</code>, то есть план, который бы выполнился</td>
+          </tr>
+          <tr>
+            <td>Что изменилось с прошлой недели</td>
+            <td class="no">Ничего, если вы не написали сборщик сами</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Кто изменил тип запуска и когда</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, затем прочитать сообщение каждого события</td>
+            <td><code>bws history Spooler</code>, чья первая строка говорит, насколько далеко назад уходит журнал</td>
+          </tr>
+          <tr>
+            <td>Машиночитаемый вывод</td>
+            <td>Объекты из PowerShell, текст из <code>sc.exe</code></td>
+            <td><code>--json</code> у каждой команды, в стандартном выводе, с предупреждениями в стандартном потоке ошибок</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Где этот инструмент расходится с <code>sc.exe</code> в отношении службы, это здесь ошибка.</strong> Часть набора тестов запускает оба на машине, на которой работает, и сравнивает их запись за записью, а разница между ними - самое полезное, что можно положить в сообщение о проблеме.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Когда продолжать пользоваться тем, что у вас есть</h2>
+    <ul class="points">
+      <li><strong>Вы на машине, которой коснётесь один раз.</strong> Оба уже там, и ничего не нужно проводить через политику.</li>
+      <li><strong>Вам нужно изменить учётную запись, путь запуска или действия восстановления.</strong> <code>sc.exe</code> делает все три. Этот инструмент показывает учётную запись и путь запуска и не меняет ни то ни другое, а действия восстановления читает лишь для того, чтобы предупредить перед завершением процесса.</li>
+      <li><strong>Вам нужно создать или удалить службу.</strong> <code>sc create</code> и <code>sc delete</code>. Не здесь, намеренно.</li>
+      <li><strong>Вы уже глубоко в конвейере PowerShell.</strong> <code>bws list --json</code> возвращается как объекты через <code>ConvertFrom-Json</code>, поэтому он присоединяется к конвейеру, а не заменяет его.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Вместе, а не вместо</h2>
+    <p>Инструмент, отвечающий на вопрос <em>что не так с этой машиной</em>, и инструменты, меняющие одну настройку, - не один и тот же инструмент. Задайте вопрос здесь, прочитайте план здесь и используйте что хотите, чтобы его выполнить - план печатает командную строку, которая просит то же самое, и эта строка предназначена для копирования.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Скачать для Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Язык запросов</a>
+    </div>
+  </div>
+</section>

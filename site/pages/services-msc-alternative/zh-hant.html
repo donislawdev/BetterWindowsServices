@@ -1,0 +1,102 @@
+<meta name="title" content="給 Windows 系統管理員的 services.msc 替代方案">
+<meta name="description" content="services.msc 沒有搜尋、沒有篩選，也沒有歷程記錄。這是一款免費開放原始碼的替代品：有查詢語言、每次變更前的預覽以及漂移差異。">
+<meta name="nav" content="比較 services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1><code>services.msc</code> 的替代方案</h1>
+    <p class="lede">「服務」管理單元自 Windows 2000 以來幾乎沒有變化。對於螢幕上已經看到的某一個服務，它仍然是啟動它最快的方式，而對於關於電腦的任何問題，它又是回答得最慢的方式。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>是什麼促使人們去尋找</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>沒有搜尋。</strong>唯一的導覽方式是輸入一個字母，跳到以該字母開頭的第一個顯示名稱。在有八百個項目的電腦上，這只是多了幾步的捲動。</li>
+        <li><strong>沒有篩選。</strong>無法詢問<em>哪些設為自動啟動卻沒有執行</em>，而這恰恰是能找出一台出了問題的電腦的那一個問題。</li>
+        <li><strong>一次只能處理一列。</strong>重新啟動十二個服務，就是十二次按右鍵和十二次等待。</li>
+        <li><strong>「Stopping...」之後無路可走</strong>，只有工作管理員，以及猜測該結束哪個 <code>svchost</code>。</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>沒有歷程記錄。</strong>沒人知道是誰、在何時把這個啟動類型設成了 Disabled，也不知道上個月是不是就是這樣。</li>
+        <li><strong>隱藏的資料。</strong>處理程序、觸發程序、所需特殊權限、安全性描述元、誰替可執行檔簽章：這些在管理單元中一樣都沒有，而在出問題時全都很重要。</li>
+        <li><strong>欄無法變更。</strong>名稱、描述、狀態、啟動類型、登入身分。這就是全部清單，而在真實的電腦上，其中沒有一個能被有效地排序。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同樣三項任務，在兩者中</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>你想要</th><th>在 <code>services.msc</code> 中</th><th>在這裡</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>找出應該執行卻沒有執行的內容</td>
+            <td class="no">依啟動類型排序，捲動，讀每一列</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>了解停止會帶走什麼</td>
+            <td class="no">在你按下 Stop 之後才列出相依項目的對話方塊</td>
+            <td>任何動作發生之前的計畫，每個相依項目各為一個步驟，當其中之一是電腦所需要的時會給出警告</td>
+          </tr>
+          <tr>
+            <td>了解自上週以來發生了什麼變化</td>
+            <td class="no">沒有</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>了解是誰變更了啟動類型</td>
+            <td class="no">沒有</td>
+            <td><code>bws history Spooler</code>，來自 System 記錄檔</td>
+          </tr>
+          <tr>
+            <td>重新啟動十二個服務</td>
+            <td class="no">十二次按右鍵</td>
+            <td>選取十二個，一份計畫，一次執行，一份報告</td>
+          </tr>
+          <tr>
+            <td>查看是誰替服務的可執行檔簽章</td>
+            <td class="no">不顯示</td>
+            <td>既是一欄，也是可以搜尋的內容：<code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>把其中任何一項寫成指令碼</td>
+            <td class="no">無法使用指令碼</td>
+            <td><code>bws</code>，帶 <code>--json</code>，並為每種結束方式提供結束代碼</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>管理單元仍然做得更好的地方</h2>
+    <p class="lede">有兩點，而假裝並非如此，正是這個專案不會做的那類聲明。</p>
+    <ul class="points">
+      <li><strong>它已經在電腦上了。</strong>無需下載，無需通過軟體原則核准。對於你只會碰一次的電腦，這就是全部理由。</li>
+      <li><strong>它可以編輯復原動作、帳戶和啟動路徑。</strong>這個工具會顯示帳戶和啟動路徑，但不會變更其中任何一個，而讀取復原動作只是為了在結束處理程序之前發出警告。建立、刪除或重新指定服務，在這裡同樣沒有。</li>
+    </ul>
+    <p>它完全做不到的事，才是這個工具存在的原因：提出問題、先展示計畫，並告訴你發生了哪些漂移。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>這是什麼</h2>
+    <p>{{product}} 是免費開放原始碼的，採用 GPL-3.0，每一半各是一個檔案，或為整台電腦提供一個安裝程式，並且從不連上網際網路。讀取不需要系統管理員權限，變更需要，而且它會說明這一點，而不是悄悄失敗。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">查看查詢語言</a>
+    </div>
+  </div>
+</section>

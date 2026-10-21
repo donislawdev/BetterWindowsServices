@@ -1,0 +1,86 @@
+<meta name="title" content="このマシンで、どの Windows サービスが動いているべきか">
+<meta name="description" content="一般論としては誰にも答えられず、そう主張する一覧は別のマシンのことを書いています。答えられる質問は、何が変わったかです。">
+<meta name="nav" content="動いているべきもの">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ガイド</span>
+    <h1>どのサービスが動いているべきか</h1>
+    <p class="lede">正直な答えは、誰にもわかりません。そして、わかると主張する一覧は、あなたのものではないマシンについて書いています。<em>答えられる</em>のは、もっと狭く、はるかに役立つ質問です。このマシンで辻褄が合わないものは何か、動いていたときと何が違うか。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>一般的な質問に答えがない理由</h2>
+    <ul class="points points-alarm">
+      <li><strong>セットは、Windows のエディション、バージョン、役割によって異なります。</strong>ドメイン コントローラー、ノート PC、コンテナー ホストは、ほとんどすべてについて意見が合わず、1 つ向けに書かれた一覧はほかには間違っています。</li>
+      <li><strong>インストールされているものの半分は Windows 由来ではありません。</strong>ドライバー、エージェント、更新サービス、ライセンス デーモン。どれも何かが入れたもので、一般的な一覧はそれが何かを知りません。</li>
+      <li><strong>ほとんどのサービスは、停止していることを前提に作られています。</strong>最近の Windows は、登録されているもののごく一部しか起動しません。残りはトリガー（デバイスの接続、ポートのオープン、ドメインへの参加）を待っていて、停止しているのが正しい状態です。</li>
+      <li><strong>「パフォーマンスのためにこれを無効にする」という一覧が、マシンを壊す原因です。</strong>アイドルに見えるサービスは、ほかの何かがオンデマンドで開始するものであり、障害は 1 週間後に、全く無関係な場所で現れます。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>答えのある質問</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>起動しているはずなのに起動していないもの</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows はこれらを開始するように言われていますが、実行されていません。健全なマシンでは短い一覧で、遅れて起動してまた停止する数個のエントリです。それ以外は確認する価値があります。</p>
+      </div>
+      <div class="card">
+        <h3>無効なのに実行されているもの</h3>
+        <p><code>mismatch:running</code></p>
+        <p>構成と状態が食い違っています。たいていは誰かが停止せずに無効にしたもので、次の再起動で驚くことになります。</p>
+      </div>
+      <div class="card">
+        <h3>なくなったファイルを指しているもの</h3>
+        <p><code>file:missing</code></p>
+        <p>登録が残ったままアンインストールされたものです。何かが開始しようとするまでは無害で、このマシンに何があったかを示す手がかりでもあります。</p>
+      </div>
+      <div class="card">
+        <h3>誰も署名していないもの</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>それだけで何かの証明にはならず、読み始める場所としてはふさわしいものです。2 番目の用語は、ユーザーごとのファミリーを除外します。そうしないと、似たエントリで一覧が埋まります。</p>
+      </div>
+      <div class="card">
+        <h3>最も強い特権を要求するもの</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>プロセスがほかのあらゆるプロセスを開けるようになる特権です。正当なサービスの少数がこれを要求しており、ご自身のマシンでどれがそうかを知っておく価値があります。</p>
+      </div>
+      <div class="card">
+        <h3>トリガーを待っているもの</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>何かがおかしいからではなく、まだ誰も要求していないために停止しています。これらがどれかを知っておくと、最初の一覧に不安を覚えなくなります。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>すべてに勝つ方法</h2>
+    <p class="lede">マシン自身に、動いていたときのことを尋ねます。</p>
+    <p>マシンが稼働を開始する日にスナップショットを取ります。そうすれば、<em>これは動いているべきか</em>は<em>すべてが動いていたとき、これは動いていたか</em>になります。記事の中のマシンではなく、あなたのマシンについての質問です。</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... 1 週間、パッチ、またはインシデントのあと</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>構成は実行状態とは分けて報告されるので、答えはたまたま動いている 40 個のサービスではなく、誰かが変更したスタートアップの種類になります。</p>
+    <a class="more" href="{{url:audit-windows-services}}">ドリフトのためのマシン監査</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>何かを停止する前に</h2>
+    <p>このツールのすべての停止は、まずプランを表示します。ステップ、一緒に停止するもの、そしてその 1 つがマシンの動作に不可欠なものである場合の警告です。そのようなものの一覧は 7 つの初期リストです。RPC の 2 つの半分と DCOM ランチャー、アカウント マネージャー、キー分離、セッション マネージャー、プラグ アンド プレイで、<strong>リモート デスクトップは含まれていません</strong>。そのため、リモートセッションではプランを読んでください。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">尋ねられるすべてのフィールド</a>
+    </div>
+  </div>
+</section>

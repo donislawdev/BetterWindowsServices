@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe 與 Get-Service 和專為稽核打造的工具的比較">
+<meta name="description" content="sc.exe 什麼都能做，卻什麼也不告訴你。Get-Service 適合指令碼，但比較淺。各自仍然最好用的地方，以及查詢語言和計畫做得更好的地方。">
+<meta name="nav" content="sc.exe 與 PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1><code>sc.exe</code> 與 <code>Get-Service</code>，以及這個工具</h1>
+    <p class="lede">兩者都已經在電腦上，而且都會繼續有用。這個頁面講的是它們在哪裡到頭了，並且坦率地說明它們在哪些地方仍然是更好的答案。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>各自在哪裡到頭</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>它幾乎可以觸及服務控制管理員所知的一切，卻完全不告訴你該如何提問。語法來自九〇年代：<code>sc config X start= auto</code>，等號後面的空格是必需的，缺少它會悄無聲息地做不成你想做的事。</p>
+        <p>它一次只回答一個項目。沒有篩選，沒有無需自己寫剖析器就能讓指令碼剖析的輸出，也沒有預覽：<code>sc stop</code> 要麼成功，要麼傳回一個數字。</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> 和 <code>*-Service</code> cmdlet</h3>
+        <p>真正的物件、管線，以及淺層的視角。在 Windows 內建的 Windows PowerShell 5.1 中，<code>Get-Service</code> 不顯示服務執行所用的帳戶，也不顯示它的描述。PowerShell 7 兩者都顯示，還顯示啟動路徑，並且需要另外安裝。</p>
+        <p><code>Stop-Service -Force</code> 的意思是「即使有東西依賴它」：它會停止相依項目，並且是在事後而不是事前告訴你。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同樣的問題，三種方式</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>問題</th><th>用電腦上現有的工具</th><th>在這裡</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>應該執行卻沒有執行的內容</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>哪些服務的可執行檔沒有簽章</td>
+            <td class="no">讀取每個啟動路徑，剖析它，對每個呼叫 <code>Get-AuthenticodeSignature</code>：這是一個指令碼，而不是一條命令</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>停止它會帶走什麼</td>
+            <td><code>sc enumdepend X</code>，然後閱讀清單並自己判斷</td>
+            <td><code>bws stop X --dry-run --dependents</code>，也就是將要執行的計畫</td>
+          </tr>
+          <tr>
+            <td>自上週以來發生了什麼變化</td>
+            <td class="no">沒有，除非你自己寫了收集器</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>誰在何時變更了啟動類型</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>，然後閱讀每個事件的訊息</td>
+            <td><code>bws history Spooler</code>，其第一行說明記錄檔能追溯多遠</td>
+          </tr>
+          <tr>
+            <td>機器可讀的輸出</td>
+            <td>PowerShell 給出物件，<code>sc.exe</code> 給出文字</td>
+            <td>每個命令都支援 <code>--json</code>，輸出到標準輸出，警告輸出到標準錯誤</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>這個工具在某個服務上與 <code>sc.exe</code> 不一致時，那在這裡就是一個缺陷。</strong>測試套件的一部分會針對所在的電腦同時執行兩者，並逐項目地比較，而兩者之間的差異，是你能放進問題回報裡最有用的東西。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>何時繼續使用你已有的工具</h2>
+    <ul class="points">
+      <li><strong>你在一台只會碰一次的電腦上。</strong>兩者都已經在那裡了，也不必通過任何原則。</li>
+      <li><strong>你需要變更帳戶、啟動路徑或復原動作。</strong><code>sc.exe</code> 三者都能做。這個工具會顯示帳戶和啟動路徑，但不會變更其中任何一個，而讀取復原動作只是為了在結束處理程序之前發出警告。</li>
+      <li><strong>你需要建立或刪除服務。</strong><code>sc create</code> 和 <code>sc delete</code>。這裡沒有，這是有意為之。</li>
+      <li><strong>你已經深入 PowerShell 管線。</strong><code>bws list --json</code> 透過 <code>ConvertFrom-Json</code> 以物件的形式回來，所以它是加入管線，而不是取代管線。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>是配合，而不是取代</h2>
+    <p>回答<em>這台電腦出了什麼問題</em>的工具，與變更某一項設定的工具，不是同一個工具。在這裡提問，在這裡閱讀計畫，然後用你喜歡的任何方式去執行它：計畫會列印出要求同一件事的命令列，而這一行就是用來複製的。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">查詢語言</a>
+    </div>
+  </div>
+</section>

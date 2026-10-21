@@ -1,0 +1,65 @@
+<meta name="title" content="スナップショットとドリフト - このマシンで昨日から何が変わったか">
+<meta name="description" content="すべての Windows サービスを JSON ファイルに固定し、何が変わったかを尋ねます。構成は実行状態とは分けて報告され、終了コード 5 で誰かを呼び出せます。">
+<meta name="nav" content="スナップショットとドリフト">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">services.msc にはなかった機能</span>
+    <h1>スナップショットとドリフト</h1>
+    <p class="lede">ほかのどのツールも、マシンが今どう見えるかを教えてくれます。管理者が実際に抱えている質問は<em>動いていたときと何が違うか</em>であり、標準の Windows にはそれに答えるものが何もありません。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>スナップショットに含まれるもの</h2>
+    <p>ある時点のマシン全体です。すべてのサービスとドライバーについて、スタートアップの種類、アカウント、起動パスと引数、実行するファイルのハッシュと署名者、依存関係と依存されている関係、トリガー、必要な特権、SID の種類、セキュリティ記述子が含まれます。さらに、マシンの名前、取得したアカウント、そして<strong>そのアカウントが管理者だったかどうか</strong>も含まれます。</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>1 行に 1 フィールドの JSON です。これは意図的なものです。スナップショットをリポジトリに入れて <code>git diff</code> で読めるので、ツール自身の比較だけが見る方法ではなくなります。</p>
+    <p class="note"><strong>それにふさわしい扱いで保管してください。</strong>スナップショットは、すべての起動パスとセキュリティ記述子に至るまで、マシン全体を記述しています。保存先ディレクトリがすでに持っているアクセス許可のまま書き込まれ、ツールは何も絞り込みません。そのため、ほかの人が読めるディレクトリでは、その人たちがそのすべてを読めます。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>それから、何が違うかを尋ねる</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>構成と実行状態は分けて報告されます。</strong>1 日あけて取得した 2 つのスナップショットは、たまたま実行されているものが異なり、そのほとんどはドリフトではありません。混ぜてしまうと、重要な 1 行（誰かが変更したスタートアップの種類）が、重要でない 40 行の下に埋もれます。</li>
+        <li><strong>比較できなかったものは、隠さず一覧に出ます。</strong>2 つのスナップショットのうち片方が一度も読み取らなかったフィールド（そのセッションに権限がなかったため）は、そのエントリの下に <em>not compared</em> と表示され、サマリーはそのようなエントリを数えます。したがって、<em>何も変わっていない</em>と示す差分は、両方が見られた範囲で何も変わっていないという意味です。</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>昇格したスナップショットと昇格していないスナップショットを比較すると、誤った結果になります。</strong>誰も削除していないエントリが削除されたと報告されてしまいます。各ファイルには、取得したアカウントが管理者だったかどうかが記録され、比較はそのことを伝えます。</li>
+        <li><strong>ファイルとこのマシンだけでなく、2 つのファイルでも比較できます。</strong>ステージング環境と本番環境でそれぞれ取って、どこでも比較できます。<em>ステージング環境はなぜ違うのか</em>という問いに、どちらのマシンもその場に必要ありません。</li>
+      </ul>
+    </div>
+    <p><strong>ウィンドウでも <em>Audit...</em> から同じことができます。</strong><em>Take snapshot...</em> は同じファイルを書き込み、入力すればメモも付きます。<em>Compare with this machine...</em> または <em>Compare two snapshots...</em> は、一覧の代わりに何が変わったかをフィールドごとに 1 行で表示し、比較が完全に正確ではなくなる事情はすべて表の上に書かれます。<em>Show</em> は差分または 1 つのフィールドに絞り込み、<em>Export...</em> は CSV ファイルに書き出します。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>終了コードが要点です</h2>
+    <p><code>--exit-code</code> は、構成が異なる場合に <code>5</code> で終了します。エントリが追加または削除された場合、または設定が変わった場合です。単に自力で停止または開始したサービスは報告されますが、数えません。Windows がサインインしているセッションごとに作るユーザーごとのコピーも、同様に数えず、省いたうえで件数を報告します。失敗ではありません。ドリフトは、このツールが見つけるために存在するものであり、見つけることは失敗ではありません。だからこそ、何かがおかしいことを意味する番号を借りず、専用の番号があります。</p>
+<pre><code><span class="c"># マシンが稼働を開始する日</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 毎晩、スケジュールされたタスクから</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 構成のドリフトなし
+#   5 - 構成がドリフトした。drift.json に内容が書かれる
+#   3 - 実行されたが、すべてを読み取れなかった。そのため答えは部分的</span></code></pre>
+    <p>これが仕組みのすべてです。マシンが正常だとわかっているときに取ったベースラインと、毎晩尋ねる質問です。初日の夜に <code>5</code> が返れば、何かが壊れた朝ではなく、その初日の夜に誰かが気づきます。</p>
+    <a class="more" href="{{url:audit-windows-services}}">監査での使い方</a>
+  </div>
+</section>

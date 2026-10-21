@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe と Get-Service を、監査向けに作られたツールと比較する">
+<meta name="description" content="sc.exe は何でもできますが何も教えてくれません。Get-Service はスクリプトで使えますが浅い情報しか得られません。それぞれが今も最適な場面と、クエリ言語とプランが勝る場面。">
+<meta name="nav" content="sc.exe と PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ガイド</span>
+    <h1><code>sc.exe</code>、<code>Get-Service</code>、そしてこれ</h1>
+    <p class="lede">どちらもすでにマシンにあり、どちらも引き続き役に立ちます。このページは、それらがどこで限界になるかについてです。そして、どこでそれらが今も優れた答えなのかを、率直に述べます。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>それぞれの限界</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>サービス コントロール マネージャーが知っているほとんどすべてに手が届きますが、どう尋ねればいいかは何も教えてくれません。構文は 1990 年代のものです。<code>sc config X start= auto</code> のように、等号の後ろのスペースが必須で、それがないと、意図したことを行わずに黙って失敗します。</p>
+        <p>一度に 1 つのエントリについてしか答えません。絞り込みはなく、パーサーを書かずにスクリプトが解析できる出力もなく、プレビューもありません。<code>sc stop</code> は、成功するか、数字を返すかのどちらかです。</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> と <code>*-Service</code> コマンドレット</h3>
+        <p>きちんとしたオブジェクト、パイプライン、そして浅い視点です。Windows に付属する Windows PowerShell 5.1 の <code>Get-Service</code> は、サービスを実行しているアカウントも説明も表示しません。PowerShell 7 はどちらも表示し、起動パスも表示しますが、別途インストールが必要です。</p>
+        <p><code>Stop-Service -Force</code> は「何かが依存していても」を意味します。依存するサービスを停止し、そのことを事前ではなく事後に伝えます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同じ質問を、3 つの方法で</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>質問</th><th>マシンにあるもので</th><th>ここでは</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>起動しているはずなのに起動していないもの</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>署名のない実行ファイルを持つサービスはどれか</td>
+            <td class="no">各起動パスを読み取り、解決し、それぞれに <code>Get-AuthenticodeSignature</code> を呼び出す。コマンドではなくスクリプトです</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>これを停止すると何が巻き込まれるか</td>
+            <td><code>sc enumdepend X</code>、そのあと一覧を読んで自分で判断する</td>
+            <td><code>bws stop X --dry-run --dependents</code>、つまり実行されるプランです</td>
+          </tr>
+          <tr>
+            <td>先週から何が変わったか</td>
+            <td class="no">自分でコレクターを書かない限り、何もありません</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>誰がいつスタートアップの種類を変更したか</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>、そのあと各イベントのメッセージを読む</td>
+            <td><code>bws history Spooler</code>。最初の行に、ログがどこまでさかのぼるかが書かれます</td>
+          </tr>
+          <tr>
+            <td>機械可読な出力</td>
+            <td>PowerShell ではオブジェクト、<code>sc.exe</code> ではテキスト</td>
+            <td>すべてのコマンドで <code>--json</code>。標準出力に出て、警告は標準エラーに出ます</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>サービスについてこのツールが <code>sc.exe</code> と食い違う場合、それはここのバグです。</strong>テストスイートの一部が、実行しているマシンに対して両方を実行し、エントリごとに比較しています。2 つの違いは、課題に貼り付けるものとして最も役に立ちます。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>今あるものを使い続けたほうがよい場合</h2>
+    <ul class="points">
+      <li><strong>1 回しか触らないマシンにいる。</strong>どちらもすでにそこにあり、ポリシーを通す必要がありません。</li>
+      <li><strong>アカウント、起動パス、回復のアクションを変更する必要がある。</strong><code>sc.exe</code> は 3 つとも行えます。このツールはアカウントと起動パスを表示しますが、どちらも変更しません。回復のアクションは、プロセスを終了する前に警告するためだけに読み取ります。</li>
+      <li><strong>サービスを作成または削除する必要がある。</strong><code>sc create</code> と <code>sc delete</code>。ここにはありません。意図的です。</li>
+      <li><strong>すでに PowerShell のパイプラインの深いところにいる。</strong><code>bws list --json</code> は <code>ConvertFrom-Json</code> を通してオブジェクトとして戻るため、パイプラインを置き換えるのではなく、そこに加わります。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>置き換えではなく、併用</h2>
+    <p><em>このマシンの何がおかしいのか</em>に答えるツールと、1 つの設定を変更するツールは、同じツールではありません。質問はここで行い、プランはここで読み、実行にはお好きなものを使ってください。プランは同じことを要求するコマンドラインを表示します。その行はコピーするためのものです。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">クエリ言語</a>
+    </div>
+  </div>
+</section>

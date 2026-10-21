@@ -1,0 +1,86 @@
+<meta name="title" content="這台電腦上應該執行哪些 Windows 服務？">
+<meta name="description" content="沒人能籠統地回答這個問題，聲稱能回答的清單描述的是另一台電腦。可以回答的問題是：什麼發生了變化，什麼對不上。">
+<meta name="nav" content="應該執行的服務">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>應該執行哪些服務？</h1>
+    <p class="lede">誠實的回答是沒人能告訴你，而每一份聲稱能告訴你的清單，描述的都是另一台不是你的電腦。<em>能夠</em>回答的是一個更窄、也有用得多的問題：這台電腦上有什麼對不上，以及與它正常運作時相比有什麼不同。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>為什麼籠統的問題沒有答案</h2>
+    <ul class="points points-alarm">
+      <li><strong>這套服務因 Windows 版本、版次和角色而異。</strong>網域控制站、筆記型電腦和容器主機在幾乎所有事情上都不一致，為其中一種寫的清單對其他幾種就是錯的。</li>
+      <li><strong>已安裝的內容有一半並非來自 Windows。</strong>驅動程式、代理程式、更新服務、授權常駐程式：每一個都是被某樣東西放在那裡的，而沒有任何通用清單知道是什麼。</li>
+      <li><strong>大多數服務本來就應該是停止的。</strong>現代 Windows 只啟動它所登錄內容的一小部分：其餘的在等待觸發程序，例如裝置到達、連接埠開啟、加入網域，對它們來說停止才是正確的狀態。</li>
+      <li><strong>「為了效能停用這些」的清單是電腦出問題的原因。</strong>看起來閒置的服務，往往正是別的東西依需求啟動的那個，故障會在一週後出現在毫不相干的地方。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>確實有答案的問題</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>應該執行卻沒有執行的內容</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows 被告知要啟動這些服務，而它們沒有在執行。在健康的電腦上這是一份很短的清單：幾個啟動較晚、隨後又停止的項目。其他任何內容都值得看一眼。</p>
+      </div>
+      <div class="card">
+        <h3>已停用卻仍在執行的內容</h3>
+        <p><code>mismatch:running</code></p>
+        <p>組態與狀態不一致。通常是有人停用了它卻沒有停止它，下一次重新啟動會帶來意外。</p>
+      </div>
+      <div class="card">
+        <h3>指向已遺失檔案的內容</h3>
+        <p><code>file:missing</code></p>
+        <p>解除安裝後遺留了登錄資訊。在有東西嘗試啟動它之前是無害的，也是關於這台電腦上曾經有過什麼的線索。</p>
+      </div>
+      <div class="card">
+        <h3>沒人簽章的內容</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>它本身不能證明任何事，卻是開始閱讀的合適起點。第二個搜尋詞會去掉依使用者的服務族，否則它們會讓清單裡充滿近似重複的項目。</p>
+      </div>
+      <div class="card">
+        <h3>要求最強特殊權限的內容</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>一種讓處理程序能夠開啟任何其他處理程序的特殊權限。少數合法的服務會要求它，值得知道你的電腦上是哪幾個。</p>
+      </div>
+      <div class="card">
+        <h3>正在等待觸發程序的內容</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>它們處於停止狀態，是因為還沒有東西要求它們，而不是因為出了什麼問題。知道這些是哪些，就是讓第一份清單不再令人擔憂的辦法。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>勝過所有這些的那一個</h2>
+    <p class="lede">詢問電腦本身，在它正常運作的時候。</p>
+    <p>在電腦投入使用的那一天產生一個快照。這樣，<em>這個應該執行嗎</em>就變成了<em>在一切正常時，這個在執行嗎</em>：一個關於你的電腦的問題，而不是關於一篇文章裡那台電腦的問題。</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... 一週、一次修補程式或一次事件之後</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>組態與執行狀態分開回報，所以答案不是四十個恰好在執行的服務，而是某人變更過的啟動類型。</p>
+    <a class="more" href="{{url:audit-windows-services}}">稽核電腦的漂移</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>在停止任何東西之前</h2>
+    <p>這個工具中的每一次停止都會先展示它的計畫：各個步驟、隨之關閉的內容，以及當其中之一是電腦離不開的東西時的警告。這樣的清單是一份七項的入門清單：RPC 的兩個部分和 DCOM 啟動器、帳戶管理員、金鑰隔離、工作階段管理員以及隨插即用，<strong>其中沒有遠端桌面</strong>，所以透過遠端工作階段操作時，請閱讀計畫。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">你可以詢問的每個欄位</a>
+    </div>
+  </div>
+</section>

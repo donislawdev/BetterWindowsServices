@@ -1,0 +1,68 @@
+<meta name="title" content="Stopping에서 멈춘 Windows 서비스를 안전하게 종료하는 방법">
+<meta name="description" content="Stopping에서 멈춘 서비스는 보통 다른 서비스와 프로세스를 공유합니다. 무엇이든 종료하기 전에 어떤 서비스인지 확인하고, 나중에 명령 하나로 모두 되돌리세요.">
+<meta name="nav" content="Stopping에서 멈춘 서비스">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">가이드</span>
+    <h1><em>Stopping...</em>에서 멈춘 서비스</h1>
+    <p class="lede">스냅인은 <em>Stopping</em>을 표시한 채 움직이지 않습니다. 흔한 해결책은 작업 관리자를 열어 어느 <code>svchost.exe</code> 안에 있는지 짐작하고 작업 끝내기를 누르는 것인데, 그러면 그 프로세스 안의 다른 모든 서비스도, 어떤 서비스였는지 알려 주지 않은 채 함께 종료됩니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>왜 이런 일이 생기는가</h2>
+    <ul class="points points-alarm">
+      <li><strong>서비스가 중지 요청에 응답하지 않습니다.</strong> Windows는 정중하게 요청하고 기다립니다. 멈춰 버렸거나 돌아오지 않을 무언가를 기다리는 서비스는 응답하지 않습니다.</li>
+      <li><strong>그 서비스에 종속된 무언가가 아직 실행 중입니다.</strong> 서비스 관리자는 다른 서비스를 망가뜨리는 대신 중지를 거부하며, 스냅인은 이를 기다림으로 표시합니다.</li>
+      <li><strong>다른 서비스와 프로세스를 공유합니다.</strong> 대부분의 Windows 서비스는 공유 <code>svchost.exe</code> 안에서 실행됩니다. 그 프로세스를 종료하면 모두 종료되는데, 작업 관리자가 이름을 알려 주지 않고 하는 일이 바로 그것입니다.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>무엇이든 종료하기 전에 확인하세요</h2>
+    <p>종료하면 무엇이 함께 사라지는지 물어보세요. <code>--dry-run</code>을 빼기 전에는 아무 일도 일어나지 않습니다.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>미리 보기는 프로세스를 번호로 알려 주고, 그 안에 있는 다른 모든 서비스의 이름을 알려 주며, 한 단계가 아니라 두 단계를 보여 줍니다. 서비스에 중지를 요청하고, <em>그것이 통하지 않을 때만</em> 프로세스를 종료합니다. 스스로 멈추는 서비스는 절대 강제 종료되지 않습니다.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code>는 정중한 단계를 건너뛰고</strong> 프로세스를 바로 종료합니다. 실행이 아니라 계획을 바꾸므로, 미리 보기에 두 단계 대신 한 단계가 표시되고 그 차이가 아무 일이 일어나기 전에 보입니다.</li>
+        <li><strong><code>--restart</code>는 프로세스가 사라진 뒤 모든 것을 되돌립니다.</strong> 물어본 항목과 그 프로세스를 공유하던 모든 것입니다. 이것이 없으면 컴퓨터에는 그 서비스들이 중지된 채로 남으며, 보고서가 다시 시작하는 방법을 알려 줍니다.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>거부는 버튼보다 먼저 옵니다.</strong> 드라이버, 시스템이 보호하는 프로세스, 서비스 관리자가 중지를 받아들이지 않는 서비스는 60초를 기다린 뒤가 아니라 계획을 만들 때 이유와 함께 거부됩니다.</li>
+        <li><strong>중요할 때는 경고합니다.</strong> 컴퓨터가 없이는 동작하지 않는 항목이면 계획이 그 사실을 알려 줍니다. 그것을 중지하면 서비스만이 아니라 컴퓨터가 내려갑니다.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>프로세스를 종료하는 것은 이 도구가 하는 일 중 컴퓨터를 대신해 아무도 거부할 수 없는 유일한 일입니다.</strong> 그래서 별도의 명령이고, 그래서 미리 보기가 함께 사라지는 모든 서비스의 이름을 알려 주며, 그래서 다르게 지정하지 않으면 정중한 단계가 먼저 옵니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>더 안전한 순서</h2>
+    <ol class="prose-list">
+      <li><strong>무엇인지 확인합니다.</strong> <code>bws show Spooler</code>로 프로세스, 그것에 종속된 것, 그것이 종속된 것, 그리고 중지 요청을 아예 받아들이는지 알 수 있습니다.</li>
+      <li><strong>일반적인 중지를 계획으로 시도합니다.</strong> <code>bws stop Spooler --dry-run --dependents</code>. 답이 거부라면 세 가지 이유 중 어느 것인지 알려 줍니다.</li>
+      <li><strong>멈추지 않으면 종료의 비용을 확인합니다.</strong> <code>bws kill Spooler --dry-run</code>을 실행하고, 그 프로세스를 공유하는 서비스 목록을 읽으세요.</li>
+      <li><strong>그다음 되돌릴 길을 두고 실행합니다.</strong> <code>bws kill Spooler --restart</code>. 보고서는 동작하지 않은 것과 모든 것을 되돌려 놓는 명령으로 끝납니다.</li>
+    </ol>
+    <p>네 가지 모두 창에서도 같은 방식으로 동작합니다. 행을 오른쪽 클릭하고 <em>Force stop...</em>을 선택해 계획을 읽으면, 그 아래 버튼에는 그것이 할 일의 이름이 붙어 있습니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>왜 그냥 작업 관리자를 쓰지 않는가</h2>
+    <p class="lede">다른 질문에 답하기 때문입니다. 작업 관리자는 프로세스를 알고 이 문제는 서비스에 대한 것이며, 둘은 일대일로 대응하지 않습니다.</p>
+    <p>공유 <code>svchost.exe</code> 하나에 서비스가 열 몇 개 들어 있을 수 있습니다. 작업 관리자는 그 열두 개가 무엇인지 말하지 않고 종료하고, 그중 어느 것도 스스로 돌아오지 않으며, 나중에 무엇이 멈췄는지 알려 주는 것이 없습니다. <code>svchost.exe</code>를 종료하는 프로세스를 표시하는 EDR은 제 할 일을 하는 것이며, 사용자의 클릭을 다른 어떤 것과도 구별할 수 없습니다.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows용 다운로드</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">전체 참조</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,65 @@
+<meta name="title" content="스냅샷과 드리프트 - 어제 이후 이 컴퓨터에서 무엇이 바뀌었는가">
+<meta name="description" content="모든 Windows 서비스를 JSON 파일로 고정하고 무엇이 바뀌었는지 물어보세요. 구성은 실행 상태와 따로 보고되고, 종료 코드 5로 누군가를 호출할 수 있습니다.">
+<meta name="nav" content="스냅샷과 드리프트">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">services.msc에 없던 기능</span>
+    <h1>스냅샷과 드리프트</h1>
+    <p class="lede">다른 모든 도구는 컴퓨터가 지금 어떻게 보이는지 알려 줍니다. 관리자가 실제로 가진 질문은 <em>잘 동작하던 때와 무엇이 다른가</em>이며, 기본 Windows에는 이에 답하는 것이 없습니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>스냅샷에 들어 있는 것</h2>
+    <p>한 시점의 컴퓨터 전체입니다. 모든 서비스와 드라이버의 시작 유형, 계정, 시작 경로와 인수, 실행하는 파일의 해시와 서명자, 종속성과 그것에 종속된 것, 트리거, 필요한 권한, SID 유형, 보안 설명자가 들어 있으며, 컴퓨터 이름, 스냅샷을 만든 계정, 그리고 <strong>그 계정이 관리자였는지 여부</strong>도 들어 있습니다.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>한 줄에 필드 하나인 JSON입니다. 일부러 그렇게 했습니다. 스냅샷을 저장소에 넣을 수 있고 <code>git diff</code>가 읽으므로, 도구 자체의 비교가 스냅샷을 보는 유일한 방법이 아니게 됩니다.</p>
+    <p class="note"><strong>있는 그대로의 대접에 맞게 보관하세요.</strong> 스냅샷은 모든 시작 경로와 보안 설명자까지 컴퓨터 전체를 설명합니다. 그 디렉터리가 이미 가진 권한 그대로 기록되고 도구는 아무것도 좁히지 않으므로, 다른 사람이 읽을 수 있는 디렉터리라면 그 사람들은 그 모든 것을 읽을 수 있습니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>그다음, 무엇이 다른지 물어보세요</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>구성과 실행 상태를 따로 보고합니다.</strong> 하루 간격으로 만든 스냅샷 두 개는 우연히 실행 중인 것이 다르고, 그중 거의 아무것도 드리프트가 아닙니다. 섞어 놓으면 중요한 한 줄, 누군가 바꾼 시작 유형이, 중요하지 않은 마흔 줄 아래에 묻힙니다.</li>
+        <li><strong>비교하지 못한 것은 숨기지 않고 나열합니다.</strong> 두 스냅샷 중 하나가 읽지 않은 필드(그 세션에 권한이 없었기 때문)는 그 항목 아래에 <em>not compared</em>로 나오고, 요약은 그런 항목의 수를 셉니다. 따라서 <em>아무것도 바뀌지 않았다</em>라고 말하는 차이는 양쪽이 볼 수 있었던 범위에서 아무것도 바뀌지 않았다는 뜻입니다.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>상승된 스냅샷을 상승되지 않은 스냅샷과 비교하면 거짓말이 됩니다.</strong> 아무도 제거하지 않은 항목이 제거되었다고 보고되기 때문입니다. 각 파일은 그것을 만든 계정이 관리자였는지 기록하고, 비교는 그 사실을 알려 줍니다.</li>
+        <li><strong>파일과 이 컴퓨터만이 아니라 파일 두 개도 비교합니다.</strong> 스테이징 환경에서 하나, 운영 환경에서 하나를 만들어 어디서든 비교하세요. <em>스테이징 환경은 왜 다른가</em>라는 질문의 답은 어느 컴퓨터도 그 자리에 있을 필요가 없습니다.</li>
+      </ul>
+    </div>
+    <p><strong>창도 <em>Audit...</em> 아래에서 같은 일을 합니다.</strong> <em>Take snapshot...</em>은 같은 파일을 쓰며, 입력하면 메모도 함께 남깁니다. <em>Compare with this machine...</em> 또는 <em>Compare two snapshots...</em>는 목록 대신 무엇이 바뀌었는지를 필드당 한 행으로 보여 주며, 비교를 덜 정확하게 만드는 모든 사항을 표 위에 알려 줍니다. <em>Show</em>는 차이만 또는 필드 하나로 좁히고, <em>Export...</em>는 CSV 파일로 씁니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>종료 코드가 핵심입니다</h2>
+    <p><code>--exit-code</code>는 구성이 다르면 <code>5</code>로 끝납니다. 항목이 추가되거나 제거되었거나, 하나가 다르게 설정된 경우입니다. 스스로 중지되거나 시작된 서비스는 보고되지만 세지 않으며, Windows가 로그인한 세션마다 만드는 사용자별 복사본도 세지 않고 제외한 뒤 개수만 알려 줍니다. 실패가 아닙니다. 드리프트는 이 도구가 찾아내려고 있는 것이고, 그것을 찾는 것은 실패가 아니기 때문이며, 그래서 무언가 잘못되었다는 뜻의 번호를 빌리지 않고 자신만의 번호가 있습니다.</p>
+<pre><code><span class="c"># 컴퓨터가 운영에 들어가는 날</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 매일 밤, 예약 작업에서</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 구성 드리프트 없음
+#   5 - 구성이 드리프트했으며, drift.json에 무엇인지 나옴
+#   3 - 실행되었지만 모든 것을 읽지 못했으므로 답이 부분적임</span></code></pre>
+    <p>이것이 메커니즘의 전부입니다. 컴퓨터가 정상이라고 알려졌을 때 만든 기준선과, 매일 밤 하는 질문입니다. 첫날 밤에 <code>5</code>라고 답하면, 무언가 망가진 아침이 아니라 바로 그 첫날 밤에 누군가 알게 됩니다.</p>
+    <a class="more" href="{{url:audit-windows-services}}">감사에 사용하기</a>
+  </div>
+</section>

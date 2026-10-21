@@ -1,0 +1,192 @@
+<meta name="title" content="命令行参考 - bws 的所有选项和退出代码">
+<meta name="description" content="bws 的所有命令、选项和退出代码：list、show、stop、start、restart、kill、start-type、snapshot、history 和 tool，以及每个标志在哪些命令中可用。">
+<meta name="nav" content="CLI 参考">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  本页的表格是生成的，而不是手写的。选项来自解析器自己的表 src/Bws.Cli/OptionSurface.cs，
+  代码来自 src/Bws.Cli/ExitCode.cs，所以添加到程序中的选项会出现在这里，而一句描述已不存在的
+  选项的话会使生成失败。每一项的含义是文字，位于 site/i18n，因为文字是需要翻译的。
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">参考</span>
+    <h1>命令行参考</h1>
+    <p class="lede"><code>bws</code> 版本 {{version}} 的每个命令、每个选项和每个退出代码。<code>bws --help</code> 才是权威的，而且更长：这个页面是同一套内容，排版成便于阅读的样子。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>命令</h2>
+    <p>共十一个命令。<code>snapshot</code> 是名词，后面要跟一个词。<code>tool</code> 也是名词，单独使用时会列出各个工具。</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>拼错的命令会得到一个你可能想用的命令的提示，并以代码 <code>2</code> 结束，而不是去做某件与你的要求相近的事。</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>每个命令做什么</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> 和 <code>show</code></h3>
+        <p><code>list</code> 是整台计算机，由 <code>--query</code> 缩小范围。<code>show</code> 是单个条目及其所有已知信息：签名、特权、安全描述符和内存，每次都会全部读取，因为针对一个条目只需约六十毫秒，而针对整台计算机则需要一秒。真正为空的字段会被省略，除非你传入 <code>--full</code>。无人能读取的字段无论如何都会被打印，因为省略它会看起来像一个答案。</p>
+      </div>
+      <div>
+        <h3><code>stop</code>、<code>start</code> 和 <code>restart</code></h3>
+        <p>每个都会生成计划并执行。<code>--dry-run</code> 打印计划而不做任何更改，<code>--dependents</code> 把会受影响的服务作为独立的步骤放进计划，<code>--timeout</code> 指定一个步骤可以在没有进展的情况下持续多久。驱动程序会被拒绝而不是尝试，因为停止内核驱动程序往往不重启就无法恢复。</p>
+      </div>
+      <div>
+        <h3><code>kill</code>：用于停不下来的服务</h3>
+        <p>它会请求服务停止，<em>只有在无效时</em>才结束它背后的进程，所以自己能停止的条目绝不会被强行结束。结束一个进程会带走该进程中的所有其他服务，不论它们是否事先已经停止，预览会点出它们的名称，并按编号指出该进程。<code>--force</code> 跳过礼貌的那一步，预览于是显示一个步骤而不是两个。<code>--restart</code> 随后把一切带回来。</p>
+        <p class="note"><strong>Windows 对这个想法的表述不同。</strong><code>Stop-Service</code> 上的 <code>--force</code> 的意思是“即使有东西依赖它”，这在这里是 <code>--dependents</code> 的作用。这就是它是一个独立命令、而不是 <code>stop</code> 上的一个选项的原因。</p>
+      </div>
+      <div>
+        <h3><code>start-type</code>：是一项设置，而不是一次操作</h3>
+        <p>它指明服务管理器在下次启动时如何处理某个条目，没有 <code>--stop</code> 时它不会移动任何东西：正在运行的条目继续运行，已停止的保持停止，计划会这样说明。<code>disabled</code> 值得停下来想一想，因为它会让服务管理器根本不再启动该条目，包括按需为其他需要它的东西启动。<code>delayed</code> 是自动，比其他自动条目稍晚启动：在查询中 <code>start:delayed</code> 询问的就是这个词。Windows 会拒绝把它用于属于加载顺序组的条目，计划会在任何操作发生之前说明这一点。四种类型都会像 <code>sc.exe</code> 那样记录该条目是否延迟启动。<code>--stop</code> 只能与 <code>disabled</code> 搭配，在写入设置之后，在同一份计划中停止该条目。</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> 和 <code>snapshot diff</code></h3>
+        <p><code>create</code> 始终会读取签名和哈希，因为快照是要保存下来、之后再比较的，没有它们的快照与有它们的快照比较时，会让人觉得计算机发生了变化。<code>diff</code> 说明从第一个文件到第二个文件，或用 <code>--live</code> 从一个文件到这台计算机，发生了哪些变化。<a href="{{url:snapshots-and-drift}}">快照页面</a>介绍了格式和理由。</p>
+      </div>
+      <div>
+        <h3><code>history</code>：谁改的，来自 System 日志</h3>
+        <p>从 System 日志中读取启动类型更改和安装记录，最新的在前，带有 Windows 记录的账户。第一行说明日志能追溯多远、是否被清除过，因为历史记录的长度只取决于日志。带上名称时，显示的是该服务的启动类型更改：安装记录只在不带名称时列出，因为 Windows 记录安装时用的是显示名称，而从不是服务名称。账户在这台计算机能自行解析其名称时显示名称，否则显示其 SID，启动类型则使用 Windows 所写的词。</p>
+      </div>
+      <div>
+        <h3><code>tool</code>：针对常见问题的现成答案</h3>
+        <p>与窗口在 Tools 选项卡上显示的工具相同。<code>bws tool</code> 列出它们，<code>bws tool fix</code> 列出快速修复：<code>printer</code>、<code>sound</code>、<code>indexing</code> 和 <code>search</code>，每一项都是重启一个 Windows 服务连同依赖它的内容，之所以选它们，是因为 Microsoft 自己的故障排除页面就是这样建议的。<code>bws tool fix printer</code> 就是 <code>bws restart Spooler --dependents</code>：相同的计划、相同的输出和相同的退出代码，而且和这里每个会更改内容的命令一样，它不会先询问，所以想在运行前查看，请使用 <code>--dry-run</code>。</p>
+      </div>
+      <div>
+        <h3><code>license</code>：你下载的文件里有什么</h3>
+        <p>它什么也不读取，既不读服务管理器，也不读磁盘和网络，而是从编译进可执行文件的登记表中回答。<code>--components</code> 会把通知变成每个组件及其版本、许可证和来源。这与随下载一同发布的物料清单所含的集合相同，因为两者都由同一份登记表生成，这也是值得拥有它的原因：程序是一个自包含的文件，所以它旁边没有任何东西可供扫描程序读取。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>示例</h2>
+    <p class="lede">下面的计划已针对本页所描述的程序用 <code>--dry-run</code> 检查过。会更改内容的命令不会先询问，所以想在运行前查看，请使用 <code>--dry-run</code>。<code>Spooler</code> 代表任何服务，请换成你自己的服务名称。</p>
+    <div class="examples">
+    <h3>查找与读取</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">这台计算机上的每个服务和驱动程序</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">应该在运行却没有运行的内容</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">每个运行中条目的进程正在使用什么</span>
+<span class="k">bws show Spooler</span>                               <span class="c">关于一个条目的所有已知信息</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">也包括真正为空的字段</span></code></pre>
+    <h3>先看，再更改</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">只显示计划，不做别的</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">连同依赖它的内容一起重启</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">允许每个步骤在没有进展的情况下持续两分钟</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">比其他自动条目稍晚启动</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">在一份计划中禁用并停止它</span></code></pre>
+    <h3>停不下来的服务</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">进程，以及同在其中的每个服务</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">只有停止失败时才结束进程，然后把一切带回来</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">一步而不是两步：立即结束进程</span></code></pre>
+    <h3>快照与漂移</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">冻结计算机，并在其中保留一条备注</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">两个文件：相隔两天，或两台计算机</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">把文件与这台计算机的当前状态对比</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">同上，若配置发生漂移则以 5 结束</span></code></pre>
+    <h3>谁改的</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">System 日志中保存的每一次启动类型更改和安装</span>
+<span class="k">bws history Spooler</span>  <span class="c">某一个服务的启动类型更改</span>
+<span class="k">bws history --json</span>   <span class="c">同样的内容，作为文档，含日志和更改</span></code></pre>
+    <h3>快速修复</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">现有的工具</span>
+<span class="k">bws tool fix</span>                  <span class="c">快速修复，以及每一项背后的服务</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">重启两个音频服务的计划</span>
+<span class="k">bws tool fix printer</span>          <span class="c">连同依赖它的内容一起重启 Print Spooler</span></code></pre>
+    <h3>文件里有什么</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">每个组件、版本、许可证和来源</span>
+<span class="k">bws --version</span>             <span class="c">此可执行文件的版本</span></code></pre>
+    <h3>在 PowerShell 脚本中</h3>
+<pre class="wrap-lines"><code><span class="c"># 应该在运行却没有运行的条目，作为对象</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># 未签名的文件，写入电子表格</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># 一个服务需要什么</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># 根据退出代码分支的夜间检查</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>在 cmd 和批处理文件中</h3>
+<pre class="wrap-lines"><code><span class="c">rem 仅当第一个命令没有正常结束时才执行第二个命令</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem 在启用了延迟展开的批处理文件中，! 前面需要插入符号 ^</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>选项</h2>
+    <p>共 {{switch_count}} 个。第三列是每个选项所属的命令：把选项传给用不上它的命令是一个错误，错误中会带有这份列表，而不是一个被悄悄忽略的标志。</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>退出代码</h2>
+    <p>共 {{exit_code_count}} 种结束方式，每一种对脚本来说都是不同的处理。数据输出到标准输出，其余所有内容输出到标准错误，因此 <code>bws list --json | jq</code> 可以正常工作，警告也绝不会混进你的 JSON。</p>
+    <p>每个 JSON 文档都是纯 ASCII：ASCII 之外的字符会被写成六个字符的转义序列，所有 JSON 读取器都会把它还原成那个字符，所以 <code>bws list --json &gt; file.json</code> 是有效的 UTF-8，而 <code>| ConvertFrom-Json</code> 无论控制台设置为什么代码页都能正确读取。在供人阅读的文本中，会移动终端而不是被打印出来的字符，例如制表符、换行、转义序列和方向覆盖字符，会显示为它的码位 <code>&lt;U+001B&gt;</code>。</p>
+    <p><code>--</code> 表示选项到此结束，所以名称以短横线开头的服务仍然可以指定：<code>bws show -- -odd</code>。工具交给你的命令行是为 PowerShell 编写的：带空格的名称放在双引号中，cmd 对其读取方式相同，而 PowerShell 会在双引号内展开的名称，例如 <code>MSSQL$SQLEXPRESS</code>，则放在单引号中。</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C 有三个级别，每一级都说明下一级的代价。</strong>第一级停止继续前进，并仍会把已取走的东西放回去，第二级让现状保持原样，并仍会打印报告，第三级结束进程。手动停止的运行即使每个步骤都已完成，也会以 <code>4</code> 结束。</p>
+    <p class="note"><strong>关闭控制台窗口算作第一次 Ctrl+C。</strong>此后 Windows 会给程序五秒钟，在这段时间内它会停止前进，并把它关掉的东西放回去。注销和关机会在没有任何它能作出反应的警告的情况下结束它，断开的远程会话也可能如此。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>在计划任务中</h2>
+    <p>这个工具为之而生的形态：在计算机已知良好时把它冻结，然后每晚询问它是否仍然如此。</p>
+<pre><code><span class="c"># 计算机投入使用的那一天</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 每晚，通过计划任务</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 没有配置漂移
+#   5 - 配置发生了漂移，drift.json 会说明具体内容
+#   3 - 已运行但无法读取全部内容，因此答案是部分的</span></code></pre>
+    <p>窗口是同一引擎的另一半：<code>{{archive_window}}</code> 中包含它，而<a href="{{url:download}}">下载页面</a>说明了每个压缩包是什么。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>窗口的参数</h2>
+    <p><code>BetterWindowsServices.exe</code> 接受一个供人使用的参数：<code>--catalogue</code> 会打开一张开发者用的表，显示窗口的每个组件在每种状态下的样子，并且不会从你的计算机读取任何内容。第二个参数 <code>--carry</code> 是窗口把它正在显示的内容交给它以管理员身份重新启动的自己的副本的方式。没有人会手动输入它，其中任何该窗口不可能写出的内容都会被拒绝。</p>
+  </div>
+</section>

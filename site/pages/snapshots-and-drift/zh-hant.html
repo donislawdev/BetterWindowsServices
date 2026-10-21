@@ -1,0 +1,65 @@
+<meta name="title" content="快照與漂移 - 這台電腦自昨天以來發生了什麼變化">
+<meta name="description" content="把每個 Windows 服務凍結到一個 JSON 檔案中，然後詢問發生了什麼變化。組態與執行狀態分開回報，結束代碼 5 可以通知相關人員。">
+<meta name="nav" content="快照與漂移">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">services.msc 從未做到的事</span>
+    <h1>快照與漂移</h1>
+    <p class="lede">其他所有工具都只告訴你電腦現在是什麼樣。系統管理員真正的問題是<em>它和正常運作時相比有什麼不同</em>，而標準的 Windows 裡沒有任何東西能回答這個問題。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>快照裡有什麼</h2>
+    <p>某一時刻的整台電腦：每個服務和驅動程式，包括它的啟動類型、帳戶、啟動路徑和參數、其執行檔案的雜湊和簽署者、它的相依項目以及依賴它的內容、它的觸發程序、所需特殊權限、SID 類型和安全性描述元，外加電腦名稱、產生它的帳戶，以及<strong>該帳戶是否是系統管理員</strong>。</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>它是每行一個欄位的 JSON。這是有意為之：這意味著快照可以放進程式碼存放庫，由 <code>git diff</code> 讀取，所以工具自帶的比較並不是檢視快照的唯一方式。</p>
+    <p class="note"><strong>請按它本來的性質來存放。</strong>快照描述了整台電腦，細到每個啟動路徑和安全性描述元。它以其所在目錄已有的權限寫入，而工具不會收緊任何權限，所以一個其他人可以讀取的目錄，意味著他們能讀到全部這些內容。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>然後詢問有什麼不同</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>組態與執行狀態分開回報。</strong>相隔一天產生的兩個快照，在恰好正在執行的內容上會有所不同，而其中幾乎沒有一項是漂移。混在一起的話，唯一重要的那一行，也就是某人變更過的啟動類型，就會被淹沒在四十行無關的內容之下。</li>
+        <li><strong>無法比較的內容會被列出，而不是被隱藏。</strong>兩個快照中有一個從未讀取過的欄位，因為那次工作階段無權讀取它，會在其項目下顯示為 <em>not compared</em>，而摘要會統計這樣的項目。所以一份寫著<em>沒有任何變化</em>的差異，表示的是在雙方都能看到的範圍內沒有任何變化。</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>把提升權限的快照與未提升權限的快照比較會說謊</strong>，把沒人刪除過的項目回報為已刪除。每個檔案都會記錄產生它的帳戶是否是系統管理員，比較結果會說明這一點。</li>
+        <li><strong>是兩個檔案，而不只是一個檔案與這台電腦。</strong>在預備環境產生一個，在正式環境產生一個，然後在任何地方比較它們：<em>為什麼預備環境不同</em>這個問題的答案，不需要任何一台電腦在場。</li>
+      </ul>
+    </div>
+    <p><strong>視窗在 <em>Audit...</em> 下做同樣的事。</strong><em>Take snapshot...</em> 寫入同一種檔案，如果你輸入了備註也會一併寫入，而 <em>Compare with this machine...</em> 或 <em>Compare two snapshots...</em> 會取代清單，按每個欄位一行顯示發生了哪些變化，所有使比較不那麼精確的情況都會寫在表格上方。<em>Show</em> 把它縮小到只顯示差異或某一個欄位，<em>Export...</em> 則把它寫入 CSV 檔案。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>結束代碼才是關鍵</h2>
+    <p><code>--exit-code</code> 在組態不同時以 <code>5</code> 結束：項目被新增或刪除，或者某個項目的設定不同。只是自行停止或啟動的服務會被回報，但不計入，Windows 為每個已登入工作階段產生的依使用者副本也不計入，它們會被省略並被統計數量。這不是失敗：漂移正是這個工具要找的東西，找到它並不是失敗，這就是為什麼它有自己專屬的編號，而不是借用表示出了問題的那一個。</p>
+<pre><code><span class="c"># 電腦投入使用的那一天</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 每晚，透過排程工作</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 沒有組態漂移
+#   5 - 組態發生了漂移，drift.json 會說明具體內容
+#   3 - 已執行但無法讀取全部內容，因此答案是部分的</span></code></pre>
+    <p>這就是整個機制：在電腦已知良好時產生的基準，以及每晚提出的一個問題。第一晚的回答若是 <code>5</code>，就會在第一晚而不是在某樣東西壞掉的那個早晨被人發現。</p>
+    <a class="more" href="{{url:audit-windows-services}}">把它用於稽核</a>
+  </div>
+</section>

@@ -1,0 +1,64 @@
+<meta name="title" content="审计 Windows 服务 - 证明计算机上发生了什么变化">
+<meta name="description" content="在部署时把每个服务冻结到文件中，然后每晚询问计算机是否仍然匹配。漂移、未签名的可执行文件和丢失的文件，用一个查询搞定。">
+<meta name="nav" content="审计服务漂移">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>审计 Windows 服务</h1>
+    <p class="lede">审计不是对计算机上现有内容的罗列。它是计算机上现有内容与本应存在的内容之间的差异，而标准的 Windows 里没有任何东西记录后半部分。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>三个问题，以及谁来回答</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>自这台计算机构建以来发生了什么变化？</h3>
+        <p>部署时生成的快照，与今晚这台计算机的差异对比。配置与仅仅是启动或停止的内容分开报告，所以那个被某人更改的启动类型，不会淹没在四十个恰好在运行的服务之下。</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>为什么暂存环境与生产环境不同？</h3>
+        <p>在各自上生成一个快照，然后对比这两个文件：在任何地方都行，不需要任何一台计算机在场。文件中带有计算机名称和生成它的账户。</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>这里有什么不该有的东西？</h3>
+        <p>找出值得一看的形态的查询：可执行文件已丢失的服务、未签名的服务、已禁用却仍在运行的服务、请求调试权限的服务。</p>
+        <p><code>file:missing</code>、<code>signed:no</code>、<code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>夜间的形态</h2>
+<pre><code><span class="c"># 计算机投入使用的那一天</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 每晚，通过计划任务</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 没有配置漂移
+#   5 - 配置发生了漂移，drift.json 会说明具体内容
+#   3 - 已运行但无法读取全部内容，因此答案是部分的</span></code></pre>
+    <p>退出代码 <code>5</code> 使它成为一次审计，而不是一份没人读的报告：任务在计算机发生漂移之前保持安静，而发生漂移的那一夜，会有人收到通知。</p>
+    <p class="note"><strong>请从提升权限的会话生成基线。</strong>没有管理员权限时，服务管理器列出的条目更少，对所列条目拒绝的操作更多。快照会记录生成它的账户是否是管理员，因此比较结果可以说明这一点，而不是把没人删除过的条目报告为已删除，但缺了一半计算机的基线，仍然是缺了一半计算机的基线。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>快照作为证据的价值</h2>
+    <ul class="points points-ok">
+      <li><strong>它是每行一个字段的 JSON</strong>，所以可以放进代码仓库，由 <code>git diff</code> 读取。没有这个工具的审计人员也能读这个文件，而版本控制系统已经回答了<em>何时</em>。</li>
+      <li><strong>它包含管理单元从未显示过的内容：</strong>启动路径和参数、文件的哈希和签名者、双向依赖关系、触发器、所需特权、SID 类型和安全描述符。</li>
+      <li><strong>它会说明它无法读取什么。</strong>此会话无权访问的字段会被记录为未读取，绝不会记为空，所以之后的比较可以说 <em>not compared</em>，而不是悄悄地称之为未更改。</li>
+      <li><strong>它是对整台计算机的描述。</strong>请据此存放：它以其所在目录已有的权限写入，而工具不会收紧任何权限。</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">快照与差异的工作原理</a>
+  </div>
+</section>

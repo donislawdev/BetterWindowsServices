@@ -1,0 +1,68 @@
+<meta name="title" content="卡在 Stopping 的 Windows 服務：如何安全地結束它">
+<meta name="description" content="卡在 Stopping 的服務通常與其他服務共用處理程序。在結束任何東西之前先看是哪些，事後再用一個命令把它們全部復原。">
+<meta name="nav" content="卡在 Stopping 的服務">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>卡在 <em>Stopping...</em> 的服務</h1>
+    <p class="lede">管理單元顯示 <em>Stopping</em> 後就一動不動。通常的辦法是開啟工作管理員，猜它位於哪個 <code>svchost.exe</code> 中，然後按「結束工作」，而這會把該處理程序中的所有其他服務也一併結束，卻不告訴你它們是哪些。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>為什麼會這樣</h2>
+    <ul class="points points-alarm">
+      <li><strong>服務沒有回應停止要求。</strong>Windows 會禮貌地要求並等待。已經停止回應的服務，或者在等待一個不會回來的東西的服務，永遠不會回應。</li>
+      <li><strong>依賴它的東西仍在執行。</strong>服務管理員會拒絕停止，而不是弄壞另一個服務，管理單元把這顯示成一次等待。</li>
+      <li><strong>它與其他服務共用處理程序。</strong>大多數 Windows 服務都執行在共用的 <code>svchost.exe</code> 裡。結束該處理程序就會結束它們全部，這正是工作管理員不點出它們名稱就做的事。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>結束任何東西之前先看看</h2>
+    <p>詢問結束它會帶走什麼。在你去掉 <code>--dry-run</code> 之前什麼也不會發生。</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>預覽依編號指出該處理程序，點出其中的每個其他服務，並顯示兩個步驟而不是一個：要求服務停止，<em>只有在無效時</em>才結束處理程序。自己能停止的服務絕不會被強行結束。</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> 跳過禮貌的那一步</strong>，直接結束處理程序。它改變的是計畫而不是執行，所以預覽顯示一個步驟而不是兩個，這種差異在任何動作發生之前就能看到。</li>
+        <li><strong><code>--restart</code> 在處理程序消失後把一切帶回來</strong>：你詢問的那個項目，以及與它共用處理程序的所有內容。沒有它，電腦就會留下這些已停止的服務，報告會說明如何再次啟動它們。</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>拒絕出現在按鈕之前。</strong>驅動程式、系統保護的處理程序、服務管理員不接受停止要求的服務，都會在產生計畫時連同原因一起被拒絕，而不是在等待六十秒之後。</li>
+        <li><strong>重要時會發出警告。</strong>如果該項目是電腦離不開的，計畫會這樣說明：停止它會讓整台電腦當機，而不只是這個服務。</li>
+      </ul>
+    </div>
+    <p class="note"><strong>結束處理程序是這個工具所做的唯一一件沒人能替電腦拒絕的事。</strong>這就是它是一個獨立命令的原因，也是預覽會點出它帶走的每個服務的原因，還是除非你另行指定，否則禮貌的那一步總是排在第一位的原因。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>更穩妥的順序</h2>
+    <ol class="prose-list">
+      <li><strong>先看它是什麼。</strong><code>bws show Spooler</code>：處理程序、依賴它的內容、它所依賴的內容，以及它到底是否接受停止要求。</li>
+      <li><strong>把普通停止當作計畫來嘗試。</strong><code>bws stop Spooler --dry-run --dependents</code>。如果答案是拒絕，它會說明是三種原因中的哪一種。</li>
+      <li><strong>如果它停不下來，看看結束它的代價。</strong><code>bws kill Spooler --dry-run</code>，並閱讀共用該處理程序的服務清單。</li>
+      <li><strong>然後動手，並留好退路。</strong><code>bws kill Spooler --restart</code>。報告以沒有成功的內容和把一切復原的命令結尾。</li>
+    </ol>
+    <p>這四步在視窗中的運作方式相同：在一列上按一下滑鼠右鍵，選擇 <em>Force stop...</em>，閱讀計畫，其下方的按鈕會以它將要執行的動作命名。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>為什麼不直接用工作管理員</h2>
+    <p class="lede">因為它回答的是另一個問題。工作管理員了解處理程序，而這個問題與服務有關，二者並不一一對應。</p>
+    <p>一個共用的 <code>svchost.exe</code> 可以容納十幾個服務。工作管理員會結束它，卻不說是哪十二個，其中沒有一個會自行回來，事後也沒有任何東西告訴你停掉了什麼。如果某個 EDR 把結束 <code>svchost.exe</code> 的處理程序標記出來，那它是在履行職責，而它無法把你的按一下與其他任何東西區分開。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">完整參考</a>
+    </div>
+  </div>
+</section>

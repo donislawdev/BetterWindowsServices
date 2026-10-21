@@ -1,0 +1,199 @@
+<meta name="title" content="Better Windows Services - 検索できる services.msc の代替">
+<meta name="description" content="無料でオープンソースの services.msc の代替です。クエリ言語でサービスを検索し、変更を実行前にプレビューし、昨日から何がドリフトしたかを確認できます。">
+<meta name="nav" content="ホーム">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  トップページです。ここにある文はすべて README.md に対応する記述があり、書く前に実行中の
+  プログラムで確認しています。下のプラン、差分、クエリは、図ではなく実際の出力です。
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Windows のサービスを検索し、変更を実行前にプレビューし、昨日から<em>何がドリフトしたか</em>を確認する</h1>
+      <p class="lede"><strong>{{product}}</strong> は、Windows マシンを管理する人のために作り直した <code>services.msc</code> です。ウィンドウとコマンドラインが、同じエンジンの上で動きます。800 行をスクロールする代わりに、マシンに質問してください。<strong>何かを押す前に</strong>、変更で何が起きるかを確認できます。そして <code>services.msc</code> にはなかった機能があります。<strong>すべてのサービスをファイルに固定し、1 週間後に何が変わったかを尋ねられます。</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+        <a class="btn btn-secondary" href="{{repo}}">GitHub でコードを見る</a>
+      </div>
+      <ul class="trust">
+        <li>無料でオープンソース、GPL-3.0</li>
+        <li>1 つのファイル、またはインストーラー</li>
+        <li>見るだけなら管理者権限は不要</li>
+        <li>インターネットには一切接続しません</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="5 つのエントリを選択し、リストの上にそれらを開始するプランが表示されたウィンドウ。5 つのステップ、そのうち 2 つはすでにその状態であるという注記、各エントリ用の bws start 行、Start 5 entries ボタンがあります。" width="1632" height="1041"></a>
+      <figcaption>選択されたエントリ、何かが起きる前に表示されるプラン、そして全く同じことを要求する <code>bws</code> の行。プログラムは英語で表示されます。ウィンドウは隣に置かれた言語ファイルを読み込むため、再ビルドなしで翻訳できます。</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  ウィンドウの実際のキャプチャで、2026-09-25 と 2026-09-26 に記録し、2026-10-07 から掲載して
+  います。2026-09-24 の最初のものは、HTML で描いた模擬ウィンドウを置き換えました。セッション
+  は README が使うのと同じ GIF で、2026-10-07 の所有者の決定により、両者で 1 つのファイルを
+  共有しています。2026-09-24 からその日までは、代わりに操作ボタン付きの動画でした。WCAG 2.2.2
+  は 5 秒を超える動くループを一時停止できることを求めますが、GIF は一時停止できないためです。
+  これが GIF の代償であり、忘れずにここに書いておきます。
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">30 秒で見る</span>
+    <h2>実際に使うとこうなります</h2>
+    <p class="lede">ポーランド語でインストールされた Windows での実際のセッションです。表示名は Windows から取得するため、その言語で表示されます。ウィンドウ自体は英語です。</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="4 つのエントリを選択してそれらを開始するプラン。Local Session Manager の強制再起動では、プランが「これがないとマシンは動作しない」と警告し、ボタンが有効になる前にその名前の入力を求めます。空の検索ボックスの下にある最初の質問。名前の一部を入力して見つかった Print Spooler が開始されます。" width="1632" height="1041" loading="lazy"></a>
+      <figcaption>4 つのエントリを選択してそれらを開始するプラン、マシンに必要なサービスの名前を尋ねる強制再起動、空の検索ボックスの下の質問、そして入力して見つけ、開始した Print Spooler。</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="最初の画面。このマシンについての数字が書かれた 3 枚のカード（実行中のサービス、自動開始に設定されているのに起動しなかったサービス、自動開始に設定されているのにファイルがなくなったサービス）と、Show the list ボタン。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>最初に、このマシンについての数字がいくつか表示されます。それぞれが質問になっていて、クリックするとその質問が検索ボックスに入ります。</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="検索ボックスの上に 3 つのリストがあるサービス一覧。空の検索ボックス、状態、スタートアップの種類、署名、不一致、トリガーごとの行に展開されたフィルターボタン、その下の一覧。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>フィルターボタンは検索ボックスに書き込むので、クリックした内容は読んで編集できるクエリになります。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">なぜ作ったのか</span>
+    <h2><code>services.msc</code> は Windows 2000 からほとんど変わっていません</h2>
+    <p class="lede">管理者は毎週何時間もこれを使い、同じ壁にぶつかっています。</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>検索がありません。</strong>操作できるのは、表示名の最初の文字へジャンプすることだけです。</li>
+        <li><strong>絞り込みがありません。</strong><em>自動開始に設定されているのに実行されていないものを表示して</em>と尋ねる方法がありません。</li>
+        <li><strong>1 行ずつしか操作できません。</strong>12 個のサービスを再起動するには、右クリックを 12 回、待機を 12 回繰り返します。</li>
+        <li><strong>「Stopping...」のまま戻らない。</strong>逃げ道は、タスク マネージャーとプロセスの推測だけです。</li>
+        <li><strong>履歴がありません。</strong>誰がいつスタートアップの種類を Disabled にしたのか、誰にもわかりません。</li>
+        <li><strong>隠れたデータ。</strong>プロセス、トリガー、特権、セキュリティ記述子、実行ファイルの署名者。これらすべてに、記憶に頼った <code>sc.exe</code> かレジストリが必要です。</li>
+        <li><strong>コマンドラインが同等ではありません。</strong><code>sc.exe</code> の構文は 1990 年代のものです。Windows に付属する Windows PowerShell 5.1 の <code>Get-Service</code> は、サービスを実行しているアカウントを表示せず、説明も表示しません。PowerShell 7 はどちらも表示しますが、別途インストールが必要です。</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>ほかのツールは、それぞれ一部だけを解決します</h3>
+        <p>Process Hacker と System Informer は豊富な一覧を表示し、強制終了もできますが、監査機能もコマンドラインもありません。<code>sc.exe</code> と <code>PsService</code> は何でもできますが、何も教えてくれません。PowerShell の <code>*-Service</code> コマンドレットはスクリプトで使えますが、浅い情報しか得られません。</p>
+        <p>検索できる一覧、すべての変更の前のプレビュー、時間をかけた変更の記録を組み合わせたものはありません。そして最初の 1 日が過ぎてもこのツールをマシンに置いておく理由は、この記録です。</p>
+        <a class="more" href="{{url:services-msc-alternative}}">詳しい比較</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">できること</span>
+    <h2>ウィンドウとコマンドラインが、同じエンジンの上で動きます</h2>
+    <div class="grid">
+      <div class="card"><h3>スクロールではなく、質問する</h3><p><code>start:auto !status:running</code> は<em>起動しているはずなのに起動していないもの</em>です。検索ボックスでも <code>bws list --query</code> でも同じ言語で、入力中にフィールドが候補として表示されます。</p></div>
+      <div class="card"><h3>何かが起きる前にプランを表示する</h3><p>停止、開始、再起動、スタートアップの種類の変更はすべて、巻き込まれるサービスとともに事前にプレビューされ、プレビューがそのまま実行されます。</p></div>
+      <div class="card"><h3>何がドリフトしたか、誰が変更したかを伝える</h3><p><code>bws snapshot create</code> はマシンをファイルに固定し、<code>bws snapshot diff</code> はその後に何が変わったかを、単に開始や停止をしただけのものとは分けて構成として示します。<code>bws history</code> は System ログから、誰がスタートアップの種類を変更し、誰がサービスをインストールしたかを示します。ウィンドウでは、この 3 つすべてを <em>Audit...</em> から実行できます。</p></div>
+      <div class="card"><h3>よくある問題を 1 回の操作で修正する</h3><p><em>Tools</em> タブと <code>bws tool fix</code> は、印刷されないプリンター、出なくなった音、止まった検索の裏にあるサービスを、それに依存するものとともに、ほかの操作と同じプランで再起動します。</p></div>
+      <div class="card"><h3>止まらないサービスを止める</h3><p>最初は丁寧に停止を要求し、それが失敗した場合にのみプロセスを終了します。同じプロセスに存在するほかのサービスはすべて名前が示されます。</p></div>
+      <div class="card"><h3><code>services.msc</code> が隠しているものを表示する</h3><p>実行ファイルを誰が署名したか、Windows がそれを信頼しているか、トリガー、特権、セキュリティ記述子、プロセスとそのメモリ。列として表示でき、検索条件にもできます。</p></div>
+      <div class="card"><h3>読み取れなかったときに伝える</h3><p>読み取れなかったフィールドは、空ではなく読み取れなかったものとして報告されます。管理者権限なしで取得したスナップショットには、ファイルの中にそのことが記録されます。</p></div>
+      <div class="card"><h3>スクリプトに組み込める</h3><p>すべてのコマンドで <code>--json</code>、終了のたびに終了コード、差分でドリフトが見つかったときは <code>5</code>。</p></div>
+      <div class="card"><h3>1 つのファイルからオフラインで動かす</h3><p>展開して実行するか、マシン全体にインストールします。.NET のインストールは不要で、インターネットには一切接続しません。読み取りに管理者権限は不要です。GPL-3.0。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">services.msc にはなかった機能</span>
+    <h2>昨日から何が変わったか</h2>
+    <p class="lede">スナップショットは、ある時点のマシン全体です。すべてのサービスとドライバーについて、スタートアップの種類、アカウント、起動パス、ファイルのハッシュと署名者、依存関係、トリガー、特権、セキュリティ記述子が含まれます。1 行に 1 フィールドの JSON なので、リポジトリに入れることができ、<code>git diff</code> で読めます。</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>構成と実行状態は分けて報告されます。</strong>1 日あけて取得した 2 つのスナップショットは、たまたま実行されているものが異なるだけで、そのほとんどはドリフトではありません。読むべき行は、変更されたスタートアップの種類です。</li>
+        <li><strong>比較できなかったものは、隠さず一覧に出ます。</strong>片方のスナップショットが一度も読み取っていないフィールドは <em>not compared</em> と表示されます。したがって、<em>何も変わっていない</em>と示す差分は、両方が見られた範囲で何も変わっていないという意味です。</li>
+        <li><strong><code>--exit-code</code> は、構成が異なる場合に <code>5</code> で終了します。</strong>そのため、スケジュールされたタスクがデプロイ時にスナップショットを取り、マシンがドリフトした最初の夜に誰かを呼び出せます。</li>
+        <li><strong>2 台のマシン、2 つのファイル。</strong>ステージング環境と本番環境でそれぞれスナップショットを取り、どこでも比較できます。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">スナップショットとドリフトの仕組み</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">プランなしでは何も起きません</span>
+    <h2>プレビューが、そのまま実行です</h2>
+    <p class="lede">書き込みを行う操作はすべて、最初にプランを作ります。同じプランが、プレビュー、依存サービスへの連鎖、何かを押す前の拒否、同じことを要求するコマンドライン、そして実行後に元へ戻す方法になります。</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong><code>--dry-run</code> を外して実行すると、それがそのままのステップです。</strong>同じ順序で、同じ理由が横に表示されます。実際の実行のための別のコード経路はありません。</li>
+        <li><strong>一緒に停止するものがプランに含まれます。</strong>壊れるサービスはそれぞれ独立したステップになり、マシンに必要なものを停止してしまうプランは、警告でそう伝えます。</li>
+        <li><strong>拒否はボタンより前に来ます。</strong>ドライバー、マネージャーが停止を受け付けないサービス、システムが保護しているプロセスは、プランを作る時点で理由とともに拒否されます。ウィンドウではボタンがグレーになり、その横に理由が表示されます。</li>
+        <li><strong>強制停止は 2 つのステップで、2 つ目は条件付きです。</strong><code>bws kill</code> はサービスに停止を要求し、それがうまくいかない場合にのみプロセスを終了します。そのプロセスに存在するほかのサービスはすべて名前が示されます。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">サービスが止まらないとき</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">2 分で試す</span>
+    <h2>コマンドラインから</h2>
+    <p class="lede">スクリプト、スケジュールされたタスク、CI のための、ウィンドウと同じエンジンです。データは標準出力に、それ以外はすべて標準エラーに出力されるので、<code>bws list --json | jq</code> が動作し、警告が JSON に混ざることはありません。</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">起動しているはずなのに起動していないもの</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">実行ファイルがなくなったサービス</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">署名なし。セッションごとのコピーを除く</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">1 つのエントリについてわかっているすべて</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">停止すると何が巻き込まれるか</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">プロセスを終了すると何が巻き込まれるか</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">自動からはずすと何が起きるか</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">変更の前にマシンを固定する</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">それ以降の変更点。構成が変わっていれば 5</span>
+<span class="k">bws history Spooler</span>                               <span class="c">誰がいつスタートアップの種類を変更したか</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">止まったプリンターのクイック修正が行うこと</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">すべてのコマンド、オプション、終了コード</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">入手する</span>
+    <h2>展開して実行、またはインストール</h2>
+    <p class="lede">Windows 10 1809 または Windows Server 2019 以降、64 ビット。アーカイブにインストーラーは不要で、レジストリには何も書き込みません。見るだけなら管理者権限は不要です。何かを変更するには昇格したセッションが必要で、どちらの側もそのことを黙って失敗せずに伝えます。ウィンドウには <em>Restart as admin</em> があります。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ファイル</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>ウィンドウです。1 つの自己完結型の実行ファイルで、.NET のインストールは不要です</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>コマンドラインです。スクリプトと CI のための、1 つの自己完結型の実行ファイルです</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>インストーラーです。マシン上のすべてのアカウント向けに両方のプログラムをインストールし、ウィンドウをスタート メニューに、<code>bws</code> を PATH に追加します</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>実行ファイルには Authenticode 署名があるため、Windows は不明な発行元として警告せず、発行元の名前を表示します。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{url:download}}">要件とソースからのビルド</a>
+    </div>
+  </div>
+</section>

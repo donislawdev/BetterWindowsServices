@@ -1,0 +1,86 @@
+<meta name="title" content="这台计算机上应该运行哪些 Windows 服务？">
+<meta name="description" content="没人能笼统地回答这个问题，声称能回答的列表描述的是另一台计算机。可以回答的问题是：什么发生了变化，什么对不上。">
+<meta name="nav" content="应该运行的服务">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>应该运行哪些服务？</h1>
+    <p class="lede">诚实的回答是没人能告诉你，而每一份声称能告诉你的清单，描述的都是另一台不是你的计算机。<em>能够</em>回答的是一个更窄、也有用得多的问题：这台计算机上有什么对不上，以及与它正常工作时相比有什么不同。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>为什么笼统的问题没有答案</h2>
+    <ul class="points points-alarm">
+      <li><strong>这套服务因 Windows 版本、版次和角色而异。</strong>域控制器、笔记本电脑和容器主机在几乎所有事情上都不一致，为其中一种写的清单对其他几种就是错的。</li>
+      <li><strong>已安装的内容有一半并非来自 Windows。</strong>驱动程序、代理、更新服务、许可证守护程序：每一个都是被某样东西放在那里的，而没有任何通用清单知道是什么。</li>
+      <li><strong>大多数服务本来就应该是停止的。</strong>现代 Windows 只启动它所注册内容的一小部分：其余的在等待触发器，例如设备到达、端口打开、加入域，对它们来说停止才是正确的状态。</li>
+      <li><strong>“为了性能禁用这些”的清单是计算机出问题的原因。</strong>看起来空闲的服务，往往正是别的东西按需启动的那个，故障会在一周后出现在毫不相干的地方。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>确实有答案的问题</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>应该在运行却没有运行的内容</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows 被告知要启动这些服务，而它们没有在运行。在健康的计算机上这是一份很短的清单：几个启动较晚、随后又停止的条目。其他任何内容都值得看一眼。</p>
+      </div>
+      <div class="card">
+        <h3>已禁用却仍在运行的内容</h3>
+        <p><code>mismatch:running</code></p>
+        <p>配置与状态不一致。通常是有人禁用了它却没有停止它，下一次重启会带来意外。</p>
+      </div>
+      <div class="card">
+        <h3>指向已丢失文件的内容</h3>
+        <p><code>file:missing</code></p>
+        <p>卸载后遗留了注册信息。在有东西尝试启动它之前是无害的，也是关于这台计算机上曾经有过什么的线索。</p>
+      </div>
+      <div class="card">
+        <h3>没人签名的内容</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>它本身不能证明任何事，却是开始阅读的合适起点。第二个检索词会去掉按用户的服务族，否则它们会让列表里充满近似重复的条目。</p>
+      </div>
+      <div class="card">
+        <h3>请求最强特权的内容</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>一种让进程能够打开任何其他进程的特权。少数合法的服务会请求它，值得知道你的计算机上是哪几个。</p>
+      </div>
+      <div class="card">
+        <h3>正在等待触发器的内容</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>它们处于停止状态，是因为还没有东西请求它们，而不是因为出了什么问题。知道这些是哪些，就是让第一份清单不再令人担忧的办法。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>胜过所有这些的那一个</h2>
+    <p class="lede">询问计算机本身，在它正常工作的时候。</p>
+    <p>在计算机投入使用的那一天生成一个快照。这样，<em>这个应该运行吗</em>就变成了<em>在一切正常时，这个在运行吗</em>：一个关于你的计算机的问题，而不是关于一篇文章里那台计算机的问题。</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... 一周、一次补丁或一次事件之后</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>配置与运行状态分开报告，所以答案不是四十个恰好在运行的服务，而是某人更改过的启动类型。</p>
+    <a class="more" href="{{url:audit-windows-services}}">审计计算机的漂移</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>在停止任何东西之前</h2>
+    <p>这个工具中的每一次停止都会先展示它的计划：各个步骤、随之关闭的内容，以及当其中之一是计算机离不开的东西时的警告。这样的清单是一份七项的入门清单：RPC 的两个部分和 DCOM 启动器、账户管理器、密钥隔离、会话管理器以及即插即用，<strong>其中没有远程桌面</strong>，所以通过远程会话操作时，请阅读计划。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">你可以询问的每个字段</a>
+    </div>
+  </div>
+</section>
