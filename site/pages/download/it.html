@@ -1,0 +1,86 @@
+<meta name="title" content="Scarica Better Windows Services - gratuito, ZIP o MSI">
+<meta name="description" content="Due eseguibili autonomi o un programma di installazione firmato, senza .NET. Windows 10 1809 e Windows Server 2019 o successivi, 64 bit. Libero, GPL-3.0.">
+<meta name="nav" content="Download">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Download</span>
+    <h1>Decomprimere e avviare, oppure installare</h1>
+    <p class="lede">Versione {{version}}. Gli archivi non richiedono un programma di installazione e non scrivono nulla nel Registro, e consultare non richiede diritti di amministratore. Un programma di installazione firmato mette invece entrambi i programmi su tutta la macchina. Libero e gratuito con licenza GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Scarica per Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Tutte le versioni</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cosa contiene la versione</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Che cos'è</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>La finestra: <code>BetterWindowsServices.exe</code>, un eseguibile autonomo con il proprio runtime .NET all'interno</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>La riga di comando: <code>bws.exe</code>, un eseguibile autonomo, per script, attività pianificate e CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Il programma di installazione: entrambi i programmi in <code>Program Files</code> per ogni account della macchina, la finestra nel menu Start e <code>bws</code> nel PATH della macchina</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Ne prenda uno o entrambi - sono due client dello stesso motore e nessuno dei due ha bisogno dell'altro. Su un server, la riga di comando è la più piccola delle due e fa tutto ciò che fa la finestra.</p>
+    <p>Il programma di installazione contiene esattamente ciò che contengono i due archivi. Si installa in modo silenzioso con <code>msiexec /i {{archive_installer}} /qn</code>, una versione più recente si installa sopra una più vecchia e non chiude nulla di ciò che è in esecuzione - chiuda quindi la finestra e qualsiasi <code>bws</code> in esecuzione prima di aggiornare, perché una copia lasciata attiva può fermarsi con un errore. La disinstallazione da Impostazioni, App rimuove i programmi, la voce del menu Start e la voce del PATH, e lascia stare i suoi file.</p>
+    <p>Gli eseguibili portano una firma Authenticode, così Windows nomina l'editore invece di avvertire di uno sconosciuto.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Requisiti</h2>
+    <ul class="points">
+      <li><strong>Windows 10 versione 1809 o successiva, oppure Windows Server 2019 o successivo.</strong> Solo 64 bit - un processo a 32 bit legge percorsi e chiavi di Registro reindirizzati, il che darebbe risposte sbagliate senza avvisare.</li>
+      <li><strong>Nessun .NET da installare.</strong> Entrambi gli eseguibili portano il proprio runtime .NET.</li>
+      <li><strong>Diritti di amministratore per cambiare qualsiasi cosa.</strong> Leggere, cercare, gli snapshot e i confronti funzionano senza, con meno voci visibili e lo strumento che lo dice in alto invece di far finta che l'elenco sia l'intera macchina.</li>
+    </ul>
+    <p>La finestra tiene un file suo - la disposizione in cui ha lasciato l'elenco - in <code>%APPDATA%\BetterWindowsServices</code>. Uno snapshot va dove dice a <code>bws snapshot create</code> di metterlo, e nella cartella corrente quando non lo dice.</p>
+    <p class="note"><strong>Il programma parla inglese.</strong> La finestra legge un file di lingua, <code>languages\gui.&lt;codice&gt;.json</code>, posto accanto a essa e scelto in base alla lingua di Windows, senza alcuna opzione. Una traduzione è quindi un contributo che si può aggiungere senza ricompilare - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> spiega come.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus ed EDR</h2>
+    <p class="lede">Questo strumento fa ciò che fa un amministratore con i servizi, e parte di questo è ciò che il software di sicurezza tiene d'occhio.</p>
+    <p>Ferma e avvia servizi, può terminare il processo dietro uno di essi e legge il descrittore di sicurezza e i privilegi richiesti di ogni servizio. Un EDR che segnala un processo che termina <code>svchost.exe</code> fa il suo lavoro, e un arresto forzato qui può assomigliare esattamente a quello.</p>
+    <p>Ciò che <strong>non</strong> fa, così che possa verificare l'affermazione: non inietta nulla in alcun processo, non comprime né offusca nulla, non installa alcun servizio né driver e non lascia nulla in esecuzione, e non apre alcuna connessione di rete. È open source con licenza GPL-3.0 e può compilare da sé entrambi gli eseguibili.</p>
+    <p>Se la sua policy richiede un'esclusione, escluda i due eseguibili per file anziché una cartella. L'unica cosa da trattare con la stessa cura dello strumento stesso è un file di snapshot: descrive l'intera macchina.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Compilare dai sorgenti</h2>
+    <p>SDK .NET 10, su Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Alcuni test leggono il vero gestore di controllo dei servizi della macchina su cui girano e confrontano ciò che dice questo strumento con ciò che dice <code>sc.exe</code>. Sono di sola lettura. Gli eseguibili a file singolo che le versioni portano sono queste due pubblicazioni, ciascuna un file con il runtime all'interno:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Finiscono come <code>bws.exe</code> e <code>BetterWindowsServices.exe</code> sotto <code>bin/Release/.../win-x64/publish/</code> di ciascun progetto. I file <code>.pdb</code> accanto sono simboli di debug, e nulla ne ha bisogno per girare.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Quanto costa farlo girare</h2>
+    <p class="lede">Misurato su una macchina con 810 servizi. I suoi numeri saranno diversi - il numero di servizi, il disco e il processore li spostano tutti.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Circa un quarto di secondo</h3><p>perché <code>bws list</code> legga l'intera macchina.</p></div>
+      <div class="card"><h3>Circa otto decimi di secondo</h3><p>dall'avvio della finestra all'elenco sullo schermo.</p></div>
+      <div class="card"><h3>Circa 100 MB</h3><p>per la finestra - metà dei quali è il framework dell'interfaccia utente di Windows, prima che giri qualsiasi codice proprio di questo strumento.</p></div>
+      <div class="card"><h3>Circa 16 MB</h3><p>per la riga di comando sulla stessa macchina.</p></div>
+    </div>
+  </div>
+</section>

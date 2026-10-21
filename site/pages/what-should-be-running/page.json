@@ -6,6 +6,11 @@
   "footer": "guides",
   "slug": {
     "en": "what-windows-services-should-be-running",
-    "pl": "ktore-uslugi-windows-powinny-dzialac"
+    "pl": "ktore-uslugi-windows-powinny-dzialac",
+    "de": "welche-windows-dienste-laufen-sollten",
+    "fr": "quels-services-windows-devraient-tourner",
+    "es": "que-servicios-de-windows-deberian-estar-en-marcha",
+    "it": "quali-servizi-windows-dovrebbero-essere-attivi",
+    "pt-br": "quais-servicos-do-windows-deveriam-estar-em-execucao"
   }
 }

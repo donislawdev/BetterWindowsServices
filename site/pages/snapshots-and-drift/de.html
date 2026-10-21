@@ -1,0 +1,65 @@
+<meta name="title" content="Snapshots und Drift - was sich seit gestern geändert hat">
+<meta name="description" content="Jeden Windows-Dienst in eine JSON-Datei einfrieren und fragen, was sich geändert hat. Konfiguration getrennt vom Laufzustand, Exit-Code 5 kann alarmieren.">
+<meta name="nav" content="Snapshots und Drift">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Das, was services.msc nie konnte</span>
+    <h1>Snapshots und Drift</h1>
+    <p class="lede">Jedes andere Werkzeug sagt Ihnen, wie ein Rechner jetzt aussieht. Die Frage, die ein Administrator wirklich hat, ist <em>was ist anders als damals, als es funktionierte</em> - und kein gewöhnliches Windows beantwortet sie.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was ein Snapshot enthält</h2>
+    <p>Den ganzen Rechner in einem Augenblick: jeden Dienst und jeden Treiber mit Starttyp, Konto, Startpfad und Argumenten, Hash und Signierer der Datei, die er ausführt, seinen Abhängigkeiten und dem, was von ihm abhängt, seinen Triggern, seinen erforderlichen Privilegien, seinem SID-Typ und seinem Sicherheitsdeskriptor - dazu den Namen des Rechners, das Konto, das ihn erstellt hat, und <strong>ob dieses Konto ein Administrator war</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Er ist JSON mit einem Feld pro Zeile. Das ist Absicht: Ein Snapshot passt so in ein Repository, und <code>git diff</code> liest ihn, sodass der eigene Vergleich des Werkzeugs nicht der einzige Weg ist, einen anzusehen.</p>
+    <p class="note"><strong>Legen Sie ihn ab wie das, was er ist.</strong> Ein Snapshot beschreibt den ganzen Rechner bis hin zu jedem Startpfad und jedem Sicherheitsdeskriptor. Er wird mit den Berechtigungen geschrieben, die sein Verzeichnis ohnehin hat, und das Werkzeug schränkt nichts ein - ein Verzeichnis, das andere lesen können, ist also eines, in dem sie all das lesen können.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dann fragen, was anders ist</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Konfiguration und Laufzustand werden getrennt gemeldet.</strong> Zwei Snapshots im Abstand eines Tages unterscheiden sich darin, was gerade läuft, und fast nichts davon ist Drift. Zusammengemischt geht die eine Zeile, auf die es ankommt - ein Starttyp, den jemand geändert hat -, unter vierzig anderen unter.</li>
+        <li><strong>Was sich nicht vergleichen ließ, wird aufgelistet und nicht versteckt.</strong> Ein Feld, das einer der beiden Snapshots nie gelesen hat, weil diese Sitzung dafür keine Rechte hatte, erscheint als <em>not compared</em> unter seinem Eintrag, und die Zusammenfassung zählt diese Einträge. Ein Vergleich, der <em>nichts hat sich geändert</em> sagt, bedeutet also: nichts hat sich in dem geändert, was beide Seiten sehen konnten.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Ein Snapshot mit erhöhten Rechten gegen einen ohne würde lügen</strong> und Einträge als entfernt melden, die niemand entfernt hat. Jede Datei hält fest, ob das Konto, das sie erstellt hat, ein Administrator war, und der Vergleich sagt das.</li>
+        <li><strong>Zwei Dateien, nicht nur eine Datei und dieser Rechner.</strong> Machen Sie einen auf dem Staging- und einen auf dem Produktivsystem und vergleichen Sie sie irgendwo - die Antwort auf <em>warum unterscheidet sich Staging</em> braucht keinen der beiden Rechner vor Ort.</li>
+      </ul>
+    </div>
+    <p><strong>Das Fenster tut dasselbe unter <em>Audit...</em>.</strong> <em>Take snapshot...</em> schreibt dieselbe Datei, mit einer Notiz, wenn Sie eine eingeben, und <em>Compare with this machine...</em> oder <em>Compare two snapshots...</em> zeigt anstelle der Liste, was sich geändert hat, eine Zeile pro Feld, wobei alles, was den Vergleich weniger als exakt macht, über der Tabelle steht. <em>Show</em> grenzt ihn auf die Unterschiede oder auf ein Feld ein, und <em>Export...</em> schreibt ihn in eine CSV-Datei.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Der Exit-Code ist der Punkt</h2>
+    <p><code>--exit-code</code> endet mit <code>5</code>, wenn sich die Konfiguration unterscheidet - ein Eintrag hinzugefügt oder entfernt, oder einer anders eingerichtet. Ein Dienst, der nur von selbst angehalten oder gestartet wurde, wird gemeldet und zählt nicht, und die Kopien pro Benutzer, die Windows für jede angemeldete Sitzung anlegt, ebenso nicht - sie werden ausgelassen und gezählt. Kein Fehler - Drift zu finden ist wofür dieses Werkzeug da ist, und sie zu finden ist kein Fehler -, weshalb er eine eigene Nummer hat und nicht die ausleiht, die bedeutet, dass etwas schiefging.</p>
+<pre><code><span class="c"># der Tag, an dem der Rechner in Betrieb geht</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># jede Nacht, aus einer geplanten Aufgabe</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - keine Konfigurationsdrift
+#   5 - die Konfiguration ist abgedriftet, und drift.json sagt, was
+#   3 - es lief und konnte nicht alles lesen, die Antwort ist also unvollständig</span></code></pre>
+    <p>Das ist der ganze Mechanismus: eine Baseline, erstellt, als der Rechner als gut bekannt war, und eine Frage, die jede Nacht gestellt wird. Antwortet er in der ersten Nacht mit <code>5</code>, erfährt es jemand in der ersten Nacht und nicht am Morgen, an dem etwas kaputtgeht.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Das für ein Audit nutzen</a>
+  </div>
+</section>

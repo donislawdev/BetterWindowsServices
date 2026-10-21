@@ -1,0 +1,102 @@
+<meta name="title" content="Une alternative à services.msc pour les administrateurs Windows">
+<meta name="description" content="services.msc n'a ni recherche, ni filtrage, ni historique. Un remplaçant libre avec langage de requête, aperçu avant chaque changement et comparaison de dérive.">
+<meta name="nav" content="Face à services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Une alternative à <code>services.msc</code></h1>
+    <p class="lede">Le composant enfichable Services a à peine changé depuis Windows 2000. C'est toujours le moyen le plus rapide de démarrer un service que vous voyez déjà à l'écran, et le plus lent de répondre à n'importe quelle question sur une machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce qui pousse à chercher ailleurs</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Pas de recherche.</strong> La seule navigation est de taper une lettre pour sauter au premier nom affiché qui commence par elle. Sur une machine de huit cents entrées, c'est du défilement avec des étapes en plus.</li>
+        <li><strong>Pas de filtrage.</strong> Impossible de demander <em>ce qui est réglé pour démarrer automatiquement et ne tourne pas</em> - la seule question qui trouve une machine en panne.</li>
+        <li><strong>Une ligne à la fois.</strong> Redémarrer douze services, c'est douze clics droits et douze attentes.</li>
+        <li><strong>«&nbsp;Arrêt en cours...&nbsp;» sans issue</strong> hormis le Gestionnaire des tâches et une devinette sur le <code>svchost</code> à terminer.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Pas d'historique.</strong> Personne ne sait qui a réglé ce type de démarrage sur Désactivé, ni quand, ni si c'était déjà ainsi le mois dernier.</li>
+        <li><strong>Des données cachées.</strong> Le processus, les déclencheurs, les privilèges requis, le descripteur de sécurité, qui a signé l'exécutable - rien de tout cela n'est dans le composant enfichable, et tout compte quand quelque chose ne va pas.</li>
+        <li><strong>Les colonnes ne peuvent pas changer.</strong> Nom, description, état, type de démarrage, ouvrir une session en tant que. C'est toute la liste, et aucune ne peut être triée utilement sur une vraie machine.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Les mêmes trois tâches, dans les deux</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Vous voulez</th><th>Dans <code>services.msc</code></th><th>Ici</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Trouver ce qui devrait tourner et ne tourne pas</td>
+            <td class="no">Trier par type de démarrage, faire défiler, lire chaque ligne</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Savoir ce qu'un arrêt entraîne avec lui</td>
+            <td class="no">Une boîte de dialogue qui nomme les dépendants après que vous avez appuyé sur Arrêter</td>
+            <td>Un plan avant que quoi que ce soit n'arrive, avec chaque dépendant comme étape et un avertissement quand l'un d'eux est quelque chose dont la machine a besoin</td>
+          </tr>
+          <tr>
+            <td>Savoir ce qui a changé depuis la semaine dernière</td>
+            <td class="no">Rien</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Savoir qui a changé un type de démarrage</td>
+            <td class="no">Rien</td>
+            <td><code>bws history Spooler</code>, d'après le journal Système</td>
+          </tr>
+          <tr>
+            <td>Redémarrer douze services</td>
+            <td class="no">Douze clics droits</td>
+            <td>En sélectionner douze, un plan, une exécution, un rapport</td>
+          </tr>
+          <tr>
+            <td>Voir qui a signé l'exécutable d'un service</td>
+            <td class="no">Non affiché</td>
+            <td>Une colonne, et un critère de recherche&nbsp;: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Scripter n'importe lequel de ces points</td>
+            <td class="no">Non scriptable</td>
+            <td><code>bws</code>, avec <code>--json</code> et un code de sortie pour chaque fin</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce que le composant enfichable fait encore mieux</h2>
+    <p class="lede">Deux choses, et prétendre le contraire serait le genre d'affirmation que ce projet ne fait pas.</p>
+    <ul class="points">
+      <li><strong>Il est déjà sur la machine.</strong> Rien à télécharger, rien à faire passer une politique logicielle. Sur une machine que vous ne toucherez qu'une fois, c'est tout l'argument.</li>
+      <li><strong>Il modifie les actions de récupération, le compte et le chemin de lancement.</strong> Cet outil affiche le compte et le chemin de lancement et ne change ni l'un ni l'autre, et ne lit les actions de récupération que pour avertir avant de terminer un processus. Créer, supprimer ou rediriger un service n'est pas ici non plus.</li>
+    </ul>
+    <p>Ce qu'il ne sait pas du tout faire est la raison d'être de cet outil&nbsp;: poser une question, montrer un plan d'abord, et dire ce qui a dérivé.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce que c'est</h2>
+    <p>{{product}} est libre et gratuit sous GPL-3.0, un fichier par moitié ou un installeur pour toute la machine, et il ne contacte jamais Internet. Consulter ne demande aucun droit d'administrateur - modifier en demande, et il le dit au lieu d'échouer en silence.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Télécharger pour Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Voir le langage de requête</a>
+    </div>
+  </div>
+</section>

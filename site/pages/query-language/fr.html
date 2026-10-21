@@ -1,0 +1,178 @@
+<meta name="title" content="Le langage de requête - posez une question à vos services Windows">
+<meta name="description" content="Un langage de requête pour la recherche et bws list --query. Chaque champ, chaque valeur, et la question que services.msc ne sait pas poser : ce qui n'a pu être lu.">
+<meta name="nav" content="Langage de requête">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Le tableau des champs est CONSTRUIT depuis Bws.Core - QueryFields.Names et QueryFields.ValuesOf
+  sont une API publique destinée à tout ce qui les propose à une personne, de sorte que cette page
+  ne peut pas nommer un champ que le programme n'a pas, ni en oublier un qu'il a. Les phrases à
+  côté sont dans site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Le langage de requête</span>
+    <h1>Posez une question à la machine</h1>
+    <p class="lede">Un seul langage, dans le champ de recherche de la fenêtre et dans <code>bws list --query</code>. Un mot seul cherche dans le nom, le nom affiché, le compte et le chemin de lancement. Un champ affine la recherche. {{field_count}} champs, et le même texte signifie la même chose dans les deux moitiés de l'outil.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Six qui répondent à une vraie question</h2>
+    <div class="grid">
+      <div class="card"><h3>Ce qui devrait tourner et ne tourne pas</h3><p><code>start:auto !status:running</code></p><p>La première requête que la plupart des gens écrivent, et celle à laquelle <code>services.msc</code> ne peut pas du tout répondre.</p></div>
+      <div class="card"><h3>Les services dont le fichier a disparu</h3><p><code>file:missing</code></p><p>Une entrée qui pointe vers un exécutable absent du disque. Le plus souvent une désinstallation qui a laissé l'enregistrement derrière elle.</p></div>
+      <div class="card"><h3>Non signés, sans le bruit des sessions</h3><p><code>signed:no peruser:no</code></p><p>Les familles par utilisateur font une copie par session et remplissent une liste de quasi-doublons. Ceci interroge le reste.</p></div>
+      <div class="card"><h3>En marche bien que désactivé</h3><p><code>mismatch:running</code></p><p>Une configuration et un état qui ne concordent pas - une entrée que le gestionnaire est réglé pour ne jamais démarrer, qui tourne quand même.</p></div>
+      <div class="card"><h3>Tout ce qui demande des droits de débogage</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Un privilège qui permet à un processus d'ouvrir n'importe quel autre. Il vaut la peine de savoir quels services le demandent.</p></div>
+      <div class="card"><h3>Ce que l'outil n'a pas pu lire</h3><p><code>account:?</code></p><p>Les entrées dont cette session n'a pas pu lire le compte. Une question que <code>services.msc</code> ne sait même pas poser.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Comment s'écrit une requête</h2>
+    <div class="split">
+      <div>
+        <h3>Termes</h3>
+        <ul class="prose-list">
+          <li>Les termes sont séparés par des espaces et tous doivent correspondre - il n'y a pas de mot-clé <code>and</code> parce qu'il ne pourrait rien signifier d'autre.</li>
+          <li>Le même champ écrit deux fois est la seule exception&nbsp;: <code>status:running status:stopped</code> veut dire l'un ou l'autre, car c'est ce qu'écrit le fait de cocher deux filtres. Deux bornes sur un nombre affinent toujours - <code>pid:&gt;1000 pid:&lt;2000</code> est l'intervalle entre elles.</li>
+          <li><code>!</code> devant un terme le nie&nbsp;: <code>!status:running</code>. Dans un fichier batch avec <code>setlocal EnableDelayedExpansion</code>, cmd avale ce <code>!</code> sans un mot et la requête signifie discrètement autre chose - écrivez <code>^!</code> entre les guillemets dans ce cas.</li>
+          <li>Une virgule à l'intérieur d'un champ est un <em>ou</em>&nbsp;: <code>start:manual,disabled</code>.</li>
+          <li>Les guillemets protègent tout ce qui contient des espaces ou des deux-points&nbsp;: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Un chemin collé tel quel - <code>C:\Windows\System32\svchost.exe</code> - est recherché, pas lu comme un champ appelé C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Comment le texte est comparé</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> trouve tout ce qui le <em>contient</em> - le comportement par défaut, car c'est ce qu'on attend d'un champ de recherche.</li>
+          <li><code>name:=spooler</code> est exact.</li>
+          <li><code>name:spool*</code> accepte les jokers, <code>*</code> et <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> est une expression régulière, et entre les barres obliques elle s'écrit comme s'écrivent les expressions régulières&nbsp;: <code>\?</code>, <code>\\</code> et une virgule y signifient ce qu'ils signifient là. Une barre oblique qui ne se ferme jamais est une erreur - pour chercher la barre oblique elle-même, écrivez <code>\/</code> ou utilisez des guillemets.</li>
+          <li>La casse est ignorée, y compris hors ASCII - un nom affiché en polonais ou en grec correspond quelle que soit la façon dont il est saisi.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Trois mots que tout champ accepte</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Une valeur mal saisie est une erreur, jamais un résultat vide.</strong> <code>status:runing</code> répond <em>Did you mean running?</em> et se termine avec le code <code>2</code>. Une liste vide ressemblerait à une réponse, et la différence entre «&nbsp;rien ne correspond&nbsp;» et «&nbsp;vous avez mal tapé&nbsp;» est la différence entre une machine saine et un audit qui n'a rien prouvé. Une requête qui n'affinerait rien est aussi refusée en ligne de commande, afin qu'un script n'opère pas sur toute la machine à cause d'une faute de frappe.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Plus d'exemples</h2>
+    <p class="lede">Chacun fonctionne de la même façon dans le champ de recherche de la fenêtre et après <code>bws list --query</code>, et chacun a été exécuté sur un vrai Windows avant d'être écrit ici. Ce qu'il trouve dépend de la machine - et pour une question sur les ennuis, une réponse vide est celle que vous voulez.</p>
+    <div class="examples">
+    <h3>État et type de démarrage</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Bloqués à l'arrêt ou au démarrage - l'attente que le composant enfichable affiche et qui ne finit jamais.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Réglés pour démarrer automatiquement, arrêtés, et n'attendant aucun déclencheur - la courte liste qui vaut la peine d'être lue après un redémarrage.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatique, démarré un peu après les autres entrées automatiques.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>En marche bien que rien ne le démarre au démarrage de la machine - quelque chose l'a demandé, un déclencheur l'a lancé, ou quelqu'un l'a fait.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Comptes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Tourne sous LocalSystem, le compte le plus puissant, depuis un fichier que Microsoft n'a pas signé. Une requête sur l'éditeur lit les signatures d'elle-même, elle prend donc quelques secondes.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Les services qui tournent sous n'importe quel autre compte - un compte virtuel, un compte géré ou celui d'une personne.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Un compte virtuel propre au service. Les guillemets gardent les mots ensemble, à cause de l'espace.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Fichiers et signatures</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Pas de signature, une chaîne à laquelle Windows ne fait pas confiance, ou un fichier modifié après sa signature.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Signé, approuvé, et pas par Microsoft - les logiciels que d'autres entreprises ont mis sur cette machine.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Les pilotes chargés au démarrage de Windows dont Windows n'approuve pas la signature. Sur une machine saine, aucun.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Un service doté de son propre processus dont le fichier se trouve hors du dossier Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Lancé depuis l'intérieur du profil de quelqu'un, le dernier endroit où l'on s'attend à trouver un service.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Une barre oblique inverse devant une espace fait de l'espace une partie du mot, donc un chemin se terminant par une barre oblique inverse s'écrit avec deux quand un autre terme le suit. À la fin de la requête, une suffit.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Déclencheurs et dépendances</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>En attente de l'arrivée d'un périphérique, donc arrêtés pour une bonne raison.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Démarré quand une requête arrive sur un point de terminaison réseau - un port, un canal nommé ou une interface RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Les entrées qu'un déclencheur peut arrêter, pas seulement démarrer.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Les entrées qui ont besoin de WMI pour fonctionner.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Tout ce dont le spouleur d'impression a besoin pour fonctionner, et ce dont ceux-là ont besoin à leur tour.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilèges et processus</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Demande à agir comme partie du système d'exploitation.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Peut agir au nom d'un client tout en tournant sous un compte autre que LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Porte dans son processus un SID de service qui lui est propre, de sorte que les autorisations peuvent le nommer seul. sidtype:restricted interroge ceux dont le processus est en plus restreint en écriture.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Tourne à l'intérieur d'un svchost partagé, avec d'autres.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Un processus qui utilise plus de 200 Mo. La mémoire est lue d'elle-même quand une requête la demande.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>Dans un processus dont l'identifiant est compris entre 1000 et 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Noms et texte</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requête</th><th>Ce qu'elle trouve</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Un mot seul, recherché dans le nom, le nom affiché, le compte et le chemin de lancement.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Exactement ce nom, et rien qui ne fasse que le contenir.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Les noms qui commencent par win, écrits avec un joker.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Les noms qui se terminent par svc, écrits comme une expression régulière.</td></tr>
+          <tr><td><code>description:none</code></td><td>Aucune description du tout, ce qui est le cas de la plupart des pilotes.</td></tr>
+          <tr><td><code>description:?</code></td><td>Une description que Windows n'a pas pu fournir, le plus souvent parce qu'elle pointe vers un fichier de langue absent.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Les modèles par utilisateur que Windows copie pour chaque session ouverte.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Chaque champ</h2>
+    <p>Construit depuis le programme lui-même, de sorte que ce tableau ne peut pas s'écarter de ce que l'outil accepte. Un champ sans liste de valeurs accepte du texte, un nombre ou une taille - la troisième colonne dit lequel.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Deux choses à savoir</h2>
+    <div class="qa">
+      <div>
+        <h3>Certains champs sont coûteux, et les demander active la lecture</h3>
+        <p>Les signatures prennent plusieurs secondes sur toute une machine et la mémoire est une mesure plutôt qu'un réglage, donc aucune des deux n'est lue pour une liste sauf demande. Une requête qui en mentionne une active cette lecture d'elle-même - vous n'avez pas à vous souvenir de <code>--signatures</code> en plus de <code>signed:no</code>. Dans la fenêtre, une requête sur les signatures dit que la réponse est incomplète tant qu'elles n'arrivent pas, au lieu d'afficher une liste plus courte comme si c'était la réponse.</p>
+      </div>
+      <div>
+        <h3>Un résultat jugé sur quelque chose d'illisible le dit</h3>
+        <p>Si des entrées ont été jugées sur un champ que cette session n'a pas pu lire, le résultat porte une ligne disant combien - car un tel résultat peut manquer d'entrées, ou en contenir qui n'ont rien à y faire. C'est la même règle que respecte tout l'outil&nbsp;: une lecture infructueuse est visible dans la réponse, jamais avalée. Un éditeur reçoit le même traitement quand seul le certificat le prétend&nbsp;: à côté de tout verdict autre que <code>trusted</code>, le nom est affiché comme <em>not verified</em>, et <code>publisher:</code> compte l'entrée comme incertaine sur une ligne à part - de sorte que <code>!publisher:microsoft</code> garde un fichier Microsoft que quelqu'un a modifié après sa signature.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">La référence de la ligne de commande</a>
+  </div>
+</section>

@@ -1,0 +1,68 @@
+<meta name="title" content="Un service Windows bloqué sur Arrêt - comment le terminer sans risque">
+<meta name="description" content="Un service bloqué sur Arrêt partage souvent son processus avec d'autres. Voyez lesquels avant de terminer quoi que ce soit, puis relancez-les d'une commande.">
+<meta name="nav" content="Un service bloqué sur Arrêt">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Un service bloqué sur <em>Arrêt en cours...</em></h1>
+    <p class="lede">Le composant enfichable affiche <em>Arrêt en cours</em> et ne bouge plus. La réponse habituelle est le Gestionnaire des tâches, une devinette sur le <code>svchost.exe</code> dans lequel il vit, et Fin de tâche - ce qui termine aussi tous les autres services de ce processus, sans dire lesquels c'étaient.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pourquoi cela arrive</h2>
+    <ul class="points points-alarm">
+      <li><strong>Le service ne répond pas à la demande d'arrêt.</strong> Windows le lui demande poliment et attend. Un service qui s'est figé, ou qui attend quelque chose qui ne reviendra pas, ne répond jamais.</li>
+      <li><strong>Quelque chose qui en dépend tourne encore.</strong> Le gestionnaire refuse l'arrêt plutôt que de casser l'autre, et le composant enfichable l'affiche comme une attente.</li>
+      <li><strong>Il partage son processus avec d'autres.</strong> La plupart des services Windows vivent dans un <code>svchost.exe</code> partagé. Terminer ce processus les termine tous, ce qui est exactement ce que fait le Gestionnaire des tâches sans les nommer.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Regarder avant de terminer quoi que ce soit</h2>
+    <p>Demandez ce que le terminer emporterait avec lui. Rien n'arrive tant que vous n'ôtez pas <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>L'aperçu nomme le processus par son numéro, nomme chaque autre service qui y vit, et montre deux étapes plutôt qu'une&nbsp;: demander au service de s'arrêter, et <em>seulement si cela ne marche pas</em>, terminer le processus. Un service qui s'arrête de lui-même n'est jamais terminé.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> saute l'étape polie</strong> et termine le processus tout de suite. Cela change le plan plutôt que son exécution, de sorte que l'aperçu montre une étape au lieu de deux et que la différence est visible avant que quoi que ce soit n'arrive.</li>
+        <li><strong><code>--restart</code> remet tout en route</strong> une fois le processus disparu - l'entrée dont vous avez parlé et tout ce qui partageait son processus. Sans lui, la machine reste avec ces services arrêtés, et le rapport dit comment les redémarrer.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Le refus vient avant le bouton.</strong> Un pilote, un processus que le système protège, un service pour lequel le gestionnaire n'accepte pas d'arrêt - refusés à la construction du plan, avec la raison, plutôt qu'après soixante secondes d'attente.</li>
+        <li><strong>Un avertissement quand cela compte.</strong> Si l'entrée est de celles sans lesquelles la machine ne fonctionne pas, le plan le dit - l'arrêter fait tomber la machine, pas seulement le service.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Terminer un processus est la seule chose que fait cet outil à laquelle personne ne peut s'opposer au nom de la machine.</strong> C'est pourquoi c'est une commande à part entière, pourquoi l'aperçu nomme chaque service qu'elle emporte, et pourquoi l'étape polie vient d'abord sauf si vous dites le contraire.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>L'ordre le plus sûr</h2>
+    <ol class="prose-list">
+      <li><strong>Voir ce que c'est.</strong> <code>bws show Spooler</code> - le processus, ce qui en dépend, ce dont il dépend, et s'il accepte les demandes d'arrêt.</li>
+      <li><strong>Essayer l'arrêt ordinaire, comme un plan.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Si la réponse est un refus, elle dit laquelle des trois raisons c'est.</li>
+      <li><strong>S'il ne s'arrête pas, regarder ce que coûte le terminer.</strong> <code>bws kill Spooler --dry-run</code>, et lire la liste des services qui partagent ce processus.</li>
+      <li><strong>Puis le faire, avec un chemin de retour.</strong> <code>bws kill Spooler --restart</code>. Le rapport se termine par ce qui n'a pas marché et les commandes qui remettent les choses en place.</li>
+    </ol>
+    <p>Les quatre fonctionnent de la même façon dans la fenêtre&nbsp;: clic droit sur une ligne, choisir <em>Force stop...</em>, lire le plan, et le bouton en dessous porte le nom de ce qu'il va faire.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pourquoi ne pas simplement utiliser le Gestionnaire des tâches</h2>
+    <p class="lede">Parce qu'il répond à une autre question. Le Gestionnaire des tâches connaît les processus et ce problème concerne les services, et les deux ne correspondent pas un à un.</p>
+    <p>Un <code>svchost.exe</code> partagé peut contenir une douzaine de services. Le Gestionnaire des tâches le terminera sans dire lesquels, aucun ne revient de lui-même, et rien ne vous dit ensuite ce qui s'est arrêté. Un EDR qui signale un processus terminant <code>svchost.exe</code> fait son travail, et il ne peut pas distinguer votre clic de tout autre.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Télécharger pour Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">La référence complète</a>
+    </div>
+  </div>
+</section>

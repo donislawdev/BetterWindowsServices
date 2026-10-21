@@ -1,0 +1,86 @@
+<meta name="title" content="Quels services Windows devraient tourner sur cette machine ?">
+<meta name="description" content="Personne ne peut répondre en général, et les listes qui le prétendent décrivent une autre machine. Une question a une réponse : ce qui a changé.">
+<meta name="nav" content="Ce qui devrait tourner">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Quels services devraient tourner&nbsp;?</h1>
+    <p class="lede">La réponse honnête est que personne ne peut vous le dire, et que chaque liste qui prétend le faire décrit une machine qui n'est pas la vôtre. Ce à quoi on <em>peut</em> répondre est plus étroit et bien plus utile&nbsp;: ce qui ne cadre pas sur cette machine, et ce qui est différent de l'époque où elle marchait.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pourquoi la question générale n'a pas de réponse</h2>
+    <ul class="points points-alarm">
+      <li><strong>L'ensemble diffère selon l'édition, la version et le rôle de Windows.</strong> Un contrôleur de domaine, un portable et un hôte de conteneurs ne s'accordent sur presque rien, et une liste écrite pour l'un est fausse pour les autres.</li>
+      <li><strong>La moitié de ce qui est installé ne vient pas de Windows.</strong> Pilotes, agents, services de mise à jour, démons de licence - chacun a été mis là par quelque chose, et aucune liste générale ne sait quoi.</li>
+      <li><strong>La plupart des services sont faits pour être arrêtés.</strong> Un Windows moderne démarre une fraction de ce qu'il enregistre&nbsp;: le reste attend un déclencheur - l'arrivée d'un périphérique, l'ouverture d'un port, l'adhésion à un domaine - et arrêté est leur état correct.</li>
+      <li><strong>Les listes «&nbsp;désactivez ceux-ci pour les performances&nbsp;» sont la façon dont les machines cassent.</strong> Le service qui semble inactif est celui qu'autre chose démarre à la demande, et la panne apparaît une semaine plus tard ailleurs, sans rapport apparent.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Les questions qui ont bel et bien des réponses</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Ce qui devrait tourner et ne tourne pas</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>On a dit à Windows de démarrer ceux-ci et ils ne tournent pas. Sur une machine saine, c'est une courte liste - quelques entrées qui démarrent tard et s'arrêtent de nouveau. Tout le reste mérite un coup d'œil.</p>
+      </div>
+      <div class="card">
+        <h3>Ce qui est désactivé et tourne quand même</h3>
+        <p><code>mismatch:running</code></p>
+        <p>La configuration et l'état ne concordent pas. Le plus souvent, quelqu'un l'a désactivé sans l'arrêter, et le prochain redémarrage sera une surprise.</p>
+      </div>
+      <div class="card">
+        <h3>Ce qui pointe vers un fichier qui a disparu</h3>
+        <p><code>file:missing</code></p>
+        <p>Une désinstallation qui a laissé l'enregistrement derrière elle. Sans danger tant que rien n'essaie de le démarrer, et un indice sur ce qui se trouvait sur cette machine.</p>
+      </div>
+      <div class="card">
+        <h3>Ce que personne n'a signé</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Pas une preuve de quoi que ce soit en soi, et le bon endroit où commencer à lire. Le second terme écarte les familles par utilisateur, qui remplissent sinon la liste de quasi-doublons.</p>
+      </div>
+      <div class="card">
+        <h3>Ce qui demande les privilèges les plus puissants</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Un privilège qui permet à un processus d'ouvrir n'importe quel autre. Une poignée de services légitimes le demandent, et il vaut la peine de savoir lesquels sur votre machine.</p>
+      </div>
+      <div class="card">
+        <h3>Ce qui attend un déclencheur</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Arrêtés parce que rien ne les a encore sollicités, et non parce que quelque chose ne va pas. Savoir lesquels ils sont est ce qui fait que la première liste cesse d'être alarmante.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Celle qui les bat toutes</h2>
+    <p class="lede">Demandez à la machine elle-même, quand elle fonctionnait.</p>
+    <p>Prenez un instantané le jour où la machine entre en service. Alors <em>est-ce que ceci devrait tourner</em> devient <em>est-ce que ceci tournait quand tout marchait</em> - une question sur votre machine plutôt que sur une machine dans un article.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... une semaine, un correctif ou un incident plus tard</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>La configuration est signalée à part de l'état d'exécution, de sorte que la réponse n'est pas quarante services qui se trouvent en marche - c'est le type de démarrage que quelqu'un a changé.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Auditer la dérive d'une machine</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Avant d'arrêter quoi que ce soit</h2>
+    <p>Chaque arrêt dans cet outil montre d'abord son plan&nbsp;: les étapes, ce qui tombe avec elles, et un avertissement quand l'une d'elles est quelque chose sans quoi la machine ne fonctionne pas. La liste de ces services est une liste de départ de sept - les deux moitiés de RPC et le lanceur DCOM, le gestionnaire de comptes, l'isolation des clés, le gestionnaire de session et le Plug and Play - et <strong>le Bureau à distance n'y figure pas</strong>, donc dans une session distante, lisez le plan.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Télécharger pour Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Chaque champ que vous pouvez interroger</a>
+    </div>
+  </div>
+</section>

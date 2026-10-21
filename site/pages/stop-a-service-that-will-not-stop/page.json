@@ -6,6 +6,11 @@
   "footer": "guides",
   "slug": {
     "en": "stop-a-windows-service-that-will-not-stop",
-    "pl": "usluga-ktora-nie-chce-sie-zatrzymac"
+    "pl": "usluga-ktora-nie-chce-sie-zatrzymac",
+    "de": "windows-dienst-laesst-sich-nicht-beenden",
+    "fr": "service-windows-impossible-a-arreter",
+    "es": "servicio-de-windows-que-no-se-detiene",
+    "it": "servizio-windows-che-non-si-ferma",
+    "pt-br": "servico-do-windows-que-nao-para"
   }
 }

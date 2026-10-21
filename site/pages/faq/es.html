@@ -1,0 +1,78 @@
+<meta name="title" content="Preguntas sobre Better Windows Services y sus límites sinceros">
+<meta name="description" content="¿Necesita Internet? ¿Derechos de administrador? ¿Romperá mi servidor? Qué hace y qué se niega a hacer por diseño.">
+<meta name="nav" content="Preguntas">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Preguntas</span>
+    <h1>Preguntas y límites</h1>
+    <p class="lede">Una herramienta que deja de cubrir algo en silencio es peor que una que dice lo que no puede hacer. Los límites también están en esta página, en dos grupos: lo que rechaza por diseño y lo que hace Windows y esta herramienta informa tal cual.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>¿En qué se diferencia de <code>sc.exe</code>, <code>Get-Service</code> o <code>services.msc</code>?</h3>
+        <p><code>sc query</code> y <code>Get-Service</code> dicen qué se está ejecutando. <code>services.msc</code> permite cambiarlo, una fila cada vez, sin forma de hacer una pregunta y sin registro después. Esta herramienta hace la pregunta (<code>start:auto !status:running</code>), muestra el plan antes de actuar y guarda una instantánea que puede comparar una semana después. Cuando discrepa de <code>sc.exe</code> sobre un servicio, es un error: parte del conjunto de pruebas ejecuta ambos y los compara entrada por entrada. <a href="{{url:sc-exe-and-powershell}}">La comparación más larga está aquí.</a></p>
+      </div>
+      <div>
+        <h3>¿Necesita Internet?</h3>
+        <p>Nunca. Sin telemetría, sin comprobación de actualizaciones, sin informes de fallos, sin cuenta, sin cliente de nada. La única vez que puede tocar una red es cuando se pasa <code>--follow-network</code>: entonces puede mirar una ruta de lanzamiento en el recurso compartido de otro equipo y dejar que Windows obtenga un certificado que este equipo aún no tiene; está desactivado por defecto y la ayuda dice por qué. Los botones <em>GitHub</em> y <em>Donate</em> de la ventana y la página de su menú <em>Help</em> entregan cada uno una dirección fija a su navegador al pulsarlos, y es su navegador el que se conecta.</p>
+      </div>
+      <div>
+        <h3>¿Necesita derechos de administrador?</h3>
+        <p>Para consultar, no. Para cambiar, sí. Sin ellos el administrador muestra menos entradas y rechaza más, y ambas mitades lo dicen arriba en lugar de fingir que la lista es todo el equipo. La ventana ofrece <em>Restart as admin</em>. Nunca se eleva por sí misma.</p>
+      </div>
+      <div>
+        <h3>¿Es gratuita? ¿Puedo usarla en el trabajo?</h3>
+        <p>Sí a ambas. GPL-3.0, sin letra pequeña. Una instantánea que usted toma es su archivo.</p>
+      </div>
+      <div>
+        <h3>¿Romperá mi servidor?</h3>
+        <p>No por sí misma. No se cambia nada sin un plan que usted haya visto, los controladores se rechazan y un plan que derribaría algo que el equipo necesita lo dice. De lo que no puede protegerle es de ejecutar un plan que no leyó. La lista de servicios que el equipo necesita es una lista inicial de siete (las dos mitades de RPC y el iniciador de DCOM, el administrador de cuentas, el aislamiento de claves, el administrador de sesiones y Plug and Play), y <strong>el Escritorio remoto no está en ella</strong>, así que en una sesión remota, lea el plan.</p>
+      </div>
+      <div>
+        <h3>¿Es un producto de Microsoft?</h3>
+        <p>No. {{product}} es un proyecto de código abierto independiente y no está afiliado a Microsoft, ni respaldado ni patrocinado por Microsoft. Windows es una marca del grupo de empresas de Microsoft.</p>
+      </div>
+      <div>
+        <h3>¿Está el programa en mi idioma?</h3>
+        <p>No: el programa habla inglés, y por eso este sitio está traducido. La ventana lee un archivo de idioma, <code>languages\gui.&lt;código&gt;.json</code>, colocado junto al ejecutable y lo elige según el idioma de Windows, sin ninguna opción, de modo que una traducción es una contribución que se puede añadir sin recompilar el programa. Los nombres de los servicios de la lista son lo que dice su Windows: en el idioma en el que esté configurado.</p>
+      </div>
+      <div>
+        <h3>¿Por qué la ventana es oscura cuando mi Windows es claro?</h3>
+        <p>Es oscura y sigue siéndolo cualquiera que sea la configuración de Windows, incluido un tema de alto contraste. Eso está comprobado y no supuesto: conserva sus propios colores y sigue siendo legible, y no sigue esa configuración.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por diseño</h2>
+    <ul class="points">
+      <li><strong>Solo el equipo local.</strong> La administración remota no está en esta versión. Para comparar dos equipos, tome una instantánea en cada uno y compare los dos archivos.</li>
+      <li><strong>Solo Windows, solo 64 bits</strong>, Windows 10 1809 o Windows Server 2019 y posteriores.</li>
+      <li><strong>Las operaciones sobre controladores se rechazan en lugar de intentarse</strong>, porque detener un controlador del núcleo a menudo no es reversible sin reiniciar.</li>
+      <li><strong>La herramienta no eleva sus propios privilegios.</strong> Cuando el administrador rechaza, lo dice y termina con el código de salida <code>3</code>. La ventana se ofrece a reiniciarse como administrador y no hace nada más al respecto.</li>
+      <li><strong>No se comprueba la revocación de certificados.</strong> Haría falta llegar a la red, y esta herramienta nunca lo hace. Así que <em>Trusted</em> significa que la cadena era válida en este equipo, no que nadie haya revocado el certificado desde entonces.</li>
+      <li><strong>La ventana descomprime parte del marco de interfaz de usuario de Windows antes de iniciarse.</strong> Como un solo archivo lleva algunas bibliotecas nativas que Windows solo puede cargar desde el disco. Sin derechos de administrador las escribe, en el primer inicio de cada versión, en una carpeta <code>.net</code> bajo la carpeta temporal de la cuenta y las carga desde allí. Con derechos de administrador usa en su lugar <code>ProgramData\BetterWindowsServices</code> en la unidad de Windows: una carpeta que crea de modo que solo los administradores puedan modificarla, y que comprueba en cada inicio. Si esa carpeta no se puede crear, o si otros pueden modificarla, la ventana no se inicia y dice qué carpeta y qué hacer. Pasar allí significa que una ventana con privilegios elevados se inicia a sí misma una segunda vez, lo que tarda una fracción de segundo, y cada versión deja allí sus bibliotecas (unos 8 MB) hasta que alguien borra la carpeta. La línea de comandos no lleva tales bibliotecas y no descomprime nada.</li>
+      <li><strong>Una sesión con privilegios elevados nombra la configuración de .NET que hereda en lugar de rechazarla.</strong> Un generador de perfiles, un conmutador de seguimiento o de volcado, o un puerto de diagnóstico definido en el entorno no puede desactivarse desde dentro de un programa .NET, así que con derechos de administrador ambas mitades listan los que encuentran. Los ganchos de inicio se desactivan por completo.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cosas que hace Windows y esta herramienta informa tal cual</h2>
+    <ul class="points">
+      <li><strong>Un servicio alojado dentro de <code>svchost</code></strong> tiene una ruta de lanzamiento que nombra al host, de modo que <em>el archivo está ahí</em> y <em>quién lo firmó</em> dicen ambos menos que para un servicio con proceso propio.</li>
+      <li><strong>Un archivo con firma propia y una entrada de catálogo de Windows</strong> puede nombrar dos firmantes distintos. El editor mostrado es el que está dentro del archivo, el que sigue siendo el mismo al mirar el archivo en otro equipo, y puede diferir de lo que informa PowerShell.</li>
+      <li><strong>Sin derechos de administrador el administrador lista menos entradas y rechaza más de las que lista.</strong> Ambas mitades lo dicen arriba, y una instantánea lo registra, porque de otro modo comparar una instantánea con privilegios elevados con otra tomada sin derechos informaría como eliminadas entradas que nadie eliminó.</li>
+    </ul>
+    <p class="note"><strong>¿Ha encontrado un problema, o un servicio que esta herramienta informa de forma distinta a <code>sc.exe</code>?</strong> El <a href="{{issues}}">seguimiento de incidencias</a> está abierto, y una diferencia entre ambos es lo más útil que puede pegar en él.</p>
+  </div>
+</section>

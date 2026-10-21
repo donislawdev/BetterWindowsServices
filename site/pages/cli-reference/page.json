@@ -6,6 +6,11 @@
   "footer": "product",
   "slug": {
     "en": "cli-reference",
-    "pl": "dokumentacja-cli"
+    "pl": "dokumentacja-cli",
+    "de": "cli-referenz",
+    "fr": "reference-cli",
+    "es": "referencia-cli",
+    "it": "riferimento-cli",
+    "pt-br": "referencia-da-cli"
   }
 }

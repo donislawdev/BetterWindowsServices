@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe y Get-Service, comparados con una herramienta para auditar">
+<meta name="description" content="sc.exe lo puede todo y no dice nada. Get-Service es programable y superficial. Dónde sigue siendo mejor cada uno y dónde un lenguaje de consulta y un plan ganan.">
+<meta name="nav" content="sc.exe y PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guía</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> y esto</h1>
+    <p class="lede">Ambos ya están en el equipo, y ambos seguirán siendo útiles. Esta página trata de dónde se detienen, y dice con claridad dónde siguen siendo la mejor respuesta.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dónde se detiene cada uno</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Alcanza casi todo lo que sabe el administrador de control de servicios, y no le dice nada sobre cómo preguntar. La sintaxis es de los noventa: <code>sc config X start= auto</code>, donde el espacio tras el signo igual es obligatorio y su ausencia es un fallo silencioso al hacer lo que usted quería.</p>
+        <p>Responde sobre una entrada cada vez. No hay filtrado, ni una salida que un script pueda analizar sin escribir un analizador, ni vista previa: <code>sc stop</code> o funciona o devuelve un número.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> y los cmdlets <code>*-Service</code></h3>
+        <p>Objetos de verdad, una canalización y una vista superficial. En Windows PowerShell 5.1, el que viene con Windows, <code>Get-Service</code> no muestra la cuenta con la que se ejecuta un servicio ni su descripción. PowerShell 7 muestra ambas, y también la ruta de lanzamiento, y se instala por separado.</p>
+        <p><code>Stop-Service -Force</code> significa "aunque algo dependa de él": detiene a los dependientes, y se lo dice después y no antes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Las mismas preguntas, de tres maneras</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Pregunta</th><th>Con lo que hay en el equipo</th><th>Aquí</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Qué debería estar en marcha y no lo está</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Qué servicios tienen un ejecutable sin firmar</td>
+            <td class="no">Leer cada ruta de lanzamiento, resolverla, llamar a <code>Get-AuthenticodeSignature</code> en cada una: un script, no un comando</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Qué arrastraría detener este</td>
+            <td><code>sc enumdepend X</code>, y luego leer la lista y decidir usted mismo</td>
+            <td><code>bws stop X --dry-run --dependents</code>, que es el plan que se ejecutaría</td>
+          </tr>
+          <tr>
+            <td>Qué cambió desde la semana pasada</td>
+            <td class="no">Nada, salvo que haya escrito usted el recolector</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Quién cambió el tipo de inicio, y cuándo</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, y luego leer el mensaje de cada evento</td>
+            <td><code>bws history Spooler</code>, cuya primera línea dice hasta dónde llega el registro</td>
+          </tr>
+          <tr>
+            <td>Salida legible por máquina</td>
+            <td>Objetos de PowerShell, texto de <code>sc.exe</code></td>
+            <td><code>--json</code> en cada comando, por la salida estándar, con las advertencias por el error estándar</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Cuando esta herramienta discrepa de <code>sc.exe</code> sobre un servicio, es un error de esta.</strong> Parte del conjunto de pruebas ejecuta ambos contra el equipo en el que está y los compara entrada por entrada, y una diferencia entre los dos es lo más útil que puede poner en una incidencia.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cuándo seguir usando lo que ya tiene</h2>
+    <ul class="points">
+      <li><strong>Está en un equipo que tocará una sola vez.</strong> Ambos ya están ahí y nada tiene que pasar una política.</li>
+      <li><strong>Necesita cambiar la cuenta, la ruta de lanzamiento o las acciones de recuperación.</strong> <code>sc.exe</code> hace las tres cosas. Esta herramienta muestra la cuenta y la ruta de lanzamiento y no cambia ninguna, y lee las acciones de recuperación solo para avisar antes de terminar un proceso.</li>
+      <li><strong>Necesita crear o eliminar un servicio.</strong> <code>sc create</code> y <code>sc delete</code>. No aquí, a propósito.</li>
+      <li><strong>Ya está metido de lleno en una canalización de PowerShell.</strong> <code>bws list --json</code> vuelve como objetos con <code>ConvertFrom-Json</code>, así que se une a la canalización en lugar de sustituirla.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Juntos, en lugar de en su lugar</h2>
+    <p>La herramienta que responde a <em>qué le pasa a este equipo</em> y las herramientas que cambian un ajuste no son la misma herramienta. Haga la pregunta aquí, lea el plan aquí y use lo que prefiera para ejecutarlo: el plan imprime la línea de comandos que pide lo mismo, y esa línea está hecha para copiarse.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descargar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">El lenguaje de consulta</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,102 @@
+<meta name="title" content="Uma alternativa ao services.msc para administradores do Windows">
+<meta name="description" content="O services.msc não tem busca, filtro nem histórico. Um substituto livre com linguagem de consulta, pré-visualização antes de cada mudança e comparação de deriva.">
+<meta name="nav" content="Contra o services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guia</span>
+    <h1>Uma alternativa ao <code>services.msc</code></h1>
+    <p class="lede">O snap-in Serviços quase não mudou desde o Windows 2000. Continua sendo o jeito mais rápido de iniciar um serviço que você já vê na tela, e o mais lento de responder a qualquer pergunta sobre uma máquina.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O que leva as pessoas a procurar outra coisa</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Sem busca.</strong> A única navegação é digitar uma letra para saltar ao primeiro nome de exibição que começa com ela. Em uma máquina com oitocentas entradas, isso é rolar com passos extras.</li>
+        <li><strong>Sem filtro.</strong> Não há como perguntar <em>o que está configurado para iniciar automaticamente e não está em execução</em> - a única pergunta que encontra uma máquina quebrada.</li>
+        <li><strong>Uma linha por vez.</strong> Reiniciar doze serviços são doze cliques com o botão direito e doze esperas.</li>
+        <li><strong>"Parando..." sem saída</strong> além do Gerenciador de Tarefas e de adivinhar qual <code>svchost</code> encerrar.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Sem histórico.</strong> Ninguém sabe quem definiu esse tipo de inicialização como Desabilitado, nem quando, nem se já era assim no mês passado.</li>
+        <li><strong>Dados ocultos.</strong> O processo, os gatilhos, os privilégios exigidos, o descritor de segurança, quem assinou o executável - nada disso está no snap-in, e tudo importa quando algo está errado.</li>
+        <li><strong>As colunas não podem mudar.</strong> Nome, descrição, status, tipo de inicialização, fazer logon como. Essa é a lista inteira, e nenhuma pode ser ordenada de modo útil em uma máquina de verdade.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>As mesmas três tarefas, nos dois</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Você quer</th><th>No <code>services.msc</code></th><th>Aqui</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Encontrar o que deveria estar no ar e não está</td>
+            <td class="no">Ordenar por tipo de inicialização, rolar, ler cada linha</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Saber o que uma parada derruba junto</td>
+            <td class="no">Uma caixa de diálogo que nomeia os dependentes depois de você clicar em Parar</td>
+            <td>Um plano antes de qualquer coisa acontecer, com cada dependente como etapa e um aviso quando um deles é algo de que a máquina precisa</td>
+          </tr>
+          <tr>
+            <td>Saber o que mudou desde a semana passada</td>
+            <td class="no">Nada</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Saber quem mudou um tipo de inicialização</td>
+            <td class="no">Nada</td>
+            <td><code>bws history Spooler</code>, pelo log do Sistema</td>
+          </tr>
+          <tr>
+            <td>Reiniciar doze serviços</td>
+            <td class="no">Doze cliques com o botão direito</td>
+            <td>Selecionar doze, um plano, uma execução, um relatório</td>
+          </tr>
+          <tr>
+            <td>Ver quem assinou o executável de um serviço</td>
+            <td class="no">Não é mostrado</td>
+            <td>Uma coluna, e algo por que pesquisar: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Automatizar qualquer coisa disso com script</td>
+            <td class="no">Não é automatizável</td>
+            <td><code>bws</code>, com <code>--json</code> e um código de saída para cada desfecho</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O que o snap-in ainda faz melhor</h2>
+    <p class="lede">Duas coisas, e fingir o contrário seria o tipo de afirmação que este projeto não faz.</p>
+    <ul class="points">
+      <li><strong>Ele já está na máquina.</strong> Nada para baixar, nada para fazer passar por uma política de software. Em uma máquina que você vai mexer uma única vez, esse é o argumento todo.</li>
+      <li><strong>Ele edita as ações de recuperação, a conta e o caminho de lançamento.</strong> Esta ferramenta mostra a conta e o caminho de lançamento e não muda nenhum dos dois, e lê as ações de recuperação só para avisar antes de encerrar um processo. Criar, excluir ou redirecionar um serviço também não está aqui.</li>
+    </ul>
+    <p>O que ele não consegue fazer de jeito nenhum é o motivo de isto existir: fazer uma pergunta, mostrar um plano primeiro e dizer o que se desviou.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>O que é isto</h2>
+    <p>O {{product}} é livre e gratuito sob a GPL-3.0, um arquivo por metade ou um instalador para a máquina inteira, e nunca se conecta à internet. Consultar não exige direitos de administrador - mudar exige, e ele diz isso em vez de falhar em silêncio.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Baixar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Ver a linguagem de consulta</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,178 @@
+<meta name="title" content="Il linguaggio di query - faccia una domanda ai suoi servizi Windows">
+<meta name="description" content="Un linguaggio di query per la ricerca e per bws list --query. Ogni campo, ogni valore e la domanda che services.msc non sa porre: cosa non si è potuto leggere.">
+<meta name="nav" content="Linguaggio di query">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  La tabella dei campi viene COSTRUITA da Bws.Core - QueryFields.Names e QueryFields.ValuesOf sono
+  API pubblica pensata per tutto ciò che le offre a una persona, così questa pagina non può
+  nominare un campo che il programma non ha, né dimenticarne uno che ha. Le frasi accanto sono in
+  site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Il linguaggio di query</span>
+    <h1>Faccia una domanda alla macchina</h1>
+    <p class="lede">Un solo linguaggio, nella casella di ricerca della finestra e in <code>bws list --query</code>. Una parola sola cerca nel nome, nel nome visualizzato, nell'account e nel percorso di avvio. Un campo restringe la ricerca. {{field_count}} campi, e lo stesso testo significa la stessa cosa in entrambe le metà dello strumento.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sei che rispondono a una domanda reale</h2>
+    <div class="grid">
+      <div class="card"><h3>Ciò che dovrebbe essere attivo e non lo è</h3><p><code>start:auto !status:running</code></p><p>La prima query che scrive la maggior parte delle persone, e quella a cui <code>services.msc</code> non può rispondere affatto.</p></div>
+      <div class="card"><h3>Servizi il cui file è sparito</h3><p><code>file:missing</code></p><p>Una voce che punta a un eseguibile non presente sul disco. Di solito una disinstallazione che ha lasciato dietro di sé la registrazione.</p></div>
+      <div class="card"><h3>Non firmati, senza il rumore delle sessioni</h3><p><code>signed:no peruser:no</code></p><p>Le famiglie per utente fanno una copia per sessione e riempiono un elenco di quasi duplicati. Questa interroga il resto.</p></div>
+      <div class="card"><h3>In esecuzione benché disabilitato</h3><p><code>mismatch:running</code></p><p>Configurazione e stato che non concordano - una voce che il gestore è impostato a non avviare mai, in esecuzione comunque.</p></div>
+      <div class="card"><h3>Tutto ciò che chiede diritti di debug</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Un privilegio che permette a un processo di aprirne qualsiasi altro. Vale la pena sapere quali servizi lo chiedono.</p></div>
+      <div class="card"><h3>Ciò che lo strumento non ha potuto leggere</h3><p><code>account:?</code></p><p>Le voci di cui questa sessione non ha potuto leggere l'account. Una domanda che <code>services.msc</code> non sa nemmeno porre.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Come si scrive una query</h2>
+    <div class="split">
+      <div>
+        <h3>Termini</h3>
+        <ul class="prose-list">
+          <li>I termini sono separati da spazi e devono corrispondere tutti - non esiste la parola chiave <code>and</code> perché non potrebbe significare nient'altro.</li>
+          <li>Lo stesso campo scritto due volte è l'unica eccezione: <code>status:running status:stopped</code> significa l'uno o l'altro, perché è ciò che scrive spuntare due filtri. Due limiti su un numero invece restringono - <code>pid:&gt;1000 pid:&lt;2000</code> è l'intervallo tra i due.</li>
+          <li><code>!</code> davanti a un termine lo nega: <code>!status:running</code>. In un file batch con <code>setlocal EnableDelayedExpansion</code>, cmd si mangia quel <code>!</code> senza dire nulla e la query significa in silenzio qualcos'altro - scriva <code>^!</code> dentro le virgolette lì.</li>
+          <li>Una virgola dentro un campo è un <em>oppure</em>: <code>start:manual,disabled</code>.</li>
+          <li>Le virgolette proteggono qualsiasi cosa con spazi o due punti: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Un percorso incollato così com'è - <code>C:\Windows\System32\svchost.exe</code> - viene cercato, non letto come un campo chiamato C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Come viene confrontato il testo</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> trova tutto ciò che lo <em>contiene</em> - il comportamento predefinito, perché è ciò che ci si aspetta da una casella di ricerca.</li>
+          <li><code>name:=spooler</code> è esatto.</li>
+          <li><code>name:spool*</code> accetta caratteri jolly, <code>*</code> e <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> è un'espressione regolare, e dentro le barre si scrive come si scrivono le espressioni regolari: <code>\?</code>, <code>\\</code> e una virgola significano lì ciò che significano lì. Una barra che non si chiude mai è un errore - per cercare la barra stessa, scriva <code>\/</code> oppure usi le virgolette.</li>
+          <li>Maiuscole e minuscole sono ignorate, anche fuori da ASCII - un nome visualizzato in polacco o in greco corrisponde comunque sia digitato.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Tre parole che ogni campo accetta</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Un valore digitato male è un errore, mai un risultato vuoto.</strong> <code>status:runing</code> risponde <em>Did you mean running?</em> e termina con il codice <code>2</code>. Un elenco vuoto sembrerebbe una risposta, e la differenza tra "nulla corrisponde" e "ha digitato male" è la differenza tra una macchina pulita e un audit che non ha dimostrato nulla. Una query che non restringerebbe nulla viene rifiutata anche sulla riga di comando, perché uno script non operi sull'intera macchina a causa di un refuso.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Altri esempi</h2>
+    <p class="lede">Ognuno funziona allo stesso modo nella casella di ricerca della finestra e dopo <code>bws list --query</code>, e ognuno è stato eseguito su un vero Windows prima di essere scritto qui. Ciò che trova dipende dalla macchina - e per una domanda sui guai, una risposta vuota è quella che vuole.</p>
+    <div class="examples">
+    <h3>Stato e tipo di avvio</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Bloccati in arresto o in avvio - l'attesa che lo snap-in mostra e che non finisce mai.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Impostati per avviarsi automaticamente, fermi, e che non attendono un trigger - il breve elenco che vale la pena leggere dopo un riavvio.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatico, avviato un poco dopo le altre voci automatiche.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>In esecuzione benché nulla lo avvii all'avvio - qualcosa lo ha richiesto, un trigger lo ha avviato, o qualcuno lo ha fatto.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Account</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>In esecuzione come LocalSystem, l'account più potente, da un file che Microsoft non ha firmato. Una query sull'editore legge le firme da sola, quindi richiede qualche secondo.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Servizi in esecuzione con qualsiasi altro account - uno virtuale, uno gestito o quello di una persona.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Un account virtuale proprio del servizio. Le virgolette tengono insieme le parole, a causa dello spazio.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>File e firme</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Nessuna firma, una catena di cui Windows non si fida, o un file modificato dopo essere stato firmato.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Firmato, affidabile, e non da Microsoft - il software che altre aziende hanno messo su questa macchina.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Driver caricati all'avvio di Windows la cui firma Windows non ritiene affidabile. Su una macchina sana, nessuno.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Un servizio con un processo proprio il cui file si trova fuori dalla cartella Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Avviato da dentro il profilo di qualcuno, l'ultimo posto in cui ci si aspetta un servizio.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Una barra rovesciata davanti a uno spazio rende lo spazio parte della parola, quindi un percorso che finisce con una barra rovesciata si scrive con due quando segue un altro termine. Alla fine della query ne basta una.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Trigger e dipendenze</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>In attesa dell'arrivo di un dispositivo, quindi fermi per un motivo.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Avviato quando arriva una richiesta a un endpoint di rete - una porta, una named pipe o un'interfaccia RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Voci che un trigger può fermare, non solo avviare.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Voci che hanno bisogno di WMI per funzionare.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Tutto ciò di cui lo Spooler di stampa ha bisogno per funzionare, e ciò di cui a loro volta hanno bisogno quelli.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilegi e processi</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Chiede di agire come parte del sistema operativo.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Può agire per conto di un client pur girando con un account diverso da LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Porta nel suo processo un SID di servizio proprio, così i permessi possono nominarlo da solo. sidtype:restricted interroga quelli il cui processo è anche limitato in scrittura.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>In esecuzione dentro uno svchost condiviso, insieme ad altri.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Un processo che usa più di 200 MB. La memoria viene letta da sola quando una query la chiede.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>In un processo il cui id è tra 1000 e 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Nomi e testo</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Cosa trova</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Una parola sola, cercata nel nome, nel nome visualizzato, nell'account e nel percorso di avvio.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Esattamente questo nome, e nulla che lo contenga soltanto.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Nomi che iniziano con win, scritti con un carattere jolly.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Nomi che finiscono in svc, scritti come espressione regolare.</td></tr>
+          <tr><td><code>description:none</code></td><td>Nessuna descrizione, il che vale per la maggior parte dei driver.</td></tr>
+          <tr><td><code>description:?</code></td><td>Una descrizione che Windows non ha potuto consegnare, di solito perché punta a un file di lingua che non c'è.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>I modelli per utente che Windows copia per ogni sessione aperta.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ogni campo</h2>
+    <p>Costruita dal programma stesso, così questa tabella non può discostarsi da ciò che lo strumento accetta. Un campo senza elenco di valori accetta testo, un numero o una dimensione - la terza colonna dice quale.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Due cose da sapere</h2>
+    <div class="qa">
+      <div>
+        <h3>Alcuni campi sono costosi, e chiederli attiva la lettura</h3>
+        <p>Le firme richiedono parecchi secondi su un'intera macchina e la memoria è una misurazione più che un'impostazione, quindi nessuna delle due viene letta per un elenco se non richiesta. Una query che ne menziona una attiva quella lettura da sola - non deve ricordarsi di <code>--signatures</code> oltre a <code>signed:no</code>. Nella finestra, una query sulle firme dice che la risposta è incompleta finché non arrivano, invece di mostrare un elenco più corto come se fosse la risposta.</p>
+      </div>
+      <div>
+        <h3>Un risultato giudicato su qualcosa di illeggibile lo dice</h3>
+        <p>Se delle voci sono state giudicate su un campo che questa sessione non ha potuto leggere, il risultato porta una riga che dice quante - perché un risultato simile può mancare di voci, o contenerne che non c'entrano. È la stessa regola che tiene tutto lo strumento: una lettura non riuscita è visibile nella risposta, mai inghiottita. Un editore riceve lo stesso trattamento quando solo il certificato lo afferma: accanto a qualsiasi verdetto diverso da <code>trusted</code> il nome è mostrato come <em>not verified</em>, e <code>publisher:</code> conta la voce come incerta in una riga a parte - così <code>!publisher:microsoft</code> tiene un file Microsoft che qualcuno ha modificato dopo la firma.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Il riferimento della riga di comando</a>
+  </div>
+</section>

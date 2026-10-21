@@ -6,6 +6,11 @@
   "footer": "guides",
   "slug": {
     "en": "sc-exe-and-powershell",
-    "pl": "sc-exe-i-powershell"
+    "pl": "sc-exe-i-powershell",
+    "de": "sc-exe-und-powershell",
+    "fr": "sc-exe-et-powershell",
+    "es": "sc-exe-y-powershell",
+    "it": "sc-exe-e-powershell",
+    "pt-br": "sc-exe-e-powershell"
   }
 }

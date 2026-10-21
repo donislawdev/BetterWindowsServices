@@ -1,0 +1,65 @@
+<meta name="title" content="Instantáneas y deriva - qué ha cambiado en este equipo desde ayer">
+<meta name="description" content="Congele cada servicio de Windows en un archivo JSON y pregunte qué cambió. La configuración se informa aparte del estado de ejecución, y el código 5 puede avisar.">
+<meta name="nav" content="Instantáneas y deriva">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Lo que services.msc nunca hizo</span>
+    <h1>Instantáneas y deriva</h1>
+    <p class="lede">Toda otra herramienta le dice cómo se ve un equipo ahora. La pregunta que de verdad tiene un administrador es <em>qué es distinto de cuando funcionaba</em>, y ningún Windows de serie la responde.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Qué contiene una instantánea</h2>
+    <p>El equipo entero en un momento dado: cada servicio y cada controlador, con su tipo de inicio, cuenta, ruta de lanzamiento y argumentos, el hash y el firmante del archivo que ejecuta, sus dependencias y lo que depende de él, sus desencadenadores, sus privilegios requeridos, su tipo de SID y su descriptor de seguridad, además del nombre del equipo, la cuenta que la tomó y <strong>si esa cuenta era administrador</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Es JSON con un campo por línea. Es deliberado: significa que una instantánea cabe en un repositorio y <code>git diff</code> la lee, de modo que la comparación de la propia herramienta no es la única forma de mirar una.</p>
+    <p class="note"><strong>Archívela como lo que es.</strong> Una instantánea describe todo el equipo, hasta cada ruta de lanzamiento y cada descriptor de seguridad. Se escribe con los permisos que su directorio ya tiene, y la herramienta no restringe nada: un directorio que otras personas pueden leer es uno en el que pueden leer todo eso.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Después, preguntar qué es distinto</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>La configuración y el estado de ejecución se informan por separado.</strong> Dos instantáneas tomadas con un día de diferencia difieren en lo que casualmente está en marcha, y casi nada de eso es deriva. Mezclado, el único renglón que importa, un tipo de inicio que alguien cambió, queda enterrado bajo cuarenta que no.</li>
+        <li><strong>Lo que no pudo compararse se lista, no se oculta.</strong> Un campo que una de las dos instantáneas nunca leyó, porque esa sesión no tenía derechos sobre él, sale como <em>not compared</em> bajo su entrada, y el resumen cuenta esas entradas. Así, una comparación que dice <em>nada cambió</em> significa que nada cambió en lo que ambos lados podían ver.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Una instantánea con privilegios elevados frente a una sin ellos mentiría</strong>, informando como eliminadas entradas que nadie eliminó. Cada archivo registra si la cuenta que lo tomó era administrador, y la comparación lo dice.</li>
+        <li><strong>Dos archivos, no solo un archivo y este equipo.</strong> Tome una en preproducción y otra en producción y compárelas en cualquier parte: la respuesta a <em>por qué difiere preproducción</em> no necesita ninguno de los dos equipos presentes.</li>
+      </ul>
+    </div>
+    <p><strong>La ventana hace lo mismo en <em>Audit...</em>.</strong> <em>Take snapshot...</em> escribe el mismo archivo, con una nota si escribe una, y <em>Compare with this machine...</em> o <em>Compare two snapshots...</em> muestra qué cambió en lugar de la lista, una fila por campo, con todo lo que hace la comparación menos que exacta dicho sobre la tabla. <em>Show</em> la acota a las diferencias o a un campo, y <em>Export...</em> la escribe en un archivo CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>El código de salida es lo esencial</h2>
+    <p><code>--exit-code</code> termina con <code>5</code> cuando la configuración difiere: una entrada añadida o eliminada, o una configurada de otro modo. Un servicio que solo se detuvo o inició por sí mismo se informa y no cuenta, y tampoco las copias por usuario que Windows hace para cada sesión iniciada, que se dejan fuera y se cuentan. No es un fallo (encontrar deriva es para lo que sirve esta herramienta, y encontrarla no es un fallo), por lo que tiene un número propio en lugar de tomar prestado el que significa que algo fue mal.</p>
+<pre><code><span class="c"># el día en que el equipo entra en servicio</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># cada noche, desde una tarea programada</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - sin deriva de configuración
+#   5 - la configuración se desvió, y drift.json dice en qué
+#   3 - se ejecutó y no pudo leerlo todo, así que la respuesta es parcial</span></code></pre>
+    <p>Ese es todo el mecanismo: una línea base tomada cuando se sabía que el equipo estaba bien, y una pregunta hecha cada noche. Si la primera noche responde <code>5</code>, alguien se entera la primera noche y no la mañana en que algo se rompe.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Usarlo para una auditoría</a>
+  </div>
+</section>

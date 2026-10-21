@@ -1,0 +1,64 @@
+<meta name="title" content="Auditar servicios de Windows - demostrar qué cambió en un equipo">
+<meta name="description" content="Congele cada servicio al desplegar y pregunte cada noche si el equipo sigue coincidiendo. Deriva, ejecutables sin firmar y archivos que faltan, en una consulta.">
+<meta name="nav" content="Auditar la deriva de servicios">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guía</span>
+    <h1>Auditar servicios de Windows</h1>
+    <p class="lede">Una auditoría no es una lista de lo que hay en el equipo. Es la diferencia entre lo que hay en el equipo y lo que debía haber, y ningún Windows de serie registra la segunda mitad.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tres preguntas, y qué las responde</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>¿Qué ha cambiado desde que se construyó este equipo?</h3>
+        <p>Una instantánea tomada al desplegar y una comparación con el equipo esta noche. La configuración se informa aparte de lo que simplemente se inició o se detuvo, de modo que el único tipo de inicio que alguien cambió no queda enterrado bajo cuarenta servicios que casualmente están en marcha.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>¿Por qué difiere preproducción de producción?</h3>
+        <p>Tome una instantánea en cada uno y compare los dos archivos, en cualquier parte, sin que ninguno de los equipos esté presente. Los archivos llevan el nombre del equipo y la cuenta que los tomó.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>¿Qué hay aquí que no debería haber?</h3>
+        <p>Consultas que encuentran las formas que merece la pena mirar: un servicio cuyo ejecutable ha desaparecido, uno sin firmar, uno en marcha aunque está deshabilitado, uno que pide derechos de depuración.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>La forma nocturna</h2>
+<pre><code><span class="c"># el día en que el equipo entra en servicio</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># cada noche, desde una tarea programada</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - sin deriva de configuración
+#   5 - la configuración se desvió, y drift.json dice en qué
+#   3 - se ejecutó y no pudo leerlo todo, así que la respuesta es parcial</span></code></pre>
+    <p>El código de salida <code>5</code> es lo que convierte esto en una auditoría y no en un informe que nadie lee: la tarea guarda silencio hasta que el equipo se desvía, y la noche en que lo hace, alguien recibe un aviso.</p>
+    <p class="note"><strong>Tome la línea base desde una sesión con privilegios elevados.</strong> Sin derechos de administrador el administrador lista menos entradas y rechaza más de las que lista. La instantánea registra si la cuenta que la tomó era administrador, de modo que la comparación puede decirlo en lugar de informar como eliminadas entradas que nadie eliminó, pero una línea base a la que le falta la mitad del equipo sigue siendo una línea base a la que le falta la mitad del equipo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lo que vale una instantánea como prueba</h2>
+    <ul class="points points-ok">
+      <li><strong>Es JSON con un campo por línea</strong>, así que cabe en un repositorio y <code>git diff</code> la lee. Un auditor que no tenga esta herramienta puede leer el archivo igualmente, y un sistema de control de versiones ya responde al <em>cuándo</em>.</li>
+      <li><strong>Contiene lo que el complemento nunca mostró:</strong> la ruta de lanzamiento y los argumentos, el hash y el firmante del archivo, las dependencias en ambos sentidos, los desencadenadores, los privilegios requeridos, el tipo de SID y el descriptor de seguridad.</li>
+      <li><strong>Dice lo que no pudo leer.</strong> Un campo sobre el que esta sesión no tenía derechos se registra como no leído, nunca como vacío, de modo que una comparación posterior puede decir <em>not compared</em> en lugar de llamarlo en silencio sin cambios.</li>
+      <li><strong>Es una descripción de todo el equipo.</strong> Archívela en consecuencia: se escribe con los permisos que su directorio ya tiene, y la herramienta no restringe nada.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Cómo funcionan las instantáneas y las comparaciones</a>
+  </div>
+</section>

@@ -1,0 +1,68 @@
+<meta name="title" content="Um serviço do Windows preso em Parando - como encerrá-lo com segurança">
+<meta name="description" content="Um serviço preso em Parando costuma dividir o processo com outros. Veja quais antes de encerrar qualquer coisa e traga todos de volta com um só comando.">
+<meta name="nav" content="Um serviço preso em Parando">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guia</span>
+    <h1>Um serviço preso em <em>Parando...</em></h1>
+    <p class="lede">O snap-in mostra <em>Parando</em> e nunca sai do lugar. A resposta de sempre é o Gerenciador de Tarefas, um palpite sobre em qual <code>svchost.exe</code> ele vive e Finalizar tarefa - o que encerra também todos os outros serviços daquele processo, sem dizer quais eram.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por que acontece</h2>
+    <ul class="points points-alarm">
+      <li><strong>O serviço não está respondendo ao pedido de parada.</strong> O Windows pede com educação e espera. Um serviço que travou, ou que espera algo que não vai voltar, nunca responde.</li>
+      <li><strong>Algo que depende dele ainda está em execução.</strong> O gerenciador recusa a parada em vez de quebrar o outro, e o snap-in mostra isso como uma espera.</li>
+      <li><strong>Ele divide o processo com outros.</strong> A maioria dos serviços do Windows vive dentro de um <code>svchost.exe</code> compartilhado. Encerrar esse processo encerra todos eles, que é exatamente o que o Gerenciador de Tarefas faz sem nomeá-los.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Olhe antes de encerrar qualquer coisa</h2>
+    <p>Pergunte o que encerrá-lo levaria junto. Nada acontece até você tirar o <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>A pré-visualização nomeia o processo pelo número, nomeia todos os outros serviços que vivem nele e mostra duas etapas em vez de uma: pedir ao serviço que pare e, <em>somente se isso não funcionar</em>, encerrar o processo. Um serviço que para sozinho nunca é encerrado.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> pula a etapa educada</strong> e encerra o processo na hora. Muda o plano e não a execução dele, de modo que a pré-visualização mostra uma etapa em vez de duas e a diferença fica visível antes de qualquer coisa acontecer.</li>
+        <li><strong><code>--restart</code> traz tudo de volta</strong> depois que o processo some - a entrada sobre a qual você perguntou e tudo o que dividia o processo dela. Sem ele, a máquina fica com esses serviços parados, e o relatório diz como iniciá-los de novo.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>A recusa vem antes do botão.</strong> Um driver, um processo que o sistema protege, um serviço para o qual o gerenciador não aceita parada - recusados quando o plano é construído, com o motivo, em vez de depois de uma espera de sessenta segundos.</li>
+        <li><strong>Um aviso quando importa.</strong> Se a entrada é daquelas sem as quais a máquina não funciona, o plano diz isso - pará-la derruba a máquina, não só o serviço.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Encerrar um processo é a única coisa que esta ferramenta faz que ninguém pode recusar em nome da máquina.</strong> É por isso que é um comando próprio, por isso a pré-visualização nomeia todos os serviços que ele leva junto, e por isso a etapa educada vem primeiro, a menos que você diga o contrário.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>A ordem mais segura</h2>
+    <ol class="prose-list">
+      <li><strong>Ver o que é.</strong> <code>bws show Spooler</code> - o processo, o que depende dele, do que ele depende e se aceita pedidos de parada.</li>
+      <li><strong>Tentar a parada comum, como plano.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Se a resposta for uma recusa, ela diz qual dos três motivos é.</li>
+      <li><strong>Se não parar, olhar o que custa encerrá-lo.</strong> <code>bws kill Spooler --dry-run</code>, e ler a lista de serviços que dividem aquele processo.</li>
+      <li><strong>Depois fazer, com um caminho de volta.</strong> <code>bws kill Spooler --restart</code>. O relatório termina com o que não funcionou e os comandos que colocam as coisas de volta.</li>
+    </ol>
+    <p>Os quatro funcionam do mesmo jeito na janela: clique com o botão direito em uma linha, escolha <em>Force stop...</em>, leia o plano, e o botão embaixo tem o nome do que vai fazer.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por que não usar simplesmente o Gerenciador de Tarefas</h2>
+    <p class="lede">Porque ele responde a outra pergunta. O Gerenciador de Tarefas conhece processos e este problema é sobre serviços, e os dois não se correspondem um a um.</p>
+    <p>Um <code>svchost.exe</code> compartilhado pode guardar uma dúzia de serviços. O Gerenciador de Tarefas o encerrará sem dizer quais doze, nenhum volta sozinho e nada diz depois o que parou. Um EDR que sinaliza um processo encerrando o <code>svchost.exe</code> está fazendo o seu trabalho, e não consegue distinguir o seu clique de qualquer outro.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Baixar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">A referência completa</a>
+    </div>
+  </div>
+</section>

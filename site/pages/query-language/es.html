@@ -1,0 +1,178 @@
+<meta name="title" content="El lenguaje de consulta - haga una pregunta a sus servicios de Windows">
+<meta name="description" content="Un lenguaje de consulta para el cuadro de búsqueda y bws list --query. Cada campo, cada valor y la pregunta que services.msc no puede hacer: qué no se pudo leer.">
+<meta name="nav" content="Lenguaje de consulta">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  La tabla de campos se CONSTRUYE desde Bws.Core: QueryFields.Names y QueryFields.ValuesOf son
+  API pública pensada para todo lo que las ofrece a una persona, de modo que esta página no puede
+  nombrar un campo que el programa no tiene, ni omitir uno que sí tiene. Las frases junto a ellas
+  están en site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">El lenguaje de consulta</span>
+    <h1>Haga una pregunta al equipo</h1>
+    <p class="lede">Un único lenguaje, en el cuadro de búsqueda de la ventana y en <code>bws list --query</code>. Una palabra suelta busca en el nombre, el nombre para mostrar, la cuenta y la ruta de lanzamiento. Un campo la acota. {{field_count}} campos, y el mismo texto significa lo mismo en ambas mitades de la herramienta.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Seis que responden a una pregunta real</h2>
+    <div class="grid">
+      <div class="card"><h3>Lo que debería estar en marcha y no lo está</h3><p><code>start:auto !status:running</code></p><p>La primera consulta que escribe casi todo el mundo, y la que <code>services.msc</code> no puede responder en absoluto.</p></div>
+      <div class="card"><h3>Servicios cuyo archivo ha desaparecido</h3><p><code>file:missing</code></p><p>Una entrada que apunta a un ejecutable que no está en el disco. Normalmente una desinstalación que dejó el registro tras de sí.</p></div>
+      <div class="card"><h3>Sin firmar, sin el ruido de las sesiones</h3><p><code>signed:no peruser:no</code></p><p>Las familias por usuario hacen una copia por sesión y llenan una lista de casi duplicados. Esto pregunta por el resto.</p></div>
+      <div class="card"><h3>En marcha aunque esté deshabilitado</h3><p><code>mismatch:running</code></p><p>Configuración y estado que no concuerdan: una entrada que el administrador tiene configurada para no iniciarse nunca, ejecutándose igualmente.</p></div>
+      <div class="card"><h3>Todo lo que pide derechos de depuración</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Un privilegio que permite a un proceso abrir cualquier otro. Conviene saber qué servicios lo piden.</p></div>
+      <div class="card"><h3>Lo que la herramienta no pudo leer</h3><p><code>account:?</code></p><p>Las entradas cuya cuenta esta sesión no pudo leer. Una pregunta que <code>services.msc</code> ni siquiera puede hacer.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cómo se escribe una consulta</h2>
+    <div class="split">
+      <div>
+        <h3>Términos</h3>
+        <ul class="prose-list">
+          <li>Los términos se separan con espacios y todos deben coincidir: no hay palabra clave <code>and</code> porque no podría significar otra cosa.</li>
+          <li>El mismo campo escrito dos veces es la única excepción: <code>status:running status:stopped</code> significa uno u otro, porque eso es lo que escribe marcar dos filtros. Dos límites sobre un número sí acotan: <code>pid:&gt;1000 pid:&lt;2000</code> es el intervalo entre ambos.</li>
+          <li><code>!</code> delante de un término lo niega: <code>!status:running</code>. En un archivo por lotes con <code>setlocal EnableDelayedExpansion</code>, cmd se come ese <code>!</code> sin decir nada y la consulta significa en silencio otra cosa: escriba <code>^!</code> entre las comillas allí.</li>
+          <li>Una coma dentro de un campo es un <em>o</em>: <code>start:manual,disabled</code>.</li>
+          <li>Las comillas protegen todo lo que lleve espacios o dos puntos: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Una ruta pegada tal cual, <code>C:\Windows\System32\svchost.exe</code>, se busca, no se lee como un campo llamado C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Cómo se compara el texto</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> coincide con todo lo que lo <em>contiene</em>: es lo predeterminado, porque es lo que se espera de un cuadro de búsqueda.</li>
+          <li><code>name:=spooler</code> es exacto.</li>
+          <li><code>name:spool*</code> admite comodines, <code>*</code> y <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> es una expresión regular, y entre las barras se escribe como se escriben las expresiones regulares: <code>\?</code>, <code>\\</code> y una coma significan allí lo que significan allí. Una barra que nunca se cierra es un error; para buscar la propia barra, escriba <code>\/</code> o use comillas.</li>
+          <li>Se ignoran las mayúsculas y minúsculas, también fuera de ASCII: un nombre para mostrar en polaco o en griego coincide se escriba como se escriba.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Tres palabras que acepta cualquier campo</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Un valor mal escrito es un error, nunca un resultado vacío.</strong> <code>status:runing</code> responde <em>Did you mean running?</em> y termina con el código <code>2</code>. Una lista vacía parecería una respuesta, y la diferencia entre "nada coincide" y "lo escribió mal" es la diferencia entre un equipo limpio y una auditoría que no demostró nada. Una consulta que no acotaría nada también se rechaza en la línea de comandos, para que un script no opere sobre todo el equipo por una errata.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Más ejemplos</h2>
+    <p class="lede">Cada uno funciona igual en el cuadro de búsqueda de la ventana y después de <code>bws list --query</code>, y cada uno se ejecutó en un Windows real antes de escribirse aquí. Lo que encuentra depende del equipo, y para una pregunta sobre problemas, una respuesta vacía es la que usted quiere.</p>
+    <div class="examples">
+    <h3>Estado y tipo de inicio</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Atascados al detenerse o al iniciarse: la espera que muestra el complemento y que nunca termina.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Configurados para iniciarse automáticamente, detenidos y sin esperar a un desencadenador: la lista corta que vale la pena leer tras un reinicio.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automático, iniciado un poco después de las demás entradas automáticas.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>En marcha aunque nada lo inicie al arrancar: algo lo pidió, un desencadenador lo inició o alguien lo hizo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Cuentas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Se ejecuta como LocalSystem, la cuenta más poderosa, desde un archivo que Microsoft no firmó. Una consulta sobre el editor lee las firmas por sí sola, así que tarda unos segundos.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Servicios que se ejecutan bajo cualquier otra cuenta: una virtual, una administrada o la de una persona.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Una cuenta virtual del propio servicio. Las comillas mantienen juntas las palabras, por el espacio.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Archivos y firmas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Sin firma, una cadena en la que Windows no confía, o un archivo modificado después de firmarse.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Firmado, de confianza y no por Microsoft: el software que otras empresas han puesto en este equipo.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Controladores cargados al arrancar Windows cuya firma Windows no considera de confianza. En un equipo sano, ninguno.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Un servicio con proceso propio cuyo archivo está fuera de la carpeta de Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Lanzado desde dentro del perfil de alguien, el último lugar donde se espera un servicio.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Una barra invertida delante de un espacio hace que el espacio forme parte de la palabra, así que una ruta que acaba en barra invertida se escribe con dos cuando le sigue otro término. Al final de la consulta basta una.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Desencadenadores y dependencias</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Esperando a que llegue un dispositivo, por lo que están detenidos por una razón.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Iniciado cuando llega una solicitud a un punto de conexión de red: un puerto, una canalización con nombre o una interfaz RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Entradas que un desencadenador puede detener, no solo iniciar.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Entradas que necesitan WMI para ejecutarse.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Todo lo que el Print Spooler necesita para ejecutarse, y lo que a su vez necesitan esos.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilegios y procesos</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Pide actuar como parte del sistema operativo.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Puede actuar en nombre de un cliente mientras se ejecuta bajo una cuenta distinta de LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Lleva en su proceso un SID de servicio propio, de modo que los permisos pueden nombrarlo a él solo. sidtype:restricted pregunta por aquellos cuyo proceso además tiene restringida la escritura.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>En ejecución dentro de un svchost compartido, junto con otros.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Un proceso que usa más de 200 MB. La memoria se lee por sí sola cuando una consulta pregunta por ella.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>En un proceso cuyo identificador está entre 1000 y 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Nombres y texto</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consulta</th><th>Qué encuentra</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Una palabra suelta, buscada en el nombre, el nombre para mostrar, la cuenta y la ruta de lanzamiento.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Exactamente este nombre, y nada que solo lo contenga.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Nombres que empiezan por win, escritos con un comodín.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Nombres que terminan en svc, escritos como expresión regular.</td></tr>
+          <tr><td><code>description:none</code></td><td>Ninguna descripción en absoluto, que es el caso de la mayoría de los controladores.</td></tr>
+          <tr><td><code>description:?</code></td><td>Una descripción que Windows no pudo entregar, normalmente porque apunta a un archivo de idioma que no está.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Las plantillas por usuario que Windows copia para cada sesión iniciada.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cada campo</h2>
+    <p>Construida a partir del propio programa, de modo que esta tabla no puede desviarse de lo que acepta la herramienta. Un campo sin lista de valores acepta texto, un número o un tamaño; la tercera columna dice cuál.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dos cosas que conviene saber</h2>
+    <div class="qa">
+      <div>
+        <h3>Algunos campos son caros, y pedirlos activa la lectura</h3>
+        <p>Las firmas tardan varios segundos en todo un equipo y la memoria es una medición y no un ajuste, así que ninguna se lee para un listado salvo que se pida. Una consulta que menciona una activa esa lectura por sí sola: no tiene que acordarse de <code>--signatures</code> además de <code>signed:no</code>. En la ventana, una consulta sobre firmas dice que la respuesta está incompleta hasta que llegan, en lugar de mostrar una lista más corta como si fuera la respuesta.</p>
+      </div>
+      <div>
+        <h3>Un resultado juzgado sobre algo ilegible lo dice</h3>
+        <p>Si se juzgaron entradas por un campo que esta sesión no pudo leer, el resultado lleva una línea que dice cuántas, porque un resultado así puede estar omitiendo entradas, o contener otras que no corresponden. Es la misma regla que sigue toda la herramienta: una lectura fallida es visible en la respuesta, nunca se traga. Un editor recibe el mismo trato cuando solo el certificado lo afirma: junto a cualquier veredicto que no sea <code>trusted</code> el nombre se muestra como <em>not verified</em>, y <code>publisher:</code> cuenta la entrada como dudosa en una línea aparte, de modo que <code>!publisher:microsoft</code> conserva un archivo de Microsoft que alguien modificó después de firmarse.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">La referencia de la línea de comandos</a>
+  </div>
+</section>

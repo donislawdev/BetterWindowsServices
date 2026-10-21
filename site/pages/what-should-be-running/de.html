@@ -1,0 +1,86 @@
+<meta name="title" content="Welche Windows-Dienste sollten auf diesem Rechner laufen?">
+<meta name="description" content="Das kann niemand allgemein beantworten, und Listen, die es behaupten, beschreiben einen fremden Rechner. Beantworten lässt sich: was sich geändert hat.">
+<meta name="nav" content="Was laufen sollte">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Leitfaden</span>
+    <h1>Welche Dienste sollten laufen?</h1>
+    <p class="lede">Die ehrliche Antwort ist, dass es Ihnen niemand sagen kann, und jede Liste, die es behauptet, beschreibt einen Rechner, der nicht Ihrer ist. Was sich beantworten <em>lässt</em>, ist enger und weit nützlicher: Was geht auf diesem Rechner nicht auf, und was ist anders als damals, als es funktionierte.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Warum die allgemeine Frage keine Antwort hat</h2>
+    <ul class="points points-alarm">
+      <li><strong>Die Menge unterscheidet sich nach Windows-Edition, Version und Rolle.</strong> Ein Domänencontroller, ein Laptop und ein Container-Host sind sich bei fast nichts einig, und eine Liste, die für einen geschrieben wurde, ist für die anderen falsch.</li>
+      <li><strong>Die Hälfte von dem, was installiert ist, stammt nicht von Windows.</strong> Treiber, Agenten, Updatedienste, Lizenzdämonen - jeder davon wurde von etwas dorthin gebracht, und keine allgemeine Liste weiß, von was.</li>
+      <li><strong>Die meisten Dienste sollen angehalten sein.</strong> Ein modernes Windows startet einen Bruchteil dessen, was es registriert: Der Rest wartet auf einen Trigger - ein Gerät, das erscheint, ein Port, der sich öffnet, der Beitritt zu einer Domäne - und angehalten ist ihr richtiger Zustand.</li>
+      <li><strong>Listen "Deaktivieren Sie diese für mehr Leistung" sind der Weg, wie Rechner kaputtgehen.</strong> Der Dienst, der untätig aussieht, ist der, den etwas anderes bei Bedarf startet, und der Fehler zeigt sich eine Woche später an einer ganz anderen Stelle.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Die Fragen, die Antworten haben</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Was laufen sollte und nicht läuft</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows wurde angewiesen, diese zu starten, und sie laufen nicht. Auf einem gesunden Rechner ist das eine kurze Liste - ein paar Einträge, die spät starten und wieder enden. Alles andere ist einen Blick wert.</p>
+      </div>
+      <div class="card">
+        <h3>Was deaktiviert ist und trotzdem läuft</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Konfiguration und Zustand passen nicht zusammen. Meist hat jemand es deaktiviert, ohne es anzuhalten, und der nächste Neustart wird eine Überraschung.</p>
+      </div>
+      <div class="card">
+        <h3>Was auf eine Datei zeigt, die weg ist</h3>
+        <p><code>file:missing</code></p>
+        <p>Eine Deinstallation, die die Registrierung zurückgelassen hat. Harmlos, bis etwas versucht, es zu starten, und ein Hinweis darauf, was einmal auf diesem Rechner war.</p>
+      </div>
+      <div class="card">
+        <h3>Was niemand signiert hat</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Für sich genommen kein Beweis für irgendetwas und der richtige Ort, mit dem Lesen zu beginnen. Der zweite Begriff lässt die Familien pro Benutzer weg, die die Liste sonst mit Beinahe-Dubletten füllen.</p>
+      </div>
+      <div class="card">
+        <h3>Was die stärksten Privilegien verlangt</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Ein Privileg, mit dem ein Prozess jeden anderen öffnen kann. Eine Handvoll legitimer Dienste verlangt es, und es lohnt sich zu wissen, welche es auf Ihrem Rechner sind.</p>
+      </div>
+      <div class="card">
+        <h3>Was auf einen Trigger wartet</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Angehalten, weil noch nichts nach ihnen gefragt hat, und nicht, weil etwas nicht stimmt. Zu wissen, welche das sind, ist der Weg, auf dem die erste Liste aufhört, beunruhigend zu sein.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Die Frage, die alle schlägt</h2>
+    <p class="lede">Fragen Sie den Rechner selbst, als er funktionierte.</p>
+    <p>Machen Sie einen Snapshot an dem Tag, an dem der Rechner in Betrieb geht. Dann wird aus <em>sollte das laufen</em> die Frage <em>lief das, als alles funktionierte</em> - eine Frage zu Ihrem Rechner und nicht zu einem Rechner in einem Artikel.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... eine Woche, ein Patch oder ein Vorfall später</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Die Konfiguration wird getrennt vom Laufzustand gemeldet, sodass die Antwort nicht vierzig Dienste sind, die zufällig laufen - sondern der Starttyp, den jemand geändert hat.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Einen Rechner auf Drift auditieren</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bevor Sie etwas beenden</h2>
+    <p>Jedes Beenden in diesem Werkzeug zeigt zuerst seinen Plan: die Schritte, was mit ihnen heruntergeht, und eine Warnung, wenn einer davon etwas ist, ohne das der Rechner nicht funktioniert. Die Liste dieser Dienste ist eine Startliste mit sieben Einträgen - die beiden Hälften von RPC und der DCOM-Starter, der Kontenmanager, die Schlüsselisolierung, der Sitzungsmanager und Plug and Play - und <strong>Remotedesktop steht nicht darauf</strong>, lesen Sie also in einer Remotesitzung den Plan.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Jedes Feld, nach dem Sie fragen können</a>
+    </div>
+  </div>
+</section>

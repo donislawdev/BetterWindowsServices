@@ -1,0 +1,64 @@
+<meta name="title" content="Audit dei servizi Windows - dimostrare cosa è cambiato su una macchina">
+<meta name="description" content="Congeli ogni servizio alla distribuzione, poi chieda ogni notte se la macchina corrisponde ancora. Deriva, eseguibili non firmati e file mancanti in una query.">
+<meta name="nav" content="Audit della deriva dei servizi">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guida</span>
+    <h1>Audit dei servizi Windows</h1>
+    <p class="lede">Un audit non è un elenco di ciò che c'è sulla macchina. È la differenza tra ciò che c'è sulla macchina e ciò che doveva esserci - e nessun Windows di serie registra la seconda metà.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tre domande, e cosa vi risponde</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Cosa è cambiato da quando questa macchina è stata costruita?</h3>
+        <p>Uno snapshot preso alla distribuzione e un confronto con la macchina stanotte. La configurazione è segnalata a parte rispetto a ciò che si è semplicemente avviato o fermato, così l'unico tipo di avvio che qualcuno ha cambiato non è sepolto sotto quaranta servizi che capita siano in esecuzione.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Perché lo staging differisce dalla produzione?</h3>
+        <p>Prenda uno snapshot su ciascuna e confronti i due file - ovunque, senza che nessuna delle due macchine sia presente. I file portano il nome della macchina e l'account che li ha presi.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Cosa c'è qui che non dovrebbe esserci?</h3>
+        <p>Query che trovano le forme che vale la pena guardare: un servizio il cui eseguibile è sparito, uno non firmato, uno in esecuzione benché disabilitato, uno che chiede diritti di debug.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>La forma notturna</h2>
+<pre><code><span class="c"># il giorno in cui la macchina entra in servizio</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># ogni notte, da un'attività pianificata</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nessuna deriva di configurazione
+#   5 - la configurazione è andata alla deriva, e drift.json dice come
+#   3 - è girato e non ha potuto leggere tutto, quindi la risposta è parziale</span></code></pre>
+    <p>Il codice di uscita <code>5</code> è ciò che fa di questo un audit invece di un rapporto che nessuno legge: l'attività tace finché la macchina non va alla deriva, e la notte in cui lo fa, qualcuno viene avvisato.</p>
+    <p class="note"><strong>Prenda la base di riferimento da una sessione con privilegi elevati.</strong> Senza diritti di amministratore il gestore elenca meno voci e rifiuta di più tra quelle che elenca. Lo snapshot registra se l'account che lo ha preso era un amministratore, così il confronto può dirlo invece di segnalare come rimosse voci che nessuno ha rimosso - ma una base di riferimento a cui manca metà della macchina resta una base di riferimento a cui manca metà della macchina.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Quanto vale uno snapshot come prova</h2>
+    <ul class="points points-ok">
+      <li><strong>È JSON con un campo per riga</strong>, quindi entra in un repository e <code>git diff</code> lo legge. Un revisore che non ha questo strumento può comunque leggere il file, e un sistema di controllo di versione risponde già al <em>quando</em>.</li>
+      <li><strong>Contiene ciò che lo snap-in non ha mai mostrato:</strong> il percorso di avvio e gli argomenti, l'hash e il firmatario del file, le dipendenze in entrambe le direzioni, i trigger, i privilegi richiesti, il tipo di SID e il descrittore di sicurezza.</li>
+      <li><strong>Dice ciò che non ha potuto leggere.</strong> Un campo su cui questa sessione non aveva diritti viene registrato come non letto - mai come vuoto - così un confronto successivo può dire <em>not compared</em> invece di chiamarlo in silenzio invariato.</li>
+      <li><strong>È una descrizione dell'intera macchina.</strong> Lo archivi di conseguenza: viene scritto con i permessi che la sua cartella ha già, e lo strumento non restringe nulla.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Come funzionano gli snapshot e i confronti</a>
+  </div>
+</section>

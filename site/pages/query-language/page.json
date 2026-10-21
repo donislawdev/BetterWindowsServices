@@ -6,6 +6,11 @@
   "footer": "product",
   "slug": {
     "en": "query-language",
-    "pl": "jezyk-zapytan"
+    "pl": "jezyk-zapytan",
+    "de": "abfragesprache",
+    "fr": "langage-de-requete",
+    "es": "lenguaje-de-consulta",
+    "it": "linguaggio-di-query",
+    "pt-br": "linguagem-de-consulta"
   }
 }

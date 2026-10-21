@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe und Get-Service im Vergleich zu einem Werkzeug fürs Auditieren">
+<meta name="description" content="sc.exe kann alles und sagt nichts. Get-Service ist skriptbar und oberflächlich. Wo jedes noch das Beste ist und wo eine Abfragesprache und ein Plan es besser machen.">
+<meta name="nav" content="sc.exe und PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Leitfaden</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> und dieses Werkzeug</h1>
+    <p class="lede">Beide sind schon auf dem Rechner, und beide bleiben nützlich. Diese Seite handelt davon, wo sie aufhören - und sie sagt klar, wo sie noch die bessere Antwort sind.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wo jedes aufhört</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Es erreicht fast alles, was der Dienststeuerungs-Manager weiß, und sagt Ihnen nichts darüber, wie man fragt. Die Syntax stammt aus den Neunzigern - <code>sc config X start= auto</code>, wobei das Leerzeichen nach dem Gleichheitszeichen Pflicht ist und sein Fehlen ein stilles Scheitern bedeutet, das zu tun, was Sie meinten.</p>
+        <p>Es antwortet jeweils zu einem Eintrag. Es gibt kein Filtern, keine Ausgabe, die ein Skript ohne einen eigenen Parser lesen kann, und keine Vorschau: <code>sc stop</code> klappt entweder oder gibt eine Zahl zurück.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> und die <code>*-Service</code>-Cmdlets</h3>
+        <p>Richtige Objekte, eine Pipeline und eine oberflächliche Sicht. In Windows PowerShell 5.1, der, die mit Windows kommt, zeigt <code>Get-Service</code> weder das Konto, unter dem ein Dienst läuft, noch seine Beschreibung. PowerShell 7 zeigt beides und auch den Startpfad und wird separat installiert.</p>
+        <p><code>Stop-Service -Force</code> bedeutet "auch wenn etwas davon abhängt" - es beendet die abhängigen Dienste und sagt es Ihnen hinterher und nicht vorher.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dieselben Fragen, auf drei Arten</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Frage</th><th>Mit dem, was auf dem Rechner ist</th><th>Hier</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Was laufen sollte und nicht läuft</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Welche Dienste eine unsignierte Programmdatei haben</td>
+            <td class="no">Jeden Startpfad lesen, auflösen, <code>Get-AuthenticodeSignature</code> für jeden aufrufen - ein Skript, kein Befehl</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Was das Beenden hiervon mit herunterreißen würde</td>
+            <td><code>sc enumdepend X</code>, dann die Liste lesen und selbst entscheiden</td>
+            <td><code>bws stop X --dry-run --dependents</code>, das ist der Plan, der laufen würde</td>
+          </tr>
+          <tr>
+            <td>Was sich seit letzter Woche geändert hat</td>
+            <td class="no">Nichts, außer Sie haben den Sammler selbst geschrieben</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Wer den Starttyp wann geändert hat</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, dann die Meldung jedes Ereignisses lesen</td>
+            <td><code>bws history Spooler</code>, dessen erste Zeile sagt, wie weit das Protokoll zurückreicht</td>
+          </tr>
+          <tr>
+            <td>Maschinenlesbare Ausgabe</td>
+            <td>Objekte von PowerShell, Text von <code>sc.exe</code></td>
+            <td><code>--json</code> bei jedem Befehl, auf der Standardausgabe, mit Warnungen auf der Standardfehlerausgabe</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Wo dieses Werkzeug bei einem Dienst von <code>sc.exe</code> abweicht, ist das hier ein Fehler.</strong> Ein Teil der Testsuite führt beide gegen den Rechner aus, auf dem er läuft, und vergleicht sie Eintrag für Eintrag, und ein Unterschied zwischen beiden ist das Nützlichste, was Sie in ein Issue schreiben können.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wann Sie bei dem bleiben, was Sie haben</h2>
+    <ul class="points">
+      <li><strong>Sie sind auf einem Rechner, den Sie nur einmal anfassen.</strong> Beide sind schon da, und nichts muss an einer Richtlinie vorbei.</li>
+      <li><strong>Sie müssen das Konto, den Startpfad oder die Wiederherstellungsaktionen ändern.</strong> <code>sc.exe</code> kann alle drei. Dieses Werkzeug zeigt das Konto und den Startpfad und ändert keines von beiden und liest Wiederherstellungsaktionen nur, um zu warnen, bevor es einen Prozess beendet.</li>
+      <li><strong>Sie müssen einen Dienst anlegen oder löschen.</strong> <code>sc create</code> und <code>sc delete</code>. Hier nicht, mit Absicht.</li>
+      <li><strong>Sie stecken schon tief in einer PowerShell-Pipeline.</strong> <code>bws list --json</code> kommt über <code>ConvertFrom-Json</code> als Objekte zurück, sodass es sich in die Pipeline einfügt, statt sie zu ersetzen.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Zusammen statt anstelle</h2>
+    <p>Das Werkzeug, das <em>was stimmt mit diesem Rechner nicht</em> beantwortet, und die Werkzeuge, die eine Einstellung ändern, sind nicht dasselbe Werkzeug. Stellen Sie die Frage hier, lesen Sie den Plan hier und nehmen Sie zum Ausführen, was Sie mögen - der Plan gibt die Befehlszeile aus, die dasselbe verlangt, und diese Zeile ist zum Kopieren gedacht.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Die Abfragesprache</a>
+    </div>
+  </div>
+</section>

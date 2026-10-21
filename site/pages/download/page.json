@@ -6,6 +6,11 @@
   "footer": "product",
   "slug": {
     "en": "download",
-    "pl": "pobieranie"
+    "pl": "pobieranie",
+    "de": "download",
+    "fr": "telechargement",
+    "es": "descarga",
+    "it": "download",
+    "pt-br": "baixar"
   }
 }

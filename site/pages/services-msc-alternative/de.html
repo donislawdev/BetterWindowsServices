@@ -1,0 +1,102 @@
+<meta name="title" content="Eine Alternative zu services.msc für Windows-Administratoren">
+<meta name="description" content="services.msc hat keine Suche, kein Filtern, keinen Verlauf. Kostenloser quelloffener Ersatz mit Abfragesprache, Vorschau vor jeder Änderung und Drift-Vergleich.">
+<meta name="nav" content="Gegen services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Leitfaden</span>
+    <h1>Eine <code>services.msc</code>-Alternative</h1>
+    <p class="lede">Das Snap-in Dienste hat sich seit Windows 2000 kaum verändert. Es ist noch immer der schnellste Weg, einen Dienst zu starten, den Sie schon auf dem Bildschirm sehen, und der langsamste, um irgendeine Frage zu einem Rechner zu beantworten.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was Leute dazu bringt, sich umzusehen</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Keine Suche.</strong> Navigiert wird nur, indem man einen Buchstaben tippt, um zum ersten Anzeigenamen zu springen, der damit beginnt. Auf einem Rechner mit achthundert Einträgen ist das Scrollen mit Zusatzschritten.</li>
+        <li><strong>Kein Filtern.</strong> Es gibt keine Möglichkeit zu fragen, <em>was automatisch starten soll und nicht läuft</em> - die eine Frage, die einen kaputten Rechner findet.</li>
+        <li><strong>Eine Zeile nach der anderen.</strong> Zwölf Dienste neu zu starten heißt zwölf Rechtsklicks und zwölf Wartezeiten.</li>
+        <li><strong>"Wird beendet..." ohne Ausweg</strong> außer dem Task-Manager und dem Raten, welcher <code>svchost</code> zu beenden ist.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Kein Verlauf.</strong> Niemand weiß, wer diesen Starttyp auf Deaktiviert gesetzt hat, oder wann, oder ob es im letzten Monat schon so war.</li>
+        <li><strong>Verborgene Daten.</strong> Der Prozess, die Trigger, die erforderlichen Privilegien, der Sicherheitsdeskriptor, wer die Programmdatei signiert hat - nichts davon steht im Snap-in, und alles davon zählt, wenn etwas nicht stimmt.</li>
+        <li><strong>Die Spalten lassen sich nicht ändern.</strong> Name, Beschreibung, Status, Starttyp, Anmelden als. Das ist die ganze Liste, und keine davon lässt sich auf einem echten Rechner sinnvoll sortieren.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dieselben drei Aufgaben, in beiden</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Sie wollen</th><th>In <code>services.msc</code></th><th>Hier</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Finden, was laufen sollte und nicht läuft</td>
+            <td class="no">Nach Starttyp sortieren, scrollen, jede Zeile lesen</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Wissen, was ein Beenden mit herunterreißt</td>
+            <td class="no">Ein Dialog, der abhängige Dienste nennt, nachdem Sie Beenden gedrückt haben</td>
+            <td>Ein Plan, bevor etwas geschieht, mit jedem abhängigen Dienst als Schritt und einer Warnung, wenn einer davon etwas ist, das der Rechner braucht</td>
+          </tr>
+          <tr>
+            <td>Wissen, was sich seit letzter Woche geändert hat</td>
+            <td class="no">Nichts</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Wissen, wer einen Starttyp geändert hat</td>
+            <td class="no">Nichts</td>
+            <td><code>bws history Spooler</code>, aus dem Systemprotokoll</td>
+          </tr>
+          <tr>
+            <td>Zwölf Dienste neu starten</td>
+            <td class="no">Zwölf Rechtsklicks</td>
+            <td>Zwölf auswählen, ein Plan, ein Lauf, ein Bericht</td>
+          </tr>
+          <tr>
+            <td>Sehen, wer eine Dienst-Programmdatei signiert hat</td>
+            <td class="no">Wird nicht angezeigt</td>
+            <td>Eine Spalte und etwas, wonach man suchen kann: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Irgendetwas davon per Skript</td>
+            <td class="no">Nicht skriptbar</td>
+            <td><code>bws</code>, mit <code>--json</code> und einem Exit-Code für jedes Ende</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was das Snap-in noch immer besser kann</h2>
+    <p class="lede">Zwei Dinge, und etwas anderes zu behaupten wäre die Art von Aussage, die dieses Projekt nicht macht.</p>
+    <ul class="points">
+      <li><strong>Es ist schon auf dem Rechner.</strong> Nichts herunterzuladen, nichts an einer Softwarerichtlinie vorbeizubringen. Auf einem Rechner, den Sie nur einmal anfassen, ist das das ganze Argument.</li>
+      <li><strong>Es bearbeitet Wiederherstellungsaktionen, das Konto und den Startpfad.</strong> Dieses Werkzeug zeigt das Konto und den Startpfad und ändert keines von beiden und liest Wiederherstellungsaktionen nur, um zu warnen, bevor es einen Prozess beendet. Einen Dienst anzulegen, zu löschen oder umzulenken ist hier ebenfalls nicht enthalten.</li>
+    </ul>
+    <p>Was es überhaupt nicht kann, ist der Grund, warum es das hier gibt: eine Frage stellen, zuerst einen Plan zeigen und sagen, was abgedriftet ist.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was das hier ist</h2>
+    <p>{{product}} ist kostenlos und quelloffen unter der GPL-3.0, eine Datei pro Hälfte oder ein Installer für den ganzen Rechner, und es nimmt nie Kontakt zum Internet auf. Zum Lesen sind keine Administratorrechte nötig - zum Ändern schon, und es sagt das, statt still zu scheitern.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Die Abfragesprache ansehen</a>
+    </div>
+  </div>
+</section>
