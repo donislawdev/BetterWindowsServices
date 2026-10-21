@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - 带搜索功能的 services.msc 替代工具">
+<meta name="description" content="免费开源的 services.msc 替代工具。用查询语言搜索服务，在每次更改执行前预览，并查看自昨天以来发生了哪些漂移。">
+<meta name="nav" content="首页">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  首页。这里的每一句话在 README.md 中都有对应内容，而 README.md 在撰写之前已对照运行中的
+  程序核实过：下面的计划、差异和查询都是真实输出，而不是示意图。
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>搜索你的 Windows 服务，在每次更改前预览，并查看自昨天以来<em>哪些内容发生了漂移</em></h1>
+      <p class="lede"><strong>{{product}}</strong> 是为管理 Windows 计算机的人重新打造的 <code>services.msc</code>：窗口和命令行共用同一个引擎。不必再滚动浏览八百行，直接向计算机提问。在<strong>按下任何按钮之前</strong>，就能看到某项更改会做什么。还有 <code>services.msc</code> 从未具备的功能：<strong>把每个服务冻结到一个文件里，一周后再询问发生了什么变化。</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+        <a class="btn btn-secondary" href="{{repo}}">在 GitHub 上查看代码</a>
+      </div>
+      <ul class="trust">
+        <li>免费开源，GPL-3.0</li>
+        <li>单个文件，或安装程序</li>
+        <li>查看时无需管理员权限</li>
+        <li>从不连接互联网</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="窗口中选中了五个条目，列表上方显示启动它们的计划：五个步骤，一条说明其中两个已处于该状态，每个条目对应一行 bws start，以及 Start 5 entries 按钮。" width="1632" height="1041"></a>
+      <figcaption>选中的条目、在任何操作发生之前显示的计划，以及请求完全相同操作的 <code>bws</code> 命令行。程序使用英文界面：窗口会读取放在它旁边的语言文件，因此无需重新生成就能翻译。</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  窗口的真实截图，录制于 2026-09-25 和 2026-09-26，自 2026-10-07 起在此展示。2026-09-24 的
+  第一批截图取代了用 HTML 绘制的仿制窗口。该会话与 README 所用的是同一个 GIF，按所有者
+  2026-10-07 的决定，两处共用一个文件。从 2026-09-24 到那一天，这里放的是带控件的视频，
+  因为 WCAG 2.2.2 要求超过五秒的循环动画必须可以暂停，而 GIF 做不到。这是使用 GIF 的代价，
+  在此写明，以免被遗忘。
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">半分钟体验</span>
+    <h2>实际使用是这样的</h2>
+    <p class="lede">这是在安装了波兰语的 Windows 上的真实会话：显示名称来自 Windows，因此是它的语言。窗口本身是英文的。</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="选中四个条目以及启动它们的计划，强制重启 Local Session Manager（其计划警告说没有它计算机无法工作，并要求在按钮可用之前先输入它的名称），空搜索框下方用于起步的问题，以及通过输入名称的一部分找到并启动的 Print Spooler。" width="1632" height="1041" loading="lazy"></a>
+      <figcaption>选中四个条目以及启动它们的计划、要求输入计算机所需服务名称的强制重启、空搜索框下方的问题，以及通过输入找到并启动的 Print Spooler。</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="起始屏幕：三张关于这台计算机的数字卡片，分别是正在运行的服务、设为自动启动但未启动的服务、设为自动启动但文件已丢失的服务，以及 Show the list 按钮。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>它从几个关于这台计算机的数字开始。每个数字都是一个问题：点击它，问题就会进入搜索框。</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="服务列表，搜索框上方有三个列表，搜索框为空，筛选按钮按状态、启动类型、签名、不一致和触发器分行展开，下面是列表。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>筛选按钮会写入搜索框，所以你点击的内容就是一条可以阅读和编辑的查询。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">为什么需要它</span>
+    <h2><code>services.msc</code> 自 Windows 2000 以来几乎没有变化</h2>
+    <p class="lede">管理员每周都要在其中花上几个小时，一次次撞上同样的墙。</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>没有搜索。</strong>唯一的导航方式，是跳转到显示名称的首字母。</li>
+        <li><strong>没有筛选。</strong>无法询问<em>显示设为自动启动但没有运行的内容</em>。</li>
+        <li><strong>一次只能处理一行。</strong>重启十二个服务，就是十二次右键单击和十二次等待。</li>
+        <li><strong>永远停在“Stopping...”</strong>，除了任务管理器和猜测进程之外别无出路。</li>
+        <li><strong>没有历史记录。</strong>没人知道是谁、在何时把这个启动类型设成了 Disabled。</li>
+        <li><strong>隐藏的数据。</strong>进程、触发器、特权、安全描述符、谁给可执行文件签了名，所有这些都需要凭记忆使用 <code>sc.exe</code>，或去翻注册表。</li>
+        <li><strong>命令行能力不对等。</strong><code>sc.exe</code> 的语法还停留在九十年代，而 Windows 自带的 Windows PowerShell 5.1 中的 <code>Get-Service</code> 不显示服务运行所用的账户，更不用说描述了。PowerShell 7 两者都显示，但需要单独安装。</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>其他工具各自只解决了一部分</h3>
+        <p>Process Hacker 和 System Informer 展示信息丰富的列表，还能强制结束进程，但没有审计功能，也没有命令行。<code>sc.exe</code> 和 <code>PsService</code> 什么都能做，却什么也不告诉你。PowerShell 的 <code>*-Service</code> cmdlet 适合脚本，但比较浅。</p>
+        <p>没有任何一个工具同时提供可搜索的列表、每次更改前的预览，以及随时间推移的更改记录，而这份记录正是第一个下午过后仍把这个工具留在计算机上的理由。</p>
+        <a class="more" href="{{url:services-msc-alternative}}">完整对比</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">它能做什么</span>
+    <h2>窗口和命令行共用同一个引擎</h2>
+    <div class="grid">
+      <div class="card"><h3>提问，而不是滚动</h3><p><code>start:auto !status:running</code> 的意思是<em>应该在运行却没有运行的内容</em>。同一种语言既用于搜索框，也用于 <code>bws list --query</code>，输入时还会提示字段。</p></div>
+      <div class="card"><h3>在任何操作发生前先展示计划</h3><p>每一次停止、启动、重启和启动类型更改，都会连同被一并关闭的服务一起预览，而预览就是实际执行的内容。</p></div>
+      <div class="card"><h3>告诉你哪些内容发生了漂移，以及是谁改的</h3><p><code>bws snapshot create</code> 把计算机冻结到文件中，<code>bws snapshot diff</code> 告诉你之后发生了哪些变化，把配置与仅仅是启动或停止区分开。<code>bws history</code> 从 System 日志中告诉你是谁更改了启动类型、谁安装了服务。窗口在 <em>Audit...</em> 下完成这三件事。</p></div>
+      <div class="card"><h3>一键修复常见问题</h3><p><em>Tools</em> 选项卡和 <code>bws tool fix</code> 会重启无法打印的打印机、没了声音或卡住的搜索背后的服务，连同依赖它的内容，走的是与其他所有操作相同的计划。</p></div>
+      <div class="card"><h3>停止停不下来的服务</h3><p>先礼貌地请求，只有失败时才结束进程，并列出同在该进程中的每一个其他服务。</p></div>
+      <div class="card"><h3>展示 <code>services.msc</code> 隐藏的内容</h3><p>谁给可执行文件签了名、Windows 是否信任它、触发器、特权、安全描述符、进程及其内存。既以列的形式显示，也可以作为搜索条件。</p></div>
+      <div class="card"><h3>无法读取时会明说</h3><p>无法读取的字段会报告为未读取，绝不会显示为空。没有管理员权限时生成的快照，会在文件内部注明这一点。</p></div>
+      <div class="card"><h3>融入脚本</h3><p>每个命令都支持 <code>--json</code>，每种结束方式都有退出代码，当差异发现漂移时返回 <code>5</code>。</p></div>
+      <div class="card"><h3>单个文件，离线运行</h3><p>解压即用，或为整台计算机安装。无需安装 .NET，也从不连接互联网。读取不需要管理员权限。GPL-3.0。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">services.msc 从未做到的事</span>
+    <h2>自昨天以来发生了什么变化</h2>
+    <p class="lede">快照是某一时刻的整台计算机：每个服务和驱动程序，包括它的启动类型、账户、启动路径、其文件的哈希和签名者、依赖关系、触发器、特权和安全描述符。它是每行一个字段的 JSON，所以可以放进代码仓库，<code>git diff</code> 也能读懂它。</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>配置与运行状态分开报告。</strong>相隔一天生成的两个快照，在恰好正在运行的内容上会有所不同，而其中几乎没有一项是漂移。值得阅读的是那一行：被更改的启动类型。</li>
+        <li><strong>无法比较的内容会被列出，而不是被隐藏。</strong>某个快照从未读取过的字段，会显示为 <em>not compared</em>，因此一份写着<em>没有任何变化</em>的差异，表示的是在双方都能看到的范围内没有任何变化。</li>
+        <li><strong>当配置不同时，<code>--exit-code</code> 以 <code>5</code> 结束</strong>，因此计划任务可以在部署时生成快照，并在计算机发生漂移的第一个夜晚通知相关人员。</li>
+        <li><strong>两台计算机，两个文件。</strong>在暂存环境和生产环境各生成一个快照，然后在任何地方对比它们。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">快照与漂移的工作原理</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">没有计划，什么都不会发生</span>
+    <h2>预览就是执行</h2>
+    <p class="lede">每个会写入的操作都会先生成一份计划，这份计划既是预览，也是依赖服务的级联、在你按下任何按钮之前给出的拒绝、请求相同操作的命令行，以及事后的回退方法。</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>去掉 <code>--dry-run</code> 再运行，执行的就是这些步骤</strong>，顺序相同，旁边的原因也相同。真正执行时没有第二条代码路径。</li>
+        <li><strong>一并关闭的内容都写在计划里。</strong>会受影响的服务各自是独立的步骤，如果某项计划会关掉计算机必需的东西，警告里会写明。</li>
+        <li><strong>拒绝出现在按钮之前。</strong>驱动程序、服务管理器不接受停止请求的服务、系统保护的进程，都会在生成计划时连同原因一起被拒绝。窗口会把按钮置灰，并在旁边说明原因。</li>
+        <li><strong>强制停止分两步，第二步是有条件的。</strong><code>bws kill</code> 先请求服务停止，只有无效时才结束它的进程，并列出同在该进程中的每一个其他服务。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">服务停不下来时</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">两分钟体验</span>
+    <h2>从命令行使用</h2>
+    <p class="lede">与窗口相同的引擎，用于脚本、计划任务和 CI。数据输出到标准输出，其余所有内容输出到标准错误，因此 <code>bws list --json | jq</code> 可以正常工作，警告也绝不会混进你的 JSON。</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">应该在运行却没有运行的内容</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">可执行文件已丢失的服务</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">未签名，不含按会话生成的副本</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">关于一个条目的所有已知信息</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">停止它会连带关闭什么</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">结束它的进程会连带带走什么</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">把它从自动启动中移除会怎样</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">在更改前冻结计算机</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">此后的变化，配置有变化则返回 5</span>
+<span class="k">bws history Spooler</span>                               <span class="c">谁在何时更改了它的启动类型</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">快速修复卡住的打印机会做什么</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">每个命令、选项和退出代码</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">获取</span>
+    <h2>解压即用，或安装</h2>
+    <p class="lede">Windows 10 1809 或 Windows Server 2019 及更高版本，64 位。压缩包不需要安装程序，也不向注册表写入任何内容，查看时不需要管理员权限。更改任何内容都需要提升权限的会话，两部分都会明说，而不是悄悄失败：窗口会提供 <em>Restart as admin</em>。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>窗口，一个自包含的可执行文件，无需安装 .NET</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>命令行，一个自包含的可执行文件，用于脚本和 CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>安装程序：为计算机上的每个账户安装这两个程序，窗口出现在开始菜单中，<code>bws</code> 加入 PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>可执行文件带有 Authenticode 签名，因此 Windows 会显示发布者名称，而不是警告来自未知发布者。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:download}}">要求以及从源代码构建</a>
+    </div>
+  </div>
+</section>

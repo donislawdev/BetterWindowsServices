@@ -1,0 +1,102 @@
+<meta name="title" content="面向 Windows 管理员的 services.msc 替代方案">
+<meta name="description" content="services.msc 没有搜索、没有筛选，也没有历史记录。这是一款免费开源的替代品：有查询语言、每次更改前的预览以及漂移差异。">
+<meta name="nav" content="对比 services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1><code>services.msc</code> 的替代方案</h1>
+    <p class="lede">“服务”管理单元自 Windows 2000 以来几乎没有变化。对于屏幕上已经看到的某一个服务，它仍然是启动它最快的方式，而对于关于计算机的任何问题，它又是回答得最慢的方式。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>是什么促使人们去寻找</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>没有搜索。</strong>唯一的导航方式是输入一个字母，跳到以该字母开头的第一个显示名称。在有八百个条目的计算机上，这只是多了几步的滚动。</li>
+        <li><strong>没有筛选。</strong>无法询问<em>哪些设为自动启动却没有运行</em>，而这恰恰是能找出一台出了问题的计算机的那一个问题。</li>
+        <li><strong>一次只能处理一行。</strong>重启十二个服务，就是十二次右键单击和十二次等待。</li>
+        <li><strong>“Stopping...”之后无路可走</strong>，只有任务管理器，以及猜测该结束哪个 <code>svchost</code>。</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>没有历史记录。</strong>没人知道是谁、在何时把这个启动类型设成了 Disabled，也不知道上个月是不是就是这样。</li>
+        <li><strong>隐藏的数据。</strong>进程、触发器、所需特权、安全描述符、谁给可执行文件签了名：这些在管理单元中一样都没有，而在出问题时全都很重要。</li>
+        <li><strong>列无法更改。</strong>名称、描述、状态、启动类型、登录身份。这就是全部列表，而在真实的计算机上，其中没有一个能被有效地排序。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同样三项任务，在两者中</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>你想要</th><th>在 <code>services.msc</code> 中</th><th>在这里</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>找出应该运行却没有运行的内容</td>
+            <td class="no">按启动类型排序，滚动，读每一行</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>了解停止会带走什么</td>
+            <td class="no">在你按下 Stop 之后才列出依赖项的对话框</td>
+            <td>任何操作发生之前的计划，每个依赖项各为一个步骤，当其中之一是计算机所需要的时会给出警告</td>
+          </tr>
+          <tr>
+            <td>了解自上周以来发生了什么变化</td>
+            <td class="no">没有</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>了解是谁更改了启动类型</td>
+            <td class="no">没有</td>
+            <td><code>bws history Spooler</code>，来自 System 日志</td>
+          </tr>
+          <tr>
+            <td>重启十二个服务</td>
+            <td class="no">十二次右键单击</td>
+            <td>选中十二个，一份计划，一次运行，一份报告</td>
+          </tr>
+          <tr>
+            <td>查看是谁给服务的可执行文件签了名</td>
+            <td class="no">不显示</td>
+            <td>既是一列，也是可以搜索的内容：<code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>把其中任何一项写成脚本</td>
+            <td class="no">无法使用脚本</td>
+            <td><code>bws</code>，带 <code>--json</code>，并为每种结束方式提供退出代码</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>管理单元仍然做得更好的地方</h2>
+    <p class="lede">有两点，而假装并非如此，正是这个项目不会做的那类声明。</p>
+    <ul class="points">
+      <li><strong>它已经在计算机上了。</strong>无需下载，无需通过软件策略审批。对于你只会碰一次的计算机，这就是全部理由。</li>
+      <li><strong>它可以编辑恢复操作、账户和启动路径。</strong>这个工具会显示账户和启动路径，但不会更改其中任何一个，而读取恢复操作只是为了在结束进程之前发出警告。创建、删除或重新指定服务，在这里同样没有。</li>
+    </ul>
+    <p>它完全做不到的事，才是这个工具存在的原因：提出问题、先展示计划，并告诉你发生了哪些漂移。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>这是什么</h2>
+    <p>{{product}} 是免费开源的，采用 GPL-3.0，每一半各是一个文件，或为整台计算机提供一个安装程序，并且从不连接互联网。读取不需要管理员权限，更改需要，而且它会说明这一点，而不是悄悄失败。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">查看查询语言</a>
+    </div>
+  </div>
+</section>

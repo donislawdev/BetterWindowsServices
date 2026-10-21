@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe 和 Get-Service 与专为审计打造的工具的对比">
+<meta name="description" content="sc.exe 什么都能做，却什么也不告诉你。Get-Service 适合脚本，但比较浅。各自仍然最好用的地方，以及查询语言和计划做得更好的地方。">
+<meta name="nav" content="sc.exe 与 PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1><code>sc.exe</code> 和 <code>Get-Service</code>，以及这个工具</h1>
+    <p class="lede">两者都已经在计算机上，而且都会继续有用。这个页面讲的是它们在哪里到头了，并且坦率地说明它们在哪些地方仍然是更好的答案。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>各自在哪里到头</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>它几乎可以触及服务控制管理器所知的一切，却完全不告诉你该如何提问。语法来自九十年代：<code>sc config X start= auto</code>，等号后面的空格是必需的，缺少它会悄无声息地做不成你想做的事。</p>
+        <p>它一次只回答一个条目。没有筛选，没有无需自己写解析器就能让脚本解析的输出，也没有预览：<code>sc stop</code> 要么成功，要么返回一个数字。</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> 和 <code>*-Service</code> cmdlet</h3>
+        <p>真正的对象、管道，以及浅层的视角。在 Windows 自带的 Windows PowerShell 5.1 中，<code>Get-Service</code> 不显示服务运行所用的账户，也不显示它的描述。PowerShell 7 两者都显示，还显示启动路径，并且需要单独安装。</p>
+        <p><code>Stop-Service -Force</code> 的意思是“即使有东西依赖它”：它会停止依赖项，并且是在事后而不是事前告诉你。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同样的问题，三种方式</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>问题</th><th>用计算机上现有的工具</th><th>在这里</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>应该运行却没有运行的内容</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>哪些服务的可执行文件没有签名</td>
+            <td class="no">读取每个启动路径，解析它，对每个调用 <code>Get-AuthenticodeSignature</code>：这是一个脚本，而不是一条命令</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>停止它会带走什么</td>
+            <td><code>sc enumdepend X</code>，然后阅读列表并自己判断</td>
+            <td><code>bws stop X --dry-run --dependents</code>，也就是将要运行的计划</td>
+          </tr>
+          <tr>
+            <td>自上周以来发生了什么变化</td>
+            <td class="no">没有，除非你自己写了收集器</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>谁在何时更改了启动类型</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>，然后阅读每个事件的消息</td>
+            <td><code>bws history Spooler</code>，其第一行说明日志能追溯多远</td>
+          </tr>
+          <tr>
+            <td>机器可读的输出</td>
+            <td>PowerShell 给出对象，<code>sc.exe</code> 给出文本</td>
+            <td>每个命令都支持 <code>--json</code>，输出到标准输出，警告输出到标准错误</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>这个工具在某个服务上与 <code>sc.exe</code> 不一致时，那在这里就是一个缺陷。</strong>测试套件的一部分会针对所在的计算机同时运行两者，并逐条目地比较，而两者之间的差异，是你能放进问题报告里最有用的东西。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>何时继续使用你已有的工具</h2>
+    <ul class="points">
+      <li><strong>你在一台只会碰一次的计算机上。</strong>两者都已经在那里了，也不必通过任何策略。</li>
+      <li><strong>你需要更改账户、启动路径或恢复操作。</strong><code>sc.exe</code> 三者都能做。这个工具会显示账户和启动路径，但不会更改其中任何一个，而读取恢复操作只是为了在结束进程之前发出警告。</li>
+      <li><strong>你需要创建或删除服务。</strong><code>sc create</code> 和 <code>sc delete</code>。这里没有，这是有意为之。</li>
+      <li><strong>你已经深入 PowerShell 管道。</strong><code>bws list --json</code> 通过 <code>ConvertFrom-Json</code> 以对象的形式回来，所以它是加入管道，而不是取代管道。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>是配合，而不是取代</h2>
+    <p>回答<em>这台计算机出了什么问题</em>的工具，与更改某一项设置的工具，不是同一个工具。在这里提问，在这里阅读计划，然后用你喜欢的任何方式去执行它：计划会打印出请求同一件事的命令行，而这一行就是用来复制的。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">查询语言</a>
+    </div>
+  </div>
+</section>

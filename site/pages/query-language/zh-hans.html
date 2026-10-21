@@ -1,0 +1,177 @@
+<meta name="title" content="查询语言 - 向你的 Windows 服务提问">
+<meta name="description" content="一种查询语言，同时用于搜索框和 bws list --query。每个字段、每个取值，以及 services.msc 无法提出的问题：哪些内容无法读取。">
+<meta name="nav" content="查询语言">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  字段表由 Bws.Core 生成：QueryFields.Names 和 QueryFields.ValuesOf 是面向任何要把字段呈现给
+  用户的程序的公开 API，因此这个页面既不会写出程序里没有的字段，也不会漏掉程序里有的字段。
+  表格旁边的句子位于 site/i18n。
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">查询语言</span>
+    <h1>向计算机提问</h1>
+    <p class="lede">一种语言，既用于窗口的搜索框，也用于 <code>bws list --query</code>。单独一个词会在名称、显示名称、账户和启动路径中搜索。加上字段则缩小范围。共有 {{field_count}} 个字段，相同的文本在工具的两部分中含义相同。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>六个能回答实际问题的查询</h2>
+    <div class="grid">
+      <div class="card"><h3>应该在运行却没有运行的内容</h3><p><code>start:auto !status:running</code></p><p>大多数人写的第一个查询，也是 <code>services.msc</code> 完全无法回答的查询。</p></div>
+      <div class="card"><h3>文件已丢失的服务</h3><p><code>file:missing</code></p><p>指向磁盘上不存在的可执行文件的条目。通常是卸载后遗留了注册信息。</p></div>
+      <div class="card"><h3>未签名，去掉会话噪声</h3><p><code>signed:no peruser:no</code></p><p>按用户的服务族会为每个会话生成一个副本，让列表里充满近似重复的条目。这个查询询问的是其余的部分。</p></div>
+      <div class="card"><h3>已禁用却仍在运行</h3><p><code>mismatch:running</code></p><p>配置与状态不一致：一个被服务管理器设为永不启动的条目，却仍在运行。</p></div>
+      <div class="card"><h3>任何请求调试权限的内容</h3><p><code>privilege:SeDebugPrivilege</code></p><p>一种让进程能够打开任何其他进程的特权。值得知道哪些服务请求了它。</p></div>
+      <div class="card"><h3>工具无法读取的内容</h3><p><code>account:?</code></p><p>此会话无法读取其账户的条目。这是 <code>services.msc</code> 连问都问不出的问题。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>如何书写查询</h2>
+    <div class="split">
+      <div>
+        <h3>检索词</h3>
+        <ul class="prose-list">
+          <li>检索词以空格分隔，并且必须全部匹配：没有 <code>and</code> 关键字，因为它不可能有别的含义。</li>
+          <li>同一个字段写两次是唯一的例外：<code>status:running status:stopped</code> 表示二者之一，因为勾选两个筛选项时写出的就是这个。对数字的两个边界仍然会缩小范围：<code>pid:&gt;1000 pid:&lt;2000</code> 就是二者之间的范围。</li>
+          <li>检索词前的 <code>!</code> 表示取反：<code>!status:running</code>。在带有 <code>setlocal EnableDelayedExpansion</code> 的批处理文件中，cmd 会悄无声息地吃掉这个 <code>!</code>，查询便在不知不觉中变成了别的意思：在那里请在引号内写成 <code>^!</code>。</li>
+          <li>字段内的逗号表示<em>或</em>：<code>start:manual,disabled</code>。</li>
+          <li>引号可以保护含有空格或冒号的内容：<code>account:"NT SERVICE\McmSvc"</code>。</li>
+          <li>原样粘贴的路径，例如 <code>C:\Windows\System32\svchost.exe</code>，会被当作搜索内容，而不是被当作名为 C 的字段。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>文本如何匹配</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> 匹配任何<em>包含</em>它的内容：这是默认行为，因为这是人们对搜索框的预期。</li>
+          <li><code>name:=spooler</code> 是精确匹配。</li>
+          <li><code>name:spool*</code> 支持通配符 <code>*</code> 和 <code>?</code>。</li>
+          <li><code>name:/^Sql.*/</code> 是正则表达式，在斜杠内按正则表达式的写法书写：<code>\?</code>、<code>\\</code> 和逗号在那里是什么意思就是什么意思。一个永远不闭合的斜杠是错误：要搜索斜杠本身，请写成 <code>\/</code> 或使用引号。</li>
+          <li>大小写会被忽略，包括 ASCII 之外的字符：波兰语或希腊语的显示名称，无论怎么输入都能匹配。</li>
+        </ul>
+      </div>
+    </div>
+    <h3>每个字段都接受的三个词</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>输错的值会报错，而不是返回空结果。</strong><code>status:runing</code> 会回答 <em>Did you mean running?</em>，并以代码 <code>2</code> 结束。空列表看起来就像一个答案，而“没有任何匹配”与“你输错了”之间的差别，就是一台干净的计算机与一次什么也没证明的审计之间的差别。在命令行中，任何不会缩小范围的查询同样会被拒绝，所以脚本不会因为一个拼写错误而对整台计算机进行操作。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>更多示例</h2>
+    <p class="lede">每一个在窗口的搜索框中和在 <code>bws list --query</code> 之后的效果都一样，而且每一个在写到这里之前都在真实的 Windows 上运行过。能找到什么取决于计算机：对于关于故障的问题，空结果正是你想要的答案。</p>
+    <div class="examples">
+    <h3>状态与启动类型</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>卡在停止或启动中：管理单元显示、永远不会结束的等待。</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>设为自动启动、已停止，且不在等待触发器：重启之后值得一读的简短列表。</td></tr>
+          <tr><td><code>start:delayed</code></td><td>自动，比其他自动条目稍晚启动。</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>启动时没有任何内容会启动它却在运行：有东西请求了它、触发器启动了它，或者有人启动了它。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>账户</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>以最强的账户 LocalSystem 运行，且来自 Microsoft 没有签名的文件。关于发布者的查询会自行读取签名，所以需要几秒钟。</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>在其他任何账户下运行的服务：虚拟账户、托管账户，或某个人自己的账户。</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>服务自己的虚拟账户。引号把这些词放在一起，因为中间有空格。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>文件与签名</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>没有签名，Windows 不信任的证书链，或签名之后被更改的文件。</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>已签名、受信任，且不是 Microsoft：其他公司放在这台计算机上的软件。</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>在 Windows 启动时加载、而 Windows 不信任其签名的驱动程序。在健康的计算机上应为零。</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>有独立进程、其文件位于 Windows 文件夹之外的服务。</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>从某人的用户配置文件内部启动：最不应该出现服务的地方。</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>空格前的反斜杠会让空格成为词的一部分，所以当后面还有其他检索词时，以反斜杠结尾的路径要写两个反斜杠。在查询末尾，一个就够了。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>触发器与依赖关系</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>等待设备到达，因此是有原因的已停止。</td></tr>
+          <tr><td><code>trigger:network</code></td><td>当请求到达某个网络端点（端口、命名管道或 RPC 接口）时启动。</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>触发器不仅可以启动、也可以停止的条目。</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>需要 WMI 才能运行的条目。</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Print Spooler 运行所需要的一切，以及这些内容又依次需要的一切。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>特权与进程</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>请求以操作系统的一部分身份运行。</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>在 LocalSystem 之外的账户下运行时，可以代表客户端执行操作。</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>其进程中带有自己的服务 SID，因此权限可以单独指名它。sidtype:restricted 询问的是其进程同时还受写入限制的那些。</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>与其他服务一起运行在共享的 svchost 内。</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>占用超过 200 MB 的进程。查询询问内存时，会自动读取内存。</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>位于进程 ID 在 1000 到 2000 之间的进程中。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>名称与文本</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查询</th><th>找到的内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>单独一个词，在名称、显示名称、账户和启动路径中搜索。</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>恰好是这个名称，而不是仅仅包含它的内容。</td></tr>
+          <tr><td><code>name:win*</code></td><td>以 win 开头的名称，用通配符书写。</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>以 svc 结尾的名称，用正则表达式书写。</td></tr>
+          <tr><td><code>description:none</code></td><td>完全没有描述，大多数驱动程序都是这样。</td></tr>
+          <tr><td><code>description:?</code></td><td>Windows 无法提供的描述，通常是因为它指向一个不存在的语言文件。</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Windows 为每个已登录会话复制的按用户模板。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>每个字段</h2>
+    <p>由程序本身生成，因此这张表不会与工具接受的内容脱节。没有取值列表的字段接受文本、数字或大小：第三列会说明是哪一种。</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>两件值得知道的事</h2>
+    <div class="qa">
+      <div>
+        <h3>有些字段开销很大，查询它们会自动开启读取</h3>
+        <p>在整台计算机上读取签名需要几秒钟，而内存是一项测量而不是一项设置，所以除非被要求，否则都不会为列表读取它们。提到其中任何一项的查询会自动开启这项读取：你不必在 <code>signed:no</code> 之外再记着加 <code>--signatures</code>。在窗口中，关于签名的查询会说明在签名到达之前答案并不完整，而不是展示一份较短的列表、仿佛那就是答案。</p>
+      </div>
+      <div>
+        <h3>基于无法读取内容得出的结果会明说</h3>
+        <p>如果条目是依据此会话无法读取的字段来判断的，结果会带有一行说明有多少个，因为这样的结果可能缺少条目，或者包含了不该有的条目。这与整个工具遵守的规则相同：读取失败会在答案中可见，绝不会被吞掉。如果发布者仅由证书声称，也会得到同样的处理：在任何非 <code>trusted</code> 的判定旁边，名称会显示为 <em>not verified</em>，而 <code>publisher:</code> 会在单独一行中把该条目计为不确定，所以 <code>!publisher:microsoft</code> 会保留某个在签名后被人更改过的 Microsoft 文件。</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">命令行参考</a>
+  </div>
+</section>

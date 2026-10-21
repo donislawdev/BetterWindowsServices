@@ -1,0 +1,86 @@
+<meta name="title" content="下载 Better Windows Services - 免费，zip 或 MSI">
+<meta name="description" content="两个自包含的可执行文件或一个已签名的安装程序，无需安装 .NET。支持 Windows 10 1809 和 Windows Server 2019 及更高版本的 64 位系统。免费开源，GPL-3.0。">
+<meta name="nav" content="下载">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">下载</span>
+    <h1>解压即用，或安装</h1>
+    <p class="lede">版本 {{version}}。压缩包不需要安装程序，也不向注册表写入任何内容，查看时不需要管理员权限。使用已签名的安装程序，则会把这两个程序装到整台计算机上。免费开源，采用 GPL-3.0。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">所有版本</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>发布内容</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>窗口：<code>BetterWindowsServices.exe</code>，一个自包含的可执行文件，内置自己的 .NET 运行时</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>命令行：<code>bws.exe</code>，一个自包含的可执行文件，用于脚本、计划任务和 CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>安装程序：为计算机上的每个账户把这两个程序安装到 <code>Program Files</code>，窗口出现在开始菜单中，<code>bws</code> 加入计算机的 PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>可以取其一或两者都要，它们是同一引擎的两个客户端，彼此互不依赖。在服务器上，命令行是两者中较小的一个，窗口能做的它都能做。</p>
+    <p>安装程序包含的内容与两个压缩包完全相同。它可以用 <code>msiexec /i {{archive_installer}} /qn</code> 静默安装，较新的版本会覆盖安装在较旧的版本之上，并且它不会关闭任何正在运行的程序，所以升级前请先关闭窗口和任何正在运行的 <code>bws</code>，因为遗留在运行中的副本可能会报错停止。在“设置”的“应用”中卸载，会删除程序、开始菜单项和 PATH 项，而不会动你自己的文件。</p>
+    <p>可执行文件带有 Authenticode 签名，因此 Windows 会显示发布者名称，而不是警告来自未知发布者。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>系统要求</h2>
+    <ul class="points">
+      <li><strong>Windows 10 1809 或更高版本，或 Windows Server 2019 或更高版本。</strong>仅支持 64 位：32 位进程读取的是被重定向的路径和注册表项，这会悄悄地产生错误的结果。</li>
+      <li><strong>无需安装 .NET。</strong>两个可执行文件都自带 .NET 运行时。</li>
+      <li><strong>更改任何内容都需要管理员权限。</strong>读取、搜索、快照和差异在没有管理员权限时也能工作，只是可见的条目会更少，工具会在顶部说明这一点，而不是假装列表就是整台计算机。</li>
+    </ul>
+    <p>窗口只保留一个自己的文件：你离开时列表的布局，位于 <code>%APPDATA%\BetterWindowsServices</code> 下。快照会保存到你在 <code>bws snapshot create</code> 中指定的位置，未指定时则保存到当前目录。</p>
+    <p class="note"><strong>程序使用英文界面。</strong>窗口会读取放在它旁边的语言文件 <code>languages\gui.&lt;code&gt;.json</code>，并根据 Windows 的语言选择，没有切换开关。因此翻译是一项无需重新生成就能加入的贡献：<a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> 说明了方法。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>杀毒软件与 EDR</h2>
+    <p class="lede">这个工具做的是管理员对服务做的事，其中一部分正是安全软件所监视的行为。</p>
+    <p>它会停止和启动服务，可以结束服务背后的进程，并读取每个服务的安全描述符和所需特权。如果某个 EDR 把结束 <code>svchost.exe</code> 的进程标记出来，那它是在履行职责，而这里的强制停止看起来可能与之完全一样。</p>
+    <p>它<strong>不会</strong>做的事，便于你核对这一说法：它不会向任何进程注入任何内容，不会打包或混淆任何内容，不会安装服务或驱动程序，也不会留下任何运行中的内容，更不会建立任何网络连接。它以 GPL-3.0 开源，你可以自己构建这两个可执行文件。</p>
+    <p>如果你的策略需要排除项，请按文件而不是按文件夹排除这两个可执行文件。唯一值得与工具本身同样小心对待的是快照文件：它描述了整台计算机。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>从源代码构建</h2>
+    <p>.NET 10 SDK，在 Windows 上。</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>有些测试会读取它所运行的计算机上的真实服务控制管理器，并把这个工具的输出与 <code>sc.exe</code> 的输出进行比较。这些测试是只读的。发布版本所带的单文件可执行文件来自下面这两次发布，每次都生成一个内含运行时的文件：</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>它们会以 <code>bws.exe</code> 和 <code>BetterWindowsServices.exe</code> 的名称出现在各项目的 <code>bin/Release/.../win-x64/publish/</code> 下。旁边的 <code>.pdb</code> 文件是调试符号，运行时并不需要它们。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>运行开销</h2>
+    <p class="lede">在一台有 810 个服务的计算机上测得。你的数字会有所不同：服务数量、磁盘和处理器都会影响结果。</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>大约四分之一秒</h3><p><code>bws list</code> 读取整台计算机所需的时间。</p></div>
+      <div class="card"><h3>大约十分之八秒</h3><p>从启动窗口到列表显示在屏幕上。</p></div>
+      <div class="card"><h3>大约 100 MB</h3><p>窗口占用的内存：其中一半是 Windows 用户界面框架，那还是在这个工具自己的代码运行之前。</p></div>
+      <div class="card"><h3>大约 16 MB</h3><p>同一台计算机上命令行占用的内存。</p></div>
+    </div>
+  </div>
+</section>
