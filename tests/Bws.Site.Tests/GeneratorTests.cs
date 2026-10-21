@@ -422,16 +422,20 @@ public sealed class GeneratorTests : IDisposable
         var problems = new Problems();
         var pages = Pages.LoadDefinitions(_copy, site, problems);
 
-        var first = Freshness.Stamp(_copy, site, "pl", pages, out _);
-        var second = Freshness.Stamp(_copy, site, "pl", pages, out _);
+        var first = Freshness.Stamp(_copy, site, "all", pages, out _);
+        var second = Freshness.Stamp(_copy, site, "all", pages, out _);
 
         var build = new Build(_copy, _output, requireFresh: true);
         build.Run();
 
+        // One file per translation: only the English front page moved, so only its translations
+        // were stamped again. The other eleven pages and the language files already carried the
+        // right stamp. The number of translations is counted, not written, so adding a language
+        // does not break this.
+        var translations = Directory.EnumerateFiles(Path.Combine(_copy, "site", "pages", "home"), "*.html").Count() - 1;
+
         Assert.Empty(problems.Found);
-        // One file: only the English front page moved, so only its Polish was stamped again.
-        // The other eleven pages and the language file already carried the right stamp.
-        Assert.Equal(1, first);
+        Assert.Equal(translations, first);
         Assert.Equal(0, second);
         Assert.Empty(build.Problems);
     }
@@ -468,7 +472,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_published_language_with_no_registry_entry_stops_the_build_with_a_reason()
     {
-        EditSite(text => text.Replace("\"languages\": [\"en\", \"pl\"]", "\"languages\": [\"en\", \"pl\", \"xx\"]", StringComparison.Ordinal));
+        Publish("xx");
 
         Assert.Contains(Build(), problem => problem.Contains("'xx' is published under languages and has no entry", StringComparison.Ordinal));
     }
@@ -484,39 +488,42 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_slug_for_a_language_whose_slugs_are_english_is_reported()
     {
-        EditSite(text => text.Replace("\"languages\": [\"en\", \"pl\"]", "\"languages\": [\"en\", \"pl\", \"ar\"]", StringComparison.Ordinal));
+        Register("xe", "ltr", "english");
+        Publish("xe");
         var path = Path.Combine(_copy, "site", "pages", "faq", "page.json");
-        File.WriteAllText(path, File.ReadAllText(path).Replace("\"pl\": \"faq\"", "\"pl\": \"faq\", \"ar\": \"faq\"", StringComparison.Ordinal));
+        File.WriteAllText(path, File.ReadAllText(path).Replace("\"pl\": \"faq\"", "\"pl\": \"faq\", \"xe\": \"faq\"", StringComparison.Ordinal));
 
-        Assert.Contains(Build(), problem => problem.Contains("has a slug for 'ar', whose registry entry says slugs are english", StringComparison.Ordinal));
+        Assert.Contains(Build(), problem => problem.Contains("has a slug for 'xe', whose registry entry says slugs are english", StringComparison.Ordinal));
     }
 
     /// <summary>
-    /// What a right-to-left language gets, through the real generator. There is no Arabic in the
-    /// repository yet when this is written, so the language is made out of the Polish files -
-    /// the same shape, the same stamps, the Arabic registry entry - which is exactly enough for
-    /// the generator to have nothing to complain about and a page to be written for it.
+    /// What a right-to-left language gets, through the real generator. The language is invented
+    /// for the test and made out of the Polish files - the same shape, the same stamps, an
+    /// invented registry entry - which is exactly enough for the generator to have nothing to
+    /// complain about and a page to be written for it. It is invented, not Arabic, so the test
+    /// does not change the day Arabic is published.
     /// </summary>
     [Fact]
     public void A_right_to_left_language_is_written_with_its_direction_and_listed_in_the_switch()
     {
-        EditSite(text => text.Replace("\"languages\": [\"en\", \"pl\"]", "\"languages\": [\"en\", \"pl\", \"ar\"]", StringComparison.Ordinal));
-        File.Copy(Path.Combine(_copy, "site", "i18n", "pl.json"), Path.Combine(_copy, "site", "i18n", "ar.json"));
+        Register("xr", "rtl", "english");
+        Publish("xr");
+        File.Copy(Path.Combine(_copy, "site", "i18n", "pl.json"), Path.Combine(_copy, "site", "i18n", "xr.json"));
         foreach (var folder in Directory.EnumerateDirectories(Path.Combine(_copy, "site", "pages")))
         {
-            File.Copy(Path.Combine(folder, "pl.html"), Path.Combine(folder, "ar.html"));
+            File.Copy(Path.Combine(folder, "pl.html"), Path.Combine(folder, "xr.html"));
         }
 
         var problems = Build();
 
-        var arabic = File.ReadAllText(Path.Combine(_output, "ar", "faq", "index.html"));
+        var rtl = File.ReadAllText(Path.Combine(_output, "xr", "faq", "index.html"));
         var english = File.ReadAllText(Path.Combine(_output, "faq", "index.html"));
 
         Assert.Empty(problems);
-        Assert.Contains("<html lang=\"ar\" dir=\"rtl\">", arabic, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"xr\" dir=\"rtl\">", rtl, StringComparison.Ordinal);
         Assert.Contains("<html lang=\"en\">", english, StringComparison.Ordinal);
-        Assert.Contains("hreflang=\"ar\" href=\"https://betterwindowsservices.donislawdev.com/ar/faq/\"", english, StringComparison.Ordinal);
-        Assert.Contains("\u0627\u0644\u0639\u0631\u0628\u064A\u0629", english, StringComparison.Ordinal);
+        Assert.Contains("hreflang=\"xr\" href=\"https://betterwindowsservices.donislawdev.com/xr/faq/\"", english, StringComparison.Ordinal);
+        Assert.Contains(">Test language<", english, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -544,6 +551,22 @@ public sealed class GeneratorTests : IDisposable
         build.Run();
         return build.Problems;
     }
+
+    /// <summary>Adds a language to the published list, whatever the list holds now.</summary>
+    private void Publish(string code) =>
+        EditSite(text => System.Text.RegularExpressions.Regex.Replace(
+            text,
+            "(\"languages\"\\s*:\\s*\\[[^\\]]*)\\]",
+            "$1, \"" + code + "\"]",
+            System.Text.RegularExpressions.RegexOptions.None,
+            TimeSpan.FromSeconds(1)));
+
+    /// <summary>Adds an invented language to the registry, so a test never depends on a real one being published or not.</summary>
+    private void Register(string code, string dir, string slugs) =>
+        EditSite(text => text.Replace(
+            "\"language_registry\": {",
+            "\"language_registry\": {\n    \"" + code + "\": { \"tag\": \"" + code + "\", \"locale\": \"" + code + "_XX\", \"name\": \"Test language\", \"short\": \"" + code.ToUpperInvariant() + "\", \"dir\": \"" + dir + "\", \"slugs\": \"" + slugs + "\" },",
+            StringComparison.Ordinal));
 
     private void EditSite(Func<string, string> edit)
     {
