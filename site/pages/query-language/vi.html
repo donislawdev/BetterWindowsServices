@@ -1,0 +1,177 @@
+<meta name="title" content="Ngôn ngữ truy vấn - đặt câu hỏi cho các dịch vụ Windows của bạn">
+<meta name="description" content="Một ngôn ngữ truy vấn cho ô tìm kiếm và cho bws list --query. Mọi trường, mọi giá trị, và câu hỏi mà services.msc không thể đặt ra: điều gì không đọc được.">
+<meta name="nav" content="Ngôn ngữ truy vấn">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Bảng các trường được DỰNG từ Bws.Core - QueryFields.Names và QueryFields.ValuesOf là API công
+  khai dành cho mọi thứ đưa chúng đến con người, nên trang này không thể nêu một trường mà chương
+  trình không có, hay bỏ sót một trường mà nó có. Các câu bên cạnh nằm trong site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ngôn ngữ truy vấn</span>
+    <h1>Đặt câu hỏi cho máy</h1>
+    <p class="lede">Một ngôn ngữ, trong ô tìm kiếm của cửa sổ và trong <code>bws list --query</code>. Một từ trần tìm trong tên, tên hiển thị, tài khoản và đường dẫn khởi chạy. Một trường thu hẹp nó. {{field_count}} trường, và cùng một văn bản có cùng ý nghĩa ở cả hai nửa của công cụ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sáu truy vấn trả lời một câu hỏi thật</h2>
+    <div class="grid">
+      <div class="card"><h3>Những gì lẽ ra phải chạy mà không chạy</h3><p><code>start:auto !status:running</code></p><p>Truy vấn đầu tiên hầu hết mọi người viết, và là truy vấn mà <code>services.msc</code> hoàn toàn không thể trả lời.</p></div>
+      <div class="card"><h3>Các dịch vụ có tệp đã mất</h3><p><code>file:missing</code></p><p>Một mục trỏ tới tệp thực thi không có trên đĩa. Thường là một lần gỡ cài đặt để lại phần đăng ký.</p></div>
+      <div class="card"><h3>Chưa ký, không có nhiễu từ các phiên</h3><p><code>signed:no peruser:no</code></p><p>Các họ theo người dùng tạo một bản sao mỗi phiên và lấp danh sách bằng những mục gần như trùng. Truy vấn này hỏi phần còn lại.</p></div>
+      <div class="card"><h3>Đang chạy dù bị vô hiệu hóa</h3><p><code>mismatch:running</code></p><p>Cấu hình và trạng thái không khớp - một mục mà trình quản lý được đặt để không bao giờ khởi động, vẫn đang chạy.</p></div>
+      <div class="card"><h3>Bất cứ thứ gì yêu cầu quyền gỡ lỗi</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Một đặc quyền cho phép một tiến trình mở bất kỳ tiến trình nào khác. Đáng biết những dịch vụ nào yêu cầu nó.</p></div>
+      <div class="card"><h3>Những gì công cụ không đọc được</h3><p><code>account:?</code></p><p>Các mục mà phiên này không đọc được tài khoản. Một câu hỏi mà <code>services.msc</code> thậm chí không thể đặt ra.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cách viết một truy vấn</h2>
+    <div class="split">
+      <div>
+        <h3>Các thành phần</h3>
+        <ul class="prose-list">
+          <li>Các thành phần cách nhau bằng dấu cách và tất cả phải khớp - không có từ khóa <code>and</code> vì nó không thể có nghĩa nào khác.</li>
+          <li>Cùng một trường viết hai lần là ngoại lệ duy nhất: <code>status:running status:stopped</code> nghĩa là một trong hai, vì đó là điều việc đánh dấu hai bộ lọc ghi ra. Hai cận trên một con số vẫn thu hẹp - <code>pid:&gt;1000 pid:&lt;2000</code> là khoảng giữa chúng.</li>
+          <li><code>!</code> đứng trước một thành phần sẽ phủ định nó: <code>!status:running</code>. Trong tệp batch có <code>setlocal EnableDelayedExpansion</code>, cmd nuốt <code>!</code> đó mà không nói một lời và truy vấn lặng lẽ có nghĩa khác - hãy viết <code>^!</code> bên trong dấu nháy ở đó.</li>
+          <li>Dấu phẩy bên trong một trường nghĩa là <em>hoặc</em>: <code>start:manual,disabled</code>.</li>
+          <li>Dấu nháy bảo vệ mọi thứ có dấu cách hoặc dấu hai chấm: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Một đường dẫn dán nguyên trạng - <code>C:\Windows\System32\svchost.exe</code> - được tìm kiếm, chứ không bị đọc như một trường tên C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Cách khớp văn bản</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> khớp với mọi thứ <em>chứa</em> nó - mặc định, vì đó là điều mọi người mong đợi ở một ô tìm kiếm.</li>
+          <li><code>name:=spooler</code> là khớp chính xác.</li>
+          <li><code>name:spool*</code> nhận ký tự đại diện, <code>*</code> và <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> là một biểu thức chính quy, và bên trong dấu gạch chéo nó được viết như cách biểu thức chính quy được viết: <code>\?</code>, <code>\\</code> và dấu phẩy mang ý nghĩa mà chúng mang ở đó. Một dấu gạch chéo không bao giờ đóng là một lỗi - để tìm chính dấu gạch chéo, hãy viết <code>\/</code> hoặc dùng dấu nháy.</li>
+          <li>Chữ hoa chữ thường bị bỏ qua, kể cả ngoài ASCII - một tên hiển thị bằng tiếng Ba Lan hay Hy Lạp khớp dù gõ thế nào.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Ba từ mà mọi trường đều chấp nhận</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Một giá trị gõ sai là một lỗi, không bao giờ là một kết quả trống.</strong> <code>status:runing</code> trả lời <em>Did you mean running?</em> và kết thúc với mã <code>2</code>. Một danh sách trống sẽ trông như một câu trả lời, và sự khác biệt giữa "không có gì khớp" và "bạn gõ sai" là sự khác biệt giữa một máy sạch và một cuộc kiểm toán không chứng minh được gì. Một truy vấn không thu hẹp được gì cũng bị từ chối trên dòng lệnh, để một script không thao tác trên cả máy chỉ vì một lỗi gõ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Thêm ví dụ</h2>
+    <p class="lede">Mỗi cái hoạt động giống nhau trong ô tìm kiếm của cửa sổ và sau <code>bws list --query</code>, và mỗi cái đã được chạy trên một Windows thật trước khi viết ở đây. Những gì nó tìm thấy phụ thuộc vào máy - và với một câu hỏi về sự cố, một câu trả lời trống là điều bạn muốn.</p>
+    <div class="examples">
+    <h3>Trạng thái và kiểu khởi động</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Bị kẹt khi đang dừng hoặc đang khởi động - sự chờ đợi mà snap-in hiển thị và không bao giờ kết thúc.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Được đặt tự khởi động, đang dừng và không chờ trình kích hoạt - danh sách ngắn đáng đọc sau khi khởi động lại.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Tự động, được khởi động muộn hơn một chút so với các mục tự động khác.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Đang chạy dù không gì khởi động nó lúc khởi động máy - có thứ yêu cầu nó, một trình kích hoạt đã khởi động nó, hoặc ai đó đã làm.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Tài khoản</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Chạy với tư cách LocalSystem, tài khoản mạnh nhất, từ một tệp mà Microsoft không ký. Một truy vấn về nhà phát hành tự đọc chữ ký, nên mất vài giây.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Các dịch vụ chạy dưới bất kỳ tài khoản nào khác - tài khoản ảo, tài khoản được quản lý hoặc tài khoản riêng của một người.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Một tài khoản ảo riêng của dịch vụ. Dấu nháy giữ các từ lại với nhau, vì có dấu cách.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Tệp và chữ ký</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Không có chữ ký, một chuỗi mà Windows không tin, hoặc một tệp bị thay đổi sau khi được ký.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Đã ký, đáng tin cậy và không phải của Microsoft - phần mềm mà các công ty khác đặt trên máy này.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Trình điều khiển được nạp khi Windows khởi động mà Windows không tin chữ ký. Trên một máy khỏe mạnh, không có cái nào.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Một dịch vụ có tiến trình riêng mà tệp của nó nằm ngoài thư mục Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Được khởi chạy từ bên trong hồ sơ của ai đó, nơi cuối cùng người ta mong đợi một dịch vụ.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Một dấu gạch chéo ngược trước dấu cách khiến dấu cách trở thành một phần của từ, nên một đường dẫn kết thúc bằng gạch chéo ngược được viết với hai dấu khi có thành phần khác theo sau. Ở cuối truy vấn, một dấu là đủ.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Trình kích hoạt và phụ thuộc</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Đang chờ một thiết bị xuất hiện, nên dừng có lý do.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Được khởi động khi một yêu cầu đến một điểm cuối mạng - một cổng, một named pipe hoặc một giao diện RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Các mục mà một trình kích hoạt có thể dừng, không chỉ khởi động.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Các mục cần WMI để chạy.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Mọi thứ Print Spooler cần để chạy, và những thứ đó lần lượt cần gì.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Đặc quyền và tiến trình</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Yêu cầu được hành động như một phần của hệ điều hành.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Có thể hành động thay mặt một máy khách trong khi chạy dưới tài khoản khác LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Mang SID dịch vụ riêng trong tiến trình của nó, nên các quyền có thể chỉ nêu tên riêng nó. sidtype:restricted hỏi về những cái có tiến trình còn bị hạn chế ghi.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Chạy bên trong một svchost dùng chung, cùng với những dịch vụ khác.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Một tiến trình dùng hơn 200 MB. Bộ nhớ được tự đọc khi truy vấn hỏi về nó.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>Trong một tiến trình có id nằm giữa 1000 và 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Tên và văn bản</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Truy vấn</th><th>Nó tìm thấy gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Một từ trần, được tìm trong tên, tên hiển thị, tài khoản và đường dẫn khởi chạy.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Chính xác tên này, và không có gì chỉ đơn thuần chứa nó.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Các tên bắt đầu bằng win, viết bằng ký tự đại diện.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Các tên kết thúc bằng svc, viết dưới dạng biểu thức chính quy.</td></tr>
+          <tr><td><code>description:none</code></td><td>Hoàn toàn không có mô tả, điều đúng với hầu hết trình điều khiển.</td></tr>
+          <tr><td><code>description:?</code></td><td>Một mô tả mà Windows không thể giao ra, thường vì nó trỏ tới một tệp ngôn ngữ không tồn tại.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Các mẫu theo người dùng mà Windows sao chép cho mỗi phiên đã đăng nhập.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mọi trường</h2>
+    <p>Được dựng từ chính chương trình, nên bảng này không thể lệch khỏi những gì công cụ chấp nhận. Một trường không có danh sách giá trị nhận văn bản, một số hoặc một kích thước - cột thứ ba nói cái nào.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Hai điều đáng biết</h2>
+    <div class="qa">
+      <div>
+        <h3>Một số trường tốn kém, và yêu cầu chúng sẽ bật việc đọc</h3>
+        <p>Chữ ký mất vài giây trên cả máy và bộ nhớ là một phép đo chứ không phải một thiết lập, nên cả hai đều không được đọc cho một danh sách trừ khi được yêu cầu. Một truy vấn nhắc tới một trong hai sẽ tự bật việc đọc đó - bạn không phải nhớ thêm <code>--signatures</code> bên cạnh <code>signed:no</code>. Trong cửa sổ, một truy vấn về chữ ký nói rằng câu trả lời chưa đầy đủ cho đến khi chúng tới, thay vì hiển thị một danh sách ngắn hơn như thể đó là câu trả lời.</p>
+      </div>
+      <div>
+        <h3>Một kết quả được đánh giá dựa trên điều không đọc được sẽ nói điều đó</h3>
+        <p>Nếu các mục được đánh giá dựa trên một trường mà phiên này không đọc được, kết quả mang một dòng nói có bao nhiêu mục - vì một kết quả như vậy có thể thiếu mục, hoặc chứa những mục không thuộc về nó. Đó là cùng quy tắc mà toàn bộ công cụ giữ: một lần đọc thất bại hiện rõ trong câu trả lời, không bao giờ bị nuốt. Một nhà phát hành nhận cùng cách đối xử khi chỉ chứng chỉ khẳng định nó: bên cạnh bất kỳ phán quyết nào khác ngoài <code>trusted</code>, tên được hiển thị là <em>not verified</em>, và <code>publisher:</code> tính mục đó là không chắc chắn trên một dòng riêng - nên <code>!publisher:microsoft</code> giữ lại một tệp Microsoft bị ai đó thay đổi sau khi ký.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Tham chiếu dòng lệnh</a>
+  </div>
+</section>

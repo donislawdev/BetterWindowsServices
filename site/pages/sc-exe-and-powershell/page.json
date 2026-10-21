@@ -16,6 +16,7 @@
     "cs": "sc-exe-a-powershell",
     "ro": "sc-exe-si-powershell",
     "tr": "sc-exe-ve-powershell",
-    "id": "sc-exe-dan-powershell"
+    "id": "sc-exe-dan-powershell",
+    "vi": "sc-exe-va-powershell"
   }
 }

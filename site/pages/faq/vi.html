@@ -1,0 +1,78 @@
+<meta name="title" content="Câu hỏi về Better Windows Services và những giới hạn trung thực">
+<meta name="description" content="Có cần internet không? Quyền quản trị? Có làm hỏng máy chủ của tôi không? Nó làm gì, và từ chối làm gì theo thiết kế.">
+<meta name="nav" content="Câu hỏi thường gặp">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Câu hỏi</span>
+    <h1>Câu hỏi, và các giới hạn</h1>
+    <p class="lede">Một công cụ lặng lẽ không bao quát điều gì đó còn tệ hơn công cụ nói rõ nó không làm được gì. Các giới hạn cũng nằm trên trang này, trong hai nhóm: những gì nó từ chối theo thiết kế, và những gì Windows làm mà công cụ này báo cáo đúng như vậy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Nó khác gì <code>sc.exe</code>, <code>Get-Service</code> hay <code>services.msc</code>?</h3>
+        <p><code>sc query</code> và <code>Get-Service</code> cho bạn biết điều gì đang chạy. <code>services.msc</code> cho phép bạn thay đổi nó, từng dòng một, không có cách đặt câu hỏi và không có bản ghi nào sau đó. Công cụ này đặt câu hỏi (<code>start:auto !status:running</code>), cho bạn xem kế hoạch trước khi hành động, và giữ một bản chụp mà bạn có thể so sánh một tuần sau. Chỗ nào nó bất đồng với <code>sc.exe</code> về một dịch vụ, đó là một lỗi - một phần bộ kiểm thử chạy cả hai và so sánh từng mục. <a href="{{url:sc-exe-and-powershell}}">Bản so sánh dài hơn ở đây.</a></p>
+      </div>
+      <div>
+        <h3>Nó có cần internet không?</h3>
+        <p>Không bao giờ. Không có đo từ xa, không kiểm tra cập nhật, không báo cáo sự cố, không tài khoản, không máy khách của bất cứ thứ gì. Lần duy nhất nó có thể chạm vào mạng là khi bạn truyền <code>--follow-network</code>: khi đó nó có thể nhìn vào đường dẫn khởi chạy trên thư mục chia sẻ của máy khác và để Windows lấy một chứng chỉ mà máy này chưa có - mặc định tắt, và phần trợ giúp nói lý do. Các nút <em>GitHub</em> và <em>Donate</em> trong cửa sổ và trang trong menu <em>Help</em> mỗi cái chuyển một địa chỉ cố định cho trình duyệt của bạn khi bạn nhấn, và trình duyệt của bạn mới là thứ kết nối.</p>
+      </div>
+      <div>
+        <h3>Nó có cần quyền quản trị không?</h3>
+        <p>Để xem thì không. Để thay đổi thì có. Nếu không có, trình quản lý hiển thị ít mục hơn và từ chối nhiều hơn, và cả hai nửa đều nói điều đó ở trên cùng thay vì giả vờ rằng danh sách là cả máy. Cửa sổ đề nghị <em>Restart as admin</em>. Nó không bao giờ tự nâng quyền.</p>
+      </div>
+      <div>
+        <h3>Nó miễn phí không? Tôi có dùng ở chỗ làm được không?</h3>
+        <p>Có cho cả hai. GPL-3.0, không điều kiện kèm theo. Một bản chụp bạn tạo ra là tệp của bạn.</p>
+      </div>
+      <div>
+        <h3>Nó có làm hỏng máy chủ của tôi không?</h3>
+        <p>Không tự nó. Không có gì bị thay đổi mà không có kế hoạch bạn đã xem, trình điều khiển bị từ chối, và một kế hoạch sẽ hạ gục thứ mà máy cần sẽ nói điều đó. Điều nó không thể bảo vệ bạn là việc thực thi một kế hoạch mà bạn không đọc. Danh sách các dịch vụ mà máy cần là một danh sách khởi đầu gồm bảy - hai nửa của RPC và trình khởi chạy DCOM, trình quản lý tài khoản, cô lập khóa, trình quản lý phiên và plug and play - và <strong>Remote Desktop không có trong đó</strong>, nên khi qua một phiên từ xa, hãy đọc kế hoạch.</p>
+      </div>
+      <div>
+        <h3>Đây có phải sản phẩm của Microsoft không?</h3>
+        <p>Không. {{product}} là một dự án mã nguồn mở độc lập và không liên kết với, không được chứng thực hay tài trợ bởi Microsoft. Windows là nhãn hiệu của nhóm công ty Microsoft.</p>
+      </div>
+      <div>
+        <h3>Chương trình có bằng ngôn ngữ của tôi không?</h3>
+        <p>Không - chương trình nói tiếng Anh, đó là lý do trang web này được dịch. Cửa sổ đọc một tệp ngôn ngữ, <code>languages\gui.&lt;mã&gt;.json</code>, đặt bên cạnh tệp thực thi và chọn nó theo ngôn ngữ của Windows, không cần công tắc, nên một bản dịch là một đóng góp có thể thêm vào mà không cần biên dịch lại chương trình. Tên các dịch vụ trong danh sách là bất cứ thứ gì Windows của bạn nói - bằng ngôn ngữ mà Windows của bạn được thiết lập.</p>
+      </div>
+      <div>
+        <h3>Vì sao cửa sổ tối khi Windows của tôi sáng?</h3>
+        <p>Nó tối và vẫn tối dù Windows được đặt thế nào, kể cả giao diện tương phản cao. Điều đó đã được kiểm chứng chứ không phải giả định - nó giữ màu riêng và vẫn đọc được, và không theo thiết lập đó.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Theo thiết kế</h2>
+    <ul class="points">
+      <li><strong>Chỉ máy cục bộ.</strong> Quản lý từ xa không có trong phiên bản này. Để so sánh hai máy, chụp một bản trên mỗi máy và so sánh hai tệp.</li>
+      <li><strong>Chỉ Windows, chỉ 64-bit</strong>, Windows 10 1809 hoặc Windows Server 2019 trở lên.</li>
+      <li><strong>Các thao tác trên trình điều khiển bị từ chối chứ không thử</strong>, vì dừng một trình điều khiển nhân thường không thể hoàn tác nếu không khởi động lại.</li>
+      <li><strong>Công cụ không tự nâng quyền của mình.</strong> Khi trình quản lý từ chối, nó nói vậy và kết thúc với mã thoát <code>3</code>. Cửa sổ đề nghị tự khởi động lại với quyền quản trị, và không làm gì khác về việc đó.</li>
+      <li><strong>Việc thu hồi chứng chỉ không được kiểm tra.</strong> Nó sẽ cần truy cập mạng, và công cụ này không bao giờ làm vậy. Vì vậy <em>Trusted</em> nghĩa là chuỗi hợp lệ trên máy này, không phải rằng không ai đã thu hồi chứng chỉ kể từ đó.</li>
+      <li><strong>Cửa sổ giải nén một phần khung giao diện người dùng của Windows trước khi khởi động.</strong> Là một tệp, nó mang một vài thư viện gốc mà Windows chỉ có thể tải từ đĩa. Khi không có quyền quản trị, nó ghi chúng, ở lần khởi động đầu tiên của mỗi phiên bản, vào một thư mục <code>.net</code> dưới thư mục tạm của tài khoản và tải chúng từ đó. Khi có quyền quản trị, nó dùng <code>ProgramData\BetterWindowsServices</code> trên ổ Windows thay thế - một thư mục mà nó tạo sao cho chỉ quản trị viên mới thay đổi được, và kiểm tra ở mỗi lần khởi động. Nếu không tạo được thư mục đó, hoặc người khác có thể thay đổi nó, cửa sổ không khởi động và nói thư mục nào và cần làm gì. Chuyển sang đó nghĩa là một cửa sổ nâng quyền tự khởi động lần thứ hai, mất một phần nhỏ của giây, và mỗi phiên bản để lại các thư viện của nó ở đó (khoảng 8 MB) cho đến khi ai đó xóa thư mục. Dòng lệnh không mang thư viện nào như vậy và không giải nén gì.</li>
+      <li><strong>Một phiên nâng quyền nêu tên các thiết lập .NET mà nó kế thừa thay vì từ chối chúng.</strong> Một trình phân tích hiệu năng, một công tắc theo dõi hoặc kết xuất, hay một cổng chẩn đoán đặt trong môi trường không thể tắt từ bên trong một chương trình .NET, nên khi có quyền quản trị, cả hai nửa liệt kê bất kỳ cái nào chúng tìm thấy. Các móc khởi động bị tắt hoàn toàn.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Những điều Windows làm mà công cụ này báo cáo đúng như vậy</h2>
+    <ul class="points">
+      <li><strong>Một dịch vụ được lưu trữ bên trong <code>svchost</code></strong> có đường dẫn khởi chạy nêu tên máy chủ lưu trữ, nên cả <em>tệp có ở đó</em> lẫn <em>ai đã ký nó</em> đều nói ít hơn so với một dịch vụ có tiến trình riêng.</li>
+      <li><strong>Một tệp vừa có chữ ký riêng vừa có mục trong danh mục Windows</strong> có thể nêu hai người ký khác nhau. Nhà phát hành hiển thị là cái bên trong tệp - cái giữ nguyên khi xem tệp trên máy khác - và có thể khác với những gì PowerShell báo.</li>
+      <li><strong>Khi không có quyền quản trị, trình quản lý liệt kê ít mục hơn và từ chối nhiều hơn những gì nó liệt kê.</strong> Cả hai nửa đều nói điều đó ở trên cùng, và một bản chụp ghi lại nó, vì so sánh một bản chụp nâng quyền với một bản không có quyền sẽ báo các mục là bị xóa trong khi không ai xóa.</li>
+    </ul>
+    <p class="note"><strong>Tìm thấy sự cố, hoặc một dịch vụ mà công cụ này báo khác với <code>sc.exe</code>?</strong> <a href="{{issues}}">Trình theo dõi sự cố</a> đang mở, và sự khác biệt giữa hai bên là thứ hữu ích nhất bạn có thể dán vào đó.</p>
+  </div>
+</section>

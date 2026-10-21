@@ -1,0 +1,194 @@
+<meta name="title" content="Tham chiếu dòng lệnh - mọi tùy chọn và mã thoát của bws">
+<meta name="description" content="Mọi lệnh, tùy chọn và mã thoát của bws: list, show, stop, start, restart, kill, start-type, snapshot, history và tool, cùng nơi mỗi tùy chọn hoạt động.">
+<meta name="nav" content="Tham chiếu CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Các bảng trên trang này được DỰNG, không phải viết tay. Các tùy chọn đến từ bảng riêng của
+  trình phân tích trong src/Bws.Cli/OptionSurface.cs và các mã đến từ src/Bws.Cli/ExitCode.cs, nên
+  một tùy chọn thêm vào chương trình sẽ xuất hiện ở đây, và một câu về tùy chọn không còn tồn tại
+  sẽ làm hỏng bản dựng. Mỗi cái CÓ NGHĨA là gì là văn xuôi và nằm trong site/i18n, vì văn xuôi
+  được dịch.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Tham chiếu</span>
+    <h1>Tham chiếu dòng lệnh</h1>
+    <p class="lede">Mọi lệnh, mọi tùy chọn và mọi mã thoát của <code>bws</code>, phiên bản {{version}}. <code>bws --help</code> là bản có thẩm quyền và dài hơn - trang này là cùng bề mặt đó, được bố trí để dễ đọc.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Các lệnh</h2>
+    <p>Mười một lệnh. <code>snapshot</code> là một danh từ và theo sau nó là một từ nữa. <code>tool</code> cũng là một danh từ, và đứng một mình nó liệt kê các công cụ.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Một lệnh gõ nhầm sẽ được đề nghị lệnh mà bạn có khả năng muốn dùng, và lần chạy kết thúc với mã <code>2</code> thay vì làm điều gì đó gần giống điều bạn yêu cầu.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mỗi lệnh làm gì</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> và <code>show</code></h3>
+        <p><code>list</code> là cả máy, được thu hẹp bởi <code>--query</code>. <code>show</code> là một mục với mọi thứ đã biết về nó - chữ ký, đặc quyền, bộ mô tả bảo mật và bộ nhớ, tất cả đều được đọc mỗi lần, vì với một mục thì việc đó tốn khoảng sáu mươi mili giây còn với cả máy thì tốn một giây. Các trường thực sự trống bị bỏ ra trừ khi bạn truyền <code>--full</code>. Một trường không ai đọc được thì được in trong cả hai trường hợp, vì bỏ nó đi sẽ trông như một câu trả lời.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> và <code>restart</code></h3>
+        <p>Mỗi lệnh dựng một kế hoạch và thực hiện nó. <code>--dry-run</code> in kế hoạch và không thay đổi gì, <code>--dependents</code> đưa các dịch vụ sẽ hỏng vào đó thành những bước riêng, và <code>--timeout</code> nói một bước được phép trôi qua bao lâu không có tiến triển. Trình điều khiển bị từ chối chứ không thử, vì dừng một trình điều khiển nhân thường không thể hoàn tác nếu không khởi động lại.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - cho một dịch vụ không chịu dừng</h3>
+        <p>Nó yêu cầu dịch vụ dừng và kết thúc tiến trình đằng sau nó <em>chỉ khi điều đó không có tác dụng</em>, nên một mục tự dừng thì không bao giờ bị kết thúc. Kết thúc một tiến trình kéo theo mọi dịch vụ khác sống trong tiến trình đó, dù chúng đã dừng trước hay chưa, và bản xem trước nêu tên chúng và nêu tiến trình bằng số. <code>--force</code> bỏ qua bước lịch sự và bản xem trước khi đó hiển thị một bước thay vì hai. <code>--restart</code> đưa mọi thứ trở lại sau đó.</p>
+        <p class="note"><strong>Windows viết ý tưởng này theo cách khác.</strong> <code>--force</code> trên <code>Stop-Service</code> nghĩa là "ngay cả khi có thứ phụ thuộc vào nó", điều mà <code>--dependents</code> làm ở đây. Đó là lý do đây là một lệnh riêng chứ không phải một tùy chọn của <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - một thiết lập, không phải một cú di chuyển</h3>
+        <p>Nó nói trình quản lý sẽ làm gì với một mục ở lần khởi động tiếp theo, và không có <code>--stop</code> nó không di chuyển gì: một mục đang chạy vẫn chạy, một mục đã dừng vẫn dừng, và kế hoạch nói điều đó. <code>disabled</code> là cái đáng dừng lại suy nghĩ, vì nó ngăn trình quản lý khởi động mục hoàn toàn, kể cả theo yêu cầu cho thứ khác cần nó. <code>delayed</code> là tự động, được khởi động muộn hơn một chút so với các mục tự động khác - từ mà <code>start:delayed</code> hỏi trong một truy vấn - và Windows từ chối nó với một mục trong nhóm thứ tự tải, điều mà kế hoạch nói trước khi có gì xảy ra. Mỗi trong bốn kiểu ghi việc mục có khởi động muộn hay không, như <code>sc.exe</code> làm. <code>--stop</code>, chỉ bên cạnh <code>disabled</code>, dừng mục trong cùng kế hoạch sau khi thiết lập được ghi.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> và <code>snapshot diff</code></h3>
+        <p><code>create</code> luôn đọc chữ ký và mã băm, vì một bản chụp được giữ lại và so sánh sau, và một bản không có chúng, so với một bản có chúng, sẽ trông như thể máy đã thay đổi. <code>diff</code> nói điều gì đã thay đổi đi từ tệp thứ nhất sang tệp thứ hai, hoặc từ một tệp sang máy này với <code>--live</code>. <a href="{{url:snapshots-and-drift}}">Trang về bản chụp</a> có định dạng và lập luận.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - ai đã thay đổi, từ nhật ký System</h3>
+        <p>Các lần đổi kiểu khởi động và cài đặt từ nhật ký System, mới nhất trước, cùng tài khoản mà Windows đã ghi lại. Dòng đầu tiên nói nhật ký lùi xa đến đâu và có bị xóa không, vì một lịch sử chỉ dài bằng nhật ký. Với một tên, đó là các lần đổi kiểu khởi động của dịch vụ đó - các lần cài đặt chỉ được liệt kê khi không có tên, vì Windows ghi một lần cài đặt dưới tên hiển thị và không bao giờ dưới tên dịch vụ. Một tài khoản được nêu tên ở nơi máy này tự nêu được và hiển thị dưới dạng SID của nó nếu không, và các kiểu khởi động đến bằng những từ Windows đã viết.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - câu trả lời dựng sẵn cho các sự cố phổ biến</h3>
+        <p>Chính những công cụ mà cửa sổ hiển thị trên thẻ Tools. <code>bws tool</code> liệt kê chúng và <code>bws tool fix</code> liệt kê các cách sửa nhanh: <code>printer</code>, <code>sound</code>, <code>indexing</code> và <code>search</code>, mỗi cái là một lần khởi động lại một dịch vụ Windows cùng với những gì phụ thuộc vào nó, được chọn vì chính các trang khắc phục sự cố của Microsoft đề xuất nó. <code>bws tool fix printer</code> chính xác là <code>bws restart Spooler --dependents</code> - cùng kế hoạch, cùng đầu ra và cùng mã thoát - và như mọi lệnh ở đây thay đổi gì đó, nó không hỏi trước, nên <code>--dry-run</code> là cách để xem trước khi nó chạy.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - bên trong tệp bạn đã tải về có gì</h3>
+        <p>Nó không đọc gì cả - không trình quản lý dịch vụ, không đĩa, không mạng - và trả lời từ một sổ đăng ký được biên dịch vào tệp thực thi. <code>--components</code> biến thông báo thành mọi thành phần cùng phiên bản, giấy phép và nguồn gốc của nó. Cùng tập hợp mà bảng kê vật liệu phát hành bên cạnh bản tải xuống mang, vì cả hai được dựng từ một sổ đăng ký, và là lý do nó đáng có: chương trình là một tệp độc lập, nên bên cạnh nó không có gì để một trình quét đọc.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ví dụ</h2>
+    <p class="lede">Các kế hoạch dưới đây đã được kiểm tra bằng <code>--dry-run</code> với chương trình mà trang này mô tả. Một lệnh thay đổi gì đó không hỏi trước, nên <code>--dry-run</code> là cách để xem trước khi nó chạy. <code>Spooler</code> đại diện cho bất kỳ dịch vụ nào - hãy đặt tên dịch vụ của bạn vào chỗ đó.</p>
+    <div class="examples">
+    <h3>Tìm và đọc</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">mọi dịch vụ và trình điều khiển trên máy này</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">những gì lẽ ra phải chạy mà không chạy</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">tiến trình của mỗi mục đang chạy đang dùng gì</span>
+<span class="k">bws show Spooler</span>                               <span class="c">mọi thứ đã biết về một mục</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">cả các trường thực sự trống</span></code></pre>
+    <h3>Xem trước, rồi mới thay đổi</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">chỉ kế hoạch, không gì khác</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">khởi động lại nó cùng những gì phụ thuộc vào nó</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">cho phép hai phút mỗi bước không có tiến triển</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">khởi động muộn hơn một chút so với các mục tự động khác</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">vô hiệu hóa và dừng trong một kế hoạch</span></code></pre>
+    <h3>Một dịch vụ không chịu dừng</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">tiến trình, và mọi dịch vụ sống trong đó</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">chỉ kết thúc tiến trình nếu lệnh dừng thất bại, rồi đưa mọi thứ trở lại</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">một bước thay vì hai: tiến trình bị kết thúc ngay</span></code></pre>
+    <h3>Bản chụp và sai lệch</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">đóng băng máy, kèm một ghi chú lưu bên trong</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">hai tệp - hai ngày, hoặc hai máy</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">tệp so với máy này như hiện giờ</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">như trên, kết thúc bằng 5 nếu cấu hình đã lệch</span></code></pre>
+    <h3>Ai đã thay đổi</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">mọi lần đổi kiểu khởi động và cài đặt mà nhật ký System lưu</span>
+<span class="k">bws history Spooler</span>  <span class="c">các lần đổi kiểu khởi động của một dịch vụ</span>
+<span class="k">bws history --json</span>   <span class="c">như trên dưới dạng tài liệu, kèm nhật ký và thay đổi</span></code></pre>
+    <h3>Sửa nhanh</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">các công cụ hiện có</span>
+<span class="k">bws tool fix</span>                  <span class="c">các cách sửa nhanh, và dịch vụ đằng sau mỗi cách</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">kế hoạch khởi động lại hai dịch vụ âm thanh</span>
+<span class="k">bws tool fix printer</span>          <span class="c">khởi động lại Print Spooler cùng những gì phụ thuộc vào nó</span></code></pre>
+    <h3>Bên trong tệp có gì</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">mọi thành phần, phiên bản, giấy phép và nguồn gốc của nó</span>
+<span class="k">bws --version</span>             <span class="c">phiên bản của tệp thực thi này</span></code></pre>
+    <h3>Trong một script PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># các mục lẽ ra phải chạy mà không chạy, dưới dạng đối tượng</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># các tệp chưa ký, vào một bảng tính</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># một dịch vụ cần gì</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># một lần kiểm tra hằng đêm rẽ nhánh theo mã thoát</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>Trong cmd và tệp batch</h3>
+<pre class="wrap-lines"><code><span class="c">rem lệnh thứ hai chỉ khi lệnh đầu không kết thúc sạch</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem trong tệp batch bật delayed expansion, dấu ! cần dấu ^</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tùy chọn</h2>
+    <p>{{switch_count}} tùy chọn. Cột thứ ba là các lệnh mà mỗi tùy chọn thuộc về - một tùy chọn truyền cho lệnh không dùng đến nó là một lỗi có danh sách đó trong đó, chứ không phải một cờ bị lặng lẽ bỏ qua.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mã thoát</h2>
+    <p>{{exit_code_count}} kết cục, và mỗi kết cục là một việc khác nhau để script làm. Dữ liệu đi tới đầu ra chuẩn và mọi thứ khác đi tới lỗi chuẩn, nên <code>bws list --json | jq</code> hoạt động và một cảnh báo không bao giờ rơi vào JSON của bạn.</p>
+    <p>Mọi tài liệu JSON là ASCII thuần: một chữ cái ngoài ASCII được viết thành một chuỗi thoát sáu ký tự mà mọi trình đọc JSON biến trở lại thành chữ cái, nên <code>bws list --json &gt; file.json</code> là UTF-8 hợp lệ và <code>| ConvertFrom-Json</code> đọc đúng bất kể bảng mã của bảng điều khiển. Trong văn bản mà con người đọc, một ký tự sẽ di chuyển thiết bị đầu cuối thay vì in ra - một tab, một ngắt dòng, một chuỗi thoát, một ký tự ghi đè hướng - được hiển thị dưới dạng điểm mã của nó, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> kết thúc các tùy chọn, nên một dịch vụ có tên bắt đầu bằng dấu gạch ngang vẫn có thể được nêu tên: <code>bws show -- -odd</code>. Các dòng lệnh mà công cụ đưa cho bạn được viết cho PowerShell: một tên có dấu cách đặt trong nháy kép, cmd đọc giống vậy, và một tên mà PowerShell sẽ mở rộng bên trong chúng, như <code>MSSQL$SQLEXPRESS</code>, đặt trong nháy đơn.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C có ba mức, mỗi mức nói mức tiếp theo tốn gì.</strong> Mức đầu ngừng tiến tới và vẫn trả lại những gì đã lấy, mức hai để mọi thứ như hiện trạng và vẫn in báo cáo, mức ba kết thúc tiến trình. Một lần chạy bị dừng bằng tay kết thúc với <code>4</code> ngay cả khi mọi bước vẫn đã đến nơi.</p>
+    <p class="note"><strong>Đóng cửa sổ console được tính là Ctrl+C đầu tiên.</strong> Windows cho một chương trình năm giây sau đó, và trong thời gian ấy nó ngừng tiến tới và trả lại những gì nó đã hạ gục. Đăng xuất và tắt máy kết thúc nó mà không có cảnh báo nào để nó hành động, và một phiên từ xa bị rớt có thể cũng vậy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trong một tác vụ theo lịch</h2>
+    <p>Dạng mà công cụ này được xây dựng cho: đóng băng máy khi biết nó tốt, rồi mỗi đêm hỏi xem nó có còn như vậy không.</p>
+<pre><code><span class="c"># ngày máy bắt đầu đưa vào hoạt động</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># mỗi đêm, từ một tác vụ theo lịch</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - không có sai lệch cấu hình
+#   5 - cấu hình đã lệch, và drift.json nói là gì
+#   3 - đã chạy và không đọc được hết, nên câu trả lời chỉ là một phần</span></code></pre>
+    <p>Cửa sổ là nửa còn lại của cùng lõi: <code>{{archive_window}}</code> chứa nó, và <a href="{{url:download}}">trang tải xuống</a> nói mỗi bản nén là gì.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Đối số của cửa sổ</h2>
+    <p><code>BetterWindowsServices.exe</code> nhận một đối số dành cho con người: <code>--catalogue</code> mở một tờ dành cho nhà phát triển hiển thị mọi thành phần của cửa sổ ở mọi trạng thái, và không đọc gì từ máy của bạn. Đối số thứ hai, <code>--carry</code>, là cách một cửa sổ chuyển những gì nó đang hiển thị cho bản sao của chính nó mà nó khởi động lại với quyền quản trị. Không ai gõ nó, và bất cứ thứ gì trong đó mà cửa sổ đó không thể đã viết ra đều bị từ chối.</p>
+  </div>
+</section>

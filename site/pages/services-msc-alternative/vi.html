@@ -1,0 +1,102 @@
+<meta name="title" content="Một lựa chọn thay thế services.msc cho quản trị viên Windows">
+<meta name="description" content="services.msc không có tìm kiếm, bộ lọc hay lịch sử. Một bản thay thế miễn phí, mã nguồn mở với ngôn ngữ truy vấn, xem trước mọi thay đổi và so sánh sai lệch.">
+<meta name="nav" content="So với services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Hướng dẫn</span>
+    <h1>Một lựa chọn thay thế <code>services.msc</code></h1>
+    <p class="lede">Snap-in Services hầu như không thay đổi kể từ Windows 2000. Nó vẫn là cách nhanh nhất để khởi động một dịch vụ bạn đã thấy trên màn hình, và là cách chậm nhất để trả lời bất kỳ câu hỏi nào về một máy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Điều gì khiến mọi người đi tìm</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Không có tìm kiếm.</strong> Cách điều hướng duy nhất là gõ một chữ cái để nhảy tới tên hiển thị đầu tiên bắt đầu bằng nó. Trên một máy có tám trăm mục, đó là cuộn có thêm bước.</li>
+        <li><strong>Không có bộ lọc.</strong> Không có cách nào để hỏi <em>cái gì được đặt tự khởi động mà không chạy</em> - câu hỏi duy nhất tìm ra một máy hỏng.</li>
+        <li><strong>Mỗi lần một dòng.</strong> Khởi động lại mười hai dịch vụ là mười hai lần nhấp chuột phải và mười hai lần chờ.</li>
+        <li><strong>"Stopping..." không có lối thoát</strong> ngoài Task Manager và đoán xem nên kết thúc <code>svchost</code> nào.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Không có lịch sử.</strong> Không ai biết ai đã đặt kiểu khởi động đó thành Disabled, hay khi nào, hay tháng trước nó đã như vậy chưa.</li>
+        <li><strong>Dữ liệu bị ẩn.</strong> Tiến trình, trình kích hoạt, đặc quyền yêu cầu, bộ mô tả bảo mật, ai đã ký tệp thực thi - không thứ nào có trong snap-in, và tất cả đều quan trọng khi có gì đó sai.</li>
+        <li><strong>Các cột không thể thay đổi.</strong> Tên, mô tả, trạng thái, kiểu khởi động, đăng nhập bằng. Đó là toàn bộ danh sách, và không cột nào sắp xếp hữu ích được trên một máy thật.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cùng những việc đó, ở cả hai</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Bạn muốn</th><th>Trong <code>services.msc</code></th><th>Ở đây</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Tìm những gì lẽ ra phải chạy mà không chạy</td>
+            <td class="no">Sắp xếp theo kiểu khởi động, cuộn, đọc từng dòng</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Biết việc dừng kéo theo những gì</td>
+            <td class="no">Một hộp thoại nêu tên các dịch vụ phụ thuộc sau khi bạn nhấn Stop</td>
+            <td>Một kế hoạch trước khi có gì xảy ra, với mỗi dịch vụ phụ thuộc là một bước và một cảnh báo khi một trong số đó là thứ máy cần</td>
+          </tr>
+          <tr>
+            <td>Biết điều gì đã thay đổi từ tuần trước</td>
+            <td class="no">Không có gì</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Biết ai đã đổi một kiểu khởi động</td>
+            <td class="no">Không có gì</td>
+            <td><code>bws history Spooler</code>, từ nhật ký System</td>
+          </tr>
+          <tr>
+            <td>Khởi động lại mười hai dịch vụ</td>
+            <td class="no">Mười hai lần nhấp chuột phải</td>
+            <td>Chọn mười hai, một kế hoạch, một lần chạy, một báo cáo</td>
+          </tr>
+          <tr>
+            <td>Xem ai đã ký tệp thực thi của một dịch vụ</td>
+            <td class="no">Không được hiển thị</td>
+            <td>Một cột, và một thứ để tìm kiếm: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Viết script cho bất kỳ việc nào trong đó</td>
+            <td class="no">Không viết script được</td>
+            <td><code>bws</code>, với <code>--json</code> và một mã thoát cho mọi kết cục</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Điều snap-in vẫn làm tốt hơn</h2>
+    <p class="lede">Hai điều, và giả vờ khác đi sẽ là kiểu khẳng định mà dự án này không đưa ra.</p>
+    <ul class="points">
+      <li><strong>Nó đã có sẵn trên máy.</strong> Không có gì để tải, không có gì phải vượt qua chính sách phần mềm. Trên một máy bạn chỉ chạm vào một lần, đó là toàn bộ lập luận.</li>
+      <li><strong>Nó chỉnh sửa hành động khôi phục, tài khoản và đường dẫn khởi chạy.</strong> Công cụ này hiển thị tài khoản và đường dẫn khởi chạy và không thay đổi cái nào, và chỉ đọc hành động khôi phục để cảnh báo trước khi kết thúc một tiến trình. Tạo, xóa hoặc trỏ lại một dịch vụ cũng không có ở đây.</li>
+    </ul>
+    <p>Điều nó hoàn toàn không làm được chính là lý do công cụ này tồn tại: đặt câu hỏi, cho xem kế hoạch trước, và nói điều gì đã lệch.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Đây là gì</h2>
+    <p>{{product}} là phần mềm miễn phí, mã nguồn mở theo GPL-3.0, một tệp cho mỗi nửa hoặc một trình cài đặt cho cả máy, và nó không bao giờ nói chuyện với internet. Đọc không cần quyền quản trị - thay đổi thì cần, và nó nói vậy thay vì lặng lẽ thất bại.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Xem ngôn ngữ truy vấn</a>
+    </div>
+  </div>
+</section>

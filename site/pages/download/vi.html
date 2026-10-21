@@ -1,0 +1,86 @@
+<meta name="title" content="Tải Better Windows Services cho Windows - miễn phí, zip hoặc MSI">
+<meta name="description" content="Hai tệp thực thi độc lập hoặc trình cài đặt có chữ ký, không cần cài .NET. Windows 10 1809 và Server 2019 trở lên, 64-bit. Mã nguồn mở, GPL-3.0.">
+<meta name="nav" content="Tải xuống">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Tải xuống</span>
+    <h1>Giải nén và chạy, hoặc cài đặt</h1>
+    <p class="lede">Phiên bản {{version}}. Các bản nén không cần trình cài đặt và không ghi gì vào registry, và việc xem không cần quyền quản trị. Thay vào đó, một trình cài đặt có chữ ký đặt cả hai chương trình lên toàn bộ máy. Miễn phí và mã nguồn mở theo GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Tất cả bản phát hành</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trong bản phát hành có gì</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tệp</th><th>Đó là gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Cửa sổ: <code>BetterWindowsServices.exe</code>, một tệp thực thi độc lập có sẵn runtime .NET bên trong</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Dòng lệnh: <code>bws.exe</code>, một tệp thực thi độc lập, cho script, tác vụ theo lịch và CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Trình cài đặt: cả hai chương trình trong <code>Program Files</code> cho mọi tài khoản trên máy, cửa sổ trong menu Start và <code>bws</code> trong PATH của máy</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Lấy một hoặc cả hai - chúng là hai máy khách của cùng một lõi và cái này không cần cái kia. Trên máy chủ, dòng lệnh là cái nhỏ hơn trong hai và làm mọi thứ mà cửa sổ làm.</p>
+    <p>Trình cài đặt mang đúng những gì hai bản nén chứa. Nó cài đặt âm thầm bằng <code>msiexec /i {{archive_installer}} /qn</code>, phiên bản mới hơn cài đè lên phiên bản cũ, và nó không đóng bất cứ thứ gì đang chạy - nên hãy đóng cửa sổ và mọi <code>bws</code> đang chạy trước khi nâng cấp, vì một bản sao bị để chạy có thể dừng với lỗi. Gỡ cài đặt từ Settings, Apps sẽ xóa các chương trình, mục menu Start và mục PATH, và để yên các tệp của bạn.</p>
+    <p>Các tệp thực thi mang chữ ký Authenticode, nên Windows nêu tên nhà phát hành thay vì cảnh báo về một nhà phát hành không rõ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Yêu cầu</h2>
+    <ul class="points">
+      <li><strong>Windows 10 phiên bản 1809 trở lên, hoặc Windows Server 2019 trở lên.</strong> Chỉ 64-bit - một tiến trình 32-bit đọc các đường dẫn và khóa registry bị chuyển hướng, điều sẽ lặng lẽ tạo ra câu trả lời sai.</li>
+      <li><strong>Không có .NET để cài.</strong> Cả hai tệp thực thi đều mang runtime .NET riêng.</li>
+      <li><strong>Quyền quản trị để thay đổi bất cứ thứ gì.</strong> Đọc, tìm kiếm, bản chụp và so sánh hoạt động mà không cần, với ít mục hiển thị hơn, và công cụ nói điều đó ở trên cùng thay vì giả vờ rằng danh sách là cả máy.</li>
+    </ul>
+    <p>Cửa sổ giữ một tệp riêng - bố cục bạn để lại danh sách - dưới <code>%APPDATA%\BetterWindowsServices</code>. Một bản chụp đi tới nơi bạn bảo <code>bws snapshot create</code> đặt nó, và vào thư mục hiện tại khi bạn không bảo.</p>
+    <p class="note"><strong>Chương trình nói tiếng Anh.</strong> Cửa sổ đọc một tệp ngôn ngữ, <code>languages\gui.&lt;mã&gt;.json</code>, đặt bên cạnh nó và được chọn theo ngôn ngữ của Windows, không cần công tắc. Vì vậy một bản dịch là một đóng góp có thể thêm vào mà không cần biên dịch lại - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> nói cách làm.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Phần mềm diệt virus và EDR</h2>
+    <p class="lede">Công cụ này làm điều mà một quản trị viên làm với dịch vụ, và một phần trong đó chính là thứ mà phần mềm bảo mật theo dõi.</p>
+    <p>Nó dừng và khởi động dịch vụ, có thể kết thúc tiến trình đằng sau một dịch vụ, và đọc bộ mô tả bảo mật cùng các đặc quyền yêu cầu của mọi dịch vụ. Một EDR đánh dấu tiến trình kết thúc <code>svchost.exe</code> đang làm đúng việc của nó, và một lần dừng cưỡng bức ở đây có thể trông y như vậy.</p>
+    <p>Những gì nó <strong>không</strong> làm, để bạn kiểm chứng được lời khẳng định: nó không chèn gì vào bất kỳ tiến trình nào, không đóng gói hay làm rối mã thứ gì, không cài dịch vụ hay trình điều khiển nào và không để lại gì đang chạy, và không mở kết nối mạng nào. Nó là mã nguồn mở theo GPL-3.0 và bạn có thể tự xây dựng cả hai tệp thực thi.</p>
+    <p>Nếu chính sách của bạn cần một ngoại lệ, hãy loại trừ hai tệp thực thi theo tệp chứ không theo thư mục. Thứ duy nhất đáng được xử lý cẩn thận như chính công cụ là một tệp bản chụp: nó mô tả cả máy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Xây dựng từ mã nguồn</h2>
+    <p>.NET 10 SDK, trên Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Một số bài kiểm thử đọc trình quản lý dịch vụ thật của máy chúng chạy trên và so sánh điều công cụ này nói với điều <code>sc.exe</code> nói. Chúng chỉ đọc. Các tệp thực thi một-tệp mà các bản phát hành mang là hai lần xuất bản này, mỗi lần là một tệp với runtime bên trong:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Chúng nằm ở <code>bws.exe</code> và <code>BetterWindowsServices.exe</code> dưới <code>bin/Release/.../win-x64/publish/</code> của mỗi dự án. Các tệp <code>.pdb</code> bên cạnh là ký hiệu gỡ lỗi, và không thứ gì cần chúng để chạy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Chi phí để chạy</h2>
+    <p class="lede">Đo trên một máy có 810 dịch vụ. Số liệu của bạn sẽ khác - số dịch vụ, ổ đĩa và bộ xử lý đều ảnh hưởng.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Khoảng một phần tư giây</h3><p>để <code>bws list</code> đọc cả máy.</p></div>
+      <div class="card"><h3>Khoảng tám phần mười giây</h3><p>từ lúc khởi động cửa sổ đến khi danh sách hiện trên màn hình.</p></div>
+      <div class="card"><h3>Khoảng 100 MB</h3><p>cho cửa sổ - một nửa là khung giao diện người dùng của Windows, trước khi bất kỳ mã nào của công cụ này chạy.</p></div>
+      <div class="card"><h3>Khoảng 16 MB</h3><p>cho dòng lệnh trên cùng máy đó.</p></div>
+    </div>
+  </div>
+</section>
