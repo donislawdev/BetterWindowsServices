@@ -11,6 +11,7 @@
     "fr": "sc-exe-et-powershell",
     "es": "sc-exe-y-powershell",
     "it": "sc-exe-e-powershell",
-    "pt-br": "sc-exe-e-powershell"
+    "pt-br": "sc-exe-e-powershell",
+    "nl": "sc-exe-en-powershell"
   }
 }

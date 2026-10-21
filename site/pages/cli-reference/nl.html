@@ -1,0 +1,194 @@
+<meta name="title" content="Naslag van de opdrachtregel - elke optie en afsluitcode van bws">
+<meta name="description" content="Elke opdracht, optie en afsluitcode van bws: list, show, stop, start, restart, kill, start-type, snapshot, history en tool, met waar elke vlag werkt.">
+<meta name="nav" content="CLI-naslag">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  De tabellen op deze pagina worden GEBOUWD, niet geschreven. De opties komen uit de eigen tabel van
+  de parser in src/Bws.Cli/OptionSurface.cs en de codes uit src/Bws.Cli/ExitCode.cs, dus een optie
+  die aan het programma wordt toegevoegd verschijnt hier, en een zin over een optie die niet meer
+  bestaat laat de build mislukken. Wat elk ervan BETEKENT is proza en staat in site/i18n, omdat
+  proza wordt vertaald.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Naslag</span>
+    <h1>Naslag van de opdrachtregel</h1>
+    <p class="lede">Elke opdracht, elke optie en elke afsluitcode van <code>bws</code>, versie {{version}}. <code>bws --help</code> is de gezaghebbende en is langer - deze pagina is hetzelfde oppervlak, gerangschikt om te lezen.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De opdrachten</h2>
+    <p>Elf opdrachten. <code>snapshot</code> is een zelfstandig naamwoord en neemt een woord erna. <code>tool</code> is ook een zelfstandig naamwoord, en op zichzelf toont het de tools.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Een verkeerd getypte opdracht krijgt degene aangeboden die u waarschijnlijk bedoelde, en de uitvoering eindigt met code <code>2</code> in plaats van iets te doen dat dicht bij uw vraag in de buurt komt.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat elke opdracht doet</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> en <code>show</code></h3>
+        <p><code>list</code> is de hele machine, beperkt door <code>--query</code>. <code>show</code> is één item met alles wat erover bekend is - de handtekening, de bevoegdheden, de beveiligingsdescriptor en het geheugen, alles elke keer gelezen, omdat dat over één item ongeveer zestig milliseconden kost waar het over de hele machine een seconde kost. Velden die echt leeg zijn blijven weg tenzij u <code>--full</code> meegeeft. Een veld dat niemand kon lezen wordt hoe dan ook afgedrukt, omdat het weglaten ervan op een antwoord zou lijken.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> en <code>restart</code></h3>
+        <p>Elk bouwt een plan en voert het uit. <code>--dry-run</code> drukt het plan af en wijzigt niets, <code>--dependents</code> zet de services die zouden kapotgaan als aparte stappen erin, en <code>--timeout</code> zegt hoe lang één stap zonder voortgang mag gaan. Stuurprogramma's worden geweigerd in plaats van geprobeerd, omdat het stoppen van een kernelstuurprogramma vaak niet ongedaan te maken is zonder herstart.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - voor een service die niet wil stoppen</h3>
+        <p>Het vraagt de service te stoppen en beëindigt het proces erachter <em>alleen als dat niet werkt</em>, dus een item dat uit zichzelf stopt wordt nooit beëindigd. Het beëindigen van een proces neemt elke andere service die in dat proces leeft mee, of ze nu eerst waren gestopt of niet, en de voorvertoning noemt ze en noemt het proces bij nummer. <code>--force</code> slaat de beleefde stap over en de voorvertoning toont dan één stap in plaats van twee. <code>--restart</code> brengt achteraf alles terug.</p>
+        <p class="note"><strong>Windows spelt dit idee anders.</strong> <code>--force</code> bij <code>Stop-Service</code> betekent "ook als er iets van afhangt", wat <code>--dependents</code> hier doet. Daarom is dit een opdracht op zich en geen optie van <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - een instelling, geen beweging</h3>
+        <p>Het zegt wat de beheerder bij de volgende opstart met een item doet, en zonder <code>--stop</code> verplaatst het niets: een item dat draait blijft draaien, een gestopt item blijft gestopt, en het plan zegt dat. <code>disabled</code> is degene om even bij stil te staan, omdat het voorkomt dat de beheerder het item überhaupt start, ook op verzoek voor iets anders dat het nodig heeft. <code>delayed</code> is automatisch, een beetje na de andere automatische items gestart - het woord waarnaar <code>start:delayed</code> in een query vraagt - en Windows weigert het voor een item in een laadvolgordegroep, wat het plan zegt voordat er iets gebeurt. Elk van de vier schrijft of het item laat start, zoals <code>sc.exe</code> doet. <code>--stop</code>, alleen naast <code>disabled</code>, stopt het item in hetzelfde plan zodra de instelling is geschreven.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> en <code>snapshot diff</code></h3>
+        <p><code>create</code> leest altijd handtekeningen en hashes, omdat een momentopname wordt bewaard en later vergeleken en een zonder die gegevens bij vergelijking met een met die gegevens zou doen alsof de machine was veranderd. <code>diff</code> zegt wat er veranderde van het eerste bestand naar het tweede, of van een bestand naar deze machine met <code>--live</code>. <a href="{{url:snapshots-and-drift}}">De pagina over momentopnamen</a> heeft het formaat en de redenering.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - wie het heeft gewijzigd, uit het systeemlogboek</h3>
+        <p>Wijzigingen van het opstarttype en installaties uit het systeemlogboek, nieuwste eerst, met het account dat Windows heeft vastgelegd. De eerste regel zegt hoe ver het logboek teruggaat en of het is gewist, omdat een geschiedenis maar zo lang is als het logboek. Met een naam zijn het de wijzigingen van het opstarttype van die service - installaties worden alleen zonder naam getoond, omdat Windows een installatie onder de weergavenaam vastlegt en nooit onder de servicenaam. Een account wordt genoemd waar deze machine het zelf kan noemen en anders als zijn SID getoond, en opstarttypes komen in de woorden die Windows schreef.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - kant-en-klare antwoorden op veelvoorkomende problemen</h3>
+        <p>Dezelfde tools die het venster op het tabblad Tools toont. <code>bws tool</code> toont ze en <code>bws tool fix</code> toont de snelle oplossingen: <code>printer</code>, <code>sound</code>, <code>indexing</code> en <code>search</code>, elk een herstart van één Windows-service samen met wat ervan afhangt, gekozen omdat de eigen probleemoplossingspagina's van Microsoft het voorstellen. <code>bws tool fix printer</code> is precies <code>bws restart Spooler --dependents</code> - hetzelfde plan, dezelfde uitvoer en dezelfde afsluitcodes - en zoals elke opdracht hier die iets wijzigt vraagt het niet eerst, dus <code>--dry-run</code> is de manier om te kijken voordat het draait.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - wat er in het gedownloade bestand zit</h3>
+        <p>Het leest helemaal niets - geen servicebeheerder, geen schijf, geen netwerk - en antwoordt uit een register dat in het uitvoerbare bestand is gecompileerd. <code>--components</code> verandert de mededeling in elk onderdeel met zijn versie, zijn licentie en waar het vandaan kwam. Dezelfde set die de materiaallijst naast de download bevat, omdat beide uit één register worden gemaakt, en de reden dat het de moeite waard is: het programma is één zelfstandig bestand, dus er is niets ernaast dat een scanner kan lezen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Voorbeelden</h2>
+    <p class="lede">De onderstaande plannen zijn met <code>--dry-run</code> gecontroleerd tegen het programma dat deze pagina beschrijft. Een opdracht die iets wijzigt vraagt niet eerst, dus <code>--dry-run</code> is de manier om te kijken voordat het draait. <code>Spooler</code> staat voor elke service - zet de naam van de uwe op zijn plaats.</p>
+    <div class="examples">
+    <h3>Zoeken en lezen</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">elke service en elk stuurprogramma op deze machine</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">wat zou moeten draaien en niet draait</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">wat het proces van elk draaiend item gebruikt</span>
+<span class="k">bws show Spooler</span>                               <span class="c">alles wat over één item bekend is</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">ook de velden die echt leeg zijn</span></code></pre>
+    <h3>Eerst kijken, dan wijzigen</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">het plan, en verder niets</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">herstart het samen met wat ervan afhangt</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">sta twee minuten per stap zonder voortgang toe</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">start het een beetje na de andere automatische items</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">schakel het uit en stop het in één plan</span></code></pre>
+    <h3>Een service die niet wil stoppen</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">het proces, en elke service die erin leeft</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">beëindig het proces alleen als een stop mislukt, breng dan alles terug</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">één stap in plaats van twee: het proces meteen beëindigd</span></code></pre>
+    <h3>Momentopnamen en drift</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">leg de machine vast, met een notitie erin bewaard</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">twee bestanden - twee dagen, of twee machines</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">het bestand tegen deze machine zoals ze nu is</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">hetzelfde, eindigend met 5 als de configuratie is afgedreven</span></code></pre>
+    <h3>Wie het heeft gewijzigd</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">elke wijziging van het opstarttype en elke installatie die het systeemlogboek bevat</span>
+<span class="k">bws history Spooler</span>  <span class="c">de wijzigingen van het opstarttype van één service</span>
+<span class="k">bws history --json</span>   <span class="c">hetzelfde als document, met logboek en wijzigingen</span></code></pre>
+    <h3>Snelle oplossingen</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">de tools die er zijn</span>
+<span class="k">bws tool fix</span>                  <span class="c">de snelle oplossingen, en de service achter elk</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">het plan om de twee audioservices te herstarten</span>
+<span class="k">bws tool fix printer</span>          <span class="c">herstart de Print Spooler met wat ervan afhangt</span></code></pre>
+    <h3>Wat er in het bestand zit</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">elk onderdeel, zijn versie, zijn licentie en waar het vandaan kwam</span>
+<span class="k">bws --version</span>             <span class="c">de versie van dit uitvoerbare bestand</span></code></pre>
+    <h3>In een PowerShell-script</h3>
+<pre class="wrap-lines"><code><span class="c"># de items die zouden moeten draaien en niet draaien, als objecten</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># de niet-ondertekende bestanden, in een spreadsheet</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># wat één service nodig heeft</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># een nachtelijke controle die vertakt op de afsluitcode</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>In cmd en een batchbestand</h3>
+<pre class="wrap-lines"><code><span class="c">rem een tweede opdracht alleen als de eerste niet schoon eindigde</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem in een batchbestand met vertraagde uitbreiding aan heeft de ! een dakje nodig</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Opties</h2>
+    <p>{{switch_count}} stuks. De derde kolom zijn de opdrachten waartoe elk behoort - een optie die aan een opdracht wordt meegegeven die er geen gebruik voor heeft is een fout met die lijst erin, in plaats van een vlag die stilletjes wordt genegeerd.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Afsluitcodes</h2>
+    <p>{{exit_code_count}} eindes, en elk daarvan is iets anders voor een script om te doen. Gegevens gaan naar de standaarduitvoer en al het andere naar de standaardfout, zodat <code>bws list --json | jq</code> werkt en een waarschuwing nooit in uw JSON belandt.</p>
+    <p>Elk JSON-document is platte ASCII: een letter daarbuiten wordt geschreven als een escape van zes tekens die elke JSON-lezer terugverandert in de letter, dus <code>bws list --json &gt; file.json</code> is geldige UTF-8 en <code>| ConvertFrom-Json</code> leest het goed welke codepagina de console ook heeft. In de tekst die een mens leest wordt een teken dat de terminal zou verplaatsen in plaats van afdrukken - een tab, een regeleinde, een escapereeks, een richtingsoverschrijving - getoond als zijn codepunt, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> beëindigt de opties, zodat een service waarvan de naam met een streepje begint toch kan worden genoemd: <code>bws show -- -odd</code>. De opdrachtregels die het hulpmiddel u geeft zijn voor PowerShell geschreven: een naam met een spatie gaat tussen dubbele aanhalingstekens, wat cmd op dezelfde manier leest, en een naam die PowerShell daarbinnen zou uitbreiden, zoals <code>MSSQL$SQLEXPRESS</code>, gaat tussen enkele aanhalingstekens.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C heeft drie niveaus, elk zegt wat het volgende kost.</strong> Het eerste stopt met vooruitgaan en zet nog terug wat was weggenomen, het tweede laat dingen zoals ze zijn en drukt nog het rapport af, het derde beëindigt het proces. Een met de hand gestopte uitvoering eindigt met <code>4</code>, ook als elke stap nog was aangekomen.</p>
+    <p class="note"><strong>Het sluiten van het consolevenster telt als de eerste Ctrl+C.</strong> Windows geeft een programma daarna vijf seconden, en daarin stopt dit met vooruitgaan en zet het terug wat het had neergehaald. Afmelden en afsluiten beëindigen het zonder enige waarschuwing waarop het kon handelen, en een weggevallen sessie op afstand mogelijk ook.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>In een geplande taak</h2>
+    <p>De vorm waarvoor dit hulpmiddel is gebouwd: leg de machine vast wanneer ze bewezen goed is, en vraag dan elke nacht of ze dat nog is.</p>
+<pre><code><span class="c"># de dag dat de machine in gebruik gaat</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># elke nacht, vanuit een geplande taak</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - geen configuratiedrift
+#   5 - de configuratie is afgedreven, en drift.json zegt wat
+#   3 - het draaide en kon niet alles lezen, dus het antwoord is gedeeltelijk</span></code></pre>
+    <p>Het venster is de andere helft van dezelfde engine: <code>{{archive_window}}</code> bevat het, en <a href="{{url:download}}">de downloadpagina</a> zegt wat elk archief is.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Het argument van het venster</h2>
+    <p><code>BetterWindowsServices.exe</code> neemt één argument dat voor een mens is bedoeld: <code>--catalogue</code> opent een ontwikkelaarsblad met elk onderdeel van het venster in elke toestand, en leest niets van uw machine. Een tweede, <code>--carry</code>, is hoe een venster doorgeeft wat het toonde aan de kopie van zichzelf die het als beheerder herstart. Niemand typt het, en alles erin wat dat venster niet kon hebben geschreven wordt geweigerd.</p>
+  </div>
+</section>

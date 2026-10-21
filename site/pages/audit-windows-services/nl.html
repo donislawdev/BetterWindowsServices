@@ -1,0 +1,64 @@
+<meta name="title" content="Windows-services controleren - bewijzen wat er is veranderd">
+<meta name="description" content="Leg elke service bij de uitrol vast in een bestand en vraag elke nacht of de machine nog overeenkomt. Drift, niet-ondertekende en ontbrekende bestanden.">
+<meta name="nav" content="Services controleren op drift">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Gids</span>
+    <h1>Windows-services controleren</h1>
+    <p class="lede">Een audit is geen lijst van wat er op de machine staat. Het is het verschil tussen wat er op de machine staat en wat er hoorde te staan - en niets op een gewone Windows legt de tweede helft vast.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Drie vragen, en wat ze beantwoordt</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Wat is er veranderd sinds deze machine werd gebouwd?</h3>
+        <p>Een momentopname bij de uitrol, en vanavond een vergelijking met de machine. Configuratie wordt los gemeld van wat alleen is gestart of gestopt, zodat het ene opstarttype dat iemand heeft gewijzigd niet wordt begraven onder veertig services die toevallig draaien.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Waarom verschilt acceptatie van productie?</h3>
+        <p>Maak op elk een momentopname en vergelijk de twee bestanden - overal, zonder dat een van beide machines aanwezig is. De bestanden dragen de naam van de machine en het account dat ze maakte.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Wat staat hier dat er niet hoort te staan?</h3>
+        <p>Queries die de vormen vinden die het bekijken waard zijn: een service waarvan het uitvoerbare bestand weg is, een die niet is ondertekend, een die draait terwijl hij is uitgeschakeld, een die om foutopsporingsrechten vraagt.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De nachtelijke vorm</h2>
+<pre><code><span class="c"># de dag dat de machine in gebruik gaat</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># elke nacht, vanuit een geplande taak</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - geen configuratiedrift
+#   5 - de configuratie is afgedreven, en drift.json zegt wat
+#   3 - het draaide en kon niet alles lezen, dus het antwoord is gedeeltelijk</span></code></pre>
+    <p>Afsluitcode <code>5</code> is wat dit tot een audit maakt in plaats van een rapport dat niemand leest: de taak zwijgt tot de machine afdrijft, en de nacht dat dat gebeurt wordt iemand gewaarschuwd.</p>
+    <p class="note"><strong>Maak de basislijn vanuit een sessie met verhoogde rechten.</strong> Zonder beheerdersrechten toont de beheerder minder items en weigert hij er meer van wat hij toont. De momentopname legt vast of het account dat hem maakte een beheerder was, zodat de vergelijking dat kan zeggen in plaats van items als verwijderd te melden die niemand heeft verwijderd - maar een basislijn waarvan de helft van de machine ontbreekt, blijft een basislijn waarvan de helft van de machine ontbreekt.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat een momentopname waard is als bewijs</h2>
+    <ul class="points points-ok">
+      <li><strong>Het is JSON met één veld per regel</strong>, dus het gaat in een repository en <code>git diff</code> leest het. Een auditor die dit hulpmiddel niet heeft kan het bestand nog steeds lezen, en een versiebeheersysteem beantwoordt al het <em>wanneer</em>.</li>
+      <li><strong>Het bevat wat de snap-in nooit toonde:</strong> het opstartpad en de argumenten, de hash en de ondertekenaar van het bestand, de afhankelijkheden in beide richtingen, de triggers, de vereiste bevoegdheden, het SID-type en de beveiligingsdescriptor.</li>
+      <li><strong>Het zegt wat het niet kon lezen.</strong> Een veld waarop deze sessie geen rechten had wordt vastgelegd als niet gelezen - nooit als leeg - zodat een latere vergelijking <em>not compared</em> kan zeggen in plaats van het stilletjes onveranderd te noemen.</li>
+      <li><strong>Het is een beschrijving van de hele machine.</strong> Archiveer het dienovereenkomstig: het wordt geschreven met de rechten die de map al heeft, en het hulpmiddel beperkt niets.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Hoe momentopnamen en vergelijkingen werken</a>
+  </div>
+</section>

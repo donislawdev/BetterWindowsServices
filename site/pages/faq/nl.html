@@ -1,0 +1,78 @@
+<meta name="title" content="Vragen over Better Windows Services, en de eerlijke grenzen">
+<meta name="description" content="Heeft het internet nodig? Beheerdersrechten? Gaat mijn server kapot? Wat het doet, en wat het bewust weigert te doen.">
+<meta name="nav" content="Veelgestelde vragen">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Vragen</span>
+    <h1>Vragen, en de grenzen</h1>
+    <p class="lede">Een hulpmiddel dat stilletjes iets niet dekt is erger dan een hulpmiddel dat zegt wat het niet kan. De grenzen staan ook op deze pagina, in twee groepen: wat het bewust weigert, en wat Windows doet en dit hulpmiddel meldt zoals het is.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Hoe verschilt dit van <code>sc.exe</code>, <code>Get-Service</code> of <code>services.msc</code>?</h3>
+        <p><code>sc query</code> en <code>Get-Service</code> vertellen u wat er draait. <code>services.msc</code> laat u het wijzigen, één rij tegelijk, zonder een manier om een vraag te stellen en zonder administratie achteraf. Dit hulpmiddel stelt de vraag (<code>start:auto !status:running</code>), toont u het plan voordat het handelt en bewaart een momentopname die u een week later kunt vergelijken. Waar het het oneens is met <code>sc.exe</code> over een service, is dat een bug - een deel van de testsuite draait beide en vergelijkt ze item voor item. <a href="{{url:sc-exe-and-powershell}}">De langere vergelijking staat hier.</a></p>
+      </div>
+      <div>
+        <h3>Heeft het internet nodig?</h3>
+        <p>Nooit. Geen telemetrie, geen controle op updates, geen crashrapportage, geen account, geen client van wat dan ook. De enige keer dat het überhaupt een netwerk kan raken is wanneer u <code>--follow-network</code> meegeeft: dan mag het een opstartpad op de share van een andere machine bekijken en Windows een certificaat laten ophalen dat deze machine nog niet heeft - standaard uit, en de help zegt waarom. De knoppen <em>GitHub</em> en <em>Donate</em> in het venster en de pagina in het menu <em>Help</em> geven elk één vast adres aan uw browser door wanneer u erop drukt, en uw browser is wat verbinding maakt.</p>
+      </div>
+      <div>
+        <h3>Heeft het beheerdersrechten nodig?</h3>
+        <p>Om te kijken niet. Om te wijzigen wel. Zonder die rechten toont de beheerder minder items en weigert hij er meer, en beide helften zeggen dat bovenaan in plaats van te doen alsof de lijst de hele machine is. Het venster biedt <em>Restart as admin</em> aan. Het verhoogt zichzelf nooit.</p>
+      </div>
+      <div>
+        <h3>Is het gratis? Mag ik het op het werk gebruiken?</h3>
+        <p>Ja op beide. GPL-3.0, zonder voorwaarden. Een momentopname die u maakt is uw bestand.</p>
+      </div>
+      <div>
+        <h3>Gaat het mijn server kapotmaken?</h3>
+        <p>Niet uit zichzelf. Er wordt niets gewijzigd zonder een plan dat u hebt gezien, stuurprogramma's worden geweigerd, en een plan dat iets zou neerhalen wat de machine nodig heeft, zegt dat. Waartegen het u niet kan beschermen is een plan uitvoeren dat u niet hebt gelezen. De lijst met services die de machine nodig heeft is een startlijst van zeven - de twee helften van RPC en de DCOM-starter, de accountbeheerder, sleutelisolatie, de sessiebeheerder en plug-and-play - en <strong>Extern bureaublad staat er niet op</strong>, dus lees het plan bij een sessie op afstand.</p>
+      </div>
+      <div>
+        <h3>Is dit een Microsoft-product?</h3>
+        <p>Nee. {{product}} is een onafhankelijk open source project en is niet gelieerd aan, goedgekeurd door of gesponsord door Microsoft. Windows is een handelsmerk van de Microsoft-groep van bedrijven.</p>
+      </div>
+      <div>
+        <h3>Is het programma in mijn taal?</h3>
+        <p>Nee - het programma spreekt Engels, en daarom is deze site vertaald. Het venster leest een taalbestand, <code>languages\gui.&lt;code&gt;.json</code>, dat naast het uitvoerbare bestand ligt, en kiest het op basis van de taal van Windows, zonder schakelaar. Een vertaling is dus een bijdrage die kan worden toegevoegd zonder het programma opnieuw te bouwen. De namen van de services in de lijst zijn wat uw Windows zegt dat ze zijn - in de taal waarin uw Windows is ingesteld.</p>
+      </div>
+      <div>
+        <h3>Waarom is het venster donker als mijn Windows licht is?</h3>
+        <p>Het is donker en blijft donker, wat Windows ook is ingesteld, inclusief een thema met hoog contrast. Dat is gecontroleerd en niet aangenomen - het houdt zijn eigen kleuren en blijft leesbaar, en volgt die instelling niet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Uit ontwerp</h2>
+    <ul class="points">
+      <li><strong>Alleen de lokale machine.</strong> Beheer op afstand zit niet in deze versie. Om twee machines te vergelijken maakt u op elk een momentopname en vergelijkt u de twee bestanden.</li>
+      <li><strong>Alleen Windows, alleen 64-bits</strong>, Windows 10 1809 of Windows Server 2019 en later.</li>
+      <li><strong>Bewerkingen op stuurprogramma's worden geweigerd in plaats van geprobeerd</strong>, omdat het stoppen van een kernelstuurprogramma vaak niet ongedaan te maken is zonder herstart.</li>
+      <li><strong>Het hulpmiddel verhoogt zijn eigen rechten niet.</strong> Wanneer de beheerder weigert, zegt het dat en eindigt het met afsluitcode <code>3</code>. Het venster biedt aan zichzelf als beheerder opnieuw te starten, en doet verder niets.</li>
+      <li><strong>Intrekking van certificaten wordt niet gecontroleerd.</strong> Daarvoor zou het het netwerk moeten bereiken, en dat doet dit hulpmiddel nooit. <em>Trusted</em> betekent dus dat de keten geldig was op deze machine, niet dat niemand het certificaat sindsdien heeft ingetrokken.</li>
+      <li><strong>Het venster pakt een deel van het gebruikersinterfaceframework van Windows uit voordat het start.</strong> Als één bestand draagt het enkele native bibliotheken die Windows alleen vanaf schijf kan laden. Zonder beheerdersrechten schrijft het ze, bij de eerste start van elke versie, naar een map <code>.net</code> onder de tijdelijke map van het account en laadt ze vandaar. Met beheerdersrechten gebruikt het in plaats daarvan <code>ProgramData\BetterWindowsServices</code> op de schijf met Windows - een map die het zo aanmaakt dat alleen beheerders hem kunnen wijzigen, en bij elke start controleert. Als die map niet kan worden aangemaakt, of anderen hem kunnen wijzigen, start het venster niet en zegt het welke map en wat u moet doen. Verhuizen daarheen betekent dat een venster met verhoogde rechten zichzelf een tweede keer start, wat een fractie van een seconde duurt, en elke versie laat er zijn bibliotheken achter (ongeveer 8 MB) tot iemand de map verwijdert. De opdrachtregel draagt zulke bibliotheken niet en pakt niets uit.</li>
+      <li><strong>Een sessie met verhoogde rechten noemt de .NET-instellingen die ze erft in plaats van ze te weigeren.</strong> Een profiler, een trace- of dump-schakelaar of een diagnostische poort die in de omgeving is ingesteld kan niet van binnen een .NET-programma worden uitgezet, dus met beheerdersrechten noemen beide helften elke die ze vinden. Opstarthaken worden helemaal uitgezet.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dingen die Windows doet en die dit hulpmiddel meldt zoals ze zijn</h2>
+    <ul class="points">
+      <li><strong>Een service die in <code>svchost</code> draait</strong> heeft een opstartpad dat de host noemt, dus <em>het bestand is er</em> en <em>wie het heeft ondertekend</em> zeggen allebei minder dan bij een service met een eigen proces.</li>
+      <li><strong>Een bestand met zowel een eigen handtekening als een Windows-catalogusitem</strong> kan twee verschillende ondertekenaars noemen. De getoonde uitgever is die in het bestand zelf - die blijft hetzelfde als het bestand op een andere machine wordt bekeken - en kan afwijken van wat PowerShell meldt.</li>
+      <li><strong>Zonder beheerdersrechten toont de beheerder minder items en weigert hij meer van wat hij toont.</strong> Beide helften zeggen dat bovenaan, en een momentopname legt het vast, omdat het vergelijken van een momentopname met verhoogde rechten met een zonder rechten anders items als verwijderd zou melden die niemand heeft verwijderd.</li>
+    </ul>
+    <p class="note"><strong>Een probleem gevonden, of een service die dit hulpmiddel anders meldt dan <code>sc.exe</code>?</strong> De <a href="{{issues}}">issuetracker</a> staat open, en een diff tussen de twee is het nuttigste wat u erin kunt plakken.</p>
+  </div>
+</section>

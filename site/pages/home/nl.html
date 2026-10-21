@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - vervanger van services.msc met zoekfunctie">
+<meta name="description" content="Vrije, gratis vervanger van services.msc. Zoek services met een querytaal, bekijk elke wijziging voordat die draait en wat er sinds gisteren is afgedreven.">
+<meta name="nav" content="Start">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  De startpagina. Elke zin heeft een tegenhanger in README.md, die tegen het draaiende programma is
+  gecontroleerd voordat hij daar werd geschreven - het plan, de vergelijking en de query hieronder
+  zijn echte uitvoer, geen illustraties.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Zoek in uw Windows-services, bekijk elke wijziging voordat die draait en <em>zie wat er is afgedreven</em> sinds gisteren</h1>
+      <p class="lede"><strong>{{product}}</strong> is <code>services.msc</code>, opnieuw gebouwd voor wie Windows-machines beheert - een venster en een opdrachtregel op één engine. Stel de machine een vraag in plaats van achthonderd rijen door te scrollen. Zie wat een wijziging gaat doen <strong>voordat u ergens op drukt</strong>. En wat <code>services.msc</code> nooit had: <strong>elke service in een bestand vastleggen en een week later vragen wat er is veranderd.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">De code bekijken op GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Vrij en gratis, GPL-3.0</li>
+        <li>Eén bestand, of een installatieprogramma</li>
+        <li>Geen beheerdersrechten om te kijken</li>
+        <li>Maakt nooit verbinding met internet</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Het venster met vijf geselecteerde items en het plan om ze te starten boven de lijst: vijf stappen, een opmerking dat twee ervan al in die toestand zijn, een bws start-regel voor elk item en de knop Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Geselecteerde items, een plan dat wordt getoond voordat er iets gebeurt, en de <code>bws</code>-regel die precies hetzelfde vraagt. Het programma spreekt Engels - het venster leest een taalbestand dat ernaast ligt, dus een vertaling is mogelijk zonder opnieuw te bouwen.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Echte opnamen van het venster, gemaakt op 2026-09-25 en 2026-09-26 en hier getoond sinds
+  2026-10-07 - de eerste, van 2026-09-24, kwamen in de plaats van een in HTML getekend schijnvenster.
+  De sessie is dezelfde GIF die de README draagt, één bestand voor beide, op besluit van de eigenaar
+  van 2026-10-07. Van 2026-09-24 tot die dag was het een video met bedieningselementen, omdat WCAG
+  2.2.2 vraagt dat een bewegende lus van meer dan vijf seconden kan worden gepauzeerd en een GIF dat
+  niet kan - dat is de prijs van de GIF, hier gezegd in plaats van vergeten.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Een halve minuut ermee</span>
+    <h2>Hoe het eruitziet in gebruik</h2>
+    <p class="lede">Een echte sessie, op een in het Pools geïnstalleerd Windows - de weergavenamen komen van Windows, dus staan ze in de taal ervan. Het venster zelf spreekt Engels.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Vier geselecteerde items en het plan om ze te starten, een geforceerde herstart van de Local Session Manager waarvan het plan waarschuwt dat de machine niet werkt zonder deze en om de naam ervan vraagt voordat de knop werkt, de startvragen onder het lege zoekvak, en de Print Spooler die is gevonden door een deel van de naam te typen en is gestart." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Vier geselecteerde items en het plan om ze te starten, een geforceerde herstart die vraagt om de naam van een service die de machine nodig heeft, de vragen onder een leeg zoekvak en de Print Spooler die al typend is gevonden en gestart.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Het openingsscherm: drie kaarten met cijfers over deze machine - draaiende services, services die automatisch starten maar niet zijn opgekomen, en services die automatisch starten waarvan het bestand weg is - en een knop Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Het opent met enkele cijfers over deze machine. Elk is een vraag - klik erop en de vraag gaat naar het zoekvak.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="De lijst met services met de drie lijsten boven het zoekvak, een leeg zoekvak, de filterknoppen in rijen geopend voor toestand, opstarttype, handtekening, afwijkingen en triggers, en de lijst eronder." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>De filterknoppen schrijven in het zoekvak, zodat wat u hebt aangeklikt een query is die u kunt lezen en bewerken.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Waarom dit bestaat</span>
+    <h2><code>services.msc</code> is sinds Windows 2000 nauwelijks veranderd</h2>
+    <p class="lede">Beheerders besteden er elke week uren aan en lopen steeds tegen dezelfde muren op.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Geen zoekfunctie.</strong> De enige navigatie is springen naar de eerste letter van een weergavenaam.</li>
+        <li><strong>Geen filter.</strong> Er is geen manier om te vragen <em>toon me wat automatisch moet starten en niet draait</em>.</li>
+        <li><strong>Eén rij tegelijk.</strong> Twaalf services herstarten is twaalf keer rechtsklikken en twaalf keer wachten.</li>
+        <li><strong>"Wordt gestopt..." voor altijd</strong>, zonder andere uitweg dan Taakbeheer en het proces raden.</li>
+        <li><strong>Geen geschiedenis.</strong> Niemand weet wie dat opstarttype op Uitgeschakeld heeft gezet, of wanneer.</li>
+        <li><strong>Verborgen gegevens.</strong> Het proces, de triggers, de bevoegdheden, de beveiligingsdescriptor, wie het uitvoerbare bestand heeft ondertekend - alles vraagt <code>sc.exe</code> uit het hoofd, of het register.</li>
+        <li><strong>Geen gelijkwaardigheid op de opdrachtregel.</strong> <code>sc.exe</code> heeft een syntaxis uit de jaren negentig, en de <code>Get-Service</code> die met Windows meekomt, in Windows PowerShell 5.1, toont niet onder welk account een service draait, laat staan de beschrijving. PowerShell 7 toont beide en wordt apart geïnstalleerd.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>De andere hulpmiddelen lossen elk een deel op</h3>
+        <p>Process Hacker en System Informer tonen een rijke lijst en kunnen een proces geforceerd beëindigen, maar hebben geen audit en geen opdrachtregel. <code>sc.exe</code> en <code>PsService</code> kunnen alles en vertellen u niets. De <code>*-Service</code>-cmdlets van PowerShell zijn scriptbaar en oppervlakkig.</p>
+        <p>Niemand combineert een doorzoekbare lijst, een voorvertoning vóór elke wijziging en een logboek van wat er in de loop van de tijd is veranderd - en dat logboek is de reden om dit hulpmiddel na de eerste middag op een machine te houden.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">De volledige vergelijking</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Wat het doet</span>
+    <h2>Een venster en een opdrachtregel op één engine</h2>
+    <div class="grid">
+      <div class="card"><h3>Vragen in plaats van scrollen</h3><p><code>start:auto !status:running</code> is <em>wat moet draaien en niet draait</em>. Eén taal, in het zoekvak en in <code>bws list --query</code>, met de velden als suggestie terwijl u typt.</p></div>
+      <div class="card"><h3>Het plan tonen voordat er iets gebeurt</h3><p>Elke stop, start, herstart en wijziging van het opstarttype wordt vooraf getoond, met de services die erdoor meevallen, en de voorvertoning is wat er draait.</p></div>
+      <div class="card"><h3>Zeggen wat er is afgedreven en wie het heeft gewijzigd</h3><p><code>bws snapshot create</code> legt de machine vast in een bestand en <code>bws snapshot diff</code> zegt wat er sindsdien is veranderd, de configuratie los van wat alleen is gestart of gestopt. <code>bws history</code> zegt aan de hand van het systeemlogboek wie een opstarttype heeft gewijzigd en wie een service heeft geïnstalleerd. Het venster doet alle drie onder <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Een veelvoorkomend probleem met één klik oplossen</h3><p>Het tabblad <em>Tools</em> en <code>bws tool fix</code> herstarten de service achter een printer die niet print, geluid dat weg is of een vastgelopen zoekopdracht, samen met wat ervan afhangt, via hetzelfde plan als al het andere.</p></div>
+      <div class="card"><h3>Een service stoppen die niet wil stoppen</h3><p>Het vraagt eerst beleefd en beëindigt het proces alleen als dat mislukt, waarbij elke andere service die erin leeft wordt genoemd.</p></div>
+      <div class="card"><h3>Tonen wat <code>services.msc</code> verbergt</h3><p>Wie het uitvoerbare bestand heeft ondertekend en of Windows het vertrouwt, triggers, bevoegdheden, de beveiligingsdescriptor, het proces en het geheugen ervan. Als kolommen en als zoekcriteria.</p></div>
+      <div class="card"><h3>Zeggen wanneer iets niet gelezen kon worden</h3><p>Een veld dat het niet kon lezen wordt gemeld als niet gelezen, nooit getoond als leeg. Een momentopname zonder beheerdersrechten zegt dat in het bestand zelf.</p></div>
+      <div class="card"><h3>In scripts passen</h3><p><code>--json</code> bij elke opdracht, een afsluitcode voor elk einde en <code>5</code> wanneer een vergelijking drift vindt.</p></div>
+      <div class="card"><h3>Draaien vanuit één bestand, offline</h3><p>Uitpakken en starten, of installeren voor de hele machine. Geen .NET om te installeren, en het maakt nooit verbinding met internet. Voor lezen zijn geen beheerdersrechten nodig. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Wat services.msc nooit deed</span>
+    <h2>Wat er sinds gisteren is veranderd</h2>
+    <p class="lede">Een momentopname is de hele machine op één moment - elke service en elk stuurprogramma, met opstarttype, account, opstartpad, de hash en de ondertekenaar van het bestand, afhankelijkheden, triggers, bevoegdheden en beveiligingsdescriptor. Het is JSON met één veld per regel, dus het past in een repository en <code>git diff</code> leest het.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Configuratie en uitvoeringstoestand worden apart gemeld.</strong> Twee momentopnamen met een dag ertussen verschillen in wat er toevallig draait, en bijna niets daarvan is drift - het opstarttype dat is veranderd is de regel om te lezen.</li>
+        <li><strong>Wat niet kon worden vergeleken wordt vermeld, niet verborgen.</strong> Een veld dat een momentopname nooit las, komt eruit als <em>not compared</em>, zodat een vergelijking die zegt <em>niets is veranderd</em> betekent dat er niets is veranderd in wat beide kanten konden zien.</li>
+        <li><strong><code>--exit-code</code> eindigt met <code>5</code> wanneer de configuratie verschilt</strong>, zodat een geplande taak bij de uitrol een momentopname kan maken en de eerste nacht dat de machine afdrijft iemand kan waarschuwen.</li>
+        <li><strong>Twee machines, twee bestanden.</strong> Maak een momentopname op acceptatie en een op productie en vergelijk ze overal.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Hoe momentopnamen en drift werken</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Niets gebeurt zonder plan</span>
+    <h2>De voorvertoning is de uitvoering</h2>
+    <p class="lede">Elke bewerking die schrijft bouwt eerst een plan, en datzelfde plan is de voorvertoning, de waterval van afhankelijke services, de weigering voordat u ergens op drukt, de opdrachtregel die hetzelfde vraagt en de weg terug achteraf.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Voer het uit zonder <code>--dry-run</code> en dit zijn de stappen</strong>, in die volgorde, met dezelfde redenen ernaast. Er is geen tweede codepad voor de echte uitvoering.</li>
+        <li><strong>Wat ermee meevalt staat in het plan.</strong> De services die zouden uitvallen zijn stappen op zich, en een plan dat iets zou neerhalen wat de machine nodig heeft, zegt dat in de waarschuwingen.</li>
+        <li><strong>Een weigering komt vóór de knop.</strong> Een stuurprogramma, een service waarvoor de beheerder geen stop accepteert, een proces dat het systeem beschermt - geweigerd bij het bouwen van het plan, met de reden. Het venster maakt de knop grijs en zegt waarom ernaast.</li>
+        <li><strong>Geforceerd stoppen is twee stappen, en de tweede is voorwaardelijk.</strong> <code>bws kill</code> vraagt de service te stoppen en beëindigt het proces alleen als dat niet werkt, waarbij elke andere service die erin leeft wordt genoemd.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Wanneer een service niet wil stoppen</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Twee minuten ermee</span>
+    <h2>Vanaf de opdrachtregel</h2>
+    <p class="lede">Dezelfde engine als het venster, voor scripts, geplande taken en CI. Gegevens gaan naar de standaarduitvoer en al het andere naar de standaardfout, zodat <code>bws list --json | jq</code> werkt en een waarschuwing nooit in uw JSON belandt.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">wat moet draaien en niet draait</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">services waarvan het uitvoerbare bestand weg is</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">niet ondertekend, zonder de kopieën per sessie</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">alles wat bekend is over een item</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">wat stoppen ervan zou meenemen</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">wat het beëindigen van het proces zou meenemen</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">wat het van automatisch halen zou doen</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">de machine vastleggen voor een wijziging</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">wat er sindsdien is veranderd, 5 als de configuratie dat is</span>
+<span class="k">bws history Spooler</span>                               <span class="c">wie het opstarttype heeft gewijzigd, en wanneer</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">wat de snelle oplossing voor een vastgelopen printer zou doen</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Elke opdracht, optie en afsluitcode</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Het binnenhalen</span>
+    <h2>Uitpakken en starten, of installeren</h2>
+    <p class="lede">Windows 10 1809 of Windows Server 2019 en later, 64-bits. De archieven hebben geen installatieprogramma nodig en schrijven niets naar het register, en kijken vraagt geen beheerdersrechten. Iets wijzigen vraagt een sessie met verhoogde rechten, en beide helften zeggen dat in plaats van stil te mislukken - het venster biedt <em>Restart as admin</em> aan.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Bestand</th><th>Wat het is</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Het venster, één zelfstandig uitvoerbaar bestand - geen .NET om te installeren</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>De opdrachtregel, één zelfstandig uitvoerbaar bestand, voor scripts en CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Het installatieprogramma: beide programma's voor elk account op de machine, het venster in het startmenu en <code>bws</code> in het PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>De uitvoerbare bestanden dragen een Authenticode-handtekening, zodat Windows de uitgever noemt in plaats van te waarschuwen voor een onbekende.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Vereisten en bouwen uit de broncode</a>
+    </div>
+  </div>
+</section>

@@ -11,6 +11,7 @@
     "fr": "service-windows-impossible-a-arreter",
     "es": "servicio-de-windows-que-no-se-detiene",
     "it": "servizio-windows-che-non-si-ferma",
-    "pt-br": "servico-do-windows-que-nao-para"
+    "pt-br": "servico-do-windows-que-nao-para",
+    "nl": "windows-service-die-niet-stopt"
   }
 }

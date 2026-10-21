@@ -1,0 +1,65 @@
+<meta name="title" content="Momentopnamen en drift - wat er sinds gisteren is veranderd">
+<meta name="description" content="Leg elke Windows-service vast in een JSON-bestand en vraag wat er veranderde. Configuratie los van uitvoeringstoestand, afsluitcode 5 kan iemand waarschuwen.">
+<meta name="nav" content="Momentopnamen en drift">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Het deel dat services.msc nooit deed</span>
+    <h1>Momentopnamen en drift</h1>
+    <p class="lede">Elk ander hulpmiddel vertelt hoe een machine er nu uitziet. De vraag die een beheerder echt heeft is <em>wat is anders dan toen het werkte</em> - en niets op een gewone Windows beantwoordt die.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat een momentopname bevat</h2>
+    <p>De hele machine op één moment: elke service en elk stuurprogramma, met opstarttype, account, opstartpad en argumenten, de hash en de ondertekenaar van het bestand dat het uitvoert, de afhankelijkheden en wat ervan afhangt, de triggers, de vereiste bevoegdheden, het SID-type en de beveiligingsdescriptor - plus de naam van de machine, het account dat hem heeft gemaakt en <strong>of dat account een beheerder was</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Het is JSON met één veld per regel. Dat is bewust: een momentopname kan in een repository en <code>git diff</code> leest hem, dus de eigen vergelijking van het hulpmiddel is niet de enige manier om er een te bekijken.</p>
+    <p class="note"><strong>Archiveer het als wat het is.</strong> Een momentopname beschrijft de hele machine, tot elk opstartpad en elke beveiligingsdescriptor toe. Hij wordt geschreven met de rechten die de map al heeft, en het hulpmiddel beperkt niets - een map die anderen kunnen lezen is dus een map waarin ze dat alles kunnen lezen.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Vraag dan wat er anders is</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Configuratie en uitvoeringstoestand worden apart gemeld.</strong> Twee momentopnamen met een dag ertussen verschillen in wat er toevallig draait, en bijna niets daarvan is drift. Door elkaar gegooid wordt de ene regel die telt - een opstarttype dat iemand heeft gewijzigd - begraven onder veertig die dat niet doen.</li>
+        <li><strong>Wat niet kon worden vergeleken wordt vermeld, niet verborgen.</strong> Een veld dat een van de twee momentopnamen nooit las, omdat die sessie er geen rechten op had, komt onder zijn item uit als <em>not compared</em>, en de samenvatting telt die items. Een vergelijking die zegt <em>niets is veranderd</em> betekent dus dat er niets is veranderd in wat beide kanten konden zien.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Een momentopname met verhoogde rechten tegen een zonder zou liegen</strong>, en items als verwijderd melden die niemand heeft verwijderd. Elk bestand legt vast of het account dat het maakte een beheerder was, en de vergelijking zegt dat.</li>
+        <li><strong>Twee bestanden, niet alleen een bestand en deze machine.</strong> Maak er een op acceptatie en een op productie en vergelijk ze overal - het antwoord op <em>waarom verschilt acceptatie</em> heeft geen van beide machines nodig.</li>
+      </ul>
+    </div>
+    <p><strong>Het venster doet hetzelfde onder <em>Audit...</em>.</strong> <em>Take snapshot...</em> schrijft hetzelfde bestand, met een notitie als u er een typt, en <em>Compare with this machine...</em> of <em>Compare two snapshots...</em> toont in plaats van de lijst wat er is veranderd, één rij per veld, met alles wat de vergelijking minder dan exact maakt boven de tabel gezegd. <em>Show</em> beperkt het tot de verschillen of tot één veld, en <em>Export...</em> schrijft het naar een CSV-bestand.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De afsluitcode is waar het om gaat</h2>
+    <p><code>--exit-code</code> eindigt met <code>5</code> wanneer de configuratie verschilt - een item toegevoegd of verwijderd, of een anders ingesteld item. Een service die alleen uit zichzelf stopte of startte wordt gemeld en telt niet mee, en de kopieën per gebruiker die Windows voor elke aangemelde sessie maakt ook niet: die blijven weg en worden geteld. Geen mislukking - drift is waarvoor dit hulpmiddel is gemaakt, en het vinden ervan is geen mislukking - en daarom heeft het een eigen nummer in plaats van het nummer te lenen dat betekent dat er iets misging.</p>
+<pre><code><span class="c"># de dag dat de machine in gebruik gaat</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># elke nacht, vanuit een geplande taak</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - geen configuratiedrift
+#   5 - de configuratie is afgedreven, en drift.json zegt wat
+#   3 - het draaide en kon niet alles lezen, dus het antwoord is gedeeltelijk</span></code></pre>
+    <p>Dat is het hele mechanisme: een basislijn gemaakt toen de machine bewezen goed was, en elke nacht een vraag. De eerste nacht dat het <code>5</code> antwoordt, komt iemand het die nacht te weten en niet de ochtend dat iets kapotgaat.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Hiervoor een audit gebruiken</a>
+  </div>
+</section>

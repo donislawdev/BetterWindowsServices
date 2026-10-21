@@ -1,0 +1,102 @@
+<meta name="title" content="Een alternatief voor services.msc voor Windows-beheerders">
+<meta name="description" content="services.msc kent geen zoekfunctie, filters of geschiedenis. Een gratis open source vervanger met querytaal, voorvertoning vóór elke wijziging en drift-vergelijking.">
+<meta name="nav" content="Versus services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Gids</span>
+    <h1>Een alternatief voor <code>services.msc</code></h1>
+    <p class="lede">De snap-in Services is sinds Windows 2000 nauwelijks veranderd. Het is nog steeds de snelste manier om één service te starten die u al op het scherm ziet, en de langzaamste manier om een vraag over een machine te beantwoorden.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat mensen op zoek doet gaan</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Geen zoekfunctie.</strong> De enige navigatie is een letter typen om naar de eerste weergavenaam te springen die ermee begint. Op een machine met achthonderd items is dat scrollen met extra stappen.</li>
+        <li><strong>Geen filter.</strong> Er is geen manier om te vragen <em>wat staat op automatisch starten en draait niet</em> - de ene vraag die een kapotte machine vindt.</li>
+        <li><strong>Eén rij tegelijk.</strong> Twaalf services herstarten is twaalf keer rechtsklikken en twaalf keer wachten.</li>
+        <li><strong>"Stopping..." zonder uitweg</strong> behalve Taakbeheer en raden welke <code>svchost</code> u moet beëindigen.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Geen geschiedenis.</strong> Niemand weet wie dat opstarttype op Uitgeschakeld zette, of wanneer, of dat het vorige maand al zo was.</li>
+        <li><strong>Verborgen gegevens.</strong> Het proces, de triggers, de vereiste bevoegdheden, de beveiligingsdescriptor, wie het uitvoerbare bestand heeft ondertekend - niets daarvan staat in de snap-in, en het is allemaal van belang als er iets mis is.</li>
+        <li><strong>De kolommen kunnen niet veranderen.</strong> Naam, beschrijving, status, opstarttype, aanmelden als. Dat is de hele lijst, en geen ervan is op een echte machine zinvol te sorteren.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dezelfde taken, in beide</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>U wilt</th><th>In <code>services.msc</code></th><th>Hier</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Vinden wat zou moeten draaien en niet draait</td>
+            <td class="no">Sorteren op opstarttype, scrollen, elke rij lezen</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Weten wat een stop met zich meeneemt</td>
+            <td class="no">Een dialoog die afhankelijke services noemt nadat u op Stop drukt</td>
+            <td>Een plan voordat er iets gebeurt, met elke afhankelijke service als stap en een waarschuwing wanneer er een iets is wat de machine nodig heeft</td>
+          </tr>
+          <tr>
+            <td>Weten wat er sinds vorige week is veranderd</td>
+            <td class="no">Niets</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Weten wie een opstarttype heeft gewijzigd</td>
+            <td class="no">Niets</td>
+            <td><code>bws history Spooler</code>, uit het systeemlogboek</td>
+          </tr>
+          <tr>
+            <td>Twaalf services herstarten</td>
+            <td class="no">Twaalf keer rechtsklikken</td>
+            <td>Selecteer er twaalf, één plan, één uitvoering, één rapport</td>
+          </tr>
+          <tr>
+            <td>Zien wie een uitvoerbaar bestand van een service heeft ondertekend</td>
+            <td class="no">Wordt niet getoond</td>
+            <td>Een kolom, en iets om op te zoeken: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Er iets van scripten</td>
+            <td class="no">Niet scriptbaar</td>
+            <td><code>bws</code>, met <code>--json</code> en een afsluitcode voor elk einde</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat de snap-in nog steeds beter doet</h2>
+    <p class="lede">Twee dingen, en anders doen alsof zou het soort bewering zijn dat dit project niet doet.</p>
+    <ul class="points">
+      <li><strong>Hij staat al op de machine.</strong> Niets om te downloaden, niets om langs een softwarebeleid te krijgen. Op een machine die u één keer aanraakt is dat het hele argument.</li>
+      <li><strong>Hij bewerkt herstelacties, het account en het opstartpad.</strong> Dit hulpmiddel toont het account en het opstartpad en wijzigt geen van beide, en leest herstelacties alleen om te waarschuwen voordat het een proces beëindigt. Een service aanmaken, verwijderen of naar iets anders laten wijzen zit hier ook niet in.</li>
+    </ul>
+    <p>Wat hij helemaal niet kan is de reden dat dit bestaat: een vraag stellen, eerst een plan tonen, en zeggen wat er is afgedreven.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat dit is</h2>
+    <p>{{product}} is vrij en open source onder GPL-3.0, één bestand per helft of een installatieprogramma voor de hele machine, en het maakt nooit verbinding met internet. Lezen vraagt geen beheerdersrechten - wijzigen wel, en het zegt dat in plaats van stilletjes te mislukken.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">De querytaal bekijken</a>
+    </div>
+  </div>
+</section>

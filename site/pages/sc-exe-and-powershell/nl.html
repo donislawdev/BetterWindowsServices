@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe en Get-Service vergeleken met een hulpmiddel voor audits">
+<meta name="description" content="sc.exe kan alles en vertelt u niets. Get-Service is scriptbaar en oppervlakkig. Waar elk nog het beste is, en waar een querytaal en een plan het beter doen.">
+<meta name="nav" content="sc.exe en PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Gids</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> en dit</h1>
+    <p class="lede">Beide staan al op de machine, en beide blijven nuttig. Deze pagina gaat over waar ze ophouden - en zegt eerlijk waar ze nog het betere antwoord zijn.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Waar elk ophoudt</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Het kan bijna alles bereiken wat de servicebeheerder weet, en het vertelt u niets over hoe u moet vragen. De syntaxis komt uit de jaren negentig - <code>sc config X start= auto</code>, waar de spatie na het gelijkteken verplicht is en het ontbreken ervan een stille mislukking is om te doen wat u bedoelde.</p>
+        <p>Het antwoordt over één item tegelijk. Er is geen filter, geen uitvoer die een script kan parsen zonder een parser te schrijven, en geen voorvertoning: <code>sc stop</code> werkt of geeft een getal terug.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> en de <code>*-Service</code>-cmdlets</h3>
+        <p>Echte objecten, een pijplijn, en een oppervlakkig beeld. In Windows PowerShell 5.1, die met Windows meekomt, toont <code>Get-Service</code> niet onder welk account een service draait en ook de beschrijving niet. PowerShell 7 toont beide, en het opstartpad ook, en wordt apart geïnstalleerd.</p>
+        <p><code>Stop-Service -Force</code> betekent "ook als er iets van afhangt" - het stopt de afhankelijke services, en het zegt u dat achteraf in plaats van vooraf.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dezelfde vragen, op drie manieren</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Vraag</th><th>Met wat op de machine staat</th><th>Hier</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Wat zou moeten draaien en niet draait</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Welke services een niet-ondertekend uitvoerbaar bestand hebben</td>
+            <td class="no">Elk opstartpad lezen, omzetten, op elk <code>Get-AuthenticodeSignature</code> aanroepen - een script, geen opdracht</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Wat het stoppen hiervan zou meenemen</td>
+            <td><code>sc enumdepend X</code>, dan de lijst lezen en zelf beslissen</td>
+            <td><code>bws stop X --dry-run --dependents</code>, dat is het plan dat zou draaien</td>
+          </tr>
+          <tr>
+            <td>Wat er sinds vorige week is veranderd</td>
+            <td class="no">Niets, tenzij u zelf de verzamelaar hebt geschreven</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Wie het opstarttype heeft gewijzigd, en wanneer</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, dan het bericht van elke gebeurtenis lezen</td>
+            <td><code>bws history Spooler</code>, waarvan de eerste regel zegt hoe ver het logboek teruggaat</td>
+          </tr>
+          <tr>
+            <td>Machineleesbare uitvoer</td>
+            <td>Objecten van PowerShell, tekst van <code>sc.exe</code></td>
+            <td><code>--json</code> bij elke opdracht, op de standaarduitvoer, met waarschuwingen op de standaardfout</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Waar dit hulpmiddel het oneens is met <code>sc.exe</code> over een service, is dat hier een bug.</strong> Een deel van de testsuite draait beide op de machine waarop het staat en vergelijkt ze item voor item, en een verschil tussen de twee is het nuttigste wat u in een issue kunt zetten.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wanneer u moet blijven gebruiken wat u hebt</h2>
+    <ul class="points">
+      <li><strong>U zit op een machine die u één keer aanraakt.</strong> Beide staan er al en niets hoeft langs een beleid.</li>
+      <li><strong>U moet het account, het opstartpad of herstelacties wijzigen.</strong> <code>sc.exe</code> doet alle drie. Dit hulpmiddel toont het account en het opstartpad en wijzigt geen van beide, en leest herstelacties alleen om te waarschuwen voordat het een proces beëindigt.</li>
+      <li><strong>U moet een service aanmaken of verwijderen.</strong> <code>sc create</code> en <code>sc delete</code>. Niet hier, met opzet.</li>
+      <li><strong>U zit al diep in een PowerShell-pijplijn.</strong> <code>bws list --json</code> komt als objecten terug via <code>ConvertFrom-Json</code>, dus het voegt zich in de pijplijn in plaats van haar te vervangen.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Samen, in plaats van in de plaats</h2>
+    <p>Het hulpmiddel dat antwoordt op <em>wat is er mis met deze machine</em> en de hulpmiddelen die één instelling wijzigen zijn niet hetzelfde hulpmiddel. Stel de vraag hier, lees het plan hier, en gebruik wat u wilt om het uit te voeren - het plan drukt de opdrachtregel af die om hetzelfde vraagt, en die regel is bedoeld om te worden gekopieerd.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">De querytaal</a>
+    </div>
+  </div>
+</section>
