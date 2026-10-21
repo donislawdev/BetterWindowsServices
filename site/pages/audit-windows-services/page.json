@@ -15,6 +15,7 @@
     "nl": "windows-services-controleren",
     "cs": "audit-sluzeb-windows",
     "ro": "auditarea-serviciilor-windows",
-    "tr": "windows-hizmetlerini-denetleme"
+    "tr": "windows-hizmetlerini-denetleme",
+    "id": "audit-layanan-windows"
   }
 }

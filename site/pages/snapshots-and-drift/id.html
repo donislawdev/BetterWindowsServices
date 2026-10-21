@@ -1,0 +1,65 @@
+<meta name="title" content="Snapshot dan penyimpangan - apa yang berubah sejak kemarin">
+<meta name="description" content="Bekukan layanan Windows ke berkas JSON, lalu tanyakan apa yang berubah. Konfigurasi dipisah dari status berjalan, dan kode keluar 5 bisa memanggil seseorang.">
+<meta name="nav" content="Snapshot dan penyimpangan">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Bagian yang tidak pernah dilakukan services.msc</span>
+    <h1>Snapshot dan penyimpangan</h1>
+    <p class="lede">Setiap alat lain memberi tahu Anda seperti apa mesin itu sekarang. Pertanyaan yang sebenarnya dimiliki administrator adalah <em>apa yang berbeda dari saat semuanya berfungsi</em> - dan tidak ada apa pun pada Windows standar yang menjawabnya.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa isi sebuah snapshot</h2>
+    <p>Seluruh mesin pada satu saat: setiap layanan dan driver, dengan tipe startup, akun, jalur peluncuran dan argumen, hash dan penandatangan berkas yang dijalankannya, dependensinya dan apa yang bergantung padanya, pemicunya, hak istimewa yang dibutuhkan, tipe SID, dan deskriptor keamanannya - ditambah nama mesin, akun yang mengambilnya, dan <strong>apakah akun itu administrator</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Berupa JSON dengan satu bidang per baris. Itu disengaja: snapshot bisa masuk ke repositori dan <code>git diff</code> membacanya, sehingga perbandingan bawaan alat ini bukan satu-satunya cara untuk melihatnya.</p>
+    <p class="note"><strong>Simpan sesuai dengan apa adanya.</strong> Snapshot menggambarkan seluruh mesin, sampai setiap jalur peluncuran dan deskriptor keamanan. Ia ditulis dengan izin apa pun yang sudah dimiliki direktorinya, dan alat ini tidak mempersempit apa pun - sehingga direktori yang bisa dibaca orang lain adalah direktori tempat mereka bisa membaca semua itu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lalu tanyakan apa yang berbeda</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Konfigurasi dan status berjalan dilaporkan terpisah.</strong> Dua snapshot yang diambil berselang sehari berbeda pada apa yang kebetulan berjalan, dan hampir tidak ada yang merupakan penyimpangan. Jika dicampur, satu baris yang penting - tipe startup yang diubah seseorang - terkubur di bawah empat puluh yang tidak penting.</li>
+        <li><strong>Apa yang tidak bisa dibandingkan dicantumkan, tidak disembunyikan.</strong> Bidang yang tidak pernah dibaca oleh salah satu dari dua snapshot, karena sesi itu tidak punya hak atasnya, muncul sebagai <em>not compared</em> di bawah entrinya, dan ringkasan menghitung entri tersebut. Jadi perbandingan yang berbunyi <em>tidak ada yang berubah</em> berarti tidak ada yang berubah pada apa yang bisa dilihat kedua sisi.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Snapshot dengan hak tinggi dibandingkan dengan yang tanpa hak akan berbohong</strong>, melaporkan entri sebagai dihapus padahal tidak ada yang menghapusnya. Setiap berkas mencatat apakah akun yang mengambilnya adalah administrator, dan perbandingan menyatakannya.</li>
+        <li><strong>Dua berkas, bukan hanya berkas dan mesin ini.</strong> Ambil satu di staging dan satu di produksi, lalu bandingkan di mana saja - jawaban atas <em>mengapa staging berbeda</em> tidak membutuhkan salah satu mesin hadir.</li>
+      </ul>
+    </div>
+    <p><strong>Jendela melakukan hal yang sama di bawah <em>Audit...</em>.</strong> <em>Take snapshot...</em> menulis berkas yang sama, dengan catatan jika Anda mengetiknya, dan <em>Compare with this machine...</em> atau <em>Compare two snapshots...</em> menampilkan apa yang berubah sebagai ganti daftar, satu baris per bidang, dengan segala sesuatu yang membuat perbandingan kurang tepat dinyatakan di atas tabel. <em>Show</em> mempersempitnya ke perbedaan atau ke satu bidang, dan <em>Export...</em> menulisnya ke berkas CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kode keluar adalah intinya</h2>
+    <p><code>--exit-code</code> berakhir dengan <code>5</code> ketika konfigurasi berbeda - sebuah entri ditambah atau dihapus, atau satu yang diatur berbeda. Layanan yang hanya berhenti atau mulai sendiri dilaporkan dan tidak dihitung, begitu juga salinan per pengguna yang dibuat Windows untuk setiap sesi yang masuk: itu dikecualikan dan dihitung. Bukan kegagalan - penyimpangan adalah apa yang ingin ditemukan alat ini, dan menemukannya bukanlah kegagalan - itulah sebabnya ia punya nomor sendiri alih-alih meminjam nomor yang berarti ada yang salah.</p>
+<pre><code><span class="c"># hari mesin mulai beroperasi</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># setiap malam, dari tugas terjadwal</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - tidak ada penyimpangan konfigurasi
+#   5 - konfigurasi menyimpang, dan drift.json menyatakan apa
+#   3 - berjalan tetapi tidak bisa membaca semuanya, jadi jawabannya sebagian</span></code></pre>
+    <p>Itulah seluruh mekanismenya: acuan dasar yang diambil saat mesin diketahui baik, dan pertanyaan yang diajukan setiap malam. Pada malam pertama ia menjawab <code>5</code>, seseorang tahu pada malam pertama itu, bukan pada pagi saat sesuatu rusak.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Memakai ini untuk audit</a>
+  </div>
+</section>

@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - pengganti services.msc dengan pencarian">
+<meta name="description" content="Pengganti services.msc yang bebas dan gratis. Cari layanan dengan bahasa kueri, pratinjau setiap perubahan, dan lihat apa yang menyimpang sejak kemarin.">
+<meta name="nav" content="Beranda">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Halaman depan. Setiap kalimat di sini punya padanan di README.md, yang diperiksa terhadap
+  program yang sedang berjalan sebelum ditulis di sana - rencana, perbandingan, dan kueri di bawah
+  ini adalah keluaran nyata, bukan ilustrasi.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Cari layanan Windows Anda, pratinjau setiap perubahan, dan <em>lihat apa yang menyimpang</em> sejak kemarin</h1>
+      <p class="lede"><strong>{{product}}</strong> adalah <code>services.msc</code> yang dibangun ulang untuk orang yang mengelola mesin Windows - sebuah jendela dan sebuah baris perintah di atas satu mesin yang sama. Ajukan pertanyaan kepada mesin alih-alih menggulir delapan ratus baris. Lihat apa yang akan dilakukan sebuah perubahan <strong>sebelum Anda menekan apa pun</strong>. Dan bagian yang tidak pernah dimiliki <code>services.msc</code>: <strong>bekukan setiap layanan ke dalam satu berkas, lalu seminggu kemudian tanyakan apa yang berubah.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Lihat kode di GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Bebas dan gratis, GPL-3.0</li>
+        <li>Satu berkas, atau sebuah installer</li>
+        <li>Tidak perlu hak administrator untuk melihat</li>
+        <li>Tidak pernah terhubung ke internet</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Jendela dengan lima entri terpilih dan rencana untuk memulainya yang ditampilkan di atas daftar: lima langkah, catatan bahwa dua di antaranya sudah dalam keadaan itu, satu baris bws start untuk setiap entri, dan tombol Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Entri yang dipilih, sebuah rencana yang ditampilkan sebelum apa pun terjadi, dan baris <code>bws</code> yang meminta hal yang persis sama. Program ini berbahasa Inggris - jendela membaca berkas bahasa yang ditaruh di sebelahnya, sehingga terjemahan dimungkinkan tanpa membangun ulang.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Rekaman nyata dari jendela, direkam pada 2026-09-25 dan 2026-09-26 dan ditampilkan di sini sejak
+  2026-10-07 - yang pertama, dari 2026-09-24, menggantikan jendela tiruan yang digambar dalam HTML.
+  Sesinya adalah GIF yang sama dengan yang dibawa README, satu berkas untuk keduanya, atas
+  keputusan pemilik pada 2026-10-07. Dari 2026-09-24 sampai hari itu berupa video dengan kontrol,
+  karena WCAG 2.2.2 meminta agar putaran bergerak yang lebih panjang dari lima detik dapat
+  dijeda, dan GIF tidak bisa - itulah harga GIF, dinyatakan di sini alih-alih dilupakan.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Setengah menit bersamanya</span>
+    <h2>Seperti apa tampilannya saat dipakai</h2>
+    <p class="lede">Sebuah sesi nyata, pada Windows yang terpasang dalam bahasa Polandia - nama tampilan berasal dari Windows, jadi memakai bahasanya. Jendela itu sendiri berbahasa Inggris.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Empat entri terpilih dan rencana untuk memulainya, restart paksa Local Session Manager yang rencananya memperingatkan bahwa mesin tidak berfungsi tanpanya dan meminta namanya sebelum tombol bekerja, pertanyaan awal di bawah kotak pencarian kosong, dan Print Spooler yang ditemukan dengan mengetik sebagian namanya lalu dimulai." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Empat entri terpilih dan rencana untuk memulainya, restart paksa yang meminta nama layanan yang dibutuhkan mesin, pertanyaan di bawah kotak pencarian kosong, dan Print Spooler yang ditemukan dengan mengetik lalu dimulai.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Layar pembuka: tiga kartu berisi angka tentang mesin ini - layanan yang berjalan, layanan yang diatur mulai otomatis tetapi tidak naik, dan layanan yang diatur mulai otomatis tetapi berkasnya hilang - dan tombol Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Layar ini terbuka dengan beberapa angka tentang mesin ini. Masing-masing adalah sebuah pertanyaan - klik, dan pertanyaan itu masuk ke kotak pencarian.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Daftar layanan dengan tiga daftar di atas kotak pencarian, kotak pencarian kosong, tombol filter yang terbuka dalam baris untuk status, tipe startup, tanda tangan, ketidaksesuaian, dan pemicu, serta daftar di bawahnya." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Tombol filter menulis ke kotak pencarian, sehingga apa yang Anda klik adalah kueri yang bisa Anda baca dan sunting.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Mengapa ini ada</span>
+    <h2><code>services.msc</code> nyaris tidak berubah sejak Windows 2000</h2>
+    <p class="lede">Administrator menghabiskan berjam-jam seminggu di dalamnya sambil menabrak tembok yang sama.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Tidak ada pencarian.</strong> Satu-satunya navigasi adalah melompat ke huruf pertama sebuah nama tampilan.</li>
+        <li><strong>Tidak ada pemfilteran.</strong> Tidak ada cara untuk bertanya <em>tunjukkan apa yang diatur mulai otomatis dan tidak berjalan</em>.</li>
+        <li><strong>Satu baris sekali waktu.</strong> Me-restart dua belas layanan berarti dua belas klik kanan dan dua belas kali menunggu.</li>
+        <li><strong>"Stopping..." selamanya</strong>, tanpa jalan keluar selain Task Manager dan menebak prosesnya.</li>
+        <li><strong>Tidak ada riwayat.</strong> Tidak ada yang tahu siapa yang mengatur tipe startup itu menjadi Disabled, atau kapan.</li>
+        <li><strong>Data tersembunyi.</strong> Proses, pemicu, hak istimewa, deskriptor keamanan, siapa yang menandatangani berkas eksekusi - semuanya butuh <code>sc.exe</code> dari ingatan, atau registri.</li>
+        <li><strong>Tidak ada padanan di baris perintah.</strong> <code>sc.exe</code> punya sintaks dari era sembilan puluhan, dan <code>Get-Service</code> bawaan Windows, di Windows PowerShell 5.1, tidak menampilkan akun tempat layanan berjalan, apalagi deskripsinya. PowerShell 7 menampilkan keduanya dan dipasang terpisah.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Alat lain masing-masing memperbaiki sebagian</h3>
+        <p>Process Hacker dan System Informer menampilkan daftar yang kaya dan dapat mematikan proses secara paksa, tetapi tidak punya audit dan tidak punya baris perintah. <code>sc.exe</code> dan <code>PsService</code> bisa melakukan segalanya dan tidak memberi tahu Anda apa pun. Cmdlet <code>*-Service</code> milik PowerShell bisa diskrip dan dangkal.</p>
+        <p>Tidak ada yang menggabungkan daftar yang bisa dicari, pratinjau sebelum setiap perubahan, dan catatan tentang apa yang berubah dari waktu ke waktu - dan catatan itulah alasan mempertahankan alat ini di sebuah mesin setelah sore pertama.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Perbandingan lengkap</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Apa yang dilakukannya</span>
+    <h2>Sebuah jendela dan sebuah baris perintah di atas satu mesin yang sama</h2>
+    <div class="grid">
+      <div class="card"><h3>Bertanya, bukan menggulir</h3><p><code>start:auto !status:running</code> berarti <em>apa yang seharusnya hidup dan tidak hidup</em>. Satu bahasa, di kotak pencarian dan di <code>bws list --query</code>, dengan bidang yang ditawarkan saat Anda mengetik.</p></div>
+      <div class="card"><h3>Tampilkan rencana sebelum apa pun terjadi</h3><p>Setiap penghentian, permulaan, restart, dan perubahan tipe startup dipratinjau bersama layanan yang ikut jatuh, dan pratinjau itulah yang dijalankan.</p></div>
+      <div class="card"><h3>Katakan apa yang menyimpang, dan siapa yang mengubahnya</h3><p><code>bws snapshot create</code> membekukan mesin ke dalam berkas, dan <code>bws snapshot diff</code> menyebutkan apa yang berubah sejak itu, konfigurasi terpisah dari apa yang sekadar mulai atau berhenti. <code>bws history</code> menyebutkan, dari log System, siapa yang mengubah tipe startup dan siapa yang memasang layanan. Jendela melakukan ketiganya di bawah <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Perbaiki masalah umum dengan sekali tekan</h3><p>Tab <em>Tools</em> dan <code>bws tool fix</code> me-restart layanan di balik printer yang tidak mencetak, suara yang hilang, atau pencarian yang macet, bersama apa yang bergantung padanya, melalui rencana yang sama dengan yang lain.</p></div>
+      <div class="card"><h3>Hentikan layanan yang tidak mau berhenti</h3><p>Ia meminta dengan sopan terlebih dahulu dan mengakhiri proses hanya jika itu gagal, sambil menyebut setiap layanan lain yang hidup di dalamnya.</p></div>
+      <div class="card"><h3>Tampilkan apa yang disembunyikan <code>services.msc</code></h3><p>Siapa yang menandatangani berkas eksekusi dan apakah Windows memercayainya, pemicu, hak istimewa, deskriptor keamanan, proses dan memorinya. Sebagai kolom, dan sebagai hal yang bisa dicari.</p></div>
+      <div class="card"><h3>Katakan saat sesuatu tidak bisa dibaca</h3><p>Bidang yang tidak bisa dibacanya dilaporkan sebagai tidak terbaca, tidak pernah ditampilkan kosong. Snapshot yang diambil tanpa hak administrator menyatakannya di dalam berkas itu sendiri.</p></div>
+      <div class="card"><h3>Cocok dengan skrip</h3><p><code>--json</code> di setiap perintah, kode keluar untuk setiap akhiran, dan <code>5</code> ketika sebuah perbandingan menemukan penyimpangan.</p></div>
+      <div class="card"><h3>Berjalan dari satu berkas, offline</h3><p>Ekstrak dan jalankan, atau pasang untuk seluruh mesin. Tidak ada .NET yang perlu dipasang, dan tidak pernah terhubung ke internet. Membaca tidak membutuhkan hak administrator. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Bagian yang tidak pernah dilakukan services.msc</span>
+    <h2>Apa yang berubah sejak kemarin</h2>
+    <p class="lede">Snapshot adalah seluruh mesin pada satu saat - setiap layanan dan driver, dengan tipe startup, akun, jalur peluncuran, hash dan penandatangan berkasnya, dependensi, pemicu, hak istimewa, dan deskriptor keamanan. Berupa JSON dengan satu bidang per baris, sehingga bisa masuk ke repositori dan <code>git diff</code> membacanya.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Konfigurasi dan status berjalan dilaporkan terpisah.</strong> Dua snapshot yang diambil berselang sehari berbeda pada apa yang kebetulan berjalan, dan hampir tidak ada yang merupakan penyimpangan - tipe startup yang berubah adalah baris yang perlu dibaca.</li>
+        <li><strong>Apa yang tidak bisa dibandingkan dicantumkan, tidak disembunyikan.</strong> Bidang yang tidak pernah dibaca oleh sebuah snapshot muncul sebagai <em>not compared</em>, sehingga perbandingan yang berbunyi <em>tidak ada yang berubah</em> berarti tidak ada yang berubah pada apa yang bisa dilihat kedua sisi.</li>
+        <li><strong><code>--exit-code</code> berakhir dengan <code>5</code> ketika konfigurasi berbeda</strong>, sehingga tugas terjadwal dapat mengambil snapshot saat penerapan dan memanggil seseorang pada malam pertama mesin menyimpang.</li>
+        <li><strong>Dua mesin, dua berkas.</strong> Ambil satu snapshot di staging dan satu di produksi, lalu bandingkan di mana saja.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Cara kerja snapshot dan penyimpangan</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Tidak ada yang terjadi tanpa rencana</span>
+    <h2>Pratinjau adalah eksekusinya</h2>
+    <p class="lede">Setiap operasi yang menulis membangun rencana terlebih dahulu, dan rencana yang sama itu adalah pratinjau, kaskade layanan dependen, penolakan sebelum Anda menekan apa pun, baris perintah yang meminta hal yang sama, dan jalan kembali sesudahnya.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Jalankan tanpa <code>--dry-run</code> dan inilah langkah-langkahnya</strong>, dalam urutan itu, dengan alasan yang sama di sampingnya. Tidak ada jalur kode kedua untuk eksekusi yang sebenarnya.</li>
+        <li><strong>Apa yang ikut jatuh ada di dalam rencana.</strong> Layanan yang akan rusak adalah langkah tersendiri, dan rencana yang akan menjatuhkan sesuatu yang dibutuhkan mesin menyebutkannya dalam peringatan.</li>
+        <li><strong>Penolakan datang sebelum tombol.</strong> Sebuah driver, layanan yang penghentiannya tidak diterima manajer, proses yang dilindungi sistem - ditolak saat rencana dibangun, beserta alasannya. Jendela mengabu-abukan tombol dan menjelaskan alasannya di sampingnya.</li>
+        <li><strong>Penghentian paksa adalah dua langkah, dan yang kedua bersyarat.</strong> <code>bws kill</code> meminta layanan berhenti dan mengakhiri prosesnya hanya jika itu tidak berhasil, sambil menyebut setiap layanan lain yang hidup di dalamnya.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Ketika layanan tidak mau berhenti</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Dua menit bersamanya</span>
+    <h2>Dari baris perintah</h2>
+    <p class="lede">Mesin yang sama dengan jendela, untuk skrip, tugas terjadwal, dan CI. Data masuk ke keluaran standar dan yang lain ke galat standar, sehingga <code>bws list --json | jq</code> berfungsi dan peringatan tidak pernah mendarat di JSON Anda.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">apa yang seharusnya hidup dan tidak hidup</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">layanan yang berkas eksekusinya hilang</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">tidak bertanda tangan, tanpa salinan per sesi</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">semua yang diketahui tentang satu entri</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">apa yang akan ikut jatuh bila dihentikan</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">apa yang akan ikut terbawa bila prosesnya diakhiri</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">apa yang terjadi bila dikeluarkan dari otomatis</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">bekukan mesin sebelum perubahan</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">apa yang berubah sejak itu, 5 bila konfigurasinya berubah</span>
+<span class="k">bws history Spooler</span>                               <span class="c">siapa yang mengubah tipe startup-nya, dan kapan</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">apa yang akan dilakukan perbaikan cepat untuk printer yang macet</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Setiap perintah, opsi, dan kode keluar</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Dapatkan</span>
+    <h2>Ekstrak dan jalankan, atau pasang</h2>
+    <p class="lede">Windows 10 1809 atau Windows Server 2019 dan yang lebih baru, 64-bit. Arsip tidak membutuhkan installer dan tidak menulis apa pun ke registri, dan melihat tidak membutuhkan hak administrator. Mengubah apa pun membutuhkan sesi dengan hak tinggi, dan kedua bagian menyatakannya alih-alih gagal diam-diam - jendela menawarkan <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Berkas</th><th>Apa itu</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Jendela, satu berkas eksekusi mandiri - tidak ada .NET yang perlu dipasang</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Baris perintah, satu berkas eksekusi mandiri, untuk skrip dan CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Installer: kedua program untuk setiap akun di mesin, jendela di menu Start, dan <code>bws</code> di PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Berkas eksekusi membawa tanda tangan Authenticode, sehingga Windows menyebut penerbitnya alih-alih memperingatkan tentang penerbit yang tidak dikenal.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Persyaratan dan membangun dari sumber</a>
+    </div>
+  </div>
+</section>

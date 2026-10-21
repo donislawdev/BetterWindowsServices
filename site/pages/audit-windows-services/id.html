@@ -1,0 +1,64 @@
+<meta name="title" content="Mengaudit layanan Windows - membuktikan apa yang berubah di mesin">
+<meta name="description" content="Bekukan layanan ke dalam berkas saat penerapan, lalu tanyakan setiap malam apakah mesin masih cocok. Penyimpangan, berkas tak bertanda tangan, dan berkas hilang.">
+<meta name="nav" content="Mengaudit layanan untuk penyimpangan">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Panduan</span>
+    <h1>Mengaudit layanan Windows</h1>
+    <p class="lede">Audit bukan daftar apa yang ada di mesin. Audit adalah selisih antara apa yang ada di mesin dan apa yang seharusnya ada - dan tidak ada apa pun pada Windows standar yang mencatat bagian kedua.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tiga pertanyaan, dan apa yang menjawabnya</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Apa yang berubah sejak mesin ini dibangun?</h3>
+        <p>Snapshot yang diambil saat penerapan, dan perbandingan dengan mesin malam ini. Konfigurasi dilaporkan terpisah dari apa yang sekadar mulai atau berhenti, sehingga satu tipe startup yang diubah seseorang tidak terkubur di bawah empat puluh layanan yang kebetulan berjalan.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Mengapa staging berbeda dari produksi?</h3>
+        <p>Ambil snapshot di masing-masing dan bandingkan kedua berkas - di mana saja, tanpa kehadiran salah satu mesin. Berkas membawa nama mesin dan akun yang mengambilnya.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Apa yang ada di sini yang seharusnya tidak ada?</h3>
+        <p>Kueri yang menemukan bentuk-bentuk yang layak dilihat: layanan yang berkas eksekusinya hilang, yang tidak bertanda tangan, yang berjalan padahal dinonaktifkan, yang meminta hak debug.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bentuk malam hari</h2>
+<pre><code><span class="c"># hari mesin mulai beroperasi</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># setiap malam, dari tugas terjadwal</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - tidak ada penyimpangan konfigurasi
+#   5 - konfigurasi menyimpang, dan drift.json menyatakan apa
+#   3 - berjalan tetapi tidak bisa membaca semuanya, jadi jawabannya sebagian</span></code></pre>
+    <p>Kode keluar <code>5</code> adalah yang menjadikan ini audit dan bukan laporan yang tidak dibaca siapa pun: tugas itu diam sampai mesin menyimpang, dan pada malam hal itu terjadi, seseorang dipanggil.</p>
+    <p class="note"><strong>Ambil acuan dasar dari sesi dengan hak tinggi.</strong> Tanpa hak administrator, manajer mencantumkan lebih sedikit entri dan menolak lebih banyak dari yang dicantumkannya. Snapshot mencatat apakah akun yang mengambilnya adalah administrator, sehingga perbandingan dapat menyatakannya alih-alih melaporkan entri sebagai dihapus padahal tidak ada yang menghapusnya - tetapi acuan dasar yang kehilangan separuh mesin tetaplah acuan dasar yang kehilangan separuh mesin.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa nilai snapshot sebagai bukti</h2>
+    <ul class="points points-ok">
+      <li><strong>Berupa JSON dengan satu bidang per baris</strong>, sehingga bisa masuk ke repositori dan <code>git diff</code> membacanya. Auditor yang tidak memiliki alat ini tetap bisa membaca berkasnya, dan sistem kontrol versi sudah menjawab <em>kapan</em>.</li>
+      <li><strong>Memuat apa yang tidak pernah ditampilkan snap-in:</strong> jalur peluncuran dan argumen, hash dan penandatangan berkas, dependensi dua arah, pemicu, hak istimewa yang dibutuhkan, tipe SID, dan deskriptor keamanan.</li>
+      <li><strong>Menyatakan apa yang tidak bisa dibacanya.</strong> Bidang yang tidak dihakkan sesi ini dicatat sebagai tidak terbaca - tidak pernah sebagai kosong - sehingga perbandingan kemudian dapat menyatakan <em>not compared</em> alih-alih diam-diam menyebutnya tidak berubah.</li>
+      <li><strong>Ini adalah gambaran seluruh mesin.</strong> Simpan sesuai itu: ia ditulis dengan izin apa pun yang sudah dimiliki direktorinya, dan alat ini tidak mempersempit apa pun.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Cara kerja snapshot dan perbandingan</a>
+  </div>
+</section>

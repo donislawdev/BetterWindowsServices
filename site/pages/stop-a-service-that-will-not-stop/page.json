@@ -15,6 +15,7 @@
     "nl": "windows-service-die-niet-stopt",
     "cs": "sluzba-windows-ktera-se-nezastavi",
     "ro": "serviciu-windows-care-nu-se-opreste",
-    "tr": "durmayan-windows-hizmeti"
+    "tr": "durmayan-windows-hizmeti",
+    "id": "layanan-windows-yang-tidak-mau-berhenti"
   }
 }

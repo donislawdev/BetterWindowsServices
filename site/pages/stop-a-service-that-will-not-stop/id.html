@@ -1,0 +1,68 @@
+<meta name="title" content="Layanan Windows yang macet di Stopping - akhiri dengan aman">
+<meta name="description" content="Layanan yang macet di Stopping biasanya berbagi proses dengan yang lain. Lihat yang mana sebelum mengakhiri apa pun, lalu kembalikan semuanya dengan satu perintah.">
+<meta name="nav" content="Layanan macet di Stopping">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Panduan</span>
+    <h1>Layanan yang macet di <em>Stopping...</em></h1>
+    <p class="lede">Snap-in menampilkan <em>Stopping</em> dan tidak pernah bergerak. Jawaban yang biasa adalah Task Manager, tebakan di <code>svchost.exe</code> mana ia hidup, dan End task - yang juga mengakhiri setiap layanan lain dalam proses itu, tanpa memberi tahu Anda yang mana.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mengapa ini terjadi</h2>
+    <ul class="points points-alarm">
+      <li><strong>Layanan tidak menjawab permintaan berhenti.</strong> Windows memintanya dengan sopan dan menunggu. Layanan yang hang, atau menunggu sesuatu yang tidak akan kembali, tidak pernah menjawab.</li>
+      <li><strong>Sesuatu yang bergantung padanya masih berjalan.</strong> Manajer menolak penghentian alih-alih merusak yang lain, dan snap-in menampilkannya sebagai penantian.</li>
+      <li><strong>Ia berbagi prosesnya dengan yang lain.</strong> Kebanyakan layanan Windows hidup di dalam <code>svchost.exe</code> bersama. Mengakhiri proses itu mengakhiri semuanya, yang persis dilakukan Task Manager tanpa menyebutnya.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lihat sebelum mengakhiri apa pun</h2>
+    <p>Tanyakan apa yang akan ikut terbawa jika diakhiri. Tidak ada yang terjadi sampai Anda membuang <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Pratinjau menyebut proses dengan nomor, menyebut setiap layanan lain yang hidup di dalamnya, dan menampilkan dua langkah, bukan satu: minta layanan berhenti, dan <em>hanya jika itu tidak berhasil</em>, akhiri prosesnya. Layanan yang berhenti sendiri tidak pernah diakhiri.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> melewati langkah sopan</strong> dan mengakhiri proses seketika. Ia mengubah rencana, bukan cara menjalankannya, sehingga pratinjau menampilkan satu langkah, bukan dua, dan perbedaannya terlihat sebelum apa pun terjadi.</li>
+        <li><strong><code>--restart</code> mengembalikan semuanya</strong> setelah proses hilang - entri yang Anda tanyakan dan semua yang berbagi prosesnya. Tanpanya, mesin dibiarkan dengan layanan-layanan itu berhenti, dan laporan menyatakan cara memulainya lagi.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Penolakan datang sebelum tombol.</strong> Driver, proses yang dilindungi sistem, layanan yang penghentiannya tidak diterima manajer - ditolak saat rencana dibangun, beserta alasannya, bukan setelah menunggu enam puluh detik.</li>
+        <li><strong>Peringatan saat itu penting.</strong> Jika entrinya adalah yang tanpanya mesin tidak berfungsi, rencana menyatakannya - menghentikannya menjatuhkan mesin, bukan hanya layanannya.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Mengakhiri proses adalah satu-satunya hal yang dilakukan alat ini yang tidak bisa ditolak siapa pun atas nama mesin.</strong> Itulah sebabnya ini perintah tersendiri, mengapa pratinjau menyebut setiap layanan yang dibawanya serta, dan mengapa langkah sopan datang lebih dulu kecuali Anda menyatakan lain.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Urutan yang lebih aman</h2>
+    <ol class="prose-list">
+      <li><strong>Lihat apa itu.</strong> <code>bws show Spooler</code> - prosesnya, apa yang bergantung padanya, apa yang dibutuhkannya, dan apakah ia menerima permintaan berhenti sama sekali.</li>
+      <li><strong>Coba penghentian biasa, sebagai rencana.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Jika jawabannya penolakan, ia menyebut yang mana dari tiga alasan itu.</li>
+      <li><strong>Jika tidak mau berhenti, lihat berapa biaya mengakhirinya.</strong> <code>bws kill Spooler --dry-run</code>, dan baca daftar layanan yang berbagi proses itu.</li>
+      <li><strong>Lalu lakukan, dengan jalan kembali.</strong> <code>bws kill Spooler --restart</code>. Laporan berakhir dengan apa yang tidak berhasil dan perintah yang mengembalikan keadaan.</li>
+    </ol>
+    <p>Keempatnya bekerja dengan cara yang sama di jendela: klik kanan sebuah baris, pilih <em>Force stop...</em>, baca rencananya, dan tombol di bawahnya dinamai sesuai apa yang akan dilakukannya.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mengapa tidak pakai Task Manager saja</h2>
+    <p class="lede">Karena ia menjawab pertanyaan yang berbeda. Task Manager mengenal proses dan masalah ini tentang layanan, dan keduanya tidak sejajar satu lawan satu.</p>
+    <p><code>svchost.exe</code> bersama dapat memuat selusin layanan. Task Manager akan mengakhirinya tanpa menyebut kedua belas yang mana, tidak ada yang kembali sendiri, dan tidak ada yang sesudahnya memberi tahu Anda apa yang berhenti. EDR yang menandai proses yang mengakhiri <code>svchost.exe</code> sedang menjalankan tugasnya, dan ia tidak bisa membedakan klik Anda dari yang lain.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Referensi lengkap</a>
+    </div>
+  </div>
+</section>

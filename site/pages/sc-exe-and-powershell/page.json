@@ -15,6 +15,7 @@
     "nl": "sc-exe-en-powershell",
     "cs": "sc-exe-a-powershell",
     "ro": "sc-exe-si-powershell",
-    "tr": "sc-exe-ve-powershell"
+    "tr": "sc-exe-ve-powershell",
+    "id": "sc-exe-dan-powershell"
   }
 }

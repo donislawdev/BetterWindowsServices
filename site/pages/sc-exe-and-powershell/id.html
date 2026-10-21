@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe dan Get-Service, dibandingkan dengan alat untuk audit">
+<meta name="description" content="sc.exe bisa segalanya tetapi bisu. Get-Service bisa diskrip tetapi dangkal. Di mana masing-masing masih terbaik, dan di mana kueri serta rencana lebih unggul.">
+<meta name="nav" content="sc.exe dan PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Panduan</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code>, dan ini</h1>
+    <p class="lede">Keduanya sudah ada di mesin, dan keduanya akan tetap berguna. Halaman ini membahas di mana keduanya berhenti - dan menyatakan terus terang di mana keduanya masih jawaban yang lebih baik.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Di mana masing-masing berhenti</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Ia dapat menjangkau hampir semua yang diketahui service control manager, dan tidak memberi tahu Anda apa pun tentang cara bertanya. Sintaksnya dari tahun sembilan puluhan - <code>sc config X start= auto</code>, di mana spasi setelah tanda sama dengan wajib dan ketiadaannya adalah kegagalan senyap untuk melakukan yang Anda maksud.</p>
+        <p>Ia menjawab tentang satu entri sekali waktu. Tidak ada pemfilteran, tidak ada keluaran yang dapat diurai skrip tanpa menulis parser, dan tidak ada pratinjau: <code>sc stop</code> berhasil atau mengembalikan sebuah angka.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> dan cmdlet <code>*-Service</code></h3>
+        <p>Objek yang layak, sebuah pipeline, dan tampilan yang dangkal. Di Windows PowerShell 5.1, yang bawaan Windows, <code>Get-Service</code> tidak menampilkan akun tempat layanan berjalan atau deskripsinya. PowerShell 7 menampilkan keduanya, dan jalur peluncuran juga, dan dipasang terpisah.</p>
+        <p><code>Stop-Service -Force</code> berarti "bahkan jika ada yang bergantung padanya" - ia menghentikan layanan dependen, dan memberi tahu Anda sesudahnya, bukan sebelumnya.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pertanyaan yang sama, tiga cara</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Pertanyaan</th><th>Dengan apa yang ada di mesin</th><th>Di sini</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Apa yang seharusnya berjalan dan tidak berjalan</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Layanan mana yang punya berkas eksekusi tak bertanda tangan</td>
+            <td class="no">Baca setiap jalur peluncuran, selesaikan, panggil <code>Get-AuthenticodeSignature</code> pada masing-masing - sebuah skrip, bukan perintah</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Apa yang akan ikut jatuh jika ini dihentikan</td>
+            <td><code>sc enumdepend X</code>, lalu baca daftarnya dan putuskan sendiri</td>
+            <td><code>bws stop X --dry-run --dependents</code>, yaitu rencana yang akan dijalankan</td>
+          </tr>
+          <tr>
+            <td>Apa yang berubah sejak minggu lalu</td>
+            <td class="no">Tidak ada, kecuali Anda menulis pengumpulnya sendiri</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Siapa yang mengubah tipe startup, dan kapan</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, lalu baca pesan setiap peristiwa</td>
+            <td><code>bws history Spooler</code>, yang baris pertamanya menyatakan seberapa jauh log menjangkau ke belakang</td>
+          </tr>
+          <tr>
+            <td>Keluaran yang dapat dibaca mesin</td>
+            <td>Objek dari PowerShell, teks dari <code>sc.exe</code></td>
+            <td><code>--json</code> di setiap perintah, pada keluaran standar, dengan peringatan pada galat standar</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Di mana alat ini berbeda dari <code>sc.exe</code> tentang sebuah layanan, itu adalah bug di sini.</strong> Sebagian suite pengujian menjalankan keduanya pada mesin tempatnya berada dan membandingkannya entri demi entri, dan selisih antara keduanya adalah hal paling berguna untuk dimasukkan ke dalam laporan masalah.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kapan tetap memakai apa yang sudah Anda punya</h2>
+    <ul class="points">
+      <li><strong>Anda berada di mesin yang hanya akan Anda sentuh sekali.</strong> Keduanya sudah ada di sana dan tidak ada yang harus lolos kebijakan.</li>
+      <li><strong>Anda perlu mengubah akun, jalur peluncuran, atau tindakan pemulihan.</strong> <code>sc.exe</code> melakukan ketiganya. Alat ini menampilkan akun dan jalur peluncuran dan tidak mengubah keduanya, dan membaca tindakan pemulihan hanya untuk memperingatkan sebelum mengakhiri proses.</li>
+      <li><strong>Anda perlu membuat atau menghapus layanan.</strong> <code>sc create</code> dan <code>sc delete</code>. Bukan di sini, dengan sengaja.</li>
+      <li><strong>Anda sudah jauh di dalam pipeline PowerShell.</strong> <code>bws list --json</code> kembali sebagai objek melalui <code>ConvertFrom-Json</code>, sehingga ia bergabung dengan pipeline alih-alih menggantikannya.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bersama, bukan sebagai pengganti</h2>
+    <p>Alat yang menjawab <em>apa yang salah dengan mesin ini</em> dan alat yang mengubah satu pengaturan bukanlah alat yang sama. Ajukan pertanyaan di sini, baca rencananya di sini, dan pakai apa pun yang Anda suka untuk menjalankannya - rencana mencetak baris perintah yang meminta hal yang sama, dan baris itu dimaksudkan untuk disalin.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Bahasa kueri</a>
+    </div>
+  </div>
+</section>

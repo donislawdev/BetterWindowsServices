@@ -1,0 +1,86 @@
+<meta name="title" content="Layanan Windows apa yang seharusnya berjalan di mesin ini?">
+<meta name="description" content="Tidak ada yang bisa menjawabnya secara umum, dan daftar yang mengklaimnya menggambarkan mesin lain. Pertanyaan yang bisa dijawab: apa yang berubah.">
+<meta name="nav" content="Apa yang seharusnya berjalan">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Panduan</span>
+    <h1>Layanan apa yang seharusnya berjalan?</h1>
+    <p class="lede">Jawaban jujurnya adalah tidak ada yang bisa memberi tahu Anda, dan setiap daftar yang mengklaimnya sedang menggambarkan mesin yang bukan milik Anda. Yang <em>bisa</em> dijawab lebih sempit dan jauh lebih berguna: apa yang tidak cocok di mesin ini, dan apa yang berbeda dari saat semuanya berfungsi.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mengapa pertanyaan umum tidak punya jawaban</h2>
+    <ul class="points points-alarm">
+      <li><strong>Himpunannya berbeda menurut edisi, versi, dan peran Windows.</strong> Domain controller, laptop, dan host kontainer tidak sepakat hampir dalam segala hal, dan daftar yang ditulis untuk satu salah untuk yang lain.</li>
+      <li><strong>Separuh dari yang terpasang bukan dari Windows.</strong> Driver, agen, layanan pembaruan, daemon lisensi - masing-masing ditaruh di sana oleh sesuatu, dan tidak ada daftar umum yang tahu oleh apa.</li>
+      <li><strong>Kebanyakan layanan memang dimaksudkan berhenti.</strong> Windows modern memulai sebagian kecil dari apa yang didaftarkannya: sisanya menunggu pemicu - perangkat tiba, port terbuka, bergabung ke domain - dan berhenti adalah keadaan yang benar bagi mereka.</li>
+      <li><strong>Daftar "nonaktifkan ini demi performa" adalah cara mesin rusak.</strong> Layanan yang tampak menganggur adalah yang dimulai oleh sesuatu yang lain sesuai permintaan, dan kegagalannya muncul seminggu kemudian di tempat yang tidak berhubungan.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pertanyaan yang punya jawaban</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Apa yang seharusnya hidup dan tidak hidup</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows diminta memulai ini dan mereka tidak berjalan. Pada mesin yang sehat ini adalah daftar pendek - beberapa entri yang mulai terlambat dan berhenti lagi. Apa pun selain itu layak dilihat.</p>
+      </div>
+      <div class="card">
+        <h3>Apa yang dinonaktifkan tetapi tetap berjalan</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Konfigurasi dan status tidak sesuai. Biasanya seseorang menonaktifkannya tanpa menghentikannya, dan restart berikutnya akan menjadi kejutan.</p>
+      </div>
+      <div class="card">
+        <h3>Apa yang menunjuk ke berkas yang hilang</h3>
+        <p><code>file:missing</code></p>
+        <p>Pencopotan yang meninggalkan registrasinya. Tidak berbahaya sampai ada yang mencoba memulainya, dan petunjuk tentang apa yang dulu ada di mesin ini.</p>
+      </div>
+      <div class="card">
+        <h3>Apa yang tidak ditandatangani siapa pun</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Bukan bukti apa pun dengan sendirinya, dan tempat yang tepat untuk mulai membaca. Istilah kedua membuang keluarga per pengguna, yang jika tidak akan memenuhi daftar dengan hampir-duplikat.</p>
+      </div>
+      <div class="card">
+        <h3>Apa yang meminta hak istimewa terkuat</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Hak istimewa yang memungkinkan sebuah proses membuka proses lain mana pun. Segelintir layanan yang sah memintanya, dan layak diketahui mana saja di mesin Anda.</p>
+      </div>
+      <div class="card">
+        <h3>Apa yang menunggu pemicu</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Berhenti karena belum ada yang memintanya, bukan karena ada yang salah. Mengetahui yang mana adalah cara agar daftar pertama berhenti terasa mengkhawatirkan.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Yang mengalahkan semuanya</h2>
+    <p class="lede">Tanyakan kepada mesin itu sendiri, saat ia berfungsi.</p>
+    <p>Ambil snapshot pada hari mesin mulai beroperasi. Maka <em>apakah ini seharusnya berjalan</em> menjadi <em>apakah ini berjalan ketika semuanya berfungsi</em> - pertanyaan tentang mesin Anda, bukan tentang mesin dalam sebuah artikel.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... seminggu, sebuah patch, atau sebuah insiden kemudian</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Konfigurasi dilaporkan terpisah dari status berjalan, sehingga jawabannya bukan empat puluh layanan yang kebetulan hidup - melainkan tipe startup yang diubah seseorang.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Mengaudit mesin untuk penyimpangan</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sebelum Anda menghentikan apa pun</h2>
+    <p>Setiap penghentian di alat ini menampilkan rencananya terlebih dahulu: langkah-langkahnya, apa yang ikut jatuh bersamanya, dan peringatan ketika salah satunya adalah sesuatu yang tanpanya mesin tidak berfungsi. Daftar itu adalah daftar awal berisi tujuh - dua bagian RPC dan peluncur DCOM, manajer akun, isolasi kunci, manajer sesi, dan plug and play - dan <strong>Remote Desktop tidak ada di dalamnya</strong>, jadi pada sesi jarak jauh, bacalah rencananya.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Setiap bidang yang bisa Anda tanyakan</a>
+    </div>
+  </div>
+</section>
