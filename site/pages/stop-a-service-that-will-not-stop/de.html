@@ -1,0 +1,68 @@
+<meta name="title" content="Ein Windows-Dienst hängt bei Wird beendet - so beenden Sie ihn sicher">
+<meta name="description" content="Ein Dienst, der beim Beenden hängt, teilt seinen Prozess meist mit anderen. Sehen Sie, welche, bevor Sie etwas beenden, und holen Sie alle mit einem Befehl zurück.">
+<meta name="nav" content="Ein Dienst hängt beim Beenden">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Leitfaden</span>
+    <h1>Ein Dienst hängt bei <em>Wird beendet...</em></h1>
+    <p class="lede">Das Snap-in zeigt <em>Wird beendet</em> und bewegt sich nie. Die übliche Antwort ist der Task-Manager, ein Raten, in welchem <code>svchost.exe</code> er lebt, und Task beenden - was auch jeden anderen Dienst in diesem Prozess beendet, ohne zu sagen, welche das waren.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Warum das passiert</h2>
+    <ul class="points points-alarm">
+      <li><strong>Der Dienst antwortet nicht auf die Beenden-Anforderung.</strong> Windows bittet ihn höflich und wartet. Ein Dienst, der hängt oder auf etwas wartet, das nicht zurückkommt, antwortet nie.</li>
+      <li><strong>Etwas, das von ihm abhängt, läuft noch.</strong> Der Manager lehnt das Beenden ab, statt das andere kaputtzumachen, und das Snap-in zeigt das als Wartezeit.</li>
+      <li><strong>Er teilt seinen Prozess mit anderen.</strong> Die meisten Windows-Dienste leben in einem gemeinsamen <code>svchost.exe</code>. Beendet man diesen Prozess, endet es für alle, und genau das tut der Task-Manager, ohne sie zu nennen.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ansehen, bevor Sie etwas beenden</h2>
+    <p>Fragen Sie, was das Beenden mitnehmen würde. Nichts geschieht, bis Sie <code>--dry-run</code> weglassen.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Die Vorschau nennt den Prozess mit seiner Nummer, nennt jeden anderen Dienst, der in ihm lebt, und zeigt zwei Schritte statt einem: den Dienst bitten, sich zu beenden, und <em>nur wenn das nicht klappt</em> den Prozess beenden. Ein Dienst, der von selbst anhält, wird nie beendet.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> überspringt den höflichen Schritt</strong> und beendet den Prozess sofort. Es ändert den Plan und nicht dessen Ausführung, sodass die Vorschau einen Schritt statt zwei zeigt und der Unterschied sichtbar ist, bevor etwas geschieht.</li>
+        <li><strong><code>--restart</code> bringt alles zurück</strong>, sobald der Prozess weg ist - den Eintrag, nach dem Sie gefragt haben, und alles, was seinen Prozess teilte. Ohne es bleibt der Rechner mit diesen angehaltenen Diensten zurück, und der Bericht sagt, wie man sie wieder startet.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Die Ablehnung kommt vor der Schaltfläche.</strong> Ein Treiber, ein Prozess, den das System schützt, ein Dienst, für den der Manager kein Beenden annimmt - abgelehnt, wenn der Plan gebaut wird, mit Begründung, statt nach sechzig Sekunden Warten.</li>
+        <li><strong>Eine Warnung, wenn es darauf ankommt.</strong> Ist der Eintrag einer, ohne den der Rechner nicht funktioniert, sagt der Plan das - ihn zu beenden legt den Rechner lahm, nicht nur den Dienst.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Einen Prozess zu beenden ist das Einzige, was dieses Werkzeug tut, wogegen niemand im Namen des Rechners Einspruch erheben kann.</strong> Deshalb ist es ein eigener Befehl, deshalb nennt die Vorschau jeden Dienst, den es mitnimmt, und deshalb kommt der höfliche Schritt zuerst, sofern Sie nichts anderes sagen.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Die sicherere Reihenfolge</h2>
+    <ol class="prose-list">
+      <li><strong>Sehen, was es ist.</strong> <code>bws show Spooler</code> - der Prozess, was von ihm abhängt, wovon er abhängt und ob er überhaupt Beenden-Anforderungen annimmt.</li>
+      <li><strong>Das gewöhnliche Beenden als Plan versuchen.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Lautet die Antwort Ablehnung, sagt sie, welcher der drei Gründe es ist.</li>
+      <li><strong>Lässt er sich nicht beenden, ansehen, was das Beenden kostet.</strong> <code>bws kill Spooler --dry-run</code>, und die Liste der Dienste lesen, die diesen Prozess teilen.</li>
+      <li><strong>Dann ausführen, mit einem Weg zurück.</strong> <code>bws kill Spooler --restart</code>. Der Bericht endet mit dem, was nicht geklappt hat, und den Befehlen, die alles zurückbringen.</li>
+    </ol>
+    <p>Alle vier funktionieren im Fenster genauso: Rechtsklick auf eine Zeile, <em>Force stop...</em> wählen, den Plan lesen, und die Schaltfläche darunter ist nach dem benannt, was sie tun wird.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Warum nicht einfach den Task-Manager nehmen</h2>
+    <p class="lede">Weil er eine andere Frage beantwortet. Der Task-Manager kennt Prozesse, und dieses Problem betrifft Dienste, und beide entsprechen einander nicht eins zu eins.</p>
+    <p>Ein gemeinsamer <code>svchost.exe</code> kann ein Dutzend Dienste halten. Der Task-Manager beendet ihn, ohne zu sagen, welche zwölf, keiner kommt von selbst zurück, und nichts sagt Ihnen danach, was angehalten wurde. Ein EDR, der einen Prozess meldet, der <code>svchost.exe</code> beendet, macht seine Arbeit, und er kann Ihren Klick nicht von allem anderen unterscheiden.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Die vollständige Referenz</a>
+    </div>
+  </div>
+</section>

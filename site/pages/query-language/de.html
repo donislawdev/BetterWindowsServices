@@ -1,0 +1,178 @@
+<meta name="title" content="Die Abfragesprache - stellen Sie Ihren Windows-Diensten eine Frage">
+<meta name="description" content="Eine Abfragesprache für das Suchfeld und für bws list --query. Jedes Feld, jeder Wert und die Frage, die services.msc nicht stellen kann: was sich nicht lesen ließ.">
+<meta name="nav" content="Abfragesprache">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Die Feldtabelle wird aus Bws.Core GEBAUT - QueryFields.Names und QueryFields.ValuesOf sind
+  öffentliche API für alles, was sie einem Menschen anbietet, sodass diese Seite kein Feld nennen
+  kann, das das Programm nicht hat, und keines übersehen kann, das es hat. Die Sätze daneben
+  stehen in site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Die Abfragesprache</span>
+    <h1>Stellen Sie dem Rechner eine Frage</h1>
+    <p class="lede">Eine Sprache, im Suchfeld des Fensters und in <code>bws list --query</code>. Ein einzelnes Wort durchsucht den Namen, den Anzeigenamen, das Konto und den Startpfad. Ein Feld grenzt es ein. {{field_count}} Felder, und derselbe Text bedeutet in beiden Hälften des Werkzeugs dasselbe.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sechs, die eine echte Frage beantworten</h2>
+    <div class="grid">
+      <div class="card"><h3>Was laufen sollte und nicht läuft</h3><p><code>start:auto !status:running</code></p><p>Die erste Abfrage, die die meisten schreiben, und die, die <code>services.msc</code> überhaupt nicht beantworten kann.</p></div>
+      <div class="card"><h3>Dienste, deren Datei fehlt</h3><p><code>file:missing</code></p><p>Ein Eintrag, der auf eine Programmdatei zeigt, die nicht auf dem Datenträger liegt. Meist eine Deinstallation, die die Registrierung zurückgelassen hat.</p></div>
+      <div class="card"><h3>Unsigniert, ohne das Rauschen der Sitzungen</h3><p><code>signed:no peruser:no</code></p><p>Die Familien pro Benutzer machen eine Kopie je Sitzung und füllen eine Liste mit Beinahe-Dubletten. Das hier fragt nach dem Rest.</p></div>
+      <div class="card"><h3>Läuft, obwohl deaktiviert</h3><p><code>mismatch:running</code></p><p>Konfiguration und Zustand, die nicht zusammenpassen - ein Eintrag, den der Manager nie starten soll, läuft trotzdem.</p></div>
+      <div class="card"><h3>Alles, was Debugrechte verlangt</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Ein Privileg, mit dem ein Prozess jeden anderen öffnen kann. Es lohnt sich zu wissen, welche Dienste es verlangen.</p></div>
+      <div class="card"><h3>Was das Werkzeug nicht lesen konnte</h3><p><code>account:?</code></p><p>Die Einträge, bei denen diese Sitzung das Konto nicht lesen konnte. Eine Frage, die <code>services.msc</code> nicht einmal stellen kann.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wie eine Abfrage geschrieben wird</h2>
+    <div class="split">
+      <div>
+        <h3>Begriffe</h3>
+        <ul class="prose-list">
+          <li>Begriffe werden durch Leerzeichen getrennt, und alle müssen zutreffen - es gibt kein Schlüsselwort <code>and</code>, weil es nichts anderes bedeuten könnte.</li>
+          <li>Dasselbe Feld zweimal geschrieben ist die einzige Ausnahme: <code>status:running status:stopped</code> bedeutet das eine oder das andere, weil das geschrieben wird, wenn man zwei Filter anhakt. Zwei Grenzen bei einer Zahl grenzen dagegen weiter ein - <code>pid:&gt;1000 pid:&lt;2000</code> ist der Bereich dazwischen.</li>
+          <li><code>!</code> vor einem Begriff verneint ihn: <code>!status:running</code>. In einer Batchdatei mit <code>setlocal EnableDelayedExpansion</code> frisst cmd dieses <code>!</code> wortlos, und die Abfrage bedeutet stillschweigend etwas anderes - schreiben Sie dort <code>^!</code> innerhalb der Anführungszeichen.</li>
+          <li>Ein Komma innerhalb eines Feldes ist ein <em>oder</em>: <code>start:manual,disabled</code>.</li>
+          <li>Anführungszeichen schützen alles mit Leerzeichen oder Doppelpunkten: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Ein so eingefügter Pfad - <code>C:\Windows\System32\svchost.exe</code> - wird gesucht und nicht als Feld namens C gelesen.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Wie Text verglichen wird</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> trifft alles, was es <em>enthält</em> - der Standard, weil das ist, was man von einem Suchfeld erwartet.</li>
+          <li><code>name:=spooler</code> ist genau.</li>
+          <li><code>name:spool*</code> nimmt Platzhalter, <code>*</code> und <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> ist ein regulärer Ausdruck und wird innerhalb der Schrägstriche so geschrieben, wie reguläre Ausdrücke geschrieben werden: <code>\?</code>, <code>\\</code> und ein Komma bedeuten dort, was sie dort bedeuten. Ein Schrägstrich, der nie schließt, ist ein Fehler - um nach dem Schrägstrich selbst zu suchen, schreiben Sie <code>\/</code> oder nehmen Anführungszeichen.</li>
+          <li>Groß- und Kleinschreibung wird ignoriert, auch außerhalb von ASCII - ein Anzeigename auf Polnisch oder Griechisch trifft, wie auch immer er getippt wird.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Drei Wörter, die jedes Feld akzeptiert</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Ein falsch getippter Wert ist ein Fehler, nie ein leeres Ergebnis.</strong> <code>status:runing</code> antwortet <em>Did you mean running?</em> und endet mit Code <code>2</code>. Eine leere Liste sähe wie eine Antwort aus, und der Unterschied zwischen "nichts trifft zu" und "Sie haben sich vertippt" ist der Unterschied zwischen einem sauberen Rechner und einem Audit, das nichts bewiesen hat. Eine Abfrage, die nichts eingrenzen würde, wird auch auf der Befehlszeile abgelehnt, damit ein Skript wegen eines Tippfehlers nicht auf dem ganzen Rechner arbeitet.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Weitere Beispiele</h2>
+    <p class="lede">Jedes funktioniert im Suchfeld des Fensters genauso wie nach <code>bws list --query</code>, und jedes wurde auf einem echten Windows ausgeführt, bevor es hier geschrieben wurde. Was es findet, hängt vom Rechner ab - und bei einer Frage nach Ärger ist eine leere Antwort die, die Sie sich wünschen.</p>
+    <div class="examples">
+    <h3>Zustand und Starttyp</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Hängt beim Beenden oder Starten - das Warten, das das Snap-in anzeigt und das nie endet.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Auf automatischen Start gesetzt, beendet und ohne Wartezeit auf einen Trigger - die kurze Liste, die nach einem Neustart lesenswert ist.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatisch, aber etwas nach den anderen automatischen Einträgen gestartet.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Läuft, obwohl nichts es beim Hochfahren startet - etwas hat es angefordert, ein Trigger hat es gestartet, oder jemand hat es getan.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Konten</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Läuft als LocalSystem, dem stärksten Konto, aus einer Datei, die Microsoft nicht signiert hat. Eine Abfrage zum Herausgeber liest Signaturen von selbst, daher dauert sie einige Sekunden.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Dienste, die unter irgendeinem anderen Konto laufen - einem virtuellen, einem verwalteten oder dem einer Person.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Ein virtuelles Konto des Dienstes selbst. Die Anführungszeichen halten die Wörter wegen des Leerzeichens zusammen.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Dateien und Signaturen</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Keine Signatur, eine Kette, der Windows nicht vertraut, oder eine Datei, die nach dem Signieren verändert wurde.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Signiert, vertrauenswürdig und nicht von Microsoft - die Software, die andere Firmen auf diesen Rechner gebracht haben.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Treiber, die beim Windows-Start geladen werden und deren Signatur Windows nicht vertraut. Auf einem gesunden Rechner keine.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Ein Dienst mit eigenem Prozess, dessen Datei außerhalb des Windows-Ordners liegt.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Gestartet aus dem Profil von jemandem, dem letzten Ort, an dem man einen Dienst erwartet.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Ein Backslash vor einem Leerzeichen macht das Leerzeichen zum Teil des Wortes, daher wird ein Pfad, der auf einen Backslash endet, mit zwei geschrieben, wenn ein weiterer Begriff folgt. Am Ende der Abfrage genügt einer.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Trigger und Abhängigkeiten</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Wartet darauf, dass ein Gerät erscheint, ist also aus gutem Grund beendet.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Gestartet, wenn eine Anfrage an einem Netzwerkendpunkt eintrifft - einem Port, einer benannten Pipe oder einer RPC-Schnittstelle.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Einträge, die ein Trigger auch beenden kann, nicht nur starten.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Einträge, die WMI zum Laufen brauchen.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Alles, was der Druckerspooler zum Laufen braucht, und was jene wiederum brauchen.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilegien und Prozesse</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Verlangt, als Teil des Betriebssystems zu handeln.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Kann im Namen eines Clients handeln, während es unter einem anderen Konto als LocalSystem läuft.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Trägt in seinem Prozess eine eigene Dienst-SID, sodass Berechtigungen es allein benennen können. sidtype:restricted fragt nach denen, deren Prozess zusätzlich schreibbeschränkt ist.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Läuft in einem gemeinsamen svchost, zusammen mit anderen.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Ein Prozess, der mehr als 200 MB nutzt. Der Speicher wird von selbst gelesen, wenn eine Abfrage danach fragt.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>In einem Prozess, dessen ID zwischen 1000 und 2000 liegt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Namen und Text</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abfrage</th><th>Was sie findet</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Ein einzelnes Wort, gesucht im Namen, im Anzeigenamen, im Konto und im Startpfad.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Genau dieser Name und nichts, was ihn nur enthält.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Namen, die mit win beginnen, mit einem Platzhalter geschrieben.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Namen, die auf svc enden, als regulärer Ausdruck geschrieben.</td></tr>
+          <tr><td><code>description:none</code></td><td>Überhaupt keine Beschreibung, was bei den meisten Treibern der Fall ist.</td></tr>
+          <tr><td><code>description:?</code></td><td>Eine Beschreibung, die Windows nicht herausgeben konnte, meist weil sie auf eine Sprachdatei zeigt, die nicht da ist.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Die Vorlagen pro Benutzer, die Windows für jede angemeldete Sitzung kopiert.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Jedes Feld</h2>
+    <p>Aus dem Programm selbst gebaut, sodass diese Tabelle nicht von dem abweichen kann, was das Werkzeug akzeptiert. Ein Feld ohne Werteliste nimmt Text, eine Zahl oder eine Größe - die dritte Spalte sagt, welches.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Zwei Dinge, die man wissen sollte</h2>
+    <div class="qa">
+      <div>
+        <h3>Manche Felder sind teuer, und wer nach ihnen fragt, schaltet das Lesen ein</h3>
+        <p>Signaturen brauchen über einen ganzen Rechner mehrere Sekunden, und der Speicher ist eine Messung und keine Einstellung, daher wird keines von beiden für eine Liste gelesen, wenn nicht danach gefragt wird. Eine Abfrage, die eines erwähnt, schaltet dieses Lesen von selbst ein - Sie müssen sich nicht zusätzlich zu <code>signed:no</code> noch <code>--signatures</code> merken. Im Fenster sagt eine Abfrage zu Signaturen, dass die Antwort unvollständig ist, bis sie eintreffen, statt eine kürzere Liste so zu zeigen, als wäre sie die Antwort.</p>
+      </div>
+      <div>
+        <h3>Ein Ergebnis, das nach etwas Unlesbarem beurteilt wurde, sagt das</h3>
+        <p>Wenn Einträge nach einem Feld beurteilt wurden, das diese Sitzung nicht lesen konnte, trägt das Ergebnis eine Zeile mit der Anzahl - denn ein solches Ergebnis kann Einträge vermissen oder welche enthalten, die nicht hineingehören. Das ist dieselbe Regel, die das ganze Werkzeug einhält: ein erfolgloses Lesen ist in der Antwort sichtbar und wird nie verschluckt. Ein Herausgeber wird genauso behandelt, wenn nur das Zertifikat ihn behauptet: neben jedem anderen Urteil als <code>trusted</code> wird der Name als <em>not verified</em> gezeigt, und <code>publisher:</code> zählt den Eintrag in einer eigenen Zeile als unsicher - so behält <code>!publisher:microsoft</code> eine Microsoft-Datei, die jemand nach dem Signieren verändert hat.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Die Referenz der Befehlszeile</a>
+  </div>
+</section>

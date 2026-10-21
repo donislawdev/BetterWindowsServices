@@ -1,0 +1,78 @@
+<meta name="title" content="Fragen zu Better Windows Services und seine ehrlichen Grenzen">
+<meta name="description" content="Braucht es das Internet? Administratorrechte? Macht es meinen Server kaputt? Was es tut und was es absichtlich verweigert.">
+<meta name="nav" content="FAQ">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Fragen</span>
+    <h1>Fragen und Grenzen</h1>
+    <p class="lede">Ein Werkzeug, das etwas stillschweigend nicht abdeckt, ist schlechter als eines, das sagt, was es nicht kann. Auch die Grenzen stehen auf dieser Seite, in zwei Gruppen: was es absichtlich verweigert und was Windows tut und dieses Werkzeug so meldet, wie es ist.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Was unterscheidet das von <code>sc.exe</code>, <code>Get-Service</code> oder <code>services.msc</code>?</h3>
+        <p><code>sc query</code> und <code>Get-Service</code> sagen, was läuft. <code>services.msc</code> lässt Sie es ändern, Zeile für Zeile, ohne Möglichkeit, eine Frage zu stellen, und ohne Aufzeichnung danach. Dieses Werkzeug stellt die Frage (<code>start:auto !status:running</code>), zeigt den Plan, bevor es handelt, und hält einen Snapshot bereit, den Sie eine Woche später vergleichen können. Wo es bei einem Dienst von <code>sc.exe</code> abweicht, ist das ein Fehler - ein Teil der Testsuite führt beide aus und vergleicht sie Eintrag für Eintrag. <a href="{{url:sc-exe-and-powershell}}">Der längere Vergleich steht hier.</a></p>
+      </div>
+      <div>
+        <h3>Braucht es das Internet?</h3>
+        <p>Nie. Keine Telemetrie, keine Updateprüfung, keine Absturzberichte, kein Konto, kein Client von irgendetwas. Das einzige Mal, dass es überhaupt ein Netzwerk berühren kann, ist, wenn Sie <code>--follow-network</code> übergeben: Dann darf es einen Startpfad auf der Freigabe eines anderen Rechners ansehen und Windows ein Zertifikat holen lassen, das dieser Rechner noch nicht hat - standardmäßig aus, und die Hilfe sagt, warum. Die Schaltflächen <em>GitHub</em> und <em>Donate</em> im Fenster und die Seite in seinem Menü <em>Help</em> geben beim Drücken jeweils eine feste Adresse an Ihren Browser weiter, und Ihr Browser ist es, der sich verbindet.</p>
+      </div>
+      <div>
+        <h3>Braucht es Administratorrechte?</h3>
+        <p>Zum Ansehen nein. Zum Ändern ja. Ohne sie zeigt der Manager weniger Einträge und lehnt mehr ab, und beide Hälften sagen das ganz oben, statt so zu tun, als wäre die Liste der ganze Rechner. Das Fenster bietet <em>Restart as admin</em> an. Es erhöht seine Rechte nie selbst.</p>
+      </div>
+      <div>
+        <h3>Ist es kostenlos? Darf ich es bei der Arbeit nutzen?</h3>
+        <p>Ja, beides. GPL-3.0, ohne Bedingungen. Ein Snapshot, den Sie erstellen, ist Ihre Datei.</p>
+      </div>
+      <div>
+        <h3>Macht es meinen Server kaputt?</h3>
+        <p>Nicht von selbst. Nichts wird ohne einen Plan geändert, den Sie gesehen haben, Treiber werden abgelehnt, und ein Plan, der etwas stilllegen würde, das der Rechner braucht, sagt das. Wovor es Sie nicht schützen kann, ist, einen Plan auszuführen, den Sie nicht gelesen haben. Die Liste der Dienste, die der Rechner braucht, ist eine Startliste mit sieben Einträgen - die beiden Hälften von RPC und der DCOM-Starter, der Kontenmanager, die Schlüsselisolierung, der Sitzungsmanager und Plug and Play - und <strong>Remotedesktop steht nicht darauf</strong>, lesen Sie also in einer Remotesitzung den Plan.</p>
+      </div>
+      <div>
+        <h3>Ist das ein Microsoft-Produkt?</h3>
+        <p>Nein. {{product}} ist ein unabhängiges Open-Source-Projekt und steht in keiner Verbindung zu Microsoft, wird nicht von Microsoft unterstützt und nicht von Microsoft gesponsert. Windows ist eine Marke der Microsoft-Unternehmensgruppe.</p>
+      </div>
+      <div>
+        <h3>Gibt es das Programm in meiner Sprache?</h3>
+        <p>Nein - das Programm spricht Englisch, und deshalb ist diese Seite übersetzt. Das Fenster liest eine Sprachdatei, <code>languages\gui.&lt;Code&gt;.json</code>, die neben der ausführbaren Datei liegt, und wählt sie nach der Sprache von Windows, ohne Schalter, sodass eine Übersetzung ein Beitrag ist, der sich ohne Neubau des Programms ergänzen lässt. Die Namen der Dienste in der Liste sind das, was Ihr Windows dazu sagt - in der Sprache, in der Ihr Windows eingerichtet ist.</p>
+      </div>
+      <div>
+        <h3>Warum ist das Fenster dunkel, wenn mein Windows hell ist?</h3>
+        <p>Es ist dunkel und bleibt dunkel, was auch immer in Windows eingestellt ist, auch bei einem Kontrastdesign. Das ist geprüft und nicht angenommen - es behält seine eigenen Farben und bleibt lesbar, und es folgt dieser Einstellung nicht.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Absichtlich so</h2>
+    <ul class="points">
+      <li><strong>Nur der lokale Rechner.</strong> Fernverwaltung gibt es in dieser Version nicht. Um zwei Rechner zu vergleichen, machen Sie auf jedem einen Snapshot und vergleichen die beiden Dateien.</li>
+      <li><strong>Nur Windows, nur 64 Bit</strong>, Windows 10 1809 oder Windows Server 2019 und neuer.</li>
+      <li><strong>Operationen an Treibern werden abgelehnt und nicht versucht</strong>, weil das Beenden eines Kerneltreibers ohne Neustart oft nicht umkehrbar ist.</li>
+      <li><strong>Das Werkzeug erhöht seine eigenen Rechte nicht.</strong> Wenn der Manager ablehnt, sagt es das und endet mit Exit-Code <code>3</code>. Das Fenster bietet an, sich selbst als Administrator neu zu starten, und tut sonst nichts dazu.</li>
+      <li><strong>Die Sperrung von Zertifikaten wird nicht geprüft.</strong> Dafür müsste es das Netzwerk erreichen, und dieses Werkzeug tut das nie. <em>Trusted</em> heißt also, dass die Kette auf diesem Rechner gültig war, nicht, dass niemand das Zertifikat seither widerrufen hat.</li>
+      <li><strong>Das Fenster entpackt vor dem Start einen Teil des Windows-Frameworks für die Oberfläche.</strong> Als einzelne Datei trägt es einige native Bibliotheken, die Windows nur von der Festplatte laden kann. Ohne Administratorrechte schreibt es sie beim ersten Start jeder Version in einen <code>.net</code>-Ordner unter dem temporären Ordner des Kontos und lädt sie von dort. Mit Administratorrechten nutzt es stattdessen <code>ProgramData\BetterWindowsServices</code> auf dem Windows-Laufwerk - einen Ordner, den es so anlegt, dass nur Administratoren ihn ändern können, und bei jedem Start prüft. Kann dieser Ordner nicht angelegt werden oder können andere ihn ändern, startet das Fenster nicht und sagt, welcher Ordner und was zu tun ist. Der Umzug dorthin bedeutet, dass sich ein Fenster mit erhöhten Rechten ein zweites Mal selbst startet, was den Bruchteil einer Sekunde dauert, und jede Version lässt ihre Bibliotheken dort liegen (etwa 8 MB), bis jemand den Ordner löscht. Die Befehlszeile trägt keine solchen Bibliotheken und entpackt nichts.</li>
+      <li><strong>Eine Sitzung mit erhöhten Rechten nennt die .NET-Einstellungen, die sie erbt, statt sie abzulehnen.</strong> Ein Profiler, ein Trace- oder Dump-Schalter oder ein Diagnoseport in der Umgebung lässt sich aus einem .NET-Programm heraus nicht abschalten, daher listen beide Hälften mit Administratorrechten alle auf, die sie finden. Startup-Hooks werden ganz abgeschaltet.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was Windows tut und dieses Werkzeug so meldet, wie es ist</h2>
+    <ul class="points">
+      <li><strong>Ein Dienst, der in <code>svchost</code> gehostet wird,</strong> hat einen Startpfad, der den Host nennt, sodass <em>die Datei ist da</em> und <em>wer sie signiert hat</em> beide weniger aussagen als bei einem Dienst mit eigenem Prozess.</li>
+      <li><strong>Eine Datei mit eigener Signatur und einem Windows-Katalogeintrag</strong> kann zwei verschiedene Signierer nennen. Der angezeigte Herausgeber ist der in der Datei - der, der gleich bleibt, wenn man die Datei auf einem anderen Rechner ansieht - und er kann von dem abweichen, was PowerShell meldet.</li>
+      <li><strong>Ohne Administratorrechte listet der Manager weniger Einträge und lehnt mehr von dem ab, was er listet.</strong> Beide Hälften sagen das ganz oben, und ein Snapshot hält es fest, denn ein Vergleich eines Snapshots mit erhöhten Rechten mit einem ohne Rechte würde sonst Einträge als entfernt melden, die niemand entfernt hat.</li>
+    </ul>
+    <p class="note"><strong>Ein Problem gefunden oder einen Dienst, den dieses Werkzeug anders meldet als <code>sc.exe</code>?</strong> Der <a href="{{issues}}">Issue-Tracker</a> ist offen, und ein Vergleich der beiden ist das Nützlichste, was Sie dort einfügen können.</p>
+  </div>
+</section>

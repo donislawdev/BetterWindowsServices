@@ -1,0 +1,201 @@
+<meta name="title" content="Better Windows Services - ein services.msc-Ersatz mit Suche">
+<meta name="description" content="Quelloffener, kostenloser services.msc-Ersatz. Dienste per Abfragesprache durchsuchen, jede Änderung vorab ansehen, sehen, was seit gestern abgedriftet ist.">
+<meta name="nav" content="Start">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Die Startseite. Jeder Satz hat eine Entsprechung in README.md, die gegen das laufende Programm
+  geprüft wurde, bevor sie dort geschrieben wurde - der Plan, der Vergleich und die Abfrage unten
+  sind echte Ausgaben, keine Illustrationen.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Windows-Dienste durchsuchen, jede Änderung vorab ansehen und <em>sehen, was seit gestern abgedriftet ist</em></h1>
+      <p class="lede"><strong>{{product}}</strong> ist <code>services.msc</code>, neu gebaut für alle, die Windows-Rechner administrieren - ein Fenster und eine Befehlszeile über einer gemeinsamen Engine. Stellen Sie dem Rechner eine Frage, statt achthundert Zeilen zu durchblättern. Sehen Sie, was eine Änderung bewirkt, <strong>bevor Sie irgendetwas bestätigen</strong>. Und das, was <code>services.msc</code> nie hatte: <strong>jeden Dienst in eine Datei einfrieren und eine Woche später fragen, was sich geändert hat.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+        <a class="btn btn-secondary" href="{{repo}}">Den Code auf GitHub ansehen</a>
+      </div>
+      <ul class="trust">
+        <li>Kostenlos und quelloffen, GPL-3.0</li>
+        <li>Eine Datei oder ein Installer</li>
+        <li>Zum Ansehen keine Administratorrechte</li>
+        <li>Kein Kontakt zum Internet</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Das Fenster mit fünf ausgewählten Einträgen und dem Plan zu ihrem Start über der Liste: fünf Schritte, ein Hinweis, dass zwei davon bereits in diesem Zustand sind, eine bws-start-Zeile für jeden Eintrag und die Schaltfläche Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Ausgewählte Einträge, ein Plan, der vor jeder Änderung angezeigt wird, und die <code>bws</code>-Zeile, die genau dasselbe verlangt. Das Programm spricht Englisch - das Fenster liest eine Sprachdatei, die daneben liegt, sodass eine Übersetzung ohne Neubau möglich ist.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Echte Aufnahmen des Fensters, aufgenommen am 2026-09-25 und 2026-09-26 und hier gezeigt seit
+  2026-10-07 - die ersten vom 2026-09-24 ersetzten ein in HTML gezeichnetes Scheinfenster. Die
+  Sitzung ist dasselbe GIF wie in der README, eine Datei für beide, auf Entscheidung des Besitzers
+  vom 2026-10-07. Vom 2026-09-24 bis zu diesem Tag war es stattdessen ein Video mit Bedienelementen,
+  weil WCAG 2.2.2 verlangt, dass sich eine Endlosschleife von mehr als fünf Sekunden anhalten
+  lässt, was bei einem GIF nicht geht - das ist der Preis des GIFs, hier ausgesprochen statt
+  vergessen.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Eine halbe Minute damit</span>
+    <h2>So sieht es im Einsatz aus</h2>
+    <p class="lede">Eine echte Sitzung auf einem auf Polnisch installierten Windows - die Anzeigenamen kommen von Windows, deshalb stehen sie in dessen Sprache. Das Fenster selbst spricht Englisch.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Vier ausgewählte Einträge und der Plan zu ihrem Start, ein erzwungener Neustart des Local Session Manager, dessen Plan warnt, dass der Rechner ohne ihn nicht funktioniert, und vor dem die Schaltfläche erst nach Eingabe seines Namens arbeitet, die Fragen zum Einstieg unter dem leeren Suchfeld sowie der Druckerspooler, der durch Eintippen eines Teils seines Namens gefunden und gestartet wird." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Vier ausgewählte Einträge und der Plan zu ihrem Start, ein erzwungener Neustart, der den Namen eines Dienstes verlangt, den der Rechner braucht, die Fragen unter einem leeren Suchfeld und der Druckerspooler, der durch Eintippen gefunden und gestartet wird.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Der Startbildschirm: drei Karten mit Zahlen zu diesem Rechner - laufende Dienste, automatisch startende Dienste, die nicht hochgekommen sind, und automatisch startende Dienste, deren Datei fehlt - sowie eine Schaltfläche Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Es öffnet sich mit einigen Zahlen zu diesem Rechner. Jede ist eine Frage - ein Klick, und die Frage landet im Suchfeld.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Die Liste der Dienste mit den drei Listen über dem Suchfeld, einem leeren Suchfeld, den in Reihen geöffneten Filterschaltflächen für Zustand, Starttyp, Signatur, Abweichungen und Trigger und der Liste darunter." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Die Filterschaltflächen schreiben in das Suchfeld, sodass das, worauf Sie geklickt haben, eine Abfrage ist, die Sie lesen und bearbeiten können.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Warum es das gibt</span>
+    <h2><code>services.msc</code> hat sich seit Windows 2000 kaum verändert</h2>
+    <p class="lede">Administratoren verbringen damit pro Woche Stunden und stoßen immer wieder an dieselben Wände.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Keine Suche.</strong> Navigiert wird nur durch den Sprung zum ersten Buchstaben eines Anzeigenamens.</li>
+        <li><strong>Kein Filtern.</strong> Es gibt keine Möglichkeit zu fragen: <em>Zeige mir, was automatisch starten soll und nicht läuft</em>.</li>
+        <li><strong>Eine Zeile nach der anderen.</strong> Zwölf Dienste neu zu starten heißt zwölf Rechtsklicks und zwölf Wartezeiten.</li>
+        <li><strong>"Wird beendet..." für immer</strong>, und der einzige Ausweg ist der Task-Manager samt Raten, welcher Prozess es ist.</li>
+        <li><strong>Kein Verlauf.</strong> Niemand weiß, wer diesen Starttyp auf Deaktiviert gesetzt hat und wann.</li>
+        <li><strong>Verborgene Daten.</strong> Prozess, Trigger, Privilegien, Sicherheitsdeskriptor, wer die Programmdatei signiert hat - für alles braucht man <code>sc.exe</code> aus dem Kopf oder die Registrierung.</li>
+        <li><strong>Keine Gleichwertigkeit auf der Befehlszeile.</strong> <code>sc.exe</code> hat eine Syntax aus den Neunzigern, und das <code>Get-Service</code>, das mit Windows in Windows PowerShell 5.1 kommt, zeigt weder das Konto, unter dem ein Dienst läuft, noch gar seine Beschreibung. PowerShell 7 zeigt beides und wird separat installiert.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Die anderen Werkzeuge lösen jeweils nur einen Teil</h3>
+        <p>Process Hacker und System Informer zeigen eine reichhaltige Liste und können einen Prozess hart beenden, haben aber weder Audit noch Befehlszeile. <code>sc.exe</code> und <code>PsService</code> können alles und sagen nichts. Die <code>*-Service</code>-Cmdlets von PowerShell sind skriptfähig und oberflächlich.</p>
+        <p>Niemand verbindet eine durchsuchbare Liste, eine Vorschau vor jeder Änderung und ein Protokoll dessen, was sich im Lauf der Zeit geändert hat - und das Protokoll ist der Grund, dieses Werkzeug nach dem ersten Nachmittag auf einem Rechner zu behalten.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Der vollständige Vergleich</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Was es kann</span>
+    <h2>Ein Fenster und eine Befehlszeile über einer gemeinsamen Engine</h2>
+    <div class="grid">
+      <div class="card"><h3>Fragen, statt scrollen</h3><p><code>start:auto !status:running</code> heißt <em>was laufen sollte und nicht läuft</em>. Eine Sprache, im Suchfeld und in <code>bws list --query</code>, mit den Feldern als Vorschlag während der Eingabe.</p></div>
+      <div class="card"><h3>Den Plan zeigen, bevor etwas passiert</h3><p>Jedes Beenden, Starten, Neustarten und jede Änderung des Starttyps wird samt den Diensten, die dabei mit heruntergehen, vorab angezeigt, und die Vorschau ist das, was ausgeführt wird.</p></div>
+      <div class="card"><h3>Sagen, was abgedriftet ist und wer es geändert hat</h3><p><code>bws snapshot create</code> friert den Rechner in eine Datei ein, und <code>bws snapshot diff</code> sagt, was sich seither geändert hat, die Konfiguration getrennt von dem, was nur gestartet oder beendet wurde. <code>bws history</code> sagt anhand des Systemprotokolls, wer einen Starttyp geändert und wer einen Dienst installiert hat. Das Fenster erledigt alle drei unter <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Ein häufiges Problem mit einem Klick beheben</h3><p>Der Reiter <em>Tools</em> und <code>bws tool fix</code> starten den Dienst hinter einem Drucker, der nicht druckt, einem verschwundenen Ton oder einer hängenden Suche samt allem, was davon abhängt, über denselben Plan wie alles andere neu.</p></div>
+      <div class="card"><h3>Einen Dienst beenden, der sich nicht beenden lässt</h3><p>Es fragt zuerst höflich und beendet den Prozess nur, wenn das fehlschlägt, und nennt dabei jeden anderen Dienst, der in ihm lebt.</p></div>
+      <div class="card"><h3>Zeigen, was <code>services.msc</code> verbirgt</h3><p>Wer die Programmdatei signiert hat und ob Windows ihr vertraut, Trigger, Privilegien, den Sicherheitsdeskriptor, den Prozess und seinen Speicher. Als Spalten und als Kriterien für die Suche.</p></div>
+      <div class="card"><h3>Sagen, wenn es etwas nicht lesen konnte</h3><p>Ein Feld, das es nicht lesen konnte, wird als nicht gelesen gemeldet und nie als leer angezeigt. Ein Snapshot ohne Administratorrechte sagt das in der Datei selbst.</p></div>
+      <div class="card"><h3>In Skripte passen</h3><p><code>--json</code> bei jedem Befehl, ein Exit-Code für jedes Ende und <code>5</code>, wenn ein Vergleich Drift findet.</p></div>
+      <div class="card"><h3>Aus einer Datei laufen, offline</h3><p>Entpacken und starten oder für den ganzen Rechner installieren. Kein .NET zu installieren, und es nimmt nie Kontakt zum Internet auf. Zum Lesen sind keine Administratorrechte nötig. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Das, was services.msc nie konnte</span>
+    <h2>Was sich seit gestern geändert hat</h2>
+    <p class="lede">Ein Snapshot ist der ganze Rechner in einem Augenblick - jeder Dienst und jeder Treiber mit Starttyp, Konto, Startpfad, Hash und Signierer seiner Datei, Abhängigkeiten, Triggern, Privilegien und Sicherheitsdeskriptor. Er ist JSON mit einem Feld pro Zeile, sodass er in ein Repository passt und <code>git diff</code> ihn lesen kann.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Konfiguration und Laufzustand werden getrennt gemeldet.</strong> Zwei Snapshots im Abstand eines Tages unterscheiden sich darin, was gerade läuft, und fast nichts davon ist Drift - die Zeile mit dem geänderten Starttyp ist die, die man lesen muss.</li>
+        <li><strong>Was sich nicht vergleichen ließ, wird aufgelistet und nicht versteckt.</strong> Ein Feld, das ein Snapshot nie gelesen hat, erscheint als <em>not compared</em>, sodass ein Vergleich, der <em>nichts hat sich geändert</em> sagt, bedeutet: nichts hat sich in dem geändert, was beide Seiten sehen konnten.</li>
+        <li><strong><code>--exit-code</code> endet mit <code>5</code>, wenn sich die Konfiguration unterscheidet</strong>, sodass eine geplante Aufgabe bei der Bereitstellung einen Snapshot machen und in der ersten Nacht, in der der Rechner abdriftet, jemanden alarmieren kann.</li>
+        <li><strong>Zwei Rechner, zwei Dateien.</strong> Machen Sie einen Snapshot auf dem Staging- und einen auf dem Produktivsystem und vergleichen Sie sie irgendwo.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Wie Snapshots und Drift funktionieren</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Ohne Plan geschieht nichts</span>
+    <h2>Die Vorschau ist die Ausführung</h2>
+    <p class="lede">Jede schreibende Operation baut zuerst einen Plan, und derselbe Plan ist die Vorschau, die Kaskade der abhängigen Dienste, die Ablehnung, bevor Sie etwas bestätigen, die Befehlszeile, die dasselbe verlangt, und der Weg zurück danach.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Führen Sie es ohne <code>--dry-run</code> aus, und das sind die Schritte</strong>, in dieser Reihenfolge, mit denselben Gründen daneben. Es gibt keinen zweiten Codepfad für den Ernstfall.</li>
+        <li><strong>Was mit heruntergeht, steht im Plan.</strong> Die Dienste, die ausfallen würden, sind eigene Schritte, und ein Plan, der etwas stilllegen würde, das der Rechner braucht, sagt das in seinen Warnungen.</li>
+        <li><strong>Eine Ablehnung kommt vor der Schaltfläche.</strong> Ein Treiber, ein Dienst, für den der Manager kein Beenden annimmt, ein Prozess, den das System schützt - abgelehnt, wenn der Plan gebaut wird, mit Begründung. Das Fenster graut die Schaltfläche aus und nennt daneben den Grund.</li>
+        <li><strong>Erzwungenes Beenden hat zwei Schritte, und der zweite ist bedingt.</strong> <code>bws kill</code> bittet den Dienst, sich zu beenden, und beendet seinen Prozess nur, wenn das nicht klappt, und nennt dabei jeden anderen Dienst, der in ihm lebt.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Wenn sich ein Dienst nicht beenden lässt</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Zwei Minuten damit</span>
+    <h2>Von der Befehlszeile</h2>
+    <p class="lede">Dieselbe Engine wie das Fenster, für Skripte, geplante Aufgaben und CI. Daten gehen auf die Standardausgabe und alles andere auf die Standardfehlerausgabe, sodass <code>bws list --json | jq</code> funktioniert und eine Warnung nie in Ihrem JSON landet.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">was laufen sollte und nicht läuft</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">Dienste, deren Programmdatei fehlt</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">unsigniert, ohne die Kopien pro Sitzung</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">alles, was über einen Eintrag bekannt ist</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">was das Beenden mit herunterreißen würde</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">was das Beenden seines Prozesses mitnehmen würde</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">was es bewirken würde, ihn von automatisch zu nehmen</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">den Rechner vor einer Änderung einfrieren</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">was sich seither geändert hat, 5 bei geänderter Konfiguration</span>
+<span class="k">bws history Spooler</span>                               <span class="c">wer seinen Starttyp geändert hat und wann</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">was die Schnellreparatur für einen hängenden Drucker täte</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Jeder Befehl, jeder Schalter, jeder Exit-Code</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Beschaffen</span>
+    <h2>Entpacken und starten oder installieren</h2>
+    <p class="lede">Windows 10 1809 oder Windows Server 2019 und neuer, 64 Bit. Die Archive brauchen keinen Installer und schreiben nichts in die Registrierung, und zum Ansehen sind keine Administratorrechte nötig. Zum Ändern braucht es eine Sitzung mit erhöhten Rechten, und beide Hälften sagen das, statt still zu scheitern - das Fenster bietet <em>Restart as admin</em> an.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Datei</th><th>Was es ist</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Das Fenster, eine eigenständige ausführbare Datei - kein .NET zu installieren</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Die Befehlszeile, eine eigenständige ausführbare Datei, für Skripte und CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Der Installer: beide Programme für jedes Konto auf dem Rechner, das Fenster im Startmenü und <code>bws</code> im PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Die ausführbaren Dateien tragen eine Authenticode-Signatur, sodass Windows den Herausgeber nennt, statt vor einem unbekannten zu warnen.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Für Windows herunterladen</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Anforderungen und Bauen aus dem Quelltext</a>
+    </div>
+  </div>
+</section>

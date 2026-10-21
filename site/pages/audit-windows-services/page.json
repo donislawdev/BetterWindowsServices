@@ -6,6 +6,7 @@
   "footer": "guides",
   "slug": {
     "en": "audit-windows-services",
-    "pl": "audyt-uslug-windows"
+    "pl": "audyt-uslug-windows",
+    "de": "windows-dienste-auditieren"
   }
 }

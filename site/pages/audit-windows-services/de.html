@@ -1,0 +1,65 @@
+<meta name="title" content="Windows-Dienste auditieren - belegen, was sich geändert hat">
+<meta name="description" content="Jeden Dienst bei der Bereitstellung einfrieren und jede Nacht fragen, ob der Rechner noch passt. Drift, unsignierte und fehlende Dateien in einer Abfrage.">
+
+<meta name="nav" content="Dienste auf Drift auditieren">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Leitfaden</span>
+    <h1>Windows-Dienste auditieren</h1>
+    <p class="lede">Ein Audit ist keine Liste dessen, was auf dem Rechner ist. Es ist der Unterschied zwischen dem, was auf dem Rechner ist, und dem, was sein sollte - und kein gewöhnliches Windows hält die zweite Hälfte fest.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Drei Fragen und was sie beantwortet</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Was hat sich geändert, seit dieser Rechner gebaut wurde?</h3>
+        <p>Ein Snapshot bei der Bereitstellung und ein Vergleich mit dem Rechner heute Nacht. Die Konfiguration wird getrennt von dem gemeldet, was nur gestartet oder angehalten wurde, sodass der eine Starttyp, den jemand geändert hat, nicht unter vierzig Diensten untergeht, die zufällig laufen.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Warum unterscheidet sich Staging vom Produktivsystem?</h3>
+        <p>Machen Sie auf jedem einen Snapshot und vergleichen Sie die beiden Dateien - irgendwo, ohne dass einer der Rechner vor Ort ist. Die Dateien tragen den Rechnernamen und das Konto, das sie erstellt hat.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Was ist hier, das nicht hier sein sollte?</h3>
+        <p>Abfragen, die die Formen finden, die einen Blick wert sind: ein Dienst, dessen Programmdatei fehlt, einer, der nicht signiert ist, einer, der läuft, obwohl er deaktiviert ist, einer, der Debugrechte verlangt.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Die nächtliche Form</h2>
+<pre><code><span class="c"># der Tag, an dem der Rechner in Betrieb geht</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># jede Nacht, aus einer geplanten Aufgabe</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - keine Konfigurationsdrift
+#   5 - die Konfiguration ist abgedriftet, und drift.json sagt, was
+#   3 - es lief und konnte nicht alles lesen, die Antwort ist also unvollständig</span></code></pre>
+    <p>Exit-Code <code>5</code> macht daraus ein Audit statt eines Berichts, den niemand liest: Die Aufgabe schweigt, bis der Rechner abdriftet, und in der Nacht, in der er es tut, wird jemand alarmiert.</p>
+    <p class="note"><strong>Erstellen Sie die Baseline in einer Sitzung mit erhöhten Rechten.</strong> Ohne Administratorrechte listet der Manager weniger Einträge und lehnt mehr von dem ab, was er listet. Der Snapshot hält fest, ob das Konto, das ihn erstellt hat, ein Administrator war, sodass der Vergleich das sagen kann, statt Einträge als entfernt zu melden, die niemand entfernt hat - aber eine Baseline, der die Hälfte des Rechners fehlt, ist trotzdem eine Baseline, der die Hälfte des Rechners fehlt.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Was ein Snapshot als Beleg wert ist</h2>
+    <ul class="points points-ok">
+      <li><strong>Er ist JSON mit einem Feld pro Zeile</strong>, sodass er in ein Repository passt und <code>git diff</code> ihn liest. Ein Prüfer, der dieses Werkzeug nicht hat, kann die Datei trotzdem lesen, und eine Versionsverwaltung beantwortet das <em>Wann</em> bereits.</li>
+      <li><strong>Er enthält, was das Snap-in nie zeigte:</strong> Startpfad und Argumente, Hash und Signierer der Datei, die Abhängigkeiten in beide Richtungen, die Trigger, die erforderlichen Privilegien, den SID-Typ und den Sicherheitsdeskriptor.</li>
+      <li><strong>Er sagt, was er nicht lesen konnte.</strong> Ein Feld, für das diese Sitzung keine Rechte hatte, wird als nicht gelesen festgehalten - nie als leer -, sodass ein späterer Vergleich <em>not compared</em> sagen kann, statt es stillschweigend unverändert zu nennen.</li>
+      <li><strong>Er ist eine Beschreibung des ganzen Rechners.</strong> Legen Sie ihn entsprechend ab: Er wird mit den Berechtigungen geschrieben, die sein Verzeichnis ohnehin hat, und das Werkzeug schränkt nichts ein.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Wie Snapshots und Vergleiche funktionieren</a>
+  </div>
+</section>
