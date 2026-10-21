@@ -1,0 +1,102 @@
+<meta name="title" content="Windows 管理者向けの services.msc の代替">
+<meta name="description" content="services.msc には検索も絞り込みも履歴もありません。クエリ言語、すべての変更前のプレビュー、ドリフトの差分を備えた、無料でオープンソースの代替です。">
+<meta name="nav" content="services.msc との比較">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ガイド</span>
+    <h1><code>services.msc</code> の代替</h1>
+    <p class="lede">「サービス」スナップインは、Windows 2000 からほとんど変わっていません。すでに画面に見えている 1 つのサービスを開始する最速の方法であり、マシンについてのどんな質問にも答えるのが最も遅い方法です。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>人々が代替を探す理由</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>検索がありません。</strong>操作できるのは、文字を入力して、その文字で始まる最初の表示名へジャンプすることだけです。800 個のエントリがあるマシンでは、手順が増えただけのスクロールです。</li>
+        <li><strong>絞り込みがありません。</strong><em>自動開始に設定されているのに実行されていないもの</em>を尋ねる方法がありません。壊れたマシンを見つける唯一の質問なのに、です。</li>
+        <li><strong>1 行ずつしか操作できません。</strong>12 個のサービスを再起動するには、右クリックを 12 回、待機を 12 回繰り返します。</li>
+        <li><strong>「Stopping...」から抜け出す方法がありません。</strong>タスク マネージャーと、どの <code>svchost</code> を終了するかの推測以外には。</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>履歴がありません。</strong>誰がいつスタートアップの種類を Disabled にしたのか、先月はどうだったのか、誰にもわかりません。</li>
+        <li><strong>隠れたデータ。</strong>プロセス、トリガー、必要な特権、セキュリティ記述子、実行ファイルの署名者。スナップインには何もなく、何かがおかしいときにはすべてが重要です。</li>
+        <li><strong>列を変更できません。</strong>名前、説明、状態、スタートアップの種類、ログオン。これが一覧のすべてで、実際のマシンで役に立つ並べ替えができるものは一つもありません。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>同じ 3 つの作業を、両方で</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>したいこと</th><th><code>services.msc</code> では</th><th>ここでは</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>起動しているはずなのに起動していないものを見つける</td>
+            <td class="no">スタートアップの種類で並べ替え、スクロールし、すべての行を読む</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>停止で何が巻き込まれるかを知る</td>
+            <td class="no">Stop を押したあとに、依存するサービスを示すダイアログ</td>
+            <td>何かが起きる前のプラン。それぞれの依存サービスがステップになり、その 1 つがマシンに必要なものである場合は警告が出ます</td>
+          </tr>
+          <tr>
+            <td>先週から何が変わったかを知る</td>
+            <td class="no">何もありません</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>誰がスタートアップの種類を変更したかを知る</td>
+            <td class="no">何もありません</td>
+            <td><code>bws history Spooler</code>、System ログから</td>
+          </tr>
+          <tr>
+            <td>12 個のサービスを再起動する</td>
+            <td class="no">右クリック 12 回</td>
+            <td>12 個を選択し、プラン 1 つ、実行 1 回、レポート 1 つ</td>
+          </tr>
+          <tr>
+            <td>サービスの実行ファイルを誰が署名したかを見る</td>
+            <td class="no">表示されません</td>
+            <td>列として表示でき、検索条件にもできます。<code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>それらのどれかをスクリプトにする</td>
+            <td class="no">スクリプト化できません</td>
+            <td><code>bws</code>。<code>--json</code> と、終了のたびの終了コード付き</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>スナップインのほうが優れている点</h2>
+    <p class="lede">2 つあります。そうでないふりをするのは、このプロジェクトが行わない種類の主張です。</p>
+    <ul class="points">
+      <li><strong>すでにマシンに入っています。</strong>ダウンロードするものは何もなく、ソフトウェアのポリシーを通す必要もありません。1 回しか触らないマシンでは、これがすべてです。</li>
+      <li><strong>回復のアクション、アカウント、起動パスを編集できます。</strong>このツールはアカウントと起動パスを表示しますが、どちらも変更しません。回復のアクションは、プロセスを終了する前に警告するためだけに読み取ります。サービスの作成、削除、向き先の変更もここにはありません。</li>
+    </ul>
+    <p>スナップインに全くできないことが、これが存在する理由です。質問すること、最初にプランを見せること、何がドリフトしたかを伝えること。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>これは何か</h2>
+    <p>{{product}} は、GPL-3.0 の無料でオープンソースで、片方につき 1 ファイル、またはマシン全体向けのインストーラーがあり、インターネットには一切接続しません。読み取りに管理者権限は不要です。変更には必要で、黙って失敗せずにそのことを伝えます。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">クエリ言語を見る</a>
+    </div>
+  </div>
+</section>

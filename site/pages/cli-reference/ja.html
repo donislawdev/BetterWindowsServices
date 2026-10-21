@@ -1,0 +1,194 @@
+<meta name="title" content="コマンドライン リファレンス - bws のすべてのオプションと終了コード">
+<meta name="description" content="bws のすべてのコマンド、オプション、終了コード。list、show、stop、start、restart、kill、start-type、snapshot、history、tool と、各フラグが使える場所。">
+<meta name="nav" content="CLI リファレンス">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  このページの表は、書かれたものではなく生成されたものです。オプションはパーサー自身の表である
+  src/Bws.Cli/OptionSurface.cs から、コードは src/Bws.Cli/ExitCode.cs から取得されます。
+  そのため、プログラムに追加されたオプションはここに現れ、もう存在しないオプションについての
+  文があるとビルドが失敗します。それぞれが何を意味するかは文章であり、文章は翻訳されるため
+  site/i18n にあります。
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">リファレンス</span>
+    <h1>コマンドライン リファレンス</h1>
+    <p class="lede"><code>bws</code> バージョン {{version}} のすべてのコマンド、オプション、終了コード。権威あるものは <code>bws --help</code> で、そちらのほうが長くなります。このページは同じ内容を、読みやすく並べたものです。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>コマンド</h2>
+    <p>11 個のコマンドがあります。<code>snapshot</code> は名詞で、後ろに語が続きます。<code>tool</code> も名詞で、単独で実行するとツールの一覧を表示します。</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>入力ミスのあるコマンドには、おそらく意図したものが提示され、頼んだものに近いことをする代わりに、コード <code>2</code> で終了します。</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>各コマンドの動作</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> と <code>show</code></h3>
+        <p><code>list</code> はマシン全体で、<code>--query</code> で絞り込みます。<code>show</code> は 1 つのエントリについてわかっているすべてを表示します。署名、特権、セキュリティ記述子、メモリはすべて毎回読み取られます。1 つのエントリなら約 60 ミリ秒で済むのに対し、マシン全体では 1 秒かかるためです。本当に空のフィールドは、<code>--full</code> を指定しない限り省かれます。誰も読み取れなかったフィールドは、省くと答えのように見えてしまうため、常に表示されます。</p>
+      </div>
+      <div>
+        <h3><code>stop</code>、<code>start</code>、<code>restart</code></h3>
+        <p>それぞれ、プランを作成して実行します。<code>--dry-run</code> はプランを表示するだけで何も変更しません。<code>--dependents</code> は、壊れるサービスを独立したステップとしてプランに含めます。<code>--timeout</code> は、1 つのステップが進捗なしで続けられる時間を指定します。ドライバーは、試行されずに拒否されます。カーネルドライバーの停止は、再起動なしには元に戻せないことが多いためです。</p>
+      </div>
+      <div>
+        <h3><code>kill</code>：止まらないサービスのために</h3>
+        <p>サービスに停止を要求し、<em>それがうまくいかない場合にのみ</em>その背後のプロセスを終了します。そのため、自力で停止するエントリが強制終了されることはありません。プロセスを終了すると、そのプロセスに存在するほかのすべてのサービスも、先に停止していたかどうかにかかわらず巻き込まれます。プレビューはそれらの名前を示し、プロセスを番号で示します。<code>--force</code> は丁寧なステップを省略し、プレビューには 2 つではなく 1 つのステップが表示されます。<code>--restart</code> は、あとですべてを元に戻します。</p>
+        <p class="note"><strong>Windows は、この考え方を異なる形で表します。</strong><code>Stop-Service</code> の <code>--force</code> は「何かが依存していても」を意味し、ここでは <code>--dependents</code> がそれにあたります。これが、<code>stop</code> のオプションではなく独立したコマンドになっている理由です。</p>
+      </div>
+      <div>
+        <h3><code>start-type</code>：動かすのではなく、設定</h3>
+        <p>次回の起動時にマネージャーがエントリをどう扱うかを設定します。<code>--stop</code> がなければ何も動かしません。実行中のエントリは実行されたまま、停止中のものは停止したままで、プランもそう伝えます。<code>disabled</code> は立ち止まって考える価値があります。ほかの何かが必要としたときのオンデマンド開始を含めて、マネージャーがエントリを開始すること自体を止めるからです。<code>delayed</code> は自動で、ほかの自動のエントリより少しあとに開始されます。クエリで <code>start:delayed</code> が尋ねる語がこれです。Windows はロード順グループに属するエントリに対してこれを拒否し、プランは何かが起きる前にそのことを伝えます。4 つのいずれも、<code>sc.exe</code> と同様に、エントリが遅れて開始されるかどうかを書き込みます。<code>--stop</code> は <code>disabled</code> と組み合わせたときのみ使え、設定を書き込んだあと、同じプランの中でエントリを停止します。</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> と <code>snapshot diff</code></h3>
+        <p><code>create</code> は常に署名とハッシュを読み取ります。スナップショットは保存されてあとで比較されるため、それらがないものを、あるものと比較すると、マシンが変わったかのように見えてしまうからです。<code>diff</code> は、最初のファイルから 2 番目のファイルへ、または <code>--live</code> を付けてファイルからこのマシンへ、何が変わったかを示します。<a href="{{url:snapshots-and-drift}}">スナップショットのページ</a>に、形式と考え方があります。</p>
+      </div>
+      <div>
+        <h3><code>history</code>：誰が変更したか、System ログから</h3>
+        <p>System ログから、スタートアップの種類の変更とインストールを新しい順に、Windows が記録したアカウントとともに表示します。最初の行は、ログがどこまでさかのぼるか、消去されたかどうかを示します。履歴はログの長さまでしか存在しないからです。名前を指定すると、そのサービスのスタートアップの種類の変更になります。インストールは、名前なしの場合のみ一覧に出ます。Windows はインストールを表示名で記録し、サービス名では記録しないためです。アカウントは、このマシンが自分で名前を解決できる場合はその名前で、できない場合は SID で表示されます。スタートアップの種類は、Windows が書いた言葉のまま表示されます。</p>
+      </div>
+      <div>
+        <h3><code>tool</code>：よくある問題への既製の答え</h3>
+        <p>ウィンドウの Tools タブに表示されるのと同じツールです。<code>bws tool</code> はそれらを一覧表示し、<code>bws tool fix</code> はクイック修正を一覧表示します。<code>printer</code>、<code>sound</code>、<code>indexing</code>、<code>search</code> で、それぞれ 1 つの Windows サービスとそれに依存するものの再起動です。Microsoft 自身のトラブルシューティングのページが提案しているため選ばれました。<code>bws tool fix printer</code> は、まさに <code>bws restart Spooler --dependents</code> と同じです。同じプラン、同じ出力、同じ終了コードです。そして、ここにある何かを変更するすべてのコマンドと同じく、事前には確認しないため、実行前に確認するには <code>--dry-run</code> を使います。</p>
+      </div>
+      <div>
+        <h3><code>license</code>：ダウンロードしたファイルの中身</h3>
+        <p>何も読み取りません。サービス マネージャーも、ディスクも、ネットワークも使わず、実行ファイルにコンパイルされた台帳から答えます。<code>--components</code> を付けると、通知がすべてのコンポーネントとそのバージョン、ライセンス、出所の一覧になります。ダウンロードの横で公開されている部品表と同じ内容です。どちらも 1 つの台帳から生成されるためで、これが価値のある理由です。プログラムは自己完結型の 1 つのファイルであり、スキャナーが読むものが隣にありません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>例</h2>
+    <p class="lede">以下のプランは、このページが説明するプログラムに対して <code>--dry-run</code> で確認したものです。何かを変更するコマンドは事前に確認しないため、実行前に確認するには <code>--dry-run</code> を使います。<code>Spooler</code> は任意のサービスを表します。ご自身のサービスの名前に置き換えてください。</p>
+    <div class="examples">
+    <h3>探して読む</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">このマシン上のすべてのサービスとドライバー</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">起動しているはずなのに起動していないもの</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">実行中の各エントリのプロセスが使っているもの</span>
+<span class="k">bws show Spooler</span>                               <span class="c">1 つのエントリについてわかっているすべて</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">本当に空のフィールドも含める</span></code></pre>
+    <h3>まず見て、それから変更する</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">プランだけで、ほかには何もしない</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">依存するものとともに再起動する</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">進捗なしで 1 ステップあたり 2 分まで許可する</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">ほかの自動のエントリより少しあとに開始する</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">無効にして、同じプランで停止する</span></code></pre>
+    <h3>止まらないサービス</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">プロセスと、そこで動いているすべてのサービス</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">停止に失敗した場合のみプロセスを終了し、そのあとすべてを元に戻す</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">2 ステップではなく 1 ステップ。プロセスはすぐに終了される</span></code></pre>
+    <h3>スナップショットとドリフト</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">メモを中に入れて、マシンを固定する</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">2 つのファイル。2 日間、または 2 台のマシン</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">ファイルを、現在のこのマシンと比較する</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">同じ比較で、構成がドリフトしていれば 5 で終了する</span></code></pre>
+    <h3>誰が変更したか</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">System ログにあるスタートアップの種類の変更とインストールのすべて</span>
+<span class="k">bws history Spooler</span>  <span class="c">1 つのサービスのスタートアップの種類の変更</span>
+<span class="k">bws history --json</span>   <span class="c">同じ内容をドキュメントとして。ログと変更を含む</span></code></pre>
+    <h3>クイック修正</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">あるツールの一覧</span>
+<span class="k">bws tool fix</span>                  <span class="c">クイック修正と、それぞれの背後にあるサービス</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">2 つのオーディオ サービスを再起動するプラン</span>
+<span class="k">bws tool fix printer</span>          <span class="c">Print Spooler を、依存するものとともに再起動する</span></code></pre>
+    <h3>ファイルの中身</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">すべてのコンポーネント、バージョン、ライセンス、出所</span>
+<span class="k">bws --version</span>             <span class="c">この実行ファイルのバージョン</span></code></pre>
+    <h3>PowerShell スクリプトで</h3>
+<pre class="wrap-lines"><code><span class="c"># 起動しているはずなのに起動していないエントリを、オブジェクトとして</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># 署名のないファイルを、スプレッドシートへ</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># 1 つのサービスが必要とするもの</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># 終了コードで分岐する夜間チェック</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>cmd とバッチファイルで</h3>
+<pre class="wrap-lines"><code><span class="c">rem 最初のコマンドが正常に終了しなかった場合のみ、2 番目のコマンドを実行する</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem 遅延展開を有効にしたバッチファイルでは、! の前にキャレット（^）が必要</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>オプション</h2>
+    <p>全部で {{switch_count}} 個あります。3 列目は、各オプションが属するコマンドです。使い道のないコマンドにオプションを渡すとエラーになり、その一覧が示されます。黙って無視されるフラグではありません。</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>終了コード</h2>
+    <p>終わり方は {{exit_code_count}} 通りあり、それぞれがスクリプトにとって異なる意味を持ちます。データは標準出力に、それ以外はすべて標準エラーに出力されるので、<code>bws list --json | jq</code> が動作し、警告が JSON に混ざることはありません。</p>
+    <p>すべての JSON ドキュメントは純粋な ASCII です。ASCII 外の文字は 6 文字のエスケープとして書かれ、すべての JSON リーダーが元の文字に戻します。そのため、<code>bws list --json &gt; file.json</code> は有効な UTF-8 になり、<code>| ConvertFrom-Json</code> は、コンソールがどのコードページに設定されていても正しく読み取ります。人が読むテキストでは、印字されずにターミナルを動かしてしまう文字（タブ、改行、エスケープシーケンス、方向の上書き）は、そのコードポイント <code>&lt;U+001B&gt;</code> として表示されます。</p>
+    <p><code>--</code> はオプションの終わりを示すので、ダッシュで始まる名前のサービスも指定できます。<code>bws show -- -odd</code> のようにします。ツールが提示するコマンドラインは PowerShell 向けに書かれています。スペースを含む名前は二重引用符で囲みます。cmd も同じように読みます。<code>MSSQL$SQLEXPRESS</code> のように、PowerShell が二重引用符の中で展開してしまう名前は、一重引用符で囲みます。</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C には 3 つのレベルがあり、それぞれが次のレベルの代償を示します。</strong>最初のものは先に進むのをやめ、取り外したものを元に戻します。2 番目は、そのままの状態にして、レポートを表示します。3 番目はプロセスを終了します。手動で止めた実行は、すべてのステップが到達していても <code>4</code> で終了します。</p>
+    <p class="note"><strong>コンソール ウィンドウを閉じることは、最初の Ctrl+C として扱われます。</strong>その後、Windows はプログラムに 5 秒を与え、その間にこのプログラムは先に進むのをやめ、停止したものを元に戻します。サインアウトとシャットダウンは、対応できる予告なしに終了させ、切断されたリモートセッションもそうなることがあります。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>スケジュールされたタスクで</h2>
+    <p>このツールが想定している形です。マシンが正常だとわかっているときに固定し、そのあと毎晩、まだ正常かどうかを尋ねます。</p>
+<pre><code><span class="c"># マシンが稼働を開始する日</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 毎晩、スケジュールされたタスクから</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 構成のドリフトなし
+#   5 - 構成がドリフトした。drift.json に内容が書かれる
+#   3 - 実行されたが、すべてを読み取れなかった。そのため答えは部分的</span></code></pre>
+    <p>ウィンドウは、同じエンジンのもう半分です。<code>{{archive_window}}</code> に入っていて、各アーカイブが何であるかは<a href="{{url:download}}">ダウンロードのページ</a>に書かれています。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ウィンドウの引数</h2>
+    <p><code>BetterWindowsServices.exe</code> は、人が使うための引数を 1 つ受け付けます。<code>--catalogue</code> は、ウィンドウのすべてのコンポーネントをすべての状態で表示する開発者向けのシートを開き、マシンからは何も読み取りません。もう 1 つの <code>--carry</code> は、ウィンドウが表示していた内容を、管理者として再起動する自分自身のコピーに引き渡す方法です。誰も手で入力するものではなく、そのウィンドウが書けるはずのないものが含まれていれば拒否されます。</p>
+  </div>
+</section>
