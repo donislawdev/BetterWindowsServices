@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe і Get-Service в порівнянні з інструментом для аудиту">
+<meta name="description" content="sc.exe вміє все й нічого не каже. Get-Service придатний для скриптів і поверхневий. Де кожен ще кращий і де мова запитів та план справляються краще.">
+<meta name="nav" content="sc.exe і PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Посібник</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> і це</h1>
+    <p class="lede">Обидва вже є на машині, і обидва лишаться корисними. Ця сторінка про те, де вони закінчуються, - і вона прямо каже, де вони все ще найкраща відповідь.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Де закінчується кожен</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Він може дотягнутися майже до всього, що знає диспетчер керування службами, і нічого не каже про те, як питати. Синтаксис із дев'яностих - <code>sc config X start= auto</code>, де пробіл після знака рівності обов'язковий, а його відсутність - мовчазна відмова зробити те, що ви мали на увазі.</p>
+        <p>Він відповідає про один запис за раз. Немає фільтрації, немає виводу, який скрипт міг би розібрати, не написавши розбірник, і немає попереднього перегляду: <code>sc stop</code> або спрацьовує, або повертає число.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> і командлети <code>*-Service</code></h3>
+        <p>Справжні об'єкти, конвеєр і поверхневий погляд. У Windows PowerShell 5.1, що постачається з Windows, <code>Get-Service</code> не показує облікового запису, від якого працює служба, ані її опису. PowerShell 7 показує і те, й інше, і ще шлях запуску, і встановлюється окремо.</p>
+        <p><code>Stop-Service -Force</code> означає «навіть якщо щось від неї залежить» - він зупиняє залежні служби й повідомляє вам про це після, а не до.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ті самі запитання трьома способами</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Запитання</th><th>З тим, що є на машині</th><th>Тут</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Що має працювати й не працює</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>У яких служб непідписаний виконуваний файл</td>
+            <td class="no">Прочитати кожен шлях запуску, розв'язати його, викликати <code>Get-AuthenticodeSignature</code> для кожного - скрипт, а не команда</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Що забере з собою зупинка цієї</td>
+            <td><code>sc enumdepend X</code>, потім прочитати список і вирішити самому</td>
+            <td><code>bws stop X --dry-run --dependents</code>, тобто план, який би виконався</td>
+          </tr>
+          <tr>
+            <td>Що змінилося від минулого тижня</td>
+            <td class="no">Нічого, якщо ви не написали збирач самі</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Хто змінив тип запуску і коли</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, потім прочитати повідомлення кожної події</td>
+            <td><code>bws history Spooler</code>, чий перший рядок каже, як далеко назад сягає журнал</td>
+          </tr>
+          <tr>
+            <td>Машиночитаний вивід</td>
+            <td>Об'єкти з PowerShell, текст з <code>sc.exe</code></td>
+            <td><code>--json</code> у кожної команди, у стандартному виводі, з попередженнями в стандартному потоці помилок</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Де цей інструмент розходиться з <code>sc.exe</code> щодо служби, це тут помилка.</strong> Частина набору тестів запускає обидва на машині, на якій працює, і порівнює їх запис за записом, а різниця між ними - найкорисніше, що можна покласти в повідомлення про проблему.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Коли продовжувати користуватися тим, що маєте</h2>
+    <ul class="points">
+      <li><strong>Ви на машині, якої торкнетеся один раз.</strong> Обидва вже там, і нічого не треба проводити крізь політику.</li>
+      <li><strong>Вам треба змінити обліковий запис, шлях запуску або дії відновлення.</strong> <code>sc.exe</code> робить усі три. Цей інструмент показує обліковий запис і шлях запуску й не змінює жодного, а дії відновлення читає лише для того, щоб попередити перед завершенням процесу.</li>
+      <li><strong>Вам треба створити або видалити службу.</strong> <code>sc create</code> і <code>sc delete</code>. Не тут, навмисно.</li>
+      <li><strong>Ви вже глибоко в конвеєрі PowerShell.</strong> <code>bws list --json</code> повертається як об'єкти через <code>ConvertFrom-Json</code>, тож він приєднується до конвеєра, а не замінює його.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Разом, а не замість</h2>
+    <p>Інструмент, що відповідає на <em>що не так із цією машиною</em>, й інструменти, що змінюють одне налаштування, - не один і той самий інструмент. Поставте запитання тут, прочитайте план тут і скористайтеся чим завгодно, щоб його виконати - план друкує командний рядок, що просить те саме, і цей рядок призначений для копіювання.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Завантажити для Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Мова запитів</a>
+    </div>
+  </div>
+</section>
