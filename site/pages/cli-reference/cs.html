@@ -1,0 +1,193 @@
+<meta name="title" content="Reference příkazového řádku - každý přepínač a návratový kód bws">
+<meta name="description" content="Každý příkaz, přepínač a návratový kód bws: list, show, stop, start, restart, kill, start-type, snapshot, history a tool, s tím, kde který přepínač funguje.">
+<meta name="nav" content="Reference CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Tabulky na této stránce se SESTAVUJÍ, nepíší. Přepínače pocházejí z vlastní tabulky parseru
+  v src/Bws.Cli/OptionSurface.cs a kódy ze src/Bws.Cli/ExitCode.cs, takže přepínač přidaný do
+  programu se zde objeví a věta o přepínači, který už neexistuje, shodí sestavení. Co který
+  ZNAMENÁ, je próza a žije v site/i18n, protože próza se překládá.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Reference</span>
+    <h1>Reference příkazového řádku</h1>
+    <p class="lede">Každý příkaz, každý přepínač a každý návratový kód <code>bws</code>, verze {{version}}. Směrodatná je <code>bws --help</code> a ta je delší - tato stránka je tentýž povrch, rozložený tak, aby se dal číst.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Příkazy</h2>
+    <p>Jedenáct příkazů. <code>snapshot</code> je podstatné jméno a za sebou bere slovo. <code>tool</code> je také podstatné jméno a samotné vypíše nástroje.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Špatně napsaný příkaz dostane nabídku toho, který jste pravděpodobně měli na mysli, a běh skončí kódem <code>2</code>, místo aby udělal něco blízkého tomu, co jste chtěli.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co dělá který příkaz</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> a <code>show</code></h3>
+        <p><code>list</code> je celý stroj, zúžený pomocí <code>--query</code>. <code>show</code> je jedna položka se vším, co je o ní známo - podpis, privilegia, popisovač zabezpečení a paměť, vše čtené pokaždé, protože u jedné položky to stojí asi šedesát milisekund, zatímco u celého stroje vteřinu. Pole, která jsou opravdu prázdná, se vynechají, pokud nezadáte <code>--full</code>. Pole, které nikdo nemohl přečíst, se vypíše vždy, protože jeho vynechání by vypadalo jako odpověď.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> a <code>restart</code></h3>
+        <p>Každý sestaví plán a provede ho. <code>--dry-run</code> vypíše plán a nic nezmění, <code>--dependents</code> do něj zařadí služby, které by se rozbily, jako samostatné kroky a <code>--timeout</code> říká, jak dlouho smí jeden krok zůstat bez pokroku. Ovladače se odmítají, ne zkoušejí, protože zastavení ovladače jádra často nelze vrátit bez restartu.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - pro službu, která se nechce zastavit</h3>
+        <p>Požádá službu o zastavení a proces za ní ukončí, <em>jen když to nezabere</em>, takže položka, která se zastaví sama, se nikdy neukončí. Ukončení procesu vezme s sebou každou další službu žijící v tomto procesu, ať se předtím zastavila, nebo ne, a náhled je pojmenuje a pojmenuje proces číslem. <code>--force</code> přeskočí zdvořilý krok a náhled pak ukazuje jeden krok místo dvou. <code>--restart</code> potom všechno vrátí.</p>
+        <p class="note"><strong>Windows tuto myšlenku píše jinak.</strong> <code>--force</code> u <code>Stop-Service</code> znamená "i když na tom něco závisí", což je to, co zde dělá <code>--dependents</code>. Proto je tohle samostatný příkaz, a ne přepínač u <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - nastavení, ne pohyb</h3>
+        <p>Říká, co správce udělá s položkou při příštím startu, a bez <code>--stop</code> nic nepřesouvá: běžící položka běží dál, zastavená zůstane zastavená a plán to říká. <code>disabled</code> je ten, u kterého se vyplatí zastavit, protože správci zabrání položku vůbec spustit, včetně spuštění na vyžádání kvůli něčemu jinému, co ji potřebuje. <code>delayed</code> je automatické, spuštěné o něco později než ostatní automatické položky - slovo, na které se v dotazu ptá <code>start:delayed</code> - a Windows je odmítne u položky ve skupině pořadí načítání, což plán řekne dřív, než se cokoli stane. Každý ze čtyř zapíše, zda položka startuje pozdě, stejně jako <code>sc.exe</code>. <code>--stop</code>, jen vedle <code>disabled</code>, zastaví položku ve stejném plánu, jakmile je nastavení zapsáno.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> a <code>snapshot diff</code></h3>
+        <p><code>create</code> vždy čte podpisy a hashe, protože snímek se uchovává a porovnává později a snímek bez nich by se při porovnání se snímkem s nimi tvářil, jako by se stroj změnil. <code>diff</code> říká, co se změnilo od prvního souboru ke druhému, nebo od souboru k tomuto stroji s <code>--live</code>. <a href="{{url:snapshots-and-drift}}">Stránka o snímcích</a> má formát a úvahy za ním.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - kdo to změnil, ze systémového protokolu</h3>
+        <p>Změny typu spouštění a instalace ze systémového protokolu, nejnovější první, s účtem, který Windows zaznamenal. První řádek říká, jak daleko protokol sahá a zda byl vymazán, protože historie je tak dlouhá jako protokol. S názvem jde o změny typu spouštění dané služby - instalace se vypisují jen bez názvu, protože Windows zaznamenává instalaci pod zobrazovaným názvem a nikdy pod názvem služby. Účet se jmenuje tam, kde ho tento stroj umí pojmenovat sám, a jinak se ukáže jako jeho SID, a typy spouštění přicházejí slovy, jak je Windows zapsal.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - hotové odpovědi na běžné problémy</h3>
+        <p>Tytéž nástroje, které okno ukazuje na kartě Tools. <code>bws tool</code> je vypíše a <code>bws tool fix</code> vypíše rychlé opravy: <code>printer</code>, <code>sound</code>, <code>indexing</code> a <code>search</code>, každá je restart jedné služby Windows spolu s tím, co na ní závisí, zvolená proto, že ji navrhují vlastní stránky Microsoftu k řešení potíží. <code>bws tool fix printer</code> je přesně <code>bws restart Spooler --dependents</code> - týž plán, týž výstup a tytéž návratové kódy - a jako každý zdejší příkaz, který něco mění, se předem neptá, takže <code>--dry-run</code> je způsob, jak se podívat, než se spustí.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - co je uvnitř staženého souboru</h3>
+        <p>Nečte vůbec nic - žádného správce služeb, žádný disk, žádnou síť - a odpovídá z registru zkompilovaného do spustitelného souboru. <code>--components</code> změní upozornění na každou součást s její verzí, licencí a původem. Stejná sada, jakou nese soupis součástí zveřejněný vedle stažení, protože oba vznikají z jednoho registru, a důvod, proč za to stojí: program je jeden samostatný soubor, takže vedle něj není nic, co by mohl skener číst.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Příklady</h2>
+    <p class="lede">Níže uvedené plány byly ověřeny pomocí <code>--dry-run</code> proti programu, který tato stránka popisuje. Příkaz, který něco mění, se předem neptá, takže <code>--dry-run</code> je způsob, jak se podívat, než se spustí. <code>Spooler</code> zastupuje libovolnou službu - dosaďte název té své.</p>
+    <div class="examples">
+    <h3>Najít a přečíst</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">každá služba a ovladač na tomto stroji</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">co by mělo běžet a neběží</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">co používá proces každé běžící položky</span>
+<span class="k">bws show Spooler</span>                               <span class="c">všechno, co je o jedné položce známo</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">i pole, která jsou opravdu prázdná</span></code></pre>
+    <h3>Nejdřív se podívat, potom změnit</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">plán a nic jiného</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">restartovat spolu s tím, co na ní závisí</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">povolit dvě minuty na krok bez pokroku</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">spustit o něco později než ostatní automatické položky</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">zakázat a zastavit v jednom plánu</span></code></pre>
+    <h3>Služba, která se nechce zastavit</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">proces a každá služba, která v něm žije</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">ukončit proces, jen když zastavení selže, potom vše vrátit</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">jeden krok místo dvou: proces ukončen hned</span></code></pre>
+    <h3>Snímky a drift</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">zmrazit stroj s poznámkou uloženou uvnitř</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">dva soubory - dva dny, nebo dva stroje</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">soubor proti tomuto stroji, jaký je teď</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">totéž, skončí kódem 5, pokud se konfigurace odchýlila</span></code></pre>
+    <h3>Kdo to změnil</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">každá změna typu spouštění a instalace, kterou systémový protokol obsahuje</span>
+<span class="k">bws history Spooler</span>  <span class="c">změny typu spouštění jedné služby</span>
+<span class="k">bws history --json</span>   <span class="c">totéž jako dokument, s protokolem a změnami</span></code></pre>
+    <h3>Rychlé opravy</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">nástroje, které existují</span>
+<span class="k">bws tool fix</span>                  <span class="c">rychlé opravy a služba za každou z nich</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">plán restartu dvou zvukových služeb</span>
+<span class="k">bws tool fix printer</span>          <span class="c">restartovat Print Spooler s tím, co na něm závisí</span></code></pre>
+    <h3>Co je uvnitř souboru</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">každá součást, její verze, licence a původ</span>
+<span class="k">bws --version</span>             <span class="c">verze tohoto spustitelného souboru</span></code></pre>
+    <h3>Ve skriptu PowerShellu</h3>
+<pre class="wrap-lines"><code><span class="c"># položky, které by měly běžet a neběží, jako objekty</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># nepodepsané soubory do tabulky</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># co jedna služba potřebuje</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># noční kontrola, která větví podle návratového kódu</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>V cmd a dávkovém souboru</h3>
+<pre class="wrap-lines"><code><span class="c">rem druhý příkaz jen když první neskončil čistě</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem v dávkovém souboru se zapnutým zpožděným rozvinutím potřebuje ! stříšku</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Přepínače</h2>
+    <p>{{switch_count}} jich je. Třetí sloupec jsou příkazy, ke kterým každý patří - přepínač předaný příkazu, který pro něj nemá využití, je chyba s tímto seznamem uvnitř, a ne tiše ignorovaný příznak.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Návratové kódy</h2>
+    <p>{{exit_code_count}} konců a každý je pro skript jiná věc, kterou udělat. Data jdou na standardní výstup a všechno ostatní na standardní chybový výstup, takže <code>bws list --json | jq</code> funguje a varování nikdy nepřistane ve vašem JSONu.</p>
+    <p>Každý dokument JSON je čisté ASCII: písmeno mimo něj se zapíše jako šestiznakový escape, který každý čtecí program JSON převede zpět na písmeno, takže <code>bws list --json &gt; file.json</code> je platné UTF-8 a <code>| ConvertFrom-Json</code> to přečte správně, ať je konzole nastavena na jakoukoli kódovou stránku. V textu, který čte člověk, se znak, který by terminál posunul, místo aby se vytiskl - tabulátor, zalomení řádku, escape sekvence, přepsání směru - ukáže jako svůj kódový bod, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> ukončuje přepínače, takže službu, jejíž název začíná pomlčkou, lze přesto pojmenovat: <code>bws show -- -odd</code>. Příkazové řádky, které vám nástroj dává, jsou psané pro PowerShell: název s mezerou jde do dvojitých uvozovek, což cmd čte stejně, a název, který by PowerShell uvnitř nich rozvinul, například <code>MSSQL$SQLEXPRESS</code>, jde do jednoduchých uvozovek.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C má tři úrovně, každá říká, co stojí ta další.</strong> První přestane postupovat vpřed a stále vrátí, co bylo odebráno, druhá nechá věci tak, jak jsou, a stále vytiskne zprávu, třetí proces ukončí. Běh zastavený ručně končí kódem <code>4</code>, i když každý krok ještě dorazil.</p>
+    <p class="note"><strong>Zavření okna konzole se počítá jako první Ctrl+C.</strong> Windows pak programu dává pět sekund a v nich tento přestane postupovat vpřed a vrátí, co shodil. Odhlášení a vypnutí ho ukončí bez jakéhokoli varování, na které by mohl reagovat, a přerušená vzdálená relace možná také.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>V naplánované úloze</h2>
+    <p>Tvar, pro který byl tento nástroj vytvořen: zmrazit stroj, když je prokazatelně v pořádku, a pak se každou noc ptát, zda stále je.</p>
+<pre><code><span class="c"># den, kdy stroj jde do provozu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># každou noc z naplánované úlohy</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - žádný drift konfigurace
+#   5 - konfigurace se odchýlila a drift.json říká co
+#   3 - proběhlo to a nešlo přečíst všechno, takže odpověď je částečná</span></code></pre>
+    <p>Okno je druhá polovina téhož jádra: <code>{{archive_window}}</code> ho obsahuje a <a href="{{url:download}}">stránka ke stažení</a> říká, co který archiv je.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Argument okna</h2>
+    <p><code>BetterWindowsServices.exe</code> bere jeden argument určený člověku: <code>--catalogue</code> otevře vývojářský list zobrazující každou součást okna v každém stavu a nic nečte z vašeho stroje. Druhý, <code>--carry</code>, je způsob, jak okno předá to, co zobrazovalo, vlastní kopii, kterou restartuje jako správce. Nikdo ho nepíše a cokoli v něm, co by toto okno nemohlo napsat, se odmítne.</p>
+  </div>
+</section>

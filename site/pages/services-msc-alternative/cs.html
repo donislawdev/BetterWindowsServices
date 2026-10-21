@@ -1,0 +1,102 @@
+<meta name="title" content="Alternativa k services.msc pro správce Windows">
+<meta name="description" content="services.msc nemá vyhledávání, filtrování ani historii. Volná open source náhrada s dotazovacím jazykem, náhledem před každou změnou a porovnáním driftu.">
+<meta name="nav" content="Oproti services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Průvodce</span>
+    <h1>Alternativa k <code>services.msc</code></h1>
+    <p class="lede">Snap-in Služby se od Windows 2000 sotva změnil. Pořád je to nejrychlejší způsob, jak spustit jednu službu, kterou už vidíte na obrazovce, a nejpomalejší způsob, jak odpovědět na jakoukoli otázku o stroji.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co lidi nutí hledat</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Žádné vyhledávání.</strong> Jediná navigace je napsat písmeno a skočit na první zobrazovaný název, který jím začíná. Na stroji s osmi sty položkami je to listování s krokem navíc.</li>
+        <li><strong>Žádné filtrování.</strong> Nelze se zeptat <em>co je nastaveno na automatické spuštění a neběží</em> - na jedinou otázku, která najde rozbitý stroj.</li>
+        <li><strong>Jeden řádek najednou.</strong> Restart dvanácti služeb je dvanáct kliknutí pravým tlačítkem a dvanáct čekání.</li>
+        <li><strong>"Stopping..." bez cesty ven</strong> kromě Správce úloh a hádání, který <code>svchost</code> ukončit.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Žádná historie.</strong> Nikdo neví, kdo nastavil tento typ spouštění na Zakázáno, ani kdy, ani zda to tak nebylo už minulý měsíc.</li>
+        <li><strong>Skrytá data.</strong> Proces, triggery, požadovaná privilegia, popisovač zabezpečení, kdo podepsal spustitelný soubor - nic z toho není ve snap-inu a všechno na tom záleží, když je něco špatně.</li>
+        <li><strong>Sloupce nelze měnit.</strong> Název, popis, stav, typ spouštění, přihlásit jako. To je celý seznam a podle žádného z nich nejde na skutečném stroji užitečně řadit.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Stejné úkoly, v obou</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Chcete</th><th>V <code>services.msc</code></th><th>Zde</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Najít, co má běžet a neběží</td>
+            <td class="no">Seřadit podle typu spouštění, listovat, číst každý řádek</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Vědět, co zastavení strhne s sebou</td>
+            <td class="no">Dialog, který pojmenuje závislé služby až poté, co stisknete Stop</td>
+            <td>Plán dřív, než se cokoli stane, s každou závislou službou jako krokem a varováním, když je některá věc, kterou stroj potřebuje</td>
+          </tr>
+          <tr>
+            <td>Vědět, co se změnilo od minulého týdne</td>
+            <td class="no">Nic</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Vědět, kdo změnil typ spouštění</td>
+            <td class="no">Nic</td>
+            <td><code>bws history Spooler</code>, ze systémového protokolu</td>
+          </tr>
+          <tr>
+            <td>Restartovat dvanáct služeb</td>
+            <td class="no">Dvanáct kliknutí pravým tlačítkem</td>
+            <td>Vybrat dvanáct, jeden plán, jedno provedení, jedna zpráva</td>
+          </tr>
+          <tr>
+            <td>Vidět, kdo podepsal spustitelný soubor služby</td>
+            <td class="no">Nezobrazuje se</td>
+            <td>Sloupec a věc, podle které lze hledat: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Cokoli z toho skriptovat</td>
+            <td class="no">Nelze skriptovat</td>
+            <td><code>bws</code> s <code>--json</code> a návratovým kódem pro každý konec</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co snap-in pořád dělá lépe</h2>
+    <p class="lede">Dvě věci, a tvrdit něco jiného by byl druh tvrzení, který tento projekt nedělá.</p>
+    <ul class="points">
+      <li><strong>Už je na stroji.</strong> Není co stahovat, není co protlačovat přes politiku softwaru. Na stroji, kterého se dotknete jednou, je to celý argument.</li>
+      <li><strong>Upravuje akce obnovení, účet a cestu ke spuštění.</strong> Tento nástroj účet a cestu ke spuštění ukazuje a ani jedno nemění a akce obnovení čte jen proto, aby varoval, než ukončí proces. Vytvoření, smazání nebo přesměrování služby tu také není.</li>
+    </ul>
+    <p>To, co nedokáže vůbec, je důvod, proč tohle existuje: položit otázku, nejdřív ukázat plán a říct, co se odchýlilo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co to je</h2>
+    <p>{{product}} je volný a open source pod GPL-3.0, jeden soubor na každou polovinu nebo instalační program pro celý stroj, a nikdy nekomunikuje s internetem. Čtení nepotřebuje práva správce - změna ano, a říká to místo tichého selhání.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Podívat se na dotazovací jazyk</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,177 @@
+<meta name="title" content="Dotazovací jazyk - položte svým službám Windows otázku">
+<meta name="description" content="Jeden dotazovací jazyk pro vyhledávací pole i pro bws list --query. Každé pole, každá hodnota a otázka, kterou services.msc neumí položit: co nešlo přečíst.">
+<meta name="nav" content="Dotazovací jazyk">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Tabulka polí se SESTAVUJE z Bws.Core - QueryFields.Names a QueryFields.ValuesOf jsou veřejné
+  API určené pro cokoli, co je nabízí člověku, takže tato stránka nemůže pojmenovat pole, které
+  program nemá, ani nějaké, které má, vynechat. Věty vedle nich jsou v site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Dotazovací jazyk</span>
+    <h1>Položte stroji otázku</h1>
+    <p class="lede">Jeden jazyk, ve vyhledávacím poli okna i v <code>bws list --query</code>. Samotné slovo hledá v názvu, zobrazovaném názvu, účtu a cestě ke spuštění. Pole ho zúží. {{field_count}} polí a stejný text znamená v obou polovinách nástroje totéž.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Šest, které odpovídají na skutečnou otázku</h2>
+    <div class="grid">
+      <div class="card"><h3>Co by mělo běžet a neběží</h3><p><code>start:auto !status:running</code></p><p>První dotaz, který většina lidí napíše, a ten, na který <code>services.msc</code> neumí odpovědět vůbec.</p></div>
+      <div class="card"><h3>Služby, jejichž soubor je pryč</h3><p><code>file:missing</code></p><p>Položka ukazující na spustitelný soubor, který na disku není. Obvykle odinstalace, která po sobě nechala registraci.</p></div>
+      <div class="card"><h3>Nepodepsané, bez šumu z relací</h3><p><code>signed:no peruser:no</code></p><p>Rodiny pro jednotlivé uživatele vytvářejí kopii pro každou relaci a plní seznam téměř duplikáty. Tohle se ptá na zbytek.</p></div>
+      <div class="card"><h3>Běží, ačkoli je zakázáno</h3><p><code>mismatch:running</code></p><p>Konfigurace a stav, které si odporují - položka, kterou má správce nastavenou, aby se nikdy nespustila, a přesto běží.</p></div>
+      <div class="card"><h3>Cokoli, co žádá o práva ladění</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Privilegium, které procesu umožňuje otevřít jakýkoli jiný. Stojí za to vědět, které služby o něj žádají.</p></div>
+      <div class="card"><h3>Co nástroj nemohl přečíst</h3><p><code>account:?</code></p><p>Položky, u kterých tato relace nemohla přečíst účet. Otázka, kterou <code>services.msc</code> neumí ani položit.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Jak se dotaz píše</h2>
+    <div class="split">
+      <div>
+        <h3>Termíny</h3>
+        <ul class="prose-list">
+          <li>Termíny se oddělují mezerami a musí platit všechny - klíčové slovo <code>and</code> neexistuje, protože by nemohlo znamenat nic jiného.</li>
+          <li>Totéž pole napsané dvakrát je jediná výjimka: <code>status:running status:stopped</code> znamená jedno nebo druhé, protože přesně to zapíše zaškrtnutí dvou filtrů. Dvě meze čísla stále zužují - <code>pid:&gt;1000 pid:&lt;2000</code> je rozsah mezi nimi.</li>
+          <li><code>!</code> před termínem ho neguje: <code>!status:running</code>. V dávkovém souboru s <code>setlocal EnableDelayedExpansion</code> cmd tento <code>!</code> beze slova sní a dotaz pak tiše znamená něco jiného - tam napište <code>^!</code> uvnitř uvozovek.</li>
+          <li>Čárka uvnitř pole je <em>nebo</em>: <code>start:manual,disabled</code>.</li>
+          <li>Uvozovky chrání vše s mezerami nebo dvojtečkami: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Cesta vložená tak, jak je - <code>C:\Windows\System32\svchost.exe</code> - se hledá, ne čte jako pole s názvem C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Jak se porovnává text</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> odpovídá všemu, co to <em>obsahuje</em> - výchozí chování, protože to lidé od vyhledávacího pole čekají.</li>
+          <li><code>name:=spooler</code> je přesná shoda.</li>
+          <li><code>name:spool*</code> bere zástupné znaky, <code>*</code> a <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> je regulární výraz a mezi lomítky se píše tak, jak se regulární výrazy píší: <code>\?</code>, <code>\\</code> a čárka tam znamenají to, co tam znamenají. Lomítko, které se nikdy nezavře, je chyba - chcete-li hledat samotné lomítko, napište <code>\/</code> nebo použijte uvozovky.</li>
+          <li>Velikost písmen se ignoruje, i mimo ASCII - zobrazovaný název v polštině nebo řečtině odpovídá, ať je napsán jakkoli.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Tři slova, která přijímá každé pole</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Špatně napsaná hodnota je chyba, nikdy prázdný výsledek.</strong> <code>status:runing</code> odpoví <em>Did you mean running?</em> a skončí kódem <code>2</code>. Prázdný seznam by vypadal jako odpověď a rozdíl mezi "nic neodpovídá" a "napsali jste to špatně" je rozdíl mezi čistým strojem a auditem, který nic neprokázal. Dotaz, který by nic nezúžil, se odmítne i na příkazovém řádku, takže skript neoperuje s celým strojem kvůli překlepu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Další příklady</h2>
+    <p class="lede">Každý funguje stejně ve vyhledávacím poli okna i za <code>bws list --query</code> a každý byl před napsáním sem spuštěn na skutečném Windows. Co najde, závisí na stroji - a u otázky na potíže je prázdná odpověď ta, kterou chcete.</p>
+    <div class="examples">
+    <h3>Stav a typ spouštění</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Zaseklé při zastavování nebo spouštění - čekání, které snap-in ukazuje a které nikdy neskončí.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Nastaveno na automatické spuštění, zastaveno a nečeká na trigger - krátký seznam, který stojí za přečtení po restartu.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatické, spuštěné o něco později než ostatní automatické položky.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Běží, ačkoli ji při startu nic nespouští - něco o ni požádalo, spustil ji trigger, nebo někdo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Účty</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Běží jako LocalSystem, nejsilnější účet, ze souboru, který Microsoft nepodepsal. Dotaz na vydavatele čte podpisy sám, takže trvá pár sekund.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Služby běžící pod jakýmkoli jiným účtem - virtuálním, spravovaným nebo osobním.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Virtuální účet služby samotné. Uvozovky drží slova pohromadě kvůli mezeře.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Soubory a podpisy</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Bez podpisu, řetězec, kterému Windows nedůvěřuje, nebo soubor změněný po podepsání.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Podepsané, důvěryhodné a ne od Microsoftu - software, který na tento stroj nainstalovaly jiné firmy.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Ovladače načítané při startu Windows, jejichž podpisu Windows nedůvěřuje. Na zdravém stroji žádné.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Služba s vlastním procesem, jejíž soubor leží mimo složku Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Spouštěno zevnitř něčího profilu, což je poslední místo, kde se služba čeká.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Zpětné lomítko před mezerou udělá z mezery součást slova, takže cesta končící zpětným lomítkem se píše se dvěma, pokud za ní následuje další termín. Na konci dotazu stačí jedno.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Triggery a závislosti</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Čeká na příchod zařízení, takže je zastavená z důvodu.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Spouštěno, když požadavek dorazí na síťový koncový bod - port, pojmenovanou rouru nebo rozhraní RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Položky, které trigger umí i zastavit, ne jen spustit.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Položky, které ke svému běhu potřebují WMI.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Všechno, co Print Spooler potřebuje ke svému běhu, a co zase potřebují ty.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Privilegia a procesy</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Žádá o jednání jako součást operačního systému.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Může jednat jménem klienta a přitom běžet pod jiným účtem než LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Nese vlastní SID služby ve svém procesu, takže jej oprávnění mohou pojmenovat samostatně. sidtype:restricted se ptá na ty, jejichž proces je navíc omezen pro zápis.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Běží uvnitř sdíleného svchost spolu s dalšími.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Proces využívající více než 200 MB. Paměť se čte sama, když se na ni dotaz ptá.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>V procesu, jehož id leží mezi 1000 a 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Názvy a text</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dotaz</th><th>Co najde</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Samotné slovo, hledané v názvu, zobrazovaném názvu, účtu a cestě ke spuštění.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Přesně tento název a nic, co jej jen obsahuje.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Názvy začínající na win, zapsané se zástupným znakem.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Názvy končící na svc, zapsané jako regulární výraz.</td></tr>
+          <tr><td><code>description:none</code></td><td>Žádný popis vůbec, což platí pro většinu ovladačů.</td></tr>
+          <tr><td><code>description:?</code></td><td>Popis, který Windows nedokázal vydat, obvykle proto, že ukazuje na jazykový soubor, který neexistuje.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Šablony pro jednotlivé uživatele, které Windows kopíruje pro každou přihlášenou relaci.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Každé pole</h2>
+    <p>Sestaveno ze samotného programu, takže tato tabulka se nemůže rozejít s tím, co nástroj přijímá. Pole bez seznamu hodnot bere text, číslo nebo velikost - třetí sloupec říká které.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dvě věci, které stojí za to znát</h2>
+    <div class="qa">
+      <div>
+        <h3>Některá pole jsou drahá a dotaz na ně zapne čtení</h3>
+        <p>Podpisy trvají na celém stroji několik sekund a paměť je měření, ne nastavení, takže ani jedno se pro výpis nečte, pokud se o to nepožádá. Dotaz, který jedno z nich zmiňuje, zapne toto čtení sám - nemusíte si pamatovat <code>--signatures</code> navíc k <code>signed:no</code>. V okně dotaz na podpisy říká, že odpověď je neúplná, dokud nedorazí, místo aby ukázal kratší seznam, jako by byl odpovědí.</p>
+      </div>
+      <div>
+        <h3>Výsledek posouzený podle něčeho nečitelného to říká</h3>
+        <p>Pokud byly položky posuzovány podle pole, které tato relace nemohla přečíst, nese výsledek řádek s udáním kolika - protože takový výsledek může některé položky postrádat nebo obsahovat takové, které do něj nepatří. To je totéž pravidlo, které dodržuje celý nástroj: neúspěšné čtení je vidět v odpovědi, nikdy se nepohltí. Vydavatel dostane stejné zacházení, když ho tvrdí jen certifikát: vedle jakéhokoli verdiktu jiného než <code>trusted</code> se název ukáže jako <em>not verified</em> a <code>publisher:</code> počítá položku jako nejistou na vlastním řádku - takže <code>!publisher:microsoft</code> ponechá soubor Microsoftu, který někdo po podepsání změnil.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Reference příkazového řádku</a>
+  </div>
+</section>

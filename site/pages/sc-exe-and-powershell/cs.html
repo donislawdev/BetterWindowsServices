@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe a Get-Service ve srovnání s nástrojem pro audit">
+<meta name="description" content="sc.exe umí všechno a nic vám neřekne. Get-Service jde skriptovat a je povrchní. Kde je co pořád nejlepší a kde to dotazovací jazyk a plán zvládne lépe.">
+<meta name="nav" content="sc.exe a PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Průvodce</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> a tohle</h1>
+    <p class="lede">Obojí už je na stroji a obojí zůstane užitečné. Tato stránka je o tom, kde končí - a říká na rovinu, kde jsou pořád lepší odpovědí.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kde které končí</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Dosáhne téměř na všechno, co správce služeb ví, a nic vám neřekne o tom, jak se ptát. Syntaxe je z devadesátých let - <code>sc config X start= auto</code>, kde mezera za rovnítkem je povinná a její chybějící přítomnost je tichým selháním udělat to, co jste chtěli.</p>
+        <p>Odpovídá vždy o jedné položce. Neexistuje filtrování, výstup, který skript přečte bez napsání parseru, ani náhled: <code>sc stop</code> buď zabere, nebo vrátí číslo.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> a rutiny <code>*-Service</code></h3>
+        <p>Skutečné objekty, pipeline a povrchní pohled. Ve Windows PowerShellu 5.1, tom, který je součástí Windows, <code>Get-Service</code> neukazuje účet, pod kterým služba běží, ani její popis. PowerShell 7 ukazuje obojí, i cestu ke spuštění, a instaluje se zvlášť.</p>
+        <p><code>Stop-Service -Force</code> znamená "i když na tom něco závisí" - zastaví závislé služby a řekne vám to potom, a ne předem.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Stejné otázky třemi způsoby</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Otázka</th><th>S tím, co je na stroji</th><th>Zde</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Co má běžet a neběží</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Které služby mají nepodepsaný spustitelný soubor</td>
+            <td class="no">Přečíst každou cestu ke spuštění, převést ji, na každé zavolat <code>Get-AuthenticodeSignature</code> - skript, ne příkaz</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Co by zastavení tohoto strhlo s sebou</td>
+            <td><code>sc enumdepend X</code>, potom přečíst seznam a rozhodnout sám</td>
+            <td><code>bws stop X --dry-run --dependents</code>, což je plán, který by se spustil</td>
+          </tr>
+          <tr>
+            <td>Co se změnilo od minulého týdne</td>
+            <td class="no">Nic, pokud jste si sběrač nenapsali sami</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Kdo změnil typ spouštění a kdy</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, potom přečíst zprávu každé události</td>
+            <td><code>bws history Spooler</code>, jehož první řádek říká, jak daleko protokol sahá</td>
+          </tr>
+          <tr>
+            <td>Strojově čitelný výstup</td>
+            <td>Objekty z PowerShellu, text ze <code>sc.exe</code></td>
+            <td><code>--json</code> u každého příkazu, na standardním výstupu, s varováními na standardním chybovém výstupu</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Kde se tento nástroj o službě rozchází se <code>sc.exe</code>, je to zde chyba.</strong> Část sady testů spouští obojí na stroji, na kterém běží, a porovnává to položku po položce a rozdíl mezi nimi je to nejužitečnější, co můžete vložit do hlášení.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kdy používat dál to, co máte</h2>
+    <ul class="points">
+      <li><strong>Jste na stroji, kterého se dotknete jednou.</strong> Obojí tam už je a nic se nemusí protlačovat přes politiku.</li>
+      <li><strong>Potřebujete změnit účet, cestu ke spuštění nebo akce obnovení.</strong> <code>sc.exe</code> zvládne všechny tři. Tento nástroj účet a cestu ke spuštění ukazuje a ani jedno nemění a akce obnovení čte jen proto, aby varoval, než ukončí proces.</li>
+      <li><strong>Potřebujete službu vytvořit nebo smazat.</strong> <code>sc create</code> a <code>sc delete</code>. Zde ne, záměrně.</li>
+      <li><strong>Už jste hluboko v pipeline PowerShellu.</strong> <code>bws list --json</code> se vrací jako objekty přes <code>ConvertFrom-Json</code>, takže se do pipeline zapojí, místo aby ji nahradil.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Spolu, a ne místo sebe</h2>
+    <p>Nástroj, který odpovídá na <em>co je s tímto strojem špatně</em>, a nástroje, které mění jedno nastavení, nejsou jedno a totéž. Zeptejte se zde, přečtěte si plán zde a k provedení použijte, co chcete - plán vypíše příkazový řádek, který žádá o totéž, a ten řádek je určen ke zkopírování.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Dotazovací jazyk</a>
+    </div>
+  </div>
+</section>

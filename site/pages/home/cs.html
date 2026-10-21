@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - náhrada services.msc s vyhledáváním">
+<meta name="description" content="Volná a bezplatná náhrada services.msc. Hledejte služby dotazovacím jazykem, prohlédněte si každou změnu předem a zjistěte, co se od včerejška odchýlilo.">
+<meta name="nav" content="Úvod">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Úvodní stránka. Každá věta má protějšek v README.md, který byl před napsáním ověřen proti běžícímu
+  programu - plán, porovnání a dotaz níže jsou skutečný výstup, ne ilustrace.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Hledejte ve službách Windows, prohlížejte si každou změnu předem a <em>zjistěte, co se odchýlilo</em> od včerejška</h1>
+      <p class="lede"><strong>{{product}}</strong> je <code>services.msc</code> postavený znovu pro lidi, kteří spravují stroje s Windows - okno a příkazový řádek nad jedním jádrem. Položte stroji otázku místo listování osmi sty řádky. Zjistěte, co změna provede, <strong>dřív, než na cokoli kliknete</strong>. A to, co <code>services.msc</code> nikdy neměl: <strong>zmrazte každou službu do souboru a o týden později se zeptejte, co se změnilo.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Zobrazit kód na GitHubu</a>
+      </div>
+      <ul class="trust">
+        <li>Volný a bezplatný, GPL-3.0</li>
+        <li>Jediný soubor, nebo instalační program</li>
+        <li>K prohlížení nejsou potřeba práva správce</li>
+        <li>Nikdy nekomunikuje s internetem</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Okno s pěti vybranými položkami a plánem jejich spuštění zobrazeným nad seznamem: pět kroků, poznámka, že dvě z nich už v tomto stavu jsou, řádek bws start pro každou položku a tlačítko Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Vybrané položky, plán zobrazený dřív, než se cokoli stane, a řádek <code>bws</code>, který žádá přesně totéž. Program mluví anglicky - okno čte jazykový soubor uložený vedle sebe, takže překlad je možný bez nového sestavení.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Skutečné záznamy okna, pořízené 2026-09-25 a 2026-09-26 a zde zobrazené od 2026-10-07 - první,
+  z 2026-09-24, nahradily okno nakreslené v HTML. Relace je stejný GIF, který nese README, jeden
+  soubor pro oba, rozhodnutím vlastníka z 2026-10-07. Od 2026-09-24 do toho dne to bylo video
+  s ovládacími prvky, protože WCAG 2.2.2 žádá, aby šlo pohybující se smyčku delší než pět sekund
+  pozastavit, a GIF to neumí - to je cena GIFu, řečená zde místo zapomenuté.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Půl minuty s ním</span>
+    <h2>Jak to vypadá při použití</h2>
+    <p class="lede">Skutečná relace na Windows nainstalovaných v polštině - zobrazované názvy pocházejí z Windows, takže jsou v jeho jazyce. Samotné okno mluví anglicky.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Čtyři vybrané položky a plán jejich spuštění, vynucený restart služby Local Session Manager, jehož plán varuje, že stroj bez ní nefunguje, a žádá o její název, než tlačítko zabere, otázky k zahájení pod prázdným vyhledávacím polem a služba Print Spooler nalezená zadáním části názvu a spuštěná." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Čtyři vybrané položky a plán jejich spuštění, vynucený restart, který žádá název služby, kterou stroj potřebuje, otázky pod prázdným vyhledávacím polem a služba Print Spooler nalezená psaním a spuštěná.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Úvodní obrazovka: tři karty s čísly o tomto stroji - běžící služby, služby nastavené na automatické spuštění, které nenaběhly, a služby nastavené na automatické spuštění, jejichž soubor chybí - a tlačítko Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Otevře se několika čísly o tomto stroji. Každé je otázka - klikněte na ně a otázka se vloží do vyhledávacího pole.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Seznam služeb se třemi seznamy nad vyhledávacím polem, prázdné vyhledávací pole, filtrační tlačítka rozbalená v řádcích pro stav, typ spouštění, podpis, nesrovnalosti a triggery a pod nimi seznam." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Filtrační tlačítka píší do vyhledávacího pole, takže to, na co jste klikli, je dotaz, který můžete číst a upravovat.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Proč to existuje</span>
+    <h2><code>services.msc</code> se od Windows 2000 téměř nezměnil</h2>
+    <p class="lede">Správci v něm tráví hodiny týdně a narážejí na stejné zdi.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Žádné vyhledávání.</strong> Jediná navigace je skok na první písmeno zobrazovaného názvu.</li>
+        <li><strong>Žádné filtrování.</strong> Nelze se zeptat <em>ukaž mi, co je nastaveno na automatické spuštění a neběží</em>.</li>
+        <li><strong>Jeden řádek najednou.</strong> Restart dvanácti služeb je dvanáct kliknutí pravým tlačítkem a dvanáct čekání.</li>
+        <li><strong>"Stopping..." donekonečna</strong>, bez cesty ven kromě Správce úloh a hádání procesu.</li>
+        <li><strong>Žádná historie.</strong> Nikdo neví, kdo nastavil typ spouštění na Zakázáno, ani kdy.</li>
+        <li><strong>Skrytá data.</strong> Proces, triggery, privilegia, popisovač zabezpečení, kdo podepsal spustitelný soubor - na všechno je potřeba <code>sc.exe</code> zpaměti, nebo registr.</li>
+        <li><strong>Žádná parita na příkazovém řádku.</strong> <code>sc.exe</code> má syntaxi z devadesátých let a <code>Get-Service</code>, který je součástí Windows, ve Windows PowerShellu 5.1, neukazuje, pod jakým účtem služba běží, natož její popis. PowerShell 7 ukazuje obojí a instaluje se zvlášť.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Ostatní nástroje vždy řeší jen část</h3>
+        <p>Process Hacker a System Informer ukazují bohatý seznam a umějí vynutit ukončení, ale nemají audit ani příkazový řádek. <code>sc.exe</code> a <code>PsService</code> umějí všechno a nic vám neřeknou. Rutiny <code>*-Service</code> v PowerShellu se dají skriptovat a jsou povrchní.</p>
+        <p>Nikdo nespojuje prohledávatelný seznam, náhled před každou změnou a záznam toho, co se v čase změnilo - a ten záznam je důvod, proč si tento nástroj nechat na stroji i po prvním odpoledni.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Úplné srovnání</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Co dělá</span>
+    <h2>Okno a příkazový řádek nad jedním jádrem</h2>
+    <div class="grid">
+      <div class="card"><h3>Ptejte se místo listování</h3><p><code>start:auto !status:running</code> znamená <em>co by mělo běžet a neběží</em>. Jeden jazyk, ve vyhledávacím poli i v <code>bws list --query</code>, s poli nabízenými při psaní.</p></div>
+      <div class="card"><h3>Ukázat plán, než se cokoli stane</h3><p>Každé zastavení, spuštění, restart i změna typu spouštění se předem zobrazí se službami, které stáhne s sebou, a náhled je to, co se spustí.</p></div>
+      <div class="card"><h3>Říct, co se odchýlilo a kdo to změnil</h3><p><code>bws snapshot create</code> zmrazí stroj do souboru a <code>bws snapshot diff</code> řekne, co se od té doby změnilo, konfiguraci odděleně od toho, co se jen spustilo nebo zastavilo. <code>bws history</code> řekne ze systémového protokolu, kdo změnil typ spouštění a kdo nainstaloval službu. Okno dělá všechny tři věci v části <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Opravit běžný problém jedním kliknutím</h3><p>Karta <em>Tools</em> a <code>bws tool fix</code> restartují službu za tiskárnou, která netiskne, za zmizelým zvukem nebo za zaseklým vyhledáváním, spolu s tím, co na ní závisí, stejným plánem jako všechno ostatní.</p></div>
+      <div class="card"><h3>Zastavit službu, která se nechce zastavit</h3><p>Nejdřív se zeptá zdvořile a proces ukončí, jen když to selže, a pojmenuje každou další službu, která v něm žije.</p></div>
+      <div class="card"><h3>Ukázat, co <code>services.msc</code> skrývá</h3><p>Kdo podepsal spustitelný soubor a jestli mu Windows důvěřuje, triggery, privilegia, popisovač zabezpečení, proces a jeho paměť. Jako sloupce i jako věci, podle kterých se dá hledat.</p></div>
+      <div class="card"><h3>Říct, když něco nešlo přečíst</h3><p>Pole, které nešlo přečíst, se ohlásí jako nepřečtené, nikdy se neukáže jako prázdné. Snímek pořízený bez práv správce to říká uvnitř souboru.</p></div>
+      <div class="card"><h3>Zapadnout do skriptů</h3><p><code>--json</code> u každého příkazu, návratový kód pro každý konec a <code>5</code>, když porovnání najde drift.</p></div>
+      <div class="card"><h3>Běžet z jednoho souboru, offline</h3><p>Rozbalit a spustit, nebo nainstalovat pro celý stroj. Žádné .NET k instalaci a nikdy nekomunikuje s internetem. Čtení nepotřebuje práva správce. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Část, kterou services.msc nikdy neměl</span>
+    <h2>Co se změnilo od včerejška</h2>
+    <p class="lede">Snímek je celý stroj v jednom okamžiku - každá služba a ovladač s typem spouštění, účtem, cestou ke spuštění, hashem a podepisovatelem souboru, závislostmi, triggery, privilegii a popisovačem zabezpečení. Je to JSON s jedním polem na řádek, takže patří do repozitáře a <code>git diff</code> ho čte.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Konfigurace a stav běhu se hlásí odděleně.</strong> Dva snímky pořízené s odstupem dne se liší tím, co zrovna běží, a téměř nic z toho není drift - řádek, který stojí za čtení, je změněný typ spouštění.</li>
+        <li><strong>Co nešlo porovnat, je uvedeno, ne skryto.</strong> Pole, které jeden snímek nikdy nečetl, vyjde jako <em>not compared</em>, takže porovnání, které říká <em>nic se nezměnilo</em>, znamená, že se nic nezměnilo v tom, co viděly obě strany.</li>
+        <li><strong><code>--exit-code</code> skončí kódem <code>5</code>, když se konfigurace liší</strong>, takže naplánovaná úloha může při nasazení pořídit snímek a první noc, kdy se stroj odchýlí, někoho upozornit.</li>
+        <li><strong>Dva stroje, dva soubory.</strong> Pořiďte snímek na testovacím a jeden na produkčním prostředí a porovnejte je kdekoli.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Jak fungují snímky a drift</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nic se neděje bez plánu</span>
+    <h2>Náhled je provedení</h2>
+    <p class="lede">Každá operace, která zapisuje, nejdřív sestaví plán a týž plán je náhled, kaskáda závislých služeb, odmítnutí dřív, než na cokoli kliknete, příkazový řádek, který žádá totéž, a cesta zpět po provedení.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Spusťte to bez <code>--dry-run</code> a tohle jsou kroky</strong>, v tomto pořadí, se stejnými důvody vedle nich. Pro skutečné provedení neexistuje druhá cesta v kódu.</li>
+        <li><strong>To, co spadne s ním, je v plánu.</strong> Služby, které by se rozbily, jsou samostatné kroky, a plán, který by shodil něco, co stroj potřebuje, to říká ve varováních.</li>
+        <li><strong>Odmítnutí přijde dřív než tlačítko.</strong> Ovladač, služba, jejíž zastavení správce nepřijme, proces, který systém chrání - odmítnuto při sestavování plánu, s důvodem. Okno tlačítko zešedí a vedle něj řekne proč.</li>
+        <li><strong>Vynucené zastavení jsou dva kroky a druhý je podmíněný.</strong> <code>bws kill</code> požádá službu o zastavení a její proces ukončí, jen když to nezabere, a pojmenuje každou další službu, která v něm žije.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Když se služba nezastaví</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Dvě minuty s ním</span>
+    <h2>Z příkazového řádku</h2>
+    <p class="lede">Stejné jádro jako okno, pro skripty, naplánované úlohy a CI. Data jdou na standardní výstup a všechno ostatní na standardní chybový výstup, takže <code>bws list --json | jq</code> funguje a varování nikdy nepřistane ve vašem JSONu.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">co by mělo běžet a neběží</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">služby, jejichž spustitelný soubor je pryč</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">nepodepsané, bez kopií pro jednotlivé relace</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">všechno, co je o jedné položce známo</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">co by zastavení strhlo s sebou</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">co by ukončení jeho procesu vzalo s sebou</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">co by udělalo jeho sundání z automatického spouštění</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">zmrazit stroj před změnou</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">co se od té doby změnilo, 5 pokud se změnila konfigurace</span>
+<span class="k">bws history Spooler</span>                               <span class="c">kdo změnil jeho typ spouštění a kdy</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">co by udělala rychlá oprava zaseklé tiskárny</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Každý příkaz, přepínač a návratový kód</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Získejte ho</span>
+    <h2>Rozbalit a spustit, nebo nainstalovat</h2>
+    <p class="lede">Windows 10 1809 nebo Windows Server 2019 a novější, 64bitové. Archivy nepotřebují instalační program a nic nezapisují do registru a k prohlížení nejsou potřeba práva správce. Cokoli měnit vyžaduje relaci se zvýšenými oprávněními a obě poloviny to říkají místo tichého selhání - okno nabízí <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Soubor</th><th>Co to je</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Okno, jeden samostatný spustitelný soubor - žádné .NET k instalaci</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Příkazový řádek, jeden samostatný spustitelný soubor, pro skripty a CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Instalační program: oba programy pro každý účet na stroji, okno v nabídce Start a <code>bws</code> v PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Spustitelné soubory nesou podpis Authenticode, takže Windows uvádí vydavatele místo varování před neznámým.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Požadavky a sestavení ze zdrojového kódu</a>
+    </div>
+  </div>
+</section>

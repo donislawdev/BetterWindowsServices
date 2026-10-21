@@ -1,0 +1,86 @@
+<meta name="title" content="Stáhnout Better Windows Services pro Windows - zdarma, zip nebo MSI">
+<meta name="description" content="Dva samostatné spustitelné soubory nebo podepsaný instalační program, bez .NET. Windows 10 1809 a Server 2019 či novější, 64bitové. Open source, GPL-3.0.">
+<meta name="nav" content="Stažení">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Stažení</span>
+    <h1>Rozbalit a spustit, nebo nainstalovat</h1>
+    <p class="lede">Verze {{version}}. Archivy nepotřebují instalační program a nic nezapisují do registru a k prohlížení nejsou potřeba práva správce. Podepsaný instalační program místo toho nainstaluje oba programy pro celý stroj. Volný a otevřený zdrojový kód pod GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Všechna vydání</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co je ve vydání</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Soubor</th><th>Co to je</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Okno: <code>BetterWindowsServices.exe</code>, jeden samostatný spustitelný soubor s vlastním runtime .NET uvnitř</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Příkazový řádek: <code>bws.exe</code>, jeden samostatný spustitelný soubor, pro skripty, naplánované úlohy a CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Instalační program: oba programy v <code>Program Files</code> pro každý účet na stroji, okno v nabídce Start a <code>bws</code> v proměnné PATH stroje</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Vezměte si jeden nebo oba - jsou to dva klienti téhož jádra a žádný nepotřebuje druhého. Na serveru je příkazový řádek menší z nich a dělá všechno, co okno.</p>
+    <p>Instalační program nese přesně to, co oba archivy. Instaluje se tiše příkazem <code>msiexec /i {{archive_installer}} /qn</code>, novější verze se nainstaluje přes starší a nic, co běží, nezavírá - zavřete tedy před aktualizací okno i každý běžící <code>bws</code>, protože ponechaná běžící kopie se může zastavit s chybou. Odinstalování v Nastavení, Aplikace odstraní programy, položku v nabídce Start i položku v PATH a vaše vlastní soubory nechá být.</p>
+    <p>Spustitelné soubory nesou podpis Authenticode, takže Windows uvádí vydavatele místo varování před neznámým.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Požadavky</h2>
+    <ul class="points">
+      <li><strong>Windows 10 verze 1809 nebo novější, nebo Windows Server 2019 nebo novější.</strong> Pouze 64bitové - 32bitový proces čte přesměrované cesty a klíče registru, což by tiše vedlo ke špatným odpovědím.</li>
+      <li><strong>Žádné .NET k instalaci.</strong> Oba spustitelné soubory nesou vlastní runtime .NET.</li>
+      <li><strong>Práva správce k jakékoli změně.</strong> Čtení, hledání, snímky a porovnání fungují i bez nich, s menším počtem viditelných položek, a nástroj to říká nahoře místo předstírání, že seznam je celý stroj.</li>
+    </ul>
+    <p>Okno uchovává jeden vlastní soubor - rozvržení, v jakém jste nechali seznam - v <code>%APPDATA%\BetterWindowsServices</code>. Snímek jde tam, kam <code>bws snapshot create</code> řeknete, a když neřeknete, do aktuálního adresáře.</p>
+    <p class="note"><strong>Program mluví anglicky.</strong> Okno čte jazykový soubor <code>languages\gui.&lt;kód&gt;.json</code>, uložený vedle něj a vybraný podle jazyka Windows, bez přepínače. Překlad je tedy příspěvek, který lze přidat bez nového sestavení - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> říká jak.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus a EDR</h2>
+    <p class="lede">Tento nástroj dělá to, co správce se službami, a část toho je přesně to, co bezpečnostní software sleduje.</p>
+    <p>Zastavuje a spouští služby, může ukončit proces za nimi a čte u každé služby popisovač zabezpečení a požadovaná privilegia. EDR, který označí proces ukončující <code>svchost.exe</code>, dělá svou práci, a vynucené zastavení zde může vypadat přesně takto.</p>
+    <p>Co <strong>nedělá</strong>, abyste to mohli ověřit: nic nevkládá do žádného procesu, nic nebalí ani neobfuskuje, neinstaluje žádnou službu ani ovladač, nenechává nic běžet a neotevírá žádné síťové spojení. Je open source pod GPL-3.0 a oba spustitelné soubory si můžete sestavit sami.</p>
+    <p>Pokud vaše politika vyžaduje výjimku, vyjměte ty dva spustitelné soubory podle souboru, ne podle složky. Jediná věc, se kterou stojí za to zacházet stejně pečlivě jako s nástrojem samotným, je soubor snímku: popisuje celý stroj.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sestavení ze zdrojového kódu</h2>
+    <p>.NET 10 SDK, na Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Některé testy čtou skutečného správce služeb stroje, na kterém běží, a porovnávají, co říká tento nástroj, s tím, co říká <code>sc.exe</code>. Jsou jen pro čtení. Jednosouborové spustitelné soubory, které vydání nesou, jsou tyto dvě publikace, každá jeden soubor s runtime uvnitř:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Skončí jako <code>bws.exe</code> a <code>BetterWindowsServices.exe</code> pod <code>bin/Release/.../win-x64/publish/</code> každého projektu. Soubory <code>.pdb</code> vedle nich jsou ladicí symboly a ke spuštění je nic nepotřebuje.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kolik stojí provoz</h2>
+    <p class="lede">Změřeno na jednom stroji s 810 službami. Vaše čísla se budou lišit - ovlivňují je počet služeb, disk i procesor.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Zhruba čtvrt sekundy</h3><p>než <code>bws list</code> přečte celý stroj.</p></div>
+      <div class="card"><h3>Zhruba osm desetin sekundy</h3><p>od spuštění okna po zobrazení seznamu na obrazovce.</p></div>
+      <div class="card"><h3>Zhruba 100 MB</h3><p>pro okno - polovinu z toho tvoří uživatelské rozhraní Windows, ještě než se spustí jakýkoli kód tohoto nástroje.</p></div>
+      <div class="card"><h3>Zhruba 16 MB</h3><p>pro příkazový řádek na stejném stroji.</p></div>
+    </div>
+  </div>
+</section>

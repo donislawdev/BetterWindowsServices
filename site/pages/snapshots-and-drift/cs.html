@@ -1,0 +1,65 @@
+<meta name="title" content="Snímky a drift - co se na tomto stroji změnilo od včerejška">
+<meta name="description" content="Zmrazte každou službu Windows do souboru JSON a zeptejte se, co se změnilo. Konfigurace se hlásí odděleně od stavu běhu a kód 5 může někoho upozornit.">
+<meta name="nav" content="Snímky a drift">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Část, kterou services.msc nikdy neměl</span>
+    <h1>Snímky a drift</h1>
+    <p class="lede">Každý jiný nástroj vám řekne, jak stroj vypadá teď. Otázka, kterou správce skutečně má, je <em>co je jinak než ve chvíli, kdy to fungovalo</em> - a na čisté instalaci Windows na ni neodpovídá nic.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co snímek obsahuje</h2>
+    <p>Celý stroj v jednom okamžiku: každá služba a ovladač s typem spouštění, účtem, cestou ke spuštění a argumenty, hashem a podepisovatelem souboru, který spouští, závislostmi a tím, co na něm závisí, triggery, požadovanými privilegii, typem SID a popisovačem zabezpečení - plus název stroje, účet, který snímek pořídil, a <strong>zda byl tento účet správce</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Je to JSON s jedním polem na řádek. To je záměr: snímek lze uložit do repozitáře a <code>git diff</code> ho čte, takže vlastní porovnání nástroje není jediný způsob, jak se na něj podívat.</p>
+    <p class="note"><strong>Ukládejte ho podle toho, čím je.</strong> Snímek popisuje celý stroj, až po každou cestu ke spuštění a každý popisovač zabezpečení. Zapisuje se s oprávněními, která jeho adresář už má, a nástroj nic nezužuje - adresář, který mohou číst jiní lidé, je tedy takový, ve kterém mohou přečíst to všechno.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pak se zeptejte, co je jinak</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Konfigurace a stav běhu se hlásí odděleně.</strong> Dva snímky pořízené s odstupem dne se liší tím, co zrovna běží, a téměř nic z toho není drift. Smíchané dohromady je jediný řádek, na kterém záleží - typ spouštění, který někdo změnil - pohřben pod čtyřiceti, které nezáleží.</li>
+        <li><strong>Co nešlo porovnat, je uvedeno, ne skryto.</strong> Pole, které jeden ze dvou snímků nikdy nečetl, protože ta relace na ně neměla práva, vyjde pod svou položkou jako <em>not compared</em> a souhrn takové položky počítá. Porovnání, které říká <em>nic se nezměnilo</em>, tedy znamená, že se nic nezměnilo v tom, co viděly obě strany.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Snímek se zvýšenými oprávněními proti snímku bez nich by lhal</strong> a hlásil by jako odstraněné položky, které nikdo neodstranil. Každý soubor zaznamenává, zda účet, který ho pořídil, byl správce, a porovnání to říká.</li>
+        <li><strong>Dva soubory, ne jen soubor a tento stroj.</strong> Pořiďte jeden na testovacím a jeden na produkčním prostředí a porovnejte je kdekoli - odpověď na <em>proč se testovací liší</em> nepotřebuje ani jeden ze strojů.</li>
+      </ul>
+    </div>
+    <p><strong>Okno dělá totéž v části <em>Audit...</em>.</strong> <em>Take snapshot...</em> zapíše týž soubor, s poznámkou, pokud ji napíšete, a <em>Compare with this machine...</em> nebo <em>Compare two snapshots...</em> místo seznamu ukáže, co se změnilo, jeden řádek na pole, se vším, co činí porovnání méně než přesným, uvedeným nad tabulkou. <em>Show</em> ho zúží na rozdíly nebo na jedno pole a <em>Export...</em> ho zapíše do souboru CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Důležitý je návratový kód</h2>
+    <p><code>--exit-code</code> skončí kódem <code>5</code>, když se konfigurace liší - položka přidána nebo odebrána, nebo nastavená jinak. Služba, která se jen sama zastavila nebo spustila, se ohlásí a nepočítá se, a nepočítají se ani kopie pro jednotlivé uživatele, které Windows vytváří pro každou přihlášenou relaci: ty se vynechají a spočítají. Není to selhání - drift je to, co tento nástroj má nacházet, a jeho nalezení není selhání - a proto má vlastní číslo, místo aby si půjčoval to, které znamená, že se něco pokazilo.</p>
+<pre><code><span class="c"># den, kdy stroj jde do provozu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># každou noc z naplánované úlohy</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - žádný drift konfigurace
+#   5 - konfigurace se odchýlila a drift.json říká co
+#   3 - proběhlo to a nešlo přečíst všechno, takže odpověď je částečná</span></code></pre>
+    <p>To je celý mechanismus: výchozí stav pořízený, když byl stroj prokazatelně v pořádku, a otázka kladená každou noc. První noc, kdy odpoví <code>5</code>, se to někdo dozví hned první noc, a ne ráno, kdy se něco rozbije.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Použití pro audit</a>
+  </div>
+</section>

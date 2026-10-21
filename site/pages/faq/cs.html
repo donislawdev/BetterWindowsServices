@@ -1,0 +1,78 @@
+<meta name="title" content="Otázky k Better Windows Services a jeho čestné hranice">
+<meta name="description" content="Potřebuje internet? Práva správce? Rozbije mi server? Co dělá a co z návrhu odmítá dělat.">
+<meta name="nav" content="Časté dotazy">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Otázky</span>
+    <h1>Otázky a hranice</h1>
+    <p class="lede">Nástroj, který tiše něco nepokrývá, je horší než ten, který říká, co neumí. Hranice jsou také na této stránce, ve dvou skupinách: co z návrhu odmítá, a co dělá Windows a tento nástroj to hlásí tak, jak to je.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Čím se to liší od <code>sc.exe</code>, <code>Get-Service</code> nebo <code>services.msc</code>?</h3>
+        <p><code>sc query</code> a <code>Get-Service</code> vám řeknou, co běží. <code>services.msc</code> vám to dovolí měnit, po jednom řádku, bez možnosti položit otázku a bez záznamu potom. Tento nástroj položí otázku (<code>start:auto !status:running</code>), ukáže vám plán, než jedná, a uchovává snímek, který můžete o týden později porovnat. Kde se se <code>sc.exe</code> o nějaké službě rozchází, je to chyba - část sady testů spouští obojí a porovnává to položku po položce. <a href="{{url:sc-exe-and-powershell}}">Delší srovnání je zde.</a></p>
+      </div>
+      <div>
+        <h3>Potřebuje internet?</h3>
+        <p>Nikdy. Žádná telemetrie, žádná kontrola aktualizací, žádné hlášení pádů, žádný účet, žádný klient čehokoli. Jediný okamžik, kdy se vůbec může dotknout sítě, je když zadáte <code>--follow-network</code>: pak se smí podívat na cestu ke spuštění na sdílené složce jiného stroje a nechat Windows stáhnout certifikát, který tento stroj ještě nemá - ve výchozím stavu vypnuto a nápověda říká proč. Tlačítka <em>GitHub</em> a <em>Donate</em> v okně a stránka v nabídce <em>Help</em> předají vašemu prohlížeči vždy jednu pevnou adresu, když na ně kliknete, a připojuje se váš prohlížeč.</p>
+      </div>
+      <div>
+        <h3>Potřebuje práva správce?</h3>
+        <p>Na prohlížení ne. Na změny ano. Bez nich správce ukazuje méně položek a víc jich odmítá a obě poloviny to říkají nahoře místo předstírání, že seznam je celý stroj. Okno nabízí <em>Restart as admin</em>. Samo si práva nikdy nezvyšuje.</p>
+      </div>
+      <div>
+        <h3>Je to zdarma? Můžu to používat v práci?</h3>
+        <p>Ano na obojí. GPL-3.0, bez háčků. Snímek, který pořídíte, je váš soubor.</p>
+      </div>
+      <div>
+        <h3>Rozbije mi to server?</h3>
+        <p>Samo od sebe ne. Nic se nemění bez plánu, který jste viděli, ovladače se odmítají a plán, který by shodil něco, co stroj potřebuje, to říká. Před čím vás ochránit nemůže, je provedení plánu, který jste nečetli. Seznam služeb, které stroj potřebuje, je výchozí seznam sedmi - obě poloviny RPC a spouštěč DCOM, správce účtů, izolace klíčů, správce relací a Plug and Play - a <strong>Vzdálená plocha na něm není</strong>, takže při vzdálené relaci plán čtěte.</p>
+      </div>
+      <div>
+        <h3>Je to produkt Microsoftu?</h3>
+        <p>Ne. {{product}} je nezávislý open source projekt a není přidružen k Microsoftu, schválen jím ani jím sponzorován. Windows je ochranná známka skupiny společností Microsoft.</p>
+      </div>
+      <div>
+        <h3>Je program v mém jazyce?</h3>
+        <p>Ne - program mluví anglicky, a proto je tento web přeložen. Okno čte jazykový soubor <code>languages\gui.&lt;kód&gt;.json</code>, uložený vedle spustitelného souboru, a vybírá ho podle jazyka Windows, bez přepínače, takže překlad je příspěvek, který lze přidat bez nového sestavení programu. Názvy služeb v seznamu jsou takové, jaké je říká váš Windows - v jazyce, ve kterém je váš Windows nastaven.</p>
+      </div>
+      <div>
+        <h3>Proč je okno tmavé, když je můj Windows světlý?</h3>
+        <p>Je tmavé a zůstává tmavé, ať je Windows nastaven jakkoli, včetně motivu s vysokým kontrastem. To je ověřeno, ne předpokládáno - drží si vlastní barvy a zůstává čitelné a toto nastavení nesleduje.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Z návrhu</h2>
+    <ul class="points">
+      <li><strong>Pouze místní stroj.</strong> Vzdálená správa v této verzi není. Chcete-li porovnat dva stroje, pořiďte snímek na každém a porovnejte oba soubory.</li>
+      <li><strong>Pouze Windows, pouze 64bitové</strong>, Windows 10 1809 nebo Windows Server 2019 a novější.</li>
+      <li><strong>Operace s ovladači se odmítají, ne zkoušejí</strong>, protože zastavení ovladače jádra často nelze vrátit bez restartu.</li>
+      <li><strong>Nástroj si sám nezvyšuje oprávnění.</strong> Když správce odmítne, řekne to a skončí návratovým kódem <code>3</code>. Okno nabídne, že se samo restartuje jako správce, a nic dalšího s tím nedělá.</li>
+      <li><strong>Odvolání certifikátů se nekontroluje.</strong> Vyžadovalo by to přístup k síti a to tento nástroj nikdy nedělá. <em>Trusted</em> tedy znamená, že řetězec byl na tomto stroji platný, ne že certifikát od té doby nikdo neodvolal.</li>
+      <li><strong>Okno před spuštěním rozbalí část uživatelského rozhraní Windows.</strong> Jako jeden soubor nese několik nativních knihoven, které Windows umí načíst jen z disku. Bez práv správce je při prvním spuštění každé verze zapíše do složky <code>.net</code> v dočasné složce účtu a načte odtamtud. S právy správce místo toho použije <code>ProgramData\BetterWindowsServices</code> na disku s Windows - složku, kterou vytvoří tak, aby ji mohli měnit jen správci, a kterou při každém spuštění kontroluje. Pokud složku nelze vytvořit nebo ji mohou měnit jiní, okno se nespustí a řekne, o kterou složku jde a co dělat. Přesun tam znamená, že okno se zvýšenými oprávněními spustí samo sebe podruhé, což trvá zlomek sekundy, a každá verze tam zanechá své knihovny (asi 8 MB), dokud někdo složku nesmaže. Příkazový řádek žádné takové knihovny nenese a nic nerozbaluje.</li>
+      <li><strong>Relace se zvýšenými oprávněními pojmenuje zděděná nastavení .NET, místo aby je odmítla.</strong> Profiler, přepínač trasování či výpisu paměti nebo diagnostický port nastavený v prostředí nelze zevnitř programu .NET vypnout, takže s právy správce obě poloviny vypíšou všechny, které najdou. Spouštěcí háčky se vypínají úplně.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Věci, které dělá Windows a tento nástroj je hlásí tak, jak jsou</h2>
+    <ul class="points">
+      <li><strong>Služba hostovaná uvnitř <code>svchost</code></strong> má cestu ke spuštění, která pojmenovává hostitele, takže <em>soubor tam je</em> i <em>kdo ho podepsal</em> říkají méně než u služby s vlastním procesem.</li>
+      <li><strong>Soubor s vlastním podpisem i záznamem v katalogu Windows</strong> může pojmenovat dva různé podepisovatele. Zobrazený vydavatel je ten uvnitř souboru - ten, který zůstává stejný, když se na soubor podíváte na jiném stroji - a může se lišit od toho, co hlásí PowerShell.</li>
+      <li><strong>Bez práv správce správce vypisuje méně položek a víc z vypsaných odmítá.</strong> Obě poloviny to říkají nahoře a snímek to zaznamenává, protože porovnání snímku se zvýšenými oprávněními se snímkem bez nich by jinak hlásilo jako odstraněné položky, které nikdo neodstranil.</li>
+    </ul>
+    <p class="note"><strong>Našli jste problém, nebo službu, kterou tento nástroj hlásí jinak než <code>sc.exe</code>?</strong> <a href="{{issues}}">Sledování problémů</a> je otevřené a rozdíl mezi nimi je to nejužitečnější, co do něj můžete vložit.</p>
+  </div>
+</section>

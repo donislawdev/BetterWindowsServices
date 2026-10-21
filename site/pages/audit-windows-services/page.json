@@ -12,6 +12,7 @@
     "es": "auditar-servicios-de-windows",
     "it": "audit-dei-servizi-windows",
     "pt-br": "auditar-servicos-do-windows",
-    "nl": "windows-services-controleren"
+    "nl": "windows-services-controleren",
+    "cs": "audit-sluzeb-windows"
   }
 }

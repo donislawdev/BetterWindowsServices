@@ -1,0 +1,64 @@
+<meta name="title" content="Audit služeb Windows - důkaz, co se na stroji změnilo">
+<meta name="description" content="Zmrazte každou službu při nasazení do souboru a každou noc se ptejte, zda stroj stále odpovídá. Drift, nepodepsané soubory a chybějící soubory v jednom dotazu.">
+<meta name="nav" content="Audit služeb na drift">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Průvodce</span>
+    <h1>Audit služeb Windows</h1>
+    <p class="lede">Audit není seznam toho, co na stroji je. Je to rozdíl mezi tím, co na stroji je, a tím, co tam mělo být - a druhou polovinu na čisté instalaci Windows nezaznamenává nic.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tři otázky a co na ně odpovídá</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Co se změnilo od sestavení tohoto stroje?</h3>
+        <p>Snímek pořízený při nasazení a porovnání se strojem dnes večer. Konfigurace se hlásí odděleně od toho, co se jen spustilo nebo zastavilo, takže jeden změněný typ spouštění nezapadne mezi čtyřiceti službami, které náhodou běží.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Proč se testovací prostředí liší od produkčního?</h3>
+        <p>Pořiďte na každém snímek a porovnejte oba soubory - kdekoli, bez přítomnosti kteréhokoli stroje. Soubory nesou název stroje a účet, který je pořídil.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Co tu je, co by tu být nemělo?</h3>
+        <p>Dotazy, které najdou tvary, na které stojí za to se podívat: služba, jejíž spustitelný soubor je pryč, nepodepsaná, běžící přesto, že je zakázána, nebo žádající o práva ladění.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Noční tvar</h2>
+<pre><code><span class="c"># den, kdy stroj jde do provozu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># každou noc z naplánované úlohy</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - žádný drift konfigurace
+#   5 - konfigurace se odchýlila a drift.json říká co
+#   3 - proběhlo to a nešlo přečíst všechno, takže odpověď je částečná</span></code></pre>
+    <p>Návratový kód <code>5</code> je to, co z toho dělá audit, a ne zprávu, kterou nikdo nečte: úloha mlčí, dokud se stroj neodchýlí, a v noci, kdy se to stane, je někdo upozorněn.</p>
+    <p class="note"><strong>Výchozí stav pořizujte ze sezení se zvýšenými oprávněními.</strong> Bez práv správce správce vypisuje méně položek a víc z vypsaných odmítá. Snímek zaznamenává, zda účet, který ho pořídil, byl správce, takže porovnání to může říct, místo aby hlásilo jako odstraněné položky, které nikdo neodstranil - ale výchozí stav, kterému chybí půlka stroje, je pořád výchozí stav, kterému chybí půlka stroje.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Co snímek stojí jako důkaz</h2>
+    <ul class="points points-ok">
+      <li><strong>Je to JSON s jedním polem na řádek</strong>, takže patří do repozitáře a <code>git diff</code> ho čte. Auditor, který tento nástroj nemá, může soubor přesto přečíst, a systém správy verzí už odpovídá na otázku <em>kdy</em>.</li>
+      <li><strong>Obsahuje to, co snap-in nikdy neukázal:</strong> cestu ke spuštění a argumenty, hash a podepisovatele souboru, závislosti oběma směry, triggery, požadovaná privilegia, typ SID a popisovač zabezpečení.</li>
+      <li><strong>Říká, co nešlo přečíst.</strong> Pole, na které tato relace neměla práva, se zaznamená jako nepřečtené - nikdy jako prázdné - takže pozdější porovnání může říct <em>not compared</em>, místo aby ho tiše označilo za nezměněné.</li>
+      <li><strong>Je to popis celého stroje.</strong> Ukládejte ho podle toho: zapisuje se s oprávněními, která jeho adresář už má, a nástroj nic nezužuje.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Jak fungují snímky a porovnání</a>
+  </div>
+</section>
