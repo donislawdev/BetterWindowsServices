@@ -1,0 +1,64 @@
+<meta name="title" content="Kiểm toán dịch vụ Windows - chứng minh điều gì đã thay đổi">
+<meta name="description" content="Đóng băng mọi dịch vụ vào một tệp lúc triển khai, rồi mỗi đêm hỏi xem máy có còn khớp không. Sai lệch, tệp chưa ký và tệp bị mất trong một truy vấn.">
+<meta name="nav" content="Kiểm toán dịch vụ để tìm sai lệch">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Hướng dẫn</span>
+    <h1>Kiểm toán dịch vụ Windows</h1>
+    <p class="lede">Một cuộc kiểm toán không phải danh sách những gì có trên máy. Nó là hiệu giữa những gì có trên máy và những gì lẽ ra phải có - và không có gì trên một Windows nguyên bản ghi lại nửa thứ hai.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ba câu hỏi, và điều gì trả lời chúng</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Điều gì đã thay đổi kể từ khi máy này được dựng?</h3>
+        <p>Một bản chụp lấy lúc triển khai, và một phép so sánh với máy tối nay. Cấu hình được báo riêng với những gì chỉ vừa khởi động hoặc dừng, nên một kiểu khởi động ai đó đã đổi không bị chôn dưới bốn mươi dịch vụ tình cờ đang chạy.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Vì sao môi trường thử nghiệm khác môi trường sản xuất?</h3>
+        <p>Chụp một bản trên mỗi môi trường và so sánh hai tệp - ở bất cứ đâu, không cần máy nào có mặt. Các tệp mang tên máy và tài khoản đã chụp chúng.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Có gì ở đây mà lẽ ra không nên có?</h3>
+        <p>Các truy vấn tìm ra những dạng đáng xem: một dịch vụ có tệp thực thi đã mất, một dịch vụ chưa ký, một dịch vụ đang chạy dù bị vô hiệu hóa, một dịch vụ yêu cầu quyền gỡ lỗi.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dạng chạy hằng đêm</h2>
+<pre><code><span class="c"># ngày máy bắt đầu đưa vào hoạt động</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># mỗi đêm, từ một tác vụ theo lịch</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - không có sai lệch cấu hình
+#   5 - cấu hình đã lệch, và drift.json nói là gì
+#   3 - đã chạy và không đọc được hết, nên câu trả lời chỉ là một phần</span></code></pre>
+    <p>Mã thoát <code>5</code> là điều biến việc này thành một cuộc kiểm toán thay vì một báo cáo không ai đọc: tác vụ im lặng cho đến khi máy lệch, và vào đêm nó lệch, có người được gọi.</p>
+    <p class="note"><strong>Lấy mốc chuẩn từ một phiên nâng quyền.</strong> Khi không có quyền quản trị, trình quản lý liệt kê ít mục hơn và từ chối nhiều hơn những gì nó liệt kê. Bản chụp ghi lại tài khoản đã chụp nó có phải quản trị viên không, nên phép so sánh có thể nói điều đó thay vì báo các mục là bị xóa trong khi không ai xóa - nhưng một mốc chuẩn thiếu nửa cái máy vẫn là một mốc chuẩn thiếu nửa cái máy.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Một bản chụp đáng giá bao nhiêu làm bằng chứng</h2>
+    <ul class="points points-ok">
+      <li><strong>Nó là JSON với một trường mỗi dòng</strong>, nên có thể đưa vào kho mã và <code>git diff</code> đọc được nó. Một kiểm toán viên không có công cụ này vẫn đọc được tệp, và một hệ thống quản lý phiên bản đã trả lời được câu <em>khi nào</em>.</li>
+      <li><strong>Nó chứa những gì snap-in chưa bao giờ hiển thị:</strong> đường dẫn khởi chạy và đối số, mã băm và người ký của tệp, các phụ thuộc cả hai chiều, trình kích hoạt, đặc quyền yêu cầu, kiểu SID và bộ mô tả bảo mật.</li>
+      <li><strong>Nó nói những gì nó không đọc được.</strong> Một trường mà phiên này không có quyền được ghi là chưa đọc - không bao giờ là trống - để một phép so sánh sau này có thể nói <em>not compared</em> thay vì lặng lẽ coi nó là không đổi.</li>
+      <li><strong>Nó là mô tả của cả máy.</strong> Hãy lưu trữ cho phù hợp: nó được ghi với quyền mà thư mục của nó vốn có, và công cụ không thu hẹp gì.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Bản chụp và phép so sánh hoạt động ra sao</a>
+  </div>
+</section>

@@ -1,0 +1,193 @@
+<meta name="title" content="Referința liniei de comandă - fiecare opțiune și cod de ieșire bws">
+<meta name="description" content="Toate comenzile, opțiunile și codurile de ieșire ale lui bws: list, show, stop, start, restart, kill, start-type, snapshot, history, tool și license.">
+<meta name="nav" content="Referință CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Tabelele de pe această pagină sunt CONSTRUITE, nu scrise. Opțiunile vin din tabelul propriu al
+  parserului din src/Bws.Cli/OptionSurface.cs, iar codurile din src/Bws.Cli/ExitCode.cs, deci o
+  opțiune adăugată în program apare aici, iar o frază despre o opțiune care nu mai există strică
+  construirea. Ce ÎNSEAMNĂ fiecare este proză și trăiește în site/i18n, pentru că proza se traduce.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Referință</span>
+    <h1>Referința liniei de comandă</h1>
+    <p class="lede">Fiecare comandă, fiecare opțiune și fiecare cod de ieșire al lui <code>bws</code>, versiunea {{version}}. Autoritar este <code>bws --help</code>, care este mai lung - această pagină este aceeași suprafață, aranjată pentru a fi citită.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Comenzile</h2>
+    <p>Unsprezece comenzi. <code>snapshot</code> este un substantiv și primește un cuvânt după el. <code>tool</code> este tot un substantiv, iar singur listează instrumentele.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>O comandă scrisă greșit primește oferta celei pe care probabil ați vrut-o, iar rularea se încheie cu codul <code>2</code>, în loc să facă ceva apropiat de ce ați cerut.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce face fiecare comandă</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> și <code>show</code></h3>
+        <p><code>list</code> este toată mașina, restrânsă cu <code>--query</code>. <code>show</code> este o singură intrare cu tot ce se știe despre ea - semnătura, privilegiile, descriptorul de securitate și memoria, toate citite de fiecare dată, pentru că peste o singură intrare asta costă cam șaizeci de milisecunde, în timp ce peste toată mașina costă o secundă. Câmpurile cu adevărat goale sunt omise dacă nu dați <code>--full</code>. Un câmp pe care nimeni nu l-a putut citi este tipărit oricum, pentru că omiterea lui ar arăta ca un răspuns.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> și <code>restart</code></h3>
+        <p>Fiecare construiește un plan și îl execută. <code>--dry-run</code> tipărește planul și nu schimbă nimic, <code>--dependents</code> pune în el, ca pași de sine stătători, serviciile care s-ar defecta, iar <code>--timeout</code> spune cât timp poate merge un pas fără progres. Driverele sunt refuzate, nu încercate, pentru că oprirea unui driver de nucleu adesea nu se poate anula fără repornire.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - pentru un serviciu care nu vrea să se oprească</h3>
+        <p>Cere serviciului să se oprească și încheie procesul din spatele lui <em>doar dacă asta nu funcționează</em>, așa că o intrare care se oprește singură nu este niciodată încheiată. Încheierea unui proces ia cu sine fiecare alt serviciu care trăiește în acel proces, indiferent dacă s-a oprit mai întâi sau nu, iar previzualizarea le numește și numește procesul prin număr. <code>--force</code> sare peste pasul politicos, iar previzualizarea arată atunci un pas în loc de doi. <code>--restart</code> readuce totul după aceea.</p>
+        <p class="note"><strong>Windows scrie această idee altfel.</strong> <code>--force</code> la <code>Stop-Service</code> înseamnă "chiar dacă ceva depinde de el", ceea ce face aici <code>--dependents</code>. De aceea aceasta este o comandă proprie și nu o opțiune a lui <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - o setare, nu o mișcare</h3>
+        <p>Spune ce va face managerul cu o intrare la următoarea pornire și, fără <code>--stop</code>, nu mută nimic: o intrare care rulează continuă să ruleze, una oprită rămâne oprită, iar planul spune asta. <code>disabled</code> este cea la care merită să vă opriți, pentru că împiedică managerul să pornească intrarea deloc, inclusiv la cerere pentru altceva care are nevoie de ea. <code>delayed</code> este automat, pornit puțin după celelalte intrări automate - cuvântul despre care întreabă <code>start:delayed</code> într-o interogare - iar Windows îl refuză pentru o intrare dintr-un grup de ordine de încărcare, lucru pe care planul îl spune înainte să se întâmple ceva. Fiecare dintre cele patru scrie dacă intrarea pornește târziu, așa cum face <code>sc.exe</code>. <code>--stop</code>, doar alături de <code>disabled</code>, oprește intrarea în același plan după ce setarea este scrisă.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> și <code>snapshot diff</code></h3>
+        <p><code>create</code> citește întotdeauna semnăturile și hash-urile, pentru că un instantaneu este păstrat și comparat mai târziu, iar unul fără ele, comparat cu unul cu ele, ar face să pară că mașina s-a schimbat. <code>diff</code> spune ce s-a schimbat de la primul fișier la al doilea sau de la un fișier la această mașină cu <code>--live</code>. <a href="{{url:snapshots-and-drift}}">Pagina despre instantanee</a> are formatul și raționamentul.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - cine a schimbat, din jurnalul System</h3>
+        <p>Schimbările de tip de pornire și instalările din jurnalul System, cele mai noi primele, cu contul pe care Windows l-a înregistrat. Prima linie spune cât de departe ajunge jurnalul și dacă a fost șters, pentru că un istoric este doar cât este de lung jurnalul. Cu un nume, sunt schimbările de tip de pornire ale acelui serviciu - instalările sunt listate doar fără nume, pentru că Windows înregistrează o instalare sub numele afișat și niciodată sub numele serviciului. Un cont este numit acolo unde această mașină îl poate numi singură și arătat ca SID în caz contrar, iar tipurile de pornire vin în cuvintele pe care le-a scris Windows.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - răspunsuri gata făcute la probleme frecvente</h3>
+        <p>Aceleași instrumente pe care fereastra le arată în fila Tools. <code>bws tool</code> le listează, iar <code>bws tool fix</code> listează remedierile rapide: <code>printer</code>, <code>sound</code>, <code>indexing</code> și <code>search</code>, fiecare o repornire a unui serviciu Windows împreună cu ce depinde de el, alese pentru că paginile de depanare ale Microsoft însuși o sugerează. <code>bws tool fix printer</code> este exact <code>bws restart Spooler --dependents</code> - același plan, aceeași ieșire și aceleași coduri de ieșire - și, ca orice comandă de aici care schimbă ceva, nu întreabă mai întâi, deci <code>--dry-run</code> este calea de a privi înainte să ruleze.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - ce se află în fișierul descărcat</h3>
+        <p>Nu citește absolut nimic - niciun manager de servicii, niciun disc, nicio rețea - și răspunde dintr-un registru compilat în executabil. <code>--components</code> transformă mențiunea în fiecare componentă cu versiunea, licența și proveniența ei. Același set pe care îl poartă lista de materiale publicată lângă descărcare, pentru că ambele sunt generate dintr-un singur registru, și motivul pentru care merită: programul este un singur fișier independent, deci nu este nimic lângă el pe care un scaner să-l citească.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Exemple</h2>
+    <p class="lede">Planurile de mai jos au fost verificate cu <code>--dry-run</code> pe programul pe care îl descrie această pagină. O comandă care schimbă ceva nu întreabă mai întâi, deci <code>--dry-run</code> este calea de a privi înainte să ruleze. <code>Spooler</code> stă pentru orice serviciu - puneți în loc numele serviciului dumneavoastră.</p>
+    <div class="examples">
+    <h3>Găsire și citire</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">fiecare serviciu și driver de pe această mașină</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">ce ar trebui să fie pornit și nu este</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">ce folosește procesul fiecărei intrări care rulează</span>
+<span class="k">bws show Spooler</span>                               <span class="c">tot ce se știe despre o intrare</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">și câmpurile care sunt cu adevărat goale</span></code></pre>
+    <h3>Mai întâi priviți, apoi schimbați</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">planul și nimic altceva</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">repornește-l împreună cu ce depinde de el</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">permite două minute pe pas fără progres</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">pornește-l puțin după celelalte intrări automate</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">dezactivează-l și oprește-l într-un singur plan</span></code></pre>
+    <h3>Un serviciu care nu vrea să se oprească</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">procesul și fiecare serviciu care trăiește în el</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">încheie procesul doar dacă o oprire eșuează, apoi readu totul</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">un pas în loc de doi: procesul încheiat imediat</span></code></pre>
+    <h3>Instantanee și derivă</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">îngheață mașina, cu o notă păstrată în interior</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">două fișiere - două zile sau două mașini</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">fișierul față de această mașină așa cum este acum</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">la fel, încheindu-se cu 5 dacă configurația a derivat</span></code></pre>
+    <h3>Cine a schimbat</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">fiecare schimbare de tip de pornire și instalare pe care o conține jurnalul System</span>
+<span class="k">bws history Spooler</span>  <span class="c">schimbările de tip de pornire ale unui serviciu</span>
+<span class="k">bws history --json</span>   <span class="c">la fel ca document, cu jurnal și schimbări</span></code></pre>
+    <h3>Remedieri rapide</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">instrumentele care există</span>
+<span class="k">bws tool fix</span>                  <span class="c">remedierile rapide și serviciul din spatele fiecăreia</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">planul pentru repornirea celor două servicii audio</span>
+<span class="k">bws tool fix printer</span>          <span class="c">repornește Print Spooler cu ce depinde de el</span></code></pre>
+    <h3>Ce se află în fișier</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">fiecare componentă, versiunea, licența și proveniența ei</span>
+<span class="k">bws --version</span>             <span class="c">versiunea acestui executabil</span></code></pre>
+    <h3>Într-un script PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># intrările care ar trebui să fie pornite și nu sunt, ca obiecte</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># fișierele nesemnate, într-o foaie de calcul</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># de ce are nevoie un serviciu</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># o verificare nocturnă care ramifică după codul de ieșire</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>În cmd și într-un fișier batch</h3>
+<pre class="wrap-lines"><code><span class="c">rem o a doua comandă doar când prima nu s-a încheiat curat</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem într-un fișier batch cu expandare întârziată activată, ! are nevoie de semnul ^</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Opțiuni</h2>
+    <p>{{switch_count}} la număr. A treia coloană sunt comenzile cărora le aparține fiecare - o opțiune dată unei comenzi care nu are ce face cu ea este o eroare cu acea listă în ea, nu un indicator ignorat în tăcere.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Coduri de ieșire</h2>
+    <p>{{exit_code_count}} sfârșituri, iar fiecare este un lucru diferit de făcut pentru un script. Datele merg la ieșirea standard și tot restul la eroarea standard, deci <code>bws list --json | jq</code> funcționează, iar un avertisment nu ajunge niciodată în JSON-ul dumneavoastră.</p>
+    <p>Fiecare document JSON este ASCII simplu: o literă din afara lui este scrisă ca un escape de șase caractere pe care orice cititor JSON îl transformă înapoi în literă, deci <code>bws list --json &gt; file.json</code> este UTF-8 valid, iar <code>| ConvertFrom-Json</code> îl citește corect indiferent de pagina de cod a consolei. În textul pe care îl citește o persoană, un caracter care ar muta terminalul în loc să se tipărească - un tab, o întrerupere de linie, o secvență escape, o suprascriere a direcției - este arătat ca punctul său de cod, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> încheie opțiunile, așa că un serviciu al cărui nume începe cu o liniuță poate fi totuși numit: <code>bws show -- -odd</code>. Liniile de comandă pe care vi le dă instrumentul sunt scrise pentru PowerShell: un nume cu spațiu merge între ghilimele duble, pe care cmd le citește la fel, iar un nume pe care PowerShell l-ar expanda înăuntrul lor, precum <code>MSSQL$SQLEXPRESS</code>, merge între ghilimele simple.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C are trei niveluri, fiecare spunând ce costă următorul.</strong> Primul încetează să meargă înainte și tot pune la loc ce a fost luat, al doilea lasă lucrurile cum sunt și tot tipărește raportul, al treilea încheie procesul. O rulare oprită cu mâna se încheie cu <code>4</code> chiar dacă fiecare pas a ajuns.</p>
+    <p class="note"><strong>Închiderea ferestrei consolei contează ca primul Ctrl+C.</strong> Windows dă apoi unui program cinci secunde, iar în ele acesta încetează să meargă înainte și pune la loc ce a doborât. Deconectarea și oprirea îl încheie fără niciun avertisment la care ar putea reacționa, iar o sesiune la distanță căzută poate la fel.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Într-o sarcină programată</h2>
+    <p>Forma pentru care a fost construit acest instrument: înghețați mașina când se știe că este bună, apoi întrebați în fiecare noapte dacă încă este.</p>
+<pre><code><span class="c"># ziua în care mașina intră în serviciu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># în fiecare noapte, dintr-o sarcină programată</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nicio derivă de configurație
+#   5 - configurația a derivat, iar drift.json spune ce
+#   3 - a rulat și n-a putut citi totul, deci răspunsul este parțial</span></code></pre>
+    <p>Fereastra este cealaltă jumătate a aceluiași motor: <code>{{archive_window}}</code> o conține, iar <a href="{{url:download}}">pagina de descărcare</a> spune ce este fiecare arhivă.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Argumentul ferestrei</h2>
+    <p><code>BetterWindowsServices.exe</code> primește un argument destinat unei persoane: <code>--catalogue</code> deschide o foaie pentru dezvoltatori care arată fiecare componentă a ferestrei în fiecare stare și nu citește nimic de pe mașina dumneavoastră. Un al doilea, <code>--carry</code>, este modul în care o fereastră predă ce afișa copiei sale pe care o repornește ca administrator. Nimeni nu îl tastează, iar orice din el pe care acea fereastră n-ar fi putut să-l scrie este refuzat.</p>
+  </div>
+</section>

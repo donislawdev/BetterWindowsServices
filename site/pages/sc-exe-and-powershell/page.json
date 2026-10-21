@@ -11,6 +11,12 @@
     "fr": "sc-exe-et-powershell",
     "es": "sc-exe-y-powershell",
     "it": "sc-exe-e-powershell",
-    "pt-br": "sc-exe-e-powershell"
+    "pt-br": "sc-exe-e-powershell",
+    "nl": "sc-exe-en-powershell",
+    "cs": "sc-exe-a-powershell",
+    "ro": "sc-exe-si-powershell",
+    "tr": "sc-exe-ve-powershell",
+    "id": "sc-exe-dan-powershell",
+    "vi": "sc-exe-va-powershell"
   }
 }

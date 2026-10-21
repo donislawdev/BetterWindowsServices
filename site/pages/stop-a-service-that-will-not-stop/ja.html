@@ -1,0 +1,68 @@
+<meta name="title" content="Stopping のまま止まった Windows サービスを安全に終了する方法">
+<meta name="description" content="Stopping のまま止まったサービスは、たいてい他のサービスとプロセスを共有しています。何かを終了する前にそれを確認し、あとで 1 つのコマンドで全部を元に戻せます。">
+<meta name="nav" content="Stopping で止まったサービス">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ガイド</span>
+    <h1><em>Stopping...</em> のまま止まったサービス</h1>
+    <p class="lede">スナップインは <em>Stopping</em> を表示したまま動きません。よくある対処は、タスク マネージャーを開き、どの <code>svchost.exe</code> に入っているかを推測して「タスクの終了」を押すことです。それでは、そのプロセス内のほかのサービスもすべて、どれだったかを知らされないまま終了してしまいます。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>なぜ起きるのか</h2>
+    <ul class="points points-alarm">
+      <li><strong>サービスが停止要求に応答していません。</strong>Windows は丁寧に要求して待ちます。ハングしたサービスや、戻ってこない何かを待っているサービスは、応答しません。</li>
+      <li><strong>それに依存するものがまだ実行されています。</strong>マネージャーは、ほかのサービスを壊すよりも停止を拒否し、スナップインはそれを待機として表示します。</li>
+      <li><strong>ほかのサービスとプロセスを共有しています。</strong>Windows のサービスの多くは、共有の <code>svchost.exe</code> の中で動作します。そのプロセスを終了すると、全部が終了します。タスク マネージャーがその名前を挙げずに行うのは、まさにこれです。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>何かを終了する前に確認する</h2>
+    <p>終了すると何が巻き込まれるかを尋ねます。<code>--dry-run</code> を外すまで、何も起きません。</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>プレビューは、プロセスを番号で示し、そこに存在するほかのすべてのサービスの名前を挙げ、1 つではなく 2 つのステップを表示します。サービスに停止を要求し、<em>それがうまくいかない場合にのみ</em>プロセスを終了します。自力で停止するサービスが強制終了されることはありません。</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> は丁寧なステップを省略し</strong>、プロセスをすぐに終了します。実行ではなくプランを変えるので、プレビューには 2 つではなく 1 つのステップが表示され、何かが起きる前にその違いが見えます。</li>
+        <li><strong><code>--restart</code> は、プロセスが消えたあとにすべてを元に戻します。</strong>尋ねたエントリと、同じプロセスを共有していたすべてです。これがないと、マシンにはそれらのサービスが停止したまま残り、レポートはそれらを再び開始する方法を伝えます。</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>拒否はボタンより前に来ます。</strong>ドライバー、システムが保護しているプロセス、マネージャーが停止を受け付けないサービスは、60 秒待ったあとではなく、プランを作る時点で理由とともに拒否されます。</li>
+        <li><strong>重要なときは警告します。</strong>エントリがマシンの動作に不可欠なものであれば、プランがそう伝えます。停止すると、サービスだけでなくマシンが落ちます。</li>
+      </ul>
+    </div>
+    <p class="note"><strong>プロセスを終了することは、このツールが行う唯一の、マシンに代わって誰も拒否できないことです。</strong>だから独立したコマンドになっていて、プレビューが巻き込むすべてのサービスの名前を挙げ、指定しない限り丁寧なステップが先に実行されます。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>より安全な順序</h2>
+    <ol class="prose-list">
+      <li><strong>何であるかを確認する。</strong><code>bws show Spooler</code> で、プロセス、依存されているもの、依存しているもの、そもそも停止要求を受け付けているかどうかがわかります。</li>
+      <li><strong>通常の停止を、プランとして試す。</strong><code>bws stop Spooler --dry-run --dependents</code>。答えが拒否であれば、3 つの理由のどれなのかが示されます。</li>
+      <li><strong>止まらない場合は、終了のコストを確認する。</strong><code>bws kill Spooler --dry-run</code> を実行し、そのプロセスを共有するサービスの一覧を読みます。</li>
+      <li><strong>それから実行する。戻る方法を用意して。</strong><code>bws kill Spooler --restart</code>。レポートは、うまくいかなかったことと、元に戻すコマンドで終わります。</li>
+    </ol>
+    <p>4 つとも、ウィンドウでも同じように動作します。行を右クリックして <em>Force stop...</em> を選び、プランを読むと、その下のボタンには実行する内容が名前として付いています。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>なぜタスク マネージャーでは足りないのか</h2>
+    <p class="lede">答えている質問が違うからです。タスク マネージャーが知っているのはプロセスで、この問題はサービスについてのものであり、両者は 1 対 1 には対応しません。</p>
+    <p>共有の <code>svchost.exe</code> は、十数個のサービスを抱えていることがあります。タスク マネージャーは、その 12 個がどれかを言わずに終了します。どれも自力では戻ってこず、そのあとに何が止まったかを教えてくれるものはありません。<code>svchost.exe</code> を終了するプロセスを検知する EDR は役目を果たしていますが、あなたのクリックとほかの何かを区別することはできません。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">リファレンス全体</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,102 @@
+<meta name="title" content="O alternativă la services.msc pentru administratorii Windows">
+<meta name="description" content="services.msc nu are căutare, filtrare sau istoric. Înlocuitor liber, cu limbaj de interogare, previzualizare înainte de modificări și comparație de derivă.">
+<meta name="nav" content="Față de services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ghid</span>
+    <h1>O alternativă la <code>services.msc</code></h1>
+    <p class="lede">Snap-in-ul Services abia s-a schimbat din Windows 2000. Este în continuare cea mai rapidă cale de a porni un serviciu pe care îl vedeți deja pe ecran și cea mai lentă cale de a răspunde la orice întrebare despre o mașină.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce îi face pe oameni să caute</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Fără căutare.</strong> Singura navigare este tastarea unei litere pentru a sări la primul nume afișat care începe cu ea. Pe o mașină cu opt sute de intrări, asta înseamnă derulare cu pași în plus.</li>
+        <li><strong>Fără filtrare.</strong> Nu există nicio cale de a întreba <em>ce este setat să pornească automat și nu rulează</em> - singura întrebare care găsește o mașină stricată.</li>
+        <li><strong>Un singur rând pe rând.</strong> Repornirea a douăsprezece servicii înseamnă douăsprezece clicuri dreapta și douăsprezece așteptări.</li>
+        <li><strong>"Stopping..." fără ieșire</strong> în afara Task Manager și a ghicitului ce <code>svchost</code> să încheiați.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Fără istoric.</strong> Nimeni nu știe cine a setat acel tip de pornire pe Disabled, sau când, sau dacă era așa și luna trecută.</li>
+        <li><strong>Date ascunse.</strong> Procesul, declanșatoarele, privilegiile necesare, descriptorul de securitate, cine a semnat executabilul - nimic din acestea nu este în snap-in, iar toate contează când ceva nu merge.</li>
+        <li><strong>Coloanele nu pot fi schimbate.</strong> Nume, descriere, stare, tip de pornire, conectare ca. Aceasta este toată lista, iar niciuna nu poate fi sortată util pe o mașină reală.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Aceleași sarcini, în ambele</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Doriți să</th><th>În <code>services.msc</code></th><th>Aici</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Găsiți ce ar trebui să ruleze și nu rulează</td>
+            <td class="no">Sortați după tipul de pornire, derulați, citiți fiecare rând</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Aflați ce trage după sine o oprire</td>
+            <td class="no">O casetă de dialog care numește serviciile dependente după ce apăsați Stop</td>
+            <td>Un plan înainte să se întâmple ceva, cu fiecare serviciu dependent ca pas și un avertisment când unul este ceva de care mașina are nevoie</td>
+          </tr>
+          <tr>
+            <td>Aflați ce s-a schimbat de săptămâna trecută</td>
+            <td class="no">Nimic</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Aflați cine a schimbat un tip de pornire</td>
+            <td class="no">Nimic</td>
+            <td><code>bws history Spooler</code>, din jurnalul System</td>
+          </tr>
+          <tr>
+            <td>Reporniți douăsprezece servicii</td>
+            <td class="no">Douăsprezece clicuri dreapta</td>
+            <td>Selectați douăsprezece, un plan, o rulare, un raport</td>
+          </tr>
+          <tr>
+            <td>Vedeți cine a semnat executabilul unui serviciu</td>
+            <td class="no">Nu este afișat</td>
+            <td>O coloană și ceva după care se poate căuta: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Automatizați oricare dintre acestea</td>
+            <td class="no">Nu se poate automatiza</td>
+            <td><code>bws</code>, cu <code>--json</code> și un cod de ieșire pentru fiecare final</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce face snap-in-ul în continuare mai bine</h2>
+    <p class="lede">Două lucruri, iar a pretinde altceva ar fi genul de afirmație pe care acest proiect nu o face.</p>
+    <ul class="points">
+      <li><strong>Este deja pe mașină.</strong> Nimic de descărcat, nimic de trecut de o politică de software. Pe o mașină pe care o veți atinge o dată, acesta este tot argumentul.</li>
+      <li><strong>Editează acțiunile de recuperare, contul și calea de lansare.</strong> Acest instrument arată contul și calea de lansare și nu schimbă niciuna, iar acțiunile de recuperare le citește doar ca să avertizeze înainte să încheie un proces. Crearea, ștergerea sau redirecționarea unui serviciu nu sunt nici ele aici.</li>
+    </ul>
+    <p>Ce nu poate face deloc este motivul pentru care acesta există: să pună o întrebare, să arate mai întâi un plan și să spună ce a derivat.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce este aceasta</h2>
+    <p>{{product}} este liber și open source sub GPL-3.0, un fișier pentru fiecare jumătate sau un program de instalare pentru toată mașina, și nu comunică niciodată cu internetul. Citirea nu cere drepturi de administrator - schimbarea cere, și spune asta în loc să eșueze în tăcere.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Vedeți limbajul de interogare</a>
+    </div>
+  </div>
+</section>

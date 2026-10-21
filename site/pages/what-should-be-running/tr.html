@@ -1,0 +1,86 @@
+<meta name="title" content="Bu makinede hangi Windows hizmetleri çalışıyor olmalı?">
+<meta name="description" content="Bunu genel olarak kimse söyleyemez ve öyle iddia eden listeler sizin olmayan bir makineyi anlatır. Yanıtlanabilecek soru şu: ne değişti.">
+<meta name="nav" content="Ne çalışıyor olmalı">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Kılavuz</span>
+    <h1>Hangi hizmetler çalışıyor olmalı?</h1>
+    <p class="lede">Dürüst yanıt şu ki bunu size kimse söyleyemez ve öyle olduğunu iddia eden her liste sizin olmayan bir makineyi anlatır. Yanıtlanabilecek şey daha dar ve çok daha yararlı: bu makinede neyin tutmadığı ve çalışırken olandan neyin farklı olduğu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Genel sorunun neden yanıtı yok</h2>
+    <ul class="points points-alarm">
+      <li><strong>Küme, Windows sürümüne, versiyonuna ve role göre değişir.</strong> Bir etki alanı denetleyicisi, bir dizüstü bilgisayar ve bir kapsayıcı ana bilgisayarı neredeyse her konuda anlaşamaz ve biri için yazılmış bir liste diğerleri için yanlıştır.</li>
+      <li><strong>Kurulu olanların yarısı Windows'tan gelmez.</strong> Sürücüler, aracılar, güncelleme hizmetleri, lisans hizmetleri - her biri oraya bir şey tarafından konmuştur ve hiçbir genel liste hangisi olduğunu bilmez.</li>
+      <li><strong>Hizmetlerin çoğu durmuş olmak üzere tasarlanmıştır.</strong> Modern bir Windows kaydettiğinin bir kesrini başlatır: gerisi bir tetikleyici bekler - bir aygıtın gelmesi, bir bağlantı noktasının açılması, bir etki alanına katılma - ve durmuş olmak onların doğru durumudur.</li>
+      <li><strong>"Performans için bunları devre dışı bırakın" listeleri, makinelerin bozulma yoludur.</strong> Boşta görünen hizmet, başka bir şeyin isteğe bağlı başlattığıdır ve arıza bir hafta sonra ilgisiz bir yerde ortaya çıkar.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Yanıtı olan sorular</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Açık olması gereken ve olmayan</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows'a bunları başlatması söylendi ve çalışmıyorlar. Sağlıklı bir makinede bu kısa bir listedir - geç başlayıp yine duran birkaç öğe. Bunun dışındaki her şeye bir bakmaya değer.</p>
+      </div>
+      <div class="card">
+        <h3>Devre dışı olan ve yine de çalışan</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Yapılandırma ve durum uyuşmuyor. Genellikle biri onu durdurmadan devre dışı bırakmıştır ve bir sonraki yeniden başlatma bir sürpriz olur.</p>
+      </div>
+      <div class="card">
+        <h3>Kaybolmuş bir dosyaya işaret eden</h3>
+        <p><code>file:missing</code></p>
+        <p>Kaydı geride bırakan bir kaldırma. Bir şey onu başlatmaya çalışana kadar zararsız ve bu makinede eskiden ne olduğuna dair bir ipucu.</p>
+      </div>
+      <div class="card">
+        <h3>Kimsenin imzalamadığı</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Tek başına bir şeyin kanıtı değil ve okumaya başlamak için doğru yer. İkinci terim, listeyi aksi halde neredeyse aynı öğelerle dolduracak kullanıcı başına aileleri atar.</p>
+      </div>
+      <div class="card">
+        <h3>En güçlü ayrıcalıkları isteyen</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Bir işlemin diğer herhangi birini açmasına izin veren bir ayrıcalık. Bir avuç meşru hizmet onu ister ve makinenizde hangilerinin istediğini bilmeye değer.</p>
+      </div>
+      <div class="card">
+        <h3>Bir tetikleyici bekleyen</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Bir şey yanlış olduğu için değil, henüz hiçbir şey onları istemediği için durmuş. Bunların hangileri olduğunu bilmek, ilk listenin ürkütücü olmaktan çıkma yoludur.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Hepsini yenen</h2>
+    <p class="lede">Makinenin kendisine sorun, çalışırken.</p>
+    <p>Makinenin hizmete girdiği gün bir anlık görüntü alın. O zaman <em>bu çalışıyor olmalı mı</em>, <em>her şey çalışırken bu çalışıyor muydu</em> olur - bir makale içindeki bir makine hakkında değil, sizin makineniz hakkında bir soru.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... bir hafta, bir yama ya da bir olay sonra</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Yapılandırma çalışma durumundan ayrı bildirilir; bu yüzden yanıt tesadüfen açık olan kırk hizmet değil, birinin değiştirdiği başlangıç türüdür.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Bir makineyi sapma için denetleme</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bir şeyi durdurmadan önce</h2>
+    <p>Bu araçtaki her durdurma önce planını gösterir: adımları, onlarla birlikte nelerin indiğini ve biri makinenin onsuz çalışmadığı bir şeyse bir uyarı. Bunların listesi yedilik bir başlangıç listesidir - RPC'nin iki yarısı ve DCOM başlatıcısı, hesap yöneticisi, anahtar yalıtımı, oturum yöneticisi ve tak-çalıştır - ve <strong>Uzak Masaüstü listede yok</strong>, dolayısıyla uzak bir oturumda planı okuyun.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Sorabileceğiniz her alan</a>
+    </div>
+  </div>
+</section>

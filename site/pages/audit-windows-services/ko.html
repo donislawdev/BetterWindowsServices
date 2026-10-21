@@ -1,0 +1,64 @@
+<meta name="title" content="Windows 서비스 감사 - 컴퓨터에서 무엇이 바뀌었는지 증명하기">
+<meta name="description" content="배포할 때 모든 서비스를 파일로 고정하고, 매일 밤 컴퓨터가 여전히 일치하는지 물어보세요. 드리프트, 서명 없는 실행 파일, 사라진 파일을 쿼리 하나로.">
+<meta name="nav" content="드리프트 서비스 감사">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">가이드</span>
+    <h1>Windows 서비스 감사</h1>
+    <p class="lede">감사는 컴퓨터에 있는 것의 목록이 아닙니다. 컴퓨터에 있는 것과 있어야 했던 것의 차이이며, 기본 Windows에는 뒤쪽 절반을 기록하는 것이 없습니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>세 가지 질문과 그에 답하는 것</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>이 컴퓨터를 구축한 이후 무엇이 바뀌었는가?</h3>
+        <p>배포할 때 만든 스냅샷과, 오늘 밤 컴퓨터와의 차이입니다. 구성은 단순히 시작되거나 중지된 것과 따로 보고되므로, 누군가 바꾼 시작 유형 하나가 우연히 실행 중인 서비스 마흔 개 아래에 묻히지 않습니다.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>스테이징 환경은 왜 운영 환경과 다른가?</h3>
+        <p>각각에서 스냅샷을 만들고 두 파일의 차이를 보세요. 어디서든, 어느 컴퓨터도 그 자리에 없어도 됩니다. 파일에는 컴퓨터 이름과 그것을 만든 계정이 들어 있습니다.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>여기에 있으면 안 되는 것은 무엇인가?</h3>
+        <p>살펴볼 만한 형태를 찾는 쿼리입니다. 실행 파일이 사라진 서비스, 서명되지 않은 서비스, 사용 안 함인데 실행 중인 서비스, 디버그 권한을 요청하는 서비스.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>야간 실행의 형태</h2>
+<pre><code><span class="c"># 컴퓨터가 운영에 들어가는 날</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 매일 밤, 예약 작업에서</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 구성 드리프트 없음
+#   5 - 구성이 드리프트했으며, drift.json에 무엇인지 나옴
+#   3 - 실행되었지만 모든 것을 읽지 못했으므로 답이 부분적임</span></code></pre>
+    <p>종료 코드 <code>5</code>가 이것을 아무도 읽지 않는 보고서가 아니라 감사로 만듭니다. 작업은 컴퓨터가 드리프트할 때까지 조용하며, 드리프트한 밤에 누군가 호출됩니다.</p>
+    <p class="note"><strong>기준선은 상승된 세션에서 만드세요.</strong> 관리자 권한이 없으면 서비스 관리자가 나열하는 항목이 더 적고, 나열한 것 중 더 많은 부분을 거부합니다. 스냅샷은 그것을 만든 계정이 관리자였는지 기록하므로, 아무도 제거하지 않은 항목이 제거되었다고 보고하는 대신 비교가 그 사실을 알려 줄 수 있습니다. 그래도 컴퓨터의 절반이 빠진 기준선은 여전히 컴퓨터의 절반이 빠진 기준선입니다.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>스냅샷이 증거로서 가지는 가치</h2>
+    <ul class="points points-ok">
+      <li><strong>한 줄에 필드 하나인 JSON입니다.</strong> 그래서 저장소에 넣을 수 있고 <code>git diff</code>가 읽습니다. 이 도구가 없는 감사자도 파일을 읽을 수 있고, 버전 관리 시스템은 <em>언제</em>에 이미 답합니다.</li>
+      <li><strong>스냅인이 한 번도 보여 주지 않은 것이 들어 있습니다.</strong> 시작 경로와 인수, 파일의 해시와 서명자, 양방향 종속성, 트리거, 필요한 권한, SID 유형, 보안 설명자입니다.</li>
+      <li><strong>읽지 못한 것은 읽지 못했다고 말합니다.</strong> 이 세션에 권한이 없던 필드는 비어 있는 것이 아니라 읽지 못한 것으로 기록되므로, 나중의 비교가 조용히 변경 없음이라고 하는 대신 <em>not compared</em>라고 말할 수 있습니다.</li>
+      <li><strong>컴퓨터 전체에 대한 설명입니다.</strong> 그에 맞게 보관하세요. 그 디렉터리가 이미 가진 권한 그대로 기록되며 도구는 아무것도 좁히지 않습니다.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">스냅샷과 차이의 동작 방식</a>
+  </div>
+</section>

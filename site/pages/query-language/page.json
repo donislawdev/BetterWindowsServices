@@ -11,6 +11,12 @@
     "fr": "langage-de-requete",
     "es": "lenguaje-de-consulta",
     "it": "linguaggio-di-query",
-    "pt-br": "linguagem-de-consulta"
+    "pt-br": "linguagem-de-consulta",
+    "nl": "querytaal",
+    "cs": "dotazovaci-jazyk",
+    "ro": "limbajul-de-interogare",
+    "tr": "sorgu-dili",
+    "id": "bahasa-kueri",
+    "vi": "ngon-ngu-truy-van"
   }
 }

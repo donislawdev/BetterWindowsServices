@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - заміна services.msc із пошуком">
+<meta name="description" content="Безкоштовна заміна services.msc з відкритим кодом. Шукайте служби мовою запитів, переглядайте кожну зміну заздалегідь і бачте, що змінилося від учора.">
+<meta name="nav" content="Головна">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Головна сторінка. Кожне речення тут має відповідник у README.md, який було перевірено
+  на працюючій програмі, перш ніж його туди записали: план, порівняння й запит нижче -
+  справжній вивід, а не ілюстрації.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Шукайте серед служб Windows, переглядайте кожну зміну заздалегідь і <em>дивіться, що пішло в дрейф</em> від учорашнього дня</h1>
+      <p class="lede"><strong>{{product}}</strong> - це <code>services.msc</code>, перебудований для тих, хто адмініструє машини з Windows: вікно й командний рядок на одному рушії. Ставте машині запитання замість прокручування восьмисот рядків. Дивіться, що зробить зміна, <strong>перш ніж щось натиснете</strong>. І те, чого в <code>services.msc</code> ніколи не було: <strong>заморозьте кожну службу у файл і за тиждень спитайте, що змінилося.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Завантажити для Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Подивитися код на GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Безкоштовний, з відкритим кодом, GPL-3.0</li>
+        <li>Один файл або інсталятор</li>
+        <li>Для перегляду права адміністратора не потрібні</li>
+        <li>Ніколи не звертається до інтернету</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Вікно з п'ятьма вибраними записами та планом їх запуску над списком: п'ять кроків, примітка, що два з них уже в цьому стані, рядок bws start для кожного запису й кнопка Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Вибрані записи, план, показаний до того, як щось станеться, і рядок <code>bws</code>, що просить рівно те саме. Програма говорить англійською: вікно читає файл мови, що лежить поруч, тож переклад можливий без перебудови.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Справжні знімки вікна, зроблені 2026-09-25 і 2026-09-26 та показувані тут від 2026-10-07:
+  перші, від 2026-09-24, замінили фальшиве вікно, намальоване в HTML. Сеанс - той самий GIF,
+  що його несе README, один файл для обох, за рішенням власника від 2026-10-07. Від 2026-09-24
+  до того дня це було відео з елементами керування, бо WCAG 2.2.2 вимагає, щоб рухомий цикл
+  довший за п'ять секунд можна було призупинити, а GIF не можна - така ціна GIF, сказана тут,
+  а не забута.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Півхвилини з ним</span>
+    <h2>Як це виглядає в роботі</h2>
+    <p class="lede">Справжній сеанс на Windows, встановленій польською: відображувані імена приходять із Windows, тому вони її мовою. Саме вікно говорить англійською.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Чотири вибрані записи та план їх запуску, примусовий перезапуск Local Session Manager, план якого попереджає, що без неї машина не працює, і просить ввести її ім'я, перш ніж кнопка запрацює, запитання для початку під порожнім полем пошуку та Print Spooler, знайдений уведенням частини імені й запущений." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Чотири вибрані записи та план їх запуску, примусовий перезапуск, що просить ім'я потрібної машині служби, запитання під порожнім полем пошуку та Print Spooler, знайдений уведенням і запущений.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Початковий екран: три картки з числами про цю машину - працюючі служби, служби з автозапуском, що не піднялися, та служби з автозапуском, чий файл зник - і кнопка Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Він відкривається кількома числами про цю машину. Кожне з них - запитання: клацніть, і запитання потрапить у поле пошуку.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Список служб із трьома списками над полем пошуку, порожнє поле пошуку, кнопки фільтрів, розкриті рядами для стану, типу запуску, підпису, розбіжностей і тригерів, та список нижче." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Кнопки фільтрів пишуть у поле пошуку, тож те, що ви натиснули, - це запит, який можна читати й редагувати.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Навіщо це потрібно</span>
+    <h2><code>services.msc</code> майже не змінювався від часів Windows 2000</h2>
+    <p class="lede">Адміністратори проводять у ньому години щотижня й упираються в одні й ті самі стіни.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Немає пошуку.</strong> Єдина навігація - стрибок на першу літеру відображуваного імені.</li>
+        <li><strong>Немає фільтрації.</strong> Не можна спитати <em>покажи, що налаштовано на автозапуск і не працює</em>.</li>
+        <li><strong>По одному рядку за раз.</strong> Перезапуск дванадцяти служб - це дванадцять клацань правою кнопкою й дванадцять очікувань.</li>
+        <li><strong>«Stopping...» назавжди</strong>, без іншого виходу, окрім Диспетчера завдань і вгадування процесу.</li>
+        <li><strong>Немає історії.</strong> Ніхто не знає, хто поставив цей тип запуску в Disabled і коли.</li>
+        <li><strong>Приховані дані.</strong> Процес, тригери, привілеї, дескриптор безпеки, хто підписав виконуваний файл - для всього цього потрібен <code>sc.exe</code> з пам'яті або реєстр.</li>
+        <li><strong>Немає рівноцінного командного рядка.</strong> <code>sc.exe</code> має синтаксис із дев'яностих, а <code>Get-Service</code>, що постачається з Windows, у Windows PowerShell 5.1 не показує, від якого облікового запису працює служба, не кажучи вже про опис. PowerShell 7 показує і те, й інше, і встановлюється окремо.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Інші інструменти закривають кожен свою частину</h3>
+        <p>Process Hacker і System Informer показують багатий список і вміють примусово завершувати процеси, але в них немає аудиту й командного рядка. <code>sc.exe</code> і <code>PsService</code> уміють усе й нічого вам не кажуть. Командлети <code>*-Service</code> у PowerShell придатні для скриптів і поверхневі.</p>
+        <p>Ніхто не поєднує список із пошуком, попередній перегляд перед кожною зміною та запис того, що змінювалося з часом - а цей запис і є причиною залишити цей інструмент на машині після першого ж дня.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Повне порівняння</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Що він робить</span>
+    <h2>Вікно й командний рядок на одному рушії</h2>
+    <div class="grid">
+      <div class="card"><h3>Питайте, а не прокручуйте</h3><p><code>start:auto !status:running</code> - це <em>що має працювати й не працює</em>. Одна мова, у полі пошуку й у <code>bws list --query</code>, з підказкою полів під час уведення.</p></div>
+      <div class="card"><h3>Показуйте план, перш ніж щось станеться</h3><p>Кожна зупинка, запуск, перезапуск і зміна типу запуску переглядається заздалегідь разом зі службами, які вона тягне за собою, а попередній перегляд - це те, що виконується.</p></div>
+      <div class="card"><h3>Кажіть, що пішло в дрейф і хто це змінив</h3><p><code>bws snapshot create</code> заморожує машину у файл, а <code>bws snapshot diff</code> каже, що змінилося відтоді, відокремлюючи конфігурацію від того, що просто запустилося чи зупинилося. <code>bws history</code> за журналом System каже, хто змінив тип запуску й хто встановив службу. Вікно робить усе три в розділі <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Лагодьте поширену проблему одним натисканням</h3><p>Вкладка <em>Tools</em> і <code>bws tool fix</code> перезапускають службу, що стоїть за принтером, який не друкує, зниклим звуком чи завислим пошуком, разом із тим, що від неї залежить, за тим самим планом, що й усе інше.</p></div>
+      <div class="card"><h3>Зупиняйте службу, яка не хоче зупинятися</h3><p>Спершу просить чемно й завершує процес, лише якщо це не вдалося, називаючи кожну іншу службу, що в ньому живе.</p></div>
+      <div class="card"><h3>Показуйте те, що приховує <code>services.msc</code></h3><p>Хто підписав виконуваний файл і чи довіряє йому Windows, тригери, привілеї, дескриптор безпеки, процес і його пам'ять. У вигляді стовпців і у вигляді того, за чим можна шукати.</p></div>
+      <div class="card"><h3>Кажіть, коли щось не вдалося прочитати</h3><p>Поле, яке не вдалося прочитати, повідомляється як непрочитане й ніколи не показується порожнім. Знімок, зроблений без прав адміністратора, повідомляє про це всередині файлу.</p></div>
+      <div class="card"><h3>Вписуйтеся в скрипти</h3><p><code>--json</code> у кожної команди, код завершення для кожного закінчення й <code>5</code>, коли порівняння знаходить дрейф.</p></div>
+      <div class="card"><h3>Працюйте з одного файлу, автономно</h3><p>Розпакуйте й запустіть або встановіть на всю машину. Ставити .NET не потрібно, і він ніколи не звертається до інтернету. Для читання права адміністратора не потрібні. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Те, чого services.msc ніколи не робив</span>
+    <h2>Що змінилося від учорашнього дня</h2>
+    <p class="lede">Знімок - це вся машина в один момент: кожна служба й драйвер із типом запуску, обліковим записом, шляхом запуску, хешем і підписантом файлу, залежностями, тригерами, привілеями й дескриптором безпеки. Це JSON з одним полем на рядок, тож він потрапляє в репозиторій, і <code>git diff</code> його читає.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Конфігурація й стан виконання повідомляються окремо.</strong> Два знімки з різницею в день відрізняються тим, що випадково працює, і майже ніщо з цього не дрейф - рядок, який варто читати, це змінений тип запуску.</li>
+        <li><strong>Те, що не вдалося порівняти, перелічено, а не приховано.</strong> Поле, якого один знімок ніколи не читав, виходить як <em>not compared</em>, тож порівняння, що каже <em>нічого не змінилося</em>, означає, що нічого не змінилося в тому, що бачили обидві сторони.</li>
+        <li><strong><code>--exit-code</code> завершується кодом <code>5</code>, коли конфігурація відрізняється</strong>, тож запланована задача може зробити знімок під час розгортання й покликати когось у першу ж ніч, коли машина пішла в дрейф.</li>
+        <li><strong>Дві машини, два файли.</strong> Зробіть знімок на тестовому середовищі й один на робочому та порівняйте їх будь-де.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Як працюють знімки та дрейф</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Нічого не відбувається без плану</span>
+    <h2>Попередній перегляд - це і є виконання</h2>
+    <p class="lede">Кожна операція, що записує, спершу будує план, і цей самий план - це попередній перегляд, каскад залежних служб, відмова до того, як ви щось натиснете, командний рядок, що просить те саме, і дорога назад потім.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Запустіть без <code>--dry-run</code>, і це ті самі кроки</strong>, у тому самому порядку, з тими самими причинами поруч. Другого шляху в коді для справжнього виконання немає.</li>
+        <li><strong>Те, що падає разом із ним, є в плані.</strong> Служби, які зламалися б, - окремі кроки, а план, що обвалив би потрібне машині, говорить про це в попередженнях.</li>
+        <li><strong>Відмова приходить раніше за кнопку.</strong> Драйвер, служба, зупинку якої диспетчер не приймає, процес, який система захищає - відмова під час побудови плану, з причиною. Вікно робить кнопку сірою й поруч каже чому.</li>
+        <li><strong>Примусова зупинка - це два кроки, і другий умовний.</strong> <code>bws kill</code> просить службу зупинитися й завершує її процес, лише якщо це не спрацювало, називаючи кожну іншу службу, що в ньому живе.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Коли служба не зупиняється</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Дві хвилини з ним</span>
+    <h2>З командного рядка</h2>
+    <p class="lede">Той самий рушій, що й у вікні, для скриптів, запланованих задач і CI. Дані йдуть у стандартний вивід, а все інше в стандартний потік помилок, тому <code>bws list --json | jq</code> працює, а попередження ніколи не потрапить у ваш JSON.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">що має працювати й не працює</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">служби, чий виконуваний файл зник</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">непідписані, без копій для кожного сеансу</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">усе, що відомо про один запис</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">що потягне за собою зупинка</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">що забере з собою завершення його процесу</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">що дасть зняття його з автозапуску</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">заморозити машину перед зміною</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">що змінилося відтоді, 5, якщо змінилася конфігурація</span>
+<span class="k">bws history Spooler</span>                               <span class="c">хто змінив його тип запуску і коли</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">що зробило б швидке виправлення завислого принтера</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Кожна команда, параметр і код завершення</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Отримайте його</span>
+    <h2>Розпакуйте й запустіть або встановіть</h2>
+    <p class="lede">Windows 10 1809 або Windows Server 2019 і новіші, 64-розрядні. Архівам не потрібен інсталятор, і вони нічого не пишуть у реєстр, а для перегляду права адміністратора не потрібні. Для будь-якої зміни потрібен сеанс із підвищеними правами, і обидві половини кажуть про це, а не мовчки відмовляють - вікно пропонує <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Файл</th><th>Що це</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Вікно, один автономний виконуваний файл - ставити .NET не потрібно</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Командний рядок, один автономний виконуваний файл, для скриптів і CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Інсталятор: обидві програми для кожного облікового запису на машині, вікно в меню «Пуск» і <code>bws</code> у PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Виконувані файли несуть підпис Authenticode, тому Windows називає видавця, а не попереджає про невідомого.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Завантажити для Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Вимоги та збирання з вихідного коду</a>
+    </div>
+  </div>
+</section>

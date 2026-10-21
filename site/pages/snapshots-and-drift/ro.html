@@ -1,0 +1,65 @@
+<meta name="title" content="Instantanee și derivă - ce s-a schimbat pe această mașină de ieri">
+<meta name="description" content="Înghețați serviciile Windows într-un fișier JSON și întrebați ce s-a schimbat. Configurația separat de starea de rulare, iar codul 5 poate alerta pe cineva.">
+<meta name="nav" content="Instantanee și derivă">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ceea ce services.msc nu a făcut niciodată</span>
+    <h1>Instantanee și derivă</h1>
+    <p class="lede">Orice alt instrument vă spune cum arată o mașină acum. Întrebarea pe care o are de fapt un administrator este <em>ce este diferit față de când funcționa</em> - iar pe un Windows obișnuit nimic nu o răspunde.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce conține un instantaneu</h2>
+    <p>Toată mașina la un moment dat: fiecare serviciu și driver, cu tipul de pornire, contul, calea de lansare și argumentele, hash-ul și semnatarul fișierului pe care îl rulează, dependențele și ce depinde de el, declanșatoarele, privilegiile necesare, tipul SID și descriptorul de securitate - plus numele mașinii, contul care l-a făcut și <strong>dacă acel cont era administrator</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Este JSON cu un câmp pe rând. Este deliberat: un instantaneu poate intra într-un depozit și <code>git diff</code> îl citește, deci comparația proprie a instrumentului nu este singura cale de a privi unul.</p>
+    <p class="note"><strong>Arhivați-l ca ceea ce este.</strong> Un instantaneu descrie toată mașina, până la fiecare cale de lansare și fiecare descriptor de securitate. Este scris cu permisiunile pe care directorul său le are deja, iar instrumentul nu restrânge nimic - deci un director pe care îl pot citi alte persoane este unul în care ele pot citi toate acestea.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apoi întrebați ce este diferit</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Configurația și starea de rulare sunt raportate separat.</strong> Două instantanee făcute la o zi distanță diferă prin ce se întâmplă să ruleze și aproape nimic din asta nu este derivă. Amestecat, singurul rând care contează - un tip de pornire pe care cineva l-a schimbat - este îngropat sub patruzeci care nu contează.</li>
+        <li><strong>Ce n-a putut fi comparat este listat, nu ascuns.</strong> Un câmp pe care unul dintre cele două instantanee nu l-a citit niciodată, pentru că acea sesiune nu avea drepturi asupra lui, iese ca <em>not compared</em> sub intrarea lui, iar rezumatul numără acele intrări. Deci o comparație care spune <em>nimic nu s-a schimbat</em> înseamnă că nimic nu s-a schimbat în ceea ce vedeau ambele părți.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Un instantaneu cu drepturi ridicate comparat cu unul fără ar minți</strong>, raportând ca eliminate intrări pe care nimeni nu le-a eliminat. Fiecare fișier consemnează dacă contul care l-a făcut era administrator, iar comparația spune asta.</li>
+        <li><strong>Două fișiere, nu doar un fișier și această mașină.</strong> Faceți unul pe mediul de testare și unul pe producție și comparați-le oriunde - răspunsul la <em>de ce diferă mediul de testare</em> nu are nevoie de niciuna dintre mașini.</li>
+      </ul>
+    </div>
+    <p><strong>Fereastra face același lucru la <em>Audit...</em>.</strong> <em>Take snapshot...</em> scrie același fișier, cu o notă dacă tastați una, iar <em>Compare with this machine...</em> sau <em>Compare two snapshots...</em> arată ce s-a schimbat în locul listei, un rând pe câmp, cu tot ce face comparația mai puțin decât exactă spus deasupra tabelului. <em>Show</em> o restrânge la diferențe sau la un singur câmp, iar <em>Export...</em> o scrie într-un fișier CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Codul de ieșire este esența</h2>
+    <p><code>--exit-code</code> se încheie cu <code>5</code> când configurația diferă - o intrare adăugată sau eliminată ori una configurată altfel. Un serviciu care doar s-a oprit sau a pornit singur este raportat și nu contează, iar nici copiile pe utilizator pe care Windows le face pentru fiecare sesiune autentificată nu contează: acestea sunt omise și numărate. Nu este un eșec - deriva este ceea ce acest instrument există să găsească, iar găsirea ei nu este un eșec - de aceea are un număr propriu, în loc să-l împrumute pe cel care înseamnă că ceva a mers prost.</p>
+<pre><code><span class="c"># ziua în care mașina intră în serviciu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># în fiecare noapte, dintr-o sarcină programată</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nicio derivă de configurație
+#   5 - configurația a derivat, iar drift.json spune ce
+#   3 - a rulat și n-a putut citi totul, deci răspunsul este parțial</span></code></pre>
+    <p>Acesta este întregul mecanism: o stare de referință luată când mașina era bună și o întrebare pusă în fiecare noapte. În prima noapte în care răspunde <code>5</code>, cineva află chiar în acea noapte, și nu în dimineața în care se strică ceva.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Folosirea pentru un audit</a>
+  </div>
+</section>

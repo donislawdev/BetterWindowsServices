@@ -1,0 +1,86 @@
+<meta name="title" content="Better Windows Services'i indirin - ücretsiz, zip ya da MSI">
+<meta name="description" content="İki bağımsız yürütülebilir dosya ya da imzalı bir yükleyici, .NET gerekmez. Windows 10 1809 ve Server 2019 ve sonrası, 64 bit. Açık kaynak, GPL-3.0.">
+<meta name="nav" content="İndir">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">İndir</span>
+    <h1>Açıp çalıştırın ya da kurun</h1>
+    <p class="lede">Sürüm {{version}}. Arşivler yükleyici gerektirmez ve kayıt defterine hiçbir şey yazmaz; bakmak yönetici hakları gerektirmez. İmzalı bir yükleyici ise iki programı birden tüm makineye kurar. GPL-3.0 altında özgür ve açık kaynak.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Tüm sürümler</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sürümde neler var</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dosya</th><th>Nedir</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Pencere: <code>BetterWindowsServices.exe</code>, içinde kendi .NET çalışma zamanı olan tek bir bağımsız yürütülebilir dosya</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Komut satırı: <code>bws.exe</code>, tek bir bağımsız yürütülebilir dosya; betikler, zamanlanmış görevler ve CI için</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Yükleyici: makinedeki her hesap için <code>Program Files</code> içinde iki program, Başlat menüsünde pencere ve makinenin PATH'inde <code>bws</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Birini ya da ikisini alın - aynı motorun iki istemcisidir ve hiçbiri diğerine ihtiyaç duymaz. Bir sunucuda komut satırı ikisinden küçüğüdür ve pencerenin yaptığı her şeyi yapar.</p>
+    <p>Yükleyici, iki arşivin içerdiğinin aynısını taşır. <code>msiexec /i {{archive_installer}} /qn</code> ile sessizce kurulur, daha yeni bir sürüm eskisinin üzerine kurulur ve çalışan hiçbir şeyi kapatmaz - bu yüzden yükseltmeden önce pencereyi ve çalışan her <code>bws</code>'i kapatın; çünkü çalışır halde bırakılan bir kopya bir hatayla durabilir. Ayarlar, Uygulamalar'dan kaldırmak programları, Başlat menüsü girdisini ve PATH girdisini kaldırır; kendi dosyalarınıza dokunmaz.</p>
+    <p>Yürütülebilir dosyalar bir Authenticode imzası taşır; böylece Windows bilinmeyen bir yayımcı konusunda uyarmak yerine yayımcıyı adıyla anar.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Gereksinimler</h2>
+    <ul class="points">
+      <li><strong>Windows 10 sürüm 1809 veya sonrası ya da Windows Server 2019 veya sonrası.</strong> Yalnızca 64 bit - 32 bitlik bir işlem yönlendirilmiş yolları ve kayıt defteri anahtarlarını okur; bu da sessizce yanlış yanıtlar üretirdi.</li>
+      <li><strong>Kurulacak .NET yok.</strong> Her iki yürütülebilir dosya da kendi .NET çalışma zamanını taşır.</li>
+      <li><strong>Herhangi bir şeyi değiştirmek için yönetici hakları.</strong> Okuma, arama, anlık görüntüler ve karşılaştırmalar bunlar olmadan da çalışır; daha az öğe görünür ve araç, listenin tüm makine olduğunu iddia etmek yerine bunu en üstte söyler.</li>
+    </ul>
+    <p>Pencere kendine ait tek bir dosya tutar - listeyi bıraktığınız düzen - <code>%APPDATA%\BetterWindowsServices</code> altında. Bir anlık görüntü, <code>bws snapshot create</code>'e nereye koymasını söylerseniz oraya gider; söylemezseniz geçerli dizine.</p>
+    <p class="note"><strong>Program İngilizce konuşur.</strong> Pencere, yanında duran ve Windows'un diline göre, anahtarsız seçilen bir dil dosyasını, <code>languages\gui.&lt;kod&gt;.json</code>, okur. Dolayısıyla çeviri, yeniden derlemeden eklenebilecek bir katkıdır - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> nasıl yapılacağını anlatır.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirüs ve EDR</h2>
+    <p class="lede">Bu araç, bir yöneticinin hizmetlerle yaptığını yapar ve bunun bir kısmı tam olarak güvenlik yazılımının izlediği şeydir.</p>
+    <p>Hizmetleri durdurur ve başlatır, birinin arkasındaki süreci sonlandırabilir ve her hizmetin güvenlik tanımlayıcısını ve gereken ayrıcalıklarını okur. <code>svchost.exe</code>'yi sonlandıran bir süreci işaretleyen bir EDR işini yapıyordur ve buradaki zorla durdurma tam olarak öyle görünebilir.</p>
+    <p>Neyi <strong>yapmadığı</strong>, iddiayı doğrulayabilmeniz için: hiçbir işleme hiçbir şey enjekte etmez, hiçbir şeyi paketlemez ya da gizlemez, hiçbir hizmet ya da sürücü kurmaz ve hiçbir şeyi çalışır halde bırakmaz, hiçbir ağ bağlantısı açmaz. GPL-3.0 altında açık kaynaktır ve iki yürütülebilir dosyayı da kendiniz derleyebilirsiniz.</p>
+    <p>İlkeniz bir istisna gerektiriyorsa, iki yürütülebilir dosyayı klasöre göre değil dosyaya göre hariç tutun. Araçla aynı özenle ele alınmaya değer tek şey bir anlık görüntü dosyasıdır: tüm makineyi tanımlar.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kaynaktan derleme</h2>
+    <p>.NET 10 SDK, Windows üzerinde.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Bazı testler, çalıştıkları makinenin gerçek hizmet yöneticisini okur ve bu aracın söylediğini <code>sc.exe</code>'nin söylediğiyle karşılaştırır. Salt okunurdur. Sürümlerin taşıdığı tek dosyalık yürütülebilir dosyalar şu iki yayımlamadır; her biri çalışma zamanı içinde tek bir dosyadır:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p><code>bws.exe</code> ve <code>BetterWindowsServices.exe</code> olarak her projenin <code>bin/Release/.../win-x64/publish/</code> klasörüne düşerler. Yanlarındaki <code>.pdb</code> dosyaları hata ayıklama sembolleridir ve çalışmak için hiçbir şeyin onlara ihtiyacı yoktur.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Çalıştırmanın maliyeti</h2>
+    <p class="lede">810 hizmetli tek bir makinede ölçüldü. Sizin rakamlarınız farklı olacaktır - hizmet sayısı, disk ve işlemci hepsini etkiler.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Yaklaşık çeyrek saniye</h3><p><code>bws list</code>'in tüm makineyi okuması için.</p></div>
+      <div class="card"><h3>Yaklaşık saniyenin sekiz onda biri</h3><p>pencerenin başlatılmasından listenin ekrana gelmesine kadar.</p></div>
+      <div class="card"><h3>Yaklaşık 100 MB</h3><p>pencere için - bu aracın kendi kodu çalışmadan önce, yarısı Windows kullanıcı arabirimi çerçevesidir.</p></div>
+      <div class="card"><h3>Yaklaşık 16 MB</h3><p>aynı makinede komut satırı için.</p></div>
+    </div>
+  </div>
+</section>

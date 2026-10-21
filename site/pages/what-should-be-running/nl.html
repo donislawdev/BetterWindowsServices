@@ -1,0 +1,86 @@
+<meta name="title" content="Welke Windows-services horen op deze machine te draaien?">
+<meta name="description" content="Niemand kan dat in het algemeen zeggen, en lijsten die het beweren beschrijven een andere machine. De vraag die wel kan: wat is er veranderd.">
+<meta name="nav" content="Wat zou moeten draaien">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Gids</span>
+    <h1>Welke services horen te draaien?</h1>
+    <p class="lede">Het eerlijke antwoord is dat niemand het u kan zeggen, en elke lijst die dat beweert beschrijft een machine die niet de uwe is. Wat <em>wel</em> kan worden beantwoord is smaller en veel nuttiger: wat klopt er niet op deze machine, en wat is er anders dan toen het werkte.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Waarom de algemene vraag geen antwoord heeft</h2>
+    <ul class="points points-alarm">
+      <li><strong>De set verschilt per Windows-editie, versie en rol.</strong> Een domeincontroller, een laptop en een containerhost zijn het over bijna alles oneens, en een lijst voor de een is fout voor de anderen.</li>
+      <li><strong>De helft van wat is geïnstalleerd komt niet van Windows.</strong> Stuurprogramma's, agents, updateservices, licentiedaemons - elk is er door iets neergezet, en geen enkele algemene lijst weet door wat.</li>
+      <li><strong>De meeste services zijn bedoeld om gestopt te zijn.</strong> Een moderne Windows start een fractie van wat het registreert: de rest wacht op een trigger - een apparaat dat verschijnt, een poort die opent, aansluiten bij een domein - en gestopt is hun juiste toestand.</li>
+      <li><strong>Lijsten met "schakel deze uit voor prestaties" zijn hoe machines kapotgaan.</strong> De service die ongebruikt lijkt is degene die iets anders op verzoek start, en de fout verschijnt een week later ergens anders.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De vragen die wel antwoorden hebben</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Wat zou moeten draaien en niet draait</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows is verteld deze te starten en ze draaien niet. Op een gezonde machine is dit een korte lijst - een paar items die laat starten en weer stoppen. Al het andere is een blik waard.</p>
+      </div>
+      <div class="card">
+        <h3>Wat is uitgeschakeld en draait toch</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Configuratie en toestand zijn het oneens. Meestal heeft iemand het uitgeschakeld zonder te stoppen, en de volgende herstart wordt een verrassing.</p>
+      </div>
+      <div class="card">
+        <h3>Wat wijst naar een bestand dat weg is</h3>
+        <p><code>file:missing</code></p>
+        <p>Een verwijdering die de registratie heeft laten staan. Onschadelijk totdat iets het probeert te starten, en een aanwijzing over wat er vroeger op deze machine stond.</p>
+      </div>
+      <div class="card">
+        <h3>Wat niemand heeft ondertekend</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Op zichzelf geen bewijs van iets, en de juiste plek om te beginnen met lezen. De tweede term laat de families per gebruiker weg, die de lijst anders vullen met bijna-duplicaten.</p>
+      </div>
+      <div class="card">
+        <h3>Wat vraagt om de sterkste bevoegdheden</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Een bevoegdheid waarmee een proces elk ander proces kan openen. Een handvol legitieme services vraagt erom, en het is de moeite waard te weten welke op uw machine.</p>
+      </div>
+      <div class="card">
+        <h3>Wat wacht op een trigger</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Gestopt omdat niets er nog om heeft gevraagd, niet omdat er iets mis is. Weten welke dit zijn is hoe de eerste lijst ophoudt alarmerend te zijn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Degene die ze allemaal verslaat</h2>
+    <p class="lede">Vraag de machine zelf, toen het werkte.</p>
+    <p>Maak een momentopname de dag dat de machine in gebruik gaat. Dan wordt <em>hoort dit te draaien</em> tot <em>draaide dit toen alles werkte</em> - een vraag over uw machine en niet over een machine in een artikel.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... een week, een patch of een incident later</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Configuratie wordt los van de uitvoeringstoestand gemeld, dus het antwoord is geen veertig services die toevallig draaien - het is het opstarttype dat iemand heeft gewijzigd.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Een machine controleren op drift</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Voordat u iets stopt</h2>
+    <p>Elke stop in dit hulpmiddel toont eerst zijn plan: de stappen, wat er mee neergaat, en een waarschuwing wanneer een ervan iets is waar de machine niet zonder kan. De lijst daarvan is een startlijst van zeven - de twee helften van RPC en de DCOM-starter, de accountbeheerder, sleutelisolatie, de sessiebeheerder en plug-and-play - en <strong>Extern bureaublad staat er niet op</strong>, dus lees het plan bij een sessie op afstand.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Elk veld waarnaar u kunt vragen</a>
+    </div>
+  </div>
+</section>

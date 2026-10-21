@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - thay thế services.msc có tìm kiếm">
+<meta name="description" content="Công cụ thay thế services.msc miễn phí, mã nguồn mở. Tìm dịch vụ bằng ngôn ngữ truy vấn, xem trước mọi thay đổi và biết điều gì đã lệch kể từ hôm qua.">
+<meta name="nav" content="Trang chủ">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Trang chủ. Mỗi câu ở đây đều có câu tương ứng trong README.md, và câu đó đã được kiểm tra với
+  chương trình đang chạy trước khi viết vào đó - kế hoạch, bản so sánh và truy vấn bên dưới là
+  kết quả thật, không phải minh họa.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Tìm trong các dịch vụ Windows, xem trước mọi thay đổi và <em>biết điều gì đã lệch</em> kể từ hôm qua</h1>
+      <p class="lede"><strong>{{product}}</strong> là <code>services.msc</code> được xây dựng lại cho những người quản trị máy Windows - một cửa sổ và một dòng lệnh trên cùng một lõi. Hãy đặt câu hỏi cho máy thay vì cuộn qua tám trăm dòng. Xem một thay đổi sẽ làm gì <strong>trước khi bạn nhấn bất cứ thứ gì</strong>. Và phần mà <code>services.msc</code> chưa bao giờ có: <strong>đóng băng mọi dịch vụ vào một tệp, rồi một tuần sau hỏi điều gì đã thay đổi.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Xem mã nguồn trên GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Miễn phí và mã nguồn mở, GPL-3.0</li>
+        <li>Một tệp, hoặc một trình cài đặt</li>
+        <li>Không cần quyền quản trị để xem</li>
+        <li>Không bao giờ kết nối với internet</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Cửa sổ với năm mục được chọn và kế hoạch khởi động chúng hiển thị phía trên danh sách: năm bước, một ghi chú rằng hai trong số đó đã ở trạng thái ấy, một dòng bws start cho mỗi mục và nút Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Các mục được chọn, một kế hoạch hiển thị trước khi có bất cứ điều gì xảy ra, và dòng <code>bws</code> yêu cầu chính xác điều tương tự. Chương trình nói tiếng Anh - cửa sổ đọc một tệp ngôn ngữ đặt bên cạnh nó, nên có thể dịch mà không cần biên dịch lại.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Các bản ghi thật của cửa sổ, quay vào 2026-09-25 và 2026-09-26 và hiển thị ở đây từ 2026-10-07 -
+  bản đầu tiên, từ 2026-09-24, đã thay thế một cửa sổ giả vẽ bằng HTML. Phiên này là cùng một
+  GIF mà README mang, một tệp cho cả hai, theo quyết định của chủ sở hữu ngày 2026-10-07. Từ
+  2026-09-24 đến ngày đó nó là một video có điều khiển, vì WCAG 2.2.2 yêu cầu vòng lặp chuyển động
+  dài hơn năm giây phải có thể tạm dừng, còn GIF thì không - đó là cái giá của GIF, được nói ra
+  ở đây thay vì bị quên.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nửa phút cùng nó</span>
+    <h2>Nó trông ra sao khi dùng</h2>
+    <p class="lede">Một phiên thật, trên Windows cài bằng tiếng Ba Lan - tên hiển thị đến từ Windows, nên bằng ngôn ngữ của nó. Bản thân cửa sổ nói tiếng Anh.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Bốn mục được chọn và kế hoạch khởi động chúng, một lần khởi động lại cưỡng bức Local Session Manager mà kế hoạch cảnh báo rằng máy không hoạt động nếu thiếu nó và yêu cầu nhập tên của nó trước khi nút hoạt động, các câu hỏi gợi ý bên dưới ô tìm kiếm trống, và Print Spooler được tìm thấy bằng cách gõ một phần tên rồi khởi động." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Bốn mục được chọn và kế hoạch khởi động chúng, một lần khởi động lại cưỡng bức yêu cầu nhập tên của dịch vụ mà máy cần, các câu hỏi bên dưới ô tìm kiếm trống, và Print Spooler được tìm thấy khi gõ rồi khởi động.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Màn hình mở đầu: ba thẻ con số về máy này - dịch vụ đang chạy, dịch vụ đặt tự khởi động nhưng chưa lên, và dịch vụ đặt tự khởi động nhưng tệp của nó đã mất - và một nút Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Nó mở ra với vài con số về máy này. Mỗi con số là một câu hỏi - nhấp vào, và câu hỏi đi vào ô tìm kiếm.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Danh sách dịch vụ với ba danh sách phía trên ô tìm kiếm, một ô tìm kiếm trống, các nút lọc mở thành từng hàng cho trạng thái, kiểu khởi động, chữ ký, điểm không khớp và trình kích hoạt, và danh sách bên dưới." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Các nút lọc ghi vào ô tìm kiếm, nên thứ bạn đã nhấp là một truy vấn mà bạn có thể đọc và sửa.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Vì sao nó tồn tại</span>
+    <h2><code>services.msc</code> hầu như không thay đổi kể từ Windows 2000</h2>
+    <p class="lede">Quản trị viên mất hàng giờ mỗi tuần trong đó và va vào cùng những bức tường.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Không có tìm kiếm.</strong> Cách điều hướng duy nhất là nhảy tới chữ cái đầu của một tên hiển thị.</li>
+        <li><strong>Không có bộ lọc.</strong> Không có cách nào để hỏi <em>cho tôi xem những gì được đặt tự khởi động mà không chạy</em>.</li>
+        <li><strong>Mỗi lần một dòng.</strong> Khởi động lại mười hai dịch vụ là mười hai lần nhấp chuột phải và mười hai lần chờ.</li>
+        <li><strong>"Stopping..." mãi mãi</strong>, không có lối thoát nào ngoài Task Manager và đoán tiến trình.</li>
+        <li><strong>Không có lịch sử.</strong> Không ai biết ai đã đặt kiểu khởi động đó thành Disabled, hay khi nào.</li>
+        <li><strong>Dữ liệu bị ẩn.</strong> Tiến trình, trình kích hoạt, đặc quyền, bộ mô tả bảo mật, ai đã ký tệp thực thi - tất cả đều cần <code>sc.exe</code> gõ theo trí nhớ, hoặc registry.</li>
+        <li><strong>Không có tương đương trên dòng lệnh.</strong> <code>sc.exe</code> có cú pháp từ thập niên chín mươi, và <code>Get-Service</code> đi kèm Windows, trong Windows PowerShell 5.1, không hiển thị tài khoản mà dịch vụ chạy, nói gì đến mô tả. PowerShell 7 hiển thị cả hai và được cài riêng.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Các công cụ khác mỗi cái sửa một phần</h3>
+        <p>Process Hacker và System Informer hiển thị một danh sách phong phú và có thể buộc kết thúc tiến trình, nhưng không có kiểm toán và không có dòng lệnh. <code>sc.exe</code> và <code>PsService</code> có thể làm mọi thứ và không cho bạn biết gì. Các cmdlet <code>*-Service</code> của PowerShell viết script được và nông cạn.</p>
+        <p>Không ai kết hợp một danh sách có thể tìm kiếm, một bản xem trước trước mỗi thay đổi, và một bản ghi về những gì đã thay đổi theo thời gian - và bản ghi đó là lý do để giữ công cụ này trên máy sau buổi chiều đầu tiên.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">So sánh đầy đủ</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nó làm gì</span>
+    <h2>Một cửa sổ và một dòng lệnh trên cùng một lõi</h2>
+    <div class="grid">
+      <div class="card"><h3>Hỏi thay vì cuộn</h3><p><code>start:auto !status:running</code> nghĩa là <em>những gì lẽ ra phải chạy mà không chạy</em>. Một ngôn ngữ, trong ô tìm kiếm và trong <code>bws list --query</code>, với các trường được gợi ý khi bạn gõ.</p></div>
+      <div class="card"><h3>Cho xem kế hoạch trước khi có gì xảy ra</h3><p>Mỗi lần dừng, khởi động, khởi động lại và đổi kiểu khởi động đều được xem trước cùng với các dịch vụ bị kéo theo, và bản xem trước chính là thứ sẽ chạy.</p></div>
+      <div class="card"><h3>Cho biết điều gì đã lệch, và ai đã thay đổi</h3><p><code>bws snapshot create</code> đóng băng máy vào một tệp, và <code>bws snapshot diff</code> cho biết điều gì đã thay đổi từ đó, cấu hình tách riêng khỏi những gì chỉ vừa khởi động hoặc dừng. <code>bws history</code> cho biết, từ nhật ký System, ai đã đổi kiểu khởi động và ai đã cài một dịch vụ. Cửa sổ làm cả ba dưới <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Sửa một sự cố phổ biến chỉ bằng một lần nhấn</h3><p>Thẻ <em>Tools</em> và <code>bws tool fix</code> khởi động lại dịch vụ đằng sau máy in không in, âm thanh biến mất hoặc tìm kiếm bị treo, cùng với những gì phụ thuộc vào nó, qua cùng một kế hoạch như mọi thứ khác.</p></div>
+      <div class="card"><h3>Dừng một dịch vụ không chịu dừng</h3><p>Nó hỏi lịch sự trước và chỉ kết thúc tiến trình nếu điều đó thất bại, nêu tên mọi dịch vụ khác sống trong đó.</p></div>
+      <div class="card"><h3>Cho xem những gì <code>services.msc</code> giấu</h3><p>Ai đã ký tệp thực thi và Windows có tin nó không, trình kích hoạt, đặc quyền, bộ mô tả bảo mật, tiến trình và bộ nhớ của nó. Dưới dạng cột, và dưới dạng thứ để tìm kiếm.</p></div>
+      <div class="card"><h3>Nói khi không đọc được điều gì</h3><p>Một trường không đọc được sẽ được báo là chưa đọc, không bao giờ hiển thị là trống. Một bản chụp lấy khi không có quyền quản trị nói điều đó ngay trong tệp.</p></div>
+      <div class="card"><h3>Khớp với script</h3><p><code>--json</code> ở mọi lệnh, một mã thoát cho mọi kết cục, và <code>5</code> khi một lần so sánh phát hiện sai lệch.</p></div>
+      <div class="card"><h3>Chạy từ một tệp, ngoại tuyến</h3><p>Giải nén và chạy, hoặc cài cho cả máy. Không có .NET để cài, và nó không bao giờ kết nối với internet. Đọc không cần quyền quản trị. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Phần mà services.msc chưa bao giờ làm</span>
+    <h2>Điều gì đã thay đổi kể từ hôm qua</h2>
+    <p class="lede">Một bản chụp là cả máy tại một thời điểm - mọi dịch vụ và trình điều khiển, với kiểu khởi động, tài khoản, đường dẫn khởi chạy, mã băm và người ký của tệp, các phụ thuộc, trình kích hoạt, đặc quyền và bộ mô tả bảo mật. Nó là JSON với một trường mỗi dòng, nên có thể đưa vào kho mã và <code>git diff</code> đọc được nó.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Cấu hình và trạng thái chạy được báo riêng.</strong> Hai bản chụp cách nhau một ngày khác nhau ở những gì tình cờ đang chạy và hầu như không có gì trong đó là sai lệch - kiểu khởi động đã thay đổi mới là dòng cần đọc.</li>
+        <li><strong>Những gì không thể so sánh được liệt kê, không bị giấu.</strong> Một trường mà một bản chụp chưa bao giờ đọc sẽ hiện ra là <em>not compared</em>, nên một lần so sánh nói <em>không có gì thay đổi</em> nghĩa là không có gì thay đổi trong những gì cả hai phía đều thấy được.</li>
+        <li><strong><code>--exit-code</code> kết thúc bằng <code>5</code> khi cấu hình khác nhau</strong>, để một tác vụ theo lịch có thể chụp lúc triển khai và gọi ai đó vào đêm đầu tiên máy bị lệch.</li>
+        <li><strong>Hai máy, hai tệp.</strong> Chụp một bản trên môi trường thử nghiệm và một bản trên môi trường sản xuất rồi so sánh chúng ở bất cứ đâu.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Bản chụp và sai lệch hoạt động ra sao</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Không có gì xảy ra mà không có kế hoạch</span>
+    <h2>Bản xem trước chính là việc thực thi</h2>
+    <p class="lede">Mọi thao tác ghi đều dựng một kế hoạch trước, và chính kế hoạch ấy là bản xem trước, chuỗi các dịch vụ phụ thuộc, lời từ chối trước khi bạn nhấn bất cứ thứ gì, dòng lệnh yêu cầu điều tương tự, và đường quay lại sau đó.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Chạy không có <code>--dry-run</code> và đây là các bước</strong>, theo thứ tự đó, với cùng những lý do bên cạnh. Không có đường mã thứ hai cho việc thực thi thật.</li>
+        <li><strong>Những gì bị kéo theo đều nằm trong kế hoạch.</strong> Các dịch vụ sẽ hỏng là những bước riêng, và một kế hoạch sẽ hạ gục thứ mà máy cần sẽ nói điều đó trong phần cảnh báo.</li>
+        <li><strong>Lời từ chối đến trước nút bấm.</strong> Một trình điều khiển, một dịch vụ mà trình quản lý không chấp nhận lệnh dừng, một tiến trình mà hệ thống bảo vệ - bị từ chối khi kế hoạch được dựng, kèm lý do. Cửa sổ làm xám nút và nói lý do ngay bên cạnh.</li>
+        <li><strong>Dừng cưỡng bức gồm hai bước, và bước thứ hai có điều kiện.</strong> <code>bws kill</code> yêu cầu dịch vụ dừng và chỉ kết thúc tiến trình của nó nếu điều đó không có tác dụng, nêu tên mọi dịch vụ khác sống trong đó.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Khi một dịch vụ không chịu dừng</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Hai phút cùng nó</span>
+    <h2>Từ dòng lệnh</h2>
+    <p class="lede">Cùng lõi với cửa sổ, cho script, tác vụ theo lịch và CI. Dữ liệu đi tới đầu ra chuẩn và mọi thứ khác đi tới lỗi chuẩn, nên <code>bws list --json | jq</code> hoạt động và một cảnh báo không bao giờ rơi vào JSON của bạn.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">những gì lẽ ra phải chạy mà không chạy</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">các dịch vụ có tệp thực thi đã mất</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">chưa ký, không kể các bản sao theo phiên</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">mọi thứ đã biết về một mục</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">việc dừng nó sẽ kéo theo những gì</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">việc kết thúc tiến trình của nó sẽ cuốn theo những gì</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">việc bỏ nó khỏi chế độ tự động sẽ gây ra gì</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">đóng băng máy trước một thay đổi</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">điều gì đã thay đổi từ đó, 5 nếu cấu hình đã đổi</span>
+<span class="k">bws history Spooler</span>                               <span class="c">ai đã đổi kiểu khởi động của nó, và khi nào</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">cách sửa nhanh cho máy in bị treo sẽ làm gì</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Mọi lệnh, tùy chọn và mã thoát</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Lấy nó</span>
+    <h2>Giải nén và chạy, hoặc cài đặt</h2>
+    <p class="lede">Windows 10 1809 hoặc Windows Server 2019 trở lên, 64-bit. Các bản nén không cần trình cài đặt và không ghi gì vào registry, và việc xem không cần quyền quản trị. Thay đổi bất cứ thứ gì cần một phiên nâng quyền, và cả hai nửa đều nói điều đó thay vì lặng lẽ thất bại - cửa sổ đề nghị <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tệp</th><th>Đó là gì</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Cửa sổ, một tệp thực thi độc lập - không có .NET để cài</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Dòng lệnh, một tệp thực thi độc lập, cho script và CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Trình cài đặt: cả hai chương trình cho mọi tài khoản trên máy, cửa sổ trong menu Start và <code>bws</code> trong PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Các tệp thực thi mang chữ ký Authenticode, nên Windows nêu tên nhà phát hành thay vì cảnh báo về một nhà phát hành không rõ.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Yêu cầu và xây dựng từ mã nguồn</a>
+    </div>
+  </div>
+</section>

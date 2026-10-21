@@ -1,0 +1,64 @@
+<meta name="title" content="Auditarea serviciilor Windows - dovada a ceea ce s-a schimbat">
+<meta name="description" content="Înghețați serviciile într-un fișier la implementare și întrebați în fiecare noapte dacă mașina se potrivește încă. Derivă, fișiere nesemnate și lipsă.">
+<meta name="nav" content="Auditarea serviciilor pentru derivă">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ghid</span>
+    <h1>Auditarea serviciilor Windows</h1>
+    <p class="lede">Un audit nu este o listă a ceea ce se află pe mașină. Este diferența dintre ce se află pe mașină și ce trebuia să se afle - iar a doua jumătate nu o înregistrează nimic pe un Windows obișnuit.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trei întrebări și ce le răspunde</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Ce s-a schimbat de când a fost construită această mașină?</h3>
+        <p>Un instantaneu făcut la implementare și o comparație cu mașina în această seară. Configurația este raportată separat de ceea ce doar a pornit sau s-a oprit, așa că singurul tip de pornire pe care l-a schimbat cineva nu este îngropat sub patruzeci de servicii care se întâmplă să ruleze.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>De ce diferă mediul de testare de producție?</h3>
+        <p>Faceți un instantaneu pe fiecare și comparați cele două fișiere - oriunde, fără ca vreuna dintre mașini să fie prezentă. Fișierele poartă numele mașinii și contul care le-a făcut.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Ce se află aici și n-ar trebui?</h3>
+        <p>Interogări care găsesc formele care merită privite: un serviciu al cărui executabil a dispărut, unul nesemnat, unul care rulează deși este dezactivat, unul care cere drepturi de depanare.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Forma nocturnă</h2>
+<pre><code><span class="c"># ziua în care mașina intră în serviciu</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># în fiecare noapte, dintr-o sarcină programată</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nicio derivă de configurație
+#   5 - configurația a derivat, iar drift.json spune ce
+#   3 - a rulat și n-a putut citi totul, deci răspunsul este parțial</span></code></pre>
+    <p>Codul de ieșire <code>5</code> este ceea ce face din asta un audit și nu un raport pe care nu-l citește nimeni: sarcina tace până când mașina derivă, iar în noaptea în care se întâmplă, cineva este alertat.</p>
+    <p class="note"><strong>Luați starea de referință dintr-o sesiune cu drepturi ridicate.</strong> Fără drepturi de administrator, managerul listează mai puține intrări și refuză mai multe din ce listează. Instantaneul consemnează dacă contul care l-a făcut era administrator, astfel încât comparația poate spune asta în loc să raporteze ca eliminate intrări pe care nimeni nu le-a eliminat - dar o stare de referință căreia îi lipsește jumătate din mașină rămâne o stare de referință căreia îi lipsește jumătate din mașină.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cât valorează un instantaneu ca dovadă</h2>
+    <ul class="points points-ok">
+      <li><strong>Este JSON cu un câmp pe rând</strong>, deci intră într-un depozit și <code>git diff</code> îl citește. Un auditor care nu are acest instrument poate totuși citi fișierul, iar un sistem de control al versiunilor răspunde deja la <em>când</em>.</li>
+      <li><strong>Conține ce n-a arătat niciodată snap-in-ul:</strong> calea de lansare și argumentele, hash-ul și semnatarul fișierului, dependențele în ambele sensuri, declanșatoarele, privilegiile necesare, tipul SID și descriptorul de securitate.</li>
+      <li><strong>Spune ce n-a putut citi.</strong> Un câmp la care această sesiune nu avea drepturi este consemnat ca necitit - niciodată ca gol - astfel încât o comparație ulterioară poate spune <em>not compared</em> în loc să-l numească în tăcere neschimbat.</li>
+      <li><strong>Este o descriere a întregii mașini.</strong> Arhivați-l în consecință: este scris cu permisiunile pe care directorul său le are deja, iar instrumentul nu restrânge nimic.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Cum funcționează instantaneele și comparațiile</a>
+  </div>
+</section>

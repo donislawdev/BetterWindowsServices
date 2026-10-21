@@ -1,0 +1,64 @@
+<meta name="title" content="Windows hizmetlerini denetleme - neyin değiştiğini kanıtlayın">
+<meta name="description" content="Her hizmeti dağıtım sırasında bir dosyaya dondurun, sonra her gece makinenin hâlâ eşleşip eşleşmediğini sorun. Sapma, imzasız ve eksik dosyalar tek sorguda.">
+<meta name="nav" content="Hizmetleri sapma için denetleme">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Kılavuz</span>
+    <h1>Windows hizmetlerini denetleme</h1>
+    <p class="lede">Bir denetim, makinede olanların listesi değildir. Makinede olanla olması gerekenin arasındaki farktır - ve düz bir Windows'ta ikinci yarıyı hiçbir şey kaydetmez.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Üç soru ve onları yanıtlayan</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Bu makine kurulduğundan beri ne değişti?</h3>
+        <p>Dağıtım sırasında alınmış bir anlık görüntü ve bu akşam makineyle bir karşılaştırma. Yapılandırma, yalnızca başlayan ya da duran şeyden ayrı bildirilir; böylece birinin değiştirdiği tek başlangıç türü, tesadüfen çalışan kırk hizmetin altında gömülmez.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Test ortamı neden üretimden farklı?</h3>
+        <p>Her birinde bir anlık görüntü alın ve iki dosyayı karşılaştırın - herhangi bir yerde, makinelerin hiçbiri orada olmadan. Dosyalar makinenin adını ve onları alan hesabı taşır.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Burada olmaması gereken ne var?</h3>
+        <p>Bakmaya değer biçimleri bulan sorgular: yürütülebilir dosyası kaybolmuş bir hizmet, imzasız biri, devre dışıyken çalışan biri, hata ayıklama hakları isteyen biri.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Gecelik biçim</h2>
+<pre><code><span class="c"># makinenin hizmete girdiği gün</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># her gece, zamanlanmış bir görevden</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - yapılandırma sapması yok
+#   5 - yapılandırma saptı ve drift.json neyin olduğunu söyler
+#   3 - çalıştı ve her şeyi okuyamadı, yani yanıt kısmi</span></code></pre>
+    <p><code>5</code> çıkış kodu, bunu kimsenin okumadığı bir rapor değil bir denetim yapan şeydir: görev, makine sapana kadar sessizdir ve sapma gecesi birisi uyarılır.</p>
+    <p class="note"><strong>Temel durumu yükseltilmiş bir oturumdan alın.</strong> Yönetici hakları olmadan yönetici daha az öğe listeler ve listelediklerinin daha fazlasını reddeder. Anlık görüntü, onu alan hesabın yönetici olup olmadığını kaydeder; böylece karşılaştırma, kimsenin kaldırmadığı öğeleri kaldırılmış olarak bildirmek yerine bunu söyleyebilir - ama yarısı eksik bir makinenin temel durumu, yine de yarısı eksik bir makinenin temel durumudur.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bir anlık görüntünün kanıt olarak değeri</h2>
+    <ul class="points points-ok">
+      <li><strong>Satır başına bir alan içeren bir JSON'dur</strong>, yani bir depoya girer ve <code>git diff</code> onu okur. Bu aracı olmayan bir denetçi dosyayı yine okuyabilir ve bir sürüm denetim sistemi <em>ne zaman</em> sorusunu zaten yanıtlar.</li>
+      <li><strong>Ek bileşenin hiç göstermediğini içerir:</strong> başlatma yolu ve bağımsız değişkenler, dosyanın karması ve imzalayanı, iki yönlü bağımlılıklar, tetikleyiciler, gereken ayrıcalıklar, SID türü ve güvenlik tanımlayıcısı.</li>
+      <li><strong>Neyi okuyamadığını söyler.</strong> Bu oturumun hakkı olmayan bir alan okunmadı olarak kaydedilir - asla boş olarak değil - böylece sonraki bir karşılaştırma onu sessizce değişmemiş saymak yerine <em>not compared</em> diyebilir.</li>
+      <li><strong>Tüm makinenin bir tanımıdır.</strong> Ona göre dosyalayın: dizininin zaten sahip olduğu izinlerle yazılır ve araç hiçbir şeyi daraltmaz.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Anlık görüntüler ve karşılaştırmalar nasıl çalışır</a>
+  </div>
+</section>

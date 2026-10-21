@@ -1,0 +1,68 @@
+<meta name="title" content="Služba Windows zaseklá na Stopping - jak ji bezpečně ukončit">
+<meta name="description" content="Služba zaseklá na Stopping obvykle sdílí proces s dalšími. Podívejte se které, než cokoli ukončíte, a potom je jedním příkazem všechny vraťte zpět.">
+<meta name="nav" content="Služba zaseklá na Stopping">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Průvodce</span>
+    <h1>Služba zaseklá na <em>Stopping...</em></h1>
+    <p class="lede">Snap-in ukazuje <em>Stopping</em> a nehne se. Obvyklá odpověď je Správce úloh, tip, v jakém <code>svchost.exe</code> žije, a Ukončit úlohu - což ukončí i každou další službu v tom procesu, aniž by vám řeklo, které to byly.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Proč se to děje</h2>
+    <ul class="points points-alarm">
+      <li><strong>Služba neodpovídá na požadavek na zastavení.</strong> Windows ji požádá zdvořile a čeká. Služba, která se zasekla nebo čeká na něco, co se nevrátí, neodpoví nikdy.</li>
+      <li><strong>Něco, co na ní závisí, stále běží.</strong> Správce zastavení odmítne, místo aby rozbil tu druhou, a snap-in to ukáže jako čekání.</li>
+      <li><strong>Sdílí proces s dalšími.</strong> Většina služeb Windows žije uvnitř sdíleného <code>svchost.exe</code>. Ukončení tohoto procesu ukončí všechny, což je přesně to, co dělá Správce úloh, aniž by je pojmenoval.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Podívejte se, než cokoli ukončíte</h2>
+    <p>Zeptejte se, co by ukončení vzalo s sebou. Nic se neděje, dokud nevypustíte <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Náhled pojmenuje proces číslem, pojmenuje každou další službu, která v něm žije, a ukáže dva kroky místo jednoho: požádat službu o zastavení a <em>jen když to nezabere</em> ukončit proces. Služba, která se zastaví sama, se nikdy neukončí.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> přeskočí zdvořilý krok</strong> a proces ukončí hned. Mění plán, ne jeho provedení, takže náhled ukáže jeden krok místo dvou a rozdíl je vidět dřív, než se cokoli stane.</li>
+        <li><strong><code>--restart</code> vše vrátí</strong>, jakmile je proces pryč - položku, na kterou jste se ptali, i všechno, co sdílelo její proces. Bez něj stroj zůstane s těmito službami zastavenými a zpráva říká, jak je znovu spustit.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Odmítnutí přijde dřív než tlačítko.</strong> Ovladač, proces, který systém chrání, služba, jejíž zastavení správce nepřijme - odmítnuto při sestavování plánu, s důvodem, a ne po šedesáti sekundách čekání.</li>
+        <li><strong>Varování, když na tom záleží.</strong> Pokud je položka taková, bez které stroj nefunguje, plán to říká - zastavení položí stroj, nejen službu.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Ukončení procesu je jediná věc, kterou tento nástroj dělá a kterou nikdo nemůže jménem stroje odmítnout.</strong> Proto je to samostatný příkaz, proto náhled pojmenovává každou službu, kterou vezme s sebou, a proto zdvořilý krok přichází první, pokud neřeknete jinak.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bezpečnější pořadí</h2>
+    <ol class="prose-list">
+      <li><strong>Zjistěte, co to je.</strong> <code>bws show Spooler</code> - proces, co na něm závisí, co potřebuje on sám, a zda vůbec přijímá požadavky na zastavení.</li>
+      <li><strong>Zkuste běžné zastavení jako plán.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Pokud je odpovědí odmítnutí, řekne, který ze tří důvodů to je.</li>
+      <li><strong>Pokud se nezastaví, podívejte se, co stojí jeho ukončení.</strong> <code>bws kill Spooler --dry-run</code> a přečtěte si seznam služeb sdílejících tento proces.</li>
+      <li><strong>Pak to udělejte, s cestou zpět.</strong> <code>bws kill Spooler --restart</code>. Zpráva končí tím, co nezabralo, a příkazy, které věci vrátí.</li>
+    </ol>
+    <p>Všechny čtyři fungují v okně stejně: klikněte pravým tlačítkem na řádek, zvolte <em>Force stop...</em>, přečtěte si plán a tlačítko pod ním je pojmenováno podle toho, co udělá.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Proč prostě nepoužít Správce úloh</h2>
+    <p class="lede">Protože odpovídá na jinou otázku. Správce úloh zná procesy a tento problém je o službách a ty si neodpovídají jedna k jedné.</p>
+    <p>Sdílený <code>svchost.exe</code> může obsahovat tucet služeb. Správce úloh ho ukončí, aniž by řekl, kterých dvanáct, žádná se sama nevrátí a nic poté neřekne, co se zastavilo. EDR, který označí proces ukončující <code>svchost.exe</code>, dělá svou práci a vaše kliknutí od ničeho jiného rozeznat neumí.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Úplná reference</a>
+    </div>
+  </div>
+</section>

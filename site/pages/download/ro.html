@@ -1,0 +1,86 @@
+<meta name="title" content="Descărcați Better Windows Services - gratuit, zip sau MSI">
+<meta name="description" content="Două executabile independente sau un program de instalare semnat, fără .NET. Windows 10 1809 și Server 2019 sau mai noi, pe 64 de biți. Open source, GPL-3.0.">
+<meta name="nav" content="Descărcare">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Descărcare</span>
+    <h1>Dezarhivați și rulați, sau instalați</h1>
+    <p class="lede">Versiunea {{version}}. Arhivele nu au nevoie de program de instalare și nu scriu nimic în registru, iar privitul nu cere drepturi de administrator. Un program de instalare semnat pune în schimb ambele programe pe toată mașina. Liber și open source sub GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Toate versiunile</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce conține versiunea</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fișier</th><th>Ce este</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Fereastra: <code>BetterWindowsServices.exe</code>, un singur executabil independent cu propriul runtime .NET în interior</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Linia de comandă: <code>bws.exe</code>, un singur executabil independent, pentru scripturi, sarcini programate și CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Programul de instalare: ambele programe în <code>Program Files</code> pentru fiecare cont de pe mașină, fereastra în meniul Start și <code>bws</code> în PATH-ul mașinii</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Luați unul sau pe amândouă - sunt doi clienți ai aceluiași motor și niciunul nu îl cere pe celălalt. Pe un server, linia de comandă este cea mai mică dintre ele și face tot ce face fereastra.</p>
+    <p>Programul de instalare conține exact ce conțin cele două arhive. Se instalează silențios cu <code>msiexec /i {{archive_installer}} /qn</code>, o versiune mai nouă se instalează peste una mai veche și nu închide nimic din ce rulează - așa că închideți fereastra și orice <code>bws</code> care rulează înainte de actualizare, pentru că o copie lăsată să ruleze se poate opri cu o eroare. Dezinstalarea din Setări, Aplicații elimină programele, intrarea din meniul Start și intrarea din PATH și lasă fișierele dumneavoastră în pace.</p>
+    <p>Executabilele poartă o semnătură Authenticode, așa că Windows numește editorul în loc să avertizeze despre unul necunoscut.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cerințe</h2>
+    <ul class="points">
+      <li><strong>Windows 10 versiunea 1809 sau mai nou, ori Windows Server 2019 sau mai nou.</strong> Doar pe 64 de biți - un proces pe 32 de biți citește căi și chei de registru redirecționate, ceea ce ar produce în tăcere răspunsuri greșite.</li>
+      <li><strong>Fără .NET de instalat.</strong> Ambele executabile poartă propriul runtime .NET.</li>
+      <li><strong>Drepturi de administrator pentru a schimba orice.</strong> Citirea, căutarea, instantaneele și comparațiile funcționează și fără, cu mai puține intrări vizibile, iar instrumentul spune asta sus, în loc să se prefacă că lista este toată mașina.</li>
+    </ul>
+    <p>Fereastra păstrează un singur fișier al ei - aranjamentul în care ați lăsat lista - sub <code>%APPDATA%\BetterWindowsServices</code>. Un instantaneu merge acolo unde îi spuneți lui <code>bws snapshot create</code> să-l pună, iar în directorul curent când nu spuneți.</p>
+    <p class="note"><strong>Programul vorbește engleza.</strong> Fereastra citește un fișier de limbă, <code>languages\gui.&lt;cod&gt;.json</code>, așezat lângă ea și ales după limba Windows, fără comutator. O traducere este deci o contribuție care se poate adăuga fără recompilare - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> spune cum.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus și EDR</h2>
+    <p class="lede">Acest instrument face ceea ce face un administrator cu serviciile, iar o parte din asta este exact ceea ce urmărește software-ul de securitate.</p>
+    <p>Oprește și pornește servicii, poate încheia procesul din spatele unuia și citește descriptorul de securitate și privilegiile necesare ale fiecărui serviciu. Un EDR care semnalează un proces ce încheie <code>svchost.exe</code> își face treaba, iar o oprire forțată de aici poate arăta exact așa.</p>
+    <p>Ce <strong>nu</strong> face, ca să puteți verifica afirmația: nu injectează nimic în niciun proces, nu împachetează și nu ofuscă nimic, nu instalează niciun serviciu și niciun driver și nu lasă nimic să ruleze, și nu deschide nicio conexiune de rețea. Este open source sub GPL-3.0 și puteți compila singur ambele executabile.</p>
+    <p>Dacă politica dumneavoastră cere o excepție, excludeți cele două executabile după fișier, nu după folder. Singurul lucru care merită tratat cu aceeași grijă ca instrumentul însuși este un fișier de instantaneu: descrie întreaga mașină.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Compilarea din sursă</h2>
+    <p>.NET 10 SDK, pe Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Unele teste citesc managerul real de servicii al mașinii pe care rulează și compară ce spune acest instrument cu ce spune <code>sc.exe</code>. Sunt doar pentru citire. Executabilele dintr-un singur fișier pe care le poartă versiunile sunt aceste două publicări, fiecare un singur fișier cu runtime-ul în interior:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Ajung ca <code>bws.exe</code> și <code>BetterWindowsServices.exe</code> sub <code>bin/Release/.../win-x64/publish/</code> al fiecărui proiect. Fișierele <code>.pdb</code> de lângă ele sunt simboluri de depanare, iar nimic nu are nevoie de ele pentru a rula.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cât costă rularea</h2>
+    <p class="lede">Măsurat pe o singură mașină cu 810 servicii. Cifrele dumneavoastră vor diferi - numărul de servicii, discul și procesorul le influențează pe toate.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Cam un sfert de secundă</h3><p>pentru ca <code>bws list</code> să citească toată mașina.</p></div>
+      <div class="card"><h3>Cam opt zecimi de secundă</h3><p>de la pornirea ferestrei până când lista apare pe ecran.</p></div>
+      <div class="card"><h3>Cam 100 MB</h3><p>pentru fereastră - jumătate din această cantitate este cadrul de interfață al Windows, înainte să ruleze vreun cod al acestui instrument.</p></div>
+      <div class="card"><h3>Cam 16 MB</h3><p>pentru linia de comandă pe aceeași mașină.</p></div>
+    </div>
+  </div>
+</section>

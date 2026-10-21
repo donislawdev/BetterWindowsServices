@@ -1,0 +1,86 @@
+<meta name="title" content="下載 Better Windows Services - 免費，zip 或 MSI">
+<meta name="description" content="兩個獨立式的可執行檔或一個已簽章的安裝程式，無需安裝 .NET。支援 Windows 10 1809 和 Windows Server 2019 及更高版本的 64 位元系統。免費開放原始碼，GPL-3.0。">
+<meta name="nav" content="下載">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">下載</span>
+    <h1>解壓縮即用，或安裝</h1>
+    <p class="lede">版本 {{version}}。壓縮檔不需要安裝程式，也不向登錄寫入任何內容，檢視時不需要系統管理員權限。使用已簽章的安裝程式，則會把這兩個程式裝到整台電腦上。免費開放原始碼，採用 GPL-3.0。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">所有版本</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>發行內容</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>檔案</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>視窗：<code>BetterWindowsServices.exe</code>，一個獨立式的可執行檔，內建自己的 .NET 執行階段</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>命令列：<code>bws.exe</code>，一個獨立式的可執行檔，用於指令碼、排程工作和 CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>安裝程式：為電腦上的每個帳戶把這兩個程式安裝到 <code>Program Files</code>，視窗出現在開始功能表中，<code>bws</code> 加入電腦的 PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>可以取其一或兩者都要，它們是同一引擎的兩個用戶端，彼此互不相依。在伺服器上，命令列是兩者中較小的一個，視窗能做的它都能做。</p>
+    <p>安裝程式包含的內容與兩個壓縮檔完全相同。它可以用 <code>msiexec /i {{archive_installer}} /qn</code> 靜默安裝，較新的版本會覆蓋安裝在較舊的版本之上，並且它不會關閉任何正在執行的程式，所以升級前請先關閉視窗和任何正在執行的 <code>bws</code>，因為遺留在執行中的副本可能會報錯停止。在「設定」的「應用程式」中解除安裝，會刪除程式、開始功能表項目和 PATH 項目，而不會動你自己的檔案。</p>
+    <p>可執行檔帶有 Authenticode 簽章，因此 Windows 會顯示發行者名稱，而不是警告來自未知發行者。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>系統需求</h2>
+    <ul class="points">
+      <li><strong>Windows 10 1809 或更高版本，或 Windows Server 2019 或更高版本。</strong>僅支援 64 位元：32 位元處理程序讀取的是被重新導向的路徑和登錄機碼，這會悄悄地產生錯誤的結果。</li>
+      <li><strong>無需安裝 .NET。</strong>兩個可執行檔都自帶 .NET 執行階段。</li>
+      <li><strong>變更任何內容都需要系統管理員權限。</strong>讀取、搜尋、快照和差異在沒有系統管理員權限時也能運作，只是可見的項目會更少，工具會在頂部說明這一點，而不是假裝清單就是整台電腦。</li>
+    </ul>
+    <p>視窗只保留一個自己的檔案：你離開時清單的版面配置，位於 <code>%APPDATA%\BetterWindowsServices</code> 下。快照會儲存到你在 <code>bws snapshot create</code> 中指定的位置，未指定時則儲存到目前目錄。</p>
+    <p class="note"><strong>程式使用英文介面。</strong>視窗會讀取放在它旁邊的語言檔案 <code>languages\gui.&lt;code&gt;.json</code>，並依 Windows 的語言選擇，沒有切換開關。因此翻譯是一項無需重新建置就能加入的貢獻：<a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> 說明了方法。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>防毒軟體與 EDR</h2>
+    <p class="lede">這個工具做的是系統管理員對服務做的事，其中一部分正是資訊安全軟體所監視的行為。</p>
+    <p>它會停止和啟動服務，可以結束服務背後的處理程序，並讀取每個服務的安全性描述元和所需特殊權限。如果某個 EDR 把結束 <code>svchost.exe</code> 的處理程序標記出來，那它是在履行職責，而這裡的強制停止看起來可能與之完全一樣。</p>
+    <p>它<strong>不會</strong>做的事，便於你核對這一說法：它不會向任何處理程序注入任何內容，不會封裝或混淆任何內容，不會安裝服務或驅動程式，也不會留下任何執行中的內容，更不會建立任何網路連線。它以 GPL-3.0 開放原始碼，你可以自己建置這兩個可執行檔。</p>
+    <p>如果你的原則需要排除項目，請依檔案而不是依資料夾排除這兩個可執行檔。唯一值得與工具本身同樣小心對待的是快照檔案：它描述了整台電腦。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>從原始碼建置</h2>
+    <p>.NET 10 SDK，在 Windows 上。</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>有些測試會讀取它所執行的電腦上的真實服務控制管理員，並把這個工具的輸出與 <code>sc.exe</code> 的輸出進行比較。這些測試是唯讀的。發行版本所帶的單一檔案可執行檔來自下面這兩次發佈，每次都產生一個內含執行階段的檔案：</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>它們會以 <code>bws.exe</code> 和 <code>BetterWindowsServices.exe</code> 的名稱出現在各專案的 <code>bin/Release/.../win-x64/publish/</code> 下。旁邊的 <code>.pdb</code> 檔案是偵錯符號，執行時並不需要它們。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>執行成本</h2>
+    <p class="lede">在一台有 810 個服務的電腦上測得。你的數字會有所不同：服務數量、磁碟和處理器都會影響結果。</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>大約四分之一秒</h3><p><code>bws list</code> 讀取整台電腦所需的時間。</p></div>
+      <div class="card"><h3>大約十分之八秒</h3><p>從啟動視窗到清單顯示在螢幕上。</p></div>
+      <div class="card"><h3>大約 100 MB</h3><p>視窗佔用的記憶體：其中一半是 Windows 使用者介面架構，那還是在這個工具自己的程式碼執行之前。</p></div>
+      <div class="card"><h3>大約 16 MB</h3><p>同一台電腦上命令列佔用的記憶體。</p></div>
+    </div>
+  </div>
+</section>

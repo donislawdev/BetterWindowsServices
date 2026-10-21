@@ -1,0 +1,68 @@
+<meta name="title" content="Stopping'de takılan bir Windows hizmeti - güvenle nasıl sonlandırılır">
+<meta name="description" content="Stopping'de takılan bir hizmet çoğunlukla sürecini başkalarıyla paylaşır. Sonlandırmadan önce hangileri olduğunu görün, sonra hepsini tek komutla geri getirin.">
+<meta name="nav" content="Stopping'de takılan hizmet">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Kılavuz</span>
+    <h1><em>Stopping...</em> üzerinde takılan bir hizmet</h1>
+    <p class="lede">Ek bileşen <em>Stopping</em> gösterir ve hiç kıpırdamaz. Olağan yanıt Görev Yöneticisi, hizmetin hangi <code>svchost.exe</code> içinde yaşadığına dair bir tahmin ve Görevi sonlandır'dır - bu da o süreçteki diğer her hizmeti de sonlandırır ve hangilerinin olduğunu size söylemez.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Neden olur</h2>
+    <ul class="points points-alarm">
+      <li><strong>Hizmet durdurma isteğine yanıt vermiyor.</strong> Windows ondan kibarca ister ve bekler. Kilitlenmiş ya da geri dönmeyecek bir şeyi bekleyen bir hizmet hiç yanıt vermez.</li>
+      <li><strong>Ona bağlı bir şey hâlâ çalışıyor.</strong> Yönetici, diğerini bozmak yerine durdurmayı reddeder ve ek bileşen bunu bir bekleme olarak gösterir.</li>
+      <li><strong>Sürecini başkalarıyla paylaşıyor.</strong> Windows hizmetlerinin çoğu ortak bir <code>svchost.exe</code> içinde yaşar. O süreci sonlandırmak hepsini sonlandırır; Görev Yöneticisi'nin onları adlandırmadan yaptığı tam olarak budur.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bir şeyi sonlandırmadan önce bakın</h2>
+    <p>Onu sonlandırmanın beraberinde neleri götüreceğini sorun. <code>--dry-run</code>'ı bırakana kadar hiçbir şey olmaz.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Önizleme süreci numarasıyla adlandırır, içinde yaşayan diğer her hizmeti adlandırır ve bir yerine iki adım gösterir: hizmetten durmasını isteyin ve <em>yalnızca bu işe yaramazsa</em> süreci sonlandırın. Kendiliğinden duran bir hizmet asla sonlandırılmaz.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> kibar adımı atlar</strong> ve süreci hemen sonlandırır. Planı değiştirir, çalışmasını değil; bu yüzden önizleme iki yerine bir adım gösterir ve fark, bir şey olmadan önce görünür.</li>
+        <li><strong><code>--restart</code> her şeyi geri getirir</strong>, süreç gittikten sonra - sorduğunuz öğeyi ve sürecini paylaşan her şeyi. Onsuz makine, o hizmetler durmuş halde kalır ve rapor onları nasıl yeniden başlatacağınızı söyler.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Ret, düğmeden önce gelir.</strong> Bir sürücü, sistemin koruduğu bir süreç, yöneticinin durdurmayı kabul etmediği bir hizmet - altmış saniyelik bir beklemeden sonra değil, plan kurulurken, gerekçesiyle birlikte reddedilir.</li>
+        <li><strong>Önemli olduğunda bir uyarı.</strong> Öğe, makinenin onsuz çalışmadığı biriyse plan bunu söyler - durdurmak yalnızca hizmeti değil, makineyi indirir.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Bir süreci sonlandırmak, bu aracın yaptığı ve kimsenin makine adına reddedemeyeceği tek şeydir.</strong> Bu yüzden kendi başına bir komuttur, bu yüzden önizleme beraberinde götürdüğü her hizmeti adlandırır ve bu yüzden, siz aksini söylemedikçe kibar adım önce gelir.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Daha güvenli sıra</h2>
+    <ol class="prose-list">
+      <li><strong>Ne olduğuna bakın.</strong> <code>bws show Spooler</code> - süreç, ona bağlı olanlar, onun neye bağlı olduğu ve durdurma isteklerini hiç kabul edip etmediği.</li>
+      <li><strong>Olağan durdurmayı plan olarak deneyin.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Yanıt bir retse, üç nedenden hangisi olduğunu söyler.</li>
+      <li><strong>Durmuyorsa, sonlandırmanın neye mal olduğuna bakın.</strong> <code>bws kill Spooler --dry-run</code> ve o süreci paylaşan hizmetlerin listesini okuyun.</li>
+      <li><strong>Sonra bir geri dönüş yoluyla yapın.</strong> <code>bws kill Spooler --restart</code>. Rapor, neyin çalışmadığı ve işleri geri koyan komutlarla biter.</li>
+    </ol>
+    <p>Dördü de pencerede aynı şekilde çalışır: bir satıra sağ tıklayın, <em>Force stop...</em> seçin, planı okuyun; altındaki düğme yapacağı şeyin adını taşır.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Neden sadece Görev Yöneticisi değil</h2>
+    <p class="lede">Çünkü farklı bir soruyu yanıtlar. Görev Yöneticisi süreçleri bilir ve bu sorun hizmetlerle ilgilidir; ikisi bire bir örtüşmez.</p>
+    <p>Ortak bir <code>svchost.exe</code> bir düzine hizmet barındırabilir. Görev Yöneticisi onu hangi on ikisi olduğunu söylemeden sonlandırır, hiçbiri kendiliğinden geri gelmez ve sonrasında hiçbir şey size neyin durduğunu söylemez. <code>svchost.exe</code>'yi sonlandıran bir süreci işaretleyen bir EDR işini yapıyordur ve sizin tıklamanızı başka herhangi bir şeyinkinden ayıramaz.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Tam başvuru</a>
+    </div>
+  </div>
+</section>

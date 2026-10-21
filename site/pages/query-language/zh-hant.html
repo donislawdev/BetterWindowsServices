@@ -1,0 +1,177 @@
+<meta name="title" content="查詢語言 - 向你的 Windows 服務提問">
+<meta name="description" content="一種查詢語言，同時用於搜尋框和 bws list --query。每個欄位、每個值，以及 services.msc 無法提出的問題：哪些內容無法讀取。">
+<meta name="nav" content="查詢語言">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  欄位表由 Bws.Core 產生：QueryFields.Names 和 QueryFields.ValuesOf 是面向任何要把欄位呈現給
+  使用者的程式的公開 API，因此這個頁面既不會寫出程式裡沒有的欄位，也不會漏掉程式裡有的欄位。
+  表格旁邊的句子位於 site/i18n。
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">查詢語言</span>
+    <h1>向電腦提問</h1>
+    <p class="lede">一種語言，既用於視窗的搜尋框，也用於 <code>bws list --query</code>。單獨一個詞會在名稱、顯示名稱、帳戶和啟動路徑中搜尋。加上欄位則縮小範圍。共有 {{field_count}} 個欄位，相同的文字在工具的兩部分中含義相同。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>六個能回答實際問題的查詢</h2>
+    <div class="grid">
+      <div class="card"><h3>應該執行卻沒有執行的內容</h3><p><code>start:auto !status:running</code></p><p>大多數人寫的第一個查詢，也是 <code>services.msc</code> 完全無法回答的查詢。</p></div>
+      <div class="card"><h3>檔案已遺失的服務</h3><p><code>file:missing</code></p><p>指向磁碟上不存在的可執行檔的項目。通常是解除安裝後遺留了登錄資訊。</p></div>
+      <div class="card"><h3>未簽章，去掉工作階段雜訊</h3><p><code>signed:no peruser:no</code></p><p>依使用者的服務族會為每個工作階段產生一個副本，讓清單裡充滿近似重複的項目。這個查詢詢問的是其餘的部分。</p></div>
+      <div class="card"><h3>已停用卻仍在執行</h3><p><code>mismatch:running</code></p><p>組態與狀態不一致：一個被服務管理員設為永不啟動的項目，卻仍在執行。</p></div>
+      <div class="card"><h3>任何要求偵錯權限的內容</h3><p><code>privilege:SeDebugPrivilege</code></p><p>一種讓處理程序能夠開啟任何其他處理程序的特殊權限。值得知道哪些服務要求了它。</p></div>
+      <div class="card"><h3>工具無法讀取的內容</h3><p><code>account:?</code></p><p>此工作階段無法讀取其帳戶的項目。這是 <code>services.msc</code> 連問都問不出的問題。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>如何撰寫查詢</h2>
+    <div class="split">
+      <div>
+        <h3>搜尋詞</h3>
+        <ul class="prose-list">
+          <li>搜尋詞以空格分隔，並且必須全部符合：沒有 <code>and</code> 關鍵字，因為它不可能有別的含義。</li>
+          <li>同一個欄位寫兩次是唯一的例外：<code>status:running status:stopped</code> 表示二者之一，因為勾選兩個篩選項目時寫出的就是這個。對數字的兩個邊界仍然會縮小範圍：<code>pid:&gt;1000 pid:&lt;2000</code> 就是二者之間的範圍。</li>
+          <li>搜尋詞前的 <code>!</code> 表示否定：<code>!status:running</code>。在帶有 <code>setlocal EnableDelayedExpansion</code> 的批次檔中，cmd 會悄無聲息地吃掉這個 <code>!</code>，查詢便在不知不覺中變成了別的意思：在那裡請在引號內寫成 <code>^!</code>。</li>
+          <li>欄位內的逗號表示<em>或</em>：<code>start:manual,disabled</code>。</li>
+          <li>引號可以保護含有空格或冒號的內容：<code>account:"NT SERVICE\McmSvc"</code>。</li>
+          <li>原樣貼上的路徑，例如 <code>C:\Windows\System32\svchost.exe</code>，會被當作搜尋內容，而不是被當作名為 C 的欄位。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>文字如何比對</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> 比對任何<em>包含</em>它的內容：這是預設行為，因為這是人們對搜尋框的預期。</li>
+          <li><code>name:=spooler</code> 是完全比對。</li>
+          <li><code>name:spool*</code> 支援萬用字元 <code>*</code> 和 <code>?</code>。</li>
+          <li><code>name:/^Sql.*/</code> 是規則運算式，在斜線內依規則運算式的寫法撰寫：<code>\?</code>、<code>\\</code> 和逗號在那裡是什麼意思就是什麼意思。一個永遠不閉合的斜線是錯誤：要搜尋斜線本身，請寫成 <code>\/</code> 或使用引號。</li>
+          <li>大小寫會被忽略，包括 ASCII 之外的字元：波蘭語或希臘語的顯示名稱，無論怎麼輸入都能比對。</li>
+        </ul>
+      </div>
+    </div>
+    <h3>每個欄位都接受的三個詞</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>輸錯的值會報錯，而不是傳回空結果。</strong><code>status:runing</code> 會回答 <em>Did you mean running?</em>，並以代碼 <code>2</code> 結束。空清單看起來就像一個答案，而「沒有任何符合」與「你輸錯了」之間的差別，就是一台乾淨的電腦與一次什麼也沒證明的稽核之間的差別。在命令列中，任何不會縮小範圍的查詢同樣會被拒絕，所以指令碼不會因為一個拼寫錯誤而對整台電腦進行操作。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>更多範例</h2>
+    <p class="lede">每一個在視窗的搜尋框中和在 <code>bws list --query</code> 之後的效果都一樣，而且每一個在寫到這裡之前都在真實的 Windows 上執行過。能找到什麼取決於電腦：對於關於故障的問題，空結果正是你想要的答案。</p>
+    <div class="examples">
+    <h3>狀態與啟動類型</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>卡在停止或啟動中：管理單元顯示、永遠不會結束的等待。</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>設為自動啟動、已停止，且不在等待觸發程序：重新啟動之後值得一讀的簡短清單。</td></tr>
+          <tr><td><code>start:delayed</code></td><td>自動，比其他自動項目稍晚啟動。</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>啟動時沒有任何內容會啟動它卻在執行：有東西要求了它、觸發程序啟動了它，或者有人啟動了它。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>帳戶</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>以最強的帳戶 LocalSystem 執行，且來自 Microsoft 沒有簽章的檔案。關於發行者的查詢會自行讀取簽章，所以需要幾秒鐘。</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>在其他任何帳戶下執行的服務：虛擬帳戶、受管理的帳戶，或某個人自己的帳戶。</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>服務自己的虛擬帳戶。引號把這些詞放在一起，因為中間有空格。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>檔案與簽章</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>沒有簽章，Windows 不信任的憑證鏈，或簽章之後被變更的檔案。</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>已簽章、受信任，且不是 Microsoft：其他公司放在這台電腦上的軟體。</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>在 Windows 啟動時載入、而 Windows 不信任其簽章的驅動程式。在健康的電腦上應為零。</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>有獨立處理程序、其檔案位於 Windows 資料夾之外的服務。</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>從某人的使用者設定檔內部啟動：最不應該出現服務的地方。</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>空格前的反斜線會讓空格成為詞的一部分，所以當後面還有其他搜尋詞時，以反斜線結尾的路徑要寫兩個反斜線。在查詢末尾，一個就夠了。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>觸發程序與相依性</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>等待裝置到達，因此是有原因的已停止。</td></tr>
+          <tr><td><code>trigger:network</code></td><td>當要求到達某個網路端點（連接埠、具名管道或 RPC 介面）時啟動。</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>觸發程序不僅可以啟動、也可以停止的項目。</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>需要 WMI 才能執行的項目。</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Print Spooler 執行所需要的一切，以及這些內容又依次需要的一切。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>特殊權限與處理程序</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>要求以作業系統的一部分身分執行。</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>在 LocalSystem 之外的帳戶下執行時，可以代表用戶端執行動作。</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>其處理程序中帶有自己的服務 SID，因此權限可以單獨指名它。sidtype:restricted 詢問的是其處理程序同時還受寫入限制的那些。</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>與其他服務一起執行在共用的 svchost 內。</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>佔用超過 200 MB 的處理程序。查詢詢問記憶體時，會自動讀取記憶體。</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>位於處理程序 ID 在 1000 到 2000 之間的處理程序中。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>名稱與文字</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>查詢</th><th>找到的內容</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>單獨一個詞，在名稱、顯示名稱、帳戶和啟動路徑中搜尋。</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>恰好是這個名稱，而不是僅僅包含它的內容。</td></tr>
+          <tr><td><code>name:win*</code></td><td>以 win 開頭的名稱，用萬用字元撰寫。</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>以 svc 結尾的名稱，用規則運算式撰寫。</td></tr>
+          <tr><td><code>description:none</code></td><td>完全沒有描述，大多數驅動程式都是這樣。</td></tr>
+          <tr><td><code>description:?</code></td><td>Windows 無法提供的描述，通常是因為它指向一個不存在的語言檔案。</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Windows 為每個已登入工作階段複製的依使用者範本。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>每個欄位</h2>
+    <p>由程式本身產生，因此這張表不會與工具接受的內容脫節。沒有值清單的欄位接受文字、數字或大小：第三欄會說明是哪一種。</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>兩件值得知道的事</h2>
+    <div class="qa">
+      <div>
+        <h3>有些欄位開銷很大，查詢它們會自動開啟讀取</h3>
+        <p>在整台電腦上讀取簽章需要幾秒鐘，而記憶體是一項測量而不是一項設定，所以除非被要求，否則都不會為清單讀取它們。提到其中任何一項的查詢會自動開啟這項讀取：你不必在 <code>signed:no</code> 之外再記著加 <code>--signatures</code>。在視窗中，關於簽章的查詢會說明在簽章到達之前答案並不完整，而不是展示一份較短的清單、彷彿那就是答案。</p>
+      </div>
+      <div>
+        <h3>基於無法讀取內容得出的結果會明說</h3>
+        <p>如果項目是依據此工作階段無法讀取的欄位來判斷的，結果會帶有一行說明有多少個，因為這樣的結果可能缺少項目，或者包含了不該有的項目。這與整個工具遵守的規則相同：讀取失敗會在答案中可見，絕不會被吞掉。如果發行者僅由憑證宣稱，也會得到同樣的處理：在任何非 <code>trusted</code> 的判定旁邊，名稱會顯示為 <em>not verified</em>，而 <code>publisher:</code> 會在單獨一行中把該項目計為不確定，所以 <code>!publisher:microsoft</code> 會保留某個在簽章後被人變更過的 Microsoft 檔案。</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">命令列參考</a>
+  </div>
+</section>

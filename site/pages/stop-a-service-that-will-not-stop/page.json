@@ -11,6 +11,12 @@
     "fr": "service-windows-impossible-a-arreter",
     "es": "servicio-de-windows-que-no-se-detiene",
     "it": "servizio-windows-che-non-si-ferma",
-    "pt-br": "servico-do-windows-que-nao-para"
+    "pt-br": "servico-do-windows-que-nao-para",
+    "nl": "windows-service-die-niet-stopt",
+    "cs": "sluzba-windows-ktera-se-nezastavi",
+    "ro": "serviciu-windows-care-nu-se-opreste",
+    "tr": "durmayan-windows-hizmeti",
+    "id": "layanan-windows-yang-tidak-mau-berhenti",
+    "vi": "dich-vu-windows-khong-chiu-dung"
   }
 }

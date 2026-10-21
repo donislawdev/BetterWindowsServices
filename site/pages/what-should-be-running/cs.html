@@ -1,0 +1,86 @@
+<meta name="title" content="Které služby Windows mají na tomto stroji běžet?">
+<meta name="description" content="To nikdo obecně neřekne a seznamy, které to tvrdí, popisují jiný stroj, než je váš. Otázka, na kterou odpovědět lze: co se změnilo.">
+<meta name="nav" content="Co by mělo běžet">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Průvodce</span>
+    <h1>Které služby mají běžet?</h1>
+    <p class="lede">Poctivá odpověď je, že vám to nikdo říct nemůže a každý seznam, který to tvrdí, popisuje stroj, který není váš. Odpovědět <em>lze</em> na užší a mnohem užitečnější otázku: co na tomto stroji nesedí a co je jinak než ve chvíli, kdy to fungovalo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Proč obecná otázka nemá odpověď</h2>
+    <ul class="points points-alarm">
+      <li><strong>Sada se liší podle edice, verze a role Windows.</strong> Řadič domény, notebook a hostitel kontejnerů se neshodnou téměř na ničem a seznam napsaný pro jeden je pro ostatní špatně.</li>
+      <li><strong>Polovina nainstalovaného není z Windows.</strong> Ovladače, agenti, aktualizační služby, licenční démoni - každý z nich tam byl něčím umístěn a žádný obecný seznam neví čím.</li>
+      <li><strong>Většina služeb má být zastavená.</strong> Moderní Windows spouští zlomek toho, co registruje: zbytek čeká na trigger - příchod zařízení, otevření portu, připojení k doméně - a zastavený je jejich správný stav.</li>
+      <li><strong>Seznamy "tohle pro výkon zakažte" jsou tím, jak se stroje rozbíjejí.</strong> Služba, která vypadá nečinně, je ta, kterou na vyžádání spouští něco jiného, a porucha se objeví o týden později někde, co s tím nesouvisí.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Otázky, které odpovědi mají</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Co by mělo běžet a neběží</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows byl požádán, aby tyto spustil, a nebězí. Na zdravém stroji je to krátký seznam - pár položek, které startují pozdě a zase se zastaví. Cokoli jiného stojí za pohled.</p>
+      </div>
+      <div class="card">
+        <h3>Co je zakázáno a přesto běží</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Konfigurace a stav si odporují. Obvykle to někdo zakázal, aniž by zastavil, a příští restart bude překvapení.</p>
+      </div>
+      <div class="card">
+        <h3>Co ukazuje na soubor, který je pryč</h3>
+        <p><code>file:missing</code></p>
+        <p>Odinstalace, která po sobě nechala registraci. Neškodné, dokud se to něco nepokusí spustit, a stopa k tomu, co na tomto stroji dřív bylo.</p>
+      </div>
+      <div class="card">
+        <h3>Co nikdo nepodepsal</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Samo o sobě to nic nedokazuje a je to správné místo, kde začít číst. Druhý termín vynechá rodiny pro jednotlivé uživatele, které by jinak plnily seznam téměř duplikáty.</p>
+      </div>
+      <div class="card">
+        <h3>Co žádá o nejsilnější privilegia</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Privilegium, které procesu umožňuje otevřít jakýkoli jiný. Hrstka legitimních služeb o něj žádá a stojí za to vědět, které to na vašem stroji jsou.</p>
+      </div>
+      <div class="card">
+        <h3>Co čeká na trigger</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Zastaveno, protože o to dosud nic nepožádalo, a ne proto, že je něco špatně. Vědět, které to jsou, je způsob, jak první seznam přestane budit poplach.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ta, která překoná všechny</h2>
+    <p class="lede">Zeptejte se samotného stroje, když fungoval.</p>
+    <p>Pořiďte snímek v den, kdy stroj jde do provozu. Pak se otázka <em>má tohle běžet</em> změní na otázku <em>běželo tohle, když všechno fungovalo</em> - na otázku o vašem stroji, ne o stroji z nějakého článku.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... o týden, o záplatu nebo o incident později</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Konfigurace se hlásí odděleně od stavu běhu, takže odpovědí není čtyřicet služeb, které náhodou běží - je to typ spouštění, který někdo změnil.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Audit stroje na drift</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Než cokoli zastavíte</h2>
+    <p>Každé zastavení v tomto nástroji nejdřív ukáže svůj plán: kroky, co s nimi spadne, a varování, když je některá z nich věc, bez které stroj nefunguje. Seznam takových je výchozí seznam sedmi - obě poloviny RPC a spouštěč DCOM, správce účtů, izolace klíčů, správce relací a Plug and Play - a <strong>Vzdálená plocha na něm není</strong>, takže při vzdálené relaci plán čtěte.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Stáhnout pro Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Každé pole, na které se lze ptát</a>
+    </div>
+  </div>
+</section>

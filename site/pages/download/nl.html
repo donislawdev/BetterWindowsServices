@@ -1,0 +1,86 @@
+<meta name="title" content="Better Windows Services downloaden voor Windows - gratis, zip of MSI">
+<meta name="description" content="Twee zelfstandige programma's of een ondertekend installatieprogramma, zonder .NET. Windows 10 1809 en Server 2019 of later, 64-bits. Open source, GPL-3.0.">
+<meta name="nav" content="Download">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Download</span>
+    <h1>Uitpakken en starten, of installeren</h1>
+    <p class="lede">Versie {{version}}. De archieven hebben geen installatieprogramma nodig en schrijven niets naar het register, en kijken vraagt geen beheerdersrechten. Een ondertekend installatieprogramma zet beide programma's in plaats daarvan op de hele machine. Vrij en open source onder GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Alle releases</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat er in de release zit</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Bestand</th><th>Wat het is</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Het venster: <code>BetterWindowsServices.exe</code>, één zelfstandig uitvoerbaar bestand met een eigen .NET-runtime erin</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>De opdrachtregel: <code>bws.exe</code>, één zelfstandig uitvoerbaar bestand, voor scripts, geplande taken en CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Het installatieprogramma: beide programma's in <code>Program Files</code> voor elk account op de machine, het venster in het startmenu en <code>bws</code> in het PATH van de machine</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Neem er een of beide - het zijn twee clients van dezelfde engine en geen van beide heeft de andere nodig. Op een server is de opdrachtregel de kleinste van de twee en doet alles wat het venster doet.</p>
+    <p>Het installatieprogramma bevat precies wat de twee archieven bevatten. Het installeert stil met <code>msiexec /i {{archive_installer}} /qn</code>, een nieuwere versie installeert over een oudere heen, en het sluit niets af wat draait - sluit dus het venster en elke draaiende <code>bws</code> voordat u bijwerkt, want een kopie die blijft draaien kan met een fout stoppen. Verwijderen via Instellingen, Apps haalt de programma's, het item in het startmenu en het PATH-item weg en laat uw eigen bestanden met rust.</p>
+    <p>De uitvoerbare bestanden dragen een Authenticode-handtekening, zodat Windows de uitgever noemt in plaats van te waarschuwen voor een onbekende.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Vereisten</h2>
+    <ul class="points">
+      <li><strong>Windows 10 versie 1809 of later, of Windows Server 2019 of later.</strong> Alleen 64-bits - een 32-bits proces leest omgeleide paden en registersleutels, wat stilletjes verkeerde antwoorden zou geven.</li>
+      <li><strong>Geen .NET om te installeren.</strong> Beide uitvoerbare bestanden dragen hun eigen .NET-runtime.</li>
+      <li><strong>Beheerdersrechten om iets te wijzigen.</strong> Lezen, zoeken, momentopnamen en vergelijkingen werken zonder, met minder zichtbare items en het hulpmiddel zegt dat bovenaan in plaats van te doen alsof de lijst de hele machine is.</li>
+    </ul>
+    <p>Het venster bewaart één eigen bestand - de indeling waarin u de lijst hebt achtergelaten - onder <code>%APPDATA%\BetterWindowsServices</code>. Een momentopname komt waar u <code>bws snapshot create</code> opdraagt hem neer te zetten, en in de huidige map als u dat niet doet.</p>
+    <p class="note"><strong>Het programma spreekt Engels.</strong> Het venster leest een taalbestand, <code>languages\gui.&lt;code&gt;.json</code>, dat ernaast ligt en wordt gekozen op basis van de taal van Windows, zonder schakelaar. Een vertaling is dus een bijdrage die kan worden toegevoegd zonder opnieuw te bouwen - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> legt uit hoe.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus en EDR</h2>
+    <p class="lede">Dit hulpmiddel doet wat een beheerder met services doet, en een deel daarvan is wat beveiligingssoftware in de gaten houdt.</p>
+    <p>Het stopt en start services, het kan het proces achter een service beëindigen, en het leest van elke service de beveiligingsdescriptor en vereiste bevoegdheden. Een EDR die een proces markeert dat <code>svchost.exe</code> beëindigt, doet zijn werk, en een geforceerde stop hier kan er precies zo uitzien.</p>
+    <p>Wat het <strong>niet</strong> doet, zodat u de bewering kunt controleren: het injecteert niets in een proces, het verpakt of versluiert niets, het installeert geen service en geen stuurprogramma en laat niets draaien, en het opent geen netwerkverbinding. Het is open source onder GPL-3.0 en u kunt beide uitvoerbare bestanden zelf bouwen.</p>
+    <p>Als uw beleid een uitzondering vraagt, sluit dan de twee uitvoerbare bestanden uit op bestand in plaats van op map. Het enige wat met dezelfde zorg moet worden behandeld als het hulpmiddel zelf is een momentopnamebestand: het beschrijft de hele machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bouwen uit de broncode</h2>
+    <p>.NET 10 SDK, op Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Sommige tests lezen de echte servicebeheerder van de machine waarop ze draaien en vergelijken wat dit hulpmiddel zegt met wat <code>sc.exe</code> zegt. Ze zijn alleen-lezen. De uitvoerbare bestanden uit één bestand die de releases dragen zijn deze twee publicaties, elk één bestand met de runtime erin:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Ze komen terecht als <code>bws.exe</code> en <code>BetterWindowsServices.exe</code> onder <code>bin/Release/.../win-x64/publish/</code> van elk project. De <code>.pdb</code>-bestanden ernaast zijn foutopsporingssymbolen, en niets heeft ze nodig om te draaien.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Wat het kost om te draaien</h2>
+    <p class="lede">Gemeten op één machine met 810 services. Uw cijfers zullen verschillen - het aantal services, de schijf en de processor beïnvloeden ze allemaal.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Ongeveer een kwart seconde</h3><p>voor <code>bws list</code> om de hele machine te lezen.</p></div>
+      <div class="card"><h3>Ongeveer acht tienden van een seconde</h3><p>van het starten van het venster tot de lijst op het scherm staat.</p></div>
+      <div class="card"><h3>Ongeveer 100 MB</h3><p>voor het venster - de helft daarvan is het gebruikersinterfaceframework van Windows, voordat enige code van dit hulpmiddel draait.</p></div>
+      <div class="card"><h3>Ongeveer 16 MB</h3><p>voor de opdrachtregel op dezelfde machine.</p></div>
+    </div>
+  </div>
+</section>

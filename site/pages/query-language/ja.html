@@ -1,0 +1,177 @@
+<meta name="title" content="クエリ言語 - Windows のサービスに質問する">
+<meta name="description" content="検索ボックスと bws list --query で使える 1 つのクエリ言語。すべてのフィールドと値、そして services.msc にはできない質問、読み取れなかったものを尋ねる方法。">
+<meta name="nav" content="クエリ言語">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  フィールドの表は Bws.Core から生成されます。QueryFields.Names と QueryFields.ValuesOf は、
+  人に提示するあらゆるものが使うための公開 API なので、このページにプログラムにないフィールドを
+  書くことも、あるフィールドを書き漏らすこともできません。表の横の文は site/i18n にあります。
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">クエリ言語</span>
+    <h1>マシンに質問する</h1>
+    <p class="lede">ウィンドウの検索ボックスでも <code>bws list --query</code> でも、同じ 1 つの言語を使います。単語だけを書くと、名前、表示名、アカウント、起動パスを検索します。フィールドを付けると絞り込めます。フィールドは {{field_count}} 個あり、同じテキストはツールのどちらの側でも同じ意味になります。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>実際の質問に答える 6 つ</h2>
+    <div class="grid">
+      <div class="card"><h3>起動しているはずなのに起動していないもの</h3><p><code>start:auto !status:running</code></p><p>ほとんどの人が最初に書くクエリで、<code>services.msc</code> では全く答えられないものです。</p></div>
+      <div class="card"><h3>ファイルがなくなったサービス</h3><p><code>file:missing</code></p><p>ディスク上にない実行ファイルを指しているエントリです。たいていは、登録が残ったままアンインストールされたものです。</p></div>
+      <div class="card"><h3>署名なし。セッションごとのノイズを除く</h3><p><code>signed:no peruser:no</code></p><p>ユーザーごとのファミリーはセッションごとにコピーを作り、似たエントリで一覧が埋まります。このクエリは、それ以外について尋ねます。</p></div>
+      <div class="card"><h3>無効なのに実行中</h3><p><code>mismatch:running</code></p><p>構成と状態が食い違っている場合です。マネージャーが決して開始しないように設定されたエントリが、それでも実行されています。</p></div>
+      <div class="card"><h3>デバッグ権限を要求するもの</h3><p><code>privilege:SeDebugPrivilege</code></p><p>プロセスがほかのあらゆるプロセスを開けるようになる特権です。どのサービスが要求しているかを知っておく価値があります。</p></div>
+      <div class="card"><h3>ツールが読み取れなかったもの</h3><p><code>account:?</code></p><p>このセッションがアカウントを読み取れなかったエントリです。<code>services.msc</code> には尋ねることすらできない質問です。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>クエリの書き方</h2>
+    <div class="split">
+      <div>
+        <h3>用語</h3>
+        <ul class="prose-list">
+          <li>用語はスペースで区切り、すべてが一致する必要があります。<code>and</code> というキーワードはありません。ほかの意味になりようがないからです。</li>
+          <li>同じフィールドを 2 回書く場合だけが例外です。<code>status:running status:stopped</code> はどちらか一方を意味します。2 つのフィルターにチェックを入れたときに書かれるのが、これだからです。数値の 2 つの境界は、引き続き絞り込みになります。<code>pid:&gt;1000 pid:&lt;2000</code> は、その間の範囲です。</li>
+          <li>用語の前の <code>!</code> は否定です。<code>!status:running</code> のように書きます。<code>setlocal EnableDelayedExpansion</code> を指定したバッチファイルでは、cmd がこの <code>!</code> を何の断りもなく消してしまい、クエリは静かに別の意味になります。その場合は引用符の中で <code>^!</code> と書いてください。</li>
+          <li>フィールド内のカンマは<em>または</em>を意味します。<code>start:manual,disabled</code> のように使います。</li>
+          <li>スペースやコロンを含むものは、引用符で保護します。<code>account:"NT SERVICE\McmSvc"</code> のようにします。</li>
+          <li><code>C:\Windows\System32\svchost.exe</code> のようにそのまま貼り付けたパスは、C というフィールドとしては読まれず、検索されます。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>テキストの照合方法</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> は、それを<em>含む</em>ものすべてに一致します。検索ボックスに人が期待する動作なので、これが既定です。</li>
+          <li><code>name:=spooler</code> は完全一致です。</li>
+          <li><code>name:spool*</code> はワイルドカード <code>*</code> と <code>?</code> を使えます。</li>
+          <li><code>name:/^Sql.*/</code> は正規表現で、スラッシュの中は正規表現の書き方どおりに書きます。<code>\?</code>、<code>\\</code>、カンマは、そこでの意味になります。閉じられないスラッシュはエラーです。スラッシュ自体を検索するには、<code>\/</code> と書くか、引用符を使います。</li>
+          <li>大文字と小文字は区別されず、ASCII 以外でも同様です。ポーランド語やギリシャ語の表示名も、どのように入力しても一致します。</li>
+        </ul>
+      </div>
+    </div>
+    <h3>すべてのフィールドが受け付ける 3 つの語</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>入力ミスのある値は、空の結果ではなくエラーになります。</strong><code>status:runing</code> には <em>Did you mean running?</em> と応答し、コード <code>2</code> で終了します。空の一覧は答えのように見えてしまいますが、「一致するものがない」と「入力が間違っている」の違いは、きれいなマシンと何も証明していない監査との違いです。何も絞り込まないクエリはコマンドラインでも拒否されるので、入力ミスのせいでスクリプトがマシン全体を操作することはありません。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>さらに例</h2>
+    <p class="lede">どれも、ウィンドウの検索ボックスでも <code>bws list --query</code> の後でも同じように動作し、ここに書く前に実際の Windows で実行しています。何が見つかるかはマシンによって異なります。そして、問題についての質問では、空の答えが最も望ましい答えです。</p>
+    <div class="examples">
+    <h3>状態とスタートアップの種類</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>停止中または開始中のまま止まっているもの。スナップインが表示し、終わることのない待機です。</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>自動開始に設定され、停止していて、トリガーを待っていないもの。再起動のあとに読む価値のある短い一覧です。</td></tr>
+          <tr><td><code>start:delayed</code></td><td>自動ですが、ほかの自動のエントリより少しあとに開始されます。</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>起動時に何も開始しないのに実行中のもの。何かが要求した、トリガーが開始した、または誰かが開始しました。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>アカウント</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>LocalSystem、最も強力なアカウントで実行されていて、Microsoft が署名していないファイルのもの。発行元についてのクエリは署名を自動的に読み取るため、数秒かかります。</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>それ以外のアカウントで実行されているサービス。仮想アカウント、管理されたアカウント、または個人のアカウントです。</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>サービス独自の仮想アカウントです。スペースがあるため、引用符で単語をまとめています。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>ファイルと署名</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>署名なし、Windows が信頼しないチェーン、または署名後に変更されたファイル。</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>署名済みで、信頼されていて、Microsoft のものではない。他社がこのマシンに入れたソフトウェアです。</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Windows の起動時に読み込まれるドライバーで、署名を Windows が信頼していないもの。健全なマシンでは 0 件です。</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>独自のプロセスを持つサービスで、ファイルが Windows フォルダーの外にあるもの。</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>誰かのプロファイルの中から起動されているもの。サービスがあるとは最も予想されない場所です。</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>スペースの前のバックスラッシュは、そのスペースを単語の一部にします。そのため、バックスラッシュで終わるパスの後に別の用語が続く場合は、バックスラッシュを 2 つ書きます。クエリの末尾では 1 つで足ります。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>トリガーと依存関係</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>デバイスの接続を待っているため、理由があって停止しています。</td></tr>
+          <tr><td><code>trigger:network</code></td><td>ネットワークのエンドポイント（ポート、名前付きパイプ、RPC インターフェイス）に要求が届くと開始されます。</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>トリガーが開始するだけでなく、停止もできるエントリです。</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>実行に WMI を必要とするエントリです。</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Print Spooler の実行に必要なすべてのものと、それらが順に必要とするものです。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>特権とプロセス</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>オペレーティング システムの一部として動作することを要求します。</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>LocalSystem 以外のアカウントで実行されながら、クライアントの代わりに動作できます。</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>プロセスに独自のサービス SID を持つため、アクセス許可でそのサービスだけを名前で指定できます。sidtype:restricted は、さらにプロセスが書き込み制限されているものについて尋ねます。</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>共有 svchost の中で、ほかのサービスとともに実行されています。</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>200 MB を超えて使用しているプロセスです。クエリが尋ねると、メモリは自動的に読み取られます。</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>ID が 1000 から 2000 の間のプロセスで動いています。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>名前とテキスト</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>クエリ</th><th>見つかるもの</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>単語だけのクエリで、名前、表示名、アカウント、起動パスの中から検索されます。</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>この名前だけで、単に含むだけのものは含みません。</td></tr>
+          <tr><td><code>name:win*</code></td><td>win で始まる名前で、ワイルドカードで書いています。</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>svc で終わる名前で、正規表現で書いています。</td></tr>
+          <tr><td><code>description:none</code></td><td>説明が全くないもの。ほとんどのドライバーがこれです。</td></tr>
+          <tr><td><code>description:?</code></td><td>Windows が渡せなかった説明。たいていは、存在しない言語ファイルを指しているためです。</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Windows が、サインインしているセッションごとにコピーするユーザーごとのテンプレートです。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>すべてのフィールド</h2>
+    <p>プログラム自体から生成しているため、この表がツールの受け付ける内容からずれることはありません。値の一覧がないフィールドは、テキスト、数値、またはサイズを受け付けます。どれかは 3 列目に書かれています。</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>知っておく価値のある 2 つのこと</h2>
+    <div class="qa">
+      <div>
+        <h3>高コストなフィールドがあり、尋ねると読み取りが有効になります</h3>
+        <p>署名はマシン全体で数秒かかり、メモリは設定ではなく計測値であるため、頼まれない限り、一覧のためには読み取られません。そのどちらかに触れるクエリは、その読み取りを自動的に有効にします。<code>signed:no</code> に加えて <code>--signatures</code> を覚えておく必要はありません。ウィンドウでは、署名についてのクエリは、署名が届くまで答えが不完全であることを伝え、短い一覧をあたかも答えであるかのように見せることはしません。</p>
+      </div>
+      <div>
+        <h3>読み取れなかったものに基づく結果は、そのことを伝えます</h3>
+        <p>読み取れなかったフィールドに基づいてエントリを判定した場合、結果にはその数を示す行が付きます。そのような結果では、エントリが足りない、または含まれるべきでないものが入っている可能性があるからです。これはツール全体が守っている規則と同じです。読み取りの失敗は答えの中で見え、黙って捨てられることは決してありません。証明書だけが主張している発行元にも、同じ扱いをします。<code>trusted</code> 以外の判定の横では、名前は <em>not verified</em> と表示され、<code>publisher:</code> はそのエントリを不確かなものとして別の行で数えます。そのため <code>!publisher:microsoft</code> は、署名後に誰かが変更した Microsoft のファイルを残します。</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">コマンドライン リファレンス</a>
+  </div>
+</section>

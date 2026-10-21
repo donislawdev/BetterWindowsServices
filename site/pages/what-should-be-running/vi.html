@@ -1,0 +1,86 @@
+<meta name="title" content="Những dịch vụ Windows nào nên chạy trên máy này?">
+<meta name="description" content="Không ai có thể trả lời chung chung, và các danh sách tự nhận làm được đều mô tả một máy khác. Câu hỏi có thể trả lời: điều gì đã thay đổi.">
+<meta name="nav" content="Điều gì nên chạy">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Hướng dẫn</span>
+    <h1>Những dịch vụ nào nên chạy?</h1>
+    <p class="lede">Câu trả lời trung thực là không ai nói cho bạn được, và mọi danh sách tự nhận làm được đều đang mô tả một máy không phải của bạn. Điều <em>có thể</em> trả lời hẹp hơn và hữu ích hơn nhiều: điều gì không khớp trên máy này, và điều gì khác so với lúc nó còn hoạt động.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Vì sao câu hỏi chung chung không có câu trả lời</h2>
+    <ul class="points points-alarm">
+      <li><strong>Tập hợp khác nhau theo phiên bản, ấn bản và vai trò của Windows.</strong> Một bộ điều khiển miền, một máy xách tay và một máy chủ chứa container bất đồng gần như về mọi thứ, và một danh sách viết cho cái này thì sai với các cái kia.</li>
+      <li><strong>Một nửa những gì được cài không đến từ Windows.</strong> Trình điều khiển, tác nhân, dịch vụ cập nhật, tiến trình nền cấp phép - mỗi thứ đều do một thứ gì đó đặt vào đó, và không danh sách chung nào biết là thứ gì.</li>
+      <li><strong>Hầu hết dịch vụ được thiết kế để ở trạng thái dừng.</strong> Một Windows hiện đại khởi động một phần nhỏ những gì nó đăng ký: phần còn lại chờ một trình kích hoạt - một thiết bị xuất hiện, một cổng mở ra, việc gia nhập miền - và dừng là trạng thái đúng của chúng.</li>
+      <li><strong>Các danh sách "hãy vô hiệu hóa những cái này để tăng hiệu năng" là cách máy bị hỏng.</strong> Dịch vụ trông như rảnh rỗi chính là cái mà thứ khác khởi động theo yêu cầu, và sự cố hiện ra một tuần sau ở một nơi chẳng liên quan.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Những câu hỏi có câu trả lời</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Những gì lẽ ra phải chạy mà không chạy</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>Windows được bảo khởi động những dịch vụ này và chúng không chạy. Trên một máy khỏe mạnh đây là một danh sách ngắn - vài mục khởi động muộn rồi lại dừng. Bất cứ thứ gì khác đều đáng xem.</p>
+      </div>
+      <div class="card">
+        <h3>Những gì bị vô hiệu hóa mà vẫn chạy</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Cấu hình và trạng thái không khớp. Thường là ai đó đã vô hiệu hóa nó mà không dừng nó, và lần khởi động lại tới sẽ là một bất ngờ.</p>
+      </div>
+      <div class="card">
+        <h3>Những gì trỏ tới một tệp đã mất</h3>
+        <p><code>file:missing</code></p>
+        <p>Một lần gỡ cài đặt để lại phần đăng ký. Vô hại cho đến khi có thứ cố khởi động nó, và là manh mối về những gì từng có trên máy này.</p>
+      </div>
+      <div class="card">
+        <h3>Những gì không ai ký</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Bản thân nó không chứng minh được gì, và là chỗ đúng để bắt đầu đọc. Thành phần thứ hai loại bỏ các họ theo người dùng, vốn sẽ lấp danh sách bằng những mục gần như trùng.</p>
+      </div>
+      <div class="card">
+        <h3>Những gì yêu cầu đặc quyền mạnh nhất</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Một đặc quyền cho phép một tiến trình mở bất kỳ tiến trình nào khác. Một số ít dịch vụ hợp lệ yêu cầu nó, và đáng biết là những dịch vụ nào trên máy của bạn.</p>
+      </div>
+      <div class="card">
+        <h3>Những gì đang chờ một trình kích hoạt</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Dừng vì chưa có gì yêu cầu chúng, chứ không phải vì có gì sai. Biết chúng là những dịch vụ nào chính là cách danh sách đầu tiên thôi gây lo ngại.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cái đánh bại tất cả</h2>
+    <p class="lede">Hỏi chính cái máy, khi nó còn hoạt động.</p>
+    <p>Chụp một bản vào ngày máy được đưa vào hoạt động. Khi đó <em>cái này có nên chạy không</em> trở thành <em>cái này có chạy khi mọi thứ còn hoạt động không</em> - một câu hỏi về máy của bạn chứ không phải về một cái máy trong một bài báo.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... một tuần, một bản vá, hay một sự cố sau</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>Cấu hình được báo riêng với trạng thái chạy, nên câu trả lời không phải bốn mươi dịch vụ tình cờ đang chạy - mà là kiểu khởi động mà ai đó đã đổi.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Kiểm toán một máy để tìm sai lệch</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trước khi bạn dừng bất cứ thứ gì</h2>
+    <p>Mỗi lệnh dừng trong công cụ này hiển thị kế hoạch của nó trước: các bước, những gì bị kéo theo, và một cảnh báo khi một trong số đó là thứ mà máy không hoạt động nếu thiếu. Danh sách các dịch vụ ấy là một danh sách khởi đầu gồm bảy - hai nửa của RPC và trình khởi chạy DCOM, trình quản lý tài khoản, cô lập khóa, trình quản lý phiên và plug and play - và <strong>Remote Desktop không có trong đó</strong>, nên khi qua một phiên từ xa, hãy đọc kế hoạch.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Mọi trường bạn có thể hỏi</a>
+    </div>
+  </div>
+</section>

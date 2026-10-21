@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe và Get-Service, so với một công cụ dựng cho kiểm toán">
+<meta name="description" content="sc.exe làm được mọi thứ mà không nói gì. Get-Service viết script được nhưng nông cạn. Mỗi cái còn tốt nhất ở đâu, và ngôn ngữ truy vấn cùng kế hoạch hơn ở đâu.">
+<meta name="nav" content="sc.exe và PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Hướng dẫn</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code>, và công cụ này</h1>
+    <p class="lede">Cả hai đều đã có sẵn trên máy, và cả hai sẽ vẫn hữu ích. Trang này nói về chỗ chúng dừng lại - và nói thẳng chỗ nào chúng vẫn là câu trả lời tốt hơn.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mỗi cái dừng lại ở đâu</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Nó chạm tới hầu hết mọi thứ mà trình quản lý điều khiển dịch vụ biết, và không cho bạn biết gì về cách hỏi. Cú pháp từ thập niên chín mươi - <code>sc config X start= auto</code>, trong đó dấu cách sau dấu bằng là bắt buộc và việc thiếu nó là một thất bại thầm lặng trong việc làm điều bạn muốn.</p>
+        <p>Nó trả lời về một mục mỗi lần. Không có bộ lọc, không có đầu ra mà script phân tích được nếu không viết một trình phân tích, và không có xem trước: <code>sc stop</code> hoặc là chạy hoặc là trả về một con số.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> và các cmdlet <code>*-Service</code></h3>
+        <p>Đối tượng thực thụ, một pipeline, và một cái nhìn nông. Trong Windows PowerShell 5.1, bản đi kèm Windows, <code>Get-Service</code> không hiển thị tài khoản mà một dịch vụ chạy hay mô tả của nó. PowerShell 7 hiển thị cả hai, cùng cả đường dẫn khởi chạy, và được cài riêng.</p>
+        <p><code>Stop-Service -Force</code> nghĩa là "ngay cả khi có thứ phụ thuộc vào nó" - nó dừng các dịch vụ phụ thuộc, và nói với bạn sau đó thay vì trước.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cùng những câu hỏi, ba cách</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Câu hỏi</th><th>Với những gì có trên máy</th><th>Ở đây</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Những gì lẽ ra phải chạy mà không chạy</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Những dịch vụ nào có tệp thực thi chưa ký</td>
+            <td class="no">Đọc từng đường dẫn khởi chạy, phân giải nó, gọi <code>Get-AuthenticodeSignature</code> trên từng cái - một script, không phải một lệnh</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Việc dừng cái này sẽ kéo theo những gì</td>
+            <td><code>sc enumdepend X</code>, rồi đọc danh sách và tự quyết định</td>
+            <td><code>bws stop X --dry-run --dependents</code>, chính là kế hoạch sẽ chạy</td>
+          </tr>
+          <tr>
+            <td>Điều gì đã thay đổi từ tuần trước</td>
+            <td class="no">Không có gì, trừ khi bạn tự viết bộ thu thập</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Ai đã đổi kiểu khởi động, và khi nào</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, rồi đọc thông điệp của từng sự kiện</td>
+            <td><code>bws history Spooler</code>, dòng đầu của nó nói nhật ký lùi xa đến đâu</td>
+          </tr>
+          <tr>
+            <td>Đầu ra máy đọc được</td>
+            <td>Đối tượng từ PowerShell, văn bản từ <code>sc.exe</code></td>
+            <td><code>--json</code> ở mọi lệnh, trên đầu ra chuẩn, với cảnh báo trên lỗi chuẩn</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Chỗ nào công cụ này bất đồng với <code>sc.exe</code> về một dịch vụ, đó là một lỗi ở đây.</strong> Một phần bộ kiểm thử chạy cả hai trên máy mà nó đang chạy và so sánh từng mục, và một khác biệt giữa hai bên là điều hữu ích nhất để đưa vào một báo cáo sự cố.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Khi nào nên tiếp tục dùng thứ bạn đang có</h2>
+    <ul class="points">
+      <li><strong>Bạn đang ở trên một máy mà bạn chỉ chạm vào một lần.</strong> Cả hai đã có sẵn ở đó và không gì phải vượt qua một chính sách.</li>
+      <li><strong>Bạn cần thay đổi tài khoản, đường dẫn khởi chạy hoặc hành động khôi phục.</strong> <code>sc.exe</code> làm được cả ba. Công cụ này hiển thị tài khoản và đường dẫn khởi chạy và không thay đổi cái nào, và chỉ đọc hành động khôi phục để cảnh báo trước khi kết thúc một tiến trình.</li>
+      <li><strong>Bạn cần tạo hoặc xóa một dịch vụ.</strong> <code>sc create</code> và <code>sc delete</code>. Không có ở đây, có chủ ý.</li>
+      <li><strong>Bạn đã ở sâu trong một pipeline PowerShell.</strong> <code>bws list --json</code> trở về dưới dạng đối tượng qua <code>ConvertFrom-Json</code>, nên nó tham gia vào pipeline chứ không thay thế nó.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cùng nhau, thay vì thay thế</h2>
+    <p>Công cụ trả lời <em>máy này có gì sai</em> và các công cụ thay đổi một thiết lập không phải cùng một công cụ. Hãy đặt câu hỏi ở đây, đọc kế hoạch ở đây, và dùng bất cứ thứ gì bạn thích để thực hiện - kế hoạch in ra dòng lệnh yêu cầu điều tương tự, và dòng đó được tạo ra để sao chép.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Ngôn ngữ truy vấn</a>
+    </div>
+  </div>
+</section>

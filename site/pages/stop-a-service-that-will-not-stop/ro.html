@@ -1,0 +1,68 @@
+<meta name="title" content="Un serviciu Windows blocat pe Stopping - încheiere în siguranță">
+<meta name="description" content="Un serviciu blocat pe Stopping își împarte de obicei procesul cu altele. Vedeți care, înainte să încheiați ceva, apoi readuceți-le pe toate cu o singură comandă.">
+<meta name="nav" content="Serviciu blocat pe Stopping">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ghid</span>
+    <h1>Un serviciu blocat pe <em>Stopping...</em></h1>
+    <p class="lede">Snap-in-ul arată <em>Stopping</em> și nu se mișcă niciodată. Răspunsul obișnuit este Task Manager, o presupunere în ce <code>svchost.exe</code> trăiește și End task - ceea ce încheie și fiecare alt serviciu din acel proces, fără să vă spună care au fost.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De ce se întâmplă</h2>
+    <ul class="points points-alarm">
+      <li><strong>Serviciul nu răspunde la cererea de oprire.</strong> Windows îi cere politicos și așteaptă. Un serviciu care s-a blocat sau care așteaptă ceva ce nu se mai întoarce nu răspunde niciodată.</li>
+      <li><strong>Ceva care depinde de el încă rulează.</strong> Managerul refuză oprirea în loc să strice celălalt serviciu, iar snap-in-ul arată asta ca o așteptare.</li>
+      <li><strong>Își împarte procesul cu altele.</strong> Majoritatea serviciilor Windows trăiesc într-un <code>svchost.exe</code> partajat. Încheierea acelui proces le încheie pe toate, exact ce face Task Manager fără să le numească.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Priviți înainte să încheiați ceva</h2>
+    <p>Întrebați ce ar lua cu sine încheierea lui. Nu se întâmplă nimic până nu renunțați la <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Previzualizarea numește procesul prin număr, numește fiecare alt serviciu care trăiește în el și arată doi pași în loc de unul: cere serviciului să se oprească și, <em>doar dacă asta nu funcționează</em>, încheie procesul. Un serviciu care se oprește singur nu este niciodată încheiat.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> sare peste pasul politicos</strong> și încheie procesul imediat. Schimbă planul și nu modul de rulare, deci previzualizarea arată un pas în loc de doi, iar diferența este vizibilă înainte să se întâmple ceva.</li>
+        <li><strong><code>--restart</code> readuce totul</strong> după ce procesul a dispărut - intrarea despre care ați întrebat și tot ce îi împărțea procesul. Fără el, mașina rămâne cu acele servicii oprite, iar raportul spune cum să le porniți din nou.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Refuzul vine înaintea butonului.</strong> Un driver, un proces pe care sistemul îl protejează, un serviciu pentru care managerul nu acceptă o oprire - refuzat la construirea planului, cu motivul, și nu după o așteptare de șaizeci de secunde.</li>
+        <li><strong>Un avertisment când contează.</strong> Dacă intrarea este una fără de care mașina nu funcționează, planul spune asta - oprirea doboară mașina, nu doar serviciul.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Încheierea unui proces este singurul lucru pe care îl face acest instrument și pe care nimeni nu-l poate refuza în numele mașinii.</strong> De aceea este o comandă proprie, de aceea previzualizarea numește fiecare serviciu pe care îl ia cu sine și de aceea pasul politicos vine primul, dacă nu spuneți altfel.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ordinea mai sigură</h2>
+    <ol class="prose-list">
+      <li><strong>Vedeți ce este.</strong> <code>bws show Spooler</code> - procesul, ce depinde de el, de ce depinde el și dacă acceptă deloc cereri de oprire.</li>
+      <li><strong>Încercați oprirea obișnuită, ca plan.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Dacă răspunsul este un refuz, spune care dintre cele trei motive este.</li>
+      <li><strong>Dacă nu se oprește, priviți cât costă încheierea lui.</strong> <code>bws kill Spooler --dry-run</code> și citiți lista serviciilor care împart acel proces.</li>
+      <li><strong>Apoi faceți-o, cu o cale de întoarcere.</strong> <code>bws kill Spooler --restart</code>. Raportul se încheie cu ce n-a mers și cu comenzile care pun lucrurile la loc.</li>
+    </ol>
+    <p>Toate patru funcționează la fel în fereastră: clic dreapta pe un rând, alegeți <em>Force stop...</em>, citiți planul, iar butonul de sub el poartă numele a ceea ce va face.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De ce nu doar Task Manager</h2>
+    <p class="lede">Pentru că răspunde la o altă întrebare. Task Manager cunoaște procesele, iar această problemă este despre servicii, iar cele două nu se aliniază unul la unul.</p>
+    <p>Un <code>svchost.exe</code> partajat poate conține o duzină de servicii. Task Manager îl va încheia fără să spună care douăsprezece, niciunul nu revine singur și nimic după aceea nu vă spune ce s-a oprit. Un EDR care semnalează un proces ce încheie <code>svchost.exe</code> își face treaba și nu poate deosebi clicul dumneavoastră de orice altceva.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Referința completă</a>
+    </div>
+  </div>
+</section>

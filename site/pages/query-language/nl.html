@@ -1,0 +1,178 @@
+<meta name="title" content="De querytaal - stel uw Windows-services een vraag">
+<meta name="description" content="Eén querytaal voor het zoekvak en voor bws list --query. Elk veld, elke waarde, en de vraag die services.msc niet kan stellen: wat niet gelezen kon worden.">
+<meta name="nav" content="Querytaal">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  De veldentabel wordt GEBOUWD uit Bws.Core - QueryFields.Names en QueryFields.ValuesOf zijn
+  publieke API, bedoeld voor alles wat ze aan een mens aanbiedt, dus deze pagina kan geen veld
+  noemen dat het programma niet heeft, en er geen missen dat het wel heeft. De zinnen ernaast
+  staan in site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">De querytaal</span>
+    <h1>Stel de machine een vraag</h1>
+    <p class="lede">Eén taal, in het zoekvak van het venster en in <code>bws list --query</code>. Een kaal woord zoekt in de naam, de weergavenaam, het account en het opstartpad. Een veld beperkt het. {{field_count}} velden, en dezelfde tekst betekent hetzelfde in beide helften van het hulpmiddel.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Zes die een echte vraag beantwoorden</h2>
+    <div class="grid">
+      <div class="card"><h3>Wat zou moeten draaien en niet draait</h3><p><code>start:auto !status:running</code></p><p>De eerste query die de meeste mensen schrijven, en die <code>services.msc</code> helemaal niet kan beantwoorden.</p></div>
+      <div class="card"><h3>Services waarvan het bestand weg is</h3><p><code>file:missing</code></p><p>Een item dat naar een uitvoerbaar bestand wijst dat niet op schijf staat. Meestal een verwijdering die de registratie heeft laten staan.</p></div>
+      <div class="card"><h3>Niet ondertekend, zonder de sessieruis</h3><p><code>signed:no peruser:no</code></p><p>De families per gebruiker maken per sessie een kopie en vullen een lijst met bijna-duplicaten. Dit vraagt naar de rest.</p></div>
+      <div class="card"><h3>Draait terwijl uitgeschakeld</h3><p><code>mismatch:running</code></p><p>Configuratie en toestand die het oneens zijn - een item dat de beheerder nooit hoort te starten, en dat toch draait.</p></div>
+      <div class="card"><h3>Alles wat om foutopsporingsrechten vraagt</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Een bevoegdheid waarmee een proces elk ander proces kan openen. Het is de moeite waard te weten welke services erom vragen.</p></div>
+      <div class="card"><h3>Wat het hulpmiddel niet kon lezen</h3><p><code>account:?</code></p><p>De items waarvan deze sessie het account niet kon lezen. Een vraag die <code>services.msc</code> niet eens kan stellen.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Hoe een query wordt geschreven</h2>
+    <div class="split">
+      <div>
+        <h3>Termen</h3>
+        <ul class="prose-list">
+          <li>Termen worden gescheiden door spaties en ze moeten allemaal overeenkomen - er is geen sleutelwoord <code>and</code> omdat het niets anders zou kunnen betekenen.</li>
+          <li>Hetzelfde veld twee keer geschreven is de enige uitzondering: <code>status:running status:stopped</code> betekent een van beide, want dat is wat het aanvinken van twee filters schrijft. Twee grenzen op een getal beperken nog steeds - <code>pid:&gt;1000 pid:&lt;2000</code> is het bereik ertussen.</li>
+          <li><code>!</code> voor een term ontkent hem: <code>!status:running</code>. In een batchbestand met <code>setlocal EnableDelayedExpansion</code> eet cmd die <code>!</code> zonder een woord op en betekent de query stilletjes iets anders - schrijf daar <code>^!</code> tussen de aanhalingstekens.</li>
+          <li>Een komma binnen een veld is <em>of</em>: <code>start:manual,disabled</code>.</li>
+          <li>Aanhalingstekens beschermen alles met spaties of dubbele punten: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Een pad zoals het is geplakt - <code>C:\Windows\System32\svchost.exe</code> - wordt gezocht, niet gelezen als een veld met de naam C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Hoe tekst wordt vergeleken</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> komt overeen met alles wat het <em>bevat</em> - de standaard, want dat verwachten mensen van een zoekvak.</li>
+          <li><code>name:=spooler</code> is exact.</li>
+          <li><code>name:spool*</code> neemt jokertekens, <code>*</code> en <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> is een reguliere expressie, en tussen de schuine strepen wordt ze geschreven zoals reguliere expressies worden geschreven: <code>\?</code>, <code>\\</code> en een komma betekenen daar wat ze daar betekenen. Een schuine streep die nooit sluit is een fout - om naar de schuine streep zelf te zoeken, schrijft u <code>\/</code> of gebruikt u aanhalingstekens.</li>
+          <li>Hoofdletters worden genegeerd, ook buiten ASCII - een weergavenaam in het Pools of Grieks komt overeen hoe hij ook wordt getypt.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Drie woorden die elk veld accepteert</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Een verkeerd getypte waarde is een fout, nooit een leeg resultaat.</strong> <code>status:runing</code> antwoordt <em>Did you mean running?</em> en eindigt met code <code>2</code>. Een lege lijst zou op een antwoord lijken, en het verschil tussen "niets komt overeen" en "u hebt het verkeerd getypt" is het verschil tussen een schone machine en een audit die niets bewees. Een query die niets zou beperken wordt ook op de opdrachtregel geweigerd, zodat een script niet op de hele machine werkt door een typefout.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Meer voorbeelden</h2>
+    <p class="lede">Elk werkt hetzelfde in het zoekvak van het venster en na <code>bws list --query</code>, en elk is op een echte Windows uitgevoerd voordat het hier werd geschreven. Wat het vindt hangt af van de machine - en bij een vraag over problemen is een leeg antwoord degene die u wilt.</p>
+    <div class="examples">
+    <h3>Toestand en opstarttype</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Vast bij stoppen of starten - het wachten dat de snap-in toont en dat nooit eindigt.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Ingesteld om automatisch te starten, gestopt, en niet wachtend op een trigger - de korte lijst die na een herstart de moeite van het lezen waard is.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Automatisch, een beetje na de andere automatische items gestart.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Draait hoewel niets het bij het opstarten start - iets heeft erom gevraagd, een trigger heeft het gestart, of iemand.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Accounts</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Draait als LocalSystem, het sterkste account, vanuit een bestand dat Microsoft niet heeft ondertekend. Een query over de uitgever leest handtekeningen vanzelf, dus het duurt een paar seconden.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Services die onder een ander account draaien - een virtueel, een beheerd of dat van een persoon zelf.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Een virtueel account van de service zelf. De aanhalingstekens houden de woorden bij elkaar, vanwege de spatie.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Bestanden en handtekeningen</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Geen handtekening, een keten die Windows niet vertrouwt, of een bestand dat is gewijzigd nadat het werd ondertekend.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Ondertekend, vertrouwd, en niet door Microsoft - de software die andere bedrijven op deze machine hebben gezet.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Stuurprogramma's die worden geladen terwijl Windows start en waarvan Windows de handtekening niet vertrouwt. Op een gezonde machine geen enkel.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Een service met een eigen proces waarvan het bestand buiten de Windows-map staat.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Gestart vanuit iemands profiel, de laatste plek waar een service wordt verwacht.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Een backslash voor een spatie maakt de spatie deel van het woord, dus een pad dat op een backslash eindigt wordt met twee geschreven als er nog een term op volgt. Aan het eind van de query is één genoeg.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Triggers en afhankelijkheden</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Wacht tot een apparaat verschijnt, dus om een reden gestopt.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Gestart wanneer een verzoek bij een netwerkeindpunt aankomt - een poort, een named pipe of een RPC-interface.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Items die een trigger kan stoppen, niet alleen starten.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Items die WMI nodig hebben om te draaien.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Alles wat de Print Spooler nodig heeft om te draaien, en wat die op hun beurt nodig hebben.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Bevoegdheden en processen</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Vraagt om op te treden als deel van het besturingssysteem.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Kan namens een client handelen terwijl het onder een ander account dan LocalSystem draait.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Draagt een eigen service-SID in zijn proces, zodat machtigingen het alleen kunnen noemen. sidtype:restricted vraagt naar degene waarvan het proces ook schrijfbeperkt is.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Draait binnen een gedeelde svchost, samen met andere.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Een proces dat meer dan 200 MB gebruikt. Geheugen wordt vanzelf gelezen wanneer een query erom vraagt.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>In een proces waarvan de id tussen 1000 en 2000 ligt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Namen en tekst</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Query</th><th>Wat het vindt</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Een kaal woord, gezocht in de naam, de weergavenaam, het account en het opstartpad.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Precies deze naam, en niets wat hem alleen maar bevat.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Namen die met win beginnen, geschreven met een jokerteken.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Namen die op svc eindigen, geschreven als reguliere expressie.</td></tr>
+          <tr><td><code>description:none</code></td><td>Helemaal geen beschrijving, wat bij de meeste stuurprogramma's zo is.</td></tr>
+          <tr><td><code>description:?</code></td><td>Een beschrijving die Windows niet kon aanleveren, meestal omdat ze naar een taalbestand wijst dat er niet is.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>De sjablonen per gebruiker die Windows kopieert voor elke aangemelde sessie.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Elk veld</h2>
+    <p>Gebouwd uit het programma zelf, dus deze tabel kan niet afwijken van wat het hulpmiddel accepteert. Een veld zonder lijst met waarden neemt tekst, een getal of een grootte - de derde kolom zegt welke.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Twee dingen om te weten</h2>
+    <div class="qa">
+      <div>
+        <h3>Sommige velden zijn duur, en erom vragen zet het lezen aan</h3>
+        <p>Handtekeningen kosten enkele seconden over een hele machine en geheugen is een meting en geen instelling, dus geen van beide wordt voor een lijst gelezen tenzij erom gevraagd wordt. Een query die er een noemt zet dat lezen vanzelf aan - u hoeft niet aan <code>--signatures</code> te denken naast <code>signed:no</code>. In het venster zegt een query over handtekeningen dat het antwoord onvolledig is totdat ze er zijn, in plaats van een kortere lijst te tonen alsof dat het antwoord was.</p>
+      </div>
+      <div>
+        <h3>Een resultaat dat op iets onleesbaars is beoordeeld, zegt dat</h3>
+        <p>Als items zijn beoordeeld op een veld dat deze sessie niet kon lezen, draagt het resultaat een regel die zegt hoeveel - omdat zo'n resultaat items kan missen, of items kan bevatten die er niet in horen. Dat is dezelfde regel die het hele hulpmiddel aanhoudt: een mislukte lezing is zichtbaar in het antwoord, nooit ingeslikt. Een uitgever krijgt dezelfde behandeling wanneer alleen het certificaat hem beweert: naast elk ander oordeel dan <code>trusted</code> wordt de naam getoond als <em>not verified</em>, en <code>publisher:</code> telt het item als onzeker in een regel van zichzelf - dus <code>!publisher:microsoft</code> behoudt een Microsoft-bestand dat iemand na het ondertekenen heeft gewijzigd.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">De naslag van de opdrachtregel</a>
+  </div>
+</section>

@@ -1,0 +1,86 @@
+<meta name="title" content="Better Windows Services をダウンロード - 無料、zip または MSI">
+<meta name="description" content="自己完結型の実行ファイル 2 つ、または署名付きインストーラー。.NET のインストールは不要です。Windows 10 1809 / Server 2019 以降の 64 ビット対応。無料でオープンソース、GPL-3.0。">
+<meta name="nav" content="ダウンロード">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ダウンロード</span>
+    <h1>展開して実行、またはインストール</h1>
+    <p class="lede">バージョン {{version}}。アーカイブにインストーラーは不要で、レジストリには何も書き込みません。見るだけなら管理者権限は不要です。署名付きインストーラーを使うと、代わりに両方のプログラムがマシン全体にインストールされます。GPL-3.0 の下で、無料でオープンソースです。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows 版をダウンロード</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">すべてのリリース</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>リリースの内容</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ファイル</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>ウィンドウです。<code>BetterWindowsServices.exe</code> という 1 つの自己完結型の実行ファイルで、.NET ランタイムが内蔵されています</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>コマンドラインです。<code>bws.exe</code> という 1 つの自己完結型の実行ファイルで、スクリプト、スケジュールされたタスク、CI 向けです</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>インストーラーです。マシン上のすべてのアカウント向けに、両方のプログラムを <code>Program Files</code> にインストールし、ウィンドウをスタート メニューに、<code>bws</code> をマシンの PATH に追加します</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>どちらか一方、または両方をお使いください。同じエンジンの 2 つのクライアントであり、どちらも相手を必要としません。サーバーでは、コマンドラインのほうが小さく、ウィンドウができることはすべて行えます。</p>
+    <p>インストーラーには、2 つのアーカイブの内容がそのまま入っています。<code>msiexec /i {{archive_installer}} /qn</code> でサイレントインストールでき、新しいバージョンは古いバージョンに上書きインストールされます。実行中のものは閉じないため、アップグレード前にウィンドウと実行中の <code>bws</code> を閉じてください。実行したままのコピーはエラーで停止することがあります。「設定」の「アプリ」からアンインストールすると、プログラム、スタート メニューの項目、PATH の項目が削除され、ご自身のファイルには手を触れません。</p>
+    <p>実行ファイルには Authenticode 署名があるため、Windows は不明な発行元として警告せず、発行元の名前を表示します。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>要件</h2>
+    <ul class="points">
+      <li><strong>Windows 10 バージョン 1809 以降、または Windows Server 2019 以降。</strong>64 ビットのみです。32 ビットのプロセスはリダイレクトされたパスとレジストリキーを読むため、静かに誤った答えを出してしまいます。</li>
+      <li><strong>.NET のインストールは不要です。</strong>どちらの実行ファイルも、独自の .NET ランタイムを内蔵しています。</li>
+      <li><strong>何かを変更するには管理者権限が必要です。</strong>読み取り、検索、スナップショット、差分は権限なしでも動作しますが、見えるエントリは少なくなります。ツールは、一覧がマシン全体であるかのように装わず、画面上部でそのことを伝えます。</li>
+    </ul>
+    <p>ウィンドウは独自のファイルを 1 つだけ保持します。一覧を最後に置いたレイアウトで、場所は <code>%APPDATA%\BetterWindowsServices</code> です。スナップショットは、<code>bws snapshot create</code> に指定した場所に保存され、指定しない場合はカレントディレクトリに保存されます。</p>
+    <p class="note"><strong>プログラムは英語で表示されます。</strong>ウィンドウは、隣に置かれた言語ファイル <code>languages\gui.&lt;code&gt;.json</code> を読み込み、Windows の言語で選択します。切り替えスイッチはありません。したがって翻訳は、再ビルドなしで追加できる貢献です。方法は <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> に書かれています。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ウイルス対策と EDR</h2>
+    <p class="lede">このツールは、管理者がサービスに対して行うことを行います。その一部は、セキュリティソフトが監視している動作そのものです。</p>
+    <p>サービスを停止・開始し、その背後のプロセスを終了でき、すべてのサービスのセキュリティ記述子と必要な特権を読み取ります。<code>svchost.exe</code> を終了するプロセスを検知する EDR は、役目を果たしています。ここでの強制停止は、まさにそのように見えることがあります。</p>
+    <p>このツールが<strong>行わない</strong>ことを挙げます。確認できるようにするためです。どのプロセスにも何も注入しません。何かをパックしたり難読化したりしません。サービスもドライバーもインストールせず、何も常駐させません。ネットワーク接続も開きません。GPL-3.0 のオープンソースであり、2 つの実行ファイルは自分でビルドできます。</p>
+    <p>ポリシーで除外が必要な場合は、フォルダーではなく、2 つの実行ファイルをファイル単位で除外してください。ツール自体と同じ注意を払う価値があるものが 1 つあります。スナップショットファイルです。マシン全体を記述しているからです。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ソースからのビルド</h2>
+    <p>.NET 10 SDK、Windows 上で。</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>一部のテストは、実行しているマシンの実際のサービス コントロール マネージャーを読み取り、このツールの出力を <code>sc.exe</code> の出力と比較します。これらは読み取り専用です。リリースに含まれる単一ファイルの実行ファイルは、次の 2 つのパブリッシュで作られます。それぞれ、ランタイムを内蔵した 1 つのファイルです。</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>出力は、各プロジェクトの <code>bin/Release/.../win-x64/publish/</code> の下に <code>bws.exe</code> と <code>BetterWindowsServices.exe</code> として生成されます。隣にある <code>.pdb</code> ファイルはデバッグ用シンボルで、実行には必要ありません。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>実行にかかるコスト</h2>
+    <p class="lede">810 個のサービスがある 1 台のマシンで計測しました。サービスの数、ディスク、プロセッサーによって数値は変わります。</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>約 4 分の 1 秒</h3><p><code>bws list</code> がマシン全体を読み取るまで。</p></div>
+      <div class="card"><h3>約 0.8 秒</h3><p>ウィンドウを起動してから、一覧が画面に表示されるまで。</p></div>
+      <div class="card"><h3>約 100 MB</h3><p>ウィンドウの場合です。その半分は Windows のユーザーインターフェイスフレームワークで、このツール自体のコードが動く前の分です。</p></div>
+      <div class="card"><h3>約 16 MB</h3><p>同じマシンでのコマンドラインの場合です。</p></div>
+    </div>
+  </div>
+</section>

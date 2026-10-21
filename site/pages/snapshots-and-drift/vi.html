@@ -1,0 +1,65 @@
+<meta name="title" content="Bản chụp và sai lệch - điều gì đã thay đổi trên máy này kể từ hôm qua">
+<meta name="description" content="Đóng băng mọi dịch vụ Windows vào một tệp JSON rồi hỏi điều gì đã thay đổi. Cấu hình được báo riêng với trạng thái chạy, và mã thoát 5 có thể gọi ai đó.">
+<meta name="nav" content="Bản chụp và sai lệch">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Phần mà services.msc chưa bao giờ làm</span>
+    <h1>Bản chụp và sai lệch</h1>
+    <p class="lede">Mọi công cụ khác cho bạn biết một máy trông thế nào bây giờ. Câu hỏi mà một quản trị viên thực sự có là <em>điều gì khác so với lúc nó còn hoạt động</em> - và không có gì trên một Windows nguyên bản trả lời được.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Một bản chụp chứa gì</h2>
+    <p>Cả máy tại một thời điểm: mọi dịch vụ và trình điều khiển, với kiểu khởi động, tài khoản, đường dẫn khởi chạy và đối số, mã băm và người ký của tệp mà nó chạy, các phụ thuộc và những gì phụ thuộc vào nó, trình kích hoạt, đặc quyền yêu cầu, kiểu SID và bộ mô tả bảo mật - cộng với tên máy, tài khoản đã chụp nó, và <strong>tài khoản đó có phải quản trị viên hay không</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Nó là JSON với một trường mỗi dòng. Đó là cố ý: một bản chụp có thể đưa vào kho mã và <code>git diff</code> đọc được nó, nên phép so sánh riêng của công cụ không phải là cách duy nhất để xem một bản.</p>
+    <p class="note"><strong>Hãy lưu trữ nó đúng với bản chất của nó.</strong> Một bản chụp mô tả cả máy, đến từng đường dẫn khởi chạy và bộ mô tả bảo mật. Nó được ghi với quyền mà thư mục của nó vốn có, và công cụ không thu hẹp gì - nên một thư mục mà người khác đọc được là thư mục mà họ đọc được tất cả những điều đó.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Rồi hỏi điều gì khác</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Cấu hình và trạng thái chạy được báo riêng.</strong> Hai bản chụp cách nhau một ngày khác nhau ở những gì tình cờ đang chạy, và hầu như không có gì trong đó là sai lệch. Trộn lẫn lại, dòng duy nhất quan trọng - một kiểu khởi động mà ai đó đã đổi - bị chôn dưới bốn mươi dòng không quan trọng.</li>
+        <li><strong>Những gì không thể so sánh được liệt kê, không bị giấu.</strong> Một trường mà một trong hai bản chụp chưa bao giờ đọc, vì phiên đó không có quyền với nó, hiện ra là <em>not compared</em> dưới mục của nó, và phần tóm tắt đếm những mục đó. Nên một phép so sánh nói <em>không có gì thay đổi</em> nghĩa là không có gì thay đổi trong những gì cả hai phía đều thấy được.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>So một bản chụp nâng quyền với một bản không nâng quyền sẽ nói dối</strong>, báo các mục là bị xóa trong khi không ai xóa. Mỗi tệp ghi lại tài khoản đã chụp nó có phải quản trị viên không, và phép so sánh nói điều đó.</li>
+        <li><strong>Hai tệp, không chỉ một tệp và máy này.</strong> Chụp một bản trên môi trường thử nghiệm và một bản trên môi trường sản xuất rồi so sánh chúng ở bất cứ đâu - câu trả lời cho <em>vì sao môi trường thử nghiệm khác</em> không cần máy nào có mặt.</li>
+      </ul>
+    </div>
+    <p><strong>Cửa sổ làm điều tương tự dưới <em>Audit...</em>.</strong> <em>Take snapshot...</em> ghi cùng một tệp, kèm ghi chú nếu bạn gõ, và <em>Compare with this machine...</em> hoặc <em>Compare two snapshots...</em> hiển thị điều gì đã thay đổi thay cho danh sách, mỗi trường một hàng, với mọi điều khiến phép so sánh kém chính xác được nêu phía trên bảng. <em>Show</em> thu hẹp nó vào các khác biệt hoặc một trường, và <em>Export...</em> ghi nó ra tệp CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mã thoát mới là điểm mấu chốt</h2>
+    <p><code>--exit-code</code> kết thúc bằng <code>5</code> khi cấu hình khác nhau - một mục được thêm hoặc bị xóa, hoặc một mục được thiết lập khác. Một dịch vụ chỉ tự dừng hoặc tự khởi động thì được báo cáo và không tính, và các bản sao theo người dùng mà Windows tạo cho mỗi phiên đã đăng nhập cũng không tính: chúng bị loại ra và được đếm. Không phải một thất bại - sai lệch là điều công cụ này tồn tại để tìm, và tìm thấy nó không phải là một thất bại - nên nó có con số riêng thay vì mượn con số có nghĩa là có gì đó hỏng.</p>
+<pre><code><span class="c"># ngày máy bắt đầu đưa vào hoạt động</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># mỗi đêm, từ một tác vụ theo lịch</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - không có sai lệch cấu hình
+#   5 - cấu hình đã lệch, và drift.json nói là gì
+#   3 - đã chạy và không đọc được hết, nên câu trả lời chỉ là một phần</span></code></pre>
+    <p>Đó là toàn bộ cơ chế: một mốc chuẩn được lấy khi máy được biết là tốt, và một câu hỏi được đặt ra mỗi đêm. Đêm đầu tiên nó trả lời <code>5</code>, ai đó biết ngay đêm đầu tiên, chứ không phải vào buổi sáng khi có gì đó hỏng.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Dùng việc này để kiểm toán</a>
+  </div>
+</section>

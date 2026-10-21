@@ -1,0 +1,78 @@
+<meta name="title" content="关于 Better Windows Services 的问题，以及它坦率的局限">
+<meta name="description" content="需要联网吗？需要管理员权限吗？会弄坏我的服务器吗？它能做什么，以及它在设计上拒绝做什么，都在这里坦率地列出。">
+<meta name="nav" content="常见问题">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">问题</span>
+    <h1>问题与局限</h1>
+    <p class="lede">悄悄漏掉某些内容的工具，比明说自己做不到什么的工具更糟。局限也写在这个页面上，分为两类：它在设计上拒绝做的事，以及 Windows 的行为里这个工具如实报告的部分。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>它与 <code>sc.exe</code>、<code>Get-Service</code> 或 <code>services.msc</code> 有什么不同？</h3>
+        <p><code>sc query</code> 和 <code>Get-Service</code> 告诉你什么在运行。<code>services.msc</code> 让你一行一行地更改它，既无法提问，事后也没有记录。这个工具会提问（<code>start:auto !status:running</code>），在执行前向你展示计划，并保留一个可以在一周后做差异对比的快照。在某个服务上它与 <code>sc.exe</code> 不一致，那就是一个缺陷：测试套件的一部分会同时运行两者，并逐条目地比较。<a href="{{url:sc-exe-and-powershell}}">更详细的对比在这里。</a></p>
+      </div>
+      <div>
+        <h3>需要联网吗？</h3>
+        <p>从不需要。没有遥测，没有更新检查，没有崩溃报告，没有账户，也没有任何客户端。它唯一可能接触网络的情况，是你传入 <code>--follow-network</code> 时：这时它可能会查看位于其他计算机共享上的启动路径，并让 Windows 获取这台计算机尚未持有的证书。默认关闭，帮助中说明了原因。窗口里的 <em>GitHub</em> 和 <em>Donate</em> 按钮，以及 <em>Help</em> 菜单里的页面，在你按下时各自只会把一个固定的地址交给你的浏览器，而真正建立连接的是你的浏览器。</p>
+      </div>
+      <div>
+        <h3>需要管理员权限吗？</h3>
+        <p>查看不需要，更改需要。没有管理员权限时，服务管理器显示的条目更少，拒绝的操作更多，两部分都会在顶部说明这一点，而不是假装列表就是整台计算机。窗口会提供 <em>Restart as admin</em>。它从不自行提升权限。</p>
+      </div>
+      <div>
+        <h3>免费吗？可以在工作中使用吗？</h3>
+        <p>两者都是。GPL-3.0，没有任何附加条件。你生成的快照是你自己的文件。</p>
+      </div>
+      <div>
+        <h3>会弄坏我的服务器吗？</h3>
+        <p>它自己不会。没有你看过的计划，就不会更改任何内容，驱动程序会被拒绝，而会关掉计算机必需之物的计划会在警告中说明。它无法保护你的，是执行一份你没有读过的计划。计算机必需的服务清单是一份七项的入门清单：RPC 的两个部分和 DCOM 启动器、账户管理器、密钥隔离、会话管理器以及即插即用，<strong>其中没有远程桌面</strong>，所以通过远程会话操作时，请阅读计划。</p>
+      </div>
+      <div>
+        <h3>这是 Microsoft 的产品吗？</h3>
+        <p>不是。{{product}} 是一个独立的开源项目，与 Microsoft 没有关联，也未获得 Microsoft 的认可或赞助。Windows 是 Microsoft 公司集团的商标。</p>
+      </div>
+      <div>
+        <h3>程序有我的语言版本吗？</h3>
+        <p>没有，程序使用英文界面，这也是这个网站被翻译的原因。窗口会读取放在可执行文件旁边的语言文件 <code>languages\gui.&lt;code&gt;.json</code>，并根据 Windows 的语言选择，没有切换开关，所以翻译是一项无需重新生成程序就能加入的贡献。列表中的服务名称是你的 Windows 所写的样子，也就是你的 Windows 所设置的语言。</p>
+      </div>
+      <div>
+        <h3>我的 Windows 是浅色的，窗口为什么是深色的？</h3>
+        <p>它是深色的，不论 Windows 如何设置，包括高对比度主题，它都保持深色。这是经过检查而不是想当然：它保留自己的颜色并保持可读，而不会跟随该设置。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>设计使然</h2>
+    <ul class="points">
+      <li><strong>仅限本地计算机。</strong>这个版本没有远程管理。要比较两台计算机，请在各自上生成一个快照，然后对比这两个文件。</li>
+      <li><strong>仅限 Windows，仅限 64 位</strong>，Windows 10 1809 或 Windows Server 2019 及更高版本。</li>
+      <li><strong>对驱动程序的操作会被拒绝而不是尝试</strong>，因为停止内核驱动程序往往不重启就无法恢复。</li>
+      <li><strong>工具不会自行提升权限。</strong>当服务管理器拒绝时，它会说明这一点，并以退出代码 <code>3</code> 结束。窗口会提示以管理员身份重新启动自己，除此之外不做别的。</li>
+      <li><strong>不检查证书吊销。</strong>那需要访问网络，而这个工具从不这样做。所以 <em>Trusted</em> 的含义是证书链在这台计算机上有效，而不是此后没有人吊销过该证书。</li>
+      <li><strong>窗口在启动前会解压一部分 Windows 用户界面框架。</strong>作为单个文件，它带有几个 Windows 只能从磁盘加载的原生库。没有管理员权限时，它会在每个版本首次启动时，把它们写入该账户临时文件夹下的 <code>.net</code> 文件夹，并从那里加载。有管理员权限时，它改用 Windows 驱动器上的 <code>ProgramData\BetterWindowsServices</code>：这个文件夹由它创建，使得只有管理员能够更改，并且每次启动都会检查。如果无法创建该文件夹，或者其他人可以更改它，窗口就不会启动，并会说明是哪个文件夹以及该怎么做。迁移到那里意味着提升权限的窗口会再次启动自己，这需要不到一秒，而每个版本都会在那里留下它的库（约 8 MB），直到有人删除该文件夹。命令行不带这样的库，也不解压任何内容。</li>
+      <li><strong>提升权限的会话会指明它继承的 .NET 设置，而不是拒绝它们。</strong>环境中设置的分析器、跟踪或转储开关，或诊断端口，无法从 .NET 程序内部关闭，因此在有管理员权限时，两部分都会列出它们发现的这些设置。启动钩子则被直接关闭。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Windows 的行为，这个工具如实报告</h2>
+    <ul class="points">
+      <li><strong>托管在 <code>svchost</code> 内的服务</strong>，其启动路径指向的是宿主，所以<em>文件在那里</em>和<em>谁签的名</em>这两项能说明的内容，比对有独立进程的服务要少。</li>
+      <li><strong>同时具有自身签名和 Windows 目录条目的文件</strong>，可能指出两个不同的签名者。显示的发布者是文件内部的那一个：在另一台计算机上查看该文件时保持不变的那一个，它可能与 PowerShell 报告的不同。</li>
+      <li><strong>没有管理员权限时，服务管理器列出的条目更少，对所列条目拒绝的操作更多。</strong>两部分都会在顶部说明这一点，快照也会记录它，因为若不如此，把提升权限的快照与没有权限时生成的快照对比，会把没人删除过的条目报告为已删除。</li>
+    </ul>
+    <p class="note"><strong>发现了问题，或者发现了这个工具与 <code>sc.exe</code> 报告不同的服务？</strong><a href="{{issues}}">问题跟踪器</a>是开放的，把两者的差异贴进去是最有用的信息。</p>
+  </div>
+</section>

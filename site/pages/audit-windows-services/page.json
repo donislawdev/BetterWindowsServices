@@ -11,6 +11,12 @@
     "fr": "auditer-les-services-windows",
     "es": "auditar-servicios-de-windows",
     "it": "audit-dei-servizi-windows",
-    "pt-br": "auditar-servicos-do-windows"
+    "pt-br": "auditar-servicos-do-windows",
+    "nl": "windows-services-controleren",
+    "cs": "audit-sluzeb-windows",
+    "ro": "auditarea-serviciilor-windows",
+    "tr": "windows-hizmetlerini-denetleme",
+    "id": "audit-layanan-windows",
+    "vi": "kiem-toan-dich-vu-windows"
   }
 }

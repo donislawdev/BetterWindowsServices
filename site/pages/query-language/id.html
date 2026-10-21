@@ -1,0 +1,178 @@
+<meta name="title" content="Bahasa kueri - ajukan pertanyaan kepada layanan Windows Anda">
+<meta name="description" content="Satu bahasa kueri untuk kotak pencarian dan bws list --query. Setiap bidang, setiap nilai, dan pertanyaan yang tak bisa diajukan services.msc: apa yang tak terbaca.">
+<meta name="nav" content="Bahasa kueri">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Tabel bidang DIBANGUN dari Bws.Core - QueryFields.Names dan QueryFields.ValuesOf adalah API
+  publik yang dimaksudkan untuk apa pun yang menawarkannya kepada manusia, sehingga halaman ini
+  tidak bisa menyebut bidang yang tidak dimiliki program, atau melewatkan bidang yang dimilikinya.
+  Kalimat di sampingnya ada di site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Bahasa kueri</span>
+    <h1>Ajukan pertanyaan kepada mesin</h1>
+    <p class="lede">Satu bahasa, di kotak pencarian jendela dan di <code>bws list --query</code>. Satu kata polos mencari pada nama, nama tampilan, akun, dan jalur peluncuran. Sebuah bidang mempersempitnya. {{field_count}} bidang, dan teks yang sama berarti hal yang sama di kedua bagian alat ini.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Enam yang menjawab pertanyaan nyata</h2>
+    <div class="grid">
+      <div class="card"><h3>Apa yang seharusnya hidup dan tidak hidup</h3><p><code>start:auto !status:running</code></p><p>Kueri pertama yang ditulis kebanyakan orang, dan yang sama sekali tidak bisa dijawab <code>services.msc</code>.</p></div>
+      <div class="card"><h3>Layanan yang berkasnya hilang</h3><p><code>file:missing</code></p><p>Entri yang menunjuk ke berkas eksekusi yang tidak ada di disk. Biasanya pencopotan yang meninggalkan registrasinya.</p></div>
+      <div class="card"><h3>Tidak bertanda tangan, tanpa kebisingan sesi</h3><p><code>signed:no peruser:no</code></p><p>Keluarga per pengguna membuat satu salinan per sesi dan memenuhi daftar dengan hampir-duplikat. Ini menanyakan sisanya.</p></div>
+      <div class="card"><h3>Berjalan padahal dinonaktifkan</h3><p><code>mismatch:running</code></p><p>Konfigurasi dan status yang tidak sesuai - entri yang diatur manajer agar tidak pernah dimulai, tetapi tetap berjalan.</p></div>
+      <div class="card"><h3>Apa pun yang meminta hak debug</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Hak istimewa yang memungkinkan sebuah proses membuka proses lain mana pun. Layak diketahui layanan mana yang memintanya.</p></div>
+      <div class="card"><h3>Apa yang tidak bisa dibaca alat ini</h3><p><code>account:?</code></p><p>Entri yang akunnya tidak bisa dibaca sesi ini. Pertanyaan yang bahkan tidak bisa diajukan <code>services.msc</code>.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cara kueri ditulis</h2>
+    <div class="split">
+      <div>
+        <h3>Istilah</h3>
+        <ul class="prose-list">
+          <li>Istilah dipisahkan spasi dan semuanya harus cocok - tidak ada kata kunci <code>and</code> karena tidak ada arti lain yang mungkin.</li>
+          <li>Bidang yang sama ditulis dua kali adalah satu-satunya pengecualian: <code>status:running status:stopped</code> berarti salah satunya, karena itulah yang ditulis dengan mencentang dua filter. Dua batas pada sebuah angka tetap mempersempit - <code>pid:&gt;1000 pid:&lt;2000</code> adalah rentang di antara keduanya.</li>
+          <li><code>!</code> di depan sebuah istilah menegasikannya: <code>!status:running</code>. Dalam berkas batch dengan <code>setlocal EnableDelayedExpansion</code>, cmd memakan <code>!</code> itu tanpa sepatah kata pun dan kueri diam-diam berarti hal lain - tulis <code>^!</code> di dalam tanda kutip di sana.</li>
+          <li>Koma di dalam bidang berarti <em>atau</em>: <code>start:manual,disabled</code>.</li>
+          <li>Tanda kutip melindungi apa pun yang mengandung spasi atau titik dua: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Jalur yang ditempel apa adanya - <code>C:\Windows\System32\svchost.exe</code> - dicari, tidak dibaca sebagai bidang bernama C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Cara teks dicocokkan</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> cocok dengan apa pun yang <em>mengandungnya</em> - bawaannya, karena itulah yang diharapkan orang dari kotak pencarian.</li>
+          <li><code>name:=spooler</code> adalah kecocokan persis.</li>
+          <li><code>name:spool*</code> menerima wildcard, <code>*</code> dan <code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> adalah ekspresi reguler, dan di dalam garis miring ia ditulis seperti ekspresi reguler ditulis: <code>\?</code>, <code>\\</code>, dan koma berarti di sana apa yang berarti di sana. Garis miring yang tidak pernah ditutup adalah galat - untuk mencari garis miring itu sendiri, tulis <code>\/</code> atau pakai tanda kutip.</li>
+          <li>Huruf besar-kecil diabaikan, termasuk di luar ASCII - nama tampilan dalam bahasa Polandia atau Yunani cocok dengan cara apa pun mengetikkannya.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Tiga kata yang diterima setiap bidang</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Nilai yang salah ketik adalah galat, tidak pernah hasil kosong.</strong> <code>status:runing</code> menjawab <em>Did you mean running?</em> dan berakhir dengan kode <code>2</code>. Daftar kosong akan tampak seperti jawaban, dan perbedaan antara "tidak ada yang cocok" dan "Anda salah mengetik" adalah perbedaan antara mesin yang bersih dan audit yang tidak membuktikan apa pun. Kueri yang tidak akan mempersempit apa pun juga ditolak di baris perintah, sehingga skrip tidak bekerja pada seluruh mesin karena salah ketik.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Contoh lainnya</h2>
+    <p class="lede">Masing-masing bekerja sama di kotak pencarian jendela dan setelah <code>bws list --query</code>, dan masing-masing dijalankan di Windows sungguhan sebelum ditulis di sini. Apa yang ditemukannya bergantung pada mesin - dan untuk pertanyaan tentang masalah, jawaban kosong adalah yang Anda inginkan.</p>
+    <div class="examples">
+    <h3>Status dan tipe startup</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Macet saat berhenti atau memulai - penantian yang ditampilkan snap-in dan tidak pernah berakhir.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Diatur mulai otomatis, berhenti, dan tidak menunggu pemicu - daftar pendek yang layak dibaca setelah restart.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Otomatis, dimulai sedikit setelah entri otomatis lainnya.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Berjalan padahal tidak ada yang memulainya saat boot - ada yang memintanya, pemicu memulainya, atau seseorang.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Akun</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>Berjalan sebagai LocalSystem, akun terkuat, dari berkas yang tidak ditandatangani Microsoft. Kueri tentang penerbit membaca tanda tangan sendiri, sehingga memakan beberapa detik.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Layanan yang berjalan di bawah akun lain mana pun - akun virtual, akun terkelola, atau milik seseorang.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Akun virtual milik layanan itu sendiri. Tanda kutip menjaga kata-katanya tetap bersama, karena ada spasi.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Berkas dan tanda tangan</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>Tanpa tanda tangan, rantai yang tidak dipercaya Windows, atau berkas yang diubah setelah ditandatangani.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>Bertanda tangan, tepercaya, dan bukan dari Microsoft - perangkat lunak yang dipasang perusahaan lain di mesin ini.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Driver yang dimuat saat Windows dimulai yang tanda tangannya tidak dipercaya Windows. Pada mesin yang sehat, tidak ada.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Layanan dengan prosesnya sendiri yang berkasnya berada di luar folder Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Diluncurkan dari dalam profil seseorang, tempat terakhir layanan diharapkan.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Garis miring terbalik di depan spasi menjadikan spasi bagian dari kata, sehingga jalur yang berakhir dengan garis miring terbalik ditulis dengan dua ketika istilah lain mengikutinya. Di akhir kueri, satu sudah cukup.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Pemicu dan dependensi</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Menunggu perangkat tiba, jadi berhenti karena suatu alasan.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Dimulai ketika permintaan tiba di titik akhir jaringan - port, named pipe, atau antarmuka RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Entri yang bisa dihentikan oleh pemicu, bukan hanya dimulai.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Entri yang membutuhkan WMI untuk berjalan.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Segala yang dibutuhkan Print Spooler untuk berjalan, dan apa yang dibutuhkan semua itu pada gilirannya.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Hak istimewa dan proses</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>Meminta untuk bertindak sebagai bagian dari sistem operasi.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>Dapat bertindak atas nama klien sambil berjalan di bawah akun selain LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>Membawa SID layanan sendiri di prosesnya, sehingga izin bisa menyebutnya saja. sidtype:restricted menanyakan yang prosesnya juga dibatasi penulisan.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Berjalan di dalam svchost bersama, bersama yang lain.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>Proses yang memakai lebih dari 200 MB. Memori dibaca sendiri ketika kueri menanyakannya.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>Dalam proses yang id-nya antara 1000 dan 2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Nama dan teks</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kueri</th><th>Apa yang ditemukan</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Satu kata polos, dicari pada nama, nama tampilan, akun, dan jalur peluncuran.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Persis nama ini, dan tidak ada yang sekadar mengandungnya.</td></tr>
+          <tr><td><code>name:win*</code></td><td>Nama yang diawali win, ditulis dengan wildcard.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>Nama yang diakhiri svc, ditulis sebagai ekspresi reguler.</td></tr>
+          <tr><td><code>description:none</code></td><td>Tanpa deskripsi sama sekali, yang berlaku untuk kebanyakan driver.</td></tr>
+          <tr><td><code>description:?</code></td><td>Deskripsi yang tidak bisa diserahkan Windows, biasanya karena menunjuk ke berkas bahasa yang tidak ada.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Templat per pengguna yang disalin Windows untuk setiap sesi yang masuk.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Setiap bidang</h2>
+    <p>Dibangun dari program itu sendiri, sehingga tabel ini tidak bisa menyimpang dari apa yang diterima alat ini. Bidang tanpa daftar nilai menerima teks, angka, atau ukuran - kolom ketiga menyebutkan yang mana.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dua hal yang perlu diketahui</h2>
+    <div class="qa">
+      <div>
+        <h3>Beberapa bidang mahal, dan memintanya mengaktifkan pembacaan</h3>
+        <p>Tanda tangan memakan beberapa detik pada seluruh mesin dan memori adalah pengukuran, bukan pengaturan, jadi tidak ada yang dibaca untuk sebuah daftar kecuali diminta. Kueri yang menyebut salah satunya mengaktifkan pembacaan itu sendiri - Anda tidak perlu mengingat <code>--signatures</code> selain <code>signed:no</code>. Di jendela, kueri tentang tanda tangan menyatakan bahwa jawabannya belum lengkap sampai tanda tangan tiba, alih-alih menampilkan daftar yang lebih pendek seolah-olah itulah jawabannya.</p>
+      </div>
+      <div>
+        <h3>Hasil yang dinilai berdasarkan sesuatu yang tidak terbaca menyatakannya</h3>
+        <p>Jika entri dinilai berdasarkan bidang yang tidak bisa dibaca sesi ini, hasilnya membawa baris yang menyebutkan berapa banyak - karena hasil seperti itu bisa kekurangan entri, atau memuat yang bukan miliknya. Itu adalah aturan yang sama yang dijaga seluruh alat: pembacaan yang gagal terlihat dalam jawaban, tidak pernah ditelan. Penerbit mendapat perlakuan yang sama ketika hanya sertifikat yang mengklaimnya: di samping putusan apa pun selain <code>trusted</code> namanya ditampilkan sebagai <em>not verified</em>, dan <code>publisher:</code> menghitung entri itu sebagai tidak pasti pada barisnya sendiri - jadi <code>!publisher:microsoft</code> mempertahankan berkas Microsoft yang diubah seseorang setelah ditandatangani.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Referensi baris perintah</a>
+  </div>
+</section>

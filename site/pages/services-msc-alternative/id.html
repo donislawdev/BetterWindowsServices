@@ -1,0 +1,102 @@
+<meta name="title" content="Alternatif services.msc untuk administrator Windows">
+<meta name="description" content="services.msc tanpa pencarian, filter, dan riwayat. Pengganti bebas dan sumber terbuka dengan bahasa kueri, pratinjau sebelum perubahan, dan diff penyimpangan.">
+<meta name="nav" content="Dibanding services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Panduan</span>
+    <h1>Alternatif <code>services.msc</code></h1>
+    <p class="lede">Snap-in Services nyaris tidak berubah sejak Windows 2000. Ia masih cara tercepat untuk memulai satu layanan yang sudah terlihat di layar, dan cara paling lambat untuk menjawab pertanyaan apa pun tentang mesin.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa yang membuat orang mencari</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Tanpa pencarian.</strong> Satu-satunya navigasi adalah mengetik huruf untuk melompat ke nama tampilan pertama yang diawali huruf itu. Di mesin dengan delapan ratus entri, itu menggulir dengan langkah tambahan.</li>
+        <li><strong>Tanpa pemfilteran.</strong> Tidak ada cara untuk bertanya <em>apa yang diatur mulai otomatis dan tidak berjalan</em> - satu-satunya pertanyaan yang menemukan mesin rusak.</li>
+        <li><strong>Satu baris sekali waktu.</strong> Me-restart dua belas layanan berarti dua belas klik kanan dan dua belas kali menunggu.</li>
+        <li><strong>"Stopping..." tanpa jalan keluar</strong> kecuali Task Manager dan menebak <code>svchost</code> mana yang harus diakhiri.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Tanpa riwayat.</strong> Tidak ada yang tahu siapa yang mengatur tipe startup itu menjadi Disabled, atau kapan, atau apakah bulan lalu sudah begitu.</li>
+        <li><strong>Data tersembunyi.</strong> Proses, pemicu, hak istimewa yang dibutuhkan, deskriptor keamanan, siapa yang menandatangani berkas eksekusi - tidak ada yang ada di snap-in, dan semuanya penting ketika ada yang salah.</li>
+        <li><strong>Kolom tidak bisa diubah.</strong> Nama, deskripsi, status, tipe startup, masuk sebagai. Itulah seluruh daftarnya, dan tidak ada yang bisa diurutkan secara berguna di mesin sungguhan.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tugas yang sama, di keduanya</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Anda ingin</th><th>Di <code>services.msc</code></th><th>Di sini</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Menemukan apa yang seharusnya berjalan dan tidak berjalan</td>
+            <td class="no">Urutkan menurut tipe startup, gulir, baca setiap baris</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Mengetahui apa yang ikut jatuh saat dihentikan</td>
+            <td class="no">Dialog yang menyebut layanan dependen setelah Anda menekan Stop</td>
+            <td>Rencana sebelum apa pun terjadi, dengan setiap layanan dependen sebagai langkah dan peringatan ketika salah satunya adalah yang dibutuhkan mesin</td>
+          </tr>
+          <tr>
+            <td>Mengetahui apa yang berubah sejak minggu lalu</td>
+            <td class="no">Tidak ada</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Mengetahui siapa yang mengubah tipe startup</td>
+            <td class="no">Tidak ada</td>
+            <td><code>bws history Spooler</code>, dari log System</td>
+          </tr>
+          <tr>
+            <td>Me-restart dua belas layanan</td>
+            <td class="no">Dua belas klik kanan</td>
+            <td>Pilih dua belas, satu rencana, satu eksekusi, satu laporan</td>
+          </tr>
+          <tr>
+            <td>Melihat siapa yang menandatangani berkas eksekusi layanan</td>
+            <td class="no">Tidak ditampilkan</td>
+            <td>Sebuah kolom, dan sesuatu untuk dicari: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Menjadikan semua itu skrip</td>
+            <td class="no">Tidak bisa diskrip</td>
+            <td><code>bws</code>, dengan <code>--json</code> dan kode keluar untuk setiap akhiran</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa yang masih lebih baik dilakukan snap-in</h2>
+    <p class="lede">Dua hal, dan berpura-pura sebaliknya akan menjadi jenis klaim yang tidak dibuat proyek ini.</p>
+    <ul class="points">
+      <li><strong>Ia sudah ada di mesin.</strong> Tidak ada yang diunduh, tidak ada yang harus lolos kebijakan perangkat lunak. Di mesin yang hanya Anda sentuh sekali, itulah seluruh argumennya.</li>
+      <li><strong>Ia mengedit tindakan pemulihan, akun, dan jalur peluncuran.</strong> Alat ini menampilkan akun dan jalur peluncuran dan tidak mengubah keduanya, dan membaca tindakan pemulihan hanya untuk memperingatkan sebelum mengakhiri proses. Membuat, menghapus, atau mengalihkan layanan juga tidak ada di sini.</li>
+    </ul>
+    <p>Yang sama sekali tidak bisa dilakukannya adalah alasan ini ada: mengajukan pertanyaan, menunjukkan rencana lebih dulu, dan menyatakan apa yang menyimpang.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa ini</h2>
+    <p>{{product}} bebas dan bersumber terbuka di bawah GPL-3.0, satu berkas per bagian atau installer untuk seluruh mesin, dan tidak pernah berbicara dengan internet. Membaca tidak membutuhkan hak administrator - mengubah membutuhkannya, dan ia menyatakannya alih-alih gagal diam-diam.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Lihat bahasa kueri</a>
+    </div>
+  </div>
+</section>

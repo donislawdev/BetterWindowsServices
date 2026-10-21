@@ -870,6 +870,15 @@ html:lang(hi) { --font: "Segoe UI Variable Text", "Segoe UI", "Nirmala UI", "Koh
 html:lang(ar) { --font: "Segoe UI Variable Text", "Segoe UI", "Tahoma", "Geeza Pro", "Noto Sans Arabic", system-ui, sans-serif; --lh-body: 1.8; --lh-tight: 1.4; }
 html:lang(vi) { --lh-body: 1.7; --lh-tight: 1.3; }
 
+/*
+  Korean is written with spaces between words, and the browser's default is to break a line
+  between any two syllables, which splits a word in half at every edge (seen on the home page
+  headline at 1024 px). keep-all breaks at the spaces, the way a Korean reader expects. The
+  cost is that a long run of syllables with no space can no longer wrap, so every Korean page
+  is checked for horizontal overflow at 375 px when it is added.
+*/
+html:lang(ko) { word-break: keep-all; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }

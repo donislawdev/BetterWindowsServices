@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - 具備搜尋功能的 services.msc 替代工具">
+<meta name="description" content="免費開放原始碼的 services.msc 替代工具。用查詢語言搜尋服務，在每次變更執行前預覽，並查看自昨天以來發生了哪些漂移。">
+<meta name="nav" content="首頁">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  首頁。這裡的每一句話在 README.md 中都有對應內容，而 README.md 在撰寫之前已對照執行中的
+  程式核實過：下面的計畫、差異和查詢都是真實輸出，而不是示意圖。
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>搜尋你的 Windows 服務，在每次變更前預覽，並查看自昨天以來<em>哪些內容發生了漂移</em></h1>
+      <p class="lede"><strong>{{product}}</strong> 是為管理 Windows 電腦的人重新打造的 <code>services.msc</code>：視窗和命令列共用同一個引擎。不必再捲動瀏覽八百列，直接向電腦提問。在<strong>按下任何按鈕之前</strong>，就能看到某項變更會做什麼。還有 <code>services.msc</code> 從未具備的功能：<strong>把每個服務凍結到一個檔案裡，一週後再詢問發生了什麼變化。</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+        <a class="btn btn-secondary" href="{{repo}}">在 GitHub 上查看程式碼</a>
+      </div>
+      <ul class="trust">
+        <li>免費開放原始碼，GPL-3.0</li>
+        <li>單一檔案，或安裝程式</li>
+        <li>檢視時不需要系統管理員權限</li>
+        <li>從不連上網際網路</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="視窗中選取了五個項目，清單上方顯示啟動它們的計畫：五個步驟，一則說明其中兩個已處於該狀態，每個項目對應一行 bws start，以及 Start 5 entries 按鈕。" width="1632" height="1041"></a>
+      <figcaption>選取的項目、在任何動作發生之前顯示的計畫，以及要求完全相同動作的 <code>bws</code> 命令列。程式使用英文介面：視窗會讀取放在它旁邊的語言檔案，因此無需重新建置就能翻譯。</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  視窗的真實螢幕擷圖，錄製於 2026-09-25 和 2026-09-26，自 2026-10-07 起在此展示。2026-09-24 的
+  第一批螢幕擷圖取代了用 HTML 繪製的仿製視窗。該工作階段與 README 所用的是同一個 GIF，依擁有者
+  2026-10-07 的決定，兩處共用一個檔案。從 2026-09-24 到那一天，這裡放的是帶控制項的影片，
+  因為 WCAG 2.2.2 要求超過五秒的循環動畫必須可以暫停，而 GIF 做不到。這是使用 GIF 的代價，
+  在此寫明，以免被遺忘。
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">半分鐘體驗</span>
+    <h2>實際使用是這樣的</h2>
+    <p class="lede">這是在安裝了波蘭語的 Windows 上的真實工作階段：顯示名稱來自 Windows，因此是它的語言。視窗本身是英文的。</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="選取四個項目以及啟動它們的計畫，強制重新啟動 Local Session Manager（其計畫警告說沒有它電腦無法運作，並要求在按鈕可用之前先輸入它的名稱），空白搜尋框下方用於起步的問題，以及透過輸入名稱的一部分找到並啟動的 Print Spooler。" width="1632" height="1041" loading="lazy"></a>
+      <figcaption>選取四個項目以及啟動它們的計畫、要求輸入電腦所需服務名稱的強制重新啟動、空白搜尋框下方的問題，以及透過輸入找到並啟動的 Print Spooler。</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="起始畫面：三張關於這台電腦的數字卡片，分別是正在執行的服務、設為自動啟動但未啟動的服務、設為自動啟動但檔案已遺失的服務，以及 Show the list 按鈕。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>它從幾個關於這台電腦的數字開始。每個數字都是一個問題：按一下它，問題就會進入搜尋框。</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="服務清單，搜尋框上方有三個清單，搜尋框為空，篩選按鈕依狀態、啟動類型、簽章、不一致和觸發程序分列展開，下面是清單。" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>篩選按鈕會寫入搜尋框，所以你按下的內容就是一條可以閱讀和編輯的查詢。</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">為什麼需要它</span>
+    <h2><code>services.msc</code> 自 Windows 2000 以來幾乎沒有變化</h2>
+    <p class="lede">系統管理員每週都要在其中花上幾個小時，一次次撞上同樣的牆。</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>沒有搜尋。</strong>唯一的導覽方式，是跳到顯示名稱的首字母。</li>
+        <li><strong>沒有篩選。</strong>無法詢問<em>設為自動啟動但沒有執行的是哪些</em>。</li>
+        <li><strong>一次只能處理一列。</strong>重新啟動十二個服務，就是十二次按右鍵和十二次等待。</li>
+        <li><strong>永遠停在「Stopping...」</strong>，除了工作管理員和猜測處理程序之外別無出路。</li>
+        <li><strong>沒有歷程記錄。</strong>沒人知道是誰、在何時把這個啟動類型設成了 Disabled。</li>
+        <li><strong>隱藏的資料。</strong>處理程序、觸發程序、特殊權限、安全性描述元、誰替可執行檔簽章，所有這些都需要憑記憶使用 <code>sc.exe</code>，或去翻登錄。</li>
+        <li><strong>命令列能力不對等。</strong><code>sc.exe</code> 的語法還停留在九〇年代，而 Windows 內建的 Windows PowerShell 5.1 中的 <code>Get-Service</code> 不顯示服務執行所用的帳戶，更不用說描述了。PowerShell 7 兩者都顯示，但需要另外安裝。</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>其他工具各自只解決了一部分</h3>
+        <p>Process Hacker 和 System Informer 展示資訊豐富的清單，還能強制結束處理程序，但沒有稽核功能，也沒有命令列。<code>sc.exe</code> 和 <code>PsService</code> 什麼都能做，卻什麼也不告訴你。PowerShell 的 <code>*-Service</code> cmdlet 適合指令碼，但比較淺。</p>
+        <p>沒有任何一個工具同時提供可搜尋的清單、每次變更前的預覽，以及隨時間推移的變更記錄，而這份記錄正是第一個下午過後仍把這個工具留在電腦上的理由。</p>
+        <a class="more" href="{{url:services-msc-alternative}}">完整比較</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">它能做什麼</span>
+    <h2>視窗和命令列共用同一個引擎</h2>
+    <div class="grid">
+      <div class="card"><h3>提問，而不是捲動</h3><p><code>start:auto !status:running</code> 的意思是<em>應該在執行卻沒有執行的內容</em>。同一種語言既用於搜尋框，也用於 <code>bws list --query</code>，輸入時還會提示欄位。</p></div>
+      <div class="card"><h3>在任何動作發生前先展示計畫</h3><p>每一次停止、啟動、重新啟動和啟動類型變更，都會連同被一併關閉的服務一起預覽，而預覽就是實際執行的內容。</p></div>
+      <div class="card"><h3>告訴你哪些內容發生了漂移，以及是誰改的</h3><p><code>bws snapshot create</code> 把電腦凍結到檔案中，<code>bws snapshot diff</code> 告訴你之後發生了哪些變化，把組態與僅僅是啟動或停止區分開。<code>bws history</code> 從 System 記錄檔中告訴你是誰變更了啟動類型、誰安裝了服務。視窗在 <em>Audit...</em> 下完成這三件事。</p></div>
+      <div class="card"><h3>一鍵修復常見問題</h3><p><em>Tools</em> 索引標籤和 <code>bws tool fix</code> 會重新啟動無法列印的印表機、沒了聲音或卡住的搜尋背後的服務，連同依賴它的內容，走的是與其他所有動作相同的計畫。</p></div>
+      <div class="card"><h3>停止停不下來的服務</h3><p>先禮貌地要求，只有失敗時才結束處理程序，並列出同在該處理程序中的每一個其他服務。</p></div>
+      <div class="card"><h3>展示 <code>services.msc</code> 隱藏的內容</h3><p>誰替可執行檔簽章、Windows 是否信任它、觸發程序、特殊權限、安全性描述元、處理程序及其記憶體。既以欄的形式顯示，也可以作為搜尋條件。</p></div>
+      <div class="card"><h3>無法讀取時會明說</h3><p>無法讀取的欄位會回報為未讀取，絕不會顯示為空白。沒有系統管理員權限時產生的快照，會在檔案內部註明這一點。</p></div>
+      <div class="card"><h3>融入指令碼</h3><p>每個命令都支援 <code>--json</code>，每種結束方式都有結束代碼，當差異發現漂移時傳回 <code>5</code>。</p></div>
+      <div class="card"><h3>單一檔案，離線執行</h3><p>解壓縮即用，或為整台電腦安裝。無需安裝 .NET，也從不連上網際網路。讀取不需要系統管理員權限。GPL-3.0。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">services.msc 從未做到的事</span>
+    <h2>自昨天以來發生了什麼變化</h2>
+    <p class="lede">快照是某一時刻的整台電腦：每個服務和驅動程式，包括它的啟動類型、帳戶、啟動路徑、其檔案的雜湊和簽署者、相依性、觸發程序、特殊權限和安全性描述元。它是每行一個欄位的 JSON，所以可以放進程式碼存放庫，<code>git diff</code> 也能看懂它。</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>組態與執行狀態分開回報。</strong>相隔一天產生的兩個快照，在恰好正在執行的內容上會有所不同，而其中幾乎沒有一項是漂移。值得閱讀的是那一行：被變更的啟動類型。</li>
+        <li><strong>無法比較的內容會被列出，而不是被隱藏。</strong>某個快照從未讀取過的欄位，會顯示為 <em>not compared</em>，因此一份寫著<em>沒有任何變化</em>的差異，表示的是在雙方都能看到的範圍內沒有任何變化。</li>
+        <li><strong>當組態不同時，<code>--exit-code</code> 以 <code>5</code> 結束</strong>，因此排程工作可以在部署時產生快照，並在電腦發生漂移的第一個夜晚通知相關人員。</li>
+        <li><strong>兩台電腦，兩個檔案。</strong>在預備環境和正式環境各產生一個快照，然後在任何地方比較它們。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">快照與漂移的運作方式</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">沒有計畫，什麼都不會發生</span>
+    <h2>預覽就是執行</h2>
+    <p class="lede">每個會寫入的動作都會先產生一份計畫，這份計畫既是預覽，也是相依服務的連鎖、在你按下任何按鈕之前給出的拒絕、要求相同動作的命令列，以及事後的復原方法。</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>拿掉 <code>--dry-run</code> 再執行，執行的就是這些步驟</strong>，順序相同，旁邊的原因也相同。真正執行時沒有第二條程式碼路徑。</li>
+        <li><strong>一併關閉的內容都寫在計畫裡。</strong>會受影響的服務各自是獨立的步驟，如果某項計畫會關掉電腦必需的東西，警告裡會寫明。</li>
+        <li><strong>拒絕出現在按鈕之前。</strong>驅動程式、服務管理員不接受停止要求的服務、系統保護的處理程序，都會在產生計畫時連同原因一起被拒絕。視窗會把按鈕反灰，並在旁邊說明原因。</li>
+        <li><strong>強制停止分兩步，第二步是有條件的。</strong><code>bws kill</code> 先要求服務停止，只有無效時才結束它的處理程序，並列出同在該處理程序中的每一個其他服務。</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">服務停不下來時</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">兩分鐘體驗</span>
+    <h2>從命令列使用</h2>
+    <p class="lede">與視窗相同的引擎，用於指令碼、排程工作和 CI。資料輸出到標準輸出，其餘所有內容輸出到標準錯誤，因此 <code>bws list --json | jq</code> 可以正常運作，警告也絕不會混進你的 JSON。</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">應該在執行卻沒有執行的內容</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">可執行檔已遺失的服務</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">未簽章，不含依工作階段產生的副本</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">關於一個項目的所有已知資訊</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">停止它會連帶關閉什麼</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">結束它的處理程序會連帶帶走什麼</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">把它從自動啟動中移除會怎樣</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">在變更前凍結電腦</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">此後的變化，組態有變化則傳回 5</span>
+<span class="k">bws history Spooler</span>                               <span class="c">誰在何時變更了它的啟動類型</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">快速修復卡住的印表機會做什麼</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">每個命令、選項和結束代碼</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">取得</span>
+    <h2>解壓縮即用，或安裝</h2>
+    <p class="lede">Windows 10 1809 或 Windows Server 2019 及更高版本，64 位元。壓縮檔不需要安裝程式，也不向登錄寫入任何內容，檢視時不需要系統管理員權限。變更任何內容都需要提升權限的工作階段，兩者都會明說，而不是悄悄失敗：視窗會提供 <em>Restart as admin</em>。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>檔案</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>視窗，一個獨立式的可執行檔，無需安裝 .NET</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>命令列，一個獨立式的可執行檔，用於指令碼和 CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>安裝程式：為電腦上的每個帳戶安裝這兩個程式，視窗出現在開始功能表中，<code>bws</code> 加入 PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>可執行檔帶有 Authenticode 簽章，因此 Windows 會顯示發行者名稱，而不是警告來自未知發行者。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下載 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:download}}">需求以及從原始碼建置</a>
+    </div>
+  </div>
+</section>

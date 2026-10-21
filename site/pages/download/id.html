@@ -1,0 +1,86 @@
+<meta name="title" content="Unduh Better Windows Services untuk Windows - gratis, zip atau MSI">
+<meta name="description" content="Dua berkas eksekusi mandiri atau installer bertanda tangan, tanpa perlu .NET. Windows 10 1809 dan Server 2019 atau lebih baru, 64-bit. Sumber terbuka, GPL-3.0.">
+<meta name="nav" content="Unduh">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Unduh</span>
+    <h1>Ekstrak dan jalankan, atau pasang</h1>
+    <p class="lede">Versi {{version}}. Arsip tidak membutuhkan installer dan tidak menulis apa pun ke registri, dan melihat tidak membutuhkan hak administrator. Installer bertanda tangan sebaliknya memasang kedua program untuk seluruh mesin. Bebas dan bersumber terbuka di bawah GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Unduh untuk Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">Semua rilis</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Isi rilis</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Berkas</th><th>Apa itu</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Jendela: <code>BetterWindowsServices.exe</code>, satu berkas eksekusi mandiri dengan runtime .NET-nya sendiri di dalamnya</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Baris perintah: <code>bws.exe</code>, satu berkas eksekusi mandiri, untuk skrip, tugas terjadwal, dan CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Installer: kedua program di <code>Program Files</code> untuk setiap akun di mesin, jendela di menu Start, dan <code>bws</code> di PATH mesin</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Ambil salah satu atau keduanya - keduanya adalah dua klien dari mesin yang sama dan tidak ada yang membutuhkan yang lain. Di server, baris perintah adalah yang lebih kecil dari keduanya dan melakukan semua yang dilakukan jendela.</p>
+    <p>Installer membawa persis apa yang dibawa kedua arsip. Ia terpasang secara senyap dengan <code>msiexec /i {{archive_installer}} /qn</code>, versi yang lebih baru terpasang di atas yang lebih lama, dan ia tidak menutup apa pun yang sedang berjalan - jadi tutup jendela dan setiap <code>bws</code> yang berjalan sebelum meningkatkan versi, karena salinan yang dibiarkan berjalan dapat berhenti dengan galat. Mencopot melalui Pengaturan, Aplikasi menghapus program, entri menu Start, dan entri PATH, dan membiarkan berkas Anda sendiri.</p>
+    <p>Berkas eksekusi membawa tanda tangan Authenticode, sehingga Windows menyebut penerbitnya alih-alih memperingatkan tentang penerbit yang tidak dikenal.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Persyaratan</h2>
+    <ul class="points">
+      <li><strong>Windows 10 versi 1809 atau yang lebih baru, atau Windows Server 2019 atau yang lebih baru.</strong> Hanya 64-bit - proses 32-bit membaca jalur dan kunci registri yang dialihkan, yang akan diam-diam menghasilkan jawaban yang salah.</li>
+      <li><strong>Tidak ada .NET yang perlu dipasang.</strong> Kedua berkas eksekusi membawa runtime .NET-nya sendiri.</li>
+      <li><strong>Hak administrator untuk mengubah apa pun.</strong> Membaca, mencari, snapshot, dan perbandingan berfungsi tanpanya, dengan lebih sedikit entri yang terlihat dan alat ini menyatakannya di bagian atas alih-alih berpura-pura bahwa daftar itu adalah seluruh mesin.</li>
+    </ul>
+    <p>Jendela menyimpan satu berkasnya sendiri - tata letak tempat Anda meninggalkan daftar - di bawah <code>%APPDATA%\BetterWindowsServices</code>. Snapshot disimpan di tempat yang Anda minta pada <code>bws snapshot create</code>, dan di direktori saat ini bila Anda tidak memintanya.</p>
+    <p class="note"><strong>Program ini berbahasa Inggris.</strong> Jendela membaca berkas bahasa, <code>languages\gui.&lt;kode&gt;.json</code>, yang ditaruh di sebelahnya dan dipilih menurut bahasa Windows, tanpa sakelar. Terjemahan karena itu merupakan kontribusi yang dapat ditambahkan tanpa membangun ulang - <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> menjelaskan caranya.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antivirus dan EDR</h2>
+    <p class="lede">Alat ini melakukan apa yang dilakukan administrator terhadap layanan, dan sebagian dari itu adalah persis apa yang diawasi perangkat lunak keamanan.</p>
+    <p>Ia menghentikan dan memulai layanan, dapat mengakhiri proses di balik salah satunya, dan membaca deskriptor keamanan serta hak istimewa yang dibutuhkan setiap layanan. EDR yang menandai proses yang mengakhiri <code>svchost.exe</code> sedang menjalankan tugasnya, dan penghentian paksa di sini bisa tampak persis seperti itu.</p>
+    <p>Apa yang <strong>tidak</strong> dilakukannya, agar Anda dapat memeriksa klaim itu: ia tidak menyuntikkan apa pun ke proses mana pun, tidak mengemas atau mengaburkan apa pun, tidak memasang layanan maupun driver dan tidak meninggalkan apa pun yang berjalan, dan tidak membuka koneksi jaringan apa pun. Ia bersumber terbuka di bawah GPL-3.0 dan Anda dapat membangun kedua berkas eksekusi sendiri.</p>
+    <p>Jika kebijakan Anda membutuhkan pengecualian, kecualikan kedua berkas eksekusi berdasarkan berkas, bukan folder. Satu-satunya hal yang layak diperlakukan dengan kehati-hatian yang sama seperti alat itu sendiri adalah berkas snapshot: ia menggambarkan seluruh mesin.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Membangun dari sumber</h2>
+    <p>.NET 10 SDK, di Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>Beberapa pengujian membaca service control manager nyata dari mesin tempat pengujian berjalan dan membandingkan apa yang dikatakan alat ini dengan apa yang dikatakan <code>sc.exe</code>. Pengujian itu hanya-baca. Berkas eksekusi satu-berkas yang dibawa rilis adalah dua publikasi ini, masing-masing satu berkas dengan runtime di dalamnya:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>Hasilnya berada sebagai <code>bws.exe</code> dan <code>BetterWindowsServices.exe</code> di bawah <code>bin/Release/.../win-x64/publish/</code> setiap proyek. Berkas <code>.pdb</code> di sebelahnya adalah simbol debug, dan tidak ada yang membutuhkannya untuk berjalan.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Biaya untuk menjalankannya</h2>
+    <p class="lede">Diukur pada satu mesin dengan 810 layanan. Angka Anda akan berbeda - jumlah layanan, disk, dan prosesor semuanya memengaruhinya.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>Sekitar seperempat detik</h3><p>agar <code>bws list</code> membaca seluruh mesin.</p></div>
+      <div class="card"><h3>Sekitar delapan persepuluh detik</h3><p>dari menjalankan jendela sampai daftar muncul di layar.</p></div>
+      <div class="card"><h3>Sekitar 100 MB</h3><p>untuk jendela - separuhnya adalah kerangka antarmuka pengguna Windows, sebelum kode alat ini sendiri berjalan.</p></div>
+      <div class="card"><h3>Sekitar 16 MB</h3><p>untuk baris perintah pada mesin yang sama.</p></div>
+    </div>
+  </div>
+</section>

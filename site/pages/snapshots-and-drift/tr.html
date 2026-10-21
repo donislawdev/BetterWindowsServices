@@ -1,0 +1,65 @@
+<meta name="title" content="Anlık görüntüler ve sapma - dünden beri bu makinede ne değişti">
+<meta name="description" content="Her Windows hizmetini bir JSON dosyasına dondurun, sonra neyin değiştiğini sorun. Yapılandırma çalışma durumundan ayrı bildirilir; 5 çıkış kodu birini uyarabilir.">
+<meta name="nav" content="Anlık görüntüler ve sapma">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">services.msc'nin hiç yapmadığı kısım</span>
+    <h1>Anlık görüntüler ve sapma</h1>
+    <p class="lede">Diğer her araç size bir makinenin şimdi nasıl göründüğünü söyler. Bir yöneticinin asıl sorusu <em>çalışırken olandan ne farklı</em> sorusudur - ve düz bir Windows'ta bunu yanıtlayan hiçbir şey yoktur.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bir anlık görüntü ne içerir</h2>
+    <p>Tek bir andaki tüm makine: her hizmet ve sürücü; başlangıç türü, hesap, başlatma yolu ve bağımsız değişkenleri, çalıştırdığı dosyanın karması ve imzalayanı, bağımlılıkları ve ona bağlı olanlar, tetikleyicileri, gereken ayrıcalıkları, SID türü ve güvenlik tanımlayıcısıyla birlikte - artı makinenin adı, onu alan hesap ve <strong>o hesabın yönetici olup olmadığı</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>Satır başına bir alan içeren bir JSON'dur. Bu bilinçlidir: bir anlık görüntü bir depoya girer ve <code>git diff</code> onu okur; yani aracın kendi karşılaştırması, bir tanesine bakmanın tek yolu değildir.</p>
+    <p class="note"><strong>Onu olduğu şey olarak dosyalayın.</strong> Bir anlık görüntü, her başlatma yoluna ve her güvenlik tanımlayıcısına kadar tüm makineyi anlatır. Dizininin zaten sahip olduğu izinlerle yazılır ve araç hiçbir şeyi daraltmaz - yani başkalarının okuyabildiği bir dizin, bunların hepsini okuyabilecekleri bir dizindir.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Sonra neyin farklı olduğunu sorun</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Yapılandırma ve çalışma durumu ayrı bildirilir.</strong> Bir gün arayla alınan iki anlık görüntü, tesadüfen neyin çalıştığı bakımından farklıdır ve bunun neredeyse hiçbiri sapma değildir. Birbirine karıştırılınca, önemli olan tek satır - birinin değiştirdiği bir başlangıç türü - önemli olmayan kırkın altında gömülür.</li>
+        <li><strong>Karşılaştırılamayanlar listelenir, gizlenmez.</strong> İki anlık görüntüden birinin, o oturumun hakkı olmadığı için hiç okumadığı bir alan, öğesinin altında <em>not compared</em> olarak çıkar ve özet bu öğeleri sayar. Yani <em>hiçbir şey değişmedi</em> diyen bir karşılaştırma, iki tarafın da görebildiği şeyde hiçbir şeyin değişmediği anlamına gelir.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Yükseltilmiş bir anlık görüntüyü yükseltilmemiş biriyle karşılaştırmak yalan söylerdi</strong>; kimsenin kaldırmadığı öğeleri kaldırılmış olarak bildirirdi. Her dosya, onu alan hesabın yönetici olup olmadığını kaydeder ve karşılaştırma bunu söyler.</li>
+        <li><strong>Yalnızca bir dosya ve bu makine değil, iki dosya.</strong> Test ortamında bir, üretimde bir tane alın ve bunları herhangi bir yerde karşılaştırın - <em>test ortamı neden farklı</em> sorusunun yanıtı makinelerin hiçbirinin orada olmasını gerektirmez.</li>
+      </ul>
+    </div>
+    <p><strong>Pencere aynısını <em>Audit...</em> altında yapar.</strong> <em>Take snapshot...</em> aynı dosyayı yazar, bir not yazarsanız onunla birlikte; <em>Compare with this machine...</em> ya da <em>Compare two snapshots...</em> ise listenin yerine neyin değiştiğini gösterir, alan başına bir satır, karşılaştırmayı tam olmaktan çıkaran her şey tablonun üstünde söylenmiş olarak. <em>Show</em> bunu farklılıklara ya da tek bir alana daraltır ve <em>Export...</em> onu bir CSV dosyasına yazar.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Çıkış kodu asıl mesele</h2>
+    <p><code>--exit-code</code>, yapılandırma farklı olduğunda <code>5</code> ile biter - eklenmiş ya da kaldırılmış bir öğe veya farklı kurulmuş biri. Yalnızca kendiliğinden duran ya da başlayan bir hizmet bildirilir ve sayılmaz; Windows'un oturum açmış her oturum için yaptığı kullanıcı başına kopyalar da sayılmaz: onlar dışarıda bırakılır ve sayılır. Bir başarısızlık değil - sapma bu aracın bulmak için var olduğu şeydir ve onu bulmak bir başarısızlık değildir - bu yüzden bir şeyin ters gittiğini anlatan numarayı ödünç almak yerine kendi numarası vardır.</p>
+<pre><code><span class="c"># makinenin hizmete girdiği gün</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># her gece, zamanlanmış bir görevden</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - yapılandırma sapması yok
+#   5 - yapılandırma saptı ve drift.json neyin olduğunu söyler
+#   3 - çalıştı ve her şeyi okuyamadı, yani yanıt kısmi</span></code></pre>
+    <p>Mekanizmanın tamamı bu: makine iyi olduğu bilindiğinde alınmış bir temel durum ve her gece sorulan bir soru. <code>5</code> yanıtını verdiği ilk gece, birisi bir şeylerin bozulduğu sabah değil, ilk gece öğrenir.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Bunu bir denetim için kullanmak</a>
+  </div>
+</section>

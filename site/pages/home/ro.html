@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - înlocuitor pentru services.msc cu căutare">
+<meta name="description" content="Înlocuitor liber și gratuit pentru services.msc. Căutați servicii cu un limbaj de interogare, previzualizați fiecare modificare și vedeți ce a derivat de ieri.">
+<meta name="nav" content="Acasă">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Pagina principală. Fiecare frază de aici are un corespondent în README.md, care a fost verificat
+  față de programul care rulează înainte de a fi scris - planul, comparația și interogarea de mai
+  jos sunt ieșire reală, nu ilustrații.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Căutați în serviciile Windows, previzualizați fiecare modificare și <em>vedeți ce a derivat</em> de ieri</h1>
+      <p class="lede"><strong>{{product}}</strong> este <code>services.msc</code> reconstruit pentru cei care administrează mașini Windows - o fereastră și o linie de comandă peste același motor. Puneți mașinii o întrebare în loc să derulați opt sute de rânduri. Vedeți ce va face o modificare <strong>înainte să apăsați orice</strong>. Și ceea ce <code>services.msc</code> nu a avut niciodată: <strong>înghețați fiecare serviciu într-un fișier și, peste o săptămână, întrebați ce s-a schimbat.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">Vedeți codul pe GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>Liber și gratuit, GPL-3.0</li>
+        <li>Un singur fișier sau un program de instalare</li>
+        <li>Nu cere drepturi de administrator pentru a privi</li>
+        <li>Nu comunică niciodată cu internetul</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Fereastra cu cinci intrări alese și planul pentru pornirea lor afișat deasupra listei: cinci pași, o notă că două dintre ele sunt deja în acea stare, o linie bws start pentru fiecare intrare și butonul Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>Intrări alese, un plan afișat înainte să se întâmple ceva și linia <code>bws</code> care cere exact același lucru. Programul vorbește engleza - fereastra citește un fișier de limbă așezat lângă ea, deci o traducere este posibilă fără recompilare.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Capturi reale ale ferestrei, înregistrate la 2026-09-25 și 2026-09-26 și afișate aici din
+  2026-10-07 - primele, din 2026-09-24, au înlocuit o fereastră simulată desenată în HTML. Sesiunea
+  este același GIF pe care îl poartă README, un singur fișier pentru amândouă, prin decizia
+  proprietarului din 2026-10-07. Din 2026-09-24 până în acea zi a fost în schimb un videoclip cu
+  controale, pentru că WCAG 2.2.2 cere ca o buclă în mișcare mai lungă de cinci secunde să poată fi
+  pusă pe pauză, iar un GIF nu poate - acesta este prețul GIF-ului, spus aici în loc să fie uitat.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">O jumătate de minut cu el</span>
+    <h2>Cum arată în uz</h2>
+    <p class="lede">O sesiune reală, pe un Windows instalat în poloneză - numele afișate vin de la Windows, deci sunt în limba lui. Fereastra însăși vorbește engleza.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Patru intrări alese și planul pentru pornirea lor, o repornire forțată a serviciului Local Session Manager al cărei plan avertizează că mașina nu funcționează fără el și cere numele lui înainte ca butonul să funcționeze, întrebările de pornire de sub caseta de căutare goală și Print Spooler găsit tastând o parte din nume și pornit." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Patru intrări alese și planul pentru pornirea lor, o repornire forțată care cere numele unui serviciu de care mașina are nevoie, întrebările de sub o casetă de căutare goală și Print Spooler găsit prin tastare și pornit.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Ecranul de deschidere: trei carduri cu numere despre această mașină - servicii care rulează, servicii setate să pornească automat care nu au pornit și servicii setate să pornească automat al căror fișier lipsește - și un buton Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Se deschide cu câteva numere despre această mașină. Fiecare este o întrebare - faceți clic pe ea și întrebarea ajunge în caseta de căutare.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Lista serviciilor cu cele trei liste deasupra casetei de căutare, o casetă de căutare goală, butoanele de filtrare deschise pe rânduri pentru stare, tip de pornire, semnătură, neconcordanțe și declanșatoare, iar dedesubt lista." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Butoanele de filtrare scriu în caseta de căutare, așa că ceea ce ați apăsat este o interogare pe care o puteți citi și edita.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">De ce există</span>
+    <h2><code>services.msc</code> aproape că nu s-a schimbat din Windows 2000</h2>
+    <p class="lede">Administratorii petrec ore pe săptămână în el, lovindu-se de aceleași ziduri.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Fără căutare.</strong> Singura navigare este saltul la prima literă a unui nume afișat.</li>
+        <li><strong>Fără filtrare.</strong> Nu există nicio cale de a întreba <em>arată-mi ce este setat să pornească automat și nu rulează</em>.</li>
+        <li><strong>Un singur rând pe rând.</strong> Repornirea a douăsprezece servicii înseamnă douăsprezece clicuri dreapta și douăsprezece așteptări.</li>
+        <li><strong>"Stopping..." la nesfârșit</strong>, fără altă ieșire decât Task Manager și ghicitul procesului.</li>
+        <li><strong>Fără istoric.</strong> Nimeni nu știe cine a setat acel tip de pornire pe Disabled, sau când.</li>
+        <li><strong>Date ascunse.</strong> Procesul, declanșatoarele, privilegiile, descriptorul de securitate, cine a semnat fișierul executabil - toate cer <code>sc.exe</code> din memorie sau registrul.</li>
+        <li><strong>Fără echivalent în linia de comandă.</strong> <code>sc.exe</code> are o sintaxă din anii nouăzeci, iar <code>Get-Service</code> care vine cu Windows, în Windows PowerShell 5.1, nu arată contul sub care rulează un serviciu, darămite descrierea lui. PowerShell 7 le arată pe amândouă și se instalează separat.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Celelalte instrumente rezolvă fiecare o parte</h3>
+        <p>Process Hacker și System Informer arată o listă bogată și pot forța încheierea unui proces, dar nu au audit și nici linie de comandă. <code>sc.exe</code> și <code>PsService</code> pot face orice și nu vă spun nimic. Cmdleturile <code>*-Service</code> din PowerShell se pot automatiza și sunt superficiale.</p>
+        <p>Nimeni nu combină o listă în care se poate căuta, o previzualizare înainte de fiecare modificare și o evidență a ceea ce s-a schimbat în timp - iar evidența este motivul pentru care merită păstrat acest instrument pe o mașină după prima după-amiază.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Comparația completă</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Ce face</span>
+    <h2>O fereastră și o linie de comandă peste același motor</h2>
+    <div class="grid">
+      <div class="card"><h3>Întrebați, în loc să derulați</h3><p><code>start:auto !status:running</code> înseamnă <em>ce ar trebui să fie pornit și nu este</em>. Un singur limbaj, în caseta de căutare și în <code>bws list --query</code>, cu câmpurile oferite pe măsură ce tastați.</p></div>
+      <div class="card"><h3>Arată planul înainte să se întâmple ceva</h3><p>Fiecare oprire, pornire, repornire și schimbare a tipului de pornire este previzualizată împreună cu serviciile pe care le trage după ea, iar previzualizarea este ceea ce se execută.</p></div>
+      <div class="card"><h3>Spune ce a derivat și cine a schimbat</h3><p><code>bws snapshot create</code> îngheață mașina într-un fișier, iar <code>bws snapshot diff</code> spune ce s-a schimbat de atunci, configurația separat de ceea ce doar a pornit sau s-a oprit. <code>bws history</code> spune, din jurnalul System, cine a schimbat un tip de pornire și cine a instalat un serviciu. Fereastra le face pe toate trei la <em>Audit...</em>.</p></div>
+      <div class="card"><h3>Remediază o problemă frecventă dintr-o apăsare</h3><p>Fila <em>Tools</em> și <code>bws tool fix</code> repornesc serviciul din spatele unei imprimante care nu tipărește, al sunetului dispărut sau al unei căutări blocate, împreună cu ce depinde de el, prin același plan ca orice altceva.</p></div>
+      <div class="card"><h3>Oprește un serviciu care nu vrea să se oprească</h3><p>Cere mai întâi politicos și încheie procesul doar dacă asta eșuează, numind fiecare alt serviciu care trăiește în el.</p></div>
+      <div class="card"><h3>Arată ce ascunde <code>services.msc</code></h3><p>Cine a semnat fișierul executabil și dacă Windows are încredere în el, declanșatoare, privilegii, descriptorul de securitate, procesul și memoria lui. Ca coloane și ca lucruri după care se poate căuta.</p></div>
+      <div class="card"><h3>Spune când n-a putut citi ceva</h3><p>Un câmp pe care nu l-a putut citi este raportat ca necitit, niciodată afișat ca gol. Un instantaneu făcut fără drepturi de administrator spune asta în interiorul fișierului.</p></div>
+      <div class="card"><h3>Se potrivește în scripturi</h3><p><code>--json</code> la fiecare comandă, un cod de ieșire pentru fiecare final și <code>5</code> când o comparație găsește derivă.</p></div>
+      <div class="card"><h3>Rulează dintr-un singur fișier, offline</h3><p>Dezarhivați și rulați sau instalați pentru toată mașina. Fără .NET de instalat și nu comunică niciodată cu internetul. Citirea nu cere drepturi de administrator. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Ceea ce services.msc nu a făcut niciodată</span>
+    <h2>Ce s-a schimbat de ieri</h2>
+    <p class="lede">Un instantaneu este întreaga mașină la un moment dat - fiecare serviciu și driver, cu tipul de pornire, contul, calea de lansare, hash-ul și semnatarul fișierului, dependențele, declanșatoarele, privilegiile și descriptorul de securitate. Este JSON cu un câmp pe rând, deci poate intra într-un depozit și <code>git diff</code> îl citește.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Configurația și starea de rulare sunt raportate separat.</strong> Două instantanee făcute la o zi distanță diferă prin ce se întâmplă să ruleze și aproape nimic din asta nu este derivă - tipul de pornire care s-a schimbat este rândul de citit.</li>
+        <li><strong>Ce nu s-a putut compara este listat, nu ascuns.</strong> Un câmp pe care un instantaneu nu l-a citit niciodată iese ca <em>not compared</em>, deci o comparație care spune <em>nimic nu s-a schimbat</em> înseamnă că nimic nu s-a schimbat în ceea ce vedeau ambele părți.</li>
+        <li><strong><code>--exit-code</code> se încheie cu <code>5</code> când configurația diferă</strong>, astfel încât o sarcină programată poate face un instantaneu la implementare și poate alerta pe cineva în prima noapte în care mașina derivă.</li>
+        <li><strong>Două mașini, două fișiere.</strong> Faceți un instantaneu pe mediul de testare și unul pe producție și comparați-le oriunde.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Cum funcționează instantaneele și deriva</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Nimic nu se întâmplă fără plan</span>
+    <h2>Previzualizarea este execuția</h2>
+    <p class="lede">Fiecare operație care scrie construiește mai întâi un plan, iar același plan este previzualizarea, cascada serviciilor dependente, refuzul înainte să apăsați orice, linia de comandă care cere același lucru și drumul înapoi după aceea.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>Rulați fără <code>--dry-run</code> și acestea sunt pașii</strong>, în această ordine, cu aceleași motive alături. Nu există o a doua cale de cod pentru execuția reală.</li>
+        <li><strong>Ce cade odată cu el este în plan.</strong> Serviciile care s-ar defecta sunt pași de sine stătători, iar un plan care ar doborî ceva de care mașina are nevoie spune asta în avertismente.</li>
+        <li><strong>Un refuz vine înaintea butonului.</strong> Un driver, un serviciu pentru care managerul nu acceptă o oprire, un proces pe care sistemul îl protejează - refuzat la construirea planului, cu motivul. Fereastra face butonul gri și spune alături de ce.</li>
+        <li><strong>Oprirea forțată înseamnă doi pași, iar al doilea este condiționat.</strong> <code>bws kill</code> cere serviciului să se oprească și îi încheie procesul doar dacă asta nu funcționează, numind fiecare alt serviciu care trăiește în el.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Când un serviciu nu se oprește</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Două minute cu el</span>
+    <h2>Din linia de comandă</h2>
+    <p class="lede">Același motor ca fereastra, pentru scripturi, sarcini programate și CI. Datele merg la ieșirea standard și tot restul la eroarea standard, deci <code>bws list --json | jq</code> funcționează, iar un avertisment nu ajunge niciodată în JSON-ul dumneavoastră.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">ce ar trebui să fie pornit și nu este</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">servicii al căror fișier executabil a dispărut</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">nesemnate, fără copiile pe sesiune</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">tot ce se știe despre o intrare</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">ce ar doborî oprirea lui</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">ce ar lua cu sine încheierea procesului lui</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">ce ar face scoaterea lui din pornirea automată</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">îngheață mașina înainte de o schimbare</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">ce s-a schimbat de atunci, 5 dacă s-a schimbat configurația</span>
+<span class="k">bws history Spooler</span>                               <span class="c">cine i-a schimbat tipul de pornire și când</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">ce ar face remedierea rapidă pentru o imprimantă blocată</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Fiecare comandă, opțiune și cod de ieșire</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Obțineți-l</span>
+    <h2>Dezarhivați și rulați, sau instalați</h2>
+    <p class="lede">Windows 10 1809 sau Windows Server 2019 și mai noi, pe 64 de biți. Arhivele nu au nevoie de program de instalare și nu scriu nimic în registru, iar privitul nu cere drepturi de administrator. Orice modificare cere o sesiune cu drepturi ridicate, iar ambele jumătăți spun asta în loc să eșueze în tăcere - fereastra oferă <em>Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fișier</th><th>Ce este</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Fereastra, un singur executabil independent - fără .NET de instalat</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Linia de comandă, un singur executabil independent, pentru scripturi și CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Programul de instalare: ambele programe pentru fiecare cont de pe mașină, fereastra în meniul Start și <code>bws</code> în PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Executabilele poartă o semnătură Authenticode, așa că Windows numește editorul în loc să avertizeze despre unul necunoscut.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descărcați pentru Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Cerințe și compilare din sursă</a>
+    </div>
+  </div>
+</section>

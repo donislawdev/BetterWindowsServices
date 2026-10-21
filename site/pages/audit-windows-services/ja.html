@@ -1,0 +1,64 @@
+<meta name="title" content="Windows サービスの監査 - マシンで何が変わったかを証明する">
+<meta name="description" content="デプロイ時にすべてのサービスをファイルに固定し、毎晩マシンが今も一致しているかを確認します。ドリフト、署名のない実行ファイル、なくなったファイルを 1 つのクエリで。">
+<meta name="nav" content="ドリフトを調べるサービス監査">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ガイド</span>
+    <h1>Windows サービスの監査</h1>
+    <p class="lede">監査とは、マシンにあるものの一覧ではありません。マシンにあるものと、あるはずだったものとの差です。標準の Windows には、後半を記録するものが何もありません。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>3 つの質問と、それに答えるもの</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>このマシンが構築されてから、何が変わったか。</h3>
+        <p>デプロイ時に取ったスナップショットと、今夜のマシンとの差分です。構成は、単に開始や停止をしただけのものとは分けて報告されるので、誰かが変更した 1 つのスタートアップの種類が、たまたま実行されている 40 個のサービスの下に埋もれません。</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>ステージング環境は、なぜ本番環境と違うのか。</h3>
+        <p>それぞれでスナップショットを取り、2 つのファイルの差分を取ります。どこでも、どちらのマシンもその場に必要ありません。ファイルには、マシン名と、取得したアカウントが入っています。</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>ここにあるべきでないものは何か。</h3>
+        <p>見る価値のある形を見つけるクエリです。実行ファイルがなくなったサービス、署名のないもの、無効なのに実行されているもの、デバッグ権限を要求するもの。</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>夜間実行の形</h2>
+<pre><code><span class="c"># マシンが稼働を開始する日</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 毎晩、スケジュールされたタスクから</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 構成のドリフトなし
+#   5 - 構成がドリフトした。drift.json に内容が書かれる
+#   3 - 実行されたが、すべてを読み取れなかった。そのため答えは部分的</span></code></pre>
+    <p>終了コード <code>5</code> があることで、これは誰も読まないレポートではなく、監査になります。タスクはマシンがドリフトするまで静かで、ドリフトした夜に誰かが呼び出されます。</p>
+    <p class="note"><strong>ベースラインは、昇格したセッションから取得してください。</strong>管理者権限がないと、マネージャーが一覧するエントリは少なくなり、一覧したもののうち拒否されるものが増えます。スナップショットには、取得したアカウントが管理者だったかどうかが記録されるので、誰も削除していないエントリが削除されたと報告する代わりに、比較がそのことを伝えられます。それでも、マシンの半分が欠けたベースラインは、マシンの半分が欠けたベースラインのままです。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>スナップショットは証拠としてどれだけの価値があるか</h2>
+    <ul class="points points-ok">
+      <li><strong>1 行に 1 フィールドの JSON です。</strong>そのため、リポジトリに入れることができ、<code>git diff</code> で読めます。このツールを持たない監査人でもファイルを読めますし、バージョン管理システムは<em>いつ</em>という問いにすでに答えています。</li>
+      <li><strong>スナップインが一度も表示しなかったものが入っています。</strong>起動パスと引数、ファイルのハッシュと署名者、双方向の依存関係、トリガー、必要な特権、SID の種類、セキュリティ記述子です。</li>
+      <li><strong>読み取れなかったものを、読み取れなかったと伝えます。</strong>このセッションに権限がなかったフィールドは、空ではなく読み取れなかったものとして記録されます。そのため、あとで行う比較で、黙って変更なしとせずに <em>not compared</em> と言えます。</li>
+      <li><strong>マシン全体の記述です。</strong>それに応じて保管してください。保存先ディレクトリがすでに持っているアクセス許可のまま書き込まれ、ツールは何も絞り込みません。</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">スナップショットと差分の仕組み</a>
+  </div>
+</section>

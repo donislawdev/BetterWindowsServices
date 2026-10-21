@@ -1,0 +1,68 @@
+<meta name="title" content="Een Windows-service die op Stopping vastzit - veilig beëindigen">
+<meta name="description" content="Een service die op Stopping vastzit deelt zijn proces meestal met andere. Kijk welke voordat u iets beëindigt, en breng ze achteraf met één opdracht terug.">
+<meta name="nav" content="Service die op Stopping vastzit">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Gids</span>
+    <h1>Een service die op <em>Stopping...</em> vastzit</h1>
+    <p class="lede">De snap-in toont <em>Stopping</em> en beweegt nooit meer. Het gebruikelijke antwoord is Taakbeheer, een gok in welke <code>svchost.exe</code> hij leeft, en Taak beëindigen - wat ook elke andere service in dat proces beëindigt, zonder u te zeggen welke dat waren.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Waarom het gebeurt</h2>
+    <ul class="points points-alarm">
+      <li><strong>De service antwoordt niet op het stopverzoek.</strong> Windows vraagt het beleefd en wacht. Een service die is vastgelopen, of wacht op iets wat niet meer terugkomt, antwoordt nooit.</li>
+      <li><strong>Iets wat ervan afhangt draait nog.</strong> De beheerder weigert de stop in plaats van de andere te breken, en de snap-in toont dat als een wachttijd.</li>
+      <li><strong>Hij deelt zijn proces met andere.</strong> De meeste Windows-services leven in een gedeelde <code>svchost.exe</code>. Het beëindigen van dat proces beëindigt ze allemaal, en dat is precies wat Taakbeheer doet zonder ze te noemen.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kijk voordat u iets beëindigt</h2>
+    <p>Vraag wat het beëindigen ervan zou meenemen. Er gebeurt niets totdat u <code>--dry-run</code> weglaat.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>De voorvertoning noemt het proces bij nummer, noemt elke andere service die erin leeft, en toont twee stappen in plaats van één: vraag de service te stoppen, en beëindig het proces <em>alleen als dat niet werkt</em>. Een service die uit zichzelf stopt wordt nooit beëindigd.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> slaat de beleefde stap over</strong> en beëindigt het proces meteen. Het verandert het plan en niet de uitvoering ervan, dus de voorvertoning toont één stap in plaats van twee en het verschil is zichtbaar voordat er iets gebeurt.</li>
+        <li><strong><code>--restart</code> brengt alles terug</strong> zodra het proces weg is - het item waarnaar u vroeg en alles wat zijn proces deelde. Zonder die optie blijft de machine achter met die services gestopt, en het rapport zegt hoe u ze weer start.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>De weigering komt vóór de knop.</strong> Een stuurprogramma, een proces dat het systeem beschermt, een service waarvoor de beheerder geen stop accepteert - geweigerd bij het bouwen van het plan, met de reden, en niet na een wachttijd van zestig seconden.</li>
+        <li><strong>Een waarschuwing wanneer het ertoe doet.</strong> Als het item er een is waar de machine niet zonder kan, zegt het plan dat - stoppen haalt de machine neer, niet alleen de service.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Een proces beëindigen is het enige wat dit hulpmiddel doet waarvoor niemand namens de machine kan weigeren.</strong> Daarom is het een opdracht op zich, daarom noemt de voorvertoning elke service die het meeneemt, en daarom komt de beleefde stap eerst, tenzij u anders zegt.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>De veiligere volgorde</h2>
+    <ol class="prose-list">
+      <li><strong>Kijk wat het is.</strong> <code>bws show Spooler</code> - het proces, wat ervan afhangt, wat het zelf nodig heeft, en of het überhaupt stopverzoeken accepteert.</li>
+      <li><strong>Probeer de gewone stop, als plan.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Als het antwoord een weigering is, zegt het welke van de drie redenen het is.</li>
+      <li><strong>Als hij niet wil stoppen, kijk wat het beëindigen kost.</strong> <code>bws kill Spooler --dry-run</code>, en lees de lijst met services die dat proces delen.</li>
+      <li><strong>Doe het dan, met een weg terug.</strong> <code>bws kill Spooler --restart</code>. Het rapport eindigt met wat niet werkte en de opdrachten die alles terugzetten.</li>
+    </ol>
+    <p>Alle vier werken op dezelfde manier in het venster: klik met rechts op een rij, kies <em>Force stop...</em>, lees het plan, en de knop eronder is genoemd naar wat hij gaat doen.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Waarom niet gewoon Taakbeheer</h2>
+    <p class="lede">Omdat het een andere vraag beantwoordt. Taakbeheer kent processen en dit probleem gaat over services, en die komen niet één op één overeen.</p>
+    <p>Een gedeelde <code>svchost.exe</code> kan een dozijn services bevatten. Taakbeheer beëindigt hem zonder te zeggen welke twaalf, geen enkele komt uit zichzelf terug, en niets achteraf zegt u wat er is gestopt. Een EDR die een proces markeert dat <code>svchost.exe</code> beëindigt, doet zijn werk, en kan uw klik niet van iets anders onderscheiden.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Downloaden voor Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">De volledige naslag</a>
+    </div>
+  </div>
+</section>

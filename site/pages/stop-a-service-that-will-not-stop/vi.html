@@ -1,0 +1,68 @@
+<meta name="title" content="Dịch vụ Windows kẹt ở Stopping - cách kết thúc an toàn">
+<meta name="description" content="Dịch vụ kẹt ở Stopping thường dùng chung tiến trình với dịch vụ khác. Xem là những dịch vụ nào trước khi kết thúc gì, rồi đưa tất cả trở lại bằng một lệnh.">
+<meta name="nav" content="Dịch vụ kẹt ở Stopping">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Hướng dẫn</span>
+    <h1>Một dịch vụ kẹt ở <em>Stopping...</em></h1>
+    <p class="lede">Snap-in hiển thị <em>Stopping</em> và không bao giờ nhúc nhích. Câu trả lời thường thấy là Task Manager, đoán xem nó sống trong <code>svchost.exe</code> nào, và End task - việc này cũng kết thúc mọi dịch vụ khác trong tiến trình đó, mà không cho bạn biết đó là những dịch vụ nào.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Vì sao điều này xảy ra</h2>
+    <ul class="points points-alarm">
+      <li><strong>Dịch vụ không trả lời yêu cầu dừng.</strong> Windows hỏi nó một cách lịch sự và chờ. Một dịch vụ đã treo, hoặc đang chờ thứ sẽ không quay lại, thì không bao giờ trả lời.</li>
+      <li><strong>Có thứ phụ thuộc vào nó vẫn đang chạy.</strong> Trình quản lý từ chối lệnh dừng thay vì làm hỏng thứ kia, và snap-in hiển thị điều đó như một sự chờ.</li>
+      <li><strong>Nó dùng chung tiến trình với những dịch vụ khác.</strong> Hầu hết dịch vụ Windows sống bên trong một <code>svchost.exe</code> dùng chung. Kết thúc tiến trình đó kết thúc tất cả, đúng như điều Task Manager làm mà không nêu tên chúng.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Hãy xem trước khi kết thúc bất cứ thứ gì</h2>
+    <p>Hỏi xem việc kết thúc nó sẽ kéo theo những gì. Không có gì xảy ra cho đến khi bạn bỏ <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>Bản xem trước nêu tiến trình bằng số, nêu mọi dịch vụ khác sống trong đó, và hiển thị hai bước thay vì một: yêu cầu dịch vụ dừng, và <em>chỉ khi điều đó không có tác dụng</em>, kết thúc tiến trình. Một dịch vụ tự dừng thì không bao giờ bị kết thúc.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> bỏ qua bước lịch sự</strong> và kết thúc tiến trình ngay. Nó thay đổi kế hoạch chứ không phải cách chạy, nên bản xem trước hiển thị một bước thay vì hai và sự khác biệt thấy được trước khi có gì xảy ra.</li>
+        <li><strong><code>--restart</code> đưa mọi thứ trở lại</strong> sau khi tiến trình đã mất - mục bạn hỏi và mọi thứ đã dùng chung tiến trình của nó. Không có nó, máy bị để lại với các dịch vụ đó đã dừng, và báo cáo nói cách khởi động chúng lại.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Lời từ chối đến trước nút bấm.</strong> Một trình điều khiển, một tiến trình mà hệ thống bảo vệ, một dịch vụ mà trình quản lý không chấp nhận lệnh dừng - bị từ chối khi kế hoạch được dựng, kèm lý do, chứ không phải sau sáu mươi giây chờ.</li>
+        <li><strong>Một cảnh báo khi điều đó quan trọng.</strong> Nếu mục là thứ mà máy không hoạt động nếu thiếu, kế hoạch nói điều đó - dừng nó hạ cả máy, không chỉ dịch vụ.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Kết thúc một tiến trình là điều duy nhất công cụ này làm mà không ai có thể từ chối thay mặt máy.</strong> Đó là lý do nó là một lệnh riêng, lý do bản xem trước nêu tên mọi dịch vụ nó kéo theo, và lý do bước lịch sự đến trước trừ khi bạn nói khác.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Thứ tự an toàn hơn</h2>
+    <ol class="prose-list">
+      <li><strong>Xem nó là gì.</strong> <code>bws show Spooler</code> - tiến trình, những gì phụ thuộc vào nó, nó phụ thuộc vào gì, và liệu nó có nhận yêu cầu dừng hay không.</li>
+      <li><strong>Thử lệnh dừng thông thường, dưới dạng kế hoạch.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Nếu câu trả lời là một lời từ chối, nó nói đó là lý do nào trong ba lý do.</li>
+      <li><strong>Nếu nó không chịu dừng, xem việc kết thúc nó tốn gì.</strong> <code>bws kill Spooler --dry-run</code>, và đọc danh sách các dịch vụ dùng chung tiến trình đó.</li>
+      <li><strong>Rồi làm, với một đường quay lại.</strong> <code>bws kill Spooler --restart</code>. Báo cáo kết thúc bằng những gì không hiệu quả và các lệnh đưa mọi thứ về chỗ cũ.</li>
+    </ol>
+    <p>Cả bốn hoạt động giống nhau trong cửa sổ: nhấp chuột phải vào một hàng, chọn <em>Force stop...</em>, đọc kế hoạch, và nút bên dưới được đặt tên theo điều nó sẽ làm.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Vì sao không dùng Task Manager</h2>
+    <p class="lede">Vì nó trả lời một câu hỏi khác. Task Manager biết về tiến trình còn vấn đề này là về dịch vụ, và hai thứ đó không khớp một-một.</p>
+    <p>Một <code>svchost.exe</code> dùng chung có thể chứa cả chục dịch vụ. Task Manager sẽ kết thúc nó mà không nói mười hai cái nào, không cái nào tự quay lại, và không có gì sau đó cho bạn biết điều gì đã dừng. Một EDR đánh dấu tiến trình kết thúc <code>svchost.exe</code> đang làm đúng việc của nó, và nó không thể phân biệt cú nhấp của bạn với bất cứ thứ gì khác.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Tải về cho Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Tham chiếu đầy đủ</a>
+    </div>
+  </div>
+</section>

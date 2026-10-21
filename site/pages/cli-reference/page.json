@@ -11,6 +11,12 @@
     "fr": "reference-cli",
     "es": "referencia-cli",
     "it": "riferimento-cli",
-    "pt-br": "referencia-da-cli"
+    "pt-br": "referencia-da-cli",
+    "nl": "cli-naslag",
+    "cs": "reference-cli",
+    "ro": "referinta-cli",
+    "tr": "cli-basvuru",
+    "id": "referensi-cli",
+    "vi": "tham-chieu-cli"
   }
 }

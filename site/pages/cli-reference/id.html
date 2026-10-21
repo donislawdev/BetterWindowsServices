@@ -1,0 +1,194 @@
+<meta name="title" content="Referensi baris perintah - setiap opsi dan kode keluar bws">
+<meta name="description" content="Setiap perintah, opsi, dan kode keluar bws: list, show, stop, start, restart, kill, start-type, snapshot, history, dan tool, beserta tempat setiap opsi berfungsi.">
+<meta name="nav" content="Referensi CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Tabel di halaman ini DIBANGUN, bukan ditulis. Opsi berasal dari tabel parser itu sendiri di
+  src/Bws.Cli/OptionSurface.cs dan kode dari src/Bws.Cli/ExitCode.cs, sehingga opsi yang
+  ditambahkan ke program muncul di sini, dan kalimat tentang opsi yang sudah tidak ada akan
+  menggagalkan build. Apa ARTI masing-masing adalah prosa dan tinggal di site/i18n, karena
+  prosa diterjemahkan.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Referensi</span>
+    <h1>Referensi baris perintah</h1>
+    <p class="lede">Setiap perintah, setiap opsi, dan setiap kode keluar <code>bws</code>, versi {{version}}. <code>bws --help</code> adalah yang berwibawa dan lebih panjang - halaman ini adalah permukaan yang sama, ditata agar bisa dibaca.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Perintah</h2>
+    <p>Sebelas perintah. <code>snapshot</code> adalah kata benda dan diikuti satu kata. <code>tool</code> juga kata benda, dan sendirian ia mencantumkan alat-alat.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Perintah yang salah ketik akan ditawari perintah yang kemungkinan Anda maksud, dan proses berakhir dengan kode <code>2</code> alih-alih melakukan sesuatu yang mirip dengan yang Anda minta.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Apa yang dilakukan setiap perintah</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> dan <code>show</code></h3>
+        <p><code>list</code> adalah seluruh mesin, dipersempit oleh <code>--query</code>. <code>show</code> adalah satu entri dengan semua yang diketahui tentangnya - tanda tangan, hak istimewa, deskriptor keamanan, dan memori, semuanya dibaca setiap kali, karena pada satu entri itu memakan sekitar enam puluh milidetik sedangkan pada seluruh mesin memakan satu detik. Bidang yang benar-benar kosong dihilangkan kecuali Anda memberikan <code>--full</code>. Bidang yang tidak bisa dibaca siapa pun dicetak dalam kedua kasus, karena menghilangkannya akan tampak seperti jawaban.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code>, dan <code>restart</code></h3>
+        <p>Masing-masing membangun rencana dan menjalankannya. <code>--dry-run</code> mencetak rencana dan tidak mengubah apa pun, <code>--dependents</code> memasukkan layanan yang akan rusak ke dalamnya sebagai langkah tersendiri, dan <code>--timeout</code> menyatakan berapa lama satu langkah boleh berjalan tanpa kemajuan. Driver ditolak, bukan dicoba, karena menghentikan driver kernel sering kali tidak dapat dibalikkan tanpa restart.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - untuk layanan yang tidak mau berhenti</h3>
+        <p>Ia meminta layanan berhenti dan mengakhiri proses di belakangnya <em>hanya jika itu tidak berhasil</em>, sehingga entri yang berhenti sendiri tidak pernah diakhiri. Mengakhiri proses membawa serta setiap layanan lain yang hidup di proses itu, entah mereka berhenti lebih dulu atau tidak, dan pratinjau menyebut mereka serta menyebut prosesnya dengan nomor. <code>--force</code> melewati langkah sopan itu dan pratinjau lalu menampilkan satu langkah, bukan dua. <code>--restart</code> mengembalikan semuanya sesudahnya.</p>
+        <p class="note"><strong>Windows mengeja gagasan ini secara berbeda.</strong> <code>--force</code> pada <code>Stop-Service</code> berarti "bahkan jika ada yang bergantung padanya", yang dilakukan <code>--dependents</code> di sini. Itulah sebabnya ini adalah perintah tersendiri dan bukan opsi pada <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - sebuah pengaturan, bukan gerakan</h3>
+        <p>Ia menyatakan apa yang akan dilakukan manajer terhadap sebuah entri pada boot berikutnya, dan tanpa <code>--stop</code> ia tidak memindahkan apa pun: entri yang berjalan tetap berjalan, yang berhenti tetap berhenti, dan rencana menyatakannya. <code>disabled</code> adalah yang layak dipertimbangkan sejenak, karena menghentikan manajer memulai entri sama sekali, termasuk atas permintaan untuk sesuatu yang lain yang membutuhkannya. <code>delayed</code> adalah otomatis, dimulai sedikit setelah entri otomatis lainnya - kata yang ditanyakan <code>start:delayed</code> dalam kueri - dan Windows menolaknya untuk entri dalam grup urutan pemuatan, yang dinyatakan rencana sebelum apa pun terjadi. Masing-masing dari keempatnya menuliskan apakah entri dimulai terlambat, seperti yang dilakukan <code>sc.exe</code>. <code>--stop</code>, hanya bersama <code>disabled</code>, menghentikan entri dalam rencana yang sama setelah pengaturan ditulis.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> dan <code>snapshot diff</code></h3>
+        <p><code>create</code> selalu membaca tanda tangan dan hash, karena snapshot disimpan dan dibandingkan kemudian, dan snapshot tanpa keduanya, dibandingkan dengan yang memilikinya, akan tampak seolah-olah mesin berubah. <code>diff</code> menyatakan apa yang berubah dari berkas pertama ke berkas kedua, atau dari berkas ke mesin ini dengan <code>--live</code>. <a href="{{url:snapshots-and-drift}}">Halaman snapshot</a> memuat formatnya dan penalarannya.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - siapa yang mengubahnya, dari log System</h3>
+        <p>Perubahan tipe startup dan pemasangan dari log System, terbaru lebih dulu, dengan akun yang dicatat Windows. Baris pertama menyatakan seberapa jauh log menjangkau ke belakang dan apakah log pernah dihapus, karena riwayat hanya sepanjang log. Dengan nama, itu adalah perubahan tipe startup layanan tersebut - pemasangan hanya dicantumkan tanpa nama, karena Windows mencatat pemasangan dengan nama tampilan dan tidak pernah dengan nama layanan. Akun disebut namanya di tempat mesin ini dapat menyebutnya sendiri dan ditampilkan sebagai SID-nya jika tidak, dan tipe startup datang dalam kata-kata yang ditulis Windows.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - jawaban siap pakai untuk masalah umum</h3>
+        <p>Alat-alat yang sama dengan yang ditampilkan jendela di tab Tools. <code>bws tool</code> mencantumkannya dan <code>bws tool fix</code> mencantumkan perbaikan cepat: <code>printer</code>, <code>sound</code>, <code>indexing</code>, dan <code>search</code>, masing-masing adalah restart satu layanan Windows bersama apa yang bergantung padanya, dipilih karena halaman pemecahan masalah Microsoft sendiri menyarankannya. <code>bws tool fix printer</code> persis <code>bws restart Spooler --dependents</code> - rencana yang sama, keluaran yang sama, dan kode keluar yang sama - dan seperti setiap perintah di sini yang mengubah sesuatu, ia tidak bertanya terlebih dahulu, jadi <code>--dry-run</code> adalah cara untuk melihat sebelum dijalankan.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - apa yang ada di dalam berkas yang Anda unduh</h3>
+        <p>Ia tidak membaca apa pun sama sekali - tanpa service manager, tanpa disk, tanpa jaringan - dan menjawab dari register yang dikompilasi ke dalam berkas eksekusi. <code>--components</code> mengubah pemberitahuan menjadi setiap komponen beserta versi, lisensi, dan asalnya. Set yang sama dengan yang dibawa daftar bahan yang dipublikasikan di samping unduhan, karena keduanya dihasilkan dari satu register, dan itulah alasan mengapa hal ini layak dimiliki: program ini adalah satu berkas mandiri, sehingga tidak ada apa pun di sebelahnya yang bisa dibaca pemindai.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Contoh</h2>
+    <p class="lede">Rencana di bawah ini diperiksa dengan <code>--dry-run</code> terhadap program yang dijelaskan halaman ini. Perintah yang mengubah sesuatu tidak bertanya terlebih dahulu, jadi <code>--dry-run</code> adalah cara untuk melihat sebelum dijalankan. <code>Spooler</code> mewakili layanan apa pun - taruh nama layanan Anda di tempatnya.</p>
+    <div class="examples">
+    <h3>Mencari dan membaca</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">setiap layanan dan driver di mesin ini</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">apa yang seharusnya hidup dan tidak hidup</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">apa yang dipakai proses setiap entri yang berjalan</span>
+<span class="k">bws show Spooler</span>                               <span class="c">semua yang diketahui tentang satu entri</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">juga bidang yang benar-benar kosong</span></code></pre>
+    <h3>Lihat dulu, baru ubah</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">rencananya saja, tidak ada yang lain</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">restart bersama apa yang bergantung padanya</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">izinkan dua menit per langkah tanpa kemajuan</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">mulai sedikit setelah entri otomatis lainnya</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">nonaktifkan dan hentikan dalam satu rencana</span></code></pre>
+    <h3>Layanan yang tidak mau berhenti</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">proses itu, dan setiap layanan yang hidup di dalamnya</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">akhiri proses hanya jika penghentian gagal, lalu kembalikan semuanya</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">satu langkah, bukan dua: proses diakhiri seketika</span></code></pre>
+    <h3>Snapshot dan penyimpangan</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">bekukan mesin, dengan catatan tersimpan di dalamnya</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">dua berkas - dua hari, atau dua mesin</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">berkas terhadap mesin ini seperti sekarang</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">sama, berakhir dengan 5 jika konfigurasi menyimpang</span></code></pre>
+    <h3>Siapa yang mengubahnya</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">setiap perubahan tipe startup dan pemasangan yang dimuat log System</span>
+<span class="k">bws history Spooler</span>  <span class="c">perubahan tipe startup satu layanan</span>
+<span class="k">bws history --json</span>   <span class="c">sama, sebagai dokumen, dengan log dan perubahan</span></code></pre>
+    <h3>Perbaikan cepat</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">alat-alat yang ada</span>
+<span class="k">bws tool fix</span>                  <span class="c">perbaikan cepat, dan layanan di balik masing-masing</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">rencana me-restart dua layanan audio</span>
+<span class="k">bws tool fix printer</span>          <span class="c">restart Print Spooler bersama apa yang bergantung padanya</span></code></pre>
+    <h3>Apa yang ada di dalam berkas</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">setiap komponen, versinya, lisensinya, dan asalnya</span>
+<span class="k">bws --version</span>             <span class="c">versi berkas eksekusi ini</span></code></pre>
+    <h3>Dalam skrip PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># entri yang seharusnya hidup dan tidak hidup, sebagai objek</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># berkas yang tidak bertanda tangan, ke dalam spreadsheet</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># apa yang dibutuhkan satu layanan</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># pemeriksaan malam yang bercabang pada kode keluar</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>Di cmd dan berkas batch</h3>
+<pre class="wrap-lines"><code><span class="c">rem perintah kedua hanya bila yang pertama tidak berakhir bersih</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem dalam berkas batch dengan delayed expansion aktif, ! membutuhkan tanda ^</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Opsi</h2>
+    <p>{{switch_count}} buah. Kolom ketiga adalah perintah tempat masing-masing berada - opsi yang diberikan kepada perintah yang tidak membutuhkannya adalah galat yang memuat daftar itu, bukan bendera yang diam-diam diabaikan.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Kode keluar</h2>
+    <p>{{exit_code_count}} akhiran, dan masing-masing adalah hal yang berbeda untuk dilakukan skrip. Data masuk ke keluaran standar dan yang lain ke galat standar, sehingga <code>bws list --json | jq</code> berfungsi dan peringatan tidak pernah mendarat di JSON Anda.</p>
+    <p>Setiap dokumen JSON adalah ASCII polos: huruf di luarnya ditulis sebagai escape enam karakter yang diubah kembali oleh setiap pembaca JSON menjadi huruf itu, sehingga <code>bws list --json &gt; file.json</code> adalah UTF-8 yang valid dan <code>| ConvertFrom-Json</code> membacanya dengan benar apa pun code page konsolnya. Dalam teks yang dibaca orang, karakter yang akan menggerakkan terminal alih-alih tercetak - tab, jeda baris, urutan escape, penimpaan arah - ditampilkan sebagai titik kodenya, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> mengakhiri opsi, sehingga layanan yang namanya diawali tanda hubung tetap bisa disebut: <code>bws show -- -odd</code>. Baris perintah yang diberikan alat ini kepada Anda ditulis untuk PowerShell: nama dengan spasi masuk ke tanda kutip ganda, yang dibaca cmd dengan cara yang sama, dan nama yang akan diperluas PowerShell di dalamnya, seperti <code>MSSQL$SQLEXPRESS</code>, masuk ke tanda kutip tunggal.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C punya tiga tingkat, masing-masing menyatakan apa biaya tingkat berikutnya.</strong> Yang pertama berhenti maju dan tetap mengembalikan apa yang diambil, yang kedua membiarkan keadaan apa adanya dan tetap mencetak laporan, yang ketiga mengakhiri proses. Proses yang dihentikan secara manual berakhir dengan <code>4</code> bahkan ketika setiap langkah masih sampai.</p>
+    <p class="note"><strong>Menutup jendela konsol dihitung sebagai Ctrl+C pertama.</strong> Windows memberi program lima detik setelah itu, dan dalam waktu itu program ini berhenti maju dan mengembalikan apa yang dijatuhkannya. Keluar dari akun dan mematikan komputer mengakhirinya tanpa peringatan apa pun yang bisa ditindaklanjutinya, dan sesi jarak jauh yang terputus mungkin juga demikian.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Dalam tugas terjadwal</h2>
+    <p>Bentuk yang untuknya alat ini dibangun: bekukan mesin ketika diketahui baik, lalu tanyakan setiap malam apakah ia masih begitu.</p>
+<pre><code><span class="c"># hari mesin mulai beroperasi</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># setiap malam, dari tugas terjadwal</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - tidak ada penyimpangan konfigurasi
+#   5 - konfigurasi menyimpang, dan drift.json menyatakan apa
+#   3 - berjalan tetapi tidak bisa membaca semuanya, jadi jawabannya sebagian</span></code></pre>
+    <p>Jendela adalah bagian lain dari mesin yang sama: <code>{{archive_window}}</code> memuatnya, dan <a href="{{url:download}}">halaman unduhan</a> menyatakan apa masing-masing arsip.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Argumen jendela</h2>
+    <p><code>BetterWindowsServices.exe</code> menerima satu argumen yang ditujukan untuk manusia: <code>--catalogue</code> membuka lembar pengembang yang menampilkan setiap komponen jendela dalam setiap keadaan, dan tidak membaca apa pun dari mesin Anda. Yang kedua, <code>--carry</code>, adalah cara jendela menyerahkan apa yang ditampilkannya kepada salinan dirinya yang di-restart-nya sebagai administrator. Tidak ada yang mengetiknya, dan apa pun di dalamnya yang tidak mungkin ditulis jendela itu ditolak.</p>
+  </div>
+</section>

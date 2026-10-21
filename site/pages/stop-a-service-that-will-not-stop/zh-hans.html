@@ -1,0 +1,68 @@
+<meta name="title" content="卡在 Stopping 的 Windows 服务：如何安全地结束它">
+<meta name="description" content="卡在 Stopping 的服务通常与其他服务共用进程。在结束任何东西之前先看是哪些，事后再用一个命令把它们全部恢复。">
+<meta name="nav" content="卡在 Stopping 的服务">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>卡在 <em>Stopping...</em> 的服务</h1>
+    <p class="lede">管理单元显示 <em>Stopping</em> 后就一动不动。通常的办法是打开任务管理器，猜它位于哪个 <code>svchost.exe</code> 中，然后点“结束任务”，而这会把该进程中的所有其他服务也一并结束，却不告诉你它们是哪些。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>为什么会这样</h2>
+    <ul class="points points-alarm">
+      <li><strong>服务没有响应停止请求。</strong>Windows 会礼貌地请求并等待。已经挂起的服务，或者在等待一个不会回来的东西的服务，永远不会响应。</li>
+      <li><strong>依赖它的东西仍在运行。</strong>服务管理器会拒绝停止，而不是弄坏另一个服务，管理单元把这显示成一次等待。</li>
+      <li><strong>它与其他服务共用进程。</strong>大多数 Windows 服务都运行在共享的 <code>svchost.exe</code> 里。结束该进程就会结束它们全部，这正是任务管理器不点出它们名称就做的事。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>结束任何东西之前先看看</h2>
+    <p>询问结束它会带走什么。在你去掉 <code>--dry-run</code> 之前什么也不会发生。</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>预览按编号指出该进程，点出其中的每个其他服务，并显示两个步骤而不是一个：请求服务停止，<em>只有在无效时</em>才结束进程。自己能停止的服务绝不会被强行结束。</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> 跳过礼貌的那一步</strong>，直接结束进程。它改变的是计划而不是执行，所以预览显示一个步骤而不是两个，这种差异在任何操作发生之前就能看到。</li>
+        <li><strong><code>--restart</code> 在进程消失后把一切带回来</strong>：你询问的那个条目，以及与它共用进程的所有内容。没有它，计算机就会留下这些已停止的服务，报告会说明如何再次启动它们。</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>拒绝出现在按钮之前。</strong>驱动程序、系统保护的进程、服务管理器不接受停止请求的服务，都会在生成计划时连同原因一起被拒绝，而不是在等待六十秒之后。</li>
+        <li><strong>重要时会发出警告。</strong>如果该条目是计算机离不开的，计划会这样说明：停止它会让整台计算机宕机，而不只是这个服务。</li>
+      </ul>
+    </div>
+    <p class="note"><strong>结束进程是这个工具所做的唯一一件没人能替计算机拒绝的事。</strong>这就是它是一个独立命令的原因，也是预览会点出它带走的每个服务的原因，还是除非你另行指定，否则礼貌的那一步总是排在第一位的原因。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>更稳妥的顺序</h2>
+    <ol class="prose-list">
+      <li><strong>先看它是什么。</strong><code>bws show Spooler</code>：进程、依赖它的内容、它所依赖的内容，以及它到底是否接受停止请求。</li>
+      <li><strong>把普通停止当作计划来尝试。</strong><code>bws stop Spooler --dry-run --dependents</code>。如果答案是拒绝，它会说明是三种原因中的哪一种。</li>
+      <li><strong>如果它停不下来，看看结束它的代价。</strong><code>bws kill Spooler --dry-run</code>，并阅读共用该进程的服务列表。</li>
+      <li><strong>然后动手，并留好退路。</strong><code>bws kill Spooler --restart</code>。报告以没有成功的内容和把一切恢复原状的命令结尾。</li>
+    </ol>
+    <p>这四步在窗口中的工作方式相同：右键单击一行，选择 <em>Force stop...</em>，阅读计划，其下方的按钮会以它将要执行的操作命名。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>为什么不直接用任务管理器</h2>
+    <p class="lede">因为它回答的是另一个问题。任务管理器了解进程，而这个问题与服务有关，二者并不一一对应。</p>
+    <p>一个共享的 <code>svchost.exe</code> 可以容纳十几个服务。任务管理器会结束它，却不说是哪十二个，其中没有一个会自行回来，事后也没有任何东西告诉你停掉了什么。如果某个 EDR 把结束 <code>svchost.exe</code> 的进程标记出来，那它是在履行职责，而它无法把你的点击与其他任何东西区分开。</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">下载 Windows 版</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">完整参考</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,78 @@
+<meta name="title" content="Pertanyaan tentang Better Windows Services, dan batasannya yang jujur">
+<meta name="description" content="Apakah butuh internet? Hak administrator? Apakah akan merusak server saya? Apa yang dilakukannya, dan apa yang sengaja ditolaknya.">
+<meta name="nav" content="Tanya jawab">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Pertanyaan</span>
+    <h1>Pertanyaan, dan batasannya</h1>
+    <p class="lede">Alat yang diam-diam tidak mencakup sesuatu lebih buruk daripada alat yang menyatakan apa yang tidak bisa dilakukannya. Batasannya ada juga di halaman ini, dalam dua kelompok: apa yang sengaja ditolaknya, dan apa yang dilakukan Windows dan dilaporkan alat ini apa adanya.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Apa bedanya dengan <code>sc.exe</code>, <code>Get-Service</code>, atau <code>services.msc</code>?</h3>
+        <p><code>sc query</code> dan <code>Get-Service</code> memberi tahu Anda apa yang berjalan. <code>services.msc</code> memungkinkan Anda mengubahnya, satu baris sekali waktu, tanpa cara untuk mengajukan pertanyaan dan tanpa catatan sesudahnya. Alat ini mengajukan pertanyaannya (<code>start:auto !status:running</code>), menunjukkan rencana sebelum bertindak, dan menyimpan snapshot yang bisa Anda bandingkan seminggu kemudian. Jika hasilnya berbeda dari <code>sc.exe</code> tentang sebuah layanan, itu adalah bug - sebagian suite pengujian menjalankan keduanya dan membandingkannya entri demi entri. <a href="{{url:sc-exe-and-powershell}}">Perbandingan yang lebih panjang ada di sini.</a></p>
+      </div>
+      <div>
+        <h3>Apakah butuh internet?</h3>
+        <p>Tidak pernah. Tanpa telemetri, tanpa pemeriksaan pembaruan, tanpa pelaporan kerusakan, tanpa akun, tanpa klien apa pun. Satu-satunya saat ia dapat menyentuh jaringan adalah ketika Anda memberikan <code>--follow-network</code>: saat itu ia boleh melihat jalur peluncuran pada berbagi mesin lain dan membiarkan Windows mengambil sertifikat yang belum dimiliki mesin ini - nonaktif secara bawaan, dan bantuannya menjelaskan alasannya. Tombol <em>GitHub</em> dan <em>Donate</em> di jendela serta halaman di menu <em>Help</em> masing-masing menyerahkan satu alamat tetap ke browser Anda saat ditekan, dan browser Andalah yang terhubung.</p>
+      </div>
+      <div>
+        <h3>Apakah butuh hak administrator?</h3>
+        <p>Untuk melihat, tidak. Untuk mengubah, ya. Tanpanya manajer menampilkan lebih sedikit entri dan menolak lebih banyak, dan kedua bagian menyatakannya di bagian atas alih-alih berpura-pura bahwa daftar itu adalah seluruh mesin. Jendela menawarkan <em>Restart as admin</em>. Ia tidak pernah menaikkan haknya sendiri.</p>
+      </div>
+      <div>
+        <h3>Apakah gratis? Bisakah saya memakainya di tempat kerja?</h3>
+        <p>Ya untuk keduanya. GPL-3.0, tanpa syarat tambahan. Snapshot yang Anda ambil adalah berkas Anda.</p>
+      </div>
+      <div>
+        <h3>Apakah ini akan merusak server saya?</h3>
+        <p>Tidak dengan sendirinya. Tidak ada yang diubah tanpa rencana yang telah Anda lihat, driver ditolak, dan rencana yang akan menjatuhkan sesuatu yang dibutuhkan mesin menyatakannya. Yang tidak bisa dilindunginya adalah menjalankan rencana yang tidak Anda baca. Daftar layanan yang dibutuhkan mesin adalah daftar awal berisi tujuh - dua bagian RPC dan peluncur DCOM, manajer akun, isolasi kunci, manajer sesi, dan plug and play - dan <strong>Remote Desktop tidak ada di dalamnya</strong>, jadi pada sesi jarak jauh, bacalah rencananya.</p>
+      </div>
+      <div>
+        <h3>Apakah ini produk Microsoft?</h3>
+        <p>Bukan. {{product}} adalah proyek sumber terbuka yang independen dan tidak berafiliasi dengan, didukung oleh, atau disponsori oleh Microsoft. Windows adalah merek dagang dari grup perusahaan Microsoft.</p>
+      </div>
+      <div>
+        <h3>Apakah programnya dalam bahasa saya?</h3>
+        <p>Tidak - program ini berbahasa Inggris, itulah sebabnya situs ini diterjemahkan. Jendela membaca berkas bahasa, <code>languages\gui.&lt;kode&gt;.json</code>, yang ditaruh di sebelah berkas eksekusi dan memilihnya menurut bahasa Windows, tanpa sakelar, sehingga terjemahan adalah kontribusi yang dapat ditambahkan tanpa membangun ulang program. Nama layanan dalam daftar adalah apa pun yang dikatakan Windows Anda - dalam bahasa yang diatur pada Windows Anda.</p>
+      </div>
+      <div>
+        <h3>Mengapa jendelanya gelap padahal Windows saya terang?</h3>
+        <p>Ia gelap dan tetap gelap apa pun pengaturan Windows, termasuk tema kontras tinggi. Itu diperiksa, bukan diasumsikan - ia mempertahankan warnanya sendiri dan tetap terbaca, dan tidak mengikuti pengaturan itu.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Menurut rancangan</h2>
+    <ul class="points">
+      <li><strong>Hanya mesin lokal.</strong> Manajemen jarak jauh tidak ada dalam versi ini. Untuk membandingkan dua mesin, ambil snapshot di masing-masing dan bandingkan kedua berkas.</li>
+      <li><strong>Hanya Windows, hanya 64-bit</strong>, Windows 10 1809 atau Windows Server 2019 dan yang lebih baru.</li>
+      <li><strong>Operasi pada driver ditolak, bukan dicoba</strong>, karena menghentikan driver kernel sering kali tidak dapat dibalikkan tanpa restart.</li>
+      <li><strong>Alat ini tidak menaikkan hak istimewanya sendiri.</strong> Ketika manajer menolak, ia menyatakannya dan berakhir dengan kode keluar <code>3</code>. Jendela menawarkan untuk me-restart dirinya sebagai administrator, dan tidak melakukan hal lain tentangnya.</li>
+      <li><strong>Pencabutan sertifikat tidak diperiksa.</strong> Itu membutuhkan akses ke jaringan, dan alat ini tidak pernah melakukannya. Jadi <em>Trusted</em> berarti rantainya valid pada mesin ini, bukan bahwa tidak ada yang mencabut sertifikat itu sejak saat itu.</li>
+      <li><strong>Jendela mengekstrak sebagian kerangka antarmuka pengguna Windows sebelum dimulai.</strong> Sebagai satu berkas, ia membawa beberapa pustaka asli yang hanya bisa dimuat Windows dari disk. Tanpa hak administrator, ia menuliskannya, pada saat pertama kali dimulai setiap versi, ke folder <code>.net</code> di bawah folder sementara akun dan memuatnya dari sana. Dengan hak administrator, ia memakai <code>ProgramData\BetterWindowsServices</code> pada drive Windows sebagai gantinya - folder yang dibuatnya agar hanya administrator yang dapat mengubahnya, dan diperiksanya pada setiap permulaan. Jika folder itu tidak dapat dibuat, atau orang lain dapat mengubahnya, jendela tidak dimulai dan menyebut folder mana dan apa yang harus dilakukan. Pindah ke sana berarti jendela dengan hak tinggi memulai dirinya sendiri untuk kedua kalinya, yang memakan sepersekian detik, dan setiap versi meninggalkan pustakanya di sana (sekitar 8 MB) sampai seseorang menghapus folder itu. Baris perintah tidak membawa pustaka seperti itu dan tidak mengekstrak apa pun.</li>
+      <li><strong>Sesi dengan hak tinggi menyebut pengaturan .NET yang diwarisinya alih-alih menolaknya.</strong> Profiler, sakelar trace atau dump, atau port diagnostik yang diatur di lingkungan tidak dapat dimatikan dari dalam program .NET, jadi dengan hak administrator kedua bagian mencantumkan apa pun yang ditemukannya. Startup hook dimatikan sepenuhnya.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Hal-hal yang dilakukan Windows dan dilaporkan alat ini apa adanya</h2>
+    <ul class="points">
+      <li><strong>Layanan yang dihosting di dalam <code>svchost</code></strong> memiliki jalur peluncuran yang menyebut host, sehingga <em>berkas ada di sana</em> dan <em>siapa yang menandatanganinya</em> keduanya mengatakan lebih sedikit dibandingkan layanan dengan prosesnya sendiri.</li>
+      <li><strong>Berkas dengan tanda tangannya sendiri dan juga entri katalog Windows</strong> dapat menyebut dua penandatangan yang berbeda. Penerbit yang ditampilkan adalah yang ada di dalam berkas - yang tetap sama ketika berkas dilihat di mesin lain - dan bisa berbeda dari yang dilaporkan PowerShell.</li>
+      <li><strong>Tanpa hak administrator, manajer mencantumkan lebih sedikit entri dan menolak lebih banyak dari yang dicantumkannya.</strong> Kedua bagian menyatakannya di bagian atas, dan snapshot mencatatnya, karena membandingkan snapshot dengan hak tinggi terhadap yang tanpa hak akan melaporkan entri sebagai dihapus padahal tidak ada yang menghapusnya.</li>
+    </ul>
+    <p class="note"><strong>Menemukan masalah, atau layanan yang dilaporkan alat ini berbeda dari <code>sc.exe</code>?</strong> <a href="{{issues}}">Pelacak masalah</a> terbuka, dan selisih antara keduanya adalah hal paling berguna yang bisa Anda tempelkan di sana.</p>
+  </div>
+</section>
