@@ -40,6 +40,7 @@ internal sealed class Renderer
     internal string Render(PageDefinition page, PageContent content)
     {
         var language = content.Language;
+        var info = _site.Language(language);
         var url = _site.Origin + page.Url(language, _site);
         var title = _tokens.Resolve(content.Title, language, $"{page.Id}/{language} title");
         var description = _tokens.Resolve(content.Description, language, $"{page.Id}/{language} description");
@@ -47,7 +48,11 @@ internal sealed class Renderer
 
         var html = new StringBuilder();
         html.AppendLine("<!doctype html>");
-        html.AppendLine(CultureInfo.InvariantCulture, $"<html lang=\"{language}\">");
+
+        // dir is written only when it is not the default. A browser assumes ltr, and an attribute
+        // saying so on twenty-one pages would be twenty-one places to be wrong about it.
+        var direction = info.Dir == "ltr" ? "" : $" dir=\"{info.Dir}\"";
+        html.AppendLine(CultureInfo.InvariantCulture, $"<html lang=\"{info.Tag}\"{direction}>");
         html.AppendLine("<head>");
         html.AppendLine("<meta charset=\"utf-8\">");
         html.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
@@ -105,7 +110,7 @@ internal sealed class Renderer
 
         foreach (var language in _site.Languages)
         {
-            html.AppendLine(CultureInfo.InvariantCulture, $"<link rel=\"alternate\" hreflang=\"{language}\" href=\"{_site.Origin}{page.Url(language, _site)}\">");
+            html.AppendLine(CultureInfo.InvariantCulture, $"<link rel=\"alternate\" hreflang=\"{_site.Language(language).Tag}\" href=\"{_site.Origin}{page.Url(language, _site)}\">");
         }
 
         html.AppendLine(CultureInfo.InvariantCulture, $"<link rel=\"alternate\" hreflang=\"x-default\" href=\"{_site.Origin}{page.Url(_site.DefaultLanguage, _site)}\">");
@@ -115,10 +120,10 @@ internal sealed class Renderer
     {
         html.AppendLine("<meta property=\"og:type\" content=\"website\">");
         html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:site_name\" content=\"{Html.Escape(_site.Product)}\">");
-        html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:locale\" content=\"{Locale(language)}\">");
+        html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:locale\" content=\"{_site.Language(language).Locale}\">");
         foreach (var other in _site.Languages.Where(other => other != language))
         {
-            html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:locale:alternate\" content=\"{Locale(other)}\">");
+            html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:locale:alternate\" content=\"{_site.Language(other).Locale}\">");
         }
 
         html.AppendLine(CultureInfo.InvariantCulture, $"<meta property=\"og:title\" content=\"{Html.Escape(title)}\">");
@@ -135,13 +140,6 @@ internal sealed class Renderer
         // there are fourteen programs here.
         _ = page;
     }
-
-    private static string Locale(string language) => language switch
-    {
-        "en" => "en_US",
-        "pl" => "pl_PL",
-        _ => language,
-    };
 
     /// <summary>
     /// Structured data, on the two pages where there is something true to say: the front page
@@ -197,6 +195,20 @@ internal sealed class Renderer
     }
 
     /// <summary>
+    /// <b>Rewritten 2026-10-21 for twenty-two languages.</b> A row of two-letter links was the
+    /// right size for one other language and cannot be for twenty-one: it would be a second
+    /// navigation bar. So it is a disclosure - a <c>&lt;details&gt;</c> whose summary shows the
+    /// language you are in and whose list holds all of them under their own names. No script,
+    /// because the site promises to run none, and <c>&lt;details&gt;</c> is the one control that
+    /// opens by keyboard and by touch in every browser without one.
+    ///
+    /// <b>The price, said out loud:</b> it does not close when you click elsewhere or press
+    /// Escape, because that needs script or the popover attribute, which a browser from before
+    /// 2024 does not understand and then prints the list in the page. A disclosure that stays
+    /// open until you press it again was judged the lesser fault.
+    ///
+    /// The original reasoning about where the switch sits follows, and still holds.
+    ///
     /// The language switch, which is OUTSIDE the navigation and that is the whole point of it
     /// being its own method.
     ///
@@ -217,24 +229,35 @@ internal sealed class Renderer
     /// </summary>
     private void AppendLanguageSwitch(StringBuilder html, PageDefinition current, string language)
     {
-        var others = _site.Languages.Where(other => other != language).ToList();
-        if (others.Count == 0)
+        if (_site.Languages.Length < 2)
         {
             return;
         }
 
-        html.AppendLine(CultureInfo.InvariantCulture, $"<div class=\"lang-switch\" role=\"group\" aria-label=\"{_words.Get(language, "chrome.language", _problems)}\">");
+        var label = _words.Get(language, "chrome.language", _problems);
+        var here = _site.Language(language);
 
-        foreach (var other in others)
+        // The accessible name carries the language you are in as well as the word for "language":
+        // a screen reader that said only "Language" would leave you to find out which by opening it.
+        html.AppendLine("<details class=\"lang-switch\">");
+        html.AppendLine(CultureInfo.InvariantCulture, $"<summary aria-label=\"{Html.Escape(label)}: {Html.Escape(here.Name)}\" title=\"{Html.Escape(label)}\">{Html.Escape(here.Short)}</summary>");
+        html.AppendLine(CultureInfo.InvariantCulture, $"<ul class=\"lang-list\" aria-label=\"{Html.Escape(label)}\">");
+
+        foreach (var code in _site.Languages)
         {
-            var target = current.IsNotFound ? Home(other) : current.Url(other, _site);
-            var full = _words.Get(language, "chrome.language." + other, _problems);
-            var code = _words.Get(language, "chrome.language.short." + other, _problems);
+            var info = _site.Language(code);
+            if (code == language)
+            {
+                html.AppendLine(CultureInfo.InvariantCulture, $"<li><span class=\"lang\" lang=\"{info.Tag}\" aria-current=\"true\">{Html.Escape(info.Name)}</span></li>");
+                continue;
+            }
 
-            html.AppendLine(CultureInfo.InvariantCulture, $"<a class=\"lang\" href=\"{target}\" lang=\"{other}\" hreflang=\"{other}\" title=\"{Html.Escape(full)}\" aria-label=\"{Html.Escape(full)}\">{Html.Escape(code)}</a>");
+            var target = current.IsNotFound ? Home(code) : current.Url(code, _site);
+            html.AppendLine(CultureInfo.InvariantCulture, $"<li><a class=\"lang\" href=\"{target}\" lang=\"{info.Tag}\" hreflang=\"{info.Tag}\">{Html.Escape(info.Name)}</a></li>");
         }
 
-        html.AppendLine("</div>");
+        html.AppendLine("</ul>");
+        html.AppendLine("</details>");
     }
 
     private void AppendFooter(StringBuilder html, string language)

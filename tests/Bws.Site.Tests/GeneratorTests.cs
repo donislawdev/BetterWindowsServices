@@ -15,28 +15,10 @@ namespace Bws.Site.Tests;
 /// Without it, every other test here could pass against a generator that reports problems
 /// unconditionally.
 /// </summary>
-public sealed class GeneratorTests : IDisposable
+public sealed class GeneratorTests : SiteTestBase
 {
     // The session on the front page, which the poster tests plant a video in front of.
     private const string SessionImage = "<img src=\"/assets/bws-in-action.gif\"";
-
-    private readonly string _copy;
-    private readonly string _output;
-
-    public GeneratorTests()
-    {
-        _copy = Path.Combine(Path.GetTempPath(), "bws-site-tests", Guid.NewGuid().ToString("n"));
-        _output = Path.Combine(_copy, "out");
-        CopySite(Repository.Root(), _copy);
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_copy))
-        {
-            Directory.Delete(_copy, recursive: true);
-        }
-    }
 
     [Fact]
     public void The_site_as_it_stands_builds_with_nothing_to_report()
@@ -51,10 +33,15 @@ public sealed class GeneratorTests : IDisposable
     {
         Build();
 
-        var pages = Directory.EnumerateDirectories(Path.Combine(_copy, "site", "pages")).Count();
-        var written = Directory.EnumerateFiles(_output, "*.html", SearchOption.AllDirectories).Count();
+        var pages = Directory.EnumerateDirectories(Path.Combine(Copy, "site", "pages")).Count();
+        var written = Directory.EnumerateFiles(Output, "*.html", SearchOption.AllDirectories).Count();
 
-        Assert.Equal(pages * 2, written);
+        // The number of languages is read from the file that says it, not written here: this
+        // assertion used to say "two" and would have had to be edited for every language added.
+        using var config = JsonDocument.Parse(File.ReadAllText(Path.Combine(Copy, "site", "site.json")));
+        var languages = config.RootElement.GetProperty("languages").GetArrayLength();
+
+        Assert.Equal(pages * languages, written);
     }
 
     [Fact]
@@ -160,7 +147,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_key_missing_from_one_language_fails_rather_than_falling_back()
     {
-        var path = Path.Combine(_copy, "site", "i18n", "pl.json");
+        var path = Path.Combine(Copy, "site", "i18n", "pl.json");
         var text = File.ReadAllText(path);
         var line = text.Split('\n').First(candidate => candidate.Contains("\"exit.ok\"", StringComparison.Ordinal));
         File.WriteAllText(path, text.Replace(line + "\n", "", StringComparison.Ordinal));
@@ -180,7 +167,7 @@ public sealed class GeneratorTests : IDisposable
     {
         foreach (var language in new[] { "en", "pl" })
         {
-            var path = Path.Combine(_copy, "site", "i18n", language + ".json");
+            var path = Path.Combine(Copy, "site", "i18n", language + ".json");
             File.WriteAllText(
                 path,
                 File.ReadAllText(path).Replace(
@@ -195,14 +182,14 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_page_nothing_links_to_is_reported()
     {
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(_copy, "site", "pages"), "*.html", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(Copy, "site", "pages"), "*.html", SearchOption.AllDirectories))
         {
             File.WriteAllText(file, File.ReadAllText(file)
                 .Replace("/sc-exe-and-powershell/", "/cli-reference/", StringComparison.Ordinal)
                 .Replace("/pl/sc-exe-i-powershell/", "/pl/dokumentacja-cli/", StringComparison.Ordinal));
         }
 
-        var definition = Path.Combine(_copy, "site", "pages", "sc-exe-and-powershell", "page.json");
+        var definition = Path.Combine(Copy, "site", "pages", "sc-exe-and-powershell", "page.json");
         File.WriteAllText(definition, File.ReadAllText(definition).Replace("\"footer\": \"guides\",", "", StringComparison.Ordinal));
 
         Assert.Contains(Build(), problem => problem.Contains("sc-exe-and-powershell", StringComparison.Ordinal));
@@ -211,7 +198,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void Two_pages_sharing_an_address_are_reported()
     {
-        var definition = Path.Combine(_copy, "site", "pages", "faq", "page.json");
+        var definition = Path.Combine(Copy, "site", "pages", "faq", "page.json");
         File.WriteAllText(definition, File.ReadAllText(definition).Replace("\"en\": \"faq\"", "\"en\": \"download\"", StringComparison.Ordinal));
 
         Assert.Contains(Build(), problem => problem.Contains("share the address", StringComparison.Ordinal));
@@ -236,7 +223,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_switch_missing_from_the_readme_table_is_reported()
     {
-        var path = Path.Combine(_copy, "README.md");
+        var path = Path.Combine(Copy, "README.md");
         var text = File.ReadAllText(path);
         var row = text.Split('\n').First(candidate => candidate.StartsWith("| `--dry-run`", StringComparison.Ordinal));
         File.WriteAllText(path, text.Replace(row + "\n", "", StringComparison.Ordinal));
@@ -247,7 +234,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void An_exit_code_missing_from_the_readme_table_is_reported()
     {
-        var path = Path.Combine(_copy, "README.md");
+        var path = Path.Combine(Copy, "README.md");
         var text = File.ReadAllText(path);
         var row = text.Split('\n').First(candidate => candidate.StartsWith("| `5` |", StringComparison.Ordinal));
         File.WriteAllText(path, text.Replace(row + "\n", "", StringComparison.Ordinal));
@@ -263,7 +250,7 @@ public sealed class GeneratorTests : IDisposable
     [Fact]
     public void A_question_page_with_no_questions_left_in_it_is_reported()
     {
-        var path = Path.Combine(_copy, "site", "pages", "faq", "en.html");
+        var path = Path.Combine(Copy, "site", "pages", "faq", "en.html");
         File.WriteAllText(path, File.ReadAllText(path).Replace("<div class=\"qa\">", "<div class=\"questions\">", StringComparison.Ordinal));
 
         Assert.Contains(Build(), problem => problem.Contains("question page", StringComparison.Ordinal));
@@ -276,10 +263,10 @@ public sealed class GeneratorTests : IDisposable
 
         foreach (var (file, type) in new[]
         {
-            (Path.Combine(_output, "index.html"), "SoftwareApplication"),
-            (Path.Combine(_output, "faq", "index.html"), "FAQPage"),
-            (Path.Combine(_output, "pl", "index.html"), "SoftwareApplication"),
-            (Path.Combine(_output, "pl", "faq", "index.html"), "FAQPage"),
+            (Path.Combine(Output, "index.html"), "SoftwareApplication"),
+            (Path.Combine(Output, "faq", "index.html"), "FAQPage"),
+            (Path.Combine(Output, "pl", "index.html"), "SoftwareApplication"),
+            (Path.Combine(Output, "pl", "faq", "index.html"), "FAQPage"),
         })
         {
             var text = File.ReadAllText(file);
@@ -305,10 +292,10 @@ public sealed class GeneratorTests : IDisposable
     {
         Build();
 
-        var sitemap = File.ReadAllText(Path.Combine(_output, "sitemap.xml"));
+        var sitemap = File.ReadAllText(Path.Combine(Output, "sitemap.xml"));
         var written = Directory
-            .EnumerateFiles(_output, "*.html", SearchOption.AllDirectories)
-            .Select(file => "/" + Path.GetRelativePath(_output, file).Replace('\\', '/'))
+            .EnumerateFiles(Output, "*.html", SearchOption.AllDirectories)
+            .Select(file => "/" + Path.GetRelativePath(Output, file).Replace('\\', '/'))
             .Select(path => path.EndsWith("/index.html", StringComparison.Ordinal) ? path[..^"index.html".Length] : path)
             .ToList();
 
@@ -325,7 +312,7 @@ public sealed class GeneratorTests : IDisposable
     {
         Build();
 
-        Assert.Contains("<meta name=\"robots\" content=\"noindex\">", File.ReadAllText(Path.Combine(_output, "404.html")), StringComparison.Ordinal);
+        Assert.Contains("<meta name=\"robots\" content=\"noindex\">", File.ReadAllText(Path.Combine(Output, "404.html")), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -333,7 +320,7 @@ public sealed class GeneratorTests : IDisposable
     {
         Build();
 
-        Assert.Equal("betterwindowsservices.donislawdev.com\n", File.ReadAllText(Path.Combine(_output, "CNAME")));
+        Assert.Equal("betterwindowsservices.donislawdev.com\n", File.ReadAllText(Path.Combine(Output, "CNAME")));
     }
 
     /// <summary>
@@ -346,92 +333,11 @@ public sealed class GeneratorTests : IDisposable
     {
         Build();
 
-        foreach (var file in Directory.EnumerateFiles(_output, "*.html", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(Output, "*.html", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(file);
             Assert.DoesNotContain("src=\"http", text, StringComparison.Ordinal);
             Assert.DoesNotContain("<link rel=\"stylesheet\" href=\"http", text, StringComparison.Ordinal);
         }
-    }
-
-    private IReadOnlyList<string> Build()
-    {
-        var build = new Build(_copy, _output);
-        build.Run();
-        return build.Problems;
-    }
-
-    /// <summary>
-    /// Breaks one thing in one page fragment.
-    ///
-    /// <b>The path is built from segments rather than written as one string</b>, and that is not
-    /// a style preference. A page folder in this project is named after the page, one of them is
-    /// the front page, and a slash-separated path through that folder ending in a file carries
-    /// the shape of a unix home directory inside it - which PublicSurfaceGuards sweeps every
-    /// published file for. It went red the first run this file reached CI, and red again on the
-    /// comment that first tried to explain it by quoting the path. The guard is right both
-    /// times: weakening a privacy sweep to fit a test path would be the wrong half of the trade.
-    /// </summary>
-    private void DamagePage(string id, string language, string from, string to)
-    {
-        var path = Path.Combine(_copy, "site", "pages", id, language + ".html");
-        var text = File.ReadAllText(path);
-
-        // The damage has to land, or the test would pass against a generator that checks
-        // nothing - the assertion would simply never be reached with anything broken.
-        Assert.Contains(from, text, StringComparison.Ordinal);
-        File.WriteAllText(path, text.Replace(from, to, StringComparison.Ordinal));
-    }
-
-    private static void CopySite(string root, string target)
-    {
-        foreach (var relative in new[] { "site", "README.md", "Directory.Build.props", "BetterWindowsServices.slnx" })
-        {
-            var source = Path.Combine(root, relative);
-            if (File.Exists(source))
-            {
-                Directory.CreateDirectory(target);
-                File.Copy(source, Path.Combine(target, relative));
-                continue;
-            }
-
-            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-            {
-                // bin and obj under site/Bws.Site are the generator's own build output and
-                // copying them would take seconds and megabytes for nothing.
-                if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                    || file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var destination = Path.Combine(target, Path.GetRelativePath(root, file));
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                File.Copy(file, destination);
-            }
-        }
-
-        // The exit codes and the switches are read out of the shipped source as text, so the
-        // copy needs those two files and nothing else from src.
-        foreach (var relative in new[] { "src/Bws.Cli/ExitCode.cs", "src/Bws.Cli/OptionSurface.cs" })
-        {
-            var destination = Path.Combine(target, relative.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)), destination);
-        }
-    }
-}
-
-internal static class Repository
-{
-    internal static string Root()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "BetterWindowsServices.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("No repository root above " + AppContext.BaseDirectory);
     }
 }

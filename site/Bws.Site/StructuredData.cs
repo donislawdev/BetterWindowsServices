@@ -123,6 +123,11 @@ internal static class StructuredData
             .Replace("&gt;", ">", StringComparison.Ordinal)
             .Replace("&quot;", "\"", StringComparison.Ordinal)
             .Replace("&middot;", "\u00B7", StringComparison.Ordinal)
+
+            // French puts a no-break space before a colon or a question mark, and writes it as an
+            // entity. Without this line the questions' markup said "mon serveur&nbsp;?" to a search
+            // engine, which reads the letters.
+            .Replace("&nbsp;", "\u00A0", StringComparison.Ordinal)
             .Replace("&amp;", "&", StringComparison.Ordinal);
     }
 }

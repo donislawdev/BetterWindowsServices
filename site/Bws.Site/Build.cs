@@ -14,25 +14,43 @@ internal sealed class Build
 {
     private readonly string _root;
     private readonly string _output;
+    private readonly bool _requireFresh;
     private readonly Problems _problems = new();
+    private readonly List<string> _stale = [];
 
-    internal Build(string root, string output)
+    internal Build(string root, string output, bool requireFresh = false)
     {
         _root = root;
         _output = output;
+        _requireFresh = requireFresh;
     }
 
     internal IReadOnlyList<string> Problems => _problems.Found;
+
+    /// <summary>
+    /// The translations older than the English they follow. Not problems unless the build was
+    /// asked to treat them as such - see <see cref="Freshness"/> for why.
+    /// </summary>
+    internal IReadOnlyList<string> Stale => _stale;
 
     internal int PagesWritten { get; private set; }
 
     internal void Run()
     {
         var site = SiteConfig.Load(_root);
+
+        // Everything after this asks the registry about a language, so a registry that is wrong
+        // stops the build here with its own problems rather than with a missing-key exception.
+        site.Validate(_problems);
+        if (_problems.Count > 0)
+        {
+            return;
+        }
+
         var facts = ProductFacts.Read(_root);
         var words = Translations.Load(_root, site.Languages, _problems);
-        var tokens = new Tokens(site, facts, words, _problems);
         var pages = Pages.LoadDefinitions(_root, site, _problems);
+        var tokens = new Tokens(site, facts, words, pages, _problems);
 
         var contents = new Dictionary<(string Id, string Language), PageContent>();
         foreach (var page in pages)
@@ -47,6 +65,7 @@ internal sealed class Build
         }
 
         CheckReachable(pages, site);
+        CheckTranslations(site, pages, contents, words);
         ReadmeCheck.Run(_root, facts, _problems);
 
         var renderer = new Renderer(site, words, tokens, pages, contents, _problems);
@@ -71,6 +90,47 @@ internal sealed class Build
     }
 
     private static UTF8Encoding Utf8 => new(false);
+
+    /// <summary>
+    /// What a translation owes the page it follows: its shape, its commands and its tokens
+    /// (<see cref="Parity"/>), and its stamp (<see cref="Freshness"/>). The default language is
+    /// the original and is held to none of this.
+    /// </summary>
+    private void CheckTranslations(
+        SiteConfig site,
+        IReadOnlyList<PageDefinition> pages,
+        Dictionary<(string Id, string Language), PageContent> contents,
+        Translations words)
+    {
+        Freshness.CheckForStrays(_root, site, _problems);
+
+        var addresses = Parity.AddressBook(pages, site);
+        foreach (var page in pages)
+        {
+            if (!contents.TryGetValue((page.Id, site.DefaultLanguage), out var original))
+            {
+                continue;
+            }
+
+            foreach (var language in site.Languages.Where(language => language != site.DefaultLanguage))
+            {
+                if (contents.TryGetValue((page.Id, language), out var translation))
+                {
+                    Parity.Check(page, original, translation, addresses, _problems);
+                }
+            }
+        }
+
+        Freshness.Check(_root, site, pages, contents, words, _problems, _stale);
+
+        if (_requireFresh)
+        {
+            foreach (var line in _stale)
+            {
+                _problems.Add("freshness: " + line);
+            }
+        }
+    }
 
     /// <summary>
     /// A page nothing links to is a page nobody will find, and on a site of fourteen it happens
@@ -98,7 +158,11 @@ internal sealed class Build
                 var text = File.ReadAllText(file);
                 foreach (var other in pages)
                 {
-                    if (text.Contains("\"" + other.Url(language, site) + "\"", StringComparison.Ordinal))
+                    // A link written as an address, or as {{url:id}} - the second is how the
+                    // translations write them, and a check that only knew the first would call
+                    // every page they link to an orphan.
+                    if (text.Contains("\"" + other.Url(language, site) + "\"", StringComparison.Ordinal)
+                        || text.Contains("{{url:" + other.Id + "}}", StringComparison.Ordinal))
                     {
                         linked.Add(other.Id);
                     }

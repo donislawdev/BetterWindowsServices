@@ -6809,6 +6809,121 @@ $mutations = @(
         To = '            if (!Uri.TryCreate(target, UriKind.Absolute, out var uri) && false)'
         Test = 'GeneratorTests.A_malformed_address_is_reported_rather_than_thrown'
     }
+    @{
+        # The shape of a translation against its original, added 2026-10-21 with the languages. The
+        # mutation makes the first difference unreachable: FirstDifference answers -1 or a position
+        # from zero, so below -1 is never true and a translation that dropped a paragraph passes.
+        Name = 'site: a translation with a different shape from the original is reported'
+        File = 'site\Bws.Site\Parity.cs'
+        From = '        if (firstDifference >= 0)'
+        To = '        if (firstDifference < -1)'
+        Test = 'LanguageTests.A_translation_with_a_different_shape_from_the_original_is_reported'
+    }
+    @{
+        # A command the reader pastes into a shell is the one thing a translation must not change.
+        Name = 'site: a translation that changes a command is reported'
+        File = 'site\Bws.Site\Parity.cs'
+        From = '        if (missing.Count > 0 || extra.Count > 0)'
+        To = '        if (missing.Count > 99 || extra.Count > 99)'
+        Test = 'LanguageTests.A_translation_that_changes_a_command_is_reported'
+    }
+    @{
+        # A page that loses a token loses the link it stood for. The shape check also fails on that
+        # page, and the assertion is on the tokens message, which only this check writes.
+        Name = 'site: a translation that loses a token is reported'
+        File = 'site\Bws.Site\Parity.cs'
+        From = '        if (tokenMissing.Count > 0 || tokenExtra.Count > 0)'
+        To = '        if (tokenMissing.Count > 99 || tokenExtra.Count > 99)'
+        Test = 'LanguageTests.A_translation_that_loses_a_token_is_reported'
+    }
+    @{
+        # The owner decided on 2026-10-21 that an old translation is LISTED, so the comparison is
+        # what puts it on the list. Inverted, the list holds the fresh ones and not the old one.
+        Name = 'site: a translation older than the english is listed'
+        File = 'site\Bws.Site\Freshness.cs'
+        From = '        else if (!string.Equals(stamp, current, StringComparison.Ordinal))'
+        To = '        else if (string.Equals(stamp, current, StringComparison.Ordinal))'
+        Test = 'LanguageTests.A_translation_older_than_the_english_is_listed_and_fails_only_when_asked'
+    }
+    @{
+        # A translation that cannot say what it follows can never be called old, so a missing stamp
+        # is a failure. Inverted, a missing stamp is read as a stale one and nothing fails.
+        Name = 'site: a translation without a stamp is a problem'
+        File = 'site\Bws.Site\Freshness.cs'
+        From = '        if (stamp is null)'
+        To = '        if (stamp is not null)'
+        Test = 'LanguageTests.A_translation_without_a_stamp_is_a_problem'
+    }
+    @{
+        # The working tree is CRLF and the repository LF. A hash that saw the difference would call
+        # every translation old on one of the two.
+        Name = 'site: line endings alone do not make a translation old'
+        File = 'site\Bws.Site\Freshness.cs'
+        From = '        var normal = text.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();'
+        To = '        var normal = text.Trim();'
+        Test = 'LanguageTests.A_difference_in_line_endings_alone_does_not_make_a_translation_stale'
+    }
+    @{
+        # A file named after a code that is nowhere is a typo that would sit built by nothing. The
+        # sixteen-space line is the one in the pages loop - the language files have a twelve-space one.
+        Name = 'site: a page file for an unknown language is reported'
+        File = 'site\Bws.Site\Freshness.cs'
+        From = '                if (!site.LanguageRegistry.ContainsKey(code))'
+        To = '                if (site.LanguageRegistry.ContainsKey(code))'
+        Test = 'LanguageTests.A_file_for_a_language_the_registry_does_not_list_is_reported'
+    }
+    @{
+        # Every page asks the registry for its language, so a published language with no entry has to
+        # stop the build with a reason and not with a missing-key exception.
+        Name = 'site: a published language with no registry entry is reported'
+        File = 'site\Bws.Site\SiteConfig.cs'
+        From = '        foreach (var code in Languages.Where(code => !LanguageRegistry.ContainsKey(code)))'
+        To = '        foreach (var code in Languages.Where(code => LanguageRegistry.ContainsKey(code)))'
+        Test = 'LanguageTests.A_published_language_with_no_registry_entry_stops_the_build_with_a_reason'
+    }
+    @{
+        Name = 'site: a direction that is neither ltr nor rtl is reported'
+        File = 'site\Bws.Site\SiteConfig.cs'
+        From = '            if (info.Dir is not ("ltr" or "rtl"))'
+        To = '            if (info.Dir is not ("ltr" or "rtl" or "sideways"))'
+        Test = 'LanguageTests.A_direction_that_is_neither_ltr_nor_rtl_is_reported'
+    }
+    @{
+        # A language the registry sets to english slugs would carry a slug nothing reads. Inverted,
+        # the rule is applied to the wrong half of the languages.
+        Name = 'site: a slug for a language with english slugs is reported'
+        File = 'site\Bws.Site\Pages.cs'
+        From = '            if (info.Slugs != "own")'
+        To = '            if (info.Slugs == "own")'
+        Test = 'LanguageTests.A_slug_for_a_language_whose_slugs_are_english_is_reported'
+    }
+    @{
+        # dir is written only for a right-to-left language. Inverted, English carries dir=ltr and
+        # Arabic carries nothing, which is the page the test builds and reads back.
+        Name = 'site: a right to left language is written with its direction'
+        File = 'site\Bws.Site\Renderer.cs'
+        From = '        var direction = info.Dir == "ltr" ? "" : $" dir=\"{info.Dir}\"";'
+        To = '        var direction = info.Dir != "ltr" ? "" : $" dir=\"{info.Dir}\"";'
+        Test = 'LanguageTests.A_right_to_left_language_is_written_with_its_direction_and_listed_in_the_switch'
+    }
+    @{
+        # {{url:id}} is the address in the language of the page that writes it. The English page
+        # exists as well, so only the built output tells the two apart.
+        Name = 'site: a url token resolves in the language of the page'
+        File = 'site\Bws.Site\Tokens.cs'
+        From = '                    return target.Url(language, _site);'
+        To = '                    return target.Url(_site.DefaultLanguage, _site);'
+        Test = 'LanguageTests.A_link_written_as_a_url_token_resolves_and_a_mistyped_one_is_reported'
+    }
+    @{
+        # French writes a no-break space before a colon and a question mark, as an entity, and the
+        # structured data is JSON read by a machine - without this line it carries the letters.
+        Name = 'site: a no-break space in a question reaches the structured data as the character'
+        File = 'site\Bws.Site\StructuredData.cs'
+        From = '            .Replace("&nbsp;", "\u00A0", StringComparison.Ordinal)'
+        To = '            .Replace("&nbsp;", "&nbsp;", StringComparison.Ordinal)'
+        Test = 'LanguageTests.A_no_break_space_in_a_question_reaches_the_structured_data_as_the_character'
+    }
 
     @{
         # RUNG FIVE ITSELF. Without this check the plan is built, shown, and carried out until its

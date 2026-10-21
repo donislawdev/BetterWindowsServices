@@ -32,11 +32,25 @@ internal sealed record PageDefinition
     /// <summary>Structured data to emit: <c>software</c> on the front page, <c>faq</c> on a question page, or null.</summary>
     public string? Schema { get; init; }
 
-    /// <summary>The slug per language. Empty for the front page. ASCII, lower case, hyphens.</summary>
+    /// <summary>
+    /// The slug per language that has slugs of its own - the registry says which. Empty for the
+    /// front page. ASCII, lower case, hyphens. A language the registry marks <c>english</c> is
+    /// NOT listed here, and listing it is a problem: it would be a slug nothing ever uses.
+    /// </summary>
     public required Dictionary<string, string> Slug { get; init; }
 
     /// <summary>The not-found page is written to <c>404.html</c> rather than to a folder, because that is where GitHub Pages looks.</summary>
     public bool IsNotFound => Id == "404";
+
+    /// <summary>
+    /// The slug a language uses for this page. A missing own slug falls back to the default
+    /// language's, so the build can go on and list every other problem instead of stopping on a
+    /// key lookup - <c>Pages.CheckSlugs</c> has already said the slug is missing.
+    /// </summary>
+    internal string SlugFor(string language, SiteConfig site) =>
+        site.Language(language).Slugs == "own" && Slug.TryGetValue(language, out var own)
+            ? own
+            : Slug[site.DefaultLanguage];
 
     internal string Url(string language, SiteConfig site)
     {
@@ -46,7 +60,7 @@ internal sealed record PageDefinition
             return prefix + "404.html";
         }
 
-        var slug = Slug[language];
+        var slug = SlugFor(language, site);
         return slug.Length == 0 ? prefix : prefix + slug + "/";
     }
 
@@ -57,13 +71,17 @@ internal sealed record PageDefinition
     }
 }
 
-/// <summary>A page's words in one language: the three head lines and the inner HTML of <c>&lt;main&gt;</c>.</summary>
-internal sealed record PageContent(string Language, string Title, string Description, string NavText, string Body);
+/// <summary>
+/// A page's words in one language: the head lines and the inner HTML of <c>&lt;main&gt;</c>.
+/// <see cref="TranslatedFrom"/> is the stamp of the default language's page this one follows,
+/// which only a translation carries.
+/// </summary>
+internal sealed record PageContent(string Language, string Title, string Description, string NavText, string Body, string? TranslatedFrom);
 
 internal static class Pages
 {
     private static readonly Regex HeadLine = new(
-        @"^\s*<meta name=""(?<name>title|description|nav)"" content=""(?<value>[^""]*)"">\s*$",
+        @"^\s*<meta name=""(?<name>title|description|nav|translated-from)"" content=""(?<value>[^""]*)"">\s*$",
         RegexOptions.Multiline | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
@@ -124,7 +142,7 @@ internal static class Pages
         var description = head.GetValueOrDefault("description", "");
         CheckLengths(page, language, title, description, problems);
 
-        return new PageContent(language, title, description, head.GetValueOrDefault("nav", title), body);
+        return new PageContent(language, title, description, head.GetValueOrDefault("nav", title), body, head.GetValueOrDefault("translated-from"));
     }
 
     /// <summary>
@@ -146,13 +164,30 @@ internal static class Pages
         }
     }
 
+    /// <summary>
+    /// A published language with slugs of its own needs one for every page. A language set to
+    /// english must have none, because the one it would have is never read. A slug for a language
+    /// that is registered and not yet published IS held to the same shape, so a typo is found
+    /// while the language is being written and not on the day it goes live.
+    /// </summary>
     private static void CheckSlugs(PageDefinition page, SiteConfig site, string path, Problems problems)
     {
-        foreach (var language in site.Languages)
+        foreach (var language in site.Languages.Where(language => site.Language(language).Slugs == "own" && !page.Slug.ContainsKey(language)))
         {
-            if (!page.Slug.TryGetValue(language, out var slug))
+            problems.Add($"pages: {path} has no slug for '{language}'.");
+        }
+
+        foreach (var (language, slug) in page.Slug)
+        {
+            if (!site.LanguageRegistry.TryGetValue(language, out var info))
             {
-                problems.Add($"pages: {path} has no slug for '{language}'.");
+                problems.Add($"pages: {path} has a slug for '{language}', which site.json's language_registry does not list.");
+                continue;
+            }
+
+            if (info.Slugs != "own")
+            {
+                problems.Add($"pages: {path} has a slug for '{language}', whose registry entry says slugs are english, so it would never be used.");
                 continue;
             }
 
@@ -162,11 +197,6 @@ internal static class Pages
                 problems.Add($"pages: {path} slug '{slug}' for '{language}' is not lower case words joined by hyphens.");
             }
         }
-
-        foreach (var language in page.Slug.Keys.Where(language => !site.Languages.Contains(language, StringComparer.Ordinal)))
-        {
-            problems.Add($"pages: {path} has a slug for '{language}', which site.json does not list.");
-        }
     }
 
     private static void CheckSlugsAreDistinct(List<PageDefinition> pages, SiteConfig site, Problems problems)
@@ -174,7 +204,6 @@ internal static class Pages
         foreach (var language in site.Languages)
         {
             var clashes = pages
-                .Where(page => page.Slug.ContainsKey(language))
                 .GroupBy(page => page.Url(language, site), StringComparer.Ordinal)
                 .Where(group => group.Count() > 1);
 

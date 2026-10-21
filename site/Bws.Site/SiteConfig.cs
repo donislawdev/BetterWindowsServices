@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Bws.Site;
 
 /// <summary>
@@ -16,8 +18,18 @@ internal sealed record SiteConfig
 
     public required string Support { get; init; }
 
-    /// <summary>The first language is the default and lives at the root, the others under <c>/{code}/</c>.</summary>
+    /// <summary>
+    /// The languages that are PUBLISHED, in the order the switch lists them. The first is the
+    /// default and lives at the root, the others under <c>/{code}/</c>.
+    /// </summary>
     public required string[] Languages { get; init; }
+
+    /// <summary>
+    /// Every language the site is prepared for, published or not. A language may be in the
+    /// registry before it is in <see cref="Languages"/>: its files can be written, built and
+    /// checked while nobody can reach them, and it goes live by one line in the other list.
+    /// </summary>
+    public required Dictionary<string, LanguageInfo> LanguageRegistry { get; init; }
 
     public required string ThemeColor { get; init; }
 
@@ -43,6 +55,11 @@ internal sealed record SiteConfig
 
     public string DefaultLanguage => Languages[0];
 
+    private static readonly Regex CodeShape = new("^[a-z]{2,3}(-[a-z]{2,4})?$", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+    /// <summary>What the registry says about a language, which <see cref="Validate"/> has already held to be present.</summary>
+    internal LanguageInfo Language(string code) => LanguageRegistry[code];
+
     internal static SiteConfig Load(string root)
     {
         var path = Path.Combine(root, "site", "site.json");
@@ -55,6 +72,94 @@ internal sealed record SiteConfig
 
         return config;
     }
+
+    /// <summary>
+    /// The registry held against itself and against the list of published languages.
+    ///
+    /// <b>Why this is a method and not part of <see cref="Load"/>.</b> Everything else in this
+    /// build reports what it finds and goes on, so a half-finished language can be looked at. A
+    /// registry that is wrong cannot be gone on from - every page asks it for a tag - so the
+    /// build stops reading it as soon as it has said what is wrong.
+    /// </summary>
+    internal void Validate(Problems problems)
+    {
+        foreach (var (code, info) in LanguageRegistry)
+        {
+            if (!CodeShape.IsMatch(code))
+            {
+                problems.Add($"site.json: language code '{code}' is not lower case letters, optionally joined to a script or region by a hyphen.");
+            }
+
+            if (info.Dir is not ("ltr" or "rtl"))
+            {
+                problems.Add($"site.json: language '{code}' says dir '{info.Dir}', which is neither ltr nor rtl.");
+            }
+
+            if (info.Slugs is not ("own" or "english"))
+            {
+                problems.Add($"site.json: language '{code}' says slugs '{info.Slugs}', which is neither own nor english.");
+            }
+
+            if (info.Tag.Length == 0 || info.Locale.Length == 0 || info.Name.Length == 0 || info.Short.Length == 0)
+            {
+                problems.Add($"site.json: language '{code}' leaves its tag, locale, name or short empty.");
+            }
+
+            if (!string.Equals(info.Tag, code, StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add($"site.json: language '{code}' has the tag '{info.Tag}', which is the same code written differently only by case.");
+            }
+        }
+
+        foreach (var clash in LanguageRegistry.GroupBy(pair => pair.Value.Locale, StringComparer.Ordinal).Where(group => group.Count() > 1))
+        {
+            problems.Add($"site.json: languages {string.Join(", ", clash.Select(pair => pair.Key))} share the locale {clash.Key}.");
+        }
+
+        foreach (var code in Languages.Where(code => !LanguageRegistry.ContainsKey(code)))
+        {
+            problems.Add($"site.json: '{code}' is published under languages and has no entry in language_registry.");
+        }
+
+        if (Languages.Distinct(StringComparer.Ordinal).Count() != Languages.Length)
+        {
+            problems.Add("site.json: languages lists a language twice.");
+        }
+
+        if (LanguageRegistry.TryGetValue(DefaultLanguage, out var first) && first.Slugs != "own")
+        {
+            problems.Add($"site.json: the default language '{DefaultLanguage}' has to keep its own slugs - the others fall back to them.");
+        }
+    }
+}
+
+/// <summary>
+/// One language as the site knows it. The registry is the ONE place that says how a language is
+/// written, so a page, the switch and the head of every other page agree by construction.
+/// </summary>
+internal sealed record LanguageInfo
+{
+    /// <summary>The BCP 47 tag for <c>lang</c> and <c>hreflang</c>: <c>pt-BR</c>, <c>zh-Hans</c>. The URL code is the same in lower case.</summary>
+    public required string Tag { get; init; }
+
+    /// <summary>The <c>og:locale</c> value. It is not derivable from the tag - <c>zh-Hans</c> is <c>zh_CN</c> to the people who read it.</summary>
+    public required string Locale { get; init; }
+
+    /// <summary>The language in its OWN alphabet, never translated: somebody looking for German looks for 'Deutsch'.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>What the switch shows for the current language. Short, because the header has no room for a name.</summary>
+    public required string Short { get; init; }
+
+    /// <summary><c>ltr</c> or <c>rtl</c>. The attribute is written only for <c>rtl</c>, which is what a browser assumes otherwise.</summary>
+    public string Dir { get; init; } = "ltr";
+
+    /// <summary>
+    /// <c>own</c> - the language has a slug of its own for every page - or <c>english</c> - its
+    /// pages live at the default language's slugs. The second is for alphabets that cannot be an
+    /// ASCII address without being transliterated, which nobody would then read.
+    /// </summary>
+    public string Slugs { get; init; } = "own";
 }
 
 internal sealed record SocialImage

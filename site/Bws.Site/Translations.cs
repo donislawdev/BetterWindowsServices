@@ -15,18 +15,27 @@ namespace Bws.Site;
 /// </summary>
 internal sealed class Translations
 {
-    private readonly Dictionary<string, Dictionary<string, string>> _byLanguage;
+    /// <summary>The key that records which English file a language file was translated from. Underscore, so it is never a word.</summary>
+    internal const string StampKey = "_translated_from";
 
-    private Translations(Dictionary<string, Dictionary<string, string>> byLanguage)
+    private readonly Dictionary<string, Dictionary<string, string>> _byLanguage;
+    private readonly Dictionary<string, string> _stamps;
+
+    private Translations(Dictionary<string, Dictionary<string, string>> byLanguage, Dictionary<string, string> stamps)
     {
         _byLanguage = byLanguage;
+        _stamps = stamps;
     }
 
     internal IEnumerable<string> Keys => _byLanguage.Values.First().Keys;
 
+    /// <summary>The stamp a language file carries, or null when it has none.</summary>
+    internal string? StampOf(string language) => _stamps.GetValueOrDefault(language);
+
     internal static Translations Load(string root, IEnumerable<string> languages, Problems problems)
     {
         var byLanguage = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+        var stamps = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var language in languages)
         {
             var path = Path.Combine(root, "site", "i18n", language + ".json");
@@ -37,11 +46,15 @@ internal sealed class Translations
                 continue;
             }
 
-            byLanguage[language] = Read(path, problems);
+            byLanguage[language] = Read(path, problems, out var stamp);
+            if (stamp is not null)
+            {
+                stamps[language] = stamp;
+            }
         }
 
         CheckParity(byLanguage, problems);
-        return new Translations(byLanguage);
+        return new Translations(byLanguage, stamps);
     }
 
     /// <summary>The text for a key, or the key itself in brackets - and a problem - when there is none.</summary>
@@ -59,12 +72,19 @@ internal sealed class Translations
     internal bool Has(string language, string key) =>
         _byLanguage.TryGetValue(language, out var words) && words.ContainsKey(key);
 
-    private static Dictionary<string, string> Read(string path, Problems problems)
+    private static Dictionary<string, string> Read(string path, Problems problems, out string? stamp)
     {
+        stamp = null;
         var words = new Dictionary<string, string>(StringComparer.Ordinal);
         using var document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
         foreach (var property in document.RootElement.EnumerateObject())
         {
+            if (property.Name == StampKey && property.Value.ValueKind == JsonValueKind.String)
+            {
+                stamp = property.Value.GetString();
+                continue;
+            }
+
             if (property.Name.StartsWith('_'))
             {
                 continue;
