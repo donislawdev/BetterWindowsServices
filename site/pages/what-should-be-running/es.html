@@ -1,0 +1,86 @@
+<meta name="title" content="¿Qué servicios de Windows deberían estar en marcha en este equipo?">
+<meta name="description" content="Nadie puede responder en general, y las listas que lo pretenden describen un equipo que no es el suyo. Esta es la pregunta que sí tiene respuesta: qué ha cambiado.">
+<meta name="nav" content="Qué debería estar en marcha">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guía</span>
+    <h1>¿Qué servicios deberían estar en marcha?</h1>
+    <p class="lede">La respuesta honesta es que nadie puede decírselo, y que toda lista que lo pretende describe un equipo que no es el suyo. Lo que <em>sí</em> puede responderse es más estrecho y mucho más útil: qué no cuadra en este equipo, y qué es distinto de cuando funcionaba.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por qué la pregunta general no tiene respuesta</h2>
+    <ul class="points points-alarm">
+      <li><strong>El conjunto difiere según la edición, la versión y el rol de Windows.</strong> Un controlador de dominio, un portátil y un host de contenedores discrepan en casi todo, y una lista escrita para uno es errónea para los demás.</li>
+      <li><strong>La mitad de lo que está instalado no es de Windows.</strong> Controladores, agentes, servicios de actualización, demonios de licencias: cada uno fue puesto ahí por algo, y ninguna lista general sabe por qué.</li>
+      <li><strong>La mayoría de los servicios están pensados para estar detenidos.</strong> Un Windows moderno inicia una fracción de lo que registra: el resto espera un desencadenador (la llegada de un dispositivo, la apertura de un puerto, la unión a un dominio) y detenido es su estado correcto.</li>
+      <li><strong>Las listas de "deshabilite estos para mejorar el rendimiento" son la forma en que se rompen los equipos.</strong> El servicio que parece inactivo es el que otra cosa inicia bajo demanda, y el fallo aparece una semana después en un lugar sin relación.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Las preguntas que sí tienen respuesta</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Lo que debería estar en marcha y no lo está</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>A Windows se le dijo que iniciara estos y no se están ejecutando. En un equipo sano es una lista corta: un par de entradas que se inician tarde y vuelven a detenerse. Cualquier otra cosa merece una mirada.</p>
+      </div>
+      <div class="card">
+        <h3>Lo que está deshabilitado y funciona igualmente</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Configuración y estado que no concuerdan. Normalmente alguien lo deshabilitó sin detenerlo, y el próximo reinicio será una sorpresa.</p>
+      </div>
+      <div class="card">
+        <h3>Lo que apunta a un archivo que ya no está</h3>
+        <p><code>file:missing</code></p>
+        <p>Una desinstalación que dejó el registro tras de sí. Inofensivo hasta que algo intenta iniciarlo, y una pista sobre lo que hubo en este equipo.</p>
+      </div>
+      <div class="card">
+        <h3>Lo que nadie firmó</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>No es prueba de nada por sí solo, y es el lugar adecuado para empezar a leer. El segundo término descarta las familias por usuario, que de otro modo llenan la lista de casi duplicados.</p>
+      </div>
+      <div class="card">
+        <h3>Lo que pide los privilegios más fuertes</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Un privilegio que permite a un proceso abrir cualquier otro. Un puñado de servicios legítimos lo piden, y conviene saber cuáles en su equipo.</p>
+      </div>
+      <div class="card">
+        <h3>Lo que espera un desencadenador</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Detenidos porque nada los ha solicitado todavía, y no porque algo vaya mal. Saber cuáles son es lo que hace que la primera lista deje de ser alarmante.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>La que supera a todas</h2>
+    <p class="lede">Pregunte al propio equipo, cuando funcionaba.</p>
+    <p>Tome una instantánea el día en que el equipo entra en servicio. Entonces <em>debería estar esto en marcha</em> se convierte en <em>estaba esto en marcha cuando todo funcionaba</em>: una pregunta sobre su equipo y no sobre un equipo de un artículo.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... una semana, un parche o un incidente después</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>La configuración se informa aparte del estado de ejecución, de modo que la respuesta no son cuarenta servicios que casualmente están activos, sino el tipo de inicio que alguien cambió.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Auditar la deriva de un equipo</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Antes de detener nada</h2>
+    <p>Cada detención en esta herramienta muestra primero su plan: los pasos, lo que cae con ellos y una advertencia cuando uno de ellos es algo sin lo cual el equipo no funciona. La lista de esos es una lista inicial de siete (las dos mitades de RPC y el iniciador de DCOM, el administrador de cuentas, el aislamiento de claves, el administrador de sesiones y Plug and Play), y <strong>el Escritorio remoto no está en ella</strong>, así que en una sesión remota, lea el plan.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descargar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Cada campo por el que puede preguntar</a>
+    </div>
+  </div>
+</section>

@@ -8,6 +8,7 @@
     "en": "audit-windows-services",
     "pl": "audyt-uslug-windows",
     "de": "windows-dienste-auditieren",
-    "fr": "auditer-les-services-windows"
+    "fr": "auditer-les-services-windows",
+    "es": "auditar-servicios-de-windows"
   }
 }

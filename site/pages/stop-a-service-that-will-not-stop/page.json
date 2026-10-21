@@ -8,6 +8,7 @@
     "en": "stop-a-windows-service-that-will-not-stop",
     "pl": "usluga-ktora-nie-chce-sie-zatrzymac",
     "de": "windows-dienst-laesst-sich-nicht-beenden",
-    "fr": "service-windows-impossible-a-arreter"
+    "fr": "service-windows-impossible-a-arreter",
+    "es": "servicio-de-windows-que-no-se-detiene"
   }
 }

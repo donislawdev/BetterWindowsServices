@@ -1,0 +1,102 @@
+<meta name="title" content="Una alternativa a services.msc para administradores de Windows">
+<meta name="description" content="services.msc no tiene búsqueda, filtrado ni historial. Un sustituto libre con lenguaje de consulta, vista previa antes de cada cambio y comparación de deriva.">
+<meta name="nav" content="Frente a services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guía</span>
+    <h1>Una alternativa a <code>services.msc</code></h1>
+    <p class="lede">El complemento Servicios apenas ha cambiado desde Windows 2000. Sigue siendo la forma más rápida de iniciar un servicio que ya ve en pantalla, y la más lenta de responder a cualquier pregunta sobre un equipo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lo que lleva a la gente a buscar otra cosa</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Sin búsqueda.</strong> La única navegación es escribir una letra para saltar al primer nombre para mostrar que empieza por ella. En un equipo con ochocientas entradas, eso es desplazarse con pasos extra.</li>
+        <li><strong>Sin filtrado.</strong> No hay forma de preguntar <em>qué está configurado para iniciarse automáticamente y no se está ejecutando</em>, la única pregunta que encuentra un equipo averiado.</li>
+        <li><strong>Una fila cada vez.</strong> Reiniciar doce servicios son doce clics derechos y doce esperas.</li>
+        <li><strong>"Deteniendo..." sin salida</strong> salvo el Administrador de tareas y adivinar qué <code>svchost</code> terminar.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Sin historial.</strong> Nadie sabe quién puso ese tipo de inicio en Deshabilitado, ni cuándo, ni si ya estaba así el mes pasado.</li>
+        <li><strong>Datos ocultos.</strong> El proceso, los desencadenadores, los privilegios requeridos, el descriptor de seguridad, quién firmó el ejecutable: nada de eso está en el complemento, y todo importa cuando algo va mal.</li>
+        <li><strong>Las columnas no pueden cambiar.</strong> Nombre, descripción, estado, tipo de inicio, iniciar sesión como. Esa es toda la lista, y ninguna puede ordenarse de forma útil en un equipo real.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Las mismas tres tareas, en ambos</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Usted quiere</th><th>En <code>services.msc</code></th><th>Aquí</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Encontrar lo que debería estar en marcha y no lo está</td>
+            <td class="no">Ordenar por tipo de inicio, desplazarse, leer cada fila</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Saber qué arrastra consigo una detención</td>
+            <td class="no">Un cuadro de diálogo que nombra a los dependientes después de pulsar Detener</td>
+            <td>Un plan antes de que ocurra nada, con cada dependiente como paso y una advertencia cuando uno es algo que el equipo necesita</td>
+          </tr>
+          <tr>
+            <td>Saber qué cambió desde la semana pasada</td>
+            <td class="no">Nada</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Saber quién cambió un tipo de inicio</td>
+            <td class="no">Nada</td>
+            <td><code>bws history Spooler</code>, a partir del registro del sistema</td>
+          </tr>
+          <tr>
+            <td>Reiniciar doce servicios</td>
+            <td class="no">Doce clics derechos</td>
+            <td>Seleccionar doce, un plan, una ejecución, un informe</td>
+          </tr>
+          <tr>
+            <td>Ver quién firmó el ejecutable de un servicio</td>
+            <td class="no">No se muestra</td>
+            <td>Una columna, y algo por lo que buscar: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Automatizar cualquiera de ello con un script</td>
+            <td class="no">No se puede automatizar</td>
+            <td><code>bws</code>, con <code>--json</code> y un código de salida para cada final</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Lo que el complemento aún hace mejor</h2>
+    <p class="lede">Dos cosas, y fingir lo contrario sería el tipo de afirmación que este proyecto no hace.</p>
+    <ul class="points">
+      <li><strong>Ya está en el equipo.</strong> Nada que descargar, nada que pasar por una política de software. En un equipo que tocará una sola vez, ese es todo el argumento.</li>
+      <li><strong>Edita las acciones de recuperación, la cuenta y la ruta de lanzamiento.</strong> Esta herramienta muestra la cuenta y la ruta de lanzamiento y no cambia ninguna, y lee las acciones de recuperación solo para avisar antes de terminar un proceso. Crear, eliminar o redirigir un servicio tampoco está aquí.</li>
+    </ul>
+    <p>Lo que no puede hacer en absoluto es la razón de que esto exista: hacer una pregunta, mostrar primero un plan y decirle qué se desvió.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Qué es esto</h2>
+    <p>{{product}} es libre y gratuito bajo GPL-3.0, un archivo por mitad o un instalador para todo el equipo, y nunca se conecta a Internet. Consultar no requiere derechos de administrador; cambiar sí, y lo dice en lugar de fallar en silencio.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descargar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Ver el lenguaje de consulta</a>
+    </div>
+  </div>
+</section>

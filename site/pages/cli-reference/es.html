@@ -1,0 +1,194 @@
+<meta name="title" content="Referencia de la línea de comandos - opciones y códigos de bws">
+<meta name="description" content="Cada comando, opción y código de salida de bws: list, show, stop, start, restart, kill, start-type, snapshot, history y tool, y dónde actúa cada opción.">
+<meta name="nav" content="Referencia CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Las tablas de esta página se CONSTRUYEN, no se escriben. Las opciones salen de la propia tabla
+  del analizador en src/Bws.Cli/OptionSurface.cs y los códigos de src/Bws.Cli/ExitCode.cs, de modo
+  que una opción añadida al programa aparece aquí, y una frase sobre una opción que ya no existe
+  hace fallar la compilación. Lo que cada una SIGNIFICA es prosa y vive en site/i18n, porque la
+  prosa se traduce.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Referencia</span>
+    <h1>Referencia de la línea de comandos</h1>
+    <p class="lede">Cada comando, cada opción y cada código de salida de <code>bws</code>, versión {{version}}. <code>bws --help</code> es la referencia autorizada y es más larga: esta página es la misma superficie, dispuesta para leerse.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Los comandos</h2>
+    <p>Once comandos. <code>snapshot</code> es un sustantivo y admite una palabra después. <code>tool</code> también lo es y, por sí solo, lista las herramientas.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>A un comando mal escrito se le ofrece el que probablemente quería, y la ejecución termina con el código <code>2</code> en lugar de hacer algo parecido a lo que pidió.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Qué hace cada comando</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> y <code>show</code></h3>
+        <p><code>list</code> es todo el equipo, acotado por <code>--query</code>. <code>show</code> es una entrada con todo lo que se sabe de ella: la firma, los privilegios, el descriptor de seguridad y la memoria, todo leído cada vez, porque sobre una sola entrada eso cuesta unos sesenta milisegundos mientras que sobre todo el equipo cuesta un segundo. Los campos realmente vacíos se omiten salvo que pase <code>--full</code>. Un campo que nadie pudo leer se imprime en cualquier caso, porque omitirlo parecería una respuesta.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> y <code>restart</code></h3>
+        <p>Cada uno construye un plan y lo ejecuta. <code>--dry-run</code> imprime el plan y no cambia nada, <code>--dependents</code> pone en él los servicios que dejarían de funcionar como pasos propios, y <code>--timeout</code> dice cuánto puede durar un paso sin progreso. Los controladores se rechazan en lugar de intentarse, porque detener un controlador del núcleo a menudo no es reversible sin reiniciar.</p>
+      </div>
+      <div>
+        <h3><code>kill</code>: para un servicio que no se detiene</h3>
+        <p>Pide al servicio que se detenga y termina el proceso que hay detrás <em>solo si eso no funciona</em>, de modo que una entrada que se detiene por sí sola nunca se termina. Terminar un proceso se lleva consigo a todo otro servicio que vive en él, se hubiera detenido antes o no, y la vista previa los nombra y nombra el proceso por su número. <code>--force</code> omite el paso cortés y la vista previa muestra entonces un paso en lugar de dos. <code>--restart</code> lo devuelve todo a su sitio después.</p>
+        <p class="note"><strong>Windows escribe esta idea de otra manera.</strong> <code>--force</code> en <code>Stop-Service</code> significa "aunque algo dependa de él", que es lo que aquí hace <code>--dependents</code>. Por eso este es un comando propio y no una opción de <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code>: un ajuste, no un movimiento</h3>
+        <p>Dice qué hará el administrador con una entrada en el próximo arranque, y sin <code>--stop</code> no mueve nada: una entrada que se está ejecutando sigue ejecutándose, una detenida sigue detenida, y el plan lo dice. <code>disabled</code> es el que merece una pausa, porque impide que el administrador inicie la entrada en absoluto, incluso a petición de otra cosa que la necesite. <code>delayed</code> es automático, iniciado un poco después de las demás entradas automáticas (la palabra por la que pregunta <code>start:delayed</code> en una consulta), y Windows lo rechaza para una entrada de un grupo de orden de carga, lo que el plan dice antes de que ocurra nada. Cada uno de los cuatro escribe si la entrada se inicia tarde, como hace <code>sc.exe</code>. <code>--stop</code>, solo junto a <code>disabled</code>, detiene la entrada en el mismo plan una vez escrito el ajuste.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> y <code>snapshot diff</code></h3>
+        <p><code>create</code> lee siempre las firmas y los hashes, porque una instantánea se conserva y se compara más tarde, y una sin ellos comparada con una que los tiene se trataría como si el equipo hubiera cambiado. <code>diff</code> dice qué cambió al pasar del primer archivo al segundo, o de un archivo a este equipo con <code>--live</code>. <a href="{{url:snapshots-and-drift}}">La página de instantáneas</a> tiene el formato y el razonamiento.</p>
+      </div>
+      <div>
+        <h3><code>history</code>: quién lo cambió, a partir del registro del sistema</h3>
+        <p>Cambios de tipo de inicio e instalaciones del registro del sistema, los más recientes primero, con la cuenta que registró Windows. La primera línea dice hasta dónde llega el registro y si se borró, porque un historial es tan largo como el registro. Con un nombre son los cambios de tipo de inicio de ese servicio: las instalaciones se listan solo sin nombre, porque Windows registra una instalación bajo el nombre para mostrar y nunca bajo el nombre del servicio. Una cuenta se nombra donde este equipo puede nombrarla por sí mismo y se muestra como su SID en caso contrario, y los tipos de inicio vienen con las palabras que escribió Windows.</p>
+      </div>
+      <div>
+        <h3><code>tool</code>: respuestas ya hechas a problemas comunes</h3>
+        <p>Las mismas herramientas que la ventana muestra en su pestaña Tools. <code>bws tool</code> las lista y <code>bws tool fix</code> lista las reparaciones rápidas: <code>printer</code>, <code>sound</code>, <code>indexing</code> y <code>search</code>, cada una un reinicio de un servicio de Windows junto con lo que depende de él, elegidas porque las propias páginas de solución de problemas de Microsoft lo sugieren. <code>bws tool fix printer</code> es exactamente <code>bws restart Spooler --dependents</code>: el mismo plan, la misma salida y los mismos códigos de salida, y como todo comando aquí que cambia algo no pregunta antes, así que <code>--dry-run</code> es la forma de mirar antes de que se ejecute.</p>
+      </div>
+      <div>
+        <h3><code>license</code>: qué hay dentro del archivo que descargó</h3>
+        <p>No lee nada en absoluto (ni administrador de servicios, ni disco, ni red) y responde desde un registro compilado en el ejecutable. <code>--components</code> convierte el aviso en cada componente con su versión, su licencia y su procedencia. El mismo conjunto que lleva la lista de materiales publicada junto a la descarga, porque ambos se generan desde un único registro, y la razón por la que merece la pena: el programa es un archivo autónomo, así que no hay nada a su lado que un escáner pueda leer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ejemplos</h2>
+    <p class="lede">Los planes de abajo se comprobaron con <code>--dry-run</code> contra el programa que describe esta página. Un comando que cambia algo no pregunta antes, así que <code>--dry-run</code> es la forma de mirar antes de que se ejecute. <code>Spooler</code> representa cualquier servicio: ponga en su lugar el nombre del suyo.</p>
+    <div class="examples">
+    <h3>Buscar y leer</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">cada servicio y controlador de este equipo</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">lo que debería estar en marcha y no lo está</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">lo que usa el proceso de cada entrada en ejecución</span>
+<span class="k">bws show Spooler</span>                               <span class="c">todo lo que se sabe de una entrada</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">también los campos realmente vacíos</span></code></pre>
+    <h3>Mirar primero, cambiar después</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">el plan, y nada más</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">reiniciarlo junto con lo que depende de él</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">permitir dos minutos por paso sin progreso</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">iniciarlo un poco después de las demás entradas automáticas</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">deshabilitarlo y detenerlo en un solo plan</span></code></pre>
+    <h3>Un servicio que no se detiene</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">el proceso, y cada servicio que vive en él</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">terminar el proceso solo si falla una detención, y luego devolverlo todo a su sitio</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">un paso en lugar de dos: el proceso terminado de inmediato</span></code></pre>
+    <h3>Instantáneas y deriva</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">congelar el equipo, con una nota guardada dentro</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">dos archivos: dos días, o dos equipos</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">el archivo frente a este equipo tal como está ahora</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">lo mismo, terminando con 5 si la configuración se desvió</span></code></pre>
+    <h3>Quién lo cambió</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">cada cambio de tipo de inicio e instalación que contiene el registro del sistema</span>
+<span class="k">bws history Spooler</span>  <span class="c">los cambios de tipo de inicio de un servicio</span>
+<span class="k">bws history --json</span>   <span class="c">lo mismo como documento, con registro y cambios</span></code></pre>
+    <h3>Reparaciones rápidas</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">las herramientas que hay</span>
+<span class="k">bws tool fix</span>                  <span class="c">las reparaciones rápidas, y el servicio que hay detrás de cada una</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">el plan para reiniciar los dos servicios de audio</span>
+<span class="k">bws tool fix printer</span>          <span class="c">reiniciar el Print Spooler con lo que depende de él</span></code></pre>
+    <h3>Qué hay dentro del archivo</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">cada componente, su versión, su licencia y su procedencia</span>
+<span class="k">bws --version</span>             <span class="c">la versión de este ejecutable</span></code></pre>
+    <h3>En un script de PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># las entradas que deberían estar en marcha y no lo están, como objetos</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># los archivos sin firmar, a una hoja de cálculo</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># lo que necesita un servicio</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># una comprobación nocturna que se bifurca según el código de salida</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>En cmd y en un archivo por lotes</h3>
+<pre class="wrap-lines"><code><span class="c">rem un segundo comando solo cuando el primero no terminó limpiamente</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem en un archivo por lotes con la expansión retardada activada, el ! necesita un acento circunflejo</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Opciones</h2>
+    <p>{{switch_count}} en total. La tercera columna son los comandos a los que pertenece cada una: una opción pasada a un comando que no la usa es un error con esa lista dentro, en lugar de un indicador ignorado en silencio.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Códigos de salida</h2>
+    <p>{{exit_code_count}} finales, y cada uno es algo distinto que un script debe hacer. Los datos van a la salida estándar y todo lo demás al error estándar, de modo que <code>bws list --json | jq</code> funciona y una advertencia nunca acaba en su JSON.</p>
+    <p>Todo documento JSON es ASCII puro: una letra fuera de él se escribe como una secuencia de escape de seis caracteres que todo lector de JSON vuelve a convertir en la letra, de modo que <code>bws list --json &gt; file.json</code> es UTF-8 válido y <code>| ConvertFrom-Json</code> lo lee bien sea cual sea la página de códigos de la consola. En el texto que lee una persona, un carácter que movería el terminal en lugar de imprimirse (un tabulador, un salto de línea, una secuencia de escape, una anulación de dirección) se muestra como su punto de código, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> termina las opciones, de modo que un servicio cuyo nombre empieza por un guion aún puede nombrarse: <code>bws show -- -odd</code>. Las líneas de comandos que la herramienta le entrega están escritas para PowerShell: un nombre con espacio va entre comillas dobles, que cmd lee igual, y un nombre que PowerShell expandiría dentro, como <code>MSSQL$SQLEXPRESS</code>, va entre comillas simples.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C tiene tres niveles, y cada uno dice lo que cuesta el siguiente.</strong> El primero deja de avanzar y aun así devuelve lo que se había tomado, el segundo deja las cosas como están y aun así imprime el informe, el tercero termina el proceso. Una ejecución detenida a mano termina con <code>4</code> aunque cada paso hubiera llegado.</p>
+    <p class="note"><strong>Cerrar la ventana de la consola cuenta como el primer Ctrl+C.</strong> Windows concede cinco segundos a un programa después de eso, y en ellos este deja de avanzar y devuelve lo que había derribado. Cerrar sesión y apagar lo terminan sin ningún aviso al que pudiera reaccionar, y una sesión remota interrumpida puede hacer lo mismo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>En una tarea programada</h2>
+    <p>La forma para la que se construyó esta herramienta: congelar el equipo cuando se sabe que está bien, y preguntar cada noche si lo sigue estando.</p>
+<pre><code><span class="c"># el día en que el equipo entra en servicio</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># cada noche, desde una tarea programada</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - sin deriva de configuración
+#   5 - la configuración se desvió, y drift.json dice en qué
+#   3 - se ejecutó y no pudo leerlo todo, así que la respuesta es parcial</span></code></pre>
+    <p>La ventana es la otra mitad del mismo motor: <code>{{archive_window}}</code> la contiene, y <a href="{{url:download}}">la página de descarga</a> dice qué es cada archivo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>El argumento de la ventana</h2>
+    <p><code>BetterWindowsServices.exe</code> admite un argumento pensado para una persona: <code>--catalogue</code> abre una hoja de desarrollador que muestra cada componente de la ventana en cada estado y no lee nada de su equipo. Un segundo, <code>--carry</code>, es la forma en que una ventana entrega lo que mostraba a la copia de sí misma que reinicia como administrador. Nadie lo escribe, y se rechaza todo lo que contenga que esa ventana no pudiera haber escrito.</p>
+  </div>
+</section>

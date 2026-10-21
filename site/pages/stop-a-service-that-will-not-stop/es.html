@@ -1,0 +1,68 @@
+<meta name="title" content="Un servicio de Windows atascado en Deteniendo - cómo terminarlo">
+<meta name="description" content="Un servicio atascado en Deteniendo suele compartir proceso con otros. Vea cuáles antes de terminar nada y devuélvalos todos a su sitio con un solo comando.">
+<meta name="nav" content="Un servicio atascado al detenerse">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guía</span>
+    <h1>Un servicio atascado en <em>Deteniendo...</em></h1>
+    <p class="lede">El complemento muestra <em>Deteniendo</em> y no se mueve. La respuesta habitual es el Administrador de tareas, adivinar en qué <code>svchost.exe</code> vive y Finalizar tarea, que termina también todos los demás servicios de ese proceso sin decirle cuáles eran.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por qué ocurre</h2>
+    <ul class="points points-alarm">
+      <li><strong>El servicio no responde a la solicitud de detención.</strong> Windows se lo pide con educación y espera. Un servicio que se ha colgado, o que espera algo que no volverá, nunca responde.</li>
+      <li><strong>Algo que depende de él sigue en ejecución.</strong> El administrador rechaza la detención en lugar de romper lo otro, y el complemento lo muestra como una espera.</li>
+      <li><strong>Comparte su proceso con otros.</strong> La mayoría de los servicios de Windows viven dentro de un <code>svchost.exe</code> compartido. Terminar ese proceso los termina a todos, que es exactamente lo que hace el Administrador de tareas sin nombrarlos.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Mire antes de terminar nada</h2>
+    <p>Pregunte qué se llevaría consigo terminarlo. No ocurre nada hasta que quite <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>La vista previa nombra el proceso por su número, nombra cada otro servicio que vive en él y muestra dos pasos en lugar de uno: pedir al servicio que se detenga y, <em>solo si eso no funciona</em>, terminar el proceso. Un servicio que se detiene por sí solo nunca se termina.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> omite el paso cortés</strong> y termina el proceso de inmediato. Cambia el plan y no su ejecución, de modo que la vista previa muestra un paso en lugar de dos y la diferencia es visible antes de que ocurra nada.</li>
+        <li><strong><code>--restart</code> lo devuelve todo a su sitio</strong> una vez desaparecido el proceso: la entrada por la que preguntó y todo lo que compartía su proceso. Sin él, el equipo queda con esos servicios detenidos, y el informe dice cómo volver a iniciarlos.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>El rechazo llega antes del botón.</strong> Un controlador, un proceso que el sistema protege, un servicio para el que el administrador no acepta una detención: se rechazan al construir el plan, con la razón, en lugar de tras una espera de sesenta segundos.</li>
+        <li><strong>Una advertencia cuando importa.</strong> Si la entrada es una sin la cual el equipo no funciona, el plan lo dice: detenerla derriba el equipo, no solo el servicio.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Terminar un proceso es lo único que hace esta herramienta que nadie puede rechazar en nombre del equipo.</strong> Por eso es un comando propio, por eso la vista previa nombra cada servicio que se lleva consigo y por eso el paso cortés va primero salvo que usted diga otra cosa.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>El orden más seguro</h2>
+    <ol class="prose-list">
+      <li><strong>Ver qué es.</strong> <code>bws show Spooler</code>: el proceso, lo que depende de él, de qué depende y si acepta siquiera solicitudes de detención.</li>
+      <li><strong>Probar la detención normal, como plan.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Si la respuesta es un rechazo, dice cuál de las tres razones es.</li>
+      <li><strong>Si no se detiene, mirar lo que cuesta terminarlo.</strong> <code>bws kill Spooler --dry-run</code>, y leer la lista de servicios que comparten ese proceso.</li>
+      <li><strong>Después hacerlo, con un camino de vuelta.</strong> <code>bws kill Spooler --restart</code>. El informe termina con lo que no funcionó y los comandos que lo devuelven todo a su sitio.</li>
+    </ol>
+    <p>Los cuatro funcionan igual en la ventana: clic derecho en una fila, elegir <em>Force stop...</em>, leer el plan, y el botón de debajo lleva el nombre de lo que hará.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Por qué no usar simplemente el Administrador de tareas</h2>
+    <p class="lede">Porque responde a otra pregunta. El Administrador de tareas conoce procesos y este problema trata de servicios, y ambos no se corresponden uno a uno.</p>
+    <p>Un <code>svchost.exe</code> compartido puede alojar una docena de servicios. El Administrador de tareas lo terminará sin decir cuáles doce, ninguno vuelve por sí solo y nada le dice después qué se detuvo. Un EDR que marca un proceso que termina <code>svchost.exe</code> hace su trabajo, y no puede distinguir su clic de cualquier otro.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Descargar para Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">La referencia completa</a>
+    </div>
+  </div>
+</section>
