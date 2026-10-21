@@ -1,0 +1,102 @@
+<meta name="title" content="Windows yöneticileri için services.msc alternatifi">
+<meta name="description" content="services.msc'de arama, filtreleme ve geçmiş yok. Sorgu dili, her değişiklikten önce önizleme ve sapma karşılaştırması olan özgür, açık kaynaklı bir alternatif.">
+<meta name="nav" content="services.msc'ye karşı">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Kılavuz</span>
+    <h1>Bir <code>services.msc</code> alternatifi</h1>
+    <p class="lede">Hizmetler ek bileşeni Windows 2000'den beri neredeyse hiç değişmedi. Ekranda zaten gördüğünüz tek bir hizmeti başlatmanın en hızlı yolu olmaya devam ediyor ve bir makine hakkında herhangi bir soruyu yanıtlamanın en yavaş yolu.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>İnsanları arayışa iten ne</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Arama yok.</strong> Tek gezinme, bir harf yazıp o harfle başlayan ilk görünen ada atlamaktır. Sekiz yüz öğeli bir makinede bu, ek adımlarla kaydırmaktır.</li>
+        <li><strong>Filtreleme yok.</strong> <em>Otomatik başlamaya ayarlı ve çalışmayan nedir</em> diye sormanın yolu yok - bozuk bir makineyi bulan tek soru.</li>
+        <li><strong>Seferinde tek satır.</strong> On iki hizmeti yeniden başlatmak, on iki sağ tık ve on iki bekleme demektir.</li>
+        <li><strong>Çıkışı olmayan "Stopping..."</strong>; Görev Yöneticisi ve hangi <code>svchost</code>'u sonlandıracağınızı tahmin etmek dışında.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Geçmiş yok.</strong> O başlangıç türünü kimin Disabled yaptığını, ne zaman yaptığını ya da geçen ay da öyle olup olmadığını kimse bilmez.</li>
+        <li><strong>Gizli veriler.</strong> İşlem, tetikleyiciler, gereken ayrıcalıklar, güvenlik tanımlayıcısı, yürütülebilir dosyayı kimin imzaladığı - hiçbiri ek bileşende yok ve bir şey yanlış gittiğinde hepsi önemli.</li>
+        <li><strong>Sütunlar değiştirilemez.</strong> Ad, açıklama, durum, başlangıç türü, oturum açma kimliği. Liste bu kadar ve hiçbiri gerçek bir makinede yararlı biçimde sıralanamaz.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Aynı görevler, ikisinde de</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>İstediğiniz</th><th><code>services.msc</code> içinde</th><th>Burada</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Çalışması gereken ve çalışmayanı bulmak</td>
+            <td class="no">Başlangıç türüne göre sırala, kaydır, her satırı oku</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Bir durdurmanın beraberinde neleri götürdüğünü bilmek</td>
+            <td class="no">Durdur'a bastıktan sonra bağımlı hizmetleri adlandıran bir iletişim kutusu</td>
+            <td>Bir şey olmadan önce bir plan; her bağımlı hizmet bir adım olarak ve biri makinenin ihtiyaç duyduğu bir şeyse bir uyarıyla</td>
+          </tr>
+          <tr>
+            <td>Geçen haftadan beri neyin değiştiğini bilmek</td>
+            <td class="no">Hiçbir şey</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Bir başlangıç türünü kimin değiştirdiğini bilmek</td>
+            <td class="no">Hiçbir şey</td>
+            <td><code>bws history Spooler</code>, System günlüğünden</td>
+          </tr>
+          <tr>
+            <td>On iki hizmeti yeniden başlatmak</td>
+            <td class="no">On iki sağ tık</td>
+            <td>On iki tane seç, bir plan, bir çalıştırma, bir rapor</td>
+          </tr>
+          <tr>
+            <td>Bir hizmet yürütülebilir dosyasını kimin imzaladığını görmek</td>
+            <td class="no">Gösterilmez</td>
+            <td>Bir sütun ve üzerinde arama yapılacak bir şey: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Bunlardan herhangi birini betiklemek</td>
+            <td class="no">Betiklenemez</td>
+            <td><code>bws</code>, <code>--json</code> ve her son için bir çıkış koduyla</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ek bileşenin hâlâ daha iyi yaptığı</h2>
+    <p class="lede">İki şey; aksini iddia etmek de bu projenin yapmadığı türden bir iddia olurdu.</p>
+    <ul class="points">
+      <li><strong>Zaten makinede.</strong> İndirilecek bir şey yok, yazılım ilkesinden geçirilecek bir şey yok. Bir kez dokunacağınız bir makinede, bütün argüman budur.</li>
+      <li><strong>Kurtarma eylemlerini, hesabı ve başlatma yolunu düzenler.</strong> Bu araç hesabı ve başlatma yolunu gösterir ve ikisini de değiştirmez; kurtarma eylemlerini yalnızca bir süreci sonlandırmadan önce uyarmak için okur. Bir hizmeti oluşturmak, silmek ya da başka bir yere yönlendirmek de burada yok.</li>
+    </ul>
+    <p>Hiç yapamadığı şey, bunun var olma nedenidir: bir soru sormak, önce bir plan göstermek ve neyin saptığını söylemek.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bu nedir</h2>
+    <p>{{product}} GPL-3.0 altında özgür ve açık kaynaktır; her yarı için bir dosya ya da tüm makine için bir yükleyici ve internete asla bağlanmaz. Okumak yönetici hakları gerektirmez - değiştirmek gerektirir ve sessizce başarısız olmak yerine bunu söyler.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Sorgu diline bakın</a>
+    </div>
+  </div>
+</section>

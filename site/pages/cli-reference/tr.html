@@ -1,0 +1,193 @@
+<meta name="title" content="Komut satırı başvurusu - bws'nin her seçeneği ve çıkış kodu">
+<meta name="description" content="bws'nin her komutu, seçeneği ve çıkış kodu: list, show, stop, start, restart, kill, start-type, snapshot, history ve tool; her bayrağın nerede çalıştığıyla.">
+<meta name="nav" content="CLI başvurusu">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  Bu sayfadaki tablolar YAZILMAZ, ÜRETİLİR. Seçenekler, ayrıştırıcının kendi tablosundan, yani
+  src/Bws.Cli/OptionSurface.cs içinden, kodlar ise src/Bws.Cli/ExitCode.cs içinden gelir; bu yüzden
+  programa eklenen bir seçenek burada görünür ve artık var olmayan bir seçeneği anlatan bir cümle
+  derlemeyi bozar. Her birinin ANLAMI düzyazıdır ve site/i18n içinde yaşar, çünkü düzyazı çevrilir.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Başvuru</span>
+    <h1>Komut satırı başvurusu</h1>
+    <p class="lede"><code>bws</code>'nin her komutu, her seçeneği ve her çıkış kodu, sürüm {{version}}. Yetkili olan <code>bws --help</code>'tir ve daha uzundur - bu sayfa aynı yüzeydir, okunmak üzere düzenlenmiş.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Komutlar</h2>
+    <p>On bir komut. <code>snapshot</code> bir isimdir ve arkasından bir sözcük alır. <code>tool</code> da bir isimdir ve tek başına araçları listeler.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>Yanlış yazılmış bir komuta büyük olasılıkla kastettiğiniz komut önerilir ve çalıştırma, istediğinize yakın bir şey yapmak yerine <code>2</code> koduyla biter.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Her komut ne yapar</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> ve <code>show</code></h3>
+        <p><code>list</code> tüm makinedir, <code>--query</code> ile daraltılmış. <code>show</code>, hakkında bilinen her şeyle tek bir öğedir - imza, ayrıcalıklar, güvenlik tanımlayıcısı ve bellek; hepsi her seferinde okunur, çünkü tek bir öğede bu yaklaşık altmış milisaniyeye mal olurken tüm makinede bir saniyeye mal olur. Gerçekten boş olan alanlar, <code>--full</code> vermedikçe bırakılır. Kimsenin okuyamadığı bir alan her durumda yazdırılır, çünkü bırakılması bir yanıt gibi görünürdü.</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> ve <code>restart</code></h3>
+        <p>Her biri bir plan kurar ve yürütür. <code>--dry-run</code> planı yazdırır ve hiçbir şeyi değiştirmez, <code>--dependents</code> bozulacak hizmetleri plana kendi başlarına birer adım olarak koyar, <code>--timeout</code> ise bir adımın ilerleme olmadan ne kadar gidebileceğini söyler. Sürücüler denenmez, reddedilir; çünkü bir çekirdek sürücüsünü durdurmak çoğu zaman yeniden başlatma olmadan geri alınamaz.</p>
+      </div>
+      <div>
+        <h3><code>kill</code> - durmayan bir hizmet için</h3>
+        <p>Hizmetten durmasını ister ve arkasındaki süreci <em>yalnızca bu işe yaramazsa</em> sonlandırır; yani kendiliğinden duran bir öğe asla sonlandırılmaz. Bir süreci sonlandırmak, o süreçte yaşayan diğer her hizmeti, önce durmuş olsun olmasın, beraberinde götürür ve önizleme bunları ve süreci numarasıyla adlandırır. <code>--force</code> kibar adımı atlar ve önizleme o zaman iki yerine bir adım gösterir. <code>--restart</code> sonrasında her şeyi geri getirir.</p>
+        <p class="note"><strong>Windows bu fikri farklı yazar.</strong> <code>Stop-Service</code> üzerinde <code>--force</code> "ona bağlı bir şey olsa bile" demektir; burada <code>--dependents</code>'in yaptığı budur. Bu yüzden bu, <code>stop</code> üzerinde bir seçenek değil, kendi başına bir komuttur.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code> - bir ayar, bir hareket değil</h3>
+        <p>Yöneticinin bir öğeyle bir sonraki açılışta ne yapacağını söyler ve <code>--stop</code> olmadan hiçbir şeyi taşımaz: çalışan bir öğe çalışmaya devam eder, durmuş olan durmuş kalır ve plan bunu söyler. <code>disabled</code>, üzerinde durulmaya değer olandır; çünkü yöneticinin öğeyi hiç başlatmasını, ona ihtiyaç duyan başka bir şey için isteğe bağlı olarak başlatmasını da dahil, engeller. <code>delayed</code> otomatiktir, diğer otomatik öğelerden biraz sonra başlatılır - bir sorguda <code>start:delayed</code>'in sorduğu sözcük - ve Windows bunu yükleme sırası grubundaki bir öğe için reddeder; bunu plan, bir şey olmadan önce söyler. Dördünün her biri, <code>sc.exe</code>'nin yaptığı gibi, öğenin geç başlayıp başlamadığını yazar. <code>--stop</code>, yalnızca <code>disabled</code> ile birlikte, ayar yazıldıktan sonra öğeyi aynı planda durdurur.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> ve <code>snapshot diff</code></h3>
+        <p><code>create</code> imzaları ve karmaları her zaman okur; çünkü bir anlık görüntü saklanır ve sonra karşılaştırılır, bunlar olmayan biri, bunlarla birlikte olan biriyle karşılaştırıldığında makine değişmiş gibi görünürdü. <code>diff</code>, ilk dosyadan ikinciye giderken ya da <code>--live</code> ile bir dosyadan bu makineye giderken neyin değiştiğini söyler. <a href="{{url:snapshots-and-drift}}">Anlık görüntü sayfası</a> biçimi ve gerekçeyi içerir.</p>
+      </div>
+      <div>
+        <h3><code>history</code> - kimin değiştirdiği, System günlüğünden</h3>
+        <p>System günlüğünden başlangıç türü değişiklikleri ve kurulumlar; en yeniler önce, Windows'un kaydettiği hesapla birlikte. İlk satır günlüğün ne kadar geriye gittiğini ve temizlenip temizlenmediğini söyler; çünkü bir geçmiş ancak günlük kadar uzundur. Bir adla, o hizmetin başlangıç türü değişiklikleridir - kurulumlar yalnızca adsız listelenir, çünkü Windows bir kurulumu görünen ad altında kaydeder ve asla hizmet adı altında değil. Bir hesap, bu makinenin onu kendi başına adlandırabildiği yerde adlandırılır, aksi halde SID'i olarak gösterilir ve başlangıç türleri Windows'un yazdığı sözcüklerle gelir.</p>
+      </div>
+      <div>
+        <h3><code>tool</code> - yaygın sorunlara hazır yanıtlar</h3>
+        <p>Pencerenin Tools sekmesinde gösterdiği araçların aynısı. <code>bws tool</code> onları listeler, <code>bws tool fix</code> ise hızlı düzeltmeleri listeler: <code>printer</code>, <code>sound</code>, <code>indexing</code> ve <code>search</code>; her biri, Microsoft'un kendi sorun giderme sayfalarının önerdiği için seçilmiş, tek bir Windows hizmetinin ona bağlı olanlarla birlikte yeniden başlatılmasıdır. <code>bws tool fix printer</code> tam olarak <code>bws restart Spooler --dependents</code>'tir - aynı plan, aynı çıktı ve aynı çıkış kodları - ve buradaki bir şeyi değiştiren her komut gibi önce sormaz, bu yüzden çalışmadan önce bakmanın yolu <code>--dry-run</code>'dır.</p>
+      </div>
+      <div>
+        <h3><code>license</code> - indirdiğiniz dosyanın içinde ne var</h3>
+        <p>Hiçbir şey okumaz - hizmet yöneticisi yok, disk yok, ağ yok - ve yürütülebilir dosyaya derlenmiş bir kayıttan yanıt verir. <code>--components</code> bildirimi her bileşene, sürümü, lisansı ve nereden geldiğiyle açar. İndirmenin yanında yayımlanan malzeme listesinin taşıdığı aynı küme, çünkü ikisi de tek bir kayıttan üretilir ve buna değmesinin nedeni de budur: program tek bir bağımsız dosyadır, yani yanında bir tarayıcının okuyabileceği hiçbir şey yoktur.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Örnekler</h2>
+    <p class="lede">Aşağıdaki planlar, bu sayfanın anlattığı programa karşı <code>--dry-run</code> ile denetlendi. Bir şeyi değiştiren komut önce sormaz, bu yüzden çalışmadan önce bakmanın yolu <code>--dry-run</code>'dır. <code>Spooler</code> herhangi bir hizmeti temsil eder - yerine kendi hizmetinizin adını koyun.</p>
+    <div class="examples">
+    <h3>Bul ve oku</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">bu makinedeki her hizmet ve sürücü</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">açık olması gereken ve olmayan</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">çalışan her öğenin işleminin ne kullandığı</span>
+<span class="k">bws show Spooler</span>                               <span class="c">bir öğe hakkında bilinen her şey</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">gerçekten boş olan alanlar da</span></code></pre>
+    <h3>Önce bak, sonra değiştir</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">plan ve başka hiçbir şey</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">onu, ona bağlı olanlarla birlikte yeniden başlat</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">ilerleme olmadan adım başına iki dakikaya izin ver</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">diğer otomatik öğelerden biraz sonra başlat</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">devre dışı bırak ve tek planda durdur</span></code></pre>
+    <h3>Durmayan bir hizmet</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">süreç ve içinde yaşayan her hizmet</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">süreci yalnızca durdurma başarısız olursa sonlandır, sonra hepsini geri getir</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">iki yerine bir adım: süreç hemen sonlandırıldı</span></code></pre>
+    <h3>Anlık görüntüler ve sapma</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">makineyi dondur, içinde saklanan bir notla</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">iki dosya - iki gün ya da iki makine</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">dosya, bu makineyle şu anki haliyle</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">aynısı, yapılandırma saptıysa 5 ile biter</span></code></pre>
+    <h3>Kimin değiştirdiği</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">System günlüğünün tuttuğu her başlangıç türü değişikliği ve kurulum</span>
+<span class="k">bws history Spooler</span>  <span class="c">tek bir hizmetin başlangıç türü değişiklikleri</span>
+<span class="k">bws history --json</span>   <span class="c">aynısı bir belge olarak, günlük ve değişikliklerle</span></code></pre>
+    <h3>Hızlı düzeltmeler</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">mevcut araçlar</span>
+<span class="k">bws tool fix</span>                  <span class="c">hızlı düzeltmeler ve her birinin arkasındaki hizmet</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">iki ses hizmetini yeniden başlatma planı</span>
+<span class="k">bws tool fix printer</span>          <span class="c">Print Spooler'ı ona bağlı olanlarla yeniden başlat</span></code></pre>
+    <h3>Dosyanın içinde ne var</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">her bileşen, sürümü, lisansı ve nereden geldiği</span>
+<span class="k">bws --version</span>             <span class="c">bu yürütülebilir dosyanın sürümü</span></code></pre>
+    <h3>Bir PowerShell betiğinde</h3>
+<pre class="wrap-lines"><code><span class="c"># açık olması gereken ve olmayan öğeler, nesne olarak</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># imzasız dosyalar, bir elektronik tabloya</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># bir hizmetin neye ihtiyaç duyduğu</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># çıkış koduna göre dallanan gecelik bir denetim</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>cmd'de ve bir toplu iş dosyasında</h3>
+<pre class="wrap-lines"><code><span class="c">rem ikinci bir komut yalnızca ilki temiz bitmediğinde</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem gecikmeli genişletmenin açık olduğu bir toplu iş dosyasında ! için bir şapka işareti gerekir</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Seçenekler</h2>
+    <p>{{switch_count}} tane. Üçüncü sütun, her birinin ait olduğu komutlardır - işe yaramayacağı bir komuta verilen seçenek, sessizce yok sayılan bir bayrak değil, içinde o liste olan bir hatadır.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Çıkış kodları</h2>
+    <p>{{exit_code_count}} son ve her biri bir betiğin yapacağı farklı bir şeydir. Veriler standart çıktıya, geri kalan her şey standart hataya gider; böylece <code>bws list --json | jq</code> çalışır ve bir uyarı asla JSON'unuza düşmez.</p>
+    <p>Her JSON belgesi düz ASCII'dir: onun dışındaki bir harf, her JSON okuyucusunun harfe geri çevirdiği altı karakterlik bir kaçış olarak yazılır; bu yüzden <code>bws list --json &gt; file.json</code> geçerli UTF-8'dir ve konsolun hangi kod sayfasına ayarlı olduğundan bağımsız olarak <code>| ConvertFrom-Json</code> onu doğru okur. Bir insanın okuduğu metinde, yazdırılmak yerine terminali oynatacak bir karakter - bir sekme, bir satır sonu, bir kaçış dizisi, bir yön geçersiz kılma - kod noktası olarak gösterilir, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> seçenekleri sonlandırır; böylece adı tireyle başlayan bir hizmet yine de adlandırılabilir: <code>bws show -- -odd</code>. Aracın size verdiği komut satırları PowerShell için yazılmıştır: boşluklu bir ad çift tırnağa girer, cmd bunu aynı şekilde okur; PowerShell'in içlerinde genişleteceği bir ad ise, örneğin <code>MSSQL$SQLEXPRESS</code>, tek tırnağa girer.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C'nin üç düzeyi vardır; her biri bir sonrakinin neye mal olduğunu söyler.</strong> Birincisi ilerlemeyi bırakır ve alınanı yine geri koyar, ikincisi işleri olduğu gibi bırakır ve raporu yine yazdırır, üçüncüsü süreci sonlandırır. Elle durdurulan bir çalıştırma, her adım yine de ulaşmış olsa bile <code>4</code> ile biter.</p>
+    <p class="note"><strong>Konsol penceresini kapatmak ilk Ctrl+C sayılır.</strong> Windows bundan sonra bir programa beş saniye verir ve bu sürede program ilerlemeyi bırakır ve indirdiğini geri koyar. Oturumu kapatmak ve bilgisayarı kapatmak, tepki verebileceği hiçbir uyarı olmadan onu sonlandırır; kopmuş bir uzak oturum da öyle olabilir.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Zamanlanmış bir görevde</h2>
+    <p>Bu aracın üzerine kurulduğu biçim: makine iyi olduğu bilindiğinde dondurun, sonra her gece hâlâ öyle olup olmadığını sorun.</p>
+<pre><code><span class="c"># makinenin hizmete girdiği gün</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># her gece, zamanlanmış bir görevden</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - yapılandırma sapması yok
+#   5 - yapılandırma saptı ve drift.json neyin olduğunu söyler
+#   3 - çalıştı ve her şeyi okuyamadı, yani yanıt kısmi</span></code></pre>
+    <p>Pencere aynı motorun diğer yarısıdır: <code>{{archive_window}}</code> onu içerir ve <a href="{{url:download}}">indirme sayfası</a> her arşivin ne olduğunu söyler.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Pencerenin bağımsız değişkeni</h2>
+    <p><code>BetterWindowsServices.exe</code> bir insan için tasarlanmış tek bir bağımsız değişken alır: <code>--catalogue</code>, pencerenin her bileşenini her durumda gösteren bir geliştirici sayfası açar ve makinenizden hiçbir şey okumaz. İkincisi, <code>--carry</code>, bir pencerenin gösterdiği şeyi yönetici olarak yeniden başlattığı kendi kopyasına aktarma yoludur. Kimse onu yazmaz ve içindeki, o pencerenin yazamayacağı her şey reddedilir.</p>
+  </div>
+</section>

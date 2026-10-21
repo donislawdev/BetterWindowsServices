@@ -1,0 +1,177 @@
+<meta name="title" content="Sorgu dili - Windows hizmetlerinize bir soru sorun">
+<meta name="description" content="Arama kutusu ve bws list --query için tek sorgu dili. Her alan, her değer ve services.msc'nin soramayacağı soru: neyin okunamadığı.">
+<meta name="nav" content="Sorgu dili">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  Alan tablosu Bws.Core'dan ÜRETİLİR - QueryFields.Names ve QueryFields.ValuesOf, bunları bir
+  insana sunan her şey için tasarlanmış genel API'dir; bu yüzden bu sayfa programın sahip olmadığı
+  bir alanı adlandıramaz ve sahip olduğu birini atlayamaz. Yanlarındaki cümleler site/i18n içindedir.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Sorgu dili</span>
+    <h1>Makineye bir soru sorun</h1>
+    <p class="lede">Tek bir dil; hem pencerenin arama kutusunda hem <code>bws list --query</code> içinde. Çıplak bir sözcük adı, görünen adı, hesabı ve başlatma yolunu arar. Bir alan onu daraltır. {{field_count}} alan ve aynı metin aracın iki yarısında da aynı anlama gelir.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Gerçek bir soruyu yanıtlayan altı sorgu</h2>
+    <div class="grid">
+      <div class="card"><h3>Açık olması gereken ve olmayan</h3><p><code>start:auto !status:running</code></p><p>Çoğu insanın yazdığı ilk sorgu ve <code>services.msc</code>'nin hiç yanıtlayamadığı.</p></div>
+      <div class="card"><h3>Dosyası kaybolan hizmetler</h3><p><code>file:missing</code></p><p>Diskte olmayan bir yürütülebilir dosyaya işaret eden bir öğe. Genellikle kaydı geride bırakan bir kaldırma.</p></div>
+      <div class="card"><h3>İmzasız, oturum gürültüsü olmadan</h3><p><code>signed:no peruser:no</code></p><p>Kullanıcı başına aileler oturum başına bir kopya yapar ve listeyi neredeyse aynı öğelerle doldurur. Bu, geri kalanı sorar.</p></div>
+      <div class="card"><h3>Devre dışıyken çalışan</h3><p><code>mismatch:running</code></p><p>Birbiriyle uyuşmayan yapılandırma ve durum - yöneticinin hiç başlatmamaya ayarladığı bir öğe, yine de çalışıyor.</p></div>
+      <div class="card"><h3>Hata ayıklama hakkı isteyen her şey</h3><p><code>privilege:SeDebugPrivilege</code></p><p>Bir işlemin diğer herhangi birini açmasına izin veren bir ayrıcalık. Hangi hizmetlerin onu istediğini bilmeye değer.</p></div>
+      <div class="card"><h3>Aracın okuyamadığı</h3><p><code>account:?</code></p><p>Bu oturumun hesabı okuyamadığı öğeler. <code>services.msc</code>'nin soramayacağı bir soru.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bir sorgu nasıl yazılır</h2>
+    <div class="split">
+      <div>
+        <h3>Terimler</h3>
+        <ul class="prose-list">
+          <li>Terimler boşlukla ayrılır ve hepsi eşleşmelidir - <code>and</code> anahtar sözcüğü yoktur, çünkü başka bir anlama gelemezdi.</li>
+          <li>Aynı alanın iki kez yazılması tek istisnadır: <code>status:running status:stopped</code> ikisinden biri demektir, çünkü iki filtreyi işaretlemek bunu yazar. Bir sayı üzerindeki iki sınır yine de daraltır - <code>pid:&gt;1000 pid:&lt;2000</code> ikisi arasındaki aralıktır.</li>
+          <li>Bir terimin önündeki <code>!</code> onu olumsuzlar: <code>!status:running</code>. <code>setlocal EnableDelayedExpansion</code> içeren bir toplu iş dosyasında cmd bu <code>!</code> işaretini tek kelime etmeden yer ve sorgu sessizce başka bir anlama gelir - orada tırnakların içine <code>^!</code> yazın.</li>
+          <li>Bir alanın içindeki virgül <em>veya</em> demektir: <code>start:manual,disabled</code>.</li>
+          <li>Tırnaklar boşluk ya da iki nokta içeren her şeyi korur: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>Olduğu gibi yapıştırılan bir yol - <code>C:\Windows\System32\svchost.exe</code> - aranır, C adlı bir alan olarak okunmaz.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Metin nasıl eşleştirilir</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> onu <em>içeren</em> her şeyle eşleşir - varsayılan budur, çünkü insanlar bir arama kutusundan bunu bekler.</li>
+          <li><code>name:=spooler</code> tam eşleşmedir.</li>
+          <li><code>name:spool*</code> joker karakterleri, <code>*</code> ve <code>?</code>, kabul eder.</li>
+          <li><code>name:/^Sql.*/</code> bir düzenli ifadedir ve eğik çizgilerin içinde düzenli ifadelerin yazıldığı gibi yazılır: <code>\?</code>, <code>\\</code> ve virgül orada ne anlama geliyorsa onu ifade eder. Hiç kapanmayan bir eğik çizgi hatadır - eğik çizginin kendisini aramak için <code>\/</code> yazın ya da tırnak kullanın.</li>
+          <li>Büyük/küçük harf ASCII dışında da yok sayılır - Lehçe ya da Yunanca bir görünen ad nasıl yazılırsa yazılsın eşleşir.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>Her alanın kabul ettiği üç sözcük</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>Yanlış yazılmış bir değer hatadır, asla boş bir sonuç değildir.</strong> <code>status:runing</code>, <em>Did you mean running?</em> yanıtını verir ve <code>2</code> koduyla biter. Boş bir liste yanıt gibi görünürdü ve "hiçbir şey eşleşmiyor" ile "yanlış yazdınız" arasındaki fark, temiz bir makine ile hiçbir şeyi kanıtlamayan bir denetim arasındaki farktır. Hiçbir şeyi daraltmayacak bir sorgu komut satırında da reddedilir; böylece bir betik bir yazım hatası yüzünden tüm makine üzerinde işlem yapmaz.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Daha fazla örnek</h2>
+    <p class="lede">Her biri pencerenin arama kutusunda ve <code>bws list --query</code> sonrasında aynı çalışır ve her biri buraya yazılmadan önce gerçek bir Windows'ta çalıştırıldı. Ne bulduğu makineye bağlıdır - ve sorunla ilgili bir soruda, boş bir yanıt istediğiniz yanıttır.</p>
+    <div class="examples">
+    <h3>Durum ve başlangıç türü</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>Durdurulurken ya da başlatılırken takılmış - ek bileşenin gösterdiği ve asla bitmeyen bekleme.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>Otomatik başlayacak şekilde ayarlı, durmuş ve bir tetikleyici beklemeyen - yeniden başlatmadan sonra okumaya değen kısa liste.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>Otomatik, diğer otomatik öğelerden biraz sonra başlatılan.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>Açılışta hiçbir şey onu başlatmadığı halde çalışan - biri istedi, bir tetikleyici başlattı ya da birisi başlattı.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Hesaplar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>En güçlü hesap olan LocalSystem olarak, Microsoft'un imzalamadığı bir dosyadan çalışan. Yayımcı sorgusu imzaları kendiliğinden okur, bu yüzden birkaç saniye sürer.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>Başka herhangi bir hesap altında çalışan hizmetler - sanal bir hesap, yönetilen bir hesap ya da bir kişinin kendi hesabı.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>Hizmetin kendi sanal hesabı. Boşluk yüzünden tırnaklar sözcükleri bir arada tutar.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Dosyalar ve imzalar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>İmza yok, Windows'un güvenmediği bir zincir ya da imzalandıktan sonra değiştirilmiş bir dosya.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>İmzalı, güvenilir ve Microsoft tarafından olmayan - diğer şirketlerin bu makineye koyduğu yazılım.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>Windows başlarken yüklenen ve imzasına Windows'un güvenmediği sürücüler. Sağlıklı bir makinede hiç yok.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>Dosyası Windows klasörünün dışında duran, kendi işlemi olan bir hizmet.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>Birinin profilinin içinden başlatılan; bir hizmetin beklendiği son yer.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>Boşluğun önündeki bir ters eğik çizgi boşluğu sözcüğün parçası yapar; bu yüzden ters eğik çizgiyle biten bir yol, ardından başka bir terim geldiğinde iki tane ile yazılır. Sorgunun sonunda bir tane yeter.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Tetikleyiciler ve bağımlılıklar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>Bir aygıtın gelmesini bekleyen, yani bir nedenle durmuş.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>Bir ağ uç noktasına - bir bağlantı noktasına, adlandırılmış bir kanala ya da bir RPC arayüzüne - bir istek geldiğinde başlatılan.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>Bir tetikleyicinin yalnızca başlatmakla kalmayıp durdurabildiği öğeler.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>Çalışmak için WMI'ye ihtiyaç duyan öğeler.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>Print Spooler'ın çalışmak için ihtiyaç duyduğu her şey ve onların da sırayla ihtiyaç duyduğu şeyler.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Ayrıcalıklar ve işlemler</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>İşletim sisteminin parçası olarak davranmayı ister.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>LocalSystem dışında bir hesap altında çalışırken bir istemci adına hareket edebilir.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>İşleminde kendine ait bir hizmet SID'i taşır; böylece izinler yalnızca onu adlandırabilir. sidtype:restricted, işlemi ayrıca yazma kısıtlı olanları sorar.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>Ortak bir svchost içinde, diğerleriyle birlikte çalışan.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>200 MB'tan fazla kullanan bir işlem. Bir sorgu bunu sorduğunda bellek kendiliğinden okunur.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>Kimliği 1000 ile 2000 arasında olan bir işlemde.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Adlar ve metin</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sorgu</th><th>Ne bulur</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>Adda, görünen adda, hesapta ve başlatma yolunda aranan çıplak bir sözcük.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>Tam olarak bu ad, onu yalnızca içeren hiçbir şey değil.</td></tr>
+          <tr><td><code>name:win*</code></td><td>win ile başlayan adlar, joker karakterle yazılmış.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>svc ile biten adlar, düzenli ifade olarak yazılmış.</td></tr>
+          <tr><td><code>description:none</code></td><td>Hiç açıklaması olmayan; sürücülerin çoğu böyledir.</td></tr>
+          <tr><td><code>description:?</code></td><td>Windows'un teslim edemediği bir açıklama; genellikle var olmayan bir dil dosyasına işaret ettiği için.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>Windows'un oturum açmış her oturum için kopyaladığı kullanıcı başına şablonlar.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Her alan</h2>
+    <p>Programın kendisinden üretilir, bu yüzden bu tablo aracın kabul ettiğinden sapamaz. Değer listesi olmayan bir alan metin, sayı ya da boyut alır - üçüncü sütun hangisi olduğunu söyler.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Bilmeye değer iki şey</h2>
+    <div class="qa">
+      <div>
+        <h3>Bazı alanlar pahalıdır ve onları istemek okumayı açar</h3>
+        <p>İmzalar tüm bir makinede birkaç saniye sürer ve bellek bir ayar değil bir ölçümdür; bu yüzden istenmedikçe bir liste için ikisi de okunmaz. Birinden söz eden bir sorgu o okumayı kendiliğinden açar - <code>signed:no</code> yanında <code>--signatures</code>'ı da hatırlamanız gerekmez. Pencerede imzalarla ilgili bir sorgu, imzalar gelene kadar yanıtın eksik olduğunu söyler; daha kısa bir listeyi yanıtmış gibi göstermek yerine.</p>
+      </div>
+      <div>
+        <h3>Okunamayan bir şeye göre yargılanan sonuç bunu söyler</h3>
+        <p>Öğeler bu oturumun okuyamadığı bir alana göre yargılandıysa sonuç, kaç tane olduğunu söyleyen bir satır taşır - çünkü böyle bir sonuçta öğe eksik olabilir ya da ait olmayanlar bulunabilir. Bu, aracın tamamının uyduğu aynı kuraldır: başarısız bir okuma yanıtta görünür, asla yutulmaz. Bir yayımcı, onu yalnızca sertifika iddia ettiğinde aynı muameleyi görür: <code>trusted</code> dışındaki herhangi bir hükmün yanında ad <em>not verified</em> olarak gösterilir ve <code>publisher:</code> öğeyi kendi satırında belirsiz sayar - böylece <code>!publisher:microsoft</code>, birinin imzalandıktan sonra değiştirdiği bir Microsoft dosyasını tutar.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">Komut satırı başvurusu</a>
+  </div>
+</section>

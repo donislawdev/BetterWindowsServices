@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe ve Get-Service, denetim için yapılmış bir araçla kıyaslandı">
+<meta name="description" content="sc.exe her şeyi yapar, hiçbir şey söylemez. Get-Service betiklenebilir, yüzeysel. Hangisi nerede hâlâ en iyi, sorgu dili ve plan nerede daha iyi.">
+<meta name="nav" content="sc.exe ve PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Kılavuz</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> ve bu</h1>
+    <p class="lede">İkisi de zaten makinede ve ikisi de yararlı kalacak. Bu sayfa, nerede durduklarıyla ilgili - ve hâlâ daha iyi yanıt olduklarını açıkça söylüyor.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Her birinin durduğu yer</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Hizmet denetim yöneticisinin bildiği hemen her şeye erişebilir ve nasıl soracağınız konusunda size hiçbir şey söylemez. Sözdizimi doksanlardan kalmadır - <code>sc config X start= auto</code>; burada eşittir işaretinden sonraki boşluk zorunludur ve yokluğu, ne demek istediğinizi yapmamanın sessiz bir başarısızlığıdır.</p>
+        <p>Aynı anda tek bir öğe hakkında yanıt verir. Filtreleme yok, bir betiğin ayrıştırıcı yazmadan ayrıştırabileceği bir çıktı yok ve önizleme yok: <code>sc stop</code> ya çalışır ya da bir sayı döndürür.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> ve <code>*-Service</code> cmdlet'leri</h3>
+        <p>Düzgün nesneler, bir ardışık düzen ve yüzeysel bir görünüm. Windows'la gelen Windows PowerShell 5.1'de <code>Get-Service</code> bir hizmetin hangi hesapla çalıştığını ya da açıklamasını göstermez. PowerShell 7 ikisini de ve başlatma yolunu da gösterir ve ayrıca kurulur.</p>
+        <p><code>Stop-Service -Force</code> "ona bağlı bir şey olsa bile" demektir - bağımlı hizmetleri durdurur ve size bunu önceden değil, sonradan söyler.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Aynı sorular, üç yolla</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Soru</th><th>Makinede olanla</th><th>Burada</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Çalışması gereken ve çalışmayan nedir</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Hangi hizmetlerin imzasız yürütülebilir dosyası var</td>
+            <td class="no">Her başlatma yolunu oku, çöz, her birinde <code>Get-AuthenticodeSignature</code> çağır - bir komut değil, bir betik</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Bunu durdurmak neleri indirir</td>
+            <td><code>sc enumdepend X</code>, sonra listeyi oku ve kendin karar ver</td>
+            <td><code>bws stop X --dry-run --dependents</code>, yani çalışacak plan</td>
+          </tr>
+          <tr>
+            <td>Geçen haftadan beri ne değişti</td>
+            <td class="no">Toplayıcıyı kendiniz yazmadıysanız hiçbir şey</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Başlangıç türünü kim değiştirdi ve ne zaman</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, sonra her olayın iletisini oku</td>
+            <td><code>bws history Spooler</code>, ilk satırı günlüğün ne kadar geriye gittiğini söyler</td>
+          </tr>
+          <tr>
+            <td>Makine tarafından okunabilir çıktı</td>
+            <td>PowerShell'den nesneler, <code>sc.exe</code>'den metin</td>
+            <td>Her komutta <code>--json</code>, standart çıktıda, uyarılar standart hatada</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Bu aracın bir hizmet konusunda <code>sc.exe</code> ile anlaşmazlığa düştüğü yer, burada bir hatadır.</strong> Test paketinin bir bölümü ikisini de üzerinde çalıştığı makinede çalıştırır ve öğe öğe karşılaştırır; ikisi arasındaki bir fark, bir sorun kaydına koyabileceğiniz en yararlı şeydir.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Elinizdekini ne zaman kullanmaya devam etmeli</h2>
+    <ul class="points">
+      <li><strong>Bir kez dokunacağınız bir makinedesiniz.</strong> İkisi de zaten orada ve hiçbir şeyin bir ilkeden geçmesi gerekmiyor.</li>
+      <li><strong>Hesabı, başlatma yolunu ya da kurtarma eylemlerini değiştirmeniz gerekiyor.</strong> <code>sc.exe</code> üçünü de yapar. Bu araç hesabı ve başlatma yolunu gösterir ve ikisini de değiştirmez; kurtarma eylemlerini yalnızca bir süreci sonlandırmadan önce uyarmak için okur.</li>
+      <li><strong>Bir hizmet oluşturmanız ya da silmeniz gerekiyor.</strong> <code>sc create</code> ve <code>sc delete</code>. Burada değil, bilerek.</li>
+      <li><strong>Zaten bir PowerShell ardışık düzeninin derinindesiniz.</strong> <code>bws list --json</code>, <code>ConvertFrom-Json</code> aracılığıyla nesne olarak geri gelir; yani ardışık düzenin yerini almak yerine ona katılır.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Birlikte, onların yerine değil</h2>
+    <p><em>Bu makinede ne yanlış</em> sorusunu yanıtlayan araç ile tek bir ayarı değiştiren araçlar aynı araç değildir. Soruyu burada sorun, planı burada okuyun ve onu yürütmek için istediğinizi kullanın - plan, aynı şeyi isteyen komut satırını yazdırır ve o satır kopyalanmak için tasarlanmıştır.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Sorgu dili</a>
+    </div>
+  </div>
+</section>

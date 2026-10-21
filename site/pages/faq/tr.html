@@ -1,0 +1,78 @@
+<meta name="title" content="Better Windows Services hakkında sorular ve dürüst sınırları">
+<meta name="description" content="İnternet gerekir mi? Yönetici hakları? Sunucumu bozar mı? Ne yapar ve tasarım gereği neyi yapmayı reddeder.">
+<meta name="nav" content="SSS">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Sorular</span>
+    <h1>Sorular ve sınırlar</h1>
+    <p class="lede">Sessizce bir şeyi kapsamayan bir araç, neyi yapamadığını söyleyen bir araçtan daha kötüdür. Sınırlar da bu sayfadadır, iki grupta: tasarım gereği neyi reddettiği ve Windows'un yaptığı, bu aracın olduğu gibi bildirdiği şeyler.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>Bu, <code>sc.exe</code>, <code>Get-Service</code> veya <code>services.msc</code>'den nasıl farklı?</h3>
+        <p><code>sc query</code> ve <code>Get-Service</code> neyin çalıştığını söyler. <code>services.msc</code> onu, soru sorma yolu olmadan ve sonrasında bir kayıt tutmadan, her seferinde tek satır değiştirmenize izin verir. Bu araç soruyu sorar (<code>start:auto !status:running</code>), harekete geçmeden önce planı gösterir ve bir hafta sonra karşılaştırabileceğiniz bir anlık görüntü tutar. Bir hizmet konusunda <code>sc.exe</code> ile anlaşmazlığa düştüğü yerde bu bir hatadır - test paketinin bir bölümü ikisini de çalıştırır ve öğe öğe karşılaştırır. <a href="{{url:sc-exe-and-powershell}}">Daha uzun karşılaştırma burada.</a></p>
+      </div>
+      <div>
+        <h3>İnternet gerekir mi?</h3>
+        <p>Asla. Telemetri yok, güncelleme denetimi yok, çökme raporlama yok, hesap yok, hiçbir şeyin istemcisi yok. Bir ağa dokunabildiği tek an <code>--follow-network</code> verdiğiniz andır: o zaman başka bir makinenin paylaşımındaki bir başlatma yoluna bakabilir ve bu makinede henüz olmayan bir sertifikayı Windows'un getirmesine izin verebilir - varsayılan olarak kapalıdır ve yardım nedenini söyler. Penceredeki <em>GitHub</em> ve <em>Donate</em> düğmeleri ile <em>Help</em> menüsündeki sayfa, basıldığında tarayıcınıza sabit birer adres verir ve bağlanan sizin tarayıcınızdır.</p>
+      </div>
+      <div>
+        <h3>Yönetici hakları gerekir mi?</h3>
+        <p>Bakmak için hayır. Değiştirmek için evet. Bunlar olmadan yönetici daha az öğe gösterir ve daha fazlasını reddeder; iki yarı da listenin tüm makine olduğunu iddia etmek yerine bunu en üstte söyler. Pencere <em>Restart as admin</em> sunar. Kendi haklarını asla kendisi yükseltmez.</p>
+      </div>
+      <div>
+        <h3>Ücretsiz mi? İşte kullanabilir miyim?</h3>
+        <p>İkisine de evet. GPL-3.0, ek koşul yok. Aldığınız bir anlık görüntü sizin dosyanızdır.</p>
+      </div>
+      <div>
+        <h3>Sunucumu bozar mı?</h3>
+        <p>Kendi kendine hayır. Gördüğünüz bir plan olmadan hiçbir şey değiştirilmez, sürücüler reddedilir ve makinenin ihtiyaç duyduğu bir şeyi indirecek bir plan bunu söyler. Sizi koruyamayacağı şey, okumadığınız bir planı yürütmenizdir. Makinenin ihtiyaç duyduğu hizmetlerin listesi yedilik bir başlangıç listesidir - RPC'nin iki yarısı ve DCOM başlatıcısı, hesap yöneticisi, anahtar yalıtımı, oturum yöneticisi ve tak-çalıştır - ve <strong>Uzak Masaüstü listede yok</strong>, dolayısıyla uzak bir oturumda planı okuyun.</p>
+      </div>
+      <div>
+        <h3>Bu bir Microsoft ürünü mü?</h3>
+        <p>Hayır. {{product}} bağımsız bir açık kaynak projesidir; Microsoft ile bağlantılı değildir, Microsoft tarafından onaylanmamış ya da desteklenmemiştir. Windows, Microsoft şirketler grubunun bir ticari markasıdır.</p>
+      </div>
+      <div>
+        <h3>Program benim dilimde mi?</h3>
+        <p>Hayır - program İngilizce konuşur ve bu site bu yüzden çevrilmiştir. Pencere, yürütülebilir dosyanın yanına konan bir dil dosyasını, <code>languages\gui.&lt;kod&gt;.json</code>, okur ve onu Windows'un diline göre, anahtarsız seçer; yani çeviri, programı yeniden derlemeden eklenebilecek bir katkıdır. Listedeki hizmetlerin adları, Windows'unuzun söylediği gibidir - Windows'unuzun kurulu olduğu dilde.</p>
+      </div>
+      <div>
+        <h3>Windows'um açık renkliyken pencere neden koyu?</h3>
+        <p>Koyudur ve Windows nasıl ayarlanmış olursa olsun, yüksek karşıtlık teması dahil, koyu kalır. Bu varsayılmadı, denetlendi - kendi renklerini korur ve okunaklı kalır, bu ayarı izlemez.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Tasarım gereği</h2>
+    <ul class="points">
+      <li><strong>Yalnızca yerel makine.</strong> Uzaktan yönetim bu sürümde yok. İki makineyi karşılaştırmak için her birinde bir anlık görüntü alın ve iki dosyayı karşılaştırın.</li>
+      <li><strong>Yalnızca Windows, yalnızca 64 bit</strong>, Windows 10 1809 veya Windows Server 2019 ve sonrası.</li>
+      <li><strong>Sürücüler üzerindeki işlemler denenmez, reddedilir</strong>, çünkü bir çekirdek sürücüsünü durdurmak çoğu zaman yeniden başlatma olmadan geri alınamaz.</li>
+      <li><strong>Araç kendi ayrıcalıklarını yükseltmez.</strong> Yönetici reddettiğinde bunu söyler ve <code>3</code> çıkış koduyla biter. Pencere kendini yönetici olarak yeniden başlatmayı önerir ve bu konuda başka bir şey yapmaz.</li>
+      <li><strong>Sertifika iptali denetlenmez.</strong> Bunun için ağa ulaşması gerekirdi ve bu araç asla yapmaz. Yani <em>Trusted</em>, zincirin bu makinede geçerli olduğu anlamına gelir; sertifikanın o zamandan beri kimse tarafından iptal edilmediği anlamına gelmez.</li>
+      <li><strong>Pencere, başlamadan önce Windows kullanıcı arabirimi çerçevesinin bir bölümünü açar.</strong> Tek dosya olarak, Windows'un yalnızca diskten yükleyebildiği birkaç yerel kitaplık taşır. Yönetici hakları olmadan bunları, her sürümün ilk başlatılışında, hesabın geçici klasörü altındaki bir <code>.net</code> klasörüne yazar ve oradan yükler. Yönetici haklarıyla bunun yerine Windows sürücüsündeki <code>ProgramData\BetterWindowsServices</code> klasörünü kullanır - yalnızca yöneticilerin değiştirebileceği şekilde oluşturduğu ve her başlatmada denetlediği bir klasör. Klasör oluşturulamıyorsa ya da başkaları onu değiştirebiliyorsa pencere başlamaz ve hangi klasör olduğunu ve ne yapılacağını söyler. Oraya geçmek, yükseltilmiş bir pencerenin kendini ikinci kez başlatması demektir; bu bir saniyenin kesri sürer ve her sürüm, biri klasörü silene kadar kitaplıklarını orada bırakır (yaklaşık 8 MB). Komut satırı böyle kitaplıklar taşımaz ve hiçbir şey açmaz.</li>
+      <li><strong>Yükseltilmiş bir oturum devraldığı .NET ayarlarını reddetmek yerine adlandırır.</strong> Ortamda ayarlanmış bir profiler, bir izleme ya da döküm anahtarı veya bir tanılama bağlantı noktası, bir .NET programının içinden kapatılamaz; bu yüzden yönetici haklarıyla iki yarı da bulduklarını listeler. Başlangıç kancaları tamamen kapatılır.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Windows'un yaptığı ve bu aracın olduğu gibi bildirdiği şeyler</h2>
+    <ul class="points">
+      <li><strong><code>svchost</code> içinde barındırılan bir hizmetin</strong> başlatma yolu ana bilgisayarı adlandırır; bu yüzden <em>dosya orada</em> ve <em>kimin imzaladığı</em> kendi işlemi olan bir hizmete göre daha az şey söyler.</li>
+      <li><strong>Hem kendi imzası hem de Windows kataloğunda kaydı olan bir dosya</strong> iki farklı imzalayan adlandırabilir. Gösterilen yayımcı, dosyanın içindekidir - dosyaya başka bir makinede bakıldığında aynı kalan - ve PowerShell'in bildirdiğinden farklı olabilir.</li>
+      <li><strong>Yönetici hakları olmadan yönetici daha az öğe listeler ve listelediklerinin daha fazlasını reddeder.</strong> İki yarı da bunu en üstte söyler ve bir anlık görüntü bunu kaydeder; çünkü yükseltilmiş bir anlık görüntüyü yükseltilmemiş biriyle karşılaştırmak, aksi halde kimsenin kaldırmadığı öğeleri kaldırılmış olarak bildirirdi.</li>
+    </ul>
+    <p class="note"><strong>Bir sorun mu buldunuz, ya da bu aracın <code>sc.exe</code>'den farklı bildirdiği bir hizmet mi var?</strong> <a href="{{issues}}">Sorun izleyici</a> açıktır ve ikisi arasındaki bir fark, oraya yapıştırabileceğiniz en yararlı şeydir.</p>
+  </div>
+</section>

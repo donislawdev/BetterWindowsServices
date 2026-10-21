@@ -1,0 +1,200 @@
+<meta name="title" content="Better Windows Services - aramalı bir services.msc alternatifi">
+<meta name="description" content="Özgür ve ücretsiz services.msc alternatifi. Hizmetlerinizi sorgu diliyle arayın, her değişikliği çalışmadan önce önizleyin, dünden beri neyin saptığını görün.">
+<meta name="nav" content="Ana sayfa">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  Ana sayfa. Buradaki her cümlenin README.md içinde bir karşılığı vardır; o da orada yazılmadan önce
+  çalışan programa karşı denetlendi - aşağıdaki plan, karşılaştırma ve sorgu gerçek çıktıdır,
+  örnek değildir.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Windows hizmetlerinizi arayın, her değişikliği önizleyin ve dünden beri <em>neyin saptığını görün</em></h1>
+      <p class="lede"><strong>{{product}}</strong>, Windows makinelerini yönetenler için yeniden kurulmuş <code>services.msc</code>'dir - tek bir motorun üzerinde bir pencere ve bir komut satırı. Sekiz yüz satırı kaydırmak yerine makineye bir soru sorun. Bir değişikliğin ne yapacağını <strong>hiçbir şeye basmadan önce</strong> görün. Bir de <code>services.msc</code>'nin hiç sahip olmadığı şey: <strong>her hizmeti bir dosyaya dondurun ve bir hafta sonra neyin değiştiğini sorun.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+        <a class="btn btn-secondary" href="{{repo}}">Kodu GitHub'da görün</a>
+      </div>
+      <ul class="trust">
+        <li>Özgür ve ücretsiz, GPL-3.0</li>
+        <li>Tek dosya ya da bir yükleyici</li>
+        <li>Bakmak için yönetici hakları gerekmez</li>
+        <li>İnternete asla bağlanmaz</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="Beş öğenin seçildiği ve bunları başlatma planının listenin üstünde gösterildiği pencere: beş adım, ikisinin zaten o durumda olduğunu belirten bir not, her öğe için bir bws start satırı ve Start 5 entries düğmesi." width="1632" height="1041"></a>
+      <figcaption>Seçilen öğeler, hiçbir şey olmadan önce gösterilen bir plan ve tam olarak aynı şeyi isteyen <code>bws</code> satırı. Program İngilizce konuşur - pencere yanında duran bir dil dosyasını okur, yani yeniden derlemeden çeviri mümkündür.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  Pencerenin gerçek kayıtları; 2026-09-25 ve 2026-09-26 tarihlerinde alındı ve 2026-10-07'den beri
+  burada gösteriliyor - 2026-09-24 tarihli ilkleri HTML ile çizilmiş sahte bir pencerenin yerine
+  geçti. Oturum, README'nin taşıdığı aynı GIF'tir; sahibin 2026-10-07 tarihli kararıyla ikisi için
+  tek dosya. 2026-09-24'ten o güne kadar, bunun yerine denetimli bir videoydu; çünkü WCAG 2.2.2 beş
+  saniyeden uzun hareketli bir döngünün duraklatılabilmesini ister ve bir GIF duraklatılamaz - bu
+  GIF'in bedelidir ve unutulmak yerine burada söylenmiştir.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Yarım dakika boyunca</span>
+    <h2>Kullanımda nasıl görünür</h2>
+    <p class="lede">Lehçe kurulu bir Windows'ta gerçek bir oturum - görünen adlar Windows'tan gelir, yani onun dilindedir. Pencerenin kendisi İngilizce konuşur.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="Dört öğe seçili ve bunları başlatma planı, planı makinenin onsuz çalışmadığı konusunda uyaran ve düğme çalışmadan önce adını isteyen Local Session Manager'ın zorla yeniden başlatılması, boş arama kutusunun altındaki başlangıç soruları ve adının bir kısmı yazılarak bulunup başlatılan Print Spooler." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>Dört öğe seçili ve bunları başlatma planı, makinenin ihtiyaç duyduğu bir hizmetin adını isteyen zorla yeniden başlatma, boş bir arama kutusunun altındaki sorular ve yazılarak bulunup başlatılan Print Spooler.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="Açılış ekranı: bu makineyle ilgili sayılardan oluşan üç kart - çalışan hizmetler, otomatik başlayacak şekilde ayarlanıp açılmayan hizmetler ve otomatik başlayacak şekilde ayarlanıp dosyası kaybolan hizmetler - ve bir Show the list düğmesi." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Bu makineyle ilgili birkaç sayıyla açılır. Her biri bir sorudur - tıklayın, soru arama kutusuna gider.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="Arama kutusunun üstünde üç listenin olduğu hizmet listesi, boş bir arama kutusu, durum, başlangıç türü, imza, uyumsuzluklar ve tetikleyiciler için satırlar halinde açık filtre düğmeleri ve altında liste." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>Filtre düğmeleri arama kutusuna yazar, yani tıkladığınız şey okuyup düzenleyebileceğiniz bir sorgudur.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Neden var</span>
+    <h2><code>services.msc</code> Windows 2000'den beri neredeyse hiç değişmedi</h2>
+    <p class="lede">Yöneticiler haftada saatlerini onunla geçirip aynı duvarlara toslar.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Arama yok.</strong> Tek gezinme, bir görünen adın ilk harfine atlamaktır.</li>
+        <li><strong>Filtreleme yok.</strong> <em>Otomatik başlayacak şekilde ayarlanıp çalışmayanları göster</em> diye sormanın yolu yok.</li>
+        <li><strong>Seferinde tek satır.</strong> On iki hizmeti yeniden başlatmak, on iki sağ tık ve on iki bekleme demektir.</li>
+        <li><strong>Sonsuza dek "Stopping..."</strong>, Görev Yöneticisi ve işlemi tahmin etmekten başka çıkış yolu olmadan.</li>
+        <li><strong>Geçmiş yok.</strong> O başlangıç türünü kimin Disabled yaptığını ya da ne zaman yaptığını kimse bilmez.</li>
+        <li><strong>Gizli veriler.</strong> İşlem, tetikleyiciler, ayrıcalıklar, güvenlik tanımlayıcısı, yürütülebilir dosyayı kimin imzaladığı - hepsi için ezberden <code>sc.exe</code> ya da kayıt defteri gerekir.</li>
+        <li><strong>Komut satırında denklik yok.</strong> <code>sc.exe</code>'nin sözdizimi doksanlardan kalmadır; Windows'la gelen <code>Get-Service</code> ise Windows PowerShell 5.1'de bir hizmetin hangi hesapla çalıştığını, açıklamasını bir yana, göstermez. PowerShell 7 ikisini de gösterir ve ayrıca kurulur.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>Diğer araçlar her biri bir kısmını çözer</h3>
+        <p>Process Hacker ve System Informer zengin bir liste gösterir ve zorla sonlandırabilir, ama denetimleri ve komut satırları yoktur. <code>sc.exe</code> ve <code>PsService</code> her şeyi yapabilir ve size hiçbir şey söylemez. PowerShell'in <code>*-Service</code> cmdlet'leri betiklenebilir ve yüzeyseldir.</p>
+        <p>Hiç kimse aranabilir bir listeyi, her değişiklikten önce bir önizlemeyi ve zaman içinde neyin değiştiğinin kaydını birleştirmez - ve bu kayıt, bu aracı ilk öğleden sonradan sonra da bir makinede tutmanın nedenidir.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">Tam karşılaştırma</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Ne yapar</span>
+    <h2>Tek motor üzerinde bir pencere ve bir komut satırı</h2>
+    <div class="grid">
+      <div class="card"><h3>Kaydırmak yerine sorun</h3><p><code>start:auto !status:running</code>, <em>açık olması gereken ve olmayan</em> demektir. Hem arama kutusunda hem <code>bws list --query</code> içinde tek bir dil; alanlar siz yazarken önerilir.</p></div>
+      <div class="card"><h3>Hiçbir şey olmadan önce planı gösterin</h3><p>Her durdurma, başlatma, yeniden başlatma ve başlangıç türü değişikliği, beraberinde indirdiği hizmetlerle birlikte önizlenir ve çalışan şey önizlemenin ta kendisidir.</p></div>
+      <div class="card"><h3>Neyin saptığını ve kimin değiştirdiğini söyleyin</h3><p><code>bws snapshot create</code> makineyi bir dosyaya dondurur, <code>bws snapshot diff</code> ise o zamandan beri neyin değiştiğini söyler; yapılandırmayı yalnızca başlayan ya da duran şeyden ayrı tutar. <code>bws history</code>, System günlüğünden bir başlangıç türünü kimin değiştirdiğini ve bir hizmeti kimin kurduğunu söyler. Pencere üçünü de <em>Audit...</em> altında yapar.</p></div>
+      <div class="card"><h3>Yaygın bir sorunu tek basışta düzeltin</h3><p><em>Tools</em> sekmesi ve <code>bws tool fix</code>, yazdırmayan bir yazıcının, kaybolmuş sesin ya da takılmış bir aramanın arkasındaki hizmeti, ona bağlı olanlarla birlikte, her şeyle aynı plan üzerinden yeniden başlatır.</p></div>
+      <div class="card"><h3>Durmayan bir hizmeti durdurun</h3><p>Önce kibarca ister ve süreci yalnızca bu başarısız olursa sonlandırır; içinde yaşayan diğer her hizmetin adını söyler.</p></div>
+      <div class="card"><h3><code>services.msc</code>'nin gizlediklerini gösterin</h3><p>Yürütülebilir dosyayı kimin imzaladığı ve Windows'un ona güvenip güvenmediği, tetikleyiciler, ayrıcalıklar, güvenlik tanımlayıcısı, işlem ve belleği. Sütun olarak ve üzerinde arama yapılacak şeyler olarak.</p></div>
+      <div class="card"><h3>Bir şeyi okuyamadığında söyleyin</h3><p>Okuyamadığı bir alan okunmadı olarak bildirilir, asla boş gösterilmez. Yönetici hakları olmadan alınan bir anlık görüntü bunu dosyanın içinde söyler.</p></div>
+      <div class="card"><h3>Betiklere uyum sağlayın</h3><p>Her komutta <code>--json</code>, her son için bir çıkış kodu ve bir karşılaştırma sapma bulduğunda <code>5</code>.</p></div>
+      <div class="card"><h3>Tek dosyadan, çevrimdışı çalışın</h3><p>Açıp çalıştırın ya da tüm makine için kurun. Kurulacak .NET yok ve internete asla bağlanmaz. Okumak yönetici hakları gerektirmez. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">services.msc'nin hiç yapmadığı kısım</span>
+    <h2>Dünden beri ne değişti</h2>
+    <p class="lede">Anlık görüntü, tek bir andaki tüm makinedir - her hizmet ve sürücü; başlangıç türü, hesap, başlatma yolu, dosyasının karması ve imzalayanı, bağımlılıkları, tetikleyicileri, ayrıcalıkları ve güvenlik tanımlayıcısıyla birlikte. Satır başına bir alan içeren bir JSON'dur, yani bir depoya girer ve <code>git diff</code> onu okur.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>Yapılandırma ve çalışma durumu ayrı bildirilir.</strong> Bir gün arayla alınan iki anlık görüntü, tesadüfen neyin çalıştığı bakımından farklıdır ve bunun neredeyse hiçbiri sapma değildir - okunacak satır, değişen başlangıç türüdür.</li>
+        <li><strong>Karşılaştırılamayanlar listelenir, gizlenmez.</strong> Bir anlık görüntünün hiç okumadığı bir alan <em>not compared</em> olarak çıkar; yani <em>hiçbir şey değişmedi</em> diyen bir karşılaştırma, iki tarafın da görebildiği şeyde hiçbir şeyin değişmediği anlamına gelir.</li>
+        <li><strong><code>--exit-code</code>, yapılandırma farklı olduğunda <code>5</code> ile biter</strong>; böylece zamanlanmış bir görev dağıtım sırasında bir anlık görüntü alabilir ve makinenin saptığı ilk gece birini uyarabilir.</li>
+        <li><strong>İki makine, iki dosya.</strong> Test ortamında bir, üretimde bir anlık görüntü alın ve bunları herhangi bir yerde karşılaştırın.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">Anlık görüntüler ve sapma nasıl çalışır</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Plansız hiçbir şey olmaz</span>
+    <h2>Önizleme, çalıştırmanın kendisidir</h2>
+    <p class="lede">Yazan her işlem önce bir plan kurar ve aynı plan; önizleme, bağımlı hizmetlerin zinciri, hiçbir şeye basmadan önceki ret, aynı şeyi isteyen komut satırı ve sonrasında geri dönüş yoludur.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong><code>--dry-run</code> olmadan çalıştırın, adımlar bunlardır</strong>, bu sırayla ve yanlarındaki aynı gerekçelerle. Gerçek çalıştırma için ikinci bir kod yolu yoktur.</li>
+        <li><strong>Onunla birlikte inenler plandadır.</strong> Bozulacak hizmetler kendi başına birer adımdır; makinenin ihtiyaç duyduğu bir şeyi indirecek plan bunu uyarılarında söyler.</li>
+        <li><strong>Ret, düğmeden önce gelir.</strong> Bir sürücü, yöneticinin durdurmayı kabul etmediği bir hizmet, sistemin koruduğu bir işlem - plan kurulurken, gerekçesiyle birlikte reddedilir. Pencere düğmeyi griye çevirir ve yanında nedenini söyler.</li>
+        <li><strong>Zorla durdurma iki adımdır ve ikincisi koşulludur.</strong> <code>bws kill</code> hizmetten durmasını ister ve süreci yalnızca bu işe yaramazsa sonlandırır; içinde yaşayan diğer her hizmetin adını söyler.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">Bir hizmet durmadığında</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">İki dakika boyunca</span>
+    <h2>Komut satırından</h2>
+    <p class="lede">Pencereyle aynı motor; betikler, zamanlanmış görevler ve CI için. Veriler standart çıktıya, geri kalan her şey standart hataya gider; böylece <code>bws list --json | jq</code> çalışır ve bir uyarı asla JSON'unuzun içine düşmez.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">açık olması gereken ve olmayan</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">yürütülebilir dosyası kaybolan hizmetler</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">imzasız, oturum başına kopyalar hariç</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">bir öğe hakkında bilinen her şey</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">durdurmanın nelere mal olacağı</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">sürecini sonlandırmanın beraberinde neleri götüreceği</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">otomatikten çıkarmanın ne yapacağı</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">bir değişiklikten önce makineyi dondur</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">o zamandan beri ne değişti, yapılandırma değiştiyse 5</span>
+<span class="k">bws history Spooler</span>                               <span class="c">başlangıç türünü kimin ve ne zaman değiştirdiği</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">takılmış bir yazıcı için hızlı düzeltmenin ne yapacağı</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">Her komut, seçenek ve çıkış kodu</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Edinin</span>
+    <h2>Açıp çalıştırın ya da kurun</h2>
+    <p class="lede">Windows 10 1809 veya Windows Server 2019 ve sonrası, 64 bit. Arşivler yükleyici gerektirmez ve kayıt defterine hiçbir şey yazmaz; bakmak yönetici hakları gerektirmez. Herhangi bir şeyi değiştirmek yükseltilmiş bir oturum gerektirir ve iki yarı da sessizce başarısız olmak yerine bunu söyler - pencere <em>Restart as admin</em> sunar.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dosya</th><th>Nedir</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>Pencere, tek bir bağımsız yürütülebilir dosya - kurulacak .NET yok</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>Komut satırı, tek bir bağımsız yürütülebilir dosya; betikler ve CI için</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>Yükleyici: makinedeki her hesap için iki program, Başlat menüsünde pencere ve PATH'te <code>bws</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Yürütülebilir dosyalar bir Authenticode imzası taşır; böylece Windows bilinmeyen bir yayımcı konusunda uyarmak yerine yayımcıyı adıyla anar.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows için indirin</a>
+      <a class="btn btn-secondary" href="{{url:download}}">Gereksinimler ve kaynaktan derleme</a>
+    </div>
+  </div>
+</section>
