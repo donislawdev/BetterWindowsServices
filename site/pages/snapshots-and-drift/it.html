@@ -1,0 +1,65 @@
+<meta name="title" content="Snapshot e deriva - cosa è cambiato su questa macchina da ieri">
+<meta name="description" content="Congeli ogni servizio Windows in un file JSON, poi chieda cosa è cambiato. La configurazione è separata dallo stato di esecuzione, e il codice 5 può dare l'allarme.">
+<meta name="nav" content="Snapshot e deriva">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ciò che services.msc non ha mai fatto</span>
+    <h1>Snapshot e deriva</h1>
+    <p class="lede">Ogni altro strumento le dice com'è una macchina adesso. La domanda che un amministratore ha davvero è <em>cosa è diverso da quando funzionava</em> - e nessun Windows di serie vi risponde.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cosa contiene uno snapshot</h2>
+    <p>L'intera macchina in un istante: ogni servizio e ogni driver, con il suo tipo di avvio, account, percorso di avvio e argomenti, l'hash e il firmatario del file che esegue, le sue dipendenze e ciò che ne dipende, i suoi trigger, i privilegi richiesti, il tipo di SID e il descrittore di sicurezza - più il nome della macchina, l'account che lo ha preso e <strong>se quell'account era un amministratore</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>È JSON con un campo per riga. È voluto: significa che uno snapshot entra in un repository e <code>git diff</code> lo legge, così il confronto dello strumento stesso non è l'unico modo di guardarne uno.</p>
+    <p class="note"><strong>Lo archivi per ciò che è.</strong> Uno snapshot descrive l'intera macchina, fino a ogni percorso di avvio e ogni descrittore di sicurezza. Viene scritto con i permessi che la sua cartella ha già, e lo strumento non restringe nulla - quindi una cartella che altre persone possono leggere è una in cui possono leggere tutto questo.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Poi chiedere cosa è diverso</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>Configurazione e stato di esecuzione sono segnalati separatamente.</strong> Due snapshot presi a un giorno di distanza differiscono per ciò che capita di essere in esecuzione, e quasi nulla di questo è deriva. Mescolata, l'unica riga che conta - un tipo di avvio che qualcuno ha cambiato - è sepolta sotto quaranta che non contano.</li>
+        <li><strong>Ciò che non si è potuto confrontare è elencato, non nascosto.</strong> Un campo che uno dei due snapshot non ha mai letto, perché quella sessione non aveva diritti su di esso, esce come <em>not compared</em> sotto la sua voce, e il riepilogo conta quelle voci. Quindi un confronto che dice <em>nulla è cambiato</em> significa che nulla è cambiato in ciò che entrambi i lati potevano vedere.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Uno snapshot con privilegi elevati contro uno senza mentirebbe</strong>, segnalando come rimosse voci che nessuno ha rimosso. Ogni file registra se l'account che lo ha preso era un amministratore, e il confronto lo dice.</li>
+        <li><strong>Due file, non solo un file e questa macchina.</strong> Ne prenda uno in staging e uno in produzione e li confronti ovunque - la risposta a <em>perché lo staging differisce</em> non ha bisogno di nessuna delle due macchine presenti.</li>
+      </ul>
+    </div>
+    <p><strong>La finestra fa lo stesso in <em>Audit...</em>.</strong> <em>Take snapshot...</em> scrive lo stesso file, con una nota se ne digita una, e <em>Compare with this machine...</em> o <em>Compare two snapshots...</em> mostra cosa è cambiato al posto dell'elenco, una riga per campo, con tutto ciò che rende il confronto meno che esatto detto sopra la tabella. <em>Show</em> lo restringe alle differenze o a un campo, e <em>Export...</em> lo scrive in un file CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Il codice di uscita è il punto</h2>
+    <p><code>--exit-code</code> termina con <code>5</code> quando la configurazione differisce - una voce aggiunta o rimossa, o una impostata diversamente. Un servizio che si è solo fermato o avviato da solo viene segnalato e non conta, e nemmeno le copie per utente che Windows fa per ogni sessione aperta, che vengono escluse e contate. Non è un fallimento - trovare la deriva è ciò per cui serve questo strumento, e trovarla non è un fallimento - ed è per questo che ha un numero suo invece di prendere in prestito quello che significa che qualcosa è andato storto.</p>
+<pre><code><span class="c"># il giorno in cui la macchina entra in servizio</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># ogni notte, da un'attività pianificata</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - nessuna deriva di configurazione
+#   5 - la configurazione è andata alla deriva, e drift.json dice come
+#   3 - è girato e non ha potuto leggere tutto, quindi la risposta è parziale</span></code></pre>
+    <p>Questo è tutto il meccanismo: una base di riferimento presa quando la macchina era nota come buona, e una domanda posta ogni notte. Se la prima notte risponde <code>5</code>, qualcuno lo scopre la prima notte e non la mattina in cui qualcosa si rompe.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Usarlo per un audit</a>
+  </div>
+</section>

@@ -1,0 +1,68 @@
+<meta name="title" content="Un servizio Windows bloccato su Arresto - come terminarlo in sicurezza">
+<meta name="description" content="Un servizio bloccato su Arresto di solito condivide il processo con altri. Veda quali prima di terminare qualcosa e li rimetta a posto con un comando.">
+<meta name="nav" content="Un servizio bloccato su Arresto">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guida</span>
+    <h1>Un servizio bloccato su <em>Arresto in corso...</em></h1>
+    <p class="lede">Lo snap-in mostra <em>Arresto in corso</em> e non si muove mai. La risposta solita è Gestione attività, un'ipotesi su quale <code>svchost.exe</code> lo ospiti, e Termina attività - che termina anche ogni altro servizio di quel processo, senza dirle quali erano.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Perché succede</h2>
+    <ul class="points points-alarm">
+      <li><strong>Il servizio non risponde alla richiesta di arresto.</strong> Windows glielo chiede con garbo e aspetta. Un servizio che si è bloccato, o che attende qualcosa che non tornerà, non risponde mai.</li>
+      <li><strong>Qualcosa che ne dipende è ancora in esecuzione.</strong> Il gestore rifiuta l'arresto invece di rompere l'altro, e lo snap-in lo mostra come un'attesa.</li>
+      <li><strong>Condivide il processo con altri.</strong> La maggior parte dei servizi Windows vive dentro uno <code>svchost.exe</code> condiviso. Terminare quel processo li termina tutti, che è esattamente ciò che fa Gestione attività senza nominarli.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Guardi prima di terminare qualsiasi cosa</h2>
+    <p>Chieda cosa si porterebbe via terminarlo. Non accade nulla finché non toglie <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>L'anteprima nomina il processo con il suo numero, nomina ogni altro servizio che vive al suo interno e mostra due passaggi anziché uno: chiedere al servizio di fermarsi e, <em>solo se questo non funziona</em>, terminare il processo. Un servizio che si ferma da solo non viene mai terminato.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong><code>--force</code> salta il passaggio cortese</strong> e termina subito il processo. Cambia il piano e non la sua esecuzione, così l'anteprima mostra un passaggio invece di due e la differenza è visibile prima che accada qualsiasi cosa.</li>
+        <li><strong><code>--restart</code> rimette tutto a posto</strong> una volta sparito il processo - la voce su cui ha chiesto e tutto ciò che ne condivideva il processo. Senza, la macchina resta con quei servizi fermi, e il rapporto dice come riavviarli.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Il rifiuto viene prima del pulsante.</strong> Un driver, un processo che il sistema protegge, un servizio per il quale il gestore non accetta un arresto - rifiutati quando il piano viene costruito, con la ragione, anziché dopo sessanta secondi di attesa.</li>
+        <li><strong>Un avviso quando conta.</strong> Se la voce è una senza la quale la macchina non funziona, il piano lo dice - fermarla fa cadere la macchina, non solo il servizio.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>Terminare un processo è l'unica cosa che fa questo strumento a cui nessuno può opporsi a nome della macchina.</strong> Per questo è un comando a sé, per questo l'anteprima nomina ogni servizio che si porta via, e per questo il passaggio cortese viene prima a meno che lei dica altrimenti.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>L'ordine più sicuro</h2>
+    <ol class="prose-list">
+      <li><strong>Vedere cos'è.</strong> <code>bws show Spooler</code> - il processo, ciò che ne dipende, da cosa dipende e se accetta richieste di arresto.</li>
+      <li><strong>Provare l'arresto ordinario, come piano.</strong> <code>bws stop Spooler --dry-run --dependents</code>. Se la risposta è un rifiuto, dice quale delle tre ragioni è.</li>
+      <li><strong>Se non si ferma, guardare cosa costa terminarlo.</strong> <code>bws kill Spooler --dry-run</code>, e leggere l'elenco dei servizi che condividono quel processo.</li>
+      <li><strong>Poi farlo, con una via di ritorno.</strong> <code>bws kill Spooler --restart</code>. Il rapporto finisce con ciò che non ha funzionato e i comandi che rimettono le cose a posto.</li>
+    </ol>
+    <p>Tutti e quattro funzionano allo stesso modo nella finestra: clic destro su una riga, scegliere <em>Force stop...</em>, leggere il piano, e il pulsante sotto porta il nome di ciò che farà.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Perché non usare semplicemente Gestione attività</h2>
+    <p class="lede">Perché risponde a un'altra domanda. Gestione attività conosce i processi e questo problema riguarda i servizi, e i due non corrispondono uno a uno.</p>
+    <p>Uno <code>svchost.exe</code> condiviso può ospitare una dozzina di servizi. Gestione attività lo terminerà senza dire quali dodici, nessuno torna da solo e nulla le dice dopo cosa si è fermato. Un EDR che segnala un processo che termina <code>svchost.exe</code> fa il suo lavoro, e non può distinguere il suo clic da qualsiasi altro.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Scarica per Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">Il riferimento completo</a>
+    </div>
+  </div>
+</section>

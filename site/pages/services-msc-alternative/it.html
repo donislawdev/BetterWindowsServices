@@ -1,0 +1,102 @@
+<meta name="title" content="Un'alternativa a services.msc per gli amministratori Windows">
+<meta name="description" content="services.msc non ha ricerca, filtri né cronologia. Un sostituto libero con linguaggio di query, anteprima prima di ogni modifica e confronto della deriva.">
+<meta name="nav" content="Contro services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guida</span>
+    <h1>Un'alternativa a <code>services.msc</code></h1>
+    <p class="lede">Lo snap-in Servizi è cambiato appena dai tempi di Windows 2000. È ancora il modo più rapido per avviare un servizio che vede già sullo schermo, e il più lento per rispondere a qualsiasi domanda su una macchina.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cosa spinge a cercare altrove</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>Nessuna ricerca.</strong> L'unica navigazione è digitare una lettera per saltare al primo nome visualizzato che inizia con essa. Su una macchina con ottocento voci è scorrere con passaggi in più.</li>
+        <li><strong>Nessun filtro.</strong> Non c'è modo di chiedere <em>cosa è impostato per avviarsi automaticamente e non è in esecuzione</em> - l'unica domanda che trova una macchina guasta.</li>
+        <li><strong>Una riga alla volta.</strong> Riavviare dodici servizi significa dodici clic destri e dodici attese.</li>
+        <li><strong>"Arresto in corso..." senza via d'uscita</strong> se non Gestione attività e indovinare quale <code>svchost</code> terminare.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>Nessuna cronologia.</strong> Nessuno sa chi ha impostato quel tipo di avvio su Disabilitato, né quando, né se era già così il mese scorso.</li>
+        <li><strong>Dati nascosti.</strong> Il processo, i trigger, i privilegi richiesti, il descrittore di sicurezza, chi ha firmato l'eseguibile - niente di tutto questo è nello snap-in, e tutto conta quando qualcosa non va.</li>
+        <li><strong>Le colonne non possono cambiare.</strong> Nome, descrizione, stato, tipo di avvio, connessione come. Questa è tutta la lista, e nessuna può essere ordinata in modo utile su una macchina vera.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Le stesse tre attività, in entrambi</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Vuole</th><th>In <code>services.msc</code></th><th>Qui</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Trovare ciò che dovrebbe essere attivo e non lo è</td>
+            <td class="no">Ordinare per tipo di avvio, scorrere, leggere ogni riga</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>Sapere cosa trascina con sé un arresto</td>
+            <td class="no">Una finestra di dialogo che nomina i dipendenti dopo che ha premuto Arresta</td>
+            <td>Un piano prima che accada qualsiasi cosa, con ogni dipendente come passaggio e un avviso quando uno è qualcosa di cui la macchina ha bisogno</td>
+          </tr>
+          <tr>
+            <td>Sapere cosa è cambiato dalla settimana scorsa</td>
+            <td class="no">Niente</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Sapere chi ha cambiato un tipo di avvio</td>
+            <td class="no">Niente</td>
+            <td><code>bws history Spooler</code>, dal registro di sistema</td>
+          </tr>
+          <tr>
+            <td>Riavviare dodici servizi</td>
+            <td class="no">Dodici clic destri</td>
+            <td>Selezionarne dodici, un piano, un'esecuzione, un rapporto</td>
+          </tr>
+          <tr>
+            <td>Vedere chi ha firmato l'eseguibile di un servizio</td>
+            <td class="no">Non mostrato</td>
+            <td>Una colonna, e un criterio di ricerca: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>Automatizzare qualsiasi cosa con uno script</td>
+            <td class="no">Non automatizzabile</td>
+            <td><code>bws</code>, con <code>--json</code> e un codice di uscita per ogni conclusione</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cosa lo snap-in fa ancora meglio</h2>
+    <p class="lede">Due cose, e fingere il contrario sarebbe il tipo di affermazione che questo progetto non fa.</p>
+    <ul class="points">
+      <li><strong>È già sulla macchina.</strong> Niente da scaricare, niente da far passare attraverso una policy sul software. Su una macchina che toccherà una volta sola, questo è tutto l'argomento.</li>
+      <li><strong>Modifica le azioni di ripristino, l'account e il percorso di avvio.</strong> Questo strumento mostra l'account e il percorso di avvio e non cambia nessuno dei due, e legge le azioni di ripristino solo per avvisare prima di terminare un processo. Creare, eliminare o reindirizzare un servizio non è nemmeno qui.</li>
+    </ul>
+    <p>Ciò che non sa fare affatto è il motivo per cui questo esiste: porre una domanda, mostrare prima un piano e dire cosa è andato alla deriva.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Cos'è questo</h2>
+    <p>{{product}} è libero e gratuito con licenza GPL-3.0, un file per metà o un programma di installazione per l'intera macchina, e non si collega mai a Internet. Consultare non richiede diritti di amministratore - cambiare sì, e lo dice invece di fallire in silenzio.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Scarica per Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Vedere il linguaggio di query</a>
+    </div>
+  </div>
+</section>

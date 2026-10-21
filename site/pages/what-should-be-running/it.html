@@ -1,0 +1,86 @@
+<meta name="title" content="Quali servizi Windows dovrebbero essere attivi su questa macchina?">
+<meta name="description" content="Nessuno può rispondere in generale, e gli elenchi che lo pretendono descrivono una macchina che non è la sua. Ecco la domanda che ha una risposta: cosa è cambiato.">
+<meta name="nav" content="Cosa dovrebbe essere attivo">
+<meta name="translated-from" content="33561d053806">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guida</span>
+    <h1>Quali servizi dovrebbero essere attivi?</h1>
+    <p class="lede">La risposta onesta è che nessuno può dirglielo, e che ogni elenco che pretende di farlo descrive una macchina che non è la sua. Ciò a cui si <em>può</em> rispondere è più stretto e molto più utile: cosa non torna su questa macchina, e cosa è diverso da quando funzionava.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Perché la domanda generale non ha risposta</h2>
+    <ul class="points points-alarm">
+      <li><strong>L'insieme cambia con l'edizione, la versione e il ruolo di Windows.</strong> Un controller di dominio, un portatile e un host di container non concordano su quasi nulla, e un elenco scritto per uno è sbagliato per gli altri.</li>
+      <li><strong>Metà di ciò che è installato non viene da Windows.</strong> Driver, agenti, servizi di aggiornamento, demoni di licenza - ognuno è stato messo lì da qualcosa, e nessun elenco generale sa da cosa.</li>
+      <li><strong>La maggior parte dei servizi è fatta per essere ferma.</strong> Un Windows moderno avvia una frazione di ciò che registra: il resto attende un trigger - l'arrivo di un dispositivo, l'apertura di una porta, l'ingresso in un dominio - e fermo è il loro stato corretto.</li>
+      <li><strong>Gli elenchi "disabiliti questi per le prestazioni" sono il modo in cui le macchine si rompono.</strong> Il servizio che sembra inattivo è quello che qualcos'altro avvia su richiesta, e il guasto compare una settimana dopo da qualche parte senza relazione.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Le domande che hanno risposte</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Ciò che dovrebbe essere attivo e non lo è</h3>
+        <p><code>start:auto !status:running</code></p>
+        <p>A Windows è stato detto di avviare questi e non sono in esecuzione. Su una macchina sana è un elenco breve - un paio di voci che partono tardi e si fermano di nuovo. Qualsiasi altra cosa merita un'occhiata.</p>
+      </div>
+      <div class="card">
+        <h3>Ciò che è disabilitato e gira comunque</h3>
+        <p><code>mismatch:running</code></p>
+        <p>Configurazione e stato non concordano. Di solito qualcuno lo ha disabilitato senza fermarlo, e il prossimo riavvio sarà una sorpresa.</p>
+      </div>
+      <div class="card">
+        <h3>Ciò che punta a un file sparito</h3>
+        <p><code>file:missing</code></p>
+        <p>Una disinstallazione che ha lasciato dietro di sé la registrazione. Innocuo finché qualcosa non prova ad avviarlo, e un indizio su ciò che c'era su questa macchina.</p>
+      </div>
+      <div class="card">
+        <h3>Ciò che nessuno ha firmato</h3>
+        <p><code>signed:no peruser:no</code></p>
+        <p>Non è prova di nulla in sé, ed è il posto giusto da cui iniziare a leggere. Il secondo termine esclude le famiglie per utente, che altrimenti riempiono l'elenco di quasi duplicati.</p>
+      </div>
+      <div class="card">
+        <h3>Ciò che chiede i privilegi più forti</h3>
+        <p><code>privilege:SeDebugPrivilege</code></p>
+        <p>Un privilegio che permette a un processo di aprirne qualsiasi altro. Una manciata di servizi legittimi lo chiede, e vale la pena sapere quali sulla sua macchina.</p>
+      </div>
+      <div class="card">
+        <h3>Ciò che attende un trigger</h3>
+        <p><code>trigger:any status:stopped</code></p>
+        <p>Fermi perché nulla li ha ancora chiamati, e non perché qualcosa non va. Sapere quali sono è ciò che fa smettere di allarmare il primo elenco.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Quella che le batte tutte</h2>
+    <p class="lede">Chieda alla macchina stessa, quando funzionava.</p>
+    <p>Prenda uno snapshot il giorno in cui la macchina entra in servizio. Allora <em>questo dovrebbe essere attivo</em> diventa <em>questo era attivo quando tutto funzionava</em> - una domanda sulla sua macchina e non su una macchina di un articolo.</p>
+<pre><code><span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+<span class="c"># ... una settimana, una patch o un incidente dopo</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live</span></code></pre>
+    <p>La configurazione è segnalata a parte rispetto allo stato di esecuzione, così la risposta non sono quaranta servizi che capita siano attivi - è il tipo di avvio che qualcuno ha cambiato.</p>
+    <a class="more" href="{{url:audit-windows-services}}">Fare l'audit della deriva di una macchina</a>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Prima di fermare qualsiasi cosa</h2>
+    <p>Ogni arresto in questo strumento mostra prima il suo piano: i passaggi, ciò che cade con essi e un avviso quando uno di essi è qualcosa senza cui la macchina non funziona. L'elenco di questi è un elenco iniziale di sette - le due metà di RPC e l'avviatore DCOM, il gestore degli account, l'isolamento delle chiavi, il gestore delle sessioni e Plug and Play - e <strong>Desktop remoto non c'è</strong>, quindi in una sessione remota, legga il piano.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Scarica per Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Ogni campo su cui può interrogare</a>
+    </div>
+  </div>
+</section>
