@@ -6915,6 +6915,15 @@ $mutations = @(
         To = '                    return target.Url(_site.DefaultLanguage, _site);'
         Test = 'GeneratorTests.A_link_written_as_a_url_token_resolves_and_a_mistyped_one_is_reported'
     }
+    @{
+        # French writes a no-break space before a colon and a question mark, as an entity, and the
+        # structured data is JSON read by a machine - without this line it carries the letters.
+        Name = 'site: a no-break space in a question reaches the structured data as the character'
+        File = 'site\Bws.Site\StructuredData.cs'
+        From = '            .Replace("&nbsp;", "\u00A0", StringComparison.Ordinal)'
+        To = '            .Replace("&nbsp;", "&nbsp;", StringComparison.Ordinal)'
+        Test = 'GeneratorTests.A_no_break_space_in_a_question_reaches_the_structured_data_as_the_character'
+    }
 
     @{
         # RUNG FIVE ITSELF. Without this check the plan is built, shown, and carried out until its

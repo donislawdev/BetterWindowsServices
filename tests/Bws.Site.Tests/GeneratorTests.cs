@@ -459,6 +459,27 @@ public sealed class GeneratorTests : IDisposable
         Assert.Empty(build.Stale);
     }
 
+    /// <summary>
+    /// French writes a no-break space before a colon and a question mark, as an entity. The
+    /// structured data is JSON read by a machine, so the entity has to be turned into the
+    /// character there - what it says to a search engine otherwise is the letters.
+    /// </summary>
+    [Fact]
+    public void A_no_break_space_in_a_question_reaches_the_structured_data_as_the_character()
+    {
+        DamagePage("faq", "en", "Does it need the internet?", "Does it need the internet&nbsp;?");
+
+        Assert.Empty(Build());
+
+        var page = File.ReadAllText(Path.Combine(_output, "faq", "index.html"));
+        var start = page.IndexOf("application/ld+json", StringComparison.Ordinal);
+        Assert.True(start >= 0, "the questions page should carry structured data");
+
+        var data = page[start..page.IndexOf("</script>", start, StringComparison.Ordinal)];
+        Assert.Contains("the internet\u00A0?", data, StringComparison.Ordinal);
+        Assert.DoesNotContain("&nbsp;", data, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_file_for_a_language_the_registry_does_not_list_is_reported()
     {
