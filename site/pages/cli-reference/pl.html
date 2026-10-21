@@ -1,6 +1,7 @@
 <meta name="title" content="Dokumentacja wiersza poleceń - przełączniki i kody wyjścia bws">
 <meta name="description" content="Każda komenda, przełącznik i kod wyjścia programu bws: list, show, stop, start, restart, kill, start-type, snapshot, history i tool, oraz gdzie działa każda flaga.">
 <meta name="nav" content="Dokumentacja CLI">
+<meta name="translated-from" content="886d17a48761">
 
 <section class="band page-title">
   <div class="wrap">
@@ -127,13 +128,13 @@ There is no command lst. Did you mean list?</code></pre>
 <span class="c"># nocne sprawdzenie, które rozgałęzia się po kodzie wyjścia</span>
 <span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
 <span class="k">switch ($LASTEXITCODE) {</span>
-<span class="k">  0 { 'brak dryfu konfiguracji' }</span>
-<span class="k">  5 { 'konfiguracja się rozjechała' }</span>
-<span class="k">  default { "brak czystej odpowiedzi, kod wyjścia $LASTEXITCODE" }</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
 <span class="k">}</span></code></pre>
     <h3>W cmd i pliku wsadowym</h3>
 <pre class="wrap-lines"><code><span class="c">rem druga komenda tylko wtedy, gdy pierwsza nie skończyła się czysto</span>
-<span class="k">bws restart Spooler || echo restart nie skonczyl sie czysto</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
 
 <span class="c">rem w pliku wsadowym z włączonym opóźnionym rozwijaniem ! potrzebuje daszka</span>
 <span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
@@ -153,8 +154,8 @@ There is no command lst. Did you mean list?</code></pre>
   <div class="wrap">
     <h2>Kody wyjścia</h2>
     <p>{{exit_code_count}} zakończeń, a każde z nich jest dla skryptu czymś innym. Dane idą na wyjście standardowe, a cała reszta na wyjście błędów, więc <code>bws list --json | jq</code> działa, a ostrzeżenie nigdy nie ląduje w JSON-ie.</p>
-    <p>Każdy dokument JSON jest czystym ASCII: litera spoza niego idzie jako sześcioznakowa ucieczka, którą każdy czytnik JSON zamienia z powrotem na literę, więc <code>bws list --json &gt; plik.json</code> jest poprawnym UTF-8, a <code>| ConvertFrom-Json</code> czyta go dobrze przy każdej stronie kodowej konsoli. W tekście dla człowieka znak, który zamiast się wydrukować przestawiłby terminal - tabulator, koniec linii, sekwencja ucieczki, zmiana kierunku tekstu - jest pokazany jako swój numer, <code>&lt;U+001B&gt;</code>.</p>
-    <p><code>--</code> kończy przełączniki, więc usługę o nazwie zaczynającej się od łącznika da się nazwać: <code>bws show -- -dziwna</code>. Polecenia, które narzędzie podaje do skopiowania, są pisane dla PowerShella: nazwa ze spacją idzie w cudzysłowie, który cmd czyta tak samo, a nazwa, którą PowerShell rozwinąłby w cudzysłowie, na przykład <code>MSSQL$SQLEXPRESS</code>, w apostrofach.</p>
+    <p>Każdy dokument JSON jest czystym ASCII: litera spoza niego idzie jako sześcioznakowa ucieczka, którą każdy czytnik JSON zamienia z powrotem na literę, więc <code>bws list --json &gt; file.json</code> jest poprawnym UTF-8, a <code>| ConvertFrom-Json</code> czyta go dobrze przy każdej stronie kodowej konsoli. W tekście dla człowieka znak, który zamiast się wydrukować przestawiłby terminal - tabulator, koniec linii, sekwencja ucieczki, zmiana kierunku tekstu - jest pokazany jako swój numer, <code>&lt;U+001B&gt;</code>.</p>
+    <p><code>--</code> kończy przełączniki, więc usługę o nazwie zaczynającej się od łącznika da się nazwać: <code>bws show -- -odd</code>. Polecenia, które narzędzie podaje do skopiowania, są pisane dla PowerShella: nazwa ze spacją idzie w cudzysłowie, który cmd czyta tak samo, a nazwa, którą PowerShell rozwinąłby w cudzysłowie, na przykład <code>MSSQL$SQLEXPRESS</code>, w apostrofach.</p>
     {{table:exit-codes}}
     <p class="note"><strong>Ctrl+C ma trzy poziomy, a każdy mówi, ile kosztuje następny.</strong> Pierwszy przestaje iść naprzód i nadal oddaje to, co zabrał, drugi zostawia rzeczy jak są i nadal drukuje raport, trzeci kończy proces. Przebieg zatrzymany ręcznie kończy się kodem <code>4</code> nawet wtedy, gdy każdy krok i tak dotarł.</p>
     <p class="note"><strong>Zamknięcie okna konsoli liczy się jak pierwsze Ctrl+C.</strong> Windows daje programowi po nim pięć sekund, a ten w tym czasie przestaje iść naprzód i oddaje to, co zabrał. Wylogowanie i zamknięcie systemu kończą go bez ostrzeżenia, na które mógłby zareagować, a zerwana sesja zdalna może tak samo.</p>

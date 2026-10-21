@@ -165,12 +165,12 @@ public sealed class PublicSurfaceGuards
             "one star character on the line asking for a star, the same line the owner's other "
             + "public repositories carry - the rest of the file is plain ASCII on purpose",
 
-        ["site/i18n/pl.json"] =
-            "the website's Polish chrome and the sentences beside its generated tables. The "
-            + "site speaks two languages by the owner's decision, and this is the ONE JSON file "
-            + "that holds words a visitor reads - everything else a visitor reads is in a .html "
-            + "fragment, which this sweep does not cover. Putting the Polish in page.json files "
-            + "instead would be a dozen more permissions on this list"
+        ["site/site.json"] =
+            "the names of the website's languages in their own alphabets, which the language "
+            + "switch lists - 'Deutsch' beside the same names in Cyrillic, Arabic, Thai and Han script. A name that is transliterated is "
+            + "not the name somebody looking for their language is looking for. The language "
+            + "files under site/i18n/ are covered by extension below, so this is the one other "
+            + "JSON file a visitor reads words from"
     };
 
     [Fact]
@@ -182,13 +182,16 @@ public sealed class PublicSurfaceGuards
         foreach (var file in Published())
         {
             // The website's own pages are the exception, and by extension rather than by name.
-            // The site is published in Polish as well as English on the owner's decision, so
-            // every one of its fragments holds another alphabet on purpose - a permission per
-            // file would be two dozen entries saying the same sentence, and a list that long
-            // stops being read. The private-name sweep below still covers them, and that is
-            // the check these files actually need.
+            // The site is published in twenty-two languages on the owner's decision, so every
+            // one of its fragments holds another alphabet on purpose - a permission per file
+            // would be two hundred and fifty entries saying the same sentence, and a list that
+            // long stops being read. The language files under site/i18n are the same case in
+            // JSON: one per language, and the sentence is the same for each. The private-name
+            // sweep below still covers all of them, and that is the check these files need.
+            var relativePath = Path.GetRelativePath(root, file).Replace('\\', '/');
             if (file.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
-                || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
+                || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+                || relativePath.StartsWith("site/i18n/", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -200,11 +203,9 @@ public sealed class PublicSurfaceGuards
                 continue;
             }
 
-            var relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-
-            if (!MayHoldOtherAlphabets.ContainsKey(relative))
+            if (!MayHoldOtherAlphabets.ContainsKey(relativePath))
             {
-                unexplained.Add("  " + relative);
+                unexplained.Add("  " + relativePath);
             }
         }
 

@@ -253,7 +253,7 @@ img, svg { display: block; max-width: 100%; height: auto; }
 
 .skip {
   position: absolute;
-  left: var(--s-4);
+  inset-inline-start: var(--s-4);
   top: -100%;
   z-index: 100;
   background: var(--action);
@@ -349,21 +349,28 @@ img, svg { display: block; max-width: 100%; height: auto; }
 }
 
 /*
-  The language switch, pinned to the right of the first row. `margin-left: auto` on a flex item
-  pushes it away from the nav when the nav is narrower than the space, and does nothing when it
-  is not - so one rule covers both the wide header and the wrapped one.
+  The language switch, pinned to the end of the first row. `margin-inline-start: auto` on a flex
+  item pushes it away from the nav when the nav is narrower than the space, and does nothing when
+  it is not - so one rule covers both the wide header and the wrapped one, and in a right-to-left
+  language "the end" is the left without a second rule.
+
+  IT IS A DISCLOSURE (details), NOT A ROW OF LINKS, because there are twenty-two languages. The
+  summary is the button - the code of the language you are in - and the list under it holds every
+  language under its own name. Nothing here runs a script.
 */
 .lang-switch {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1);
-  margin-left: auto;
+  position: relative;
+  margin-inline-start: auto;
   flex: 0 0 auto;
 }
 
-.lang-switch .lang {
+.lang-switch summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  list-style: none;
+  cursor: pointer;
   color: var(--text-2);
-  text-decoration: none;
   padding: var(--s-2) var(--s-3);
   border: 1px solid var(--edge);
   border-radius: var(--radius);
@@ -371,11 +378,70 @@ img, svg { display: block; max-width: 100%; height: auto; }
   font-size: var(--fs-0);
   font-weight: 600;
   letter-spacing: 0.04em;
+  user-select: none;
 }
 
-.lang-switch .lang:hover {
+.lang-switch summary::-webkit-details-marker { display: none; }
+
+/* The chevron is a rotated corner of a box, so it takes the text colour and needs no image. */
+.lang-switch summary::after {
+  content: "";
+  width: 0.45em;
+  height: 0.45em;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: translateY(-0.12em) rotate(45deg);
+}
+
+.lang-switch[open] summary::after { transform: translateY(0.1em) rotate(-135deg); }
+
+.lang-switch summary:hover, .lang-switch[open] summary {
   color: var(--text);
   background: var(--bg-hover);
+}
+
+.lang-list {
+  position: absolute;
+  inset-block-start: calc(100% + var(--s-2));
+  inset-inline-end: 0;
+  z-index: 50;
+  margin: 0;
+  padding: var(--s-2);
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(10rem, 1fr));
+  gap: var(--s-1);
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  max-height: calc(100vh - var(--header-height) - var(--s-6));
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 var(--s-5) var(--s-7) rgba(0, 0, 0, 0.45);
+}
+
+.lang-list .lang {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: var(--fs-1);
+  overflow-wrap: anywhere;
+}
+
+.lang-list a.lang:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.lang-list [aria-current="true"] {
+  color: var(--text);
+  background: var(--bg-hover);
+  font-weight: 600;
 }
 
 /* ---- Buttons ---------------------------------------------------------------------- */
@@ -540,7 +606,7 @@ main { flex: 1; }
 }
 
 .points li {
-  padding-left: var(--s-5);
+  padding-inline-start: var(--s-5);
   position: relative;
   max-width: none;
 }
@@ -548,7 +614,7 @@ main { flex: 1; }
 .points li::before {
   content: "";
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 0.55em;
   width: var(--dot);
   height: var(--dot);
@@ -572,7 +638,7 @@ table {
 }
 
 th, td {
-  text-align: left;
+  text-align: start;
   vertical-align: top;
   padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--rule);
@@ -636,7 +702,7 @@ figcaption {
 .prose { max-width: var(--measure); }
 .prose h2 { margin-top: var(--s-7); margin-bottom: var(--s-4); }
 .prose h3 { margin-top: var(--s-6); margin-bottom: var(--s-3); }
-.prose ul, .prose ol { padding-left: var(--s-5); }
+.prose ul, .prose ol { padding-inline-start: var(--s-5); }
 .prose li + li { margin-top: var(--s-2); }
 .prose pre, .prose .table-wrap, .prose table { max-width: none; }
 
@@ -653,9 +719,12 @@ figcaption {
 /* ---- Notes ------------------------------------------------------------------------ */
 
 .note {
-  border-left: 3px solid var(--warning);
+  border-inline-start: 3px solid var(--warning);
   background: var(--bg-card);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: var(--radius);
+  border-end-end-radius: var(--radius);
   padding: var(--s-3) var(--s-4);
   color: var(--text-2);
   max-width: var(--measure);
@@ -724,6 +793,7 @@ figcaption {
   */
   .site-nav { width: 100%; flex-basis: 100%; order: 1; }
   .site-header { position: static; }
+  .lang-list { grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(34rem, calc(100vw - 2 * var(--gutter))); }
 }
 
 @media (max-width: 36rem) {
@@ -737,7 +807,61 @@ figcaption {
   .examples thead { display: none; }
   .examples td { display: block; width: auto; }
   .examples td:first-child { width: auto; border-bottom: 0; padding-bottom: 0; }
+
+  .lang-list { grid-template-columns: repeat(2, minmax(0, 1fr)); width: calc(100vw - 2 * var(--gutter)); }
 }
+
+/* ---- Languages -------------------------------------------------------------------- */
+
+/*
+  WHAT THE LANGUAGES NEED THAT ENGLISH AND POLISH DID NOT. Written 2026-10-21 for twenty more.
+
+  Right to left. The layout uses logical properties above (inline-start, inline-end), so the
+  mirror is the browser's. What it cannot mirror is code: a command, a path and a query are read
+  left to right in every language, so they are isolated from the direction of the page around
+  them. Without that, `bws list --query "start:auto"` in an Arabic sentence has its pieces
+  reordered and still looks like a command.
+*/
+code, pre, kbd, samp {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+pre { text-align: left; }
+
+/* An arrow that points forward points the other way when forward is left. */
+[dir="rtl"] .more::after { content: " \2190"; }
+
+/*
+  Scripts that join or stack. Letter spacing separates the letters of a cursive script, which
+  breaks the joins that make the word readable - Arabic written with spaced letters is not Arabic
+  with a wider look, it is wrong. The headings also carry a negative spacing for Latin that does
+  nothing good for any of these.
+*/
+html:lang(ar) *, html:lang(ar) *::before, html:lang(ar) *::after,
+html:lang(ja) *, html:lang(ko) *, html:lang(zh-Hans) *, html:lang(zh-Hant) *,
+html:lang(th) *, html:lang(hi) * {
+  letter-spacing: 0;
+}
+
+/*
+  Type. The page uses the system face and downloads nothing, so each script names the faces that
+  carry it on Windows, macOS and Linux, after the Latin face so that Latin letters and numerals
+  inside the text keep the site's look. Without a name the browser falls back to whatever it
+  finds first, which for Han characters can be the wrong regional form - `lang` helps, an
+  explicit face is what makes it certain.
+
+  Line height. Thai, Devanagari and Arabic carry marks above and below the line that a 1.6 line
+  clips into the next one, and a heading at 1.15 collides outright.
+*/
+html:lang(ja) { --font: "Segoe UI Variable Text", "Segoe UI", "Yu Gothic UI", "Meiryo UI", "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", system-ui, sans-serif; --lh-body: 1.75; --lh-tight: 1.35; }
+html:lang(ko) { --font: "Segoe UI Variable Text", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", system-ui, sans-serif; --lh-body: 1.75; --lh-tight: 1.35; }
+html:lang(zh-Hans) { --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Noto Sans CJK SC", system-ui, sans-serif; --lh-body: 1.75; --lh-tight: 1.35; }
+html:lang(zh-Hant) { --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", system-ui, sans-serif; --lh-body: 1.75; --lh-tight: 1.35; }
+html:lang(th) { --font: "Segoe UI Variable Text", "Segoe UI", "Leelawadee UI", "Tahoma", "Noto Sans Thai", system-ui, sans-serif; --lh-body: 1.8; --lh-tight: 1.4; }
+html:lang(hi) { --font: "Segoe UI Variable Text", "Segoe UI", "Nirmala UI", "Kohinoor Devanagari", "Noto Sans Devanagari", system-ui, sans-serif; --lh-body: 1.8; --lh-tight: 1.4; }
+html:lang(ar) { --font: "Segoe UI Variable Text", "Segoe UI", "Tahoma", "Geeza Pro", "Noto Sans Arabic", system-ui, sans-serif; --lh-body: 1.8; --lh-tight: 1.4; }
+html:lang(vi) { --lh-body: 1.7; --lh-tight: 1.3; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

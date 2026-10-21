@@ -15,11 +15,17 @@ internal sealed class Tokens
 {
     private static readonly Regex Placeholder = new(@"\{\{\s*(?<name>[a-z0-9:_-]+)\s*\}\}", RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(2));
 
+    private const string UrlPrefix = "url:";
+
     private readonly Dictionary<string, Func<string, string>> _byName;
+    private readonly SiteConfig _site;
+    private readonly IReadOnlyList<PageDefinition> _pages;
     private readonly Problems _problems;
 
-    internal Tokens(SiteConfig site, ProductFacts facts, Translations words, Problems problems)
+    internal Tokens(SiteConfig site, ProductFacts facts, Translations words, IReadOnlyList<PageDefinition> pages, Problems problems)
     {
+        _site = site;
+        _pages = pages;
         _problems = problems;
         _byName = new Dictionary<string, Func<string, string>>(StringComparer.Ordinal)
         {
@@ -45,10 +51,29 @@ internal sealed class Tokens
         };
     }
 
+    /// <summary>
+    /// <b><c>{{url:ID}}</c> is the address of another page in the language of the page that
+    /// writes it.</b> Written 2026-10-21 for the translations: a language with slugs of its own
+    /// has a different address for every page, and a link typed by hand there is a link that is
+    /// right until the slug is edited. A token cannot be mistyped into a different valid
+    /// address, and the link check still holds what it resolves to against the built site.
+    /// </summary>
     internal string Resolve(string text, string language, string where) =>
         Placeholder.Replace(text, match =>
         {
             var name = match.Groups["name"].Value;
+            if (name.StartsWith(UrlPrefix, StringComparison.Ordinal))
+            {
+                var id = name[UrlPrefix.Length..];
+                if (_pages.FirstOrDefault(page => page.Id == id) is { } target)
+                {
+                    return target.Url(language, _site);
+                }
+
+                _problems.Add($"tokens: {where} uses {{{{{name}}}}}, and no page has the id '{id}'.");
+                return match.Value;
+            }
+
             if (_byName.TryGetValue(name, out var value))
             {
                 return value(language);

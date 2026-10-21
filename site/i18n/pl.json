@@ -1,15 +1,10 @@
 {
+  "_translated_from": "1867e30d6665",
   "_note": "Polska wersja chromu strony i zdan przy tabelach, ktore generator buduje z programu. Klucze musza byc dokladnie te same co w en.json - brakujacy klucz wywala budowanie, zamiast po cichu spasc do angielskiego.",
 
   "chrome.skip": "Przejdź do treści",
   "chrome.nav": "Strona",
   "chrome.language": "Język",
-  "chrome.language.en": "English",
-  "chrome.language.pl": "Polski",
-
-  "_language_short": "Dwie litery na samym przelaczniku. Pelna nazwa wyzej jest tym, co mowi czytnik ekranu i co pokazuje dymek - kod jest tym, co sie miesci. Nazwa jezyka i jego kod sa zawsze w tym jezyku, nigdy tlumaczone.",
-  "chrome.language.short.en": "EN",
-  "chrome.language.short.pl": "PL",
 
   "chrome.footer.product": "Program",
   "chrome.footer.guides": "Poradniki",
