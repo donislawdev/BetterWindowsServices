@@ -1,0 +1,65 @@
+<meta name="title" content="Instantanés et dérive - ce qui a changé sur cette machine depuis hier">
+<meta name="description" content="Figez chaque service Windows dans un fichier JSON, puis demandez ce qui a changé. Configuration séparée de l'état d'exécution, et le code de sortie 5 peut alerter.">
+<meta name="nav" content="Instantanés et dérive">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Ce que services.msc n'a jamais fait</span>
+    <h1>Instantanés et dérive</h1>
+    <p class="lede">Tous les autres outils vous disent à quoi ressemble une machine maintenant. La question qu'un administrateur se pose vraiment est <em>qu'est-ce qui est différent de l'époque où ça marchait</em> - et aucun Windows standard n'y répond.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce que contient un instantané</h2>
+    <p>La machine entière à un moment donné&nbsp;: chaque service et chaque pilote, avec son type de démarrage, son compte, son chemin de lancement et ses arguments, le hachage et le signataire du fichier qu'il exécute, ses dépendances et ce qui en dépend, ses déclencheurs, ses privilèges requis, son type de SID et son descripteur de sécurité - plus le nom de la machine, le compte qui l'a pris et <strong>si ce compte était un administrateur</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>C'est du JSON avec un champ par ligne. C'est voulu&nbsp;: un instantané entre ainsi dans un dépôt et <code>git diff</code> le lit, de sorte que la comparaison propre à l'outil n'est pas la seule façon d'en regarder un.</p>
+    <p class="note"><strong>Rangez-le pour ce qu'il est.</strong> Un instantané décrit la machine entière, jusqu'à chaque chemin de lancement et chaque descripteur de sécurité. Il est écrit avec les autorisations que son répertoire a déjà, et l'outil ne restreint rien - un répertoire que d'autres personnes peuvent lire est donc un répertoire où elles peuvent lire tout cela.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Puis demander ce qui est différent</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>La configuration et l'état d'exécution sont signalés séparément.</strong> Deux instantanés pris à un jour d'intervalle diffèrent par ce qui se trouve tourner, et presque rien de cela n'est une dérive. Mélangée, la seule ligne qui compte - un type de démarrage que quelqu'un a changé - est enterrée sous quarante qui ne comptent pas.</li>
+        <li><strong>Ce qui n'a pas pu être comparé est listé, pas caché.</strong> Un champ que l'un des deux instantanés n'a jamais lu, parce que cette session n'y avait pas droit, ressort comme <em>not compared</em> sous son entrée, et le résumé compte ces entrées. Une comparaison qui dit <em>rien n'a changé</em> signifie donc que rien n'a changé dans ce que les deux côtés pouvaient voir.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>Un instantané avec élévation comparé à un autre sans élévation mentirait</strong>, en signalant comme supprimées des entrées que personne n'a supprimées. Chaque fichier enregistre si le compte qui l'a pris était un administrateur, et la comparaison le dit.</li>
+        <li><strong>Deux fichiers, pas seulement un fichier et cette machine.</strong> Prenez-en un en préproduction et un en production et comparez-les n'importe où - la réponse à <em>pourquoi la préproduction diffère-t-elle</em> n'a besoin d'aucune des deux machines.</li>
+      </ul>
+    </div>
+    <p><strong>La fenêtre fait la même chose sous <em>Audit...</em>.</strong> <em>Take snapshot...</em> écrit le même fichier, avec une note si vous en tapez une, et <em>Compare with this machine...</em> ou <em>Compare two snapshots...</em> montre ce qui a changé à la place de la liste, une ligne par champ, tout ce qui rend la comparaison moins qu'exacte étant dit au-dessus du tableau. <em>Show</em> la restreint aux différences ou à un champ, et <em>Export...</em> l'écrit dans un fichier CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Le code de sortie est le point essentiel</h2>
+    <p><code>--exit-code</code> se termine par <code>5</code> quand la configuration diffère - une entrée ajoutée ou supprimée, ou une entrée configurée autrement. Un service qui s'est seulement arrêté ou démarré de lui-même est signalé et ne compte pas, pas plus que les copies par utilisateur que Windows fait pour chaque session ouverte, qui sont écartées et comptées. Ce n'est pas un échec - trouver une dérive est ce pour quoi cet outil existe, et la trouver n'est pas un échec - ce qui explique qu'il ait un numéro à lui plutôt que d'emprunter celui qui signifie que quelque chose s'est mal passé.</p>
+<pre><code><span class="c"># le jour où la machine entre en service</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># chaque nuit, depuis une tâche planifiée</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - aucune dérive de configuration
+#   5 - la configuration a dérivé, et drift.json dit en quoi
+#   3 - elle a tourné et n'a pas pu tout lire, la réponse est donc partielle</span></code></pre>
+    <p>C'est tout le mécanisme&nbsp;: une référence prise quand la machine était réputée saine, et une question posée chaque nuit. Si la première nuit répond <code>5</code>, quelqu'un l'apprend la première nuit plutôt que le matin où quelque chose casse.</p>
+    <a class="more" href="{{url:audit-windows-services}}">L'utiliser pour un audit</a>
+  </div>
+</section>

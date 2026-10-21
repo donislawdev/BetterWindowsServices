@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe et Get-Service comparés à un outil conçu pour l'audit">
+<meta name="description" content="sc.exe peut tout faire et ne dit rien. Get-Service est scriptable et superficiel. Où chacun reste le meilleur, et où un langage de requête et un plan font mieux.">
+<meta name="nav" content="sc.exe et PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code>, et cet outil</h1>
+    <p class="lede">Les deux sont déjà sur la machine, et les deux resteront utiles. Cette page parle de l'endroit où ils s'arrêtent - et elle dit franchement où ils restent la meilleure réponse.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Où chacun s'arrête</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>Il atteint presque tout ce que sait le gestionnaire de contrôle des services, et ne vous dit rien sur la façon de le demander. La syntaxe date des années quatre-vingt-dix - <code>sc config X start= auto</code>, où l'espace après le signe égal est obligatoire et son absence est un échec silencieux à faire ce que vous vouliez.</p>
+        <p>Il répond sur une entrée à la fois. Pas de filtrage, pas de sortie qu'un script peut analyser sans écrire un analyseur, et pas d'aperçu&nbsp;: <code>sc stop</code> marche ou renvoie un nombre.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> et les cmdlets <code>*-Service</code></h3>
+        <p>De vrais objets, un pipeline, et une vue superficielle. Dans Windows PowerShell 5.1, celui livré avec Windows, <code>Get-Service</code> n'affiche ni le compte sous lequel un service s'exécute ni sa description. PowerShell 7 affiche les deux, et le chemin de lancement aussi, et s'installe séparément.</p>
+        <p><code>Stop-Service -Force</code> veut dire «&nbsp;même si quelque chose en dépend&nbsp;» - il arrête les dépendants, et vous le dit après plutôt qu'avant.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Les mêmes questions, de trois façons</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>Question</th><th>Avec ce qui est sur la machine</th><th>Ici</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Ce qui devrait tourner et ne tourne pas</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>Quels services ont un exécutable non signé</td>
+            <td class="no">Lire chaque chemin de lancement, le résoudre, appeler <code>Get-AuthenticodeSignature</code> sur chacun - un script, pas une commande</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>Ce que l'arrêt de celui-ci entraînerait</td>
+            <td><code>sc enumdepend X</code>, puis lire la liste et décider soi-même</td>
+            <td><code>bws stop X --dry-run --dependents</code>, qui est le plan qui s'exécuterait</td>
+          </tr>
+          <tr>
+            <td>Ce qui a changé depuis la semaine dernière</td>
+            <td class="no">Rien, sauf si vous avez écrit vous-même le collecteur</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>Qui a changé le type de démarrage, et quand</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, puis lire le message de chaque événement</td>
+            <td><code>bws history Spooler</code>, dont la première ligne dit jusqu'où remonte le journal</td>
+          </tr>
+          <tr>
+            <td>Sortie lisible par une machine</td>
+            <td>Des objets avec PowerShell, du texte avec <code>sc.exe</code></td>
+            <td><code>--json</code> sur chaque commande, sur la sortie standard, avec les avertissements sur l'erreur standard</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>Quand cet outil n'est pas d'accord avec <code>sc.exe</code> sur un service, c'est un bogue ici.</strong> Une partie de la suite de tests exécute les deux contre la machine sur laquelle elle tourne et les compare entrée par entrée, et une différence entre les deux est la chose la plus utile à mettre dans un ticket.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Quand continuer à utiliser ce que vous avez</h2>
+    <ul class="points">
+      <li><strong>Vous êtes sur une machine que vous ne toucherez qu'une fois.</strong> Les deux sont déjà là et rien n'a à passer une politique.</li>
+      <li><strong>Vous devez changer le compte, le chemin de lancement ou les actions de récupération.</strong> <code>sc.exe</code> fait les trois. Cet outil affiche le compte et le chemin de lancement et ne change ni l'un ni l'autre, et ne lit les actions de récupération que pour avertir avant de terminer un processus.</li>
+      <li><strong>Vous devez créer ou supprimer un service.</strong> <code>sc create</code> et <code>sc delete</code>. Pas ici, volontairement.</li>
+      <li><strong>Vous êtes déjà plongé dans un pipeline PowerShell.</strong> <code>bws list --json</code> revient sous forme d'objets via <code>ConvertFrom-Json</code>, il rejoint donc le pipeline plutôt que de le remplacer.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ensemble, plutôt qu'à la place</h2>
+    <p>L'outil qui répond à <em>qu'est-ce qui ne va pas sur cette machine</em> et les outils qui changent un réglage ne sont pas le même outil. Posez la question ici, lisez le plan ici, et utilisez ce que vous voulez pour l'exécuter - le plan imprime la ligne de commande qui demande la même chose, et cette ligne est faite pour être copiée.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Télécharger pour Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">Le langage de requête</a>
+    </div>
+  </div>
+</section>

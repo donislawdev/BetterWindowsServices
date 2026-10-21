@@ -1,0 +1,64 @@
+<meta name="title" content="Auditer les services Windows - prouver ce qui a changé sur une machine">
+<meta name="description" content="Figez chaque service au déploiement, puis demandez chaque nuit si la machine correspond encore. Dérive, exécutables non signés et fichiers manquants en une requête.">
+<meta name="nav" content="Auditer la dérive des services">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Auditer les services Windows</h1>
+    <p class="lede">Un audit n'est pas une liste de ce qui se trouve sur la machine. C'est la différence entre ce qui s'y trouve et ce qui devait s'y trouver - et aucun Windows standard n'enregistre la seconde moitié.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Trois questions, et ce qui y répond</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Qu'est-ce qui a changé depuis la construction de cette machine&nbsp;?</h3>
+        <p>Un instantané pris au déploiement, et une comparaison avec la machine cette nuit. La configuration est signalée à part de ce qui a simplement démarré ou s'est arrêté, de sorte que le seul type de démarrage que quelqu'un a changé n'est pas enterré sous quarante services qui se trouvent tourner.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>Pourquoi la préproduction diffère-t-elle de la production&nbsp;?</h3>
+        <p>Prenez un instantané sur chacune et comparez les deux fichiers - n'importe où, sans qu'aucune des deux machines soit présente. Les fichiers portent le nom de la machine et le compte qui les a pris.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>Qu'y a-t-il ici qui ne devrait pas y être&nbsp;?</h3>
+        <p>Des requêtes qui trouvent les formes qui valent un coup d'œil&nbsp;: un service dont l'exécutable a disparu, un service non signé, un service en marche bien que désactivé, un service qui demande des droits de débogage.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>La forme nocturne</h2>
+<pre><code><span class="c"># le jour où la machine entre en service</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># chaque nuit, depuis une tâche planifiée</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - aucune dérive de configuration
+#   5 - la configuration a dérivé, et drift.json dit en quoi
+#   3 - elle a tourné et n'a pas pu tout lire, la réponse est donc partielle</span></code></pre>
+    <p>Le code de sortie <code>5</code> est ce qui fait de ceci un audit plutôt qu'un rapport que personne ne lit&nbsp;: la tâche est silencieuse jusqu'à ce que la machine dérive, et la nuit où cela arrive, quelqu'un est alerté.</p>
+    <p class="note"><strong>Prenez la référence depuis une session avec élévation.</strong> Sans droits d'administrateur, le gestionnaire liste moins d'entrées et en refuse davantage parmi celles qu'il liste. L'instantané enregistre si le compte qui l'a pris était un administrateur, de sorte que la comparaison peut le dire au lieu de signaler comme supprimées des entrées que personne n'a supprimées - mais une référence à laquelle manque la moitié de la machine reste une référence à laquelle manque la moitié de la machine.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce que vaut un instantané comme preuve</h2>
+    <ul class="points points-ok">
+      <li><strong>C'est du JSON avec un champ par ligne</strong>, il entre donc dans un dépôt et <code>git diff</code> le lit. Un auditeur qui n'a pas cet outil peut quand même lire le fichier, et un système de gestion de versions répond déjà au <em>quand</em>.</li>
+      <li><strong>Il contient ce que le composant enfichable n'a jamais montré&nbsp;:</strong> le chemin de lancement et les arguments, le hachage et le signataire du fichier, les dépendances dans les deux sens, les déclencheurs, les privilèges requis, le type de SID et le descripteur de sécurité.</li>
+      <li><strong>Il dit ce qu'il n'a pas pu lire.</strong> Un champ auquel cette session n'avait pas droit est enregistré comme non lu - jamais comme vide - de sorte qu'une comparaison ultérieure peut dire <em>not compared</em> au lieu de le déclarer discrètement inchangé.</li>
+      <li><strong>C'est une description de la machine entière.</strong> Rangez-le en conséquence&nbsp;: il est écrit avec les autorisations que son répertoire a déjà, et l'outil ne restreint rien.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">Comment fonctionnent les instantanés et les comparaisons</a>
+  </div>
+</section>

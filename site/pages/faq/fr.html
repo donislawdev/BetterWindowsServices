@@ -1,0 +1,78 @@
+<meta name="title" content="Questions sur Better Windows Services et ses limites honnêtes">
+<meta name="description" content="Faut-il Internet ? Des droits d'administrateur ? Va-t-il casser mon serveur ? Ce qu'il fait, et ce qu'il refuse de faire par conception.">
+<meta name="nav" content="FAQ">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">Questions</span>
+    <h1>Questions et limites</h1>
+    <p class="lede">Un outil qui ne couvre pas quelque chose en silence est pire qu'un outil qui dit ce qu'il ne sait pas faire. Les limites sont aussi sur cette page, en deux groupes&nbsp;: ce qu'il refuse par conception, et ce que fait Windows et que cet outil rapporte tel quel.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>En quoi est-ce différent de <code>sc.exe</code>, <code>Get-Service</code> ou <code>services.msc</code>&nbsp;?</h3>
+        <p><code>sc query</code> et <code>Get-Service</code> disent ce qui tourne. <code>services.msc</code> permet de le changer, une ligne à la fois, sans moyen de poser une question et sans trace ensuite. Cet outil pose la question (<code>start:auto !status:running</code>), montre le plan avant d'agir, et garde un instantané que vous pouvez comparer une semaine plus tard. Quand il n'est pas d'accord avec <code>sc.exe</code> sur un service, c'est un bogue - une partie de la suite de tests exécute les deux et les compare entrée par entrée. <a href="{{url:sc-exe-and-powershell}}">La comparaison plus longue est ici.</a></p>
+      </div>
+      <div>
+        <h3>A-t-il besoin d'Internet&nbsp;?</h3>
+        <p>Jamais. Pas de télémétrie, pas de vérification de mise à jour, pas de rapport de plantage, pas de compte, pas de client de quoi que ce soit. La seule fois où il peut toucher un réseau, c'est quand vous passez <code>--follow-network</code>&nbsp;: il peut alors regarder un chemin de lancement sur le partage d'une autre machine et laisser Windows récupérer un certificat que cette machine n'a pas déjà - désactivé par défaut, et l'aide dit pourquoi. Les boutons <em>GitHub</em> et <em>Donate</em> de la fenêtre et la page de son menu <em>Help</em> transmettent chacun une adresse fixe à votre navigateur quand vous les pressez, et c'est votre navigateur qui se connecte.</p>
+      </div>
+      <div>
+        <h3>A-t-il besoin de droits d'administrateur&nbsp;?</h3>
+        <p>Pour consulter, non. Pour modifier, oui. Sans eux, le gestionnaire montre moins d'entrées et en refuse davantage, et les deux moitiés le disent en haut au lieu de faire comme si la liste était la machine entière. La fenêtre propose <em>Restart as admin</em>. Elle ne s'élève jamais d'elle-même.</p>
+      </div>
+      <div>
+        <h3>Est-il gratuit&nbsp;? Puis-je l'utiliser au travail&nbsp;?</h3>
+        <p>Oui aux deux. GPL-3.0, sans condition cachée. Un instantané que vous prenez est votre fichier.</p>
+      </div>
+      <div>
+        <h3>Va-t-il casser mon serveur&nbsp;?</h3>
+        <p>Pas de lui-même. Rien n'est changé sans un plan que vous avez vu, les pilotes sont refusés, et un plan qui arrêterait quelque chose dont la machine a besoin le dit. Ce dont il ne peut pas vous protéger, c'est d'exécuter un plan que vous n'avez pas lu. La liste des services dont la machine a besoin est une liste de départ de sept - les deux moitiés de RPC et le lanceur DCOM, le gestionnaire de comptes, l'isolation des clés, le gestionnaire de session et le Plug and Play - et <strong>le Bureau à distance n'y figure pas</strong>, donc dans une session distante, lisez le plan.</p>
+      </div>
+      <div>
+        <h3>Est-ce un produit Microsoft&nbsp;?</h3>
+        <p>Non. {{product}} est un projet libre indépendant et n'est ni affilié à Microsoft, ni approuvé, ni parrainé par Microsoft. Windows est une marque du groupe de sociétés Microsoft.</p>
+      </div>
+      <div>
+        <h3>Le programme existe-t-il dans ma langue&nbsp;?</h3>
+        <p>Non - le programme parle anglais, et c'est pour cela que ce site est traduit. La fenêtre lit un fichier de langue, <code>languages\gui.&lt;code&gt;.json</code>, placé à côté de l'exécutable et le choisit selon la langue de Windows, sans option, de sorte qu'une traduction est une contribution qui peut s'ajouter sans recompiler le programme. Les noms des services dans la liste sont ce que dit votre Windows - dans la langue dans laquelle votre Windows est configuré.</p>
+      </div>
+      <div>
+        <h3>Pourquoi la fenêtre est-elle sombre quand mon Windows est clair&nbsp;?</h3>
+        <p>Elle est sombre et le reste quel que soit le réglage de Windows, y compris un thème à contraste élevé. C'est vérifié et non supposé - elle garde ses propres couleurs et reste lisible, et elle ne suit pas ce réglage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Par conception</h2>
+    <ul class="points">
+      <li><strong>Machine locale uniquement.</strong> La gestion à distance n'est pas dans cette version. Pour comparer deux machines, prenez un instantané sur chacune et comparez les deux fichiers.</li>
+      <li><strong>Windows uniquement, 64 bits uniquement</strong>, Windows 10 1809 ou Windows Server 2019 et ultérieurs.</li>
+      <li><strong>Les opérations sur les pilotes sont refusées plutôt que tentées</strong>, car arrêter un pilote du noyau n'est souvent pas réversible sans redémarrage.</li>
+      <li><strong>L'outil n'élève pas ses propres privilèges.</strong> Quand le gestionnaire refuse, il le dit et se termine avec le code de sortie <code>3</code>. La fenêtre propose de se relancer en administrateur, et ne fait rien d'autre à ce sujet.</li>
+      <li><strong>La révocation des certificats n'est pas vérifiée.</strong> Cela demanderait d'atteindre le réseau, et cet outil ne le fait jamais. <em>Trusted</em> signifie donc que la chaîne était valide sur cette machine, pas que personne n'a révoqué le certificat depuis.</li>
+      <li><strong>La fenêtre décompresse une partie du framework d'interface utilisateur de Windows avant de démarrer.</strong> En fichier unique, elle porte quelques bibliothèques natives que Windows ne sait charger que depuis le disque. Sans droits d'administrateur, elle les écrit, au premier démarrage de chaque version, dans un dossier <code>.net</code> sous le dossier temporaire du compte et les charge de là. Avec des droits d'administrateur, elle utilise à la place <code>ProgramData\BetterWindowsServices</code> sur le lecteur Windows - un dossier qu'elle crée de façon que seuls les administrateurs puissent le modifier, et qu'elle vérifie à chaque démarrage. Si ce dossier ne peut pas être créé, ou si d'autres peuvent le modifier, la fenêtre ne démarre pas et dit quel dossier et que faire. S'y installer signifie qu'une fenêtre avec élévation se relance une seconde fois, ce qui prend une fraction de seconde, et chaque version y laisse ses bibliothèques (environ 8 Mo) jusqu'à ce que quelqu'un supprime le dossier. La ligne de commande ne porte aucune bibliothèque de ce genre et ne décompresse rien.</li>
+      <li><strong>Une session avec élévation nomme les paramètres .NET dont elle hérite au lieu de les refuser.</strong> Un profileur, un commutateur de trace ou de vidage, ou un port de diagnostic défini dans l'environnement ne peut pas être désactivé depuis l'intérieur d'un programme .NET, donc avec des droits d'administrateur les deux moitiés listent ceux qu'elles trouvent. Les crochets de démarrage sont désactivés purement et simplement.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Ce que fait Windows et que cet outil rapporte tel quel</h2>
+    <ul class="points">
+      <li><strong>Un service hébergé dans <code>svchost</code></strong> a un chemin de lancement qui nomme l'hôte, de sorte que <em>le fichier est là</em> et <em>qui l'a signé</em> disent tous deux moins que pour un service doté de son propre processus.</li>
+      <li><strong>Un fichier ayant à la fois sa propre signature et une entrée de catalogue Windows</strong> peut nommer deux signataires différents. L'éditeur affiché est celui qui est dans le fichier - celui qui reste le même quand on regarde le fichier sur une autre machine - et il peut différer de ce que rapporte PowerShell.</li>
+      <li><strong>Sans droits d'administrateur, le gestionnaire liste moins d'entrées et en refuse davantage parmi celles qu'il liste.</strong> Les deux moitiés le disent en haut, et un instantané l'enregistre, car comparer un instantané avec élévation à un autre pris sans droits signalerait sinon comme supprimées des entrées que personne n'a supprimées.</li>
+    </ul>
+    <p class="note"><strong>Un problème trouvé, ou un service que cet outil rapporte autrement que <code>sc.exe</code>&nbsp;?</strong> Le <a href="{{issues}}">suivi des tickets</a> est ouvert, et une comparaison entre les deux est ce qu'il y a de plus utile à y coller.</p>
+  </div>
+</section>

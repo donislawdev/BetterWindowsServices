@@ -7,6 +7,7 @@
   "slug": {
     "en": "stop-a-windows-service-that-will-not-stop",
     "pl": "usluga-ktora-nie-chce-sie-zatrzymac",
-    "de": "windows-dienst-laesst-sich-nicht-beenden"
+    "de": "windows-dienst-laesst-sich-nicht-beenden",
+    "fr": "service-windows-impossible-a-arreter"
   }
 }
