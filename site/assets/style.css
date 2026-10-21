@@ -799,7 +799,14 @@ figcaption {
 @media (max-width: 36rem) {
   :root { --gutter: var(--s-4); }
   .hero { padding-block: var(--s-7); }
-  .btn { width: 100%; }
+  /*
+    A button label may wrap here. It is `nowrap` everywhere else so a short English label stays
+    on one line, but on a phone a label of forty-odd characters in another language is wider than
+    the screen and pushed the whole page sideways - Spanish "Requisitos y compilacion desde el
+    codigo fuente" at 375 px, six pixels over. The button is full width already, so wrapping the
+    text costs one line of height and nothing else.
+  */
+  .btn { width: 100%; white-space: normal; text-align: center; }
   th, td { padding: var(--s-2) var(--s-3); }
 
   /* A group of examples stacks on a phone - the query on a line of its own, then what it finds -
