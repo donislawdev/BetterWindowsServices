@@ -1,0 +1,64 @@
+<meta name="title" content="稽核 Windows 服務 - 證明電腦上發生了什麼變化">
+<meta name="description" content="在部署時把每個服務凍結到檔案中，然後每晚詢問電腦是否仍然符合。漂移、未簽章的可執行檔和遺失的檔案，用一個查詢搞定。">
+<meta name="nav" content="稽核服務漂移">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">指南</span>
+    <h1>稽核 Windows 服務</h1>
+    <p class="lede">稽核不是對電腦上現有內容的羅列。它是電腦上現有內容與本應存在的內容之間的差異，而標準的 Windows 裡沒有任何東西記錄後半部分。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>三個問題，以及誰來回答</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>自這台電腦建置以來發生了什麼變化？</h3>
+        <p>部署時產生的快照，與今晚這台電腦的差異比較。組態與僅僅是啟動或停止的內容分開回報，所以那個被某人變更的啟動類型，不會淹沒在四十個恰好在執行的服務之下。</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>為什麼預備環境與正式環境不同？</h3>
+        <p>在各自上產生一個快照，然後比較這兩個檔案：在任何地方都行，不需要任何一台電腦在場。檔案中帶有電腦名稱和產生它的帳戶。</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>這裡有什麼不該有的東西？</h3>
+        <p>找出值得一看的形態的查詢：可執行檔已遺失的服務、未簽章的服務、已停用卻仍在執行的服務、要求偵錯權限的服務。</p>
+        <p><code>file:missing</code>、<code>signed:no</code>、<code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>夜間的形態</h2>
+<pre><code><span class="c"># 電腦投入使用的那一天</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># 每晚，透過排程工作</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - 沒有組態漂移
+#   5 - 組態發生了漂移，drift.json 會說明具體內容
+#   3 - 已執行但無法讀取全部內容，因此答案是部分的</span></code></pre>
+    <p>結束代碼 <code>5</code> 使它成為一次稽核，而不是一份沒人讀的報告：工作在電腦發生漂移之前保持安靜，而發生漂移的那一夜，會有人收到通知。</p>
+    <p class="note"><strong>請從提升權限的工作階段產生基準。</strong>沒有系統管理員權限時，服務管理員列出的項目更少，對所列項目拒絕的動作更多。快照會記錄產生它的帳戶是否是系統管理員，因此比較結果可以說明這一點，而不是把沒人刪除過的項目回報為已刪除，但缺了一半電腦的基準，仍然是缺了一半電腦的基準。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>快照作為證據的價值</h2>
+    <ul class="points points-ok">
+      <li><strong>它是每行一個欄位的 JSON</strong>，所以可以放進程式碼存放庫，由 <code>git diff</code> 讀取。沒有這個工具的稽核人員也能讀這個檔案，而版本控制系統已經回答了<em>何時</em>。</li>
+      <li><strong>它包含管理單元從未顯示過的內容：</strong>啟動路徑和參數、檔案的雜湊和簽署者、雙向相依性、觸發程序、所需特殊權限、SID 類型和安全性描述元。</li>
+      <li><strong>它會說明它無法讀取什麼。</strong>此工作階段無權存取的欄位會被記錄為未讀取，絕不會記為空白，所以之後的比較可以說 <em>not compared</em>，而不是悄悄地稱之為未變更。</li>
+      <li><strong>它是對整台電腦的描述。</strong>請據此存放：它以其所在目錄已有的權限寫入，而工具不會收緊任何權限。</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">快照與差異的運作方式</a>
+  </div>
+</section>

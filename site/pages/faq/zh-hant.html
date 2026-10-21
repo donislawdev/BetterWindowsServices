@@ -1,0 +1,78 @@
+<meta name="title" content="關於 Better Windows Services 的問題，以及它坦率的限制">
+<meta name="description" content="需要連上網路嗎？需要系統管理員權限嗎？會弄壞我的伺服器嗎？它能做什麼，以及它在設計上拒絕做什麼，都在這裡坦率地列出。">
+<meta name="nav" content="常見問題">
+<meta name="translated-from" content="0d15601bd2f2">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">問題</span>
+    <h1>問題與限制</h1>
+    <p class="lede">悄悄漏掉某些內容的工具，比明說自己做不到什麼的工具更糟。限制也寫在這個頁面上，分為兩類：它在設計上拒絕做的事，以及 Windows 的行為裡這個工具如實回報的部分。</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <div class="qa">
+      <div>
+        <h3>它與 <code>sc.exe</code>、<code>Get-Service</code> 或 <code>services.msc</code> 有什麼不同？</h3>
+        <p><code>sc query</code> 和 <code>Get-Service</code> 告訴你什麼在執行。<code>services.msc</code> 讓你一列一列地變更它，既無法提問，事後也沒有記錄。這個工具會提問（<code>start:auto !status:running</code>），在執行前向你展示計畫，並保留一個可以在一週後做差異比較的快照。在某個服務上它與 <code>sc.exe</code> 不一致，那就是一個缺陷：測試套件的一部分會同時執行兩者，並逐項目地比較。<a href="{{url:sc-exe-and-powershell}}">更詳細的比較在這裡。</a></p>
+      </div>
+      <div>
+        <h3>需要連上網路嗎？</h3>
+        <p>從不需要。沒有遙測，沒有更新檢查，沒有當機回報，沒有帳戶，也沒有任何用戶端。它唯一可能接觸網路的情況，是你傳入 <code>--follow-network</code> 時：這時它可能會查看位於其他電腦共用資料夾上的啟動路徑，並讓 Windows 取得這台電腦尚未持有的憑證。預設關閉，說明中解釋了原因。視窗裡的 <em>GitHub</em> 和 <em>Donate</em> 按鈕，以及 <em>Help</em> 功能表裡的頁面，在你按下時各自只會把一個固定的位址交給你的瀏覽器，而真正建立連線的是你的瀏覽器。</p>
+      </div>
+      <div>
+        <h3>需要系統管理員權限嗎？</h3>
+        <p>檢視不需要，變更需要。沒有系統管理員權限時，服務管理員顯示的項目更少，拒絕的動作更多，兩者都會在頂部說明這一點，而不是假裝清單就是整台電腦。視窗會提供 <em>Restart as admin</em>。它從不自行提升權限。</p>
+      </div>
+      <div>
+        <h3>免費嗎？可以在工作中使用嗎？</h3>
+        <p>兩者都是。GPL-3.0，沒有任何附加條件。你產生的快照是你自己的檔案。</p>
+      </div>
+      <div>
+        <h3>會弄壞我的伺服器嗎？</h3>
+        <p>它自己不會。沒有你看過的計畫，就不會變更任何內容，驅動程式會被拒絕，而會關掉電腦必需之物的計畫會在警告中說明。它無法保護你的，是執行一份你沒有讀過的計畫。電腦必需的服務清單是一份七項的入門清單：RPC 的兩個部分和 DCOM 啟動器、帳戶管理員、金鑰隔離、工作階段管理員以及隨插即用，<strong>其中沒有遠端桌面</strong>，所以透過遠端工作階段操作時，請閱讀計畫。</p>
+      </div>
+      <div>
+        <h3>這是 Microsoft 的產品嗎？</h3>
+        <p>不是。{{product}} 是一個獨立的開放原始碼專案，與 Microsoft 沒有關聯，也未獲得 Microsoft 的認可或贊助。Windows 是 Microsoft 公司集團的商標。</p>
+      </div>
+      <div>
+        <h3>程式有我的語言版本嗎？</h3>
+        <p>沒有，程式使用英文介面，這也是這個網站被翻譯的原因。視窗會讀取放在可執行檔旁邊的語言檔案 <code>languages\gui.&lt;code&gt;.json</code>，並依 Windows 的語言選擇，沒有切換開關，所以翻譯是一項無需重新建置程式就能加入的貢獻。清單中的服務名稱是你的 Windows 所寫的樣子，也就是你的 Windows 所設定的語言。</p>
+      </div>
+      <div>
+        <h3>我的 Windows 是淺色的，視窗為什麼是深色的？</h3>
+        <p>它是深色的，不論 Windows 如何設定，包括高對比佈景主題，它都保持深色。這是經過檢查而不是想當然：它保留自己的顏色並保持可讀，而不會跟隨該設定。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>設計如此</h2>
+    <ul class="points">
+      <li><strong>僅限本機電腦。</strong>這個版本沒有遠端管理。要比較兩台電腦，請在各自上產生一個快照，然後比較這兩個檔案。</li>
+      <li><strong>僅限 Windows，僅限 64 位元</strong>，Windows 10 1809 或 Windows Server 2019 及更高版本。</li>
+      <li><strong>對驅動程式的動作會被拒絕而不是嘗試</strong>，因為停止核心驅動程式往往不重新啟動就無法復原。</li>
+      <li><strong>工具不會自行提升權限。</strong>當服務管理員拒絕時，它會說明這一點，並以結束代碼 <code>3</code> 結束。視窗會提示以系統管理員身分重新啟動自己，除此之外不做別的。</li>
+      <li><strong>不檢查憑證撤銷。</strong>那需要存取網路，而這個工具從不這樣做。所以 <em>Trusted</em> 的含義是憑證鏈在這台電腦上有效，而不是此後沒有人撤銷過該憑證。</li>
+      <li><strong>視窗在啟動前會解壓縮一部分 Windows 使用者介面架構。</strong>作為單一檔案，它帶有幾個 Windows 只能從磁碟載入的原生程式庫。沒有系統管理員權限時，它會在每個版本首次啟動時，把它們寫入該帳戶暫存資料夾下的 <code>.net</code> 資料夾，並從那裡載入。有系統管理員權限時，它改用 Windows 磁碟機上的 <code>ProgramData\BetterWindowsServices</code>：這個資料夾由它建立，使得只有系統管理員能夠變更，並且每次啟動都會檢查。如果無法建立該資料夾，或者其他人可以變更它，視窗就不會啟動，並會說明是哪個資料夾以及該怎麼做。遷移到那裡意味著提升權限的視窗會再次啟動自己，這需要不到一秒，而每個版本都會在那裡留下它的程式庫（約 8 MB），直到有人刪除該資料夾。命令列不帶這樣的程式庫，也不解壓縮任何內容。</li>
+      <li><strong>提升權限的工作階段會指明它繼承的 .NET 設定，而不是拒絕它們。</strong>環境中設定的分析工具、追蹤或傾印開關，或診斷連接埠，無法從 .NET 程式內部關閉，因此在有系統管理員權限時，兩者都會列出它們發現的這些設定。啟動攔截程式則被直接關閉。</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>Windows 的行為，這個工具如實回報</h2>
+    <ul class="points">
+      <li><strong>裝載於 <code>svchost</code> 內的服務</strong>，其啟動路徑指向的是裝載它的處理程序，所以<em>檔案在那裡</em>和<em>誰簽的章</em>這兩項能說明的內容，比對有獨立處理程序的服務要少。</li>
+      <li><strong>同時具有自身簽章和 Windows 目錄項目的檔案</strong>，可能指出兩個不同的簽署者。顯示的發行者是檔案內部的那一個：在另一台電腦上檢視該檔案時保持不變的那一個，它可能與 PowerShell 回報的不同。</li>
+      <li><strong>沒有系統管理員權限時，服務管理員列出的項目更少，對所列項目拒絕的動作更多。</strong>兩者都會在頂部說明這一點，快照也會記錄它，因為若不如此，把提升權限的快照與沒有權限時產生的快照比較，會把沒人刪除過的項目回報為已刪除。</li>
+    </ul>
+    <p class="note"><strong>發現了問題，或者發現了這個工具與 <code>sc.exe</code> 回報不同的服務？</strong><a href="{{issues}}">問題追蹤器</a>是開放的，把兩者的差異貼進去是最有用的資訊。</p>
+  </div>
+</section>
