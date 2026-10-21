@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - ทางเลือกแทน services.msc พร้อมระบบค้นหา">
+<meta name="description" content="ทางเลือกแทน services.msc ที่ฟรีและโอเพนซอร์ส ค้นหาบริการด้วยภาษาคิวรี ดูตัวอย่างทุกการเปลี่ยนแปลงก่อนทำงาน และดูว่าอะไรดริฟต์ไปตั้งแต่เมื่อวาน">
+<meta name="nav" content="หน้าแรก">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  หน้าแรก ทุกประโยคในหน้านี้มีคู่ใน README.md ซึ่งผ่านการตรวจเทียบกับโปรแกรมที่กำลังทำงานก่อนเขียน
+  แผน ผลต่าง และคิวรีด้านล่างเป็นผลลัพธ์จริง ไม่ใช่ภาพประกอบ
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>ค้นหาบริการ Windows ของคุณ ดูตัวอย่างทุกการเปลี่ยนแปลง และ<em>ดูว่าอะไรดริฟต์</em>ไปตั้งแต่เมื่อวาน</h1>
+      <p class="lede"><strong>{{product}}</strong> คือ <code>services.msc</code> ที่สร้างใหม่สำหรับคนที่ดูแลเครื่อง Windows เป็นหน้าต่างกับบรรทัดคำสั่งที่ใช้เอนจินตัวเดียวกัน ถามเครื่องแทนการเลื่อนดู 800 แถว ดูว่าการเปลี่ยนแปลงจะทำอะไร<strong>ก่อนกดอะไรทั้งนั้น</strong> และสิ่งที่ <code>services.msc</code> ไม่เคยมี: <strong>บันทึกทุกบริการลงไฟล์ แล้วอีกสัปดาห์ถามว่าอะไรเปลี่ยนไป</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">ดาวน์โหลดสำหรับ Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">ดูโค้ดบน GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>ฟรีและโอเพนซอร์ส GPL-3.0</li>
+        <li>ไฟล์เดียว หรือตัวติดตั้ง</li>
+        <li>ดูข้อมูลได้โดยไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ</li>
+        <li>ไม่เชื่อมต่ออินเทอร์เน็ตเลย</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="หน้าต่างที่เลือกไว้ 5 รายการ พร้อมแผนการเริ่มบริการเหล่านั้นแสดงเหนือรายชื่อ: 5 ขั้นตอน หมายเหตุว่า 2 รายการอยู่ในสถานะนั้นอยู่แล้ว บรรทัด bws start ของแต่ละรายการ และปุ่ม Start 5 entries" width="1632" height="1041"></a>
+      <figcaption>รายการที่เลือก แผนที่แสดงก่อนจะมีอะไรเกิดขึ้น และบรรทัด <code>bws</code> ที่ขอสิ่งเดียวกันทุกประการ โปรแกรมใช้ภาษาอังกฤษ หน้าต่างจะอ่านไฟล์ภาษาที่วางไว้ข้างๆ จึงแปลได้โดยไม่ต้องสร้างใหม่</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  ภาพจับหน้าจอจริงของหน้าต่าง บันทึกเมื่อ 2026-09-25 และ 2026-09-26 และแสดงที่นี่ตั้งแต่ 2026-10-07
+  ชุดแรกเมื่อ 2026-09-24 มาแทนหน้าต่างจำลองที่วาดด้วย HTML เซสชันนี้คือ GIF เดียวกับที่ README ใช้
+  ไฟล์เดียวสำหรับทั้งสองที่ ตามการตัดสินใจของเจ้าของเมื่อ 2026-10-07 ตั้งแต่ 2026-09-24 จนถึงวันนั้น
+  เป็นวิดีโอที่มีตัวควบคุมแทน เพราะ WCAG 2.2.2 กำหนดว่าภาพเคลื่อนไหววนซ้ำที่ยาวเกินห้าวินาทีต้องหยุดได้
+  แต่ GIF หยุดไม่ได้ นี่คือราคาของ GIF ที่บอกไว้ตรงนี้เพื่อไม่ให้ลืม
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ลองใช้ครึ่งนาที</span>
+    <h2>หน้าตาเวลาใช้งานจริง</h2>
+    <p class="lede">เซสชันจริง บน Windows ที่ติดตั้งเป็นภาษาโปแลนด์ ชื่อที่แสดงมาจาก Windows จึงเป็นภาษาของ Windows ส่วนตัวหน้าต่างเองเป็นภาษาอังกฤษ</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="เลือก 4 รายการพร้อมแผนการเริ่มบริการเหล่านั้น การรีสตาร์ตแบบบังคับของ Local Session Manager ซึ่งแผนเตือนว่าเครื่องทำงานไม่ได้หากไม่มีมัน และขอให้พิมพ์ชื่อก่อนปุ่มจะใช้งานได้ คำถามเริ่มต้นใต้ช่องค้นหาที่ว่าง และ Print Spooler ที่พบโดยพิมพ์ชื่อบางส่วนแล้วเริ่มทำงาน" width="1632" height="1041" loading="lazy"></a>
+      <figcaption>เลือก 4 รายการพร้อมแผนการเริ่มบริการ การรีสตาร์ตแบบบังคับที่ขอชื่อบริการที่เครื่องต้องใช้ คำถามใต้ช่องค้นหาที่ว่าง และ Print Spooler ที่ค้นพบโดยการพิมพ์แล้วเริ่มทำงาน</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="หน้าจอเปิดเครื่อง: การ์ดตัวเลข 3 ใบเกี่ยวกับเครื่องนี้ ได้แก่ บริการที่กำลังทำงาน บริการที่ตั้งให้เริ่มอัตโนมัติแต่ไม่ได้ขึ้นมา และบริการที่ตั้งให้เริ่มอัตโนมัติแต่ไฟล์หายไป พร้อมปุ่ม Show the list" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>เปิดมาพร้อมตัวเลขไม่กี่ตัวเกี่ยวกับเครื่องนี้ แต่ละตัวคือคำถาม คลิกแล้วคำถามจะไปอยู่ในช่องค้นหา</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="รายชื่อบริการที่มีรายการสามชุดอยู่เหนือช่องค้นหา ช่องค้นหาที่ว่าง ปุ่มตัวกรองที่กางออกเป็นแถวสำหรับสถานะ ประเภทการเริ่มต้น ลายเซ็น ความไม่สอดคล้อง และทริกเกอร์ และรายชื่ออยู่ด้านล่าง" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>ปุ่มตัวกรองเขียนลงในช่องค้นหา สิ่งที่คุณคลิกจึงเป็นคิวรีที่อ่านและแก้ไขได้</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ทำไมถึงมีโปรแกรมนี้</span>
+    <h2><code>services.msc</code> แทบไม่เปลี่ยนเลยตั้งแต่ Windows 2000</h2>
+    <p class="lede">ผู้ดูแลระบบใช้เวลาหลายชั่วโมงต่อสัปดาห์กับมัน และเจอกำแพงเดิมๆ ซ้ำแล้วซ้ำอีก</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>ไม่มีการค้นหา</strong> วิธีเดียวที่ใช้นำทางคือกระโดดไปที่ตัวอักษรแรกของชื่อที่แสดง</li>
+        <li><strong>ไม่มีการกรอง</strong> ถามไม่ได้ว่า <em>อะไรบ้างที่ตั้งให้เริ่มอัตโนมัติแต่ไม่ได้ทำงาน</em></li>
+        <li><strong>ทีละแถว</strong> การรีสตาร์ต 12 บริการคือคลิกขวา 12 ครั้งและรอ 12 รอบ</li>
+        <li><strong>“Stopping...” ไม่จบสิ้น</strong> ไม่มีทางออกนอกจาก Task Manager และการเดากระบวนการ</li>
+        <li><strong>ไม่มีประวัติ</strong> ไม่มีใครรู้ว่าใครตั้งประเภทการเริ่มต้นเป็น Disabled และเมื่อไร</li>
+        <li><strong>ข้อมูลที่ซ่อนอยู่</strong> กระบวนการ ทริกเกอร์ สิทธิพิเศษ security descriptor และใครลงลายเซ็นไฟล์ปฏิบัติการ ทั้งหมดต้องใช้ <code>sc.exe</code> จากความจำ หรือเปิดรีจิสทรี</li>
+        <li><strong>บรรทัดคำสั่งไม่เท่าเทียมกัน</strong> <code>sc.exe</code> มีไวยากรณ์จากยุค 90 และ <code>Get-Service</code> ที่มากับ Windows ใน Windows PowerShell 5.1 ไม่แสดงบัญชีที่บริการใช้รัน ไม่ต้องพูดถึงคำอธิบาย PowerShell 7 แสดงทั้งสองอย่าง แต่ต้องติดตั้งแยกต่างหาก</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>เครื่องมืออื่นแต่ละตัวแก้ได้เพียงบางส่วน</h3>
+        <p>Process Hacker และ System Informer แสดงรายชื่อที่ละเอียดและบังคับปิดกระบวนการได้ แต่ไม่มีการตรวจสอบและไม่มีบรรทัดคำสั่ง <code>sc.exe</code> และ <code>PsService</code> ทำได้ทุกอย่างแต่ไม่บอกอะไรคุณเลย cmdlet <code>*-Service</code> ของ PowerShell เขียนสคริปต์ได้แต่ตื้น</p>
+        <p>ไม่มีเครื่องมือไหนรวมรายชื่อที่ค้นหาได้ ตัวอย่างก่อนทุกการเปลี่ยนแปลง และบันทึกว่าอะไรเปลี่ยนไปตามเวลา และบันทึกนั้นเองคือเหตุผลที่ควรเก็บโปรแกรมนี้ไว้ในเครื่องหลังจากบ่ายวันแรก</p>
+        <a class="more" href="{{url:services-msc-alternative}}">เปรียบเทียบฉบับเต็ม</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ทำอะไรได้บ้าง</span>
+    <h2>หน้าต่างและบรรทัดคำสั่งบนเอนจินเดียวกัน</h2>
+    <div class="grid">
+      <div class="card"><h3>ถามแทนการเลื่อนหา</h3><p><code>start:auto !status:running</code> คือ <em>อะไรที่ควรทำงานแต่ไม่ได้ทำงาน</em> ภาษาเดียวกัน ทั้งในช่องค้นหาและใน <code>bws list --query</code> พร้อมแนะนำฟิลด์ขณะพิมพ์</p></div>
+      <div class="card"><h3>แสดงแผนก่อนจะมีอะไรเกิดขึ้น</h3><p>ทุกการหยุด เริ่ม รีสตาร์ต และการเปลี่ยนประเภทการเริ่มต้นจะแสดงตัวอย่างพร้อมบริการที่จะล้มตามไปด้วย และตัวอย่างนั้นคือสิ่งที่ทำงานจริง</p></div>
+      <div class="card"><h3>บอกว่าอะไรดริฟต์ และใครเปลี่ยน</h3><p><code>bws snapshot create</code> บันทึกสถานะเครื่องลงไฟล์ และ <code>bws snapshot diff</code> บอกว่าหลังจากนั้นอะไรเปลี่ยนไป โดยแยกการกำหนดค่าออกจากสิ่งที่แค่เริ่มหรือหยุด <code>bws history</code> บอกว่าใครเปลี่ยนประเภทการเริ่มต้นและใครติดตั้งบริการ จาก System log หน้าต่างทำทั้งสามอย่างภายใต้ <em>Audit...</em></p></div>
+      <div class="card"><h3>แก้ปัญหาที่พบบ่อยด้วยการกดครั้งเดียว</h3><p>แท็บ <em>Tools</em> และ <code>bws tool fix</code> รีสตาร์ตบริการที่อยู่เบื้องหลังเครื่องพิมพ์ที่ไม่พิมพ์ เสียงที่หายไป หรือการค้นหาที่ค้าง พร้อมสิ่งที่ขึ้นอยู่กับมัน ผ่านแผนเดียวกับทุกอย่างอื่น</p></div>
+      <div class="card"><h3>หยุดบริการที่หยุดไม่ลง</h3><p>ขอดีๆ ก่อน และจบกระบวนการเฉพาะเมื่อวิธีนั้นล้มเหลว พร้อมบอกชื่อบริการอื่นทุกตัวที่อยู่ในกระบวนการนั้น</p></div>
+      <div class="card"><h3>แสดงสิ่งที่ <code>services.msc</code> ซ่อนไว้</h3><p>ใครลงลายเซ็นไฟล์ปฏิบัติการและ Windows เชื่อถือหรือไม่ ทริกเกอร์ สิทธิพิเศษ security descriptor กระบวนการและหน่วยความจำของมัน เป็นทั้งคอลัมน์และสิ่งที่ค้นหาได้</p></div>
+      <div class="card"><h3>บอกเมื่ออ่านอะไรไม่ได้</h3><p>ฟิลด์ที่อ่านไม่ได้จะรายงานว่าไม่ได้อ่าน ไม่เคยแสดงเป็นค่าว่าง สแนปช็อตที่สร้างโดยไม่มีสิทธิ์ผู้ดูแลระบบจะบอกเรื่องนี้ไว้ในไฟล์</p></div>
+      <div class="card"><h3>ใช้ในสคริปต์ได้</h3><p><code>--json</code> ในทุกคำสั่ง รหัสออกสำหรับทุกการจบ และ <code>5</code> เมื่อ diff พบดริฟต์</p></div>
+      <div class="card"><h3>รันจากไฟล์เดียว แบบออฟไลน์</h3><p>แตกไฟล์แล้วรัน หรือติดตั้งให้ทั้งเครื่อง ไม่ต้องติดตั้ง .NET และไม่เชื่อมต่ออินเทอร์เน็ตเลย การอ่านไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ GPL-3.0</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">สิ่งที่ services.msc ไม่เคยทำ</span>
+    <h2>อะไรเปลี่ยนไปตั้งแต่เมื่อวาน</h2>
+    <p class="lede">สแนปช็อตคือเครื่องทั้งเครื่อง ณ ช่วงเวลาหนึ่ง ทุกบริการและไดรเวอร์ พร้อมประเภทการเริ่มต้น บัญชี พาธการเปิดใช้งาน แฮชและผู้ลงลายเซ็นของไฟล์ การพึ่งพา ทริกเกอร์ สิทธิพิเศษ และ security descriptor เป็น JSON ที่มีหนึ่งฟิลด์ต่อบรรทัด จึงเก็บในรีโพซิทอรีได้ และ <code>git diff</code> อ่านได้</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>การกำหนดค่าและสถานะการทำงานรายงานแยกกัน</strong> สแนปช็อตสองชุดที่ห่างกันหนึ่งวันต่างกันตรงสิ่งที่บังเอิญทำงานอยู่ และแทบไม่มีส่วนไหนเป็นดริฟต์ ประเภทการเริ่มต้นที่เปลี่ยนคือบรรทัดที่ควรอ่าน</li>
+        <li><strong>สิ่งที่เปรียบเทียบไม่ได้จะถูกแสดงไว้ ไม่ถูกซ่อน</strong> ฟิลด์ที่สแนปช็อตหนึ่งไม่เคยอ่านจะแสดงเป็น <em>not compared</em> ดังนั้น diff ที่บอกว่า <em>ไม่มีอะไรเปลี่ยน</em> หมายถึงไม่มีอะไรเปลี่ยนในสิ่งที่ทั้งสองฝั่งมองเห็น</li>
+        <li><strong><code>--exit-code</code> จบด้วย <code>5</code> เมื่อการกำหนดค่าต่างกัน</strong> งานตามกำหนดเวลาจึงสร้างสแนปช็อตตอนติดตั้งใช้งานและแจ้งคนในคืนแรกที่เครื่องดริฟต์ได้</li>
+        <li><strong>สองเครื่อง สองไฟล์</strong> สร้างสแนปช็อตบนสเตจจิงหนึ่งชุดและบนโปรดักชันหนึ่งชุด แล้ว diff กันที่ไหนก็ได้</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">สแนปช็อตและดริฟต์ทำงานอย่างไร</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ไม่มีอะไรเกิดขึ้นถ้าไม่มีแผน</span>
+    <h2>ตัวอย่างคือการทำงานจริง</h2>
+    <p class="lede">ทุกการดำเนินการที่เขียนข้อมูลจะสร้างแผนก่อน และแผนเดียวกันนั้นคือตัวอย่าง ลำดับบริการที่ล้มตามกัน การปฏิเสธก่อนที่คุณจะกดอะไร บรรทัดคำสั่งที่ขอสิ่งเดียวกัน และทางย้อนกลับหลังจากนั้น</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>รันโดยไม่มี <code>--dry-run</code> แล้วจะได้ขั้นตอนเหล่านั้น</strong> ตามลำดับเดียวกันพร้อมเหตุผลเดียวกันข้างๆ ไม่มีเส้นทางโค้ดที่สองสำหรับของจริง</li>
+        <li><strong>สิ่งที่ล้มตามกันอยู่ในแผน</strong> บริการที่จะเสียหายเป็นขั้นตอนของตัวเอง และแผนที่จะทำให้สิ่งที่เครื่องต้องใช้หยุดลงจะบอกไว้ในคำเตือน</li>
+        <li><strong>การปฏิเสธมาก่อนปุ่ม</strong> ไดรเวอร์ บริการที่ตัวจัดการไม่ยอมรับคำขอหยุด กระบวนการที่ระบบป้องกันไว้ จะถูกปฏิเสธตั้งแต่สร้างแผนพร้อมเหตุผล หน้าต่างทำให้ปุ่มเป็นสีเทาและบอกเหตุผลไว้ข้างๆ</li>
+        <li><strong>การบังคับหยุดมีสองขั้น และขั้นที่สองมีเงื่อนไข</strong> <code>bws kill</code> ขอให้บริการหยุดและจบกระบวนการของมันเฉพาะเมื่อวิธีนั้นไม่ได้ผล พร้อมบอกชื่อบริการอื่นทุกตัวที่อยู่ในนั้น</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">เมื่อบริการหยุดไม่ลง</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ลองใช้สองนาที</span>
+    <h2>จากบรรทัดคำสั่ง</h2>
+    <p class="lede">เอนจินเดียวกับหน้าต่าง สำหรับสคริปต์ งานตามกำหนดเวลา และ CI ข้อมูลไปที่ standard output และอย่างอื่นทั้งหมดไปที่ standard error ดังนั้น <code>bws list --json | jq</code> ใช้ได้ และคำเตือนจะไม่ปนเข้ามาใน JSON ของคุณ</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">อะไรที่ควรทำงานแต่ไม่ได้ทำงาน</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">บริการที่ไฟล์ปฏิบัติการหายไป</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">ไม่มีลายเซ็น ไม่รวมสำเนาต่อเซสชัน</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">ทุกอย่างที่รู้เกี่ยวกับหนึ่งรายการ</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">การหยุดมันจะทำให้อะไรล้มตามไปบ้าง</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">การจบกระบวนการของมันจะพาอะไรไปด้วย</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">การเอาออกจากอัตโนมัติจะเกิดอะไรขึ้น</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">บันทึกสถานะเครื่องก่อนการเปลี่ยนแปลง</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">อะไรเปลี่ยนไปตั้งแต่นั้น 5 ถ้าการตั้งค่าเปลี่ยน</span>
+<span class="k">bws history Spooler</span>                               <span class="c">ใครเปลี่ยนประเภทการเริ่มต้นของมัน และเมื่อไร</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">การแก้ด่วนสำหรับเครื่องพิมพ์ที่ค้างจะทำอะไร</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">ทุกคำสั่ง ตัวเลือก และรหัสออก</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">รับไปใช้</span>
+    <h2>แตกไฟล์แล้วรัน หรือติดตั้ง</h2>
+    <p class="lede">Windows 10 1809 หรือ Windows Server 2019 ขึ้นไป 64 บิต ไฟล์ที่บีบอัดไม่ต้องใช้ตัวติดตั้งและไม่เขียนอะไรลงรีจิสทรี และการดูข้อมูลไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ การเปลี่ยนแปลงอะไรก็ตามต้องใช้เซสชันที่ยกระดับสิทธิ์ และทั้งสองส่วนจะบอกเรื่องนี้แทนที่จะล้มเหลวเงียบๆ หน้าต่างมี <em>Restart as admin</em> ให้</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ไฟล์</th><th>คืออะไร</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>หน้าต่าง ไฟล์ปฏิบัติการแบบครบในตัวหนึ่งไฟล์ ไม่ต้องติดตั้ง .NET</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>บรรทัดคำสั่ง ไฟล์ปฏิบัติการแบบครบในตัวหนึ่งไฟล์ สำหรับสคริปต์และ CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>ตัวติดตั้ง: ทั้งสองโปรแกรมสำหรับทุกบัญชีในเครื่อง หน้าต่างอยู่ในเมนูเริ่ม และ <code>bws</code> อยู่ใน PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>ไฟล์ปฏิบัติการมีลายเซ็น Authenticode ดังนั้น Windows จะแสดงชื่อผู้เผยแพร่ แทนที่จะเตือนว่าเป็นผู้เผยแพร่ที่ไม่รู้จัก</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">ดาวน์โหลดสำหรับ Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">ข้อกำหนดและการสร้างจากซอร์ส</a>
+    </div>
+  </div>
+</section>

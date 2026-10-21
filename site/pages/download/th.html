@@ -1,0 +1,86 @@
+<meta name="title" content="ดาวน์โหลด Better Windows Services - ฟรี zip หรือ MSI">
+<meta name="description" content="ไฟล์ปฏิบัติการครบในตัวสองไฟล์หรือตัวติดตั้งที่ลงลายเซ็น ไม่ต้องติดตั้ง .NET รองรับ Windows 10 1809 และ Windows Server 2019 ขึ้นไป แบบ 64 บิต ฟรีและโอเพนซอร์ส GPL-3.0">
+<meta name="nav" content="ดาวน์โหลด">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ดาวน์โหลด</span>
+    <h1>แตกไฟล์แล้วรัน หรือติดตั้ง</h1>
+    <p class="lede">เวอร์ชัน {{version}} ไฟล์ที่บีบอัดไม่ต้องใช้ตัวติดตั้งและไม่เขียนอะไรลงรีจิสทรี และการดูข้อมูลไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ ตัวติดตั้งที่ลงลายเซ็นจะติดตั้งทั้งสองโปรแกรมให้ทั้งเครื่องแทน ฟรีและโอเพนซอร์สภายใต้ GPL-3.0</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">ดาวน์โหลดสำหรับ Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">ทุกรีลีส</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>มีอะไรอยู่ในรีลีส</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ไฟล์</th><th>คืออะไร</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>หน้าต่าง: <code>BetterWindowsServices.exe</code> ไฟล์ปฏิบัติการแบบครบในตัวหนึ่งไฟล์ที่มีรันไทม์ .NET ของตัวเองอยู่ข้างใน</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>บรรทัดคำสั่ง: <code>bws.exe</code> ไฟล์ปฏิบัติการแบบครบในตัวหนึ่งไฟล์ สำหรับสคริปต์ งานตามกำหนดเวลา และ CI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>ตัวติดตั้ง: ทั้งสองโปรแกรมใน <code>Program Files</code> สำหรับทุกบัญชีในเครื่อง หน้าต่างอยู่ในเมนูเริ่ม และ <code>bws</code> อยู่ใน PATH ของเครื่อง</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>เลือกหนึ่งหรือทั้งสองอย่างก็ได้ ทั้งสองเป็นไคลเอนต์ของเอนจินเดียวกันและไม่ต้องพึ่งอีกตัว บนเซิร์ฟเวอร์ บรรทัดคำสั่งเป็นตัวที่เล็กกว่าและทำได้ทุกอย่างที่หน้าต่างทำ</p>
+    <p>ตัวติดตั้งมีเนื้อหาเท่ากับที่ไฟล์บีบอัดสองไฟล์มีทุกประการ ติดตั้งแบบเงียบด้วย <code>msiexec /i {{archive_installer}} /qn</code> เวอร์ชันใหม่ติดตั้งทับเวอร์ชันเก่าได้ และมันไม่ปิดอะไรที่กำลังทำงานอยู่ ดังนั้นให้ปิดหน้าต่างและ <code>bws</code> ที่กำลังรันอยู่ก่อนอัปเกรด เพราะสำเนาที่ค้างไว้อาจหยุดพร้อมข้อผิดพลาด การถอนการติดตั้งจาก Settings, Apps จะลบโปรแกรม รายการในเมนูเริ่ม และรายการ PATH และไม่แตะไฟล์ของคุณเอง</p>
+    <p>ไฟล์ปฏิบัติการมีลายเซ็น Authenticode ดังนั้น Windows จะแสดงชื่อผู้เผยแพร่ แทนที่จะเตือนว่าเป็นผู้เผยแพร่ที่ไม่รู้จัก</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ข้อกำหนด</h2>
+    <ul class="points">
+      <li><strong>Windows 10 เวอร์ชัน 1809 ขึ้นไป หรือ Windows Server 2019 ขึ้นไป</strong> 64 บิตเท่านั้น กระบวนการ 32 บิตอ่านพาธและคีย์รีจิสทรีที่ถูกเปลี่ยนเส้นทาง ซึ่งจะให้คำตอบผิดโดยไม่มีเสียงเตือน</li>
+      <li><strong>ไม่ต้องติดตั้ง .NET</strong> ไฟล์ปฏิบัติการทั้งสองมีรันไทม์ .NET ของตัวเอง</li>
+      <li><strong>ต้องใช้สิทธิ์ผู้ดูแลระบบเพื่อเปลี่ยนแปลงอะไรก็ตาม</strong> การอ่าน ค้นหา สแนปช็อต และ diff ทำงานได้โดยไม่ต้องมี แต่จะเห็นรายการน้อยลง และเครื่องมือจะบอกไว้ที่ด้านบนแทนที่จะแสร้งว่ารายชื่อคือทั้งเครื่อง</li>
+    </ul>
+    <p>หน้าต่างเก็บไฟล์ของตัวเองไว้ไฟล์เดียว คือเลย์เอาต์ที่คุณทิ้งรายชื่อไว้ ใต้ <code>%APPDATA%\BetterWindowsServices</code> สแนปช็อตไปอยู่ที่ที่คุณบอก <code>bws snapshot create</code> ให้วาง และไปอยู่ในไดเรกทอรีปัจจุบันเมื่อคุณไม่ได้บอก</p>
+    <p class="note"><strong>โปรแกรมใช้ภาษาอังกฤษ</strong> หน้าต่างอ่านไฟล์ภาษา <code>languages\gui.&lt;code&gt;.json</code> ที่วางไว้ข้างๆ และเลือกตามภาษาของ Windows โดยไม่มีสวิตช์ การแปลจึงเป็นการมีส่วนร่วมที่เพิ่มได้โดยไม่ต้องสร้างใหม่ <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> บอกวิธี</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>แอนตี้ไวรัสและ EDR</h2>
+    <p class="lede">เครื่องมือนี้ทำสิ่งที่ผู้ดูแลระบบทำกับบริการ และส่วนหนึ่งคือสิ่งที่ซอฟต์แวร์ความปลอดภัยเฝ้าดู</p>
+    <p>มันหยุดและเริ่มบริการ จบกระบวนการที่อยู่เบื้องหลังบริการได้ และอ่าน security descriptor กับสิทธิพิเศษที่ต้องใช้ของทุกบริการ EDR ที่แจ้งเตือนกระบวนการที่จบ <code>svchost.exe</code> กำลังทำหน้าที่ของมัน และการบังคับหยุดที่นี่อาจดูเหมือนกันทุกประการ</p>
+    <p>สิ่งที่มัน<strong>ไม่</strong>ทำ เพื่อให้คุณตรวจสอบคำกล่าวนี้ได้: มันไม่ฉีดอะไรเข้ากระบวนการใดๆ ไม่แพ็กหรือทำให้โค้ดอ่านยาก ไม่ติดตั้งบริการหรือไดรเวอร์ ไม่ทิ้งอะไรไว้ทำงานอยู่ และไม่เปิดการเชื่อมต่อเครือข่าย มันเป็นโอเพนซอร์สภายใต้ GPL-3.0 และคุณสร้างไฟล์ปฏิบัติการทั้งสองเองได้</p>
+    <p>ถ้านโยบายของคุณต้องการข้อยกเว้น ให้ยกเว้นไฟล์ปฏิบัติการสองไฟล์นี้ตามไฟล์แทนที่จะยกเว้นทั้งโฟลเดอร์ สิ่งเดียวที่ควรดูแลด้วยความระมัดระวังเท่ากับตัวเครื่องมือเองคือไฟล์สแนปช็อต: มันอธิบายทั้งเครื่อง</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>สร้างจากซอร์ส</h2>
+    <p>.NET 10 SDK บน Windows</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>บางการทดสอบอ่าน service control manager จริงของเครื่องที่รันอยู่ และเปรียบเทียบสิ่งที่เครื่องมือนี้บอกกับสิ่งที่ <code>sc.exe</code> บอก การทดสอบเหล่านั้นอ่านอย่างเดียว ไฟล์ปฏิบัติการไฟล์เดียวที่รีลีสบรรจุมาจากการ publish สองครั้งนี้ ครั้งละหนึ่งไฟล์ที่มีรันไทม์อยู่ข้างใน:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>ไฟล์เหล่านี้อยู่ที่ <code>bws.exe</code> และ <code>BetterWindowsServices.exe</code> ใต้ <code>bin/Release/.../win-x64/publish/</code> ของแต่ละโปรเจกต์ ไฟล์ <code>.pdb</code> ข้างๆ คือสัญลักษณ์สำหรับดีบัก และไม่มีอะไรต้องใช้มันเพื่อรัน</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ต้องใช้ทรัพยากรเท่าไร</h2>
+    <p class="lede">วัดบนเครื่องเดียวที่มี 810 บริการ ตัวเลขของคุณจะต่างออกไป จำนวนบริการ ดิสก์ และโปรเซสเซอร์ล้วนทำให้ตัวเลขเปลี่ยน</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>ประมาณหนึ่งในสี่วินาที</h3><p>สำหรับ <code>bws list</code> ที่จะอ่านทั้งเครื่อง</p></div>
+      <div class="card"><h3>ประมาณแปดในสิบวินาที</h3><p>ตั้งแต่เริ่มหน้าต่างจนรายชื่อขึ้นหน้าจอ</p></div>
+      <div class="card"><h3>ประมาณ 100 MB</h3><p>สำหรับหน้าต่าง ครึ่งหนึ่งเป็นเฟรมเวิร์กส่วนติดต่อผู้ใช้ของ Windows ก่อนที่โค้ดของเครื่องมือนี้เองจะรัน</p></div>
+      <div class="card"><h3>ประมาณ 16 MB</h3><p>สำหรับบรรทัดคำสั่งบนเครื่องเดียวกัน</p></div>
+    </div>
+  </div>
+</section>

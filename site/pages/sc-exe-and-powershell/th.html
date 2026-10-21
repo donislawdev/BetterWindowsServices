@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe และ Get-Service เทียบกับเครื่องมือสำหรับการตรวจสอบ">
+<meta name="description" content="sc.exe ทำได้ทุกอย่างแต่ไม่บอกอะไร Get-Service เขียนสคริปต์ได้แต่ตื้น แต่ละตัวยังดีที่สุดตรงไหน และภาษาคิวรีกับแผนทำได้ดีกว่าตรงไหน">
+<meta name="nav" content="sc.exe และ PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">คู่มือ</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code> และเครื่องมือนี้</h1>
+    <p class="lede">ทั้งสองอยู่บนเครื่องอยู่แล้ว และทั้งสองจะยังมีประโยชน์ต่อไป หน้านี้เกี่ยวกับที่ที่พวกมันหยุด และบอกตรงๆ ว่าที่ไหนที่พวกมันยังเป็นคำตอบที่ดีกว่า</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>แต่ละตัวหยุดที่ไหน</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>มันเข้าถึงเกือบทุกอย่างที่ service control manager รู้ และไม่บอกอะไรคุณเลยว่าจะถามอย่างไร ไวยากรณ์มาจากยุค 90 <code>sc config X start= auto</code> ที่ช่องว่างหลังเครื่องหมายเท่ากับเป็นข้อบังคับ และการไม่มีมันคือความล้มเหลวเงียบๆ ที่จะทำสิ่งที่คุณหมายถึง</p>
+        <p>มันตอบทีละรายการ ไม่มีการกรอง ไม่มีผลลัพธ์ที่สคริปต์แยกวิเคราะห์ได้โดยไม่ต้องเขียนตัวแยกวิเคราะห์ และไม่มีตัวอย่าง: <code>sc stop</code> ทำงานได้หรือไม่ก็คืนตัวเลข</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> และ cmdlet <code>*-Service</code></h3>
+        <p>อ็อบเจกต์จริง ไปป์ไลน์ และมุมมองที่ตื้น ใน Windows PowerShell 5.1 ตัวที่มากับ Windows <code>Get-Service</code> ไม่แสดงบัญชีที่บริการใช้รันหรือคำอธิบาย PowerShell 7 แสดงทั้งสอง และพาธการเปิดใช้งานด้วย และต้องติดตั้งแยกต่างหาก</p>
+        <p><code>Stop-Service -Force</code> หมายถึง “แม้ว่าจะมีบางอย่างขึ้นอยู่กับมัน” มันหยุดรายการที่ขึ้นอยู่กับมัน และบอกคุณหลังจากนั้นไม่ใช่ก่อน</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>คำถามเดียวกัน สามวิธี</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>คำถาม</th><th>ด้วยสิ่งที่มีบนเครื่อง</th><th>ที่นี่</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>อะไรที่ควรทำงานแต่ไม่ได้ทำงาน</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>บริการไหนมีไฟล์ปฏิบัติการที่ไม่มีลายเซ็น</td>
+            <td class="no">อ่านพาธการเปิดใช้งานแต่ละอัน แปลงมัน เรียก <code>Get-AuthenticodeSignature</code> กับแต่ละอัน นั่นคือสคริปต์ ไม่ใช่คำสั่ง</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>การหยุดตัวนี้จะพาอะไรไปด้วย</td>
+            <td><code>sc enumdepend X</code> แล้วอ่านรายการและตัดสินใจเอง</td>
+            <td><code>bws stop X --dry-run --dependents</code> ซึ่งคือแผนที่จะรัน</td>
+          </tr>
+          <tr>
+            <td>อะไรเปลี่ยนตั้งแต่สัปดาห์ที่แล้ว</td>
+            <td class="no">ไม่มี เว้นแต่คุณเขียนตัวเก็บข้อมูลเอง</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>ใครเปลี่ยนประเภทการเริ่มต้น และเมื่อไร</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code> แล้วอ่านข้อความของแต่ละเหตุการณ์</td>
+            <td><code>bws history Spooler</code> ซึ่งบรรทัดแรกบอกว่า log ย้อนไปไกลแค่ไหน</td>
+          </tr>
+          <tr>
+            <td>ผลลัพธ์ที่เครื่องอ่านได้</td>
+            <td>อ็อบเจกต์จาก PowerShell ข้อความจาก <code>sc.exe</code></td>
+            <td><code>--json</code> ในทุกคำสั่ง ที่ standard output โดยมีคำเตือนที่ standard error</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>เมื่อเครื่องมือนี้ไม่ตรงกับ <code>sc.exe</code> เรื่องบริการใดบริการหนึ่ง นั่นคือบั๊กที่นี่</strong> ส่วนหนึ่งของชุดทดสอบรันทั้งสองกับเครื่องที่มันอยู่และเปรียบเทียบทีละรายการ และความต่างระหว่างสองอย่างคือสิ่งที่มีประโยชน์ที่สุดอย่างเดียวที่ควรใส่ใน issue</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>เมื่อไรควรใช้สิ่งที่คุณมีต่อไป</h2>
+    <ul class="points">
+      <li><strong>คุณอยู่บนเครื่องที่คุณจะแตะครั้งเดียว</strong> ทั้งสองอยู่ที่นั่นแล้วและไม่ต้องผ่านนโยบายใดๆ</li>
+      <li><strong>คุณต้องเปลี่ยนบัญชี พาธการเปิดใช้งาน หรือการดำเนินการกู้คืน</strong> <code>sc.exe</code> ทำทั้งสามอย่าง เครื่องมือนี้แสดงบัญชีและพาธการเปิดใช้งานและไม่เปลี่ยนทั้งสองอย่าง และอ่านการดำเนินการกู้คืนเพียงเพื่อเตือนก่อนจะจบกระบวนการ</li>
+      <li><strong>คุณต้องสร้างหรือลบบริการ</strong> <code>sc create</code> และ <code>sc delete</code> ไม่มีที่นี่ โดยตั้งใจ</li>
+      <li><strong>คุณอยู่ลึกในไปป์ไลน์ PowerShell แล้ว</strong> <code>bws list --json</code> กลับมาเป็นอ็อบเจกต์ผ่าน <code>ConvertFrom-Json</code> จึงเข้าร่วมไปป์ไลน์แทนที่จะแทนที่มัน</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ใช้ร่วมกัน ไม่ใช่แทนที่</h2>
+    <p>เครื่องมือที่ตอบ <em>เครื่องนี้มีอะไรผิด</em> กับเครื่องมือที่เปลี่ยนการตั้งค่าหนึ่งอย่างไม่ใช่เครื่องมือเดียวกัน ถามคำถามที่นี่ อ่านแผนที่นี่ และใช้อะไรก็ได้ที่คุณชอบเพื่อทำตามแผน แผนพิมพ์บรรทัดคำสั่งที่ขอสิ่งเดียวกัน และบรรทัดนั้นตั้งใจให้คัดลอก</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">ดาวน์โหลดสำหรับ Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">ภาษาคิวรี</a>
+    </div>
+  </div>
+</section>
