@@ -12,30 +12,41 @@
 # release turning a green branch red on a commit that touched nothing teaches everybody to
 # ignore the check.
 #
-# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW. Measured again on 2026-10-14, when the
-# version moved from 1.178.0 to 1.180.0, the newest stable release on the package index that day,
-# with the pull request that brought snapshots to the window. That pull request's own Semgrep run,
-# on the merge of commit c8ea3cb into main with `--config p/default`: semgrep ran 374 rules over
-# 399 files and reported zero findings, and the gate read zero errors at level error and 419 rules.
-# The two rule counts are one run read two ways - 374 is semgrep's own summary, 419 the timing
-# list in the report, which is what the gate counts. The run on the commit before, d39889d, gave
-# the same numbers. Before them the numbers here were from 1.177.0 on 2026-09-22 (131 rules, 301
-# files), and 1.178.0 was never measured. Moving this line means measuring again rather than
-# assuming the report will look the same.
+# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW. Measured again on 2026-10-26, when the
+# version moved from 1.180.0 to 1.181.0. The run is the Semgrep job of Dependabot's own pull request
+# for that bump (run 40335089268, on the merge of its branch into main with `--config p/default`):
+# the gate read zero blocking findings, zero scan errors, 680 files and 424 rules, and semgrep's own
+# summary said it loaded 1074 code rules, ran 379 of them and found nothing. The two rule counts
+# are one run read two ways - 379 is semgrep's own summary, 424 the timing list in the report,
+# which is what the gate counts. For 1.180.0 on 2026-10-14 the same pair was 374 and 419, over 399
+# files. Before that the numbers here were from 1.177.0 on 2026-09-22 (131 rules, 301 files), and
+# 1.178.0 was never measured. Moving this line means measuring again rather than assuming the
+# report will look the same.
 #
-# 399 OF 743 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
-# tests/, which is 336 of this repository's files, one picture is skipped for being over 1 MB, and
-# the seven other pictures are not among the 399 either - that last part is the arithmetic of the
-# count, not a line semgrep prints. So a healthy run of this tree reads src/, site/, .github/,
-# packaging/ and the root - about four hundred files - and a collapse to a handful is the shape of
-# a scan that ran somewhere else. The gate prints the number on every run for exactly that reason.
+# WHY 1.181.0 AND NOT THE NEWEST. 1.182.0 was uploaded on 2026-10-20 and 1.182.1 on 2026-10-22,
+# both inside the seven days of cooldown .github/dependabot.yml asks for, and 1.181.0 (uploaded on
+# 2026-10-14) is the release whose run is measured above. Choosing a newer one would mean pinning a
+# version nobody has measured here. It would also not change the entries in osv-scanner.toml, because
+# on 2026-10-26 the package index showed every release from 1.180.0 to 1.182.1 requiring the same
+# mcp==1.29.0 and opentelemetry-api~=1.37.0.
+#
+# 680 OF 1081 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
+# tests/, which is 393 of this repository's files on main at 845c8a4, and one picture is skipped
+# for being over 1 MB. That leaves 688 and the scan read 680, so eight files are neither tests nor
+# the oversized picture - the other pictures are what is left, but that is the arithmetic of the
+# count and not a line semgrep prints. The same eight were left over on 2026-10-14, when the scan
+# read 399 of 407 files outside tests/. The growth since then is 281 files added outside tests/,
+# of which 221 are the language pages and strings in site/. So a healthy run of this tree reads
+# src/, site/, .github/, packaging/ and the root - about seven hundred files today - and a collapse
+# to a handful is the shape of a scan that ran somewhere else. The gate prints the number on every
+# run for exactly that reason.
 #
 # Licence, read on 2026-09-22 from that version's own metadata rather than recalled, and read again
-# on 2026-10-14 from 1.180.0's, which says the same. The
+# on 2026-10-26 from 1.181.0's, which says the same. The
 # package index reports `license_expression` as LGPL-2.1-or-later, with the older `license`
 # field null and no licence classifier - which is the modern shape and worth saying, because a
 # reader checking the field that used to hold this would find nothing and could conclude the
 # licence was unstated. It analyses the source tree in CI and is never linked into anything this
 # project ships, so it creates no distribution obligation - see THIRD-PARTY-NOTICES.md for what
 # does.
-semgrep==1.180.0
+semgrep==1.181.0
