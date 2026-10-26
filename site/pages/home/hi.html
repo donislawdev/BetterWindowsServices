@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - खोज वाला services.msc का विकल्प">
+<meta name="description" content="services.msc का मुफ़्त, ओपन सोर्स विकल्प। क्वेरी भाषा से अपनी सेवाएँ खोजें, हर बदलाव का चलने से पहले पूर्वावलोकन देखें और जानें कि कल से क्या ड्रिफ्ट हुआ।">
+<meta name="nav" content="मुख्य पृष्ठ">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  मुख्य पृष्ठ। यहाँ हर वाक्य का एक समकक्ष README.md में है, जिसे लिखने से पहले चलते हुए प्रोग्राम से
+  जाँचा गया था। नीचे की योजना, diff और क्वेरी असली आउटपुट हैं, चित्रण नहीं।
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>अपनी Windows सेवाएँ खोजें, हर बदलाव का पूर्वावलोकन देखें, और कल से <em>क्या ड्रिफ्ट हुआ</em> यह जानें</h1>
+      <p class="lede"><strong>{{product}}</strong> वही <code>services.msc</code> है, जिसे Windows मशीनों का प्रशासन करने वालों के लिए नए सिरे से बनाया गया है। एक ही इंजन पर एक विंडो और एक कमांड लाइन। आठ सौ पंक्तियाँ स्क्रोल करने के बजाय मशीन से सवाल पूछें। कोई बदलाव क्या करेगा, यह <strong>कुछ भी दबाने से पहले</strong> देखें। और वह हिस्सा जो <code>services.msc</code> में कभी था ही नहीं: <strong>हर सेवा को एक फ़ाइल में फ़्रीज़ करें, और एक हफ़्ते बाद पूछें कि क्या बदला।</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">Windows के लिए डाउनलोड करें</a>
+        <a class="btn btn-secondary" href="{{repo}}">GitHub पर कोड देखें</a>
+      </div>
+      <ul class="trust">
+        <li>मुफ़्त और ओपन सोर्स, GPL-3.0</li>
+        <li>एक फ़ाइल, या इंस्टॉलर</li>
+        <li>देखने के लिए व्यवस्थापक अधिकार नहीं चाहिए</li>
+        <li>इंटरनेट से कभी संपर्क नहीं करता</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="पाँच प्रविष्टियाँ चुनी हुई विंडो, जिसमें सूची के ऊपर उन्हें शुरू करने की योजना दिखाई गई है: पाँच चरण, यह टिप्पणी कि उनमें से दो पहले से उसी स्थिति में हैं, हर प्रविष्टि के लिए एक bws start पंक्ति, और Start 5 entries बटन।" width="1632" height="1041"></a>
+      <figcaption>चुनी हुई प्रविष्टियाँ, कुछ भी होने से पहले दिखाई गई योजना, और वह <code>bws</code> पंक्ति जो ठीक यही काम माँगती है। प्रोग्राम अंग्रेज़ी में बोलता है। विंडो अपने बगल में रखी भाषा फ़ाइल को पढ़ती है, इसलिए अनुवाद बिना दोबारा बिल्ड किए संभव है।</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  विंडो के असली कैप्चर, जो 2026-09-25 और 2026-09-26 को रिकॉर्ड किए गए और 2026-10-07 से यहाँ दिखाए जा रहे हैं।
+  2026-09-24 के पहले कैप्चर ने HTML में बनाई गई नकली विंडो की जगह ली थी। सत्र वही GIF है जो README में है,
+  दोनों के लिए एक फ़ाइल, मालिक के 2026-10-07 के निर्णय से। 2026-09-24 से उस दिन तक इसकी जगह नियंत्रणों वाला
+  वीडियो था, क्योंकि WCAG 2.2.2 कहता है कि पाँच सेकंड से लंबा चलता लूप रोका जा सकना चाहिए, और GIF को
+  रोका नहीं जा सकता। यह GIF की कीमत है, और इसे भूलने के बजाय यहाँ कह दिया गया है।
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">इसके साथ आधा मिनट</span>
+    <h2>उपयोग में यह कैसा दिखता है</h2>
+    <p class="lede">एक असली सत्र, पोलिश भाषा में इंस्टॉल किए गए Windows पर। प्रदर्शन नाम Windows से आते हैं, इसलिए वे उसी की भाषा में हैं। विंडो खुद अंग्रेज़ी में है।</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="चार प्रविष्टियाँ चुनी गईं और उन्हें शुरू करने की योजना, Local Session Manager का ज़बरदस्ती रीस्टार्ट जिसकी योजना चेतावनी देती है कि इसके बिना मशीन काम नहीं करती और बटन चलने से पहले इसका नाम माँगती है, खाली खोज बॉक्स के नीचे शुरुआत के लिए सवाल, और नाम का एक हिस्सा टाइप करके खोजी गई तथा शुरू की गई Print Spooler।" width="1632" height="1041" loading="lazy"></a>
+      <figcaption>चार प्रविष्टियाँ चुनी गईं और उन्हें शुरू करने की योजना, एक ज़बरदस्ती रीस्टार्ट जो ऐसी सेवा का नाम माँगता है जिसकी मशीन को ज़रूरत है, खाली खोज बॉक्स के नीचे के सवाल, और टाइप करके खोजी व शुरू की गई Print Spooler।</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="शुरुआती स्क्रीन: इस मशीन के बारे में संख्याओं के तीन कार्ड, यानी चल रही सेवाएँ, अपने-आप शुरू होने के लिए सेट वे सेवाएँ जो शुरू नहीं हुईं, और अपने-आप शुरू होने के लिए सेट वे सेवाएँ जिनकी फ़ाइल गायब है, और एक Show the list बटन।" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>यह इस मशीन की कुछ संख्याओं के साथ खुलता है। हर संख्या एक सवाल है। उस पर क्लिक करें और सवाल खोज बॉक्स में चला जाता है।</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="सेवाओं की सूची, जिसमें खोज बॉक्स के ऊपर तीन सूचियाँ, एक खाली खोज बॉक्स, स्थिति, स्टार्टअप प्रकार, हस्ताक्षर, विसंगतियों और ट्रिगर के लिए पंक्तियों में खुले फ़िल्टर बटन, और नीचे सूची है।" width="1632" height="1041" loading="lazy"></a>
+        <figcaption>फ़िल्टर बटन खोज बॉक्स में लिखते हैं, इसलिए आपने जो क्लिक किया वह एक ऐसी क्वेरी है जिसे आप पढ़ और संपादित कर सकते हैं।</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">यह क्यों बना</span>
+    <h2><code>services.msc</code> Windows 2000 के बाद से लगभग वैसा ही है</h2>
+    <p class="lede">व्यवस्थापक इसमें हफ़्ते के कई घंटे बिताते हैं और हर बार उन्हीं दीवारों से टकराते हैं।</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>कोई खोज नहीं।</strong> नेविगेट करने का एकमात्र तरीका प्रदर्शन नाम के पहले अक्षर पर कूदना है।</li>
+        <li><strong>कोई फ़िल्टरिंग नहीं।</strong> यह पूछने का कोई तरीका नहीं कि <em>मुझे वह दिखाओ जो अपने-आप शुरू होने के लिए सेट है और चल नहीं रहा</em>।</li>
+        <li><strong>एक बार में एक पंक्ति।</strong> बारह सेवाएँ रीस्टार्ट करने का मतलब है बारह राइट-क्लिक और बारह बार इंतज़ार।</li>
+        <li><strong>“Stopping...” हमेशा के लिए</strong>, और Task Manager तथा प्रक्रिया का अंदाज़ा लगाने के सिवा बाहर निकलने का कोई रास्ता नहीं।</li>
+        <li><strong>कोई इतिहास नहीं।</strong> कोई नहीं जानता कि उस स्टार्टअप प्रकार को Disabled किसने किया, या कब।</li>
+        <li><strong>छिपा हुआ डेटा।</strong> प्रक्रिया, ट्रिगर, विशेषाधिकार, security descriptor, निष्पादन योग्य फ़ाइल पर किसने हस्ताक्षर किए, यह सब याद से <code>sc.exe</code> चलाने या रजिस्ट्री खंगालने पर ही मिलता है।</li>
+        <li><strong>कमांड लाइन में बराबरी नहीं।</strong> <code>sc.exe</code> का सिंटैक्स नब्बे के दशक का है, और Windows PowerShell 5.1 में Windows के साथ आने वाला <code>Get-Service</code> यह तक नहीं दिखाता कि सेवा किस खाते से चलती है, विवरण तो दूर की बात है। PowerShell 7 दोनों दिखाता है, और वह अलग से इंस्टॉल होता है।</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>दूसरे टूल इसका एक-एक हिस्सा ठीक करते हैं</h3>
+        <p>Process Hacker और System Informer भरपूर जानकारी वाली सूची दिखाते हैं और ज़बरदस्ती प्रक्रिया खत्म कर सकते हैं, पर उनमें न ऑडिट है न कमांड लाइन। <code>sc.exe</code> और <code>PsService</code> सब कुछ कर सकते हैं पर आपको कुछ बताते नहीं। PowerShell के <code>*-Service</code> cmdlet स्क्रिप्ट में चल सकते हैं पर उथले हैं।</p>
+        <p>खोजी जा सकने वाली सूची, हर बदलाव से पहले पूर्वावलोकन, और समय के साथ क्या बदला इसका रिकॉर्ड, इन तीनों को कोई एक साथ नहीं देता। और पहली दोपहर के बाद इसे मशीन पर रखने की वजह यही रिकॉर्ड है।</p>
+        <a class="more" href="{{url:services-msc-alternative}}">पूरी तुलना</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">यह क्या करता है</span>
+    <h2>एक इंजन पर एक विंडो और एक कमांड लाइन</h2>
+    <div class="grid">
+      <div class="card"><h3>स्क्रोल करने के बजाय पूछें</h3><p><code>start:auto !status:running</code> का मतलब है <em>जो चालू होना चाहिए और नहीं है</em>। एक ही भाषा, खोज बॉक्स में भी और <code>bws list --query</code> में भी, और टाइप करते समय फ़ील्ड सुझाए जाते हैं।</p></div>
+      <div class="card"><h3>कुछ भी होने से पहले योजना दिखाएँ</h3><p>हर स्टॉप, स्टार्ट, रीस्टार्ट और स्टार्टअप प्रकार का बदलाव उन सेवाओं के साथ पूर्वावलोकन में दिखता है जिन्हें वह अपने साथ बंद करता है, और जो पूर्वावलोकन में दिखता है वही चलता है।</p></div>
+      <div class="card"><h3>बताएँ कि क्या ड्रिफ्ट हुआ और किसने बदला</h3><p><code>bws snapshot create</code> मशीन को एक फ़ाइल में फ़्रीज़ कर देता है, और <code>bws snapshot diff</code> बताता है कि तब से क्या बदला, और कॉन्फ़िगरेशन को उससे अलग रखता है जो सिर्फ़ शुरू या बंद हुआ। <code>bws history</code> System लॉग से बताता है कि स्टार्टअप प्रकार किसने बदला और सेवा किसने इंस्टॉल की। विंडो ये तीनों काम <em>Audit...</em> के तहत करती है।</p></div>
+      <div class="card"><h3>एक बटन दबाकर आम समस्या ठीक करें</h3><p><em>Tools</em> टैब और <code>bws tool fix</code> उस सेवा को रीस्टार्ट करते हैं जो प्रिंट न करने वाले प्रिंटर, बंद पड़ी आवाज़ या अटकी हुई खोज के पीछे होती है, साथ ही उन सेवाओं को भी जो उस पर निर्भर हैं, और यह सब बाकी हर चीज़ वाली उसी योजना के ज़रिए होता है।</p></div>
+      <div class="card"><h3>ऐसी सेवा रोकें जो रुकती ही नहीं</h3><p>यह पहले विनम्रता से कहता है और प्रक्रिया को तभी खत्म करता है जब वह विफल हो, और उसमें रहने वाली हर दूसरी सेवा का नाम बताता है।</p></div>
+      <div class="card"><h3>वह दिखाएँ जो <code>services.msc</code> छिपाता है</h3><p>निष्पादन योग्य फ़ाइल पर किसने हस्ताक्षर किए और Windows उस पर भरोसा करता है या नहीं, ट्रिगर, विशेषाधिकार, security descriptor, प्रक्रिया और उसकी मेमोरी। कॉलम के रूप में भी, और खोजने की चीज़ों के रूप में भी।</p></div>
+      <div class="card"><h3>बताएँ कि कब कुछ पढ़ नहीं पाया</h3><p>जो फ़ील्ड पढ़ा नहीं जा सका उसे “पढ़ा नहीं गया” बताया जाता है, खाली कभी नहीं दिखाया जाता। व्यवस्थापक अधिकारों के बिना लिया गया स्नैपशॉट यह बात फ़ाइल के अंदर ही बता देता है।</p></div>
+      <div class="card"><h3>स्क्रिप्ट में आसानी से फ़िट हो</h3><p>हर कमांड पर <code>--json</code>, हर अंत के लिए एक एग्ज़िट कोड, और जब diff को ड्रिफ्ट मिले तो <code>5</code>।</p></div>
+      <div class="card"><h3>एक फ़ाइल से चलाएँ, ऑफ़लाइन</h3><p>अनज़िप करके चलाएँ, या पूरी मशीन के लिए इंस्टॉल करें। .NET इंस्टॉल करने की ज़रूरत नहीं, और यह इंटरनेट से कभी संपर्क नहीं करता। पढ़ने के लिए व्यवस्थापक अधिकार नहीं चाहिए। GPL-3.0।</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">वह हिस्सा जो services.msc ने कभी नहीं किया</span>
+    <h2>कल से क्या बदला</h2>
+    <p class="lede">स्नैपशॉट एक पल में पूरी मशीन है: हर सेवा और ड्राइवर, उसके स्टार्टअप प्रकार, खाते, लॉन्च पथ, उसकी फ़ाइल के हैश और हस्ताक्षरकर्ता, निर्भरताओं, ट्रिगर, विशेषाधिकारों और security descriptor के साथ। यह JSON है जिसमें हर पंक्ति में एक फ़ील्ड है, इसलिए यह रिपॉज़िटरी में रखा जा सकता है और <code>git diff</code> इसे पढ़ लेता है।</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>कॉन्फ़िगरेशन और चलने की स्थिति अलग-अलग बताई जाती हैं।</strong> एक दिन के अंतर से लिए गए दो स्नैपशॉट इसमें अलग होते हैं कि क्या चल रहा है, और उसमें से लगभग कुछ भी ड्रिफ्ट नहीं होता। जो स्टार्टअप प्रकार बदला वही पंक्ति पढ़ने लायक है।</li>
+        <li><strong>जिसकी तुलना नहीं हो सकी वह सूचीबद्ध है, छिपा नहीं।</strong> जो फ़ील्ड किसी एक स्नैपशॉट ने कभी पढ़ा ही नहीं, वह <em>तुलना नहीं की गई</em> के रूप में सामने आता है, इसलिए जो diff <em>कुछ नहीं बदला</em> कहता है उसका मतलब है कि जो दोनों पक्ष देख सके उसमें कुछ नहीं बदला।</li>
+        <li><strong><code>--exit-code</code> कॉन्फ़िगरेशन अलग होने पर <code>5</code> के साथ खत्म होता है</strong>, इसलिए एक शेड्यूल किया गया टास्क डिप्लॉयमेंट के समय स्नैपशॉट ले सकता है और मशीन के ड्रिफ्ट होने की पहली ही रात किसी को अलर्ट भेज सकता है।</li>
+        <li><strong>दो मशीनें, दो फ़ाइलें।</strong> स्टेजिंग पर एक स्नैपशॉट लें और प्रोडक्शन पर एक, और उनकी तुलना कहीं भी करें।</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">स्नैपशॉट और ड्रिफ्ट कैसे काम करते हैं</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">योजना के बिना कुछ नहीं होता</span>
+    <h2>पूर्वावलोकन ही निष्पादन है</h2>
+    <p class="lede">कुछ भी लिखने वाला हर ऑपरेशन पहले एक योजना बनाता है, और वही योजना पूर्वावलोकन है, निर्भर सेवाओं का कैस्केड है, कुछ दबाने से पहले का इनकार है, वही काम माँगने वाली कमांड लाइन है, और बाद में वापस लौटने का रास्ता है।</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong><code>--dry-run</code> के बिना चलाएँ तो वही चरण चलते हैं</strong>, उसी क्रम में, और उनके साथ वही कारण। असली काम के लिए कोई दूसरा कोड पथ नहीं है।</li>
+        <li><strong>जो उसके साथ बंद होता है वह योजना में है।</strong> जो सेवाएँ टूटतीं वे अपने आप में अलग चरण हैं, और जो योजना मशीन की ज़रूरत की किसी चीज़ को बंद कर देती उसकी चेतावनियों में यह लिखा होता है।</li>
+        <li><strong>इनकार बटन से पहले आता है।</strong> ड्राइवर, ऐसी सेवा जिसे बंद करने का अनुरोध सेवा प्रबंधक स्वीकार नहीं करता, सिस्टम द्वारा सुरक्षित प्रक्रिया: इन सबको योजना बनते समय ही कारण के साथ मना कर दिया जाता है। विंडो बटन को धूसर कर देती है और उसके बगल में कारण बताती है।</li>
+        <li><strong>ज़बरदस्ती रोकना दो चरणों का है, और दूसरा सशर्त है।</strong> <code>bws kill</code> सेवा से रुकने को कहता है और उसकी प्रक्रिया को तभी खत्म करता है जब वह काम न करे, और उसमें रहने वाली हर दूसरी सेवा का नाम बताता है।</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">जब कोई सेवा रुकने से इनकार करे</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">इसके साथ दो मिनट</span>
+    <h2>कमांड लाइन से</h2>
+    <p class="lede">विंडो वाला ही इंजन, स्क्रिप्ट, शेड्यूल किए गए टास्क और CI के लिए। डेटा स्टैंडर्ड आउटपुट में जाता है और बाकी सब स्टैंडर्ड एरर में, इसलिए <code>bws list --json | jq</code> काम करता है और कोई चेतावनी आपके JSON में कभी नहीं आती।</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">जो चालू होना चाहिए और नहीं है</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">वे सेवाएँ जिनकी बाइनरी गायब है</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">बिना हस्ताक्षर वाली, प्रति-सत्र प्रतियों के बिना</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">एक प्रविष्टि के बारे में जो कुछ पता है</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">इसे रोकने से और क्या बंद होगा</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">इसकी प्रक्रिया खत्म करने से साथ में क्या जाएगा</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">इसे ऑटोमैटिक से हटाने पर क्या होगा</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">बदलाव से पहले मशीन को फ़्रीज़ करें</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">तब से क्या बदला, सेटअप बदला हो तो 5</span>
+<span class="k">bws history Spooler</span>                               <span class="c">इसका स्टार्टअप प्रकार किसने और कब बदला</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">अटके प्रिंटर का त्वरित समाधान क्या करेगा</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">हर कमांड, विकल्प और एग्ज़िट कोड</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">इसे पाएँ</span>
+    <h2>अनज़िप करके चलाएँ, या इंस्टॉल करें</h2>
+    <p class="lede">Windows 10 1809 या Windows Server 2019 और उसके बाद के संस्करण, 64-बिट। आर्काइव को इंस्टॉलर नहीं चाहिए और वे रजिस्ट्री में कुछ नहीं लिखते, और देखने के लिए व्यवस्थापक अधिकार नहीं चाहिए। कुछ भी बदलने के लिए उन्नत अधिकारों वाला सत्र चाहिए, और दोनों हिस्से चुपचाप विफल होने के बजाय यह बता देते हैं। विंडो <em>Restart as admin</em> का विकल्प देती है।</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>फ़ाइल</th><th>यह क्या है</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>विंडो, एक अपने-आप में पूर्ण निष्पादन योग्य फ़ाइल, .NET इंस्टॉल करने की ज़रूरत नहीं</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>कमांड लाइन, एक अपने-आप में पूर्ण निष्पादन योग्य फ़ाइल, स्क्रिप्ट और CI के लिए</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>इंस्टॉलर: दोनों प्रोग्राम मशीन के हर खाते के लिए, विंडो Start मेनू में और <code>bws</code> PATH में</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>निष्पादन योग्य फ़ाइलों पर Authenticode हस्ताक्षर है, इसलिए Windows अज्ञात प्रकाशक की चेतावनी देने के बजाय प्रकाशक का नाम बताता है।</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows के लिए डाउनलोड करें</a>
+      <a class="btn btn-secondary" href="{{url:download}}">आवश्यकताएँ और सोर्स से बिल्ड करना</a>
+    </div>
+  </div>
+</section>
