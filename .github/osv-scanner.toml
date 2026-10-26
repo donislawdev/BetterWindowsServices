@@ -1,8 +1,9 @@
 # Advisories this repository has read and settled, for OSV-Scanner.
 #
 # THE SCANNER READS THIS FILE FOR THE FILES IN THIS FOLDER ONLY. It does not carry it into
-# subfolders - the scanner's own documentation for the pinned v2.6.0 says so, and it was measured on
-# 2026-10-16: the same entry one folder down left the advisory in the report. That is on purpose
+# subfolders - the scanner's own documentation for v2.6.0 says so, and it was measured with v2.6.0
+# on 2026-10-16 and again with the pinned v2.7.0 on 2026-10-26: the same entry one folder up from
+# the list left both advisories in the report, and in this folder it filtered them. That is on purpose
 # here, because the canary files in osv-scanner/ must keep coming back vulnerable. The one file
 # .github/workflows/osv-scanner.yml scans in this folder is semgrep.installed.txt, which it writes
 # from what pip would install for semgrep, so every entry below is about a package semgrep brings.

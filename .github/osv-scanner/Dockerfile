@@ -11,7 +11,9 @@
 # the `docker` entry in .github/dependabot.yml proposes the next release of the scanner here,
 # tag and digest together, after the same seven days of cooldown as everything else.
 #
-# v2.6.0 rather than v2.7.0, which was the newest release on 2026-10-14 but two days old - the
-# cooldown above applied to the first pin as well. The digest is the multi-architecture index,
-# read from ghcr.io the same day. The image's entry point is the scanner itself.
-FROM ghcr.io/google/osv-scanner:v2.6.0@sha256:afd838850ac1a0fcc15ff4a041dc9ba11123c3f0d2666217a5f0fcf9222b55fa
+# v2.7.0 is the newest release on 2026-10-26, published on 2026-10-12, so it is past the cooldown
+# above. The first pin was v2.6.0 because v2.7.0 was two days old on 2026-10-14 and the cooldown
+# applied to that pin as well. The digest is the multi-architecture index, read from ghcr.io on
+# 2026-10-26, and the same read on v2.6.0 returned the digest that was pinned here before, which
+# is how the reading was checked. The image's entry point is the scanner itself.
+FROM ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
