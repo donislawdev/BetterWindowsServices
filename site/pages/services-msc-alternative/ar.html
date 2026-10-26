@@ -1,0 +1,102 @@
+<meta name="title" content="بديل للأداة services.msc لمسؤولي Windows">
+<meta name="description" content="services.msc بلا بحث ولا تصفية ولا سجل. بديل مجاني ومفتوح المصدر بلغة استعلام ومعاينة قبل كل تغيير ومقارنة للانحراف.">
+<meta name="nav" content="مقابل services.msc">
+<meta name="translated-from" content="cd53fdba1c38">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">دليل</span>
+    <h1>بديل للأداة <code>services.msc</code></h1>
+    <p class="lede">لم تتغير أداة Services snap-in تقريبًا منذ Windows 2000. وهي ما زالت أسرع طريقة لبدء خدمة واحدة تراها على الشاشة، وأبطأ طريقة للإجابة عن أي سؤال بشأن جهاز.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما الذي يدفع الناس إلى البحث</h2>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>لا بحث.</strong> التنقل الوحيد هو كتابة حرف للقفز إلى أول اسم معروض يبدأ به. وعلى جهاز فيه 800 عنصر يكون هذا تمريرًا بخطوات زائدة.</li>
+        <li><strong>لا تصفية.</strong> لا توجد طريقة لتسأل <em>ما المضبوط على البدء التلقائي ولا يعمل</em>، وهو السؤال الوحيد الذي يكشف جهازًا معطوبًا.</li>
+        <li><strong>صف واحد في كل مرة.</strong> إعادة تشغيل 12 خدمة تعني 12 نقرة يمينية و12 انتظارًا.</li>
+        <li><strong>«<span dir="ltr">Stopping...</span>» بلا مخرج</strong> إلا Task Manager وتخمين أي <code>svchost</code> يجب إنهاؤه.</li>
+      </ul>
+      <ul class="points points-alarm">
+        <li><strong>لا سجل تاريخي.</strong> لا أحد يعرف من ضبط نوع بدء التشغيل على Disabled، أو متى، أو هل كان كذلك الشهر الماضي.</li>
+        <li><strong>بيانات مخفية.</strong> العملية والمشغّلات والامتيازات المطلوبة، وكذلك security descriptor، ومن وقّع الملف التنفيذي: لا شيء من ذلك في snap-in، وكله مهم عندما يكون هناك خلل.</li>
+        <li><strong>الأعمدة لا تتغير.</strong> <span dir="ltr">Name, description, status, start type, log on as</span>. هذه القائمة كلها، ولا يمكن ترتيب أي منها ترتيبًا مفيدًا على جهاز حقيقي.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>المهام الثلاث نفسها، في الاثنين</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>ما تريد فعله</th><th>في <code>services.msc</code></th><th>هنا</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>إيجاد ما يجب أن يعمل ولا يعمل</td>
+            <td class="no">رتّب بنوع بدء التشغيل، ومرّر، واقرأ كل صف</td>
+            <td><code>start:auto !status:running</code></td>
+          </tr>
+          <tr>
+            <td>معرفة ما يسقط مع الإيقاف</td>
+            <td class="no">مربع حوار يسمّي الخدمات التابعة بعد أن تضغط Stop</td>
+            <td>خطة قبل أن يحدث أي شيء، فيها كل خدمة تابعة خطوة وتحذير حين يكون أحدها مما يحتاجه الجهاز</td>
+          </tr>
+          <tr>
+            <td>معرفة ما تغيّر منذ الأسبوع الماضي</td>
+            <td class="no">لا شيء</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>معرفة من غيّر نوع بدء التشغيل</td>
+            <td class="no">لا شيء</td>
+            <td><code>bws history Spooler</code>، من سجل System</td>
+          </tr>
+          <tr>
+            <td>إعادة تشغيل 12 خدمة</td>
+            <td class="no">12 نقرة يمينية</td>
+            <td>حدّد 12، خطة واحدة، تشغيل واحد، تقرير واحد</td>
+          </tr>
+          <tr>
+            <td>معرفة من وقّع الملف التنفيذي لخدمة</td>
+            <td class="no">لا يُعرض</td>
+            <td>عمود، وشيء يمكن البحث به: <code>signed:no</code></td>
+          </tr>
+          <tr>
+            <td>أتمتة أي من هذا</td>
+            <td class="no">لا يمكن برمجته</td>
+            <td><code>bws</code>، مع <code>--json</code> ورمز خروج لكل نهاية</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما يفعله snap-in أفضل حتى الآن</h2>
+    <p class="lede">شيئان، والادعاء بغير ذلك هو من النوع الذي لا يقوله هذا المشروع.</p>
+    <ul class="points">
+      <li><strong>هو موجود على الجهاز أصلًا.</strong> لا شيء يُنزَّل، ولا شيء يحتاج إلى المرور عبر سياسة برمجيات. وعلى جهاز ستلمسه مرة واحدة، هذه هي الحجة كلها.</li>
+      <li><strong>يحرّر إجراءات الاسترداد والحساب ومسار التشغيل.</strong> أما هذه الأداة فتعرض الحساب ومسار التشغيل ولا تغيّر أيًّا منهما، وتقرأ إجراءات الاسترداد فقط لتحذّر قبل أن تنهي عملية. وإنشاء خدمة أو حذفها أو إعادة توجيهها ليس هنا أيضًا.</li>
+    </ul>
+    <p>وما لا يستطيعه إطلاقًا هو سبب وجود هذه الأداة: أن تطرح سؤالًا، وتعرض خطة أولًا، وتخبرك بما انحرف.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما هذه الأداة</h2>
+    <p>{{product}} مجاني ومفتوح المصدر بموجب GPL-3.0، ملف واحد لكل نصف أو برنامج تثبيت للجهاز كله، ولا يتصل بالإنترنت أبدًا. والقراءة لا تحتاج إلى صلاحيات المسؤول. أما التغيير فيحتاج إليها، ويقول ذلك بدل أن يفشل بصمت.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">اطّلع على لغة الاستعلام</a>
+    </div>
+  </div>
+</section>

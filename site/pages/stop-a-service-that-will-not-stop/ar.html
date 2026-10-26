@@ -1,0 +1,68 @@
+<meta name="title" content="خدمة Windows عالقة على Stopping - كيف تنهيها بأمان">
+<meta name="description" content="الخدمة العالقة على Stopping تشارك غالبًا عمليتها مع غيرها. اعرف أيها قبل أن تنهي أي شيء، وأعدها كلها بعد ذلك بأمر واحد.">
+<meta name="nav" content="خدمة عالقة على Stopping">
+<meta name="translated-from" content="e61b45bab19e">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">دليل</span>
+    <h1>خدمة عالقة على <em dir="ltr">Stopping...</em></h1>
+    <p class="lede">يعرض snap-in كلمة <em dir="ltr">Stopping</em> ولا يتحرك. والجواب المعتاد هو Task Manager، وتخمين أي <code>svchost.exe</code> تعيش فيه، ثم End task، وهذا ينهي كل خدمة أخرى في تلك العملية أيضًا، دون أن يخبرك أيها كانت.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>لماذا يحدث هذا</h2>
+    <ul class="points points-alarm">
+      <li><strong>الخدمة لا تردّ على طلب الإيقاف.</strong> يطلب منها Windows بلطف وينتظر. والخدمة التي تعطلت، أو التي تنتظر شيئًا لن يعود، لا تردّ أبدًا.</li>
+      <li><strong>شيء يعتمد عليها ما زال يعمل.</strong> يرفض المدير الإيقاف بدل أن يكسر الآخر، ويعرض snap-in ذلك على أنه انتظار.</li>
+      <li><strong>تشارك عمليتها مع غيرها.</strong> تعيش معظم خدمات Windows داخل <code>svchost.exe</code> مشترك. وإنهاء تلك العملية ينهيها كلها، وهذا بالضبط ما يفعله Task Manager دون أن يسمّيها.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>انظر قبل أن تنهي أي شيء</h2>
+    <p>اسأل ما الذي سيذهب معها إن أُنهيت. لا يحدث شيء حتى تحذف <code>--dry-run</code>.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws kill Spooler --dry-run</span></code></pre>
+    <p>تسمّي المعاينة العملية برقمها، وتسمّي كل خدمة أخرى تعيش فيها، وتعرض خطوتين بدل واحدة: اطلب من الخدمة أن تتوقف، و<em>فقط إذا لم ينجح ذلك</em> أنهِ العملية. والخدمة التي تتوقف من تلقاء نفسها لا تُنهى أبدًا.</p>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>الخيار <code>--force</code> يتخطى الخطوة المهذبة</strong> وينهي العملية فورًا. وهو يغيّر الخطة لا طريقة تشغيلها، فتعرض المعاينة خطوة واحدة بدل اثنتين ويظهر الفرق قبل أن يحدث أي شيء.</li>
+        <li><strong>الخيار <code>--restart</code> يعيد كل شيء</strong> بعد ذهاب العملية: العنصر الذي سألت عنه وكل ما كان يشاركها عمليتها. وبدونه يُترك الجهاز وتلك الخدمات متوقفة، ويقول التقرير كيف تبدؤها من جديد.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>الرفض يسبق الزر.</strong> برنامج تشغيل، أو عملية يحميها النظام، أو خدمة لا يقبل المدير طلب إيقافها: يُرفض ذلك عند بناء الخطة مع بيان السبب، لا بعد انتظار ستين ثانية.</li>
+        <li><strong>تحذير حين يهم الأمر.</strong> إذا كان العنصر مما لا يعمل الجهاز بدونه فإن الخطة تقول ذلك: إيقافه يُسقط الجهاز لا الخدمة وحدها.</li>
+      </ul>
+    </div>
+    <p class="note"><strong>إنهاء عملية هو الشيء الوحيد الذي تفعله هذه الأداة ولا يستطيع أحد رفضه نيابةً عن الجهاز.</strong> ولهذا هو أمر قائم بذاته، ولهذا تسمّي المعاينة كل خدمة تأخذها معها، ولهذا تأتي الخطوة المهذبة أولًا ما لم تقل غير ذلك.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>الترتيب الأكثر أمانًا</h2>
+    <ol class="prose-list">
+      <li><strong>انظر ما هي.</strong> <code>bws show Spooler</code>: العملية، وما يعتمد عليها، وما تعتمد عليه، وهل تقبل طلبات الإيقاف أصلًا.</li>
+      <li><strong>جرّب الإيقاف العادي خطةً.</strong> <code>bws stop Spooler --dry-run --dependents</code>. فإن كان الجواب رفضًا فهو يقول أيّ الأسباب الثلاثة هو.</li>
+      <li><strong>إن لم تتوقف فانظر كم يكلّف إنهاؤها.</strong> <code>bws kill Spooler --dry-run</code>، واقرأ قائمة الخدمات التي تشارك تلك العملية.</li>
+      <li><strong>ثم افعل، مع طريق للعودة.</strong> <code>bws kill Spooler --restart</code>. وينتهي التقرير بما لم ينجح والأوامر التي تعيد الأشياء.</li>
+    </ol>
+    <p>وتعمل الأربع بالطريقة نفسها في النافذة: انقر بزر الفأرة الأيمن على صف، واختر <em dir="ltr">Force stop...</em>، واقرأ الخطة، والزر تحتها مسمّى بما سيفعله.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>لماذا لا نستخدم Task Manager ببساطة</h2>
+    <p class="lede">لأنه يجيب عن سؤال مختلف. يعرف Task Manager العمليات وهذه المشكلة عن الخدمات، والاثنتان لا تتطابقان واحدة بواحدة.</p>
+    <p>قد يضم <code>svchost.exe</code> المشترك اثنتي عشرة خدمة. وسينهيه Task Manager دون أن يقول أي اثنتي عشرة، ولا تعود أي منها من تلقاء نفسها، ولا شيء بعد ذلك يخبرك بما توقف. وبرنامج EDR الذي ينبّه إلى عملية تُنهي <code>svchost.exe</code> يؤدي عمله، ولا يستطيع أن يميّز نقرتك عن أي شيء آخر.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+      <a class="btn btn-secondary" href="{{url:cli-reference}}">المرجع الكامل</a>
+    </div>
+  </div>
+</section>

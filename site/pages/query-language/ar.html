@@ -1,0 +1,177 @@
+<meta name="title" content="لغة الاستعلام - اسأل خدمات Windows سؤالًا">
+<meta name="description" content="لغة استعلام واحدة لمربع البحث ولأمر bws list --query. كل حقل وكل قيمة، والسؤال الذي لا يستطيع services.msc طرحه: ما الذي تعذرت قراءته.">
+<meta name="nav" content="لغة الاستعلام">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  جدول الحقول يُبنى من Bws.Core. فالعضوان QueryFields.Names وQueryFields.ValuesOf واجهة برمجية عامة
+  مخصصة لكل ما يعرضهما على شخص، لذا لا تستطيع هذه الصفحة ذكر حقل لا يملكه البرنامج، ولا إغفال حقل يملكه.
+  والجمل بجانبها في site/i18n.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">لغة الاستعلام</span>
+    <h1>اسأل الجهاز سؤالًا</h1>
+    <p class="lede">لغة واحدة، في مربع بحث النافذة وفي <code>bws list --query</code>. الكلمة المجردة تبحث في الاسم والاسم المعروض والحساب ومسار التشغيل. والحقل يضيّق البحث. {{field_count}} حقلًا، والنص نفسه يعني الشيء نفسه في نصفي الأداة.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ستة استعلامات تجيب عن سؤال حقيقي</h2>
+    <div class="grid">
+      <div class="card"><h3>ما يجب أن يعمل ولا يعمل</h3><p><code>start:auto !status:running</code></p><p>أول استعلام يكتبه معظم الناس، وهو الذي لا يستطيع <code>services.msc</code> الإجابة عنه إطلاقًا.</p></div>
+      <div class="card"><h3>خدمات اختفى ملفها</h3><p><code>file:missing</code></p><p>عنصر يشير إلى ملف تنفيذي غير موجود على القرص. وهو عادةً إزالة تثبيت تركت التسجيل خلفها.</p></div>
+      <div class="card"><h3>غير موقّعة، دون ضجيج الجلسات</h3><p><code>signed:no peruser:no</code></p><p>تصنع العائلات الخاصة بكل مستخدم نسخة لكل جلسة وتملأ القائمة بما يكاد يتطابق. وهذا يسأل عن الباقي.</p></div>
+      <div class="card"><h3>تعمل رغم تعطيلها</h3><p><code>mismatch:running</code></p><p>تكوين وحالة لا يتفقان: عنصر مضبوط في المدير على ألا يبدأ أبدًا، وهو يعمل مع ذلك.</p></div>
+      <div class="card"><h3>أي شيء يطلب صلاحيات تصحيح الأخطاء</h3><p><code>privilege:SeDebugPrivilege</code></p><p>امتياز يتيح لعملية فتح أي عملية أخرى. ومن المفيد أن تعرف أي الخدمات تطلبه.</p></div>
+      <div class="card"><h3>ما لم تستطع الأداة قراءته</h3><p><code>account:?</code></p><p>العناصر التي لم تستطع هذه الجلسة قراءة الحساب فيها. وهذا سؤال لا يستطيع <code>services.msc</code> حتى طرحه.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>كيف يُكتب الاستعلام</h2>
+    <div class="split">
+      <div>
+        <h3>شروط البحث</h3>
+        <ul class="prose-list">
+          <li>تُفصل الشروط بمسافات ويجب أن تتحقق كلها، ولا توجد كلمة <code>and</code> لأنه لا معنى آخر يمكن أن تؤديه.</li>
+          <li>الحقل نفسه إذا كُتب مرتين هو الاستثناء الوحيد: <code>status:running status:stopped</code> تعني أيًّا منهما، لأن هذا ما يكتبه تحديد مرشحين. أما حدّان على رقم فيضيّقان كالمعتاد: <code>pid:&gt;1000 pid:&lt;2000</code> هو النطاق بينهما.</li>
+          <li>الرمز <code>!</code> قبل شرط ينفيه: <code>!status:running</code>. وفي ملف دفعي فيه <code>setlocal EnableDelayedExpansion</code> يلتهم cmd ذلك الرمز <code>!</code> دون كلمة، فيعني الاستعلام شيئًا آخر بصمت، فاكتب <code>^!</code> داخل علامتي الاقتباس هناك.</li>
+          <li>الفاصلة داخل الحقل تعني <em>أو</em>: <code>start:manual,disabled</code>.</li>
+          <li>علامتا الاقتباس تحميان كل ما فيه مسافات أو نقطتان رأسيتان: <code>account:"NT SERVICE\McmSvc"</code>.</li>
+          <li>المسار الملصق كما هو، <code>C:\Windows\System32\svchost.exe</code>، يُبحث عنه ولا يُقرأ على أنه حقل اسمه C.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>كيف يُطابَق النص</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> يطابق كل ما <em>يحتوي</em> عليه. وهذا هو الافتراضي لأنه ما يتوقعه الناس من مربع بحث.</li>
+          <li><code>name:=spooler</code> مطابقة تامة.</li>
+          <li><code>name:spool*</code> يقبل أحرف البدل، <code>*</code> و<code>?</code>.</li>
+          <li><code>name:/^Sql.*/</code> تعبير نمطي، وداخل الشرطتين المائلتين يُكتب كما تُكتب التعبيرات النمطية: <code>\?</code> و<code>\\</code> والفاصلة تعني ما تعنيه هناك. والشرطة المائلة التي لا تُغلق خطأ، فللبحث عن الشرطة المائلة نفسها اكتب <code>\/</code> أو استخدم علامتي الاقتباس.</li>
+          <li>يُتجاهل اختلاف حالة الأحرف حتى خارج ASCII: اسم معروض بالبولندية أو اليونانية يطابق مهما كانت طريقة كتابته.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>ثلاث كلمات يقبلها كل حقل</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>القيمة المكتوبة بخطأ هي خطأ، وليست نتيجة فارغة أبدًا.</strong> <code>status:runing</code> يجيب <em dir="ltr">Did you mean running?</em> وينتهي بالرمز <code>2</code>. فالقائمة الفارغة كانت ستبدو إجابة، والفرق بين «لا شيء يطابق» و«كتبتها خطأ» هو الفرق بين جهاز نظيف وتدقيق لم يُثبت شيئًا. والاستعلام الذي لن يضيّق شيئًا يُرفض في سطر الأوامر أيضًا، حتى لا يعمل سكربت على الجهاز كله بسبب خطأ مطبعي.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>أمثلة أخرى</h2>
+    <p class="lede">كل مثال يعمل بالطريقة نفسها في مربع بحث النافذة وبعد <code>bws list --query</code>، وقد شُغّل كل منها على Windows حقيقي قبل أن يُكتب هنا. وما يجده يعتمد على الجهاز، وفي السؤال عن المشكلات تكون الإجابة الفارغة هي ما تريده.</p>
+    <div class="examples">
+    <h3>الحالة ونوع بدء التشغيل</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>عالقة على الإيقاف أو البدء، وهو الانتظار الذي يعرضه snap-in ولا ينتهي أبدًا.</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>مضبوطة على البدء التلقائي، ومتوقفة، ولا تنتظر مشغّلًا: القائمة القصيرة التي تستحق القراءة بعد إعادة التشغيل.</td></tr>
+          <tr><td><code>start:delayed</code></td><td>تلقائي، يبدأ بعد العناصر التلقائية الأخرى بقليل.</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>تعمل مع أن شيئًا لا يبدؤها عند الإقلاع: طلبها شيء ما، أو بدأها مشغّل، أو بدأها شخص.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>الحسابات</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>تعمل بحساب LocalSystem، وهو أقوى حساب، من ملف لم توقّعه Microsoft. والاستعلام عن الناشر يقرأ التوقيعات من تلقاء نفسه، فيستغرق بضع ثوانٍ.</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>الخدمات التي تعمل بأي حساب آخر: حساب افتراضي أو مُدار أو حساب شخص بعينه.</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>حساب افتراضي خاص بالخدمة. وعلامتا الاقتباس تبقيان الكلمتين معًا بسبب المسافة.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>الملفات والتوقيعات</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>بلا توقيع، أو سلسلة لا يثق بها Windows، أو ملف تغيّر بعد توقيعه.</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>موقّعة وموثوقة وليست من Microsoft: البرامج التي وضعتها شركات أخرى على هذا الجهاز.</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>برامج تشغيل تُحمَّل أثناء بدء Windows ولا يثق Windows بتوقيعها. وعلى جهاز سليم لا يوجد أي منها.</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>خدمة لها عمليتها الخاصة وملفها خارج مجلد Windows.</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>تعمل من داخل ملف تعريف أحدهم، وهو آخر مكان يُتوقع أن تُشغَّل منه خدمة.</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>الشرطة المائلة العكسية قبل المسافة تجعل المسافة جزءًا من الكلمة، فالمسار المنتهي بشرطة مائلة عكسية يُكتب بشرطتين حين يليه شرط آخر. وفي نهاية الاستعلام تكفي واحدة.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>المشغّلات والتبعيات</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>تنتظر وصول جهاز، فهي متوقفة لسبب.</td></tr>
+          <tr><td><code>trigger:network</code></td><td>تبدأ عندما يصل طلب إلى نقطة نهاية في الشبكة: منفذ أو أنبوب مسمّى أو واجهة RPC.</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>عناصر يستطيع مشغّل إيقافها، لا بدؤها فقط.</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>عناصر تحتاج إلى WMI كي تعمل.</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>كل ما تحتاجه Print Spooler لتعمل، وما تحتاجه تلك بدورها.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>الامتيازات والعمليات</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>تطلب العمل بوصفها جزءًا من نظام التشغيل.</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>تستطيع التصرف نيابةً عن عميل وهي تعمل بحساب غير LocalSystem.</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>تحمل معرّف SID خاصًا بها في عمليتها، فيمكن للأذونات أن تسمّيها وحدها. والاستعلام sidtype:restricted يسأل عن الخدمات التي عمليتها مقيّدة الكتابة أيضًا.</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>تعمل داخل svchost مشترك مع غيرها.</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>عملية تستخدم أكثر من 200 MB. وتُقرأ الذاكرة من تلقاء نفسها حين يسأل الاستعلام عنها.</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>في عملية معرّفها بين 1000 و2000.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>الأسماء والنص</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الاستعلام</th><th>ما الذي يجده</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>كلمة مجردة، يُبحث عنها في الاسم والاسم المعروض والحساب ومسار التشغيل.</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>هذا الاسم بالضبط، ولا شيء يحتوي عليه فقط.</td></tr>
+          <tr><td><code>name:win*</code></td><td>أسماء تبدأ بالحروف win، مكتوبة بحرف بدل.</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>أسماء تنتهي بالحروف svc، مكتوبة تعبيرًا نمطيًا.</td></tr>
+          <tr><td><code>description:none</code></td><td>لا وصف إطلاقًا، وهذا حال معظم برامج التشغيل.</td></tr>
+          <tr><td><code>description:?</code></td><td>وصف لم يستطع Windows تسليمه، وعادةً لأنه يشير إلى ملف لغة غير موجود.</td></tr>
+          <tr><td><code>peruser:template</code></td><td>القوالب الخاصة بكل مستخدم التي ينسخها Windows لكل جلسة مسجَّل دخولها.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>كل حقل</h2>
+    <p>مبني من البرنامج نفسه، فلا يستطيع هذا الجدول أن ينحرف عمّا تقبله الأداة. والحقل الذي لا قائمة قيم له يقبل نصًا أو رقمًا أو حجمًا، والعمود الثالث يقول أيها.</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>شيئان يستحقان أن تعرفهما</h2>
+    <div class="qa">
+      <div>
+        <h3>بعض الحقول مكلفة، وطلبها يشغّل القراءة</h3>
+        <p>قراءة التوقيعات تستغرق عدة ثوانٍ على جهاز كامل، والذاكرة قياس وليست إعدادًا، فلا يُقرأ أيٌّ منهما للقائمة ما لم يُطلب. والاستعلام الذي يذكر أحدهما يشغّل تلك القراءة من تلقاء نفسه، فلا داعي لأن تتذكر <code>--signatures</code> مع <code>signed:no</code>. وفي النافذة يقول الاستعلام عن التوقيعات إن الجواب غير مكتمل إلى أن تصل، بدل أن يعرض قائمة أقصر كأنها الجواب.</p>
+      </div>
+      <div>
+        <h3>النتيجة التي حُكم فيها على شيء غير مقروء تقول ذلك</h3>
+        <p>إذا حُكم على عناصر بناءً على حقل تعذرت على هذه الجلسة قراءته، فإن النتيجة تحمل سطرًا يذكر كم عنصرًا، لأن نتيجة كهذه قد تنقصها عناصر، أو تضم عناصر لا تنتمي إليها. وهذه القاعدة نفسها التي تلتزم بها الأداة كلها: القراءة الفاشلة ظاهرة في الجواب، ولا تُبتلع أبدًا. والناشر يعامل المعاملة نفسها حين لا تدّعيه إلا الشهادة: بجانب أي حكم غير <code>trusted</code> يُعرض الاسم على أنه <em dir="ltr">not verified</em>، ويحتسب <code>publisher:</code> العنصر غير مؤكَّد في سطر مستقل، فيُبقي <code>!publisher:microsoft</code> على ملف من Microsoft غيّره أحدهم بعد توقيعه.</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">مرجع سطر الأوامر</a>
+  </div>
+</section>

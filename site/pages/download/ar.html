@@ -1,0 +1,86 @@
+<meta name="title" content="تنزيل Better Windows Services لنظام Windows - مجاني، zip أو MSI">
+<meta name="description" content="ملفان تنفيذيان قائمان بذاتهما أو برنامج تثبيت موقّع، دون تثبيت .NET. Windows 10 الإصدار 1809 وWindows Server 2019 أو أحدث، 64 بت. مجاني ومفتوح المصدر، GPL-3.0.">
+<meta name="nav" content="تنزيل">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">تنزيل</span>
+    <h1>فك الضغط وشغّل، أو ثبّت</h1>
+    <p class="lede">الإصدار {{version}}. الأرشيفات لا تحتاج إلى برنامج تثبيت ولا تكتب شيئًا في السجل، والاطلاع لا يحتاج إلى صلاحيات المسؤول. أما برنامج التثبيت الموقّع فيضع البرنامجين على الجهاز كله بدلًا من ذلك. مجاني ومفتوح المصدر بموجب GPL-3.0.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">كل الإصدارات</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما الموجود في الإصدار</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الملف</th><th>ما هو</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>النافذة: <code>BetterWindowsServices.exe</code>، ملف تنفيذي واحد قائم بذاته يحمل وقت تشغيل <span dir="ltr">.NET</span> الخاص به بداخله</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>سطر الأوامر: <code>bws.exe</code>، ملف تنفيذي واحد قائم بذاته، للسكربتات والمهام المجدولة وCI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>برنامج التثبيت: البرنامجان معًا في <code>Program Files</code> لكل حساب على الجهاز، والنافذة في قائمة Start والأمر <code>bws</code> في PATH الخاص بالجهاز</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>خذ أحدهما أو كليهما: هما عميلان للمحرك نفسه ولا يحتاج أحدهما إلى الآخر. وعلى الخادم يكون سطر الأوامر الأصغر بين الاثنين ويفعل كل ما تفعله النافذة.</p>
+    <p>يحمل برنامج التثبيت ما في الأرشيفين تمامًا. ويُثبَّت بصمت بالأمر <code>msiexec /i {{archive_installer}} /qn</code>، وإصدار أحدث يُثبَّت فوق الأقدم، وهو لا يغلق شيئًا يعمل، فأغلق النافذة وأي <code>bws</code> يعمل قبل الترقية، لأن نسخة تُترك تعمل قد تتوقف بخطأ. والإزالة من <span dir="ltr">Settings, Apps</span> تحذف البرنامجين وإدخال قائمة Start وإدخال PATH، وتترك ملفاتك الخاصة.</p>
+    <p>الملفات التنفيذية موقّعة بتوقيع Authenticode، فيذكر Windows اسم الناشر بدل أن يحذّر من ناشر مجهول.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>المتطلبات</h2>
+    <ul class="points">
+      <li><strong>Windows 10 الإصدار 1809 أو أحدث، أو Windows Server 2019 أو أحدث.</strong> 64 بت فقط: العملية ذات 32 بت تقرأ مسارات ومفاتيح سجل مُعاد توجيهها، وهذا سيعطي إجابات خاطئة بصمت.</li>
+      <li><strong>لا حاجة إلى تثبيت <span dir="ltr">.NET</span>.</strong> يحمل الملفان التنفيذيان وقت تشغيل <span dir="ltr">.NET</span> الخاص بهما.</li>
+      <li><strong>صلاحيات المسؤول لتغيير أي شيء.</strong> القراءة والبحث واللقطات والمقارنات تعمل بدونها، مع ظهور عناصر أقل وإعلان الأداة ذلك في الأعلى بدل التظاهر بأن القائمة هي الجهاز كله.</li>
+    </ul>
+    <p>تحتفظ النافذة بملف واحد خاص بها، هو التخطيط الذي تركت عليه القائمة، تحت <code>%APPDATA%\BetterWindowsServices</code>. وتذهب اللقطة إلى حيث تطلب من <code>bws snapshot create</code> وضعها، وإلى المجلد الحالي إن لم تطلب.</p>
+    <p class="note"><strong>البرنامج يتحدث الإنجليزية.</strong> تقرأ النافذة ملف لغة، هو <code>languages\gui.&lt;code&gt;.json</code>، يوضع بجانبها ويُختار بلغة Windows، دون أي إعداد. فالترجمة إذن مساهمة يمكن إضافتها دون إعادة بناء، ويشرح <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> كيف.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>برامج مكافحة الفيروسات وEDR</h2>
+    <p class="lede">هذه الأداة تفعل ما يفعله المسؤول بالخدمات، وبعض ذلك هو ما تراقبه برامج الأمان.</p>
+    <p>تستطيع الأداة إيقاف الخدمات وبدءها، وإنهاء العملية الواقفة خلف إحداها، وهي تقرأ security descriptor والامتيازات المطلوبة لكل خدمة. وبرنامج EDR الذي ينبّه إلى عملية تُنهي <code>svchost.exe</code> يؤدي عمله، والإيقاف القسري هنا قد يبدو كذلك تمامًا.</p>
+    <p>وما <strong>لا</strong> تفعله، لتتحقق من الادعاء بنفسك: لا تحقن شيئًا في أي عملية، ولا تضغط ولا تشوّش شيئًا، ولا تثبّت خدمة ولا برنامج تشغيل ولا تترك شيئًا يعمل، ولا تفتح أي اتصال بالشبكة. وهي مفتوحة المصدر بموجب GPL-3.0 ويمكنك بناء الملفين التنفيذيين بنفسك.</p>
+    <p>إن كانت سياستك تحتاج إلى استثناء، فاستثنِ الملفين التنفيذيين كملفين لا كمجلد. والشيء الوحيد الجدير بالعناية نفسها التي تُعطى للأداة هو ملف اللقطة: فهو يصف الجهاز كله.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>البناء من المصدر</h2>
+    <p><span dir="ltr">.NET 10 SDK</span>، على Windows.</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>بعض الاختبارات تقرأ مدير التحكم بالخدمات الحقيقي في الجهاز الذي تعمل عليه وتقارن ما تقوله هذه الأداة بما يقوله <code>sc.exe</code>. وهي للقراءة فقط. والملفان التنفيذيان ذوا الملف الواحد اللذان تحملهما الإصدارات ناتجان عن أمري النشر هذين، وكل منهما ملف واحد وبداخله وقت التشغيل:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>يظهران باسمي <code>bws.exe</code> و<code>BetterWindowsServices.exe</code> تحت <code>bin/Release/.../win-x64/publish/</code> في كل مشروع. أما ملفات <code>.pdb</code> بجانبهما فهي رموز لتصحيح الأخطاء، ولا يحتاج التشغيل إليها.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>كلفة التشغيل</h2>
+    <p class="lede">قيس على جهاز واحد فيه 810 خدمات. ستختلف أرقامك، فعدد الخدمات والقرص والمعالج كلها تؤثر فيها.</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>نحو ربع ثانية</h3><p>ليقرأ <code>bws list</code> الجهاز كله.</p></div>
+      <div class="card"><h3>نحو ثمانية أعشار الثانية</h3><p>من بدء تشغيل النافذة إلى ظهور القائمة على الشاشة.</p></div>
+      <div class="card"><h3>نحو 100 MB</h3><p>للنافذة، نصفها إطار عمل واجهة المستخدم في Windows، قبل أن يعمل أي من كود هذه الأداة.</p></div>
+      <div class="card"><h3>نحو 16 MB</h3><p>لسطر الأوامر على الجهاز نفسه.</p></div>
+    </div>
+  </div>
+</section>

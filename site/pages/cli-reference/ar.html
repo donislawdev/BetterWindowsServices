@@ -1,0 +1,192 @@
+<meta name="title" content="مرجع سطر الأوامر - كل خيار ورمز خروج في bws">
+<meta name="description" content="كل أمر وخيار ورمز خروج في bws: list وshow وstop وstart وrestart وkill وstart-type وsnapshot وhistory وtool، مع بيان مكان عمل كل خيار.">
+<meta name="nav" content="مرجع CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  جداول هذه الصفحة تُبنى ولا تُكتب. فالخيارات تأتي من جدول المحلل نفسه في src/Bws.Cli/OptionSurface.cs
+  والرموز من src/Bws.Cli/ExitCode.cs، فأي خيار يُضاف إلى البرنامج يظهر هنا، وأي جملة عن خيار لم يعد موجودًا
+  تُفشل البناء. أما ما يعنيه كل منها فنثر وموطنه site/i18n، لأن النثر هو ما يُترجم.
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">مرجع</span>
+    <h1>مرجع سطر الأوامر</h1>
+    <p class="lede">كل أمر وكل خيار وكل رمز خروج في <code>bws</code>، الإصدار {{version}}. والأمر <code>bws --help</code> هو المرجع المعتمد وهو أطول، وهذه الصفحة هي السطح نفسه مرتبًا ليُقرأ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>الأوامر</h2>
+    <p>أحد عشر أمرًا. <code>snapshot</code> اسم ويأخذ بعده كلمة. و<code>tool</code> اسم أيضًا، وحده يسرد الأدوات.</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>الأمر الذي يُكتب بخطأ يُقترح عليه ما قصدته غالبًا، وينتهي التشغيل بالرمز <code>2</code> بدل أن يفعل شيئًا قريبًا مما طلبت.</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما يفعله كل أمر</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> و<code>show</code></h3>
+        <p><code>list</code> هو الجهاز كله، مضيَّقًا بالخيار <code>--query</code>. و<code>show</code> عنصر واحد مع كل ما هو معروف عنه: التوقيع والامتيازات، وكذلك security descriptor والذاكرة، وكلها تُقرأ في كل مرة، لأن ذلك يكلّف نحو ستين ميلي ثانية على عنصر واحد بينما يكلّف ثانية على الجهاز كله. والحقول الفارغة فعلًا تُترك ما لم تمرر <code>--full</code>. أما الحقل الذي لم يستطع أحد قراءته فيُطبع في الحالتين، لأن تركه كان سيبدو جوابًا.</p>
+      </div>
+      <div>
+        <h3><code>stop</code> و<code>start</code> و<code>restart</code></h3>
+        <p>كل منها يبني خطة وينفّذها. و<code>--dry-run</code> يطبع الخطة ولا يغيّر شيئًا، و<code>--dependents</code> يضع فيها الخدمات التي ستتعطل خطوات قائمة بذاتها، و<code>--timeout</code> يحدد كم تستطيع خطوة أن تمضي دون تقدم. وتُرفض برامج التشغيل ولا تُجرَّب، لأن إيقاف برنامج تشغيل في النواة كثيرًا ما لا يمكن التراجع عنه دون إعادة تشغيل.</p>
+      </div>
+      <div>
+        <h3><code>kill</code>: لخدمة لا تتوقف</h3>
+        <p>يطلب من الخدمة أن تتوقف وينهي العملية الواقفة خلفها <em>فقط إذا لم ينجح ذلك</em>، فالعنصر الذي يتوقف من تلقاء نفسه لا يُنهى أبدًا. وإنهاء عملية يأخذ معه كل خدمة أخرى تعيش فيها، سواء توقفت قبل ذلك أم لا، وتسمّيها المعاينة وتسمّي العملية برقمها. و<code>--force</code> يتخطى الخطوة المهذبة وحينها تعرض المعاينة خطوة واحدة بدل اثنتين. و<code>--restart</code> يعيد كل شيء بعد ذلك.</p>
+        <p class="note"><strong>يكتب Windows هذه الفكرة بشكل مختلف.</strong> الخيار <code>--force</code> في <code>Stop-Service</code> يعني «حتى لو كان شيء يعتمد عليها»، وهذا ما يفعله <code>--dependents</code> هنا. ولهذا فهو أمر قائم بذاته وليس خيارًا في <code>stop</code>.</p>
+      </div>
+      <div>
+        <h3><code>start-type</code>: إعداد وليس حركة</h3>
+        <p>يحدد ما سيفعله المدير بعنصر عند الإقلاع التالي، ومن دون <code>--stop</code> لا يحرّك شيئًا: العنصر الذي يعمل يظل يعمل، والذي توقف يبقى متوقفًا، وتقول الخطة ذلك. و<code>disabled</code> هو الذي يستحق التوقف عنده، لأنه يمنع المدير من بدء العنصر أصلًا، بما في ذلك عند الطلب لصالح شيء آخر يحتاج إليه. و<code>delayed</code> تلقائي يبدأ بعد العناصر التلقائية الأخرى بقليل، وهو الكلمة التي يسأل عنها <code>start:delayed</code> في الاستعلام، ويرفضه Windows لعنصر في مجموعة ترتيب تحميل، وهذا تقوله الخطة قبل أن يحدث أي شيء. وكل من الأربعة يكتب هل يبدأ العنصر متأخرًا، كما يفعل <code>sc.exe</code>. و<code>--stop</code>، بجانب <code>disabled</code> وحده، يوقف العنصر في الخطة نفسها بعد كتابة الإعداد.</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> و<code>snapshot diff</code></h3>
+        <p><code>create</code> يقرأ التوقيعات وقيم التجزئة دائمًا، لأن اللقطة تُحفظ وتُقارن لاحقًا، واللقطة الخالية منها تُقارن بلقطة فيها كأن الجهاز تغيّر. و<code>diff</code> يقول ما تغيّر بالانتقال من الملف الأول إلى الثاني، أو من ملف إلى هذا الجهاز بالخيار <code>--live</code>. وفي <a href="{{url:snapshots-and-drift}}">صفحة اللقطات</a> الصيغة والتعليل.</p>
+      </div>
+      <div>
+        <h3><code>history</code>: من غيّره، من سجل System</h3>
+        <p>تغييرات نوع بدء التشغيل وعمليات التثبيت من سجل System، الأحدث أولًا، مع الحساب الذي سجّله Windows. ويقول السطر الأول إلى أي مدى يمتد السجل إلى الوراء وهل مُسح، لأن التاريخ لا يطول أكثر من السجل. ومع اسم تكون التغييرات في نوع بدء تشغيل تلك الخدمة، أما عمليات التثبيت فتُسرد دون اسم فقط، لأن Windows يسجّل التثبيت تحت الاسم المعروض لا اسم الخدمة أبدًا. ويُسمّى الحساب حيث يستطيع هذا الجهاز تسميته بنفسه ويُعرض بمعرّف SID خلاف ذلك، وتأتي أنواع بدء التشغيل بالكلمات التي كتبها Windows.</p>
+      </div>
+      <div>
+        <h3><code>tool</code>: إجابات جاهزة عن المشكلات الشائعة</h3>
+        <p>الأدوات نفسها التي تعرضها النافذة في تبويب Tools. الأمر <code>bws tool</code> يسردها و<code>bws tool fix</code> يسرد الإصلاحات السريعة: <code>printer</code> و<code>sound</code> و<code>indexing</code> و<code>search</code>، وكل منها إعادة تشغيل خدمة Windows واحدة مع ما يعتمد عليها، اختيرت لأن صفحات استكشاف الأخطاء الرسمية من Microsoft تقترحها. والأمر <code>bws tool fix printer</code> هو بالضبط <code>bws restart Spooler --dependents</code>: الخطة نفسها والمخرجات نفسها ورموز الخروج نفسها، ومثل كل أمر هنا يغيّر شيئًا فهو لا يسأل أولًا، لذا فإن <code>--dry-run</code> هو طريقة النظر قبل أن يعمل.</p>
+      </div>
+      <div>
+        <h3><code>license</code>: ما بداخل الملف الذي نزّلته</h3>
+        <p>لا يقرأ شيئًا إطلاقًا، لا مدير الخدمات ولا القرص ولا الشبكة، ويجيب من سجل مُجمَّع داخل الملف التنفيذي. و<code>--components</code> يحوّل الإشعار إلى كل مكوّن مع إصداره وترخيصه ومصدره. وهي المجموعة نفسها التي تحملها قائمة المواد المنشورة بجانب التنزيل، لأن الاثنتين تُولَّدان من سجل واحد، وهذا سبب أهميتها: البرنامج ملف واحد قائم بذاته، فلا يوجد بجانبه شيء ليقرأه الماسح.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>أمثلة</h2>
+    <p class="lede">فُحصت الخطط أدناه بالخيار <code>--dry-run</code> مقابل البرنامج الذي تصفه هذه الصفحة. والأمر الذي يغيّر شيئًا لا يسأل أولًا، لذا فإن <code>--dry-run</code> هو طريقة النظر قبل أن يعمل. و<code>Spooler</code> يقوم مقام أي خدمة، فضع اسم خدمتك مكانه.</p>
+    <div class="examples">
+    <h3>ابحث واقرأ</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">كل خدمة وبرنامج تشغيل على هذا الجهاز</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">ما يجب أن يعمل ولا يعمل</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">ما تستخدمه عملية كل عنصر يعمل</span>
+<span class="k">bws show Spooler</span>                               <span class="c">كل ما هو معروف عن عنصر واحد</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">وكذلك الحقول الفارغة فعلًا</span></code></pre>
+    <h3>انظر أولًا، ثم غيّر</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">الخطة، ولا شيء غيرها</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">أعد تشغيلها مع ما يعتمد عليها</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">اسمح بدقيقتين لكل خطوة دون تقدم</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">ابدأها بعد العناصر التلقائية الأخرى بقليل</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">عطّلها وأوقفها في خطة واحدة</span></code></pre>
+    <h3>خدمة لا تتوقف</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">العملية، وكل خدمة تعيش فيها</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">أنهِ العملية فقط إذا فشل الإيقاف، ثم أعد كل شيء</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">خطوة واحدة بدل اثنتين: تُنهى العملية فورًا</span></code></pre>
+    <h3>اللقطات والانحراف</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">جمّد الجهاز، مع ملاحظة تُحفظ بداخله</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">ملفان: يومان، أو جهازان</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">الملف مقابل هذا الجهاز كما هو الآن</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">الأمر نفسه، وينتهي بالرمز 5 إذا انحرف التكوين</span></code></pre>
+    <h3>من غيّره</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">كل تغيير في نوع بدء التشغيل وكل تثبيت يحتفظ به سجل System</span>
+<span class="k">bws history Spooler</span>  <span class="c">تغييرات نوع بدء تشغيل خدمة واحدة</span>
+<span class="k">bws history --json</span>   <span class="c">الشيء نفسه مستندًا، مع السجل والتغييرات</span></code></pre>
+    <h3>إصلاحات سريعة</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">الأدوات الموجودة</span>
+<span class="k">bws tool fix</span>                  <span class="c">الإصلاحات السريعة، والخدمة خلف كل واحد</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">خطة إعادة تشغيل خدمتي الصوت</span>
+<span class="k">bws tool fix printer</span>          <span class="c">أعد تشغيل Print Spooler مع ما يعتمد عليها</span></code></pre>
+    <h3>ما بداخل الملف</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">كل مكوّن وإصداره وترخيصه ومصدره</span>
+<span class="k">bws --version</span>             <span class="c">إصدار هذا الملف التنفيذي</span></code></pre>
+    <h3>في سكربت PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># العناصر التي يجب أن تعمل ولا تعمل، ككائنات</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># الملفات غير الموقّعة، في جدول بيانات</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># ما تحتاجه خدمة واحدة</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># فحص ليلي يتفرع بحسب رمز الخروج</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>في cmd وملف دفعي</h3>
+<pre class="wrap-lines"><code><span class="c">rem أمر ثانٍ فقط إذا لم ينتهِ الأول نظيفًا</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem في ملف دفعي مفعّل فيه التوسع المتأخر يحتاج الرمز ! إلى علامة ^</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>الخيارات</h2>
+    <p>{{switch_count}} منها. والعمود الثالث هو الأوامر التي ينتمي إليها كل خيار: فالخيار الممرَّر إلى أمر لا فائدة له فيه خطأ ومعه تلك القائمة، وليس خيارًا يُتجاهل بصمت.</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>رموز الخروج</h2>
+    <p>{{exit_code_count}} نهايات، وكل واحدة منها شيء مختلف يفعله السكربت. تذهب البيانات إلى الإخراج القياسي وكل ما عداها إلى الخطأ القياسي، فيعمل <code>bws list --json | jq</code> ولا يصل تحذير إلى JSON أبدًا.</p>
+    <p>كل مستند JSON هو ASCII عادي: الحرف الخارج عنه يُكتب هروبًا من ستة محارف يعيده كل قارئ JSON إلى الحرف، فالأمر <code>bws list --json &gt; file.json</code> ينتج UTF-8 صالحًا و<code>| ConvertFrom-Json</code> يقرؤه صحيحًا أيًا كانت صفحة الرموز المضبوطة للطرفية. وفي النص الذي يقرؤه الشخص يُعرض المحرف الذي كان سيحرّك الطرفية بدل أن يُطبع، أي علامة جدولة أو فاصل سطر أو متتالية هروب أو تجاوز للاتجاه، برقم رمزه، <code>&lt;U+001B&gt;</code>.</p>
+    <p>الرمز <code>--</code> ينهي الخيارات، فتستطيع تسمية خدمة يبدأ اسمها بشرطة: <code>bws show -- -odd</code>. وأسطر الأوامر التي تسلّمها لك الأداة مكتوبة لبيئة PowerShell: الاسم الذي فيه مسافة يوضع بين علامتي اقتباس مزدوجتين، ويقرؤها cmd بالطريقة نفسها، والاسم الذي كان PowerShell سيوسّعه داخلها، مثل <code>MSSQL$SQLEXPRESS</code>، يوضع بين علامتي اقتباس مفردتين.</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>الضغط على Ctrl+C له ثلاثة مستويات، وكل مستوى يقول كم يكلّف التالي.</strong> الأول يتوقف عن المضي قدمًا ويعيد مع ذلك ما أُخذ، والثاني يترك الأمور كما هي ويطبع التقرير مع ذلك، والثالث ينهي العملية. والتشغيل الذي يوقفه شخص بيده ينتهي بالرمز <code>4</code> حتى لو وصلت كل الخطوات.</p>
+    <p class="note"><strong>إغلاق نافذة وحدة التحكم يُحتسب كأول Ctrl+C.</strong> يمهل Windows البرنامج خمس ثوانٍ بعد ذلك، وفيها يتوقف هذا البرنامج عن المضي قدمًا ويعيد ما أوقفه. أما تسجيل الخروج والإيقاف فينهيانه دون أي تحذير يمكنه التصرف بناءً عليه، وقد تفعل ذلك أيضًا جلسة بعيدة انقطعت.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>في مهمة مجدولة</h2>
+    <p>الشكل الذي بُنيت هذه الأداة له: جمّد الجهاز وهو سليم معروف، ثم اسأل كل ليلة هل ما زال كذلك.</p>
+<pre><code><span class="c"># يوم يدخل الجهاز الخدمة</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># كل ليلة، من مهمة مجدولة</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - لا انحراف في التكوين
+#   5 - انحرف التكوين، ويقول drift.json ما الذي حدث
+#   3 - عمل ولم يستطع قراءة كل شيء، فالجواب جزئي</span></code></pre>
+    <p>النافذة هي النصف الآخر من المحرك نفسه: <code>{{archive_window}}</code> يحملها، و<a href="{{url:download}}">صفحة التنزيل</a> تقول ما هو كل أرشيف.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>وسيط النافذة</h2>
+    <p><code>BetterWindowsServices.exe</code> يأخذ وسيطًا واحدًا مخصصًا لشخص: <code>--catalogue</code> يفتح ورقة للمطوّر تعرض كل مكوّن في النافذة في كل حالة، ولا يقرأ شيئًا من جهازك. والوسيط الثاني، <code>--carry</code>، هو الطريقة التي تسلّم بها نافذة ما كانت تعرضه إلى نسختها التي تعيد تشغيلها بصفة مسؤول. لا أحد يكتبه، وأي شيء فيه لم تكن تلك النافذة لتكتبه يُرفض.</p>
+  </div>
+</section>

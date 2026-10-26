@@ -1,0 +1,65 @@
+<meta name="title" content="اللقطات والانحراف - ما الذي تغيّر على هذا الجهاز منذ أمس">
+<meta name="description" content="جمّد كل خدمة في Windows في ملف JSON ثم اسأل عمّا تغيّر. يُبلَّغ عن التكوين منفصلًا عن حالة التشغيل، ورمز الخروج 5 يستطيع تنبيه أحدهم.">
+<meta name="nav" content="اللقطات والانحراف">
+<meta name="translated-from" content="63e01299cb60">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">الجزء الذي لم يفعله services.msc قط</span>
+    <h1>اللقطات والانحراف</h1>
+    <p class="lede">كل أداة أخرى تخبرك كيف يبدو الجهاز الآن. أما السؤال الذي يطرحه المسؤول فعلًا فهو <em>ما الذي يختلف عما كان عليه حين كان يعمل</em>، ولا شيء في Windows الأصلي يجيب عنه.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ما الذي تحمله اللقطة</h2>
+    <p>الجهاز كله في لحظة واحدة: كل خدمة وبرنامج تشغيل، مع نوع بدء التشغيل والحساب ومسار التشغيل ووسائطه، وقيمة التجزئة للملف الذي يشغّله وموقّعه، وتبعياته وما يعتمد عليه، ومشغّلاته، وامتيازاته المطلوبة، ونوع SID الخاص به، وكذلك security descriptor، إضافةً إلى اسم الجهاز والحساب الذي أخذها و<strong>هل كان ذلك الحساب مسؤولًا</strong>.</p>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span></code></pre>
+    <p>هي JSON بحقل واحد في كل سطر. وهذا مقصود: فهو يعني أن اللقطة تدخل مستودعًا ويقرؤها <code>git diff</code>، فلا تكون مقارنة الأداة نفسها هي الطريقة الوحيدة للنظر في واحدة.</p>
+    <p class="note"><strong>احفظها بما هي عليه.</strong> اللقطة تصف الجهاز كله، حتى كل مسار تشغيل وكل security descriptor. وتُكتب بأي أذونات يحملها مجلدها أصلًا، والأداة لا تضيّق شيئًا، فالمجلد الذي يستطيع آخرون قراءته يستطيعون أن يقرؤوا فيه كل ذلك.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ثم اسأل عما يختلف</h2>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+    <div class="split">
+      <ul class="points points-ok">
+        <li><strong>يُبلَّغ عن التكوين وحالة التشغيل كلٌّ على حدة.</strong> لقطتان بينهما يوم تختلفان فيما يعمل مصادفةً، وليس أغلب ذلك انحرافًا. فإذا اختلطا ضاع السطر الوحيد المهم، وهو نوع بدء تشغيل غيّره أحدهم، تحت أربعين سطرًا لا تهم.</li>
+        <li><strong>ما تعذرت مقارنته يُسرد ولا يُخفى.</strong> الحقل الذي لم تقرأه إحدى اللقطتين قط، لأن تلك الجلسة لم تكن تملك صلاحية قراءته، يظهر على أنه <em>لم تتم مقارنته</em> تحت عنصره، ويحسب الملخص تلك العناصر. فالمقارنة التي تقول <em>لم يتغير شيء</em> تعني أنه لم يتغير شيء فيما استطاع الطرفان رؤيته.</li>
+      </ul>
+      <ul class="points points-ok">
+        <li><strong>مقارنة لقطة مأخوذة بصلاحيات مرتفعة بأخرى دونها ستكذب</strong>، فتبلّغ عن عناصر محذوفة لم يحذفها أحد. وكل ملف يسجّل هل كان الحساب الذي أخذه مسؤولًا، وتقول المقارنة ذلك.</li>
+        <li><strong>ملفان، لا ملف وهذا الجهاز فقط.</strong> خذ واحدة على بيئة التجهيز وأخرى على بيئة الإنتاج وقارن بينهما في أي مكان: فالجواب عن <em>لماذا تختلف بيئة التجهيز</em> لا يحتاج إلى حضور أي من الجهازين.</li>
+      </ul>
+    </div>
+    <p><strong>وتفعل النافذة الشيء نفسه تحت <em dir="ltr">Audit...</em>.</strong> الأمر <em dir="ltr">Take snapshot...</em> يكتب الملف نفسه، مع ملاحظة إن كتبت واحدة، والأمر <em dir="ltr">Compare with this machine...</em> أو <em dir="ltr">Compare two snapshots...</em> يعرض ما تغيّر بدل القائمة، صفًا لكل حقل، وكل ما يجعل المقارنة غير تامة الدقة مذكور فوق الجدول. و<em dir="ltr">Show</em> يضيّقها إلى الفروق أو إلى حقل واحد، و<em dir="ltr">Export...</em> يكتبها في ملف CSV.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>رمز الخروج هو المقصود</h2>
+    <p>الخيار <code>--exit-code</code> ينتهي بالرمز <code>5</code> عندما يختلف التكوين: عنصر أُضيف أو أُزيل، أو عنصر مضبوط بشكل مختلف. والخدمة التي توقفت أو بدأت من تلقاء نفسها يُبلَّغ عنها ولا تُحتسب، وكذلك النسخ الخاصة بكل مستخدم التي ينشئها Windows لكل جلسة مسجَّل دخولها، فهذه تُترك وتُعدّ. وهذا ليس فشلًا: فالانحراف هو ما صُنعت هذه الأداة لإيجاده، وإيجاده ليس فشلًا، ولذلك له رقم خاص به بدل أن يستعير الرقم الذي يعني أن شيئًا ساء.</p>
+<pre><code><span class="c"># يوم يدخل الجهاز الخدمة</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># كل ليلة، من مهمة مجدولة</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - لا انحراف في التكوين
+#   5 - انحرف التكوين، ويقول drift.json ما الذي حدث
+#   3 - عمل ولم يستطع قراءة كل شيء، فالجواب جزئي</span></code></pre>
+    <p>هذه هي الآلية كلها: خط أساس يؤخذ والجهاز سليم معروف، وسؤال يُطرح كل ليلة. وفي أول ليلة يجيب فيها <code>5</code> يعرف أحدهم في تلك الليلة نفسها لا في صباح يتعطل فيه شيء.</p>
+    <a class="more" href="{{url:audit-windows-services}}">استخدام هذا في التدقيق</a>
+  </div>
+</section>

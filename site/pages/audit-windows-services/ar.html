@@ -1,0 +1,64 @@
+<meta name="title" content="تدقيق خدمات Windows - إثبات ما تغيّر على الجهاز">
+<meta name="description" content="جمّد كل خدمة في ملف عند النشر، ثم اسأل كل ليلة هل ما زال الجهاز مطابقًا. الانحراف والملفات غير الموقّعة والملفات المفقودة في استعلام واحد.">
+<meta name="nav" content="تدقيق الخدمات بحثًا عن الانحراف">
+<meta name="translated-from" content="79eda959b3f6">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">دليل</span>
+    <h1>تدقيق خدمات Windows</h1>
+    <p class="lede">التدقيق ليس قائمة بما على الجهاز. هو الفرق بين ما على الجهاز وما كان يُفترض أن يكون عليه، ولا شيء في Windows الأصلي يسجّل النصف الثاني.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ثلاثة أسئلة، وما يجيب عنها</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>ما الذي تغيّر منذ بُني هذا الجهاز؟</h3>
+        <p>لقطة تؤخذ عند النشر، ومقارنة مع الجهاز الليلة. ويُبلَّغ عن التكوين منفصلًا عمّا بدأ أو توقف فحسب، فلا يضيع نوع بدء التشغيل الوحيد الذي غيّره أحدهم تحت أربعين خدمة تعمل مصادفةً.</p>
+        <p><code>bws snapshot diff baseline.json --live</code></p>
+      </div>
+      <div class="card">
+        <h3>لماذا تختلف بيئة التجهيز عن بيئة الإنتاج؟</h3>
+        <p>خذ لقطة على كل منهما وقارن الملفين، في أي مكان ودون حضور أي من الجهازين. والملفان يحملان اسم الجهاز والحساب الذي أخذهما.</p>
+        <p><code>bws snapshot diff staging.json production.json</code></p>
+      </div>
+      <div class="card">
+        <h3>ما الموجود هنا وما لا ينبغي أن يكون؟</h3>
+        <p>استعلامات تجد الأشكال التي تستحق النظر: خدمة اختفى ملفها التنفيذي، أو غير موقّعة، أو تعمل رغم تعطيلها، أو تطلب صلاحيات تصحيح الأخطاء.</p>
+        <p><code>file:missing</code>, <code>signed:no</code>, <code>mismatch:running</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>الشكل الليلي</h2>
+<pre><code><span class="c"># يوم يدخل الجهاز الخدمة</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># كل ليلة، من مهمة مجدولة</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - لا انحراف في التكوين
+#   5 - انحرف التكوين، ويقول drift.json ما الذي حدث
+#   3 - عمل ولم يستطع قراءة كل شيء، فالجواب جزئي</span></code></pre>
+    <p>الرمز <code>5</code> هو ما يجعل هذا تدقيقًا لا تقريرًا لا يقرؤه أحد: تبقى المهمة صامتة حتى ينحرف الجهاز، وفي الليلة التي ينحرف فيها يُنبَّه أحدهم.</p>
+    <p class="note"><strong>خذ خط الأساس من جلسة مرفوعة الصلاحيات.</strong> فبدون صلاحيات المسؤول يسرد المدير عناصر أقل ويرفض أكثر مما يسرده. واللقطة تسجّل هل كان الحساب الذي أخذها مسؤولًا، فتستطيع المقارنة قول ذلك بدل الإبلاغ عن عناصر محذوفة لم يحذفها أحد، لكن خط الأساس الناقص نصف الجهاز يظل خط أساس ناقصًا نصف الجهاز.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>قيمة اللقطة دليلًا</h2>
+    <ul class="points points-ok">
+      <li><strong>هي JSON بحقل واحد في كل سطر</strong>، فتدخل مستودعًا ويقرؤها <code>git diff</code>. ومدقق لا يملك هذه الأداة يستطيع قراءة الملف، ونظام التحكم في الإصدارات يجيب أصلًا عن <em>متى</em>.</li>
+      <li><strong>تحمل ما لم يعرضه snap-in قط:</strong> مسار التشغيل ووسائطه، وقيمة التجزئة للملف وموقّعه، والتبعيات في الاتجاهين، والمشغّلات، والامتيازات المطلوبة، ونوع SID، وكذلك security descriptor.</li>
+      <li><strong>تقول ما لم تستطع قراءته.</strong> الحقل الذي لم تملك هذه الجلسة صلاحيته يُسجَّل على أنه لم يُقرأ، وليس فارغًا أبدًا، فتستطيع مقارنة لاحقة أن تقول <em>لم تتم مقارنته</em> بدل أن تعدّه بصمت غير متغيّر.</li>
+      <li><strong>هي وصف للجهاز كله.</strong> فاحفظها وفق ذلك: تُكتب بأي أذونات يحملها مجلدها أصلًا، والأداة لا تضيّق شيئًا.</li>
+    </ul>
+    <a class="more" href="{{url:snapshots-and-drift}}">كيف تعمل اللقطات والمقارنات</a>
+  </div>
+</section>
