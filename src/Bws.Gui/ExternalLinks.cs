@@ -296,9 +296,29 @@ internal static class ExternalLinks
         desktop.QueryService<IShellBrowser>(PInvoke.SID_STopLevelBrowser, out var browser);
         browser.QueryActiveShellView(out var view);
 
+        // The shell is asked for IDispatch, as in the sequence Microsoft published. Asking for the
+        // dual interface by name instead would put a different question to the shell than the one
+        // that sequence is written for, and nothing here has measured how the shell answers it.
+        //
+        // The answer comes back as a raw pointer, because CsWin32 stopped turning it into an object
+        // somewhere between 0.3.298 and 0.3.363 and this call is the one place the window feels it.
+        // So the object is made here, the way the marshaller used to make it - wrap the pointer,
+        // then give back the reference the shell's answer carried, whether or not the wrapping or
+        // the cast threw.
         var dispatch = DispatchInterface;
         view.GetItemObject(_SVGIO.SVGIO_BACKGROUND, &dispatch, out var background);
 
-        return ((IShellFolderViewDual)background).Application as IShellDispatch2;
+        IShellFolderViewDual folderView;
+
+        try
+        {
+            folderView = (IShellFolderViewDual)Marshal.GetObjectForIUnknown((nint)background);
+        }
+        finally
+        {
+            Marshal.Release((nint)background);
+        }
+
+        return folderView.Application as IShellDispatch2;
     }
 }
