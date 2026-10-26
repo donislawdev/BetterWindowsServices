@@ -189,7 +189,7 @@ public sealed class BulkRunTests
         var control = Running("MRxSmb20", "LanmanWorkstation", "SessionEnv", "Netlogon");
 
         new BulkRunner(new PlanRunner(control, new FakeClock())).Run(
-            plan, Minute, starting: (_, number) => announced.Add(number));
+            plan, Minute, starting: (_, number) => announced.Add(number), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(Enumerable.Range(1, plan.Steps.Count()), announced);
     }
@@ -228,7 +228,7 @@ public sealed class BulkRunTests
     {
         var runner = new BulkRunner(new PlanRunner(new FakeScmControl(), new FakeClock()));
 
-        Assert.Throws<InvalidOperationException>(() => runner.Run(Bulk(ActionKind.Stop, []), Minute));
+        Assert.Throws<InvalidOperationException>(() => runner.Run(Bulk(ActionKind.Stop, []), Minute, cancellation: TestContext.Current.CancellationToken));
     }
 
     /// <summary>
@@ -257,7 +257,7 @@ public sealed class BulkRunTests
         var control = Running("Spooler");
         var runner = new BulkRunner(new PlanRunner(control, new FakeClock()));
 
-        Assert.Throws<InvalidOperationException>(() => runner.Run(bulk, Minute));
+        Assert.Throws<InvalidOperationException>(() => runner.Run(bulk, Minute, cancellation: TestContext.Current.CancellationToken));
 
         // Nothing was touched, which is the half that makes the check worth putting up front.
         Assert.Empty(control.Requested);

@@ -135,7 +135,7 @@ public class EndingRightsTests
         var plan = Plan(catalog, new FakeEndingFacts().StartedAt(4444, 4242), immediate: true);
         var control = new FakeScmControl().RunningIn("MRxSmb20", 4444);
 
-        _ = new PlanRunner(control, new FakeClock()).Run(plan, TimeSpan.FromMinutes(1));
+        _ = new PlanRunner(control, new FakeClock()).Run(plan, TimeSpan.FromMinutes(1), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(4444, Assert.Single(control.Ended));
         Assert.Equal(4242, Assert.Single(control.EndedWith));

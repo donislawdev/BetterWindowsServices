@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using Bws.Gui;
-using Xunit.Abstractions;
 
 namespace Bws.Integration.Tests;
 
@@ -19,10 +18,13 @@ namespace Bws.Integration.Tests;
 /// <b>WHICH OF TWO TRUTHS IT HOLDS IS DECIDED BY THE WINDOW MANAGER, NOT BY THE CODE UNDER TEST - a
 /// review of 2026-09-23.</b> Until then it failed on any session without a desktop, a remote
 /// shell or Server Core, where the button saying where the page is was the intended answer. Skipping
-/// there is not open to it - xUnit 2 has no skip decided while a test runs, and a test that returns
-/// green when it cannot look is the silent pass this project refuses. Its assertion library does
-/// carry a SkipException, and thrown under this project's runner it was reported as a FAILURE,
-/// measured the same day with a probe that was then deleted. Nor may it skip when the
+/// there was not open to it - xUnit 2 had no skip decided while a test runs, and a test that returns
+/// green when it cannot look is the silent pass this project refuses. Its assertion library
+/// carried a SkipException, and thrown under this project's runner it was reported as a FAILURE,
+/// measured the same day with a probe that was then deleted. xUnit.net v3, which the project moved
+/// to on 2026-10-26, does have a skip decided while a test runs (Assert.SkipWhen), and it still is
+/// not used here: a session without a desktop has a true thing to say, which a skip would give up.
+/// Nor may it skip when the
 /// desktop is not found, because that is the very failure it exists to catch. So it asks the
 /// window manager whether this session has a shell window at all, and holds each session to its own
 /// truth: with a desktop the shell has to answer, and without one whatever happens has to be

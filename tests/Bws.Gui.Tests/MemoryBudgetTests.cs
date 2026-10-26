@@ -1,6 +1,5 @@
 using Bws.Core;
 using Bws.Gui.ViewModels;
-using Xunit.Abstractions;
 
 namespace Bws.Gui.Tests;
 

@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe और Get-Service, ऑडिट के लिए बने टूल से तुलना">
+<meta name="description" content="sc.exe सब कुछ कर सकता है पर कुछ बताता नहीं। Get-Service स्क्रिप्ट में चलता है पर उथला है। हर एक कहाँ अब भी सबसे अच्छा है, और क्वेरी भाषा और योजना कहाँ बेहतर हैं।">
+<meta name="nav" content="sc.exe और PowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">गाइड</span>
+    <h1><code>sc.exe</code>, <code>Get-Service</code>, और यह</h1>
+    <p class="lede">दोनों मशीन पर पहले से हैं, और दोनों काम के बने रहेंगे। यह पृष्ठ इस बारे में है कि वे कहाँ रुक जाते हैं, और यह साफ़ कहता है कि वे कहाँ अब भी बेहतर जवाब हैं।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>हर एक कहाँ रुकता है</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>सेवा नियंत्रण प्रबंधक जो कुछ भी जानता है, लगभग उस सब तक यह पहुँच सकता है, और पूछने का तरीका क्या है इसके बारे में यह आपको कुछ नहीं बताता। सिंटैक्स नब्बे के दशक का है: <code>sc config X start= auto</code>, जहाँ बराबर के चिह्न के बाद का रिक्त स्थान अनिवार्य है और उसका न होना वह करने में चुपचाप विफल होना है जो आपका मतलब था।</p>
+        <p>यह एक बार में एक प्रविष्टि के बारे में जवाब देता है। कोई फ़िल्टरिंग नहीं, ऐसा कोई आउटपुट नहीं जिसे स्क्रिप्ट बिना पार्सर लिखे पार्स कर सके, और कोई पूर्वावलोकन नहीं: <code>sc stop</code> या तो काम करता है या एक नंबर लौटाता है।</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> और <code>*-Service</code> cmdlet</h3>
+        <p>असली ऑब्जेक्ट, एक पाइपलाइन, और एक उथला दृश्य। Windows PowerShell 5.1 में, जो Windows के साथ आता है, <code>Get-Service</code> यह नहीं दिखाता कि सेवा किस खाते से चलती है, न उसका विवरण। PowerShell 7 दोनों दिखाता है, और लॉन्च पथ भी, और वह अलग से इंस्टॉल होता है।</p>
+        <p><code>Stop-Service -Force</code> का मतलब है “भले ही कुछ उस पर निर्भर हो”: यह निर्भर सेवाओं को रोक देता है, और आपको बाद में बताता है, पहले नहीं।</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>वही सवाल, तीन तरीकों से</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>सवाल</th><th>मशीन पर जो है उसके साथ</th><th>यहाँ</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>क्या चलना चाहिए और नहीं चल रहा</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>किन सेवाओं की निष्पादन योग्य फ़ाइल पर हस्ताक्षर नहीं है</td>
+            <td class="no">हर लॉन्च पथ पढ़ें, उसे हल करें, हर एक पर <code>Get-AuthenticodeSignature</code> चलाएँ: एक स्क्रिप्ट, कमांड नहीं</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>इसे रोकने से क्या बंद होगा</td>
+            <td><code>sc enumdepend X</code>, फिर सूची पढ़ें और खुद तय करें</td>
+            <td><code>bws stop X --dry-run --dependents</code>, यानी वह योजना जो चलेगी</td>
+          </tr>
+          <tr>
+            <td>पिछले हफ़्ते से क्या बदला</td>
+            <td class="no">कुछ नहीं, जब तक आपने कलेक्टर खुद न लिखा हो</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>स्टार्टअप प्रकार किसने और कब बदला</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>, फिर हर इवेंट का संदेश पढ़ें</td>
+            <td><code>bws history Spooler</code>, जिसकी पहली पंक्ति बताती है कि लॉग कितना पीछे तक जाता है</td>
+          </tr>
+          <tr>
+            <td>मशीन-पठनीय आउटपुट</td>
+            <td>PowerShell से ऑब्जेक्ट, <code>sc.exe</code> से पाठ</td>
+            <td>हर कमांड पर <code>--json</code>, स्टैंडर्ड आउटपुट पर, चेतावनियाँ स्टैंडर्ड एरर पर</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>जहाँ यह टूल किसी सेवा के बारे में <code>sc.exe</code> से असहमत हो, वहाँ यहाँ बग है।</strong> टेस्ट सूट का एक हिस्सा दोनों को उसी मशीन पर चलाकर प्रविष्टि-दर-प्रविष्टि तुलना करता है, और दोनों के बीच का अंतर वह सबसे उपयोगी चीज़ है जो इश्यू में डाली जा सकती है।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>जो आपके पास है उसे कब इस्तेमाल करते रहें</h2>
+    <ul class="points">
+      <li><strong>आप ऐसी मशीन पर हैं जिसे एक बार छुएँगे।</strong> दोनों पहले से वहाँ हैं और किसी नीति से कुछ पार नहीं कराना।</li>
+      <li><strong>आपको खाता, लॉन्च पथ या रिकवरी क्रियाएँ बदलनी हैं।</strong> <code>sc.exe</code> तीनों करता है। यह टूल खाता और लॉन्च पथ दिखाता है और दोनों में से कुछ नहीं बदलता, और रिकवरी क्रियाएँ सिर्फ़ इसलिए पढ़ता है कि प्रक्रिया खत्म करने से पहले चेतावनी दे सके।</li>
+      <li><strong>आपको सेवा बनानी या हटानी है।</strong> <code>sc create</code> और <code>sc delete</code>। यहाँ नहीं, जानबूझकर।</li>
+      <li><strong>आप पहले से किसी PowerShell पाइपलाइन में गहरे हैं।</strong> <code>bws list --json</code> <code>ConvertFrom-Json</code> के ज़रिए ऑब्जेक्ट के रूप में आता है, इसलिए यह पाइपलाइन की जगह लेने के बजाय उसमें जुड़ जाता है।</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>साथ में, उसके बजाय नहीं</h2>
+    <p>वह टूल जो जवाब देता है कि <em>इस मशीन में क्या गड़बड़ है</em> और वे टूल जो एक सेटिंग बदलते हैं, एक ही टूल नहीं हैं। सवाल यहाँ पूछें, योजना यहाँ पढ़ें, और उसे पूरा करने के लिए जो चाहें इस्तेमाल करें। योजना वह कमांड लाइन छापती है जो यही काम माँगती है, और उस पंक्ति को कॉपी करने के लिए ही बनाया गया है।</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows के लिए डाउनलोड करें</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">क्वेरी भाषा</a>
+    </div>
+  </div>
+</section>

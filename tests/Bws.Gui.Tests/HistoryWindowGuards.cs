@@ -168,7 +168,7 @@ public sealed class HistoryWindowGuards
         WpfHost.On(() => model.History.Shown!.Filter.SearchText = "bits");
 
         log.History = HistoryLog.Empty();
-        await WpfHost.On(() => model.History.Fresh()).WaitAsync(TimeSpan.FromSeconds(10));
+        await WpfHost.On(() => model.History.Fresh()).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         WpfHost.Settled();
 
         Assert.False(model.History.Shown!.Filter.Offered);
@@ -214,7 +214,7 @@ public sealed class HistoryWindowGuards
         Assert.False(WpfHost.On(() => window.ChangeHistory.ExportButton.IsEnabled));
 
         log.Release();
-        await model.History.Out.WaitAsync(TimeSpan.FromSeconds(10));
+        await model.History.Out.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         WpfHost.Settled();
 
         Assert.True(WpfHost.On(() => window.ChangeHistory.ExportButton.IsEnabled));

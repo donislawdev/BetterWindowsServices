@@ -1,0 +1,198 @@
+<meta name="title" content="Better Windows Services - بديل services.msc مع البحث">
+<meta name="description" content="بديل مجاني ومفتوح المصدر للأداة services.msc. ابحث في خدماتك بلغة استعلام، وعاين كل تغيير قبل تنفيذه، واعرف ما الذي انحرف منذ أمس.">
+<meta name="nav" content="الرئيسية">
+<meta name="translated-from" content="757fe7d76b27">
+
+<!--
+  الصفحة الرئيسية. لكل جملة هنا مقابل في README.md جرى فحصه مقابل البرنامج وهو يعمل قبل كتابته.
+  الخطة والفروقات والاستعلام أدناه مخرجات حقيقية وليست رسومًا توضيحية.
+-->
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>ابحث في خدمات Windows لديك، وعاين كل تغيير، واعرف <em>ما الذي انحرف</em> منذ أمس</h1>
+      <p class="lede"><strong>{{product}}</strong> هو <code>services.msc</code> بعد إعادة بنائه لمن يديرون أجهزة Windows: نافذة وسطر أوامر يعملان على محرك واحد. اسأل الجهاز سؤالًا بدل التمرير عبر 800 صف. وشاهد ما سيفعله أي تغيير <strong>قبل أن تضغط أي شيء</strong>. والجزء الذي لم يكن في <code>services.msc</code> قط: <strong>جمّد كل الخدمات في ملف، وبعد أسبوع اسأل عمّا تغيّر.</strong></p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+        <a class="btn btn-secondary" href="{{repo}}">عرض الكود المصدري على GitHub</a>
+      </div>
+      <ul class="trust">
+        <li>مجاني ومفتوح المصدر، GPL-3.0</li>
+        <li>ملف واحد، أو برنامج تثبيت</li>
+        <li>لا حاجة إلى صلاحيات المسؤول للاطلاع</li>
+        <li>لا يتصل بالإنترنت أبدًا</li>
+      </ul>
+    </div>
+    <figure>
+      <a class="window-shot" href="/assets/window-plan.png"><img src="/assets/window-plan.png" alt="النافذة وقد حُدّد فيها خمسة عناصر، وظهرت فوق القائمة خطة تشغيلها: خمس خطوات، وملاحظة بأن اثنين منها في تلك الحالة أصلًا، وسطر bws start لكل عنصر، وزر Start 5 entries." width="1632" height="1041"></a>
+      <figcaption>عناصر محددة، وخطة تُعرض قبل أن يحدث أي شيء، وسطر <code>bws</code> الذي يطلب الأمر نفسه تمامًا. البرنامج يتحدث الإنجليزية: تقرأ النافذة ملف لغة يوضع بجانبها، فالترجمة ممكنة دون إعادة بناء.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!--
+  لقطات حقيقية للنافذة، سُجّلت في 2026-09-25 و2026-09-26 وتُعرض هنا منذ 2026-10-07. اللقطات الأولى
+  المأخوذة في 2026-09-24 حلّت محل نافذة وهمية مرسومة بلغة HTML. الجلسة هي ملف GIF نفسه الموجود في
+  README، ملف واحد للاثنين، بقرار المالك في 2026-10-07. ومن 2026-09-24 إلى ذلك اليوم كان مكانه فيديو
+  بأزرار تحكم، لأن WCAG 2.2.2 يشترط أن يمكن إيقاف أي حلقة متحركة تزيد على خمس ثوانٍ، وملف GIF لا يمكن
+  إيقافه. هذا هو ثمن GIF، وقد قيل هنا بدل أن يُنسى.
+-->
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">نصف دقيقة معه</span>
+    <h2>كيف يبدو أثناء الاستخدام</h2>
+    <p class="lede">جلسة حقيقية على نظام Windows مثبّت باللغة البولندية. الأسماء المعروضة تأتي من Windows فهي بلغته. أما النافذة نفسها فتتحدث الإنجليزية.</p>
+    <figure>
+      <a class="window-shot" href="/assets/bws-in-action.gif"><img src="/assets/bws-in-action.gif" alt="أربعة عناصر محددة وخطة تشغيلها، وإعادة تشغيل قسرية للخدمة Local Session Manager تحذّر خطتها من أن الجهاز لا يعمل بدونها وتطلب اسمها قبل أن يعمل الزر، والأسئلة المقترحة تحت مربع البحث الفارغ، وخدمة Print Spooler وقد عُثر عليها بكتابة جزء من اسمها ثم شُغّلت." width="1632" height="1041" loading="lazy"></a>
+      <figcaption>أربعة عناصر محددة وخطة تشغيلها، وإعادة تشغيل قسرية تطلب اسم خدمة يحتاجها الجهاز، والأسئلة تحت مربع البحث الفارغ، وخدمة Print Spooler وقد عُثر عليها بالكتابة ثم شُغّلت.</figcaption>
+    </figure>
+    <div class="split">
+      <figure>
+        <a class="window-shot" href="/assets/window-overview.png"><img src="/assets/window-overview.png" alt="شاشة البداية: ثلاث بطاقات أرقام عن هذا الجهاز، هي الخدمات العاملة، والخدمات المضبوطة على البدء التلقائي ولم تبدأ، والخدمات المضبوطة على البدء التلقائي وملفها غير موجود، وزر Show the list." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>تُفتح على بضعة أرقام عن هذا الجهاز. كل رقم سؤال: انقر عليه فينتقل السؤال إلى مربع البحث.</figcaption>
+      </figure>
+      <figure>
+        <a class="window-shot" href="/assets/window-list.png"><img src="/assets/window-list.png" alt="قائمة الخدمات مع ثلاث قوائم فوق مربع البحث، ومربع بحث فارغ، وأزرار التصفية مفتوحة في صفوف للحالة ونوع بدء التشغيل والتوقيع والتعارضات والمشغّلات، والقائمة أسفلها." width="1632" height="1041" loading="lazy"></a>
+        <figcaption>أزرار التصفية تكتب في مربع البحث، فما نقرت عليه هو استعلام يمكنك قراءته وتعديله.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">لماذا وُجد هذا</span>
+    <h2><code>services.msc</code> لم يتغير تقريبًا منذ Windows 2000</h2>
+    <p class="lede">يقضي المسؤولون فيه ساعات كل أسبوع وهم يصطدمون بالجدران نفسها.</p>
+    <div class="split">
+      <ul class="points points-alarm">
+        <li><strong>لا بحث.</strong> التنقل الوحيد هو القفز إلى الحرف الأول من الاسم المعروض.</li>
+        <li><strong>لا تصفية.</strong> لا توجد طريقة لتسأل <em>أرني ما هو مضبوط على البدء التلقائي ولا يعمل</em>.</li>
+        <li><strong>صف واحد في كل مرة.</strong> إعادة تشغيل 12 خدمة تعني 12 نقرة يمينية و12 انتظارًا.</li>
+        <li><strong>«<span dir="ltr">Stopping...</span>» إلى الأبد</strong>، ولا مخرج إلا Task Manager وتخمين العملية.</li>
+        <li><strong>لا سجل تاريخي.</strong> لا أحد يعرف من ضبط نوع بدء التشغيل على Disabled، أو متى.</li>
+        <li><strong>بيانات مخفية.</strong> العملية والمشغّلات والامتيازات ومن وقّع الملف التنفيذي، ومعها security descriptor، كل ذلك يحتاج إلى <code>sc.exe</code> من الذاكرة، أو إلى السجل.</li>
+        <li><strong>لا تكافؤ في سطر الأوامر.</strong> لغة <code>sc.exe</code> تعود إلى التسعينيات، والأمر <code>Get-Service</code> الذي يأتي مع Windows، في Windows PowerShell 5.1، لا يعرض الحساب الذي تعمل به الخدمة فضلًا عن وصفها. أما PowerShell 7 فيعرض الاثنين، ويُثبَّت بشكل منفصل.</li>
+      </ul>
+      <div class="card card-quiet">
+        <h3>كل أداة أخرى تعالج جزءًا منه</h3>
+        <p>يعرض Process Hacker و System Informer قائمة غنية ويمكنهما إنهاء العملية قسرًا، لكن لا تدقيق فيهما ولا سطر أوامر. أما <code>sc.exe</code> و<code>PsService</code> فيستطيعان كل شيء ولا يخبرانك بشيء. وأوامر <code>*-Service</code> في PowerShell قابلة للبرمجة لكنها سطحية.</p>
+        <p>لا أحد يجمع بين قائمة قابلة للبحث، ومعاينة قبل كل تغيير، وسجل لما تغيّر عبر الزمن. وهذا السجل هو سبب إبقاء هذه الأداة على الجهاز بعد أول ظهيرة.</p>
+        <a class="more" href="{{url:services-msc-alternative}}">المقارنة الكاملة</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">ماذا يفعل</span>
+    <h2>نافذة وسطر أوامر على محرك واحد</h2>
+    <div class="grid">
+      <div class="card"><h3>اسأل بدل أن تمرّر</h3><p><code>start:auto !status:running</code> تعني <em>ما يجب أن يعمل ولا يعمل</em>. لغة واحدة، في مربع البحث وفي <code>bws list --query</code>، مع اقتراح الحقول أثناء الكتابة.</p></div>
+      <div class="card"><h3>اعرض الخطة قبل أن يحدث أي شيء</h3><p>كل إيقاف وبدء وإعادة تشغيل وتغيير لنوع بدء التشغيل يُعاين مع الخدمات التي يوقفها معه، والمعاينة هي ما يُنفَّذ.</p></div>
+      <div class="card"><h3>يخبرك بما انحرف ومن غيّره</h3><p>الأمر <code>bws snapshot create</code> يجمّد الجهاز في ملف، والأمر <code>bws snapshot diff</code> يقول ما تغيّر منذئذٍ، فيفصل التكوين عمّا بدأ أو توقف فحسب. والأمر <code>bws history</code> يقول من غيّر نوع بدء التشغيل ومن ثبّت خدمة، من سجل System. وتؤدي النافذة الأعمال الثلاثة كلها تحت <em dir="ltr">Audit...</em>.</p></div>
+      <div class="card"><h3>أصلح مشكلة شائعة بضغطة واحدة</h3><p>تبويب <em dir="ltr">Tools</em> والأمر <code>bws tool fix</code> يعيدان تشغيل الخدمة الواقفة خلف طابعة لا تطبع أو صوت اختفى أو بحث عالق، مع ما يعتمد عليها، عبر الخطة نفسها التي يمر بها كل شيء آخر.</p></div>
+      <div class="card"><h3>أوقف خدمة لا تتوقف</h3><p>يطلب منها بلطف أولًا ولا ينهي العملية إلا إذا فشل ذلك، مسمّيًا كل خدمة أخرى تعيش فيها.</p></div>
+      <div class="card"><h3>أظهر ما يخفيه <code>services.msc</code></h3><p>من وقّع الملف التنفيذي وهل يثق به Windows، والمشغّلات، والامتيازات، وكذلك security descriptor، والعملية وذاكرتها. أعمدةً، وأشياء يمكن البحث بها.</p></div>
+      <div class="card"><h3>أبلغ عندما يتعذر عليه قراءة شيء</h3><p>الحقل الذي تعذرت قراءته يُبلَّغ عنه على أنه لم يُقرأ ولا يُعرض فارغًا أبدًا. واللقطة المأخوذة بلا صلاحيات المسؤول تقول ذلك داخل الملف.</p></div>
+      <div class="card"><h3>يتكامل مع السكربتات</h3><p>الخيار <code>--json</code> في كل أمر، ورمز خروج لكل نهاية، والرمز <code>5</code> عندما تجد المقارنة انحرافًا.</p></div>
+      <div class="card"><h3>يعمل من ملف واحد ودون اتصال</h3><p>فك الضغط عن الملف وشغّله، أو ثبّته لكل الجهاز. لا حاجة إلى تثبيت <span dir="ltr">.NET</span> ولا يتصل بالإنترنت أبدًا. القراءة لا تحتاج إلى صلاحيات المسؤول. GPL-3.0.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">الجزء الذي لم يفعله services.msc قط</span>
+    <h2>ما الذي تغيّر منذ أمس</h2>
+    <p class="lede">اللقطة هي الجهاز كله في لحظة واحدة: كل خدمة وبرنامج تشغيل، مع نوع بدء التشغيل والحساب ومسار التشغيل، وقيمة التجزئة لملفها وموقّعه، وتبعياتها ومشغّلاتها وامتيازاتها، إضافةً إلى security descriptor الخاص بها. وهي JSON بحقل واحد في كل سطر، فتدخل مستودعًا ويقرؤها <code>git diff</code>.</p>
+    <div class="split">
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws snapshot diff before.json --live --exit-code</span>
+Changed (2):
+  Spooler  Print Spooler
+    <span class="d">startType: Manual -&gt; Automatic</span>
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+  wlidsvc  Microsoft Account Sign-in Assistant
+    <span class="m">status: Stopped -&gt; Running  (running state, not configuration)</span>
+
+Added 0, removed 0, changed 2. Fields differing: 1 in configuration, 2 in running state.</code></pre>
+      <ul class="points points-ok">
+        <li><strong>يُبلَّغ عن التكوين وحالة التشغيل كلٌّ على حدة.</strong> لقطتان بينهما يوم تختلفان فيما يعمل مصادفةً، وما من ذلك انحراف تقريبًا. السطر الذي يجب قراءته هو نوع بدء التشغيل الذي تغيّر.</li>
+        <li><strong>ما تعذرت مقارنته يُسرد ولا يُخفى.</strong> الحقل الذي لم تقرأه إحدى اللقطتين قط يظهر على أنه <em>لم تتم مقارنته</em>، فالمقارنة التي تقول <em>لم يتغير شيء</em> تعني أنه لم يتغير شيء فيما استطاع الطرفان رؤيته.</li>
+        <li><strong>الخيار <code>--exit-code</code> ينتهي بالرمز <code>5</code> عندما يختلف التكوين</strong>، فتستطيع مهمة مجدولة أن تأخذ لقطة عند النشر وتنبّه أحدًا في أول ليلة ينحرف فيها الجهاز.</li>
+        <li><strong>جهازان، ملفان.</strong> خذ لقطة على بيئة التجهيز وأخرى على بيئة الإنتاج وقارن بينهما في أي مكان.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:snapshots-and-drift}}">كيف تعمل اللقطات والانحراف</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">لا شيء يحدث دون خطة</span>
+    <h2>المعاينة هي التنفيذ</h2>
+    <p class="lede">كل عملية تكتب تبني خطة أولًا، وهذه الخطة نفسها هي المعاينة، وتسلسل الخدمات التابعة، والرفض قبل أن تضغط أي شيء، وسطر الأوامر الذي يطلب الأمر نفسه، وطريق العودة بعد ذلك.</p>
+    <div class="split">
+<pre><code><span class="c">$</span> <span class="k">bws stop Winmgmt --dry-run --dependents</span>
+Plan: stop Winmgmt  (2 steps)
+  1. stop  vmms      <span class="m">(would break otherwise)</span>
+  2. stop  Winmgmt   <span class="m">(asked for)</span>
+
+<span class="w">Warnings:
+  - Stopping Winmgmt also stops one other entry: vmms
+  - Winmgmt starts automatically, so it will be back after the next restart.</span></code></pre>
+      <ul class="points points-ok">
+        <li><strong>شغّله دون <code>--dry-run</code> فتكون هذه هي الخطوات</strong>، بهذا الترتيب، وبجانبها الأسباب نفسها. لا يوجد مسار برمجي ثانٍ للتنفيذ الفعلي.</li>
+        <li><strong>ما يسقط معه موجود في الخطة.</strong> الخدمات التي ستتعطل خطوات قائمة بذاتها، والخطة التي ستوقف شيئًا يحتاجه الجهاز تقول ذلك في تحذيراتها.</li>
+        <li><strong>الرفض يسبق الزر.</strong> برنامج تشغيل، أو خدمة لا يقبل المدير طلب إيقافها، أو عملية يحميها النظام: يُرفض ذلك عند بناء الخطة مع بيان السبب. وتُظهر النافذة الزر باهتًا وتذكر السبب بجانبه.</li>
+        <li><strong>الإيقاف القسري خطوتان، والثانية مشروطة.</strong> يطلب <code>bws kill</code> من الخدمة أن تتوقف ولا ينهي عمليتها إلا إذا لم ينجح ذلك، مسمّيًا كل خدمة أخرى تعيش فيها.</li>
+      </ul>
+    </div>
+    <a class="more" href="{{url:stop-a-service-that-will-not-stop}}">عندما لا تتوقف الخدمة</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">دقيقتان معه</span>
+    <h2>من سطر الأوامر</h2>
+    <p class="lede">المحرك نفسه الذي تعمل به النافذة، للسكربتات والمهام المجدولة وCI. البيانات تذهب إلى الإخراج القياسي وكل ما عداها إلى الخطأ القياسي، فيعمل <code>bws list --json | jq</code> ولا يصل تحذير إلى JSON أبدًا.</p>
+<pre><code><span class="k">bws list --query "start:auto !status:running"</span>     <span class="c">ما يجب أن يعمل ولا يعمل</span>
+<span class="k">bws list --query "file:missing"</span>                   <span class="c">الخدمات التي اختفى ملفها التنفيذي</span>
+<span class="k">bws list --query "signed:no peruser:no"</span>           <span class="c">غير الموقّعة، دون نسخ الجلسات</span>
+<span class="k">bws show Spooler</span>                                  <span class="c">كل ما هو معروف عن عنصر واحد</span>
+<span class="k">bws stop Winmgmt --dry-run --dependents</span>           <span class="c">ما الذي سيتوقف معها عند إيقافها</span>
+<span class="k">bws kill Spooler --dry-run</span>                        <span class="c">ما الذي سيذهب معها عند إنهاء عمليتها</span>
+<span class="k">bws start-type Spooler manual --dry-run</span>           <span class="c">ما الذي سيحدث إن أُزيل عنها البدء التلقائي</span>
+<span class="k">bws snapshot create before.json</span>                   <span class="c">جمّد الجهاز قبل التغيير</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>  <span class="c">ما الذي تغيّر منذئذٍ، والرمز 5 إن تغيّر الإعداد</span>
+<span class="k">bws history Spooler</span>                               <span class="c">من غيّر نوع بدء تشغيلها ومتى</span>
+<span class="k">bws tool fix printer --dry-run</span>                    <span class="c">ما الذي سيفعله الإصلاح السريع لطابعة عالقة</span></code></pre>
+    <a class="more" href="{{url:cli-reference}}">كل أمر وكل خيار وكل رمز خروج</a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">احصل عليه</span>
+    <h2>فك الضغط وشغّل، أو ثبّت</h2>
+    <p class="lede">Windows 10 الإصدار 1809 أو Windows Server 2019 وما بعدهما، 64 بت. الأرشيفات لا تحتاج إلى برنامج تثبيت ولا تكتب شيئًا في السجل، والاطلاع لا يحتاج إلى صلاحيات المسؤول. أما تغيير أي شيء فيحتاج إلى جلسة مرفوعة الصلاحيات، وكلا النصفين يقولان ذلك بدل أن يفشلا بصمت: تعرض النافذة <em dir="ltr">Restart as admin</em>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>الملف</th><th>ما هو</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>النافذة، ملف تنفيذي واحد قائم بذاته، ولا حاجة إلى تثبيت <span dir="ltr">.NET</span></td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>سطر الأوامر، ملف تنفيذي واحد قائم بذاته، للسكربتات وCI</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>برنامج التثبيت: البرنامجان معًا لكل حساب على الجهاز، والنافذة في قائمة Start والأمر <code>bws</code> في PATH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>الملفات التنفيذية موقّعة بتوقيع Authenticode، فيذكر Windows اسم الناشر بدل أن يحذّر من ناشر مجهول.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+      <a class="btn btn-secondary" href="{{url:download}}">المتطلبات والبناء من المصدر</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,97 @@
+<meta name="title" content="sc.exe وGet-Service مقارنةً بأداة مبنية للتدقيق">
+<meta name="description" content="يستطيع sc.exe فعل كل شيء ولا يخبرك بشيء. و Get-Service قابل للبرمجة لكنه سطحي. أين يظل كل منهما الأفضل، وأين تتفوق لغة الاستعلام والخطة.">
+<meta name="nav" content="sc.exe وPowerShell">
+<meta name="translated-from" content="e4344969b3c3">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">دليل</span>
+    <h1><code>sc.exe</code> و<code>Get-Service</code>، وهذه الأداة</h1>
+    <p class="lede">كلاهما موجود على الجهاز أصلًا، وكلاهما سيبقى نافعًا. وهذه الصفحة عن المكان الذي يتوقفان عنده، وهي تقول بوضوح أين يظلان الجواب الأفضل.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>أين يتوقف كل منهما</h2>
+    <div class="split">
+      <div class="card card-quiet">
+        <h3><code>sc.exe</code></h3>
+        <p>يصل إلى كل ما يعرفه مدير التحكم بالخدمات تقريبًا، ولا يخبرك بشيء عن كيف تسأل. وصيغته من التسعينيات: <code>sc config X start= auto</code>، حيث المسافة بعد علامة المساواة إلزامية وغيابها فشل صامت في فعل ما قصدته.</p>
+        <p>يجيب عن عنصر واحد في كل مرة. لا تصفية، ولا مخرجات يستطيع سكربت تحليلها دون كتابة محلل، ولا معاينة: الأمر <code>sc stop</code> إما أن ينجح أو يعيد رقمًا.</p>
+      </div>
+      <div class="card card-quiet">
+        <h3><code>Get-Service</code> وأوامر <code>*-Service</code></h3>
+        <p>كائنات حقيقية، وأنبوب معالجة، ونظرة سطحية. ففي Windows PowerShell 5.1، وهو الذي يأتي مع Windows، لا يعرض <code>Get-Service</code> الحساب الذي تعمل به الخدمة ولا وصفها. أما PowerShell 7 فيعرض الاثنين، ومسار التشغيل أيضًا، ويُثبَّت بشكل منفصل.</p>
+        <p>الخيار <code>Stop-Service -Force</code> يعني «حتى لو كان شيء يعتمد عليها»: فهو يوقف الخدمات التابعة، ويخبرك بعد ذلك لا قبله.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>الأسئلة نفسها، بثلاث طرق</h2>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th>السؤال</th><th>بما هو موجود على الجهاز</th><th>هنا</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>ما الذي يجب أن يعمل ولا يعمل</td>
+            <td><code>Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' }</code></td>
+            <td><code>bws list --query "start:auto !status:running"</code></td>
+          </tr>
+          <tr>
+            <td>أي الخدمات لها ملف تنفيذي غير موقّع</td>
+            <td class="no">اقرأ كل مسار تشغيل، وحلّه، واستدعِ <code>Get-AuthenticodeSignature</code> على كل واحد: سكربت، لا أمر</td>
+            <td><code>bws list --query "signed:no"</code></td>
+          </tr>
+          <tr>
+            <td>ما الذي سيسقط إن أوقفت هذه</td>
+            <td><code>sc enumdepend X</code>، ثم اقرأ القائمة وقرّر بنفسك</td>
+            <td><code>bws stop X --dry-run --dependents</code>، وهي الخطة التي ستُنفَّذ</td>
+          </tr>
+          <tr>
+            <td>ما الذي تغيّر منذ الأسبوع الماضي</td>
+            <td class="no">لا شيء، إلا إن كتبت المُجمِّع بنفسك</td>
+            <td><code>bws snapshot diff before.json --live</code></td>
+          </tr>
+          <tr>
+            <td>من غيّر نوع بدء التشغيل، ومتى</td>
+            <td><code>Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 7040 }</code>، ثم اقرأ رسالة كل حدث</td>
+            <td><code>bws history Spooler</code>، وسطره الأول يقول إلى أي مدى يمتد السجل إلى الوراء</td>
+          </tr>
+          <tr>
+            <td>مخرجات يقرؤها الجهاز</td>
+            <td>كائنات من PowerShell، ونص من <code>sc.exe</code></td>
+            <td>الخيار <code>--json</code> في كل أمر، على الإخراج القياسي، والتحذيرات على الخطأ القياسي</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>حيثما اختلفت هذه الأداة عن <code>sc.exe</code> بشأن خدمة فذلك خلل هنا.</strong> فجزء من مجموعة الاختبارات يشغّل الاثنين على الجهاز الذي يعمل عليه ويقارن بينهما عنصرًا عنصرًا، والفرق بين الاثنين هو أنفع شيء يمكن وضعه في بلاغ.</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>متى تواصل استخدام ما عندك</h2>
+    <ul class="points">
+      <li><strong>أنت على جهاز ستلمسه مرة واحدة.</strong> كلاهما موجود أصلًا ولا شيء يحتاج إلى المرور عبر سياسة.</li>
+      <li><strong>تحتاج إلى تغيير الحساب أو مسار التشغيل أو إجراءات الاسترداد.</strong> يفعل <code>sc.exe</code> الثلاثة. أما هذه الأداة فتعرض الحساب ومسار التشغيل ولا تغيّر أيًّا منهما، وتقرأ إجراءات الاسترداد فقط لتحذّر قبل أن تنهي عملية.</li>
+      <li><strong>تحتاج إلى إنشاء خدمة أو حذفها.</strong> <code>sc create</code> و<code>sc delete</code>. ليس هنا، عن قصد.</li>
+      <li><strong>أنت غارق أصلًا في أنبوب PowerShell.</strong> يعود <code>bws list --json</code> كائنات عبر <code>ConvertFrom-Json</code>، فينضم إلى الأنبوب بدل أن يحل محله.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>معًا، لا بدلًا</h2>
+    <p>الأداة التي تجيب عن <em>ما الخطب في هذا الجهاز</em> والأدوات التي تغيّر إعدادًا واحدًا ليست الأداة نفسها. اسأل السؤال هنا، واقرأ الخطة هنا، واستخدم ما تشاء لتنفيذها: فالخطة تطبع سطر الأوامر الذي يطلب الشيء نفسه، وهذا السطر مصمّم لكي يُنسخ.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">تنزيل لنظام Windows</a>
+      <a class="btn btn-secondary" href="{{url:query-language}}">لغة الاستعلام</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,193 @@
+<meta name="title" content="เอกสารอ้างอิงบรรทัดคำสั่ง - ทุกตัวเลือกและรหัสออกของ bws">
+<meta name="description" content="ทุกคำสั่ง ตัวเลือก และรหัสออกของ bws: list, show, stop, start, restart, kill, start-type, snapshot, history และ tool พร้อมที่ที่แต่ละแฟล็กใช้ได้">
+<meta name="nav" content="เอกสารอ้างอิง CLI">
+<meta name="translated-from" content="886d17a48761">
+
+<!--
+  ตารางในหน้านี้ถูกสร้าง ไม่ได้เขียนด้วยมือ ตัวเลือกมาจากตารางของตัวแยกวิเคราะห์เอง
+  src/Bws.Cli/OptionSurface.cs และรหัสมาจาก src/Bws.Cli/ExitCode.cs ตัวเลือกที่เพิ่มเข้าโปรแกรม
+  จึงปรากฏที่นี่ และประโยคเกี่ยวกับตัวเลือกที่ไม่มีแล้วทำให้การสร้างล้มเหลว ความหมายของแต่ละตัวคือ
+  ร้อยแก้วและอยู่ใน site/i18n เพราะร้อยแก้วต้องถูกแปล
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">อ้างอิง</span>
+    <h1>เอกสารอ้างอิงบรรทัดคำสั่ง</h1>
+    <p class="lede">ทุกคำสั่ง ทุกตัวเลือก และทุกรหัสออกของ <code>bws</code> เวอร์ชัน {{version}} <code>bws --help</code> เป็นฉบับที่เชื่อถือได้และยาวกว่า หน้านี้คือพื้นผิวเดียวกันที่จัดไว้ให้อ่าน</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>คำสั่ง</h2>
+    <p>11 คำสั่ง <code>snapshot</code> เป็นคำนามและต้องมีคำตามหลัง <code>tool</code> เป็นคำนามเช่นกัน และเมื่อใช้เดี่ยวๆ จะแสดงรายการเครื่องมือ</p>
+<pre><code><span class="k">bws list</span> [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
+<span class="k">bws show</span> NAME [--full] [--follow-network] [--json] [--timing]
+<span class="k">bws stop|start|restart</span> NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws kill</span> NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws start-type</span> NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+<span class="k">bws snapshot create</span> [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER LATER [--exit-code] [--json] [--timing]
+<span class="k">bws snapshot diff</span> EARLIER --live [--exit-code] [--json] [--timing]
+<span class="k">bws history</span> [NAME] [--json] [--timing]
+<span class="k">bws tool</span>
+<span class="k">bws tool fix</span>
+<span class="k">bws tool fix</span> NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
+<span class="k">bws license</span> [--components]
+<span class="k">bws --help</span>
+<span class="k">bws --version</span></code></pre>
+    <p>คำสั่งที่พิมพ์ผิดจะได้รับคำแนะนำคำสั่งที่คุณน่าจะหมายถึง และการรันจบด้วยรหัส <code>2</code> แทนที่จะทำสิ่งที่ใกล้เคียงกับที่คุณขอ</p>
+<pre class="wrap-lines"><code><span class="c">$</span> <span class="k">bws lst</span>
+There is no command lst. Did you mean list?</code></pre>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>แต่ละคำสั่งทำอะไร</h2>
+    <div class="qa">
+      <div>
+        <h3><code>list</code> และ <code>show</code></h3>
+        <p><code>list</code> คือทั้งเครื่อง จำกัดให้แคบลงด้วย <code>--query</code> <code>show</code> คือหนึ่งรายการพร้อมทุกอย่างที่รู้เกี่ยวกับมัน ลายเซ็น สิทธิพิเศษ security descriptor และหน่วยความจำ อ่านทั้งหมดทุกครั้ง เพราะกับหนึ่งรายการมันใช้ประมาณ 60 มิลลิวินาที ขณะที่กับทั้งเครื่องใช้ 1 วินาที ฟิลด์ที่ว่างจริงๆ จะถูกละไว้ เว้นแต่คุณส่ง <code>--full</code> ฟิลด์ที่ไม่มีใครอ่านได้จะถูกพิมพ์เสมอ เพราะการละไว้จะดูเหมือนเป็นคำตอบ</p>
+      </div>
+      <div>
+        <h3><code>stop</code>, <code>start</code> และ <code>restart</code></h3>
+        <p>แต่ละคำสั่งสร้างแผนและทำตามแผนนั้น <code>--dry-run</code> พิมพ์แผนและไม่เปลี่ยนอะไร <code>--dependents</code> ใส่บริการที่จะเสียหายลงไปเป็นขั้นตอนของตัวเอง และ <code>--timeout</code> บอกว่าหนึ่งขั้นตอนอยู่ได้นานเท่าไรโดยไม่มีความคืบหน้า ไดรเวอร์ถูกปฏิเสธแทนที่จะลอง เพราะการหยุดไดรเวอร์เคอร์เนลมักย้อนกลับไม่ได้ถ้าไม่รีสตาร์ต</p>
+      </div>
+      <div>
+        <h3><code>kill</code>: สำหรับบริการที่หยุดไม่ลง</h3>
+        <p>มันขอให้บริการหยุด และจบกระบวนการที่อยู่เบื้องหลัง <em>เฉพาะเมื่อวิธีนั้นไม่ได้ผล</em> รายการที่หยุดเองได้จึงไม่เคยถูกจบ การจบกระบวนการพาทุกบริการอื่นที่อยู่ในกระบวนการนั้นไปด้วย ไม่ว่าพวกมันจะหยุดก่อนหรือไม่ และตัวอย่างจะบอกชื่อพวกมันและระบุกระบวนการด้วยหมายเลข <code>--force</code> ข้ามขั้นตอนที่สุภาพ และตัวอย่างจะแสดงหนึ่งขั้นตอนแทนที่จะเป็นสอง <code>--restart</code> นำทุกอย่างกลับมาหลังจากนั้น</p>
+        <p class="note"><strong>Windows สะกดความคิดนี้ต่างออกไป</strong> <code>--force</code> บน <code>Stop-Service</code> หมายถึง “แม้ว่าจะมีบางอย่างขึ้นอยู่กับมัน” ซึ่งคือสิ่งที่ <code>--dependents</code> ทำที่นี่ นั่นคือเหตุผลที่นี่เป็นคำสั่งของตัวเองแทนที่จะเป็นตัวเลือกของ <code>stop</code></p>
+      </div>
+      <div>
+        <h3><code>start-type</code>: เป็นการตั้งค่า ไม่ใช่การเคลื่อนไหว</h3>
+        <p>มันบอกว่าตัวจัดการจะทำอะไรกับรายการตอนบูตครั้งถัดไป และถ้าไม่มี <code>--stop</code> มันไม่ขยับอะไรเลย รายการที่กำลังทำงานก็ทำงานต่อ รายการที่หยุดอยู่ก็หยุดต่อ และแผนบอกไว้อย่างนั้น <code>disabled</code> คืออันที่ควรหยุดคิด เพราะมันทำให้ตัวจัดการไม่เริ่มรายการเลย รวมถึงเริ่มตามความต้องการให้สิ่งอื่นที่ต้องใช้มัน <code>delayed</code> คืออัตโนมัติที่เริ่มช้ากว่ารายการอัตโนมัติอื่นเล็กน้อย เป็นคำที่ <code>start:delayed</code> ถามถึงในคิวรี และ Windows ปฏิเสธมันสำหรับรายการในกลุ่มลำดับการโหลด ซึ่งแผนบอกก่อนจะมีอะไรเกิดขึ้น ทั้งสี่แบบเขียนว่ารายการเริ่มช้าหรือไม่ เหมือนที่ <code>sc.exe</code> ทำ <code>--stop</code> ซึ่งใช้ได้เฉพาะคู่กับ <code>disabled</code> จะหยุดรายการในแผนเดียวกันเมื่อเขียนการตั้งค่าแล้ว</p>
+      </div>
+      <div>
+        <h3><code>snapshot create</code> และ <code>snapshot diff</code></h3>
+        <p><code>create</code> อ่านลายเซ็นและแฮชเสมอ เพราะสแนปช็อตถูกเก็บไว้และเปรียบเทียบทีหลัง และสแนปช็อตที่ไม่มีมันเมื่อเทียบกับอันที่มีจะดูเหมือนเครื่องเปลี่ยนไป <code>diff</code> บอกว่าอะไรเปลี่ยนจากไฟล์แรกไปไฟล์ที่สอง หรือจากไฟล์ไปเครื่องนี้ด้วย <code>--live</code> <a href="{{url:snapshots-and-drift}}">หน้าสแนปช็อต</a>มีรูปแบบและเหตุผล</p>
+      </div>
+      <div>
+        <h3><code>history</code>: ใครเปลี่ยน จาก System log</h3>
+        <p>การเปลี่ยนประเภทการเริ่มต้นและการติดตั้งจาก System log ใหม่สุดก่อน พร้อมบัญชีที่ Windows บันทึกไว้ บรรทัดแรกบอกว่า log ย้อนไปไกลแค่ไหนและเคยถูกล้างหรือไม่ เพราะประวัติยาวเท่า log เท่านั้น เมื่อมีชื่อ จะเป็นการเปลี่ยนประเภทการเริ่มต้นของบริการนั้น การติดตั้งแสดงเฉพาะเมื่อไม่มีชื่อ เพราะ Windows บันทึกการติดตั้งภายใต้ชื่อที่แสดงและไม่เคยเป็นชื่อบริการ บัญชีแสดงเป็นชื่อเมื่อเครื่องนี้ระบุชื่อได้เอง และแสดงเป็น SID ในกรณีอื่น และประเภทการเริ่มต้นมาเป็นคำที่ Windows เขียน</p>
+      </div>
+      <div>
+        <h3><code>tool</code>: คำตอบสำเร็จรูปสำหรับปัญหาที่พบบ่อย</h3>
+        <p>เครื่องมือเดียวกับที่หน้าต่างแสดงในแท็บ Tools <code>bws tool</code> แสดงรายการ และ <code>bws tool fix</code> แสดงการแก้ด่วน: <code>printer</code>, <code>sound</code>, <code>indexing</code> และ <code>search</code> แต่ละตัวคือการรีสตาร์ตบริการ Windows หนึ่งตัวพร้อมสิ่งที่ขึ้นอยู่กับมัน เลือกเพราะหน้าแก้ปัญหาของ Microsoft เองแนะนำ <code>bws tool fix printer</code> ก็คือ <code>bws restart Spooler --dependents</code> ทุกประการ แผนเดียวกัน ผลลัพธ์เดียวกัน และรหัสออกเดียวกัน และเหมือนทุกคำสั่งที่นี่ที่เปลี่ยนอะไรสักอย่าง มันไม่ถามก่อน ดังนั้น <code>--dry-run</code> คือทางที่จะดูก่อนรัน</p>
+      </div>
+      <div>
+        <h3><code>license</code>: อะไรอยู่ในไฟล์ที่คุณดาวน์โหลด</h3>
+        <p>มันไม่อ่านอะไรเลย ไม่อ่านตัวจัดการบริการ ไม่อ่านดิสก์ ไม่อ่านเครือข่าย และตอบจากทะเบียนที่คอมไพล์อยู่ในไฟล์ปฏิบัติการ <code>--components</code> เปลี่ยนประกาศให้เป็นทุกคอมโพเนนต์พร้อมเวอร์ชัน สัญญาอนุญาต และแหล่งที่มา ชุดเดียวกับที่รายการส่วนประกอบซึ่งเผยแพร่ข้างการดาวน์โหลดมี เพราะทั้งสองสร้างจากทะเบียนเดียวกัน และเป็นเหตุผลที่มีมันไว้ดี โปรแกรมเป็นไฟล์ครบในตัวไฟล์เดียว จึงไม่มีอะไรข้างๆ ให้เครื่องสแกนอ่าน</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ตัวอย่าง</h2>
+    <p class="lede">แผนด้านล่างถูกตรวจด้วย <code>--dry-run</code> กับโปรแกรมที่หน้านี้อธิบาย คำสั่งที่เปลี่ยนอะไรสักอย่างไม่ถามก่อน ดังนั้น <code>--dry-run</code> คือทางที่จะดูก่อนรัน <code>Spooler</code> แทนบริการใดก็ได้ ใส่ชื่อของคุณแทนที่</p>
+    <div class="examples">
+    <h3>ค้นหาและอ่าน</h3>
+<pre><code><span class="k">bws list</span>                                       <span class="c">ทุกบริการและไดรเวอร์บนเครื่องนี้</span>
+<span class="k">bws list --query "start:auto !status:running"</span>  <span class="c">อะไรที่ควรทำงานแต่ไม่ได้ทำงาน</span>
+<span class="k">bws list --query "status:running" --memory</span>     <span class="c">กระบวนการของแต่ละรายการที่กำลังทำงานใช้อะไรอยู่</span>
+<span class="k">bws show Spooler</span>                               <span class="c">ทุกอย่างที่รู้เกี่ยวกับหนึ่งรายการ</span>
+<span class="k">bws show Spooler --full</span>                        <span class="c">รวมถึงฟิลด์ที่ว่างจริงๆ</span></code></pre>
+    <h3>ดูก่อน แล้วค่อยเปลี่ยน</h3>
+<pre><code><span class="k">bws restart Spooler --dry-run</span>                <span class="c">แผน และไม่มีอะไรอีก</span>
+<span class="k">bws restart Spooler --dependents</span>             <span class="c">รีสตาร์ตมันพร้อมสิ่งที่ขึ้นอยู่กับมัน</span>
+<span class="k">bws stop Spooler --dependents --timeout 120</span>  <span class="c">ให้เวลาสองนาทีต่อขั้นตอนโดยไม่มีความคืบหน้า</span>
+<span class="k">bws start-type WSearch delayed --dry-run</span>     <span class="c">เริ่มมันช้ากว่ารายการอัตโนมัติอื่นเล็กน้อย</span>
+<span class="k">bws start-type Spooler disabled --stop</span>       <span class="c">ปิดใช้งานและหยุดมันในแผนเดียว</span></code></pre>
+    <h3>บริการที่หยุดไม่ลง</h3>
+<pre><code><span class="k">bws kill Spooler --dry-run</span>          <span class="c">กระบวนการ และทุกบริการที่อยู่ในนั้น</span>
+<span class="k">bws kill Spooler --restart</span>          <span class="c">จบกระบวนการเฉพาะเมื่อการหยุดล้มเหลว แล้วนำทุกอย่างกลับมา</span>
+<span class="k">bws kill Spooler --force --dry-run</span>  <span class="c">หนึ่งขั้นตอนแทนที่จะเป็นสอง: จบกระบวนการทันที</span></code></pre>
+    <h3>สแนปช็อตและดริฟต์</h3>
+<pre><code><span class="k">bws snapshot create before.json --note "before the patch"</span>  <span class="c">บันทึกสถานะเครื่อง พร้อมหมายเหตุที่เก็บไว้ข้างใน</span>
+<span class="k">bws snapshot diff before.json after.json</span>                   <span class="c">สองไฟล์ ห่างกันสองวัน หรือสองเครื่อง</span>
+<span class="k">bws snapshot diff before.json --live</span>                       <span class="c">ไฟล์เทียบกับเครื่องนี้ในสภาพตอนนี้</span>
+<span class="k">bws snapshot diff before.json --live --exit-code</span>           <span class="c">เหมือนกัน แต่จบด้วย 5 เมื่อการกำหนดค่าดริฟต์</span></code></pre>
+    <h3>ใครเปลี่ยน</h3>
+<pre><code><span class="k">bws history</span>          <span class="c">ทุกการเปลี่ยนประเภทการเริ่มต้นและการติดตั้งที่ System log เก็บไว้</span>
+<span class="k">bws history Spooler</span>  <span class="c">การเปลี่ยนประเภทการเริ่มต้นของบริการหนึ่งตัว</span>
+<span class="k">bws history --json</span>   <span class="c">เหมือนกันแต่เป็นเอกสาร พร้อม log และการเปลี่ยนแปลง</span></code></pre>
+    <h3>การแก้ด่วน</h3>
+<pre><code><span class="k">bws tool</span>                      <span class="c">เครื่องมือที่มี</span>
+<span class="k">bws tool fix</span>                  <span class="c">การแก้ด่วน และบริการที่อยู่เบื้องหลังแต่ละตัว</span>
+<span class="k">bws tool fix sound --dry-run</span>  <span class="c">แผนการรีสตาร์ตบริการเสียงสองตัว</span>
+<span class="k">bws tool fix printer</span>          <span class="c">รีสตาร์ต Print Spooler พร้อมสิ่งที่ขึ้นอยู่กับมัน</span></code></pre>
+    <h3>อะไรอยู่ในไฟล์</h3>
+<pre><code><span class="k">bws license --components</span>  <span class="c">ทุกคอมโพเนนต์ เวอร์ชัน สัญญาอนุญาต และแหล่งที่มา</span>
+<span class="k">bws --version</span>             <span class="c">เวอร์ชันของไฟล์ปฏิบัติการนี้</span></code></pre>
+    <h3>ในสคริปต์ PowerShell</h3>
+<pre class="wrap-lines"><code><span class="c"># รายการที่ควรทำงานแต่ไม่ได้ทำงาน ในรูปแบบอ็อบเจกต์</span>
+<span class="k">bws list --query "start:auto !status:running" --json | ConvertFrom-Json | Select-Object serviceName, displayName, status</span>
+
+<span class="c"># ไฟล์ที่ไม่มีลายเซ็น ลงสเปรดชีต</span>
+<span class="k">bws list --query "signed:no" --json | ConvertFrom-Json | Select-Object serviceName, binaryPath | Export-Csv unsigned.csv -NoTypeInformation</span>
+
+<span class="c"># สิ่งที่บริการหนึ่งต้องใช้</span>
+<span class="k">(bws show Spooler --json | ConvertFrom-Json).dependsOn</span>
+
+<span class="c"># การตรวจตอนกลางคืนที่แตกสาขาตามรหัสออก</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code &gt; $null</span>
+<span class="k">switch ($LASTEXITCODE) {</span>
+<span class="k">  0 { 'no configuration drift' }</span>
+<span class="k">  5 { 'the configuration drifted' }</span>
+<span class="k">  default { "no clean answer, exit code $LASTEXITCODE" }</span>
+<span class="k">}</span></code></pre>
+    <h3>ใน cmd และไฟล์แบตช์</h3>
+<pre class="wrap-lines"><code><span class="c">rem คำสั่งที่สองเฉพาะเมื่อคำสั่งแรกไม่จบอย่างสะอาด</span>
+<span class="k">bws restart Spooler || echo the restart did not end cleanly</span>
+
+<span class="c">rem ในไฟล์แบตช์ที่เปิด delayed expansion ไว้ ! ต้องมี caret</span>
+<span class="k">bws list --query "start:auto ^!status:running"</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ตัวเลือก</h2>
+    <p>{{switch_count}} ตัว คอลัมน์ที่สามคือคำสั่งที่แต่ละตัวเป็นของ ตัวเลือกที่ส่งให้คำสั่งที่ไม่ได้ใช้มันคือข้อผิดพลาดที่มีรายการนั้นอยู่ข้างใน แทนที่จะเป็นแฟล็กที่ถูกเมินเงียบๆ</p>
+    {{table:switches}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>รหัสออก</h2>
+    <p>{{exit_code_count}} แบบของการจบ และทุกแบบเป็นสิ่งที่สคริปต์ต้องทำต่างกัน ข้อมูลไปที่ standard output และอย่างอื่นทั้งหมดไปที่ standard error ดังนั้น <code>bws list --json | jq</code> ใช้ได้ และคำเตือนจะไม่ปนเข้ามาใน JSON ของคุณ</p>
+    <p>ทุกเอกสาร JSON เป็น ASCII ล้วน ตัวอักษรนอกนั้นถูกเขียนเป็นอีสเคปหกตัวอักษรที่ตัวอ่าน JSON ทุกตัวแปลงกลับเป็นตัวอักษร ดังนั้น <code>bws list --json &gt; file.json</code> เป็น UTF-8 ที่ถูกต้อง และ <code>| ConvertFrom-Json</code> อ่านถูกต้องไม่ว่าคอนโซลตั้งโค้ดเพจไว้เท่าไร ในข้อความที่คนอ่าน ตัวอักษรที่จะเลื่อนเทอร์มินัลแทนที่จะพิมพ์ เช่น แท็บ การขึ้นบรรทัดใหม่ ลำดับอีสเคป การกลับทิศทาง จะแสดงเป็นโค้ดพอยต์ของมัน <code>&lt;U+001B&gt;</code></p>
+    <p><code>--</code> จบตัวเลือก ดังนั้นบริการที่ชื่อขึ้นต้นด้วยขีดก็ยังระบุชื่อได้: <code>bws show -- -odd</code> บรรทัดคำสั่งที่เครื่องมือส่งให้คุณเขียนไว้สำหรับ PowerShell ชื่อที่มีช่องว่างอยู่ในเครื่องหมายคำพูดคู่ ซึ่ง cmd อ่านแบบเดียวกัน และชื่อที่ PowerShell จะขยายภายในนั้น เช่น <code>MSSQL$SQLEXPRESS</code> อยู่ในเครื่องหมายคำพูดเดี่ยว</p>
+    {{table:exit-codes}}
+    <p class="note"><strong>Ctrl+C มีสามระดับ แต่ละระดับบอกว่าระดับถัดไปมีราคาเท่าไร</strong> ระดับแรกหยุดไม่ไปข้างหน้าและยังคงนำสิ่งที่เอาไปกลับคืน ระดับสองปล่อยสิ่งต่างๆ ไว้ตามที่เป็นและยังพิมพ์รายงาน ระดับสามจบกระบวนการ การรันที่หยุดด้วยมือจบด้วย <code>4</code> แม้ทุกขั้นตอนจะไปถึงที่หมายแล้ว</p>
+    <p class="note"><strong>การปิดหน้าต่างคอนโซลนับเป็น Ctrl+C ครั้งแรก</strong> หลังจากนั้น Windows ให้โปรแกรมห้าวินาที และในช่วงนั้นโปรแกรมนี้หยุดไม่ไปข้างหน้าและนำสิ่งที่มันปิดไปกลับคืน การออกจากระบบและการปิดเครื่องจบมันโดยไม่มีคำเตือนที่มันตอบสนองได้ และเซสชันระยะไกลที่หลุดอาจเป็นเช่นนั้นด้วย</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ในงานตามกำหนดเวลา</h2>
+    <p>รูปแบบที่เครื่องมือนี้สร้างมาเพื่อ: บันทึกสถานะเครื่องเมื่อรู้ว่าดี แล้วถามทุกคืนว่ายังดีอยู่ไหม</p>
+<pre><code><span class="c"># วันที่เครื่องเข้าสู่การใช้งาน</span>
+<span class="k">bws snapshot create C:\baselines\web01.json --note "after the build"</span>
+
+<span class="c"># ทุกคืน จากงานตามกำหนดเวลา</span>
+<span class="k">bws snapshot diff C:\baselines\web01.json --live --exit-code --json &gt; C:\logs\drift.json</span>
+<span class="c">#   0 - ไม่มีดริฟต์ของการกำหนดค่า
+#   5 - การกำหนดค่าดริฟต์ และ drift.json บอกว่าอะไร
+#   3 - รันแล้วแต่อ่านไม่ได้ทั้งหมด คำตอบจึงไม่ครบ</span></code></pre>
+    <p>หน้าต่างคืออีกครึ่งของเอนจินเดียวกัน: <code>{{archive_window}}</code> บรรจุมันไว้ และ<a href="{{url:download}}">หน้าดาวน์โหลด</a>บอกว่าแต่ละไฟล์บีบอัดคืออะไร</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>อาร์กิวเมนต์ของหน้าต่าง</h2>
+    <p><code>BetterWindowsServices.exe</code> รับหนึ่งอาร์กิวเมนต์ที่ตั้งใจให้คนใช้: <code>--catalogue</code> เปิดชีตของนักพัฒนาที่แสดงทุกคอมโพเนนต์ของหน้าต่างในทุกสถานะ และไม่อ่านอะไรจากเครื่องของคุณ อีกอันคือ <code>--carry</code> เป็นวิธีที่หน้าต่างส่งสิ่งที่กำลังแสดงอยู่ให้สำเนาของตัวเองที่รีสตาร์ตเป็นผู้ดูแลระบบ ไม่มีใครพิมพ์มัน และสิ่งใดในนั้นที่หน้าต่างนั้นเขียนไม่ได้จะถูกปฏิเสธ</p>
+  </div>
+</section>

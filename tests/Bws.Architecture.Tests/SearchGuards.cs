@@ -168,7 +168,7 @@ public sealed class SearchGuards
         // The reading on its own, over five small files whose answer is known - the two shapes
         // that reach CsCheck, the fully qualified one review found, and two that only share the
         // word Sample. Every guard above stands on this reading.
-        var root = CSharpSyntaxTree.ParseText(source, CodeShape.Language).GetRoot();
+        var root = CSharpSyntaxTree.ParseText(source, CodeShape.Language, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken);
 
         Assert.Equal(samples, Read(root, "Specimen.cs").Single(method => method.Name == "T.M").SamplesDirectly);
     }

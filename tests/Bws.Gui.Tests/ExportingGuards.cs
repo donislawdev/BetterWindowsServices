@@ -226,13 +226,13 @@ public sealed class ExportingGuards
         {
             Assert.Null(WpfHost.On(() => window.WriteShownTo(path)));
 
-            var bytes = await File.ReadAllBytesAsync(path);
+            var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
 
             Assert.True(
                 bytes.Length > 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
                 "The file has no byte order mark, so a spreadsheet will guess the encoding.");
 
-            var lines = await File.ReadAllLinesAsync(path);
+            var lines = await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken);
 
             Assert.Equal(2, lines.Length);
             Assert.Contains("Spooler", lines[1], StringComparison.Ordinal);

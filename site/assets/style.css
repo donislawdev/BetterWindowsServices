@@ -879,6 +879,17 @@ html:lang(vi) { --lh-body: 1.7; --lh-tight: 1.3; }
 */
 html:lang(ko) { word-break: keep-all; }
 
+/*
+  Japanese has no spaces, so by default a line may break between any two characters, and at 375 px
+  the headlines split inside words (measured on the home page: the verb for "search" and the word
+  for "preview" were each cut after their first character). auto-phrase breaks between phrases instead. It is supported by Chrome and Edge from 119 and not
+  by Firefox, and Safari has it only in its preview (MDN compatibility data, read 2026-10-26). A
+  browser without it drops the declaration and keeps the default, so for them nothing changes. It
+  is limited to Japanese because that is the language it was measured on: Chrome would also apply it
+  to Korean, which already breaks at its spaces through the rule above.
+*/
+html:lang(ja) { word-break: auto-phrase; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }

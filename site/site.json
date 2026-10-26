@@ -7,7 +7,7 @@
   "support": "https://donislawdev.com/support/",
 
   "_languages": "The languages that are PUBLISHED, in the order the switch lists them. The first is the default and lives at the root. The others live under /{code}/. A language that is in language_registry and not here is prepared and unreachable, which is how it is written and built before it goes live.",
-  "languages": ["en", "cs", "de", "es", "fr", "id", "it", "ja", "ko", "nl", "pl", "pt-br", "ro", "ru", "tr", "uk", "vi", "zh-hans", "zh-hant"],
+  "languages": ["en", "cs", "de", "es", "fr", "hi", "id", "it", "ja", "ko", "nl", "pl", "pt-br", "ro", "ru", "th", "tr", "uk", "vi", "zh-hans", "zh-hant", "ar"],
 
   "_language_registry": "How each language is written, in one place. The key is the address code in lower case and the name of its files (site/i18n/{code}.json, site/pages/{id}/{code}.html). tag is what lang and hreflang carry, locale is og:locale, name is the language in its OWN alphabet and is never translated, short is what the switch shows for the language you are in. dir is written only when it is rtl. slugs is own when the language has a slug of its own for every page in each page.json, and english when its pages live at the default language's slugs - the choice for alphabets that cannot be an ASCII address without being transliterated.",
   "language_registry": {

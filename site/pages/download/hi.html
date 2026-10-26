@@ -1,0 +1,86 @@
+<meta name="title" content="Better Windows Services डाउनलोड करें - मुफ़्त, zip या MSI">
+<meta name="description" content="दो निष्पादन योग्य फ़ाइलें या हस्ताक्षरित इंस्टॉलर, .NET की ज़रूरत नहीं। Windows 10 1809 या Windows Server 2019 और बाद के, 64-बिट। मुफ़्त और ओपन सोर्स, GPL-3.0।">
+<meta name="nav" content="डाउनलोड">
+<meta name="translated-from" content="d6603cf8370f">
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">डाउनलोड</span>
+    <h1>अनज़िप करके चलाएँ, या इंस्टॉल करें</h1>
+    <p class="lede">संस्करण {{version}}। आर्काइव को इंस्टॉलर नहीं चाहिए और वे रजिस्ट्री में कुछ नहीं लिखते, और देखने के लिए व्यवस्थापक अधिकार नहीं चाहिए। इसके बजाय एक हस्ताक्षरित इंस्टॉलर दोनों प्रोग्राम पूरी मशीन पर लगा देता है। GPL-3.0 के तहत मुफ़्त और ओपन सोर्स।</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{releases}}">Windows के लिए डाउनलोड करें</a>
+      <a class="btn btn-secondary" href="{{all_releases}}">सभी रिलीज़</a>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>रिलीज़ में क्या है</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>फ़ाइल</th><th>यह क्या है</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{archive_window}}</code></td><td>विंडो: <code>BetterWindowsServices.exe</code>, एक अपने-आप में पूर्ण निष्पादन योग्य फ़ाइल जिसके अंदर उसका अपना .NET रनटाइम है</td></tr>
+          <tr><td><code>{{archive_cli}}</code></td><td>कमांड लाइन: <code>bws.exe</code>, एक अपने-आप में पूर्ण निष्पादन योग्य फ़ाइल, स्क्रिप्ट, शेड्यूल किए गए टास्क और CI के लिए</td></tr>
+          <tr><td><code>{{archive_installer}}</code></td><td>इंस्टॉलर: दोनों प्रोग्राम <code>Program Files</code> में, मशीन के हर खाते के लिए, विंडो Start मेनू में और <code>bws</code> मशीन के PATH में</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>एक लें या दोनों। ये एक ही इंजन के दो क्लाइंट हैं और किसी को दूसरे की ज़रूरत नहीं। सर्वर पर कमांड लाइन दोनों में छोटी है और वह सब करती है जो विंडो करती है।</p>
+    <p>इंस्टॉलर में ठीक वही है जो दोनों आर्काइव में है। यह <code>msiexec /i {{archive_installer}} /qn</code> से चुपचाप इंस्टॉल होता है, नया संस्करण पुराने के ऊपर इंस्टॉल हो जाता है, और यह चल रही किसी चीज़ को बंद नहीं करता, इसलिए अपग्रेड से पहले विंडो और चल रहे किसी भी <code>bws</code> को बंद कर दें, क्योंकि चलती छोड़ी गई प्रति त्रुटि के साथ रुक सकती है। Settings, Apps से अनइंस्टॉल करने पर प्रोग्राम, Start मेनू की प्रविष्टि और PATH की प्रविष्टि हट जाती हैं, और आपकी अपनी फ़ाइलें वैसी ही रहती हैं।</p>
+    <p>निष्पादन योग्य फ़ाइलों पर Authenticode हस्ताक्षर है, इसलिए Windows अज्ञात प्रकाशक की चेतावनी देने के बजाय प्रकाशक का नाम बताता है।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>आवश्यकताएँ</h2>
+    <ul class="points">
+      <li><strong>Windows 10 संस्करण 1809 या बाद का, या Windows Server 2019 या बाद का।</strong> सिर्फ़ 64-बिट। 32-बिट प्रक्रिया पुनर्निर्देशित पथ और रजिस्ट्री कुंजियाँ पढ़ती है, जिनसे चुपचाप गलत नतीजे निकलते।</li>
+      <li><strong>.NET इंस्टॉल करने की ज़रूरत नहीं।</strong> दोनों निष्पादन योग्य फ़ाइलें अपना .NET रनटाइम साथ रखती हैं।</li>
+      <li><strong>कुछ भी बदलने के लिए व्यवस्थापक अधिकार चाहिए।</strong> पढ़ना, खोजना, स्नैपशॉट और diff इनके बिना भी चलते हैं, कम प्रविष्टियाँ दिखती हैं और टूल सबसे ऊपर यह बता देता है, यह दिखावा करने के बजाय कि सूची पूरी मशीन की है।</li>
+    </ul>
+    <p>विंडो अपनी एक फ़ाइल रखती है, यानी वह लेआउट जिसमें आपने सूची छोड़ी थी, <code>%APPDATA%\BetterWindowsServices</code> के अंतर्गत। स्नैपशॉट वहाँ जाता है जहाँ आप <code>bws snapshot create</code> को रखने को कहें, और न कहें तो वर्तमान डायरेक्टरी में।</p>
+    <p class="note"><strong>प्रोग्राम अंग्रेज़ी में बोलता है।</strong> विंडो एक भाषा फ़ाइल पढ़ती है, <code>languages\gui.&lt;code&gt;.json</code>, जो उसके बगल में रखी होती है और Windows की भाषा से चुनी जाती है, बिना किसी सेटिंग के। इसलिए अनुवाद एक ऐसा योगदान है जिसे बिना दोबारा बिल्ड किए जोड़ा जा सकता है। <a href="{{repo}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> बताता है कैसे।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>एंटीवायरस और EDR</h2>
+    <p class="lede">यह टूल वही करता है जो एक व्यवस्थापक सेवाओं के साथ करता है, और उसमें से कुछ वही है जिस पर सुरक्षा सॉफ़्टवेयर नज़र रखता है।</p>
+    <p>यह सेवाएँ रोकता और शुरू करता है, किसी सेवा के पीछे की प्रक्रिया खत्म कर सकता है, और हर सेवा का security descriptor और ज़रूरी विशेषाधिकार पढ़ता है। जो EDR <code>svchost.exe</code> को खत्म करने वाली प्रक्रिया को चिह्नित करता है वह अपना काम कर रहा है, और यहाँ ज़बरदस्ती रोकना ठीक वैसा ही दिख सकता है।</p>
+    <p>यह जो <strong>नहीं</strong> करता, ताकि आप दावे को जाँच सकें: यह किसी प्रक्रिया में कुछ इंजेक्ट नहीं करता, कुछ पैक या ऑब्फ़स्केट नहीं करता, कोई सेवा या ड्राइवर इंस्टॉल नहीं करता और कुछ चलता नहीं छोड़ता, और कोई नेटवर्क कनेक्शन नहीं खोलता। यह GPL-3.0 के तहत ओपन सोर्स है और आप दोनों निष्पादन योग्य फ़ाइलें खुद बना सकते हैं।</p>
+    <p>यदि आपकी नीति को अपवाद चाहिए, तो फ़ोल्डर के बजाय दोनों निष्पादन योग्य फ़ाइलों को फ़ाइल के रूप में अपवाद बनाएँ। जिस एक चीज़ को टूल जितनी ही सावधानी से संभालना चाहिए वह स्नैपशॉट फ़ाइल है: वह पूरी मशीन का वर्णन करती है।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>सोर्स से बिल्ड करना</h2>
+    <p>.NET 10 SDK, Windows पर।</p>
+<pre><code><span class="k">git clone {{repo}}</span>
+<span class="k">cd BetterWindowsServices</span>
+<span class="k">dotnet build BetterWindowsServices.slnx -c Release</span>
+<span class="k">dotnet test BetterWindowsServices.slnx -c Release</span></code></pre>
+    <p>कुछ टेस्ट उस मशीन का असली सेवा नियंत्रण प्रबंधक पढ़ते हैं जिस पर वे चलते हैं और इस टूल की बात की तुलना <code>sc.exe</code> की बात से करते हैं। वे केवल-पढ़ने वाले हैं। रिलीज़ में जो एकल-फ़ाइल निष्पादन योग्य फ़ाइलें हैं वे ये दो पब्लिश हैं, हर एक एक फ़ाइल जिसके अंदर रनटाइम है:</p>
+<pre class="wrap-lines"><code><span class="k">dotnet publish src/Bws.Cli/Bws.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span>
+<span class="k">dotnet publish src/Bws.Gui/Bws.Gui.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true</span></code></pre>
+    <p>ये <code>bws.exe</code> और <code>BetterWindowsServices.exe</code> के रूप में हर प्रोजेक्ट के <code>bin/Release/.../win-x64/publish/</code> के अंतर्गत बनती हैं। उनके बगल की <code>.pdb</code> फ़ाइलें डीबगिंग सिंबल हैं, और चलने के लिए उनकी किसी को ज़रूरत नहीं।</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>इसे चलाने की लागत</h2>
+    <p class="lede">810 सेवाओं वाली एक मशीन पर मापा गया। आपके आँकड़े अलग होंगे, क्योंकि सेवाओं की संख्या, डिस्क और प्रोसेसर तीनों इन्हें बदलते हैं।</p>
+    <div class="grid grid-quarters">
+      <div class="card"><h3>लगभग चौथाई सेकंड</h3><p><code>bws list</code> को पूरी मशीन पढ़ने में।</p></div>
+      <div class="card"><h3>लगभग 0.8 सेकंड</h3><p>विंडो शुरू करने से लेकर सूची के स्क्रीन पर आने तक।</p></div>
+      <div class="card"><h3>लगभग 100 MB</h3><p>विंडो के लिए, जिसमें से आधा Windows यूज़र इंटरफ़ेस फ़्रेमवर्क है, इस टूल का अपना कोई कोड चलने से पहले।</p></div>
+      <div class="card"><h3>लगभग 16 MB</h3><p>उसी मशीन पर कमांड लाइन के लिए।</p></div>
+    </div>
+  </div>
+</section>

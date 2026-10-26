@@ -1,0 +1,177 @@
+<meta name="title" content="ภาษาคิวรี - ถามบริการ Windows ของคุณ">
+<meta name="description" content="ภาษาคิวรีเดียวสำหรับช่องค้นหาและ bws list --query ทุกฟิลด์ ทุกค่า และคำถามที่ services.msc ถามไม่ได้: อะไรที่อ่านไม่ได้">
+<meta name="nav" content="ภาษาคิวรี">
+<meta name="translated-from" content="65b2fc0cf319">
+
+<!--
+  ตารางฟิลด์สร้างจาก Bws.Core QueryFields.Names และ QueryFields.ValuesOf เป็น API สาธารณะสำหรับทุกอย่าง
+  ที่นำเสนอฟิลด์ให้ผู้ใช้ หน้านี้จึงไม่มีทางระบุฟิลด์ที่โปรแกรมไม่มี หรือขาดฟิลด์ที่โปรแกรมมี
+  ประโยคข้างตารางอยู่ใน site/i18n
+-->
+
+<section class="band page-title">
+  <div class="wrap">
+    <span class="eyebrow">ภาษาคิวรี</span>
+    <h1>ถามเครื่องหนึ่งคำถาม</h1>
+    <p class="lede">ภาษาเดียว ทั้งในช่องค้นหาของหน้าต่างและใน <code>bws list --query</code> คำเดี่ยวๆ จะค้นหาในชื่อ ชื่อที่แสดง บัญชี และพาธการเปิดใช้งาน ฟิลด์ช่วยจำกัดให้แคบลง {{field_count}} ฟิลด์ และข้อความเดียวกันมีความหมายเดียวกันในทั้งสองส่วนของเครื่องมือ</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>หกคิวรีที่ตอบคำถามจริง</h2>
+    <div class="grid">
+      <div class="card"><h3>อะไรที่ควรทำงานแต่ไม่ได้ทำงาน</h3><p><code>start:auto !status:running</code></p><p>คิวรีแรกที่คนส่วนใหญ่เขียน และเป็นคิวรีที่ <code>services.msc</code> ตอบไม่ได้เลย</p></div>
+      <div class="card"><h3>บริการที่ไฟล์หายไป</h3><p><code>file:missing</code></p><p>รายการที่ชี้ไปยังไฟล์ปฏิบัติการที่ไม่อยู่บนดิสก์ มักเกิดจากการถอนการติดตั้งที่ทิ้งการลงทะเบียนไว้</p></div>
+      <div class="card"><h3>ไม่มีลายเซ็น และไม่มีสัญญาณรบกวนจากเซสชัน</h3><p><code>signed:no peruser:no</code></p><p>ตระกูลต่อผู้ใช้สร้างสำเนาต่อเซสชันและทำให้รายชื่อเต็มไปด้วยรายการที่เกือบซ้ำกัน คิวรีนี้ถามเฉพาะส่วนที่เหลือ</p></div>
+      <div class="card"><h3>ทำงานทั้งที่ปิดใช้งาน</h3><p><code>mismatch:running</code></p><p>การกำหนดค่าและสถานะขัดแย้งกัน รายการที่ตัวจัดการตั้งไว้ไม่ให้เริ่มเลย แต่ทำงานอยู่</p></div>
+      <div class="card"><h3>อะไรก็ตามที่ขอสิทธิ์ดีบัก</h3><p><code>privilege:SeDebugPrivilege</code></p><p>สิทธิพิเศษที่ให้กระบวนการเปิดกระบวนการอื่นได้ทุกตัว ควรรู้ว่าบริการไหนขอมัน</p></div>
+      <div class="card"><h3>สิ่งที่เครื่องมืออ่านไม่ได้</h3><p><code>account:?</code></p><p>รายการที่เซสชันนี้อ่านบัญชีไม่ได้ เป็นคำถามที่ <code>services.msc</code> ถามไม่ได้ด้วยซ้ำ</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>เขียนคิวรีอย่างไร</h2>
+    <div class="split">
+      <div>
+        <h3>คำค้น</h3>
+        <ul class="prose-list">
+          <li>คำค้นคั่นด้วยช่องว่างและต้องตรงทุกคำ ไม่มีคีย์เวิร์ด <code>and</code> เพราะมันไม่มีความหมายอื่นที่เป็นไปได้</li>
+          <li>ฟิลด์เดียวกันที่เขียนสองครั้งเป็นข้อยกเว้นเดียว: <code>status:running status:stopped</code> หมายถึงอย่างใดอย่างหนึ่ง เพราะนั่นคือสิ่งที่การติ๊กตัวกรองสองตัวเขียนออกมา ขอบเขตสองด้านของตัวเลขยังคงจำกัดให้แคบลง <code>pid:&gt;1000 pid:&lt;2000</code> คือช่วงระหว่างทั้งสอง</li>
+          <li><code>!</code> หน้าคำค้นทำให้เป็นนิเสธ: <code>!status:running</code> ในไฟล์แบตช์ที่มี <code>setlocal EnableDelayedExpansion</code> cmd จะกิน <code>!</code> นั้นโดยไม่บอกอะไร และคิวรีก็มีความหมายอื่นไปเงียบๆ ให้เขียน <code>^!</code> ภายในเครื่องหมายคำพูดตรงนั้น</li>
+          <li>เครื่องหมายจุลภาคภายในฟิลด์คือ <em>หรือ</em>: <code>start:manual,disabled</code></li>
+          <li>เครื่องหมายคำพูดปกป้องสิ่งที่มีช่องว่างหรือเครื่องหมายทวิภาค: <code>account:"NT SERVICE\McmSvc"</code></li>
+          <li>พาธที่วางมาตามที่เป็น <code>C:\Windows\System32\svchost.exe</code> จะถูกค้นหา ไม่ถูกอ่านเป็นฟิลด์ชื่อ C</li>
+        </ul>
+      </div>
+      <div>
+        <h3>ข้อความจับคู่อย่างไร</h3>
+        <ul class="prose-list">
+          <li><code>name:spool</code> ตรงกับทุกอย่างที่ <em>มี</em> คำนั้น เป็นค่าเริ่มต้น เพราะเป็นสิ่งที่คนคาดหวังจากช่องค้นหา</li>
+          <li><code>name:=spooler</code> คือตรงทั้งหมด</li>
+          <li><code>name:spool*</code> รับไวลด์การ์ด <code>*</code> และ <code>?</code></li>
+          <li><code>name:/^Sql.*/</code> คือนิพจน์ปกติ และภายในเครื่องหมายทับเขียนตามแบบของนิพจน์ปกติ: <code>\?</code>, <code>\\</code> และเครื่องหมายจุลภาคมีความหมายตามที่มันมีในนั้น เครื่องหมายทับที่ไม่ปิดคือข้อผิดพลาด ถ้าจะค้นหาเครื่องหมายทับเอง ให้เขียน <code>\/</code> หรือใช้เครื่องหมายคำพูด</li>
+          <li>ไม่สนตัวพิมพ์ใหญ่เล็ก รวมถึงนอก ASCII ชื่อที่แสดงภาษาโปแลนด์หรือกรีกตรงกันไม่ว่าจะพิมพ์แบบไหน</li>
+        </ul>
+      </div>
+    </div>
+    <h3>สามคำที่ทุกฟิลด์ยอมรับ</h3>
+    {{list:reserved-words}}
+    <p class="note"><strong>ค่าที่พิมพ์ผิดคือข้อผิดพลาด ไม่เคยเป็นผลลัพธ์ว่าง</strong> <code>status:runing</code> ตอบว่า <em>Did you mean running?</em> และจบด้วยรหัส <code>2</code> รายชื่อว่างจะดูเหมือนคำตอบ และความต่างระหว่าง “ไม่มีอะไรตรง” กับ “คุณพิมพ์ผิด” คือความต่างระหว่างเครื่องที่สะอาดกับการตรวจสอบที่ไม่ได้พิสูจน์อะไร คิวรีที่ไม่ทำให้แคบลงเลยจะถูกปฏิเสธบนบรรทัดคำสั่งด้วย สคริปต์จึงไม่ทำงานกับทั้งเครื่องเพราะพิมพ์ผิดตัวเดียว</p>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ตัวอย่างเพิ่มเติม</h2>
+    <p class="lede">แต่ละตัวทำงานเหมือนกันในช่องค้นหาของหน้าต่างและหลัง <code>bws list --query</code> และแต่ละตัวถูกรันบน Windows จริงก่อนจะเขียนไว้ที่นี่ สิ่งที่พบขึ้นอยู่กับเครื่อง และสำหรับคำถามเรื่องปัญหา คำตอบที่ว่างคือคำตอบที่คุณต้องการ</p>
+    <div class="examples">
+    <h3>สถานะและประเภทการเริ่มต้น</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>status:stopPending,<wbr>startPending</code></td><td>ค้างอยู่ที่กำลังหยุดหรือกำลังเริ่ม การรอที่สแนปอินแสดงและไม่มีวันจบ</td></tr>
+          <tr><td><code>start:auto status:stopped trigger:none</code></td><td>ตั้งให้เริ่มอัตโนมัติ หยุดอยู่ และไม่ได้รอทริกเกอร์ รายชื่อสั้นๆ ที่ควรอ่านหลังรีสตาร์ต</td></tr>
+          <tr><td><code>start:delayed</code></td><td>อัตโนมัติ เริ่มช้ากว่ารายการอัตโนมัติอื่นเล็กน้อย</td></tr>
+          <tr><td><code>start:manual,<wbr>disabled status:running</code></td><td>ทำงานอยู่ทั้งที่ไม่มีอะไรเริ่มมันตอนบูต มีบางอย่างขอมัน ทริกเกอร์เริ่มมัน หรือมีคนเริ่มมัน</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>บัญชี</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>account:localsystem !publisher:microsoft</code></td><td>รันเป็น LocalSystem บัญชีที่แรงที่สุด จากไฟล์ที่ Microsoft ไม่ได้ลงลายเซ็น คิวรีเกี่ยวกับผู้เผยแพร่อ่านลายเซ็นเอง จึงใช้เวลาไม่กี่วินาที</td></tr>
+          <tr><td><code>!account:localsystem,<wbr>localservice,<wbr>networkservice type:ownProcess,<wbr>sharedProcess</code></td><td>บริการที่รันภายใต้บัญชีอื่นใด บัญชีเสมือน บัญชีที่มีการจัดการ หรือบัญชีของคนใดคนหนึ่งเอง</td></tr>
+          <tr><td><code>account:"NT SERVICE"</code></td><td>บัญชีเสมือนของบริการเอง เครื่องหมายคำพูดรวมคำเข้าด้วยกันเพราะมีช่องว่าง</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>ไฟล์และลายเซ็น</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>signed:notSigned,<wbr>untrustedRoot,<wbr>tampered</code></td><td>ไม่มีลายเซ็น สายใบรับรองที่ Windows ไม่เชื่อถือ หรือไฟล์ที่ถูกเปลี่ยนหลังลงลายเซ็น</td></tr>
+          <tr><td><code>signed:trusted !publisher:microsoft</code></td><td>ลงลายเซ็น เชื่อถือได้ และไม่ใช่โดย Microsoft ซอฟต์แวร์ที่บริษัทอื่นวางไว้บนเครื่องนี้</td></tr>
+          <tr><td><code>type:driver start:boot,<wbr>system !signed:trusted</code></td><td>ไดรเวอร์ที่โหลดตอน Windows เริ่มซึ่ง Windows ไม่เชื่อถือลายเซ็น บนเครื่องที่แข็งแรงควรไม่มีเลย</td></tr>
+          <tr><td><code>!path:C:\Windows type:ownProcess</code></td><td>บริการที่มีกระบวนการของตัวเองซึ่งไฟล์อยู่นอกโฟลเดอร์ Windows</td></tr>
+          <tr><td><code>path:\AppData\</code></td><td>เปิดจากภายในโปรไฟล์ของใครสักคน ที่สุดท้ายที่คนคาดว่าจะมีบริการ</td></tr>
+          <tr><td><code>path:\System32\\ type:ownProcess</code></td><td>แบ็กสแลชหน้าช่องว่างทำให้ช่องว่างเป็นส่วนหนึ่งของคำ ดังนั้นพาธที่ลงท้ายด้วยแบ็กสแลชจึงเขียนสองตัวเมื่อมีคำค้นอื่นตามหลัง ที่ท้ายคิวรีหนึ่งตัวก็พอ</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>ทริกเกอร์และการพึ่งพา</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>trigger:device status:stopped</code></td><td>รอให้อุปกรณ์มาถึง จึงหยุดด้วยเหตุผล</td></tr>
+          <tr><td><code>trigger:network</code></td><td>เริ่มเมื่อมีคำขอมาถึงเอ็นด์พอยต์เครือข่าย พอร์ต named pipe หรืออินเทอร์เฟซ RPC</td></tr>
+          <tr><td><code>trigger:stop</code></td><td>รายการที่ทริกเกอร์หยุดได้ ไม่ใช่แค่เริ่ม</td></tr>
+          <tr><td><code>dependson:Winmgmt</code></td><td>รายการที่ต้องใช้ WMI เพื่อทำงาน</td></tr>
+          <tr><td><code>requiredby:Spooler</code></td><td>ทุกอย่างที่ Print Spooler ต้องใช้เพื่อทำงาน และสิ่งที่สิ่งเหล่านั้นต้องใช้ต่อกันไป</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>สิทธิพิเศษและกระบวนการ</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>privilege:SeTcbPrivilege</code></td><td>ขอทำงานเป็นส่วนหนึ่งของระบบปฏิบัติการ</td></tr>
+          <tr><td><code>privilege:SeImpersonatePrivilege !account:localsystem</code></td><td>ทำงานแทนไคลเอนต์ได้ขณะรันภายใต้บัญชีอื่นที่ไม่ใช่ LocalSystem</td></tr>
+          <tr><td><code>sidtype:unrestricted</code></td><td>มี service SID ของตัวเองในกระบวนการ สิทธิ์จึงระบุชื่อมันตัวเดียวได้ sidtype:restricted ถามถึงรายการที่กระบวนการถูกจำกัดการเขียนด้วย</td></tr>
+          <tr><td><code>type:sharedProcess status:running</code></td><td>ทำงานอยู่ใน svchost ที่ใช้ร่วมกัน พร้อมรายการอื่น</td></tr>
+          <tr><td><code>memory:&gt;200MB</code></td><td>กระบวนการที่ใช้มากกว่า 200 MB หน่วยความจำจะถูกอ่านเองเมื่อคิวรีถามถึงมัน</td></tr>
+          <tr><td><code>pid:1000-2000</code></td><td>อยู่ในกระบวนการที่ id อยู่ระหว่าง 1000 ถึง 2000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>ชื่อและข้อความ</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>คิวรี</th><th>สิ่งที่พบ</th></tr></thead>
+        <tbody>
+          <tr><td><code>spool</code></td><td>คำเดี่ยวๆ ค้นหาในชื่อ ชื่อที่แสดง บัญชี และพาธการเปิดใช้งาน</td></tr>
+          <tr><td><code>name:=wuauserv</code></td><td>ชื่อนี้ตรงทั้งหมด และไม่มีอะไรที่แค่มีมันอยู่ข้างใน</td></tr>
+          <tr><td><code>name:win*</code></td><td>ชื่อที่ขึ้นต้นด้วย win เขียนด้วยไวลด์การ์ด</td></tr>
+          <tr><td><code>name:/svc$/</code></td><td>ชื่อที่ลงท้ายด้วย svc เขียนเป็นนิพจน์ปกติ</td></tr>
+          <tr><td><code>description:none</code></td><td>ไม่มีคำอธิบายเลย ซึ่งคือไดรเวอร์ส่วนใหญ่</td></tr>
+          <tr><td><code>description:?</code></td><td>คำอธิบายที่ Windows ส่งมาให้ไม่ได้ มักเพราะชี้ไปที่ไฟล์ภาษาที่ไม่อยู่</td></tr>
+          <tr><td><code>peruser:template</code></td><td>แม่แบบต่อผู้ใช้ที่ Windows คัดลอกสำหรับแต่ละเซสชันที่ลงชื่อเข้าใช้</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>ทุกฟิลด์</h2>
+    <p>สร้างจากโปรแกรมเอง ตารางนี้จึงไม่มีทางห่างจากสิ่งที่เครื่องมือยอมรับ ฟิลด์ที่ไม่มีรายการค่าจะรับข้อความ ตัวเลข หรือขนาด คอลัมน์ที่สามบอกว่าอย่างไหน</p>
+    {{table:query-fields}}
+  </div>
+</section>
+
+<section class="band band-tight">
+  <div class="wrap">
+    <h2>สองเรื่องที่ควรรู้</h2>
+    <div class="qa">
+      <div>
+        <h3>บางฟิลด์แพง และการถามถึงมันจะเปิดการอ่าน</h3>
+        <p>ลายเซ็นใช้เวลาหลายวินาทีทั้งเครื่อง และหน่วยความจำเป็นการวัดไม่ใช่การตั้งค่า จึงไม่อ่านทั้งสองสำหรับรายชื่อเว้นแต่จะขอ คิวรีที่กล่าวถึงอย่างใดอย่างหนึ่งจะเปิดการอ่านนั้นเอง คุณไม่ต้องจำ <code>--signatures</code> เพิ่มจาก <code>signed:no</code> ในหน้าต่าง คิวรีเกี่ยวกับลายเซ็นจะบอกว่าคำตอบยังไม่ครบจนกว่าลายเซ็นจะมาถึง แทนที่จะแสดงรายชื่อที่สั้นลงราวกับเป็นคำตอบ</p>
+      </div>
+      <div>
+        <h3>ผลลัพธ์ที่ตัดสินจากสิ่งที่อ่านไม่ได้จะบอกไว้</h3>
+        <p>ถ้ารายการถูกตัดสินจากฟิลด์ที่เซสชันนี้อ่านไม่ได้ ผลลัพธ์จะมีบรรทัดบอกว่ากี่รายการ เพราะผลลัพธ์แบบนั้นอาจขาดรายการหรือมีรายการที่ไม่ควรอยู่ นั่นคือกฎเดียวกับที่ทั้งเครื่องมือยึดถือ การอ่านที่ไม่สำเร็จมองเห็นได้ในคำตอบ ไม่เคยถูกกลืนหาย ผู้เผยแพร่ได้รับการปฏิบัติแบบเดียวกันเมื่อมีเพียงใบรับรองที่อ้างมัน ข้างคำตัดสินใดที่ไม่ใช่ <code>trusted</code> ชื่อจะแสดงเป็น <em>not verified</em> และ <code>publisher:</code> นับรายการนั้นว่าไม่แน่ใจในบรรทัดของตัวเอง ดังนั้น <code>!publisher:microsoft</code> จึงเก็บไฟล์ Microsoft ที่มีคนเปลี่ยนหลังลงลายเซ็นไว้</p>
+      </div>
+    </div>
+    <a class="more" href="{{url:cli-reference}}">เอกสารอ้างอิงบรรทัดคำสั่ง</a>
+  </div>
+</section>

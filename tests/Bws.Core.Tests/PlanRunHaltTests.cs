@@ -26,7 +26,7 @@ public sealed class PlanRunHaltTests
             .Reaching(Name, PlanRunProgressTests.Pending(0, TimeSpan.Zero));
 
         var run = new PlanRunner(control, clock)
-            .Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token);
+            .Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token, cancellation: TestContext.Current.CancellationToken);
 
         // The watching ended, the entry may still arrive - which is what the outcome says, on the
         // owner's decision of 2026-09-30, rather than a new value of it.
@@ -44,7 +44,7 @@ public sealed class PlanRunHaltTests
             .OnItsWay(Name, TimeSpan.FromSeconds(90), PlanRunProgressTests.Pending(1, TimeSpan.Zero));
 
         var run = new PlanRunner(control, clock)
-            .Run(PlanRunProgressTests.Starting(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token);
+            .Run(PlanRunProgressTests.Starting(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token, cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);
         Assert.Empty(control.Requested);
@@ -61,7 +61,7 @@ public sealed class PlanRunHaltTests
             .OnItsWay(Name, TimeSpan.FromSeconds(90), PlanRunProgressTests.Pending(1, TimeSpan.Zero));
 
         var run = new PlanRunner(control, clock)
-            .Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token);
+            .Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60), abandonment: abandonment.Token, cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);
         Assert.Empty(control.Requested);

@@ -333,7 +333,7 @@ public sealed class KeptColumnGuards : IDisposable
 
         Assert.Contains(
             "\"sort\"",
-            await File.ReadAllTextAsync(file.Where),
+            await File.ReadAllTextAsync(file.Where, TestContext.Current.CancellationToken),
             StringComparison.Ordinal);
 
         var second = await Opened(file);

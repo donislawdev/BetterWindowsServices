@@ -90,7 +90,7 @@ public sealed class HistoryExportingTests : IDisposable
 
         Assert.Null(await model.History.ExportAsync(path, rows));
 
-        var bytes = await File.ReadAllBytesAsync(path);
+        var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal([0xEF, 0xBB, 0xBF], bytes.Take(3));
         Assert.Contains(HistoryLog.SystemSid, Encoding.UTF8.GetString(bytes), StringComparison.Ordinal);

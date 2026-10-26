@@ -161,7 +161,7 @@ public sealed class ExternalLinksGuards
 
             // The test's own limit is far past the bound, so reaching it means the bound was not
             // kept - which is the window waiting on a shell that never answers.
-            Assert.Same(asking, await Task.WhenAny(asking, Task.Delay(TimeSpan.FromSeconds(30))));
+            Assert.Same(asking, await Task.WhenAny(asking, Task.Delay(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken)));
             Assert.Equal("slow", await asking);
         }
         finally

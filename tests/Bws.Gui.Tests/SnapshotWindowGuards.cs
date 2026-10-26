@@ -113,7 +113,7 @@ public sealed class SnapshotWindowGuards : IDisposable
         Assert.Equal(Texts.Of("gui.action.audit.busy"), WpfHost.On(() => window.Actions.AuditButton.ToolTip));
 
         machine.ReleaseReadings();
-        await taking.WaitAsync(TimeSpan.FromSeconds(10));
+        await taking.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(WpfHost.On(() => window.Actions.AuditButton.IsEnabled));
     }

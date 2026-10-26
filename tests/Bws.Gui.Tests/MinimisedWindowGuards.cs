@@ -48,12 +48,12 @@ public sealed class MinimisedWindowGuards
 
         // A reading already out when the window went away is let finish, or it would be counted
         // against the minimised window.
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
         WpfHost.Settled();
 
         var minimised = Asked(machine);
 
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
 
         Assert.Equal(minimised, Asked(machine));
 
@@ -64,7 +64,7 @@ public sealed class MinimisedWindowGuards
 
         while (Asked(machine) == minimised && clock.ElapsedMilliseconds < 600)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.True(
@@ -101,12 +101,12 @@ public sealed class MinimisedWindowGuards
         // The model was read once before the window, and the first look reads it again.
         WpfHost.Until(() => machine.FullReads >= 2, "the first look read the machine");
 
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
         WpfHost.Settled();
 
         var looked = Asked(machine);
 
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
 
         Assert.Equal(looked, Asked(machine));
 
@@ -116,7 +116,7 @@ public sealed class MinimisedWindowGuards
 
         while (Asked(machine) == looked && clock.ElapsedMilliseconds < 600)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.True(Asked(machine) > looked, "Coming back to a window opened minimised asked the machine nothing for 600 ms.");
