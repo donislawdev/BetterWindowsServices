@@ -70,7 +70,7 @@ public sealed class TwoSnapshotsTests : IDisposable
         var bad = Path.Combine(_folder, "bad.json");
         var model = new MainViewModel(new LiveMachine(Rows.Entry("BITS")), new SteppedClock());
 
-        await File.WriteAllTextAsync(bad, "{}");
+        await File.WriteAllTextAsync(bad, "{}", TestContext.Current.CancellationToken);
         await model.Snapshotting.CompareFilesAsync(good, bad);
 
         Assert.Null(model.Snapshotting.Shown);

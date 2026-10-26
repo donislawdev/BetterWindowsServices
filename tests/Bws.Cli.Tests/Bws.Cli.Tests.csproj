@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+
+    <!--
+      A test project of xUnit.net v3 is a stand-alone executable that can run itself, where one
+      of v2 was a library that a runner loaded - the migration guide on xunit.net says so.
+    -->
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,9 +19,9 @@
       the plan hands them to paste, and every JSON document this tool prints.
     -->
     <PackageReference Include="CsCheck" Version="4.7.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit.v3.mtp-off" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -104,8 +104,8 @@ public sealed class SilentCatchGuards
     [InlineData("try { } catch (System.IO.IOException e) { Later(() => Report(e)); }", false)]
     public void A_catch_drops_what_it_caught_only_when_it_neither_throws_nor_reads_it(string code, bool drops)
     {
-        var clause = CSharpSyntaxTree.ParseText($"class C {{ void M() {{ {code} }} }}", CodeShape.Language)
-            .GetRoot().DescendantNodes().OfType<CatchClauseSyntax>().Single();
+        var clause = CSharpSyntaxTree.ParseText($"class C {{ void M() {{ {code} }} }}", CodeShape.Language, cancellationToken: TestContext.Current.CancellationToken)
+            .GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<CatchClauseSyntax>().Single();
 
         Assert.Equal(drops, Catches.Drop(clause));
     }

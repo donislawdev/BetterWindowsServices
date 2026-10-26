@@ -123,7 +123,7 @@ public sealed class AnswerLineTests
 
         var refresh = model.RefreshAsync();
 
-        Assert.True(reader.Entered.Wait(TimeSpan.FromSeconds(10)), "The memory pass never started, so the rest of this proves nothing.");
+        Assert.True(reader.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken), "The memory pass never started, so the rest of this proves nothing.");
 
         Assert.Equal(string.Empty, model.QueryText);
         Assert.Equal(Texts.Of("gui.query.readingMemory"), model.Says.AnswerLine);

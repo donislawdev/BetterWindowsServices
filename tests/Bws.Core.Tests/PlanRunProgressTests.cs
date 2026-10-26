@@ -150,7 +150,7 @@ public sealed class PlanRunProgressTests
             .At(Name, EntryStatus.Stopped)
             .SlowToAnswer(Name, TimeSpan.FromSeconds(30));
 
-        var run = new PlanRunner(control, clock).Run(Starting(), TimeSpan.FromSeconds(1));
+        var run = new PlanRunner(control, clock).Run(Starting(), TimeSpan.FromSeconds(1), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(StepOutcome.Succeeded, run.Results[0].Outcome);
         Assert.Equal(30_000, Assert.Single(run.OutranTheCeiling).Answered);

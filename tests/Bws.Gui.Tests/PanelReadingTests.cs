@@ -168,7 +168,7 @@ public sealed class PanelReadingTests
         Assert.Equal(ReadOutcome.NotRead, row.Entry.Memory.Outcome);
 
         memory.Release();
-        await first.WaitAsync(TimeSpan.FromSeconds(10));
+        await first.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Equal(4321, row.Entry.ProcessId.Value);
         Assert.True(row.Entry.Memory.IsPresent, "The memory was dropped for the old process and never read for the new one.");
@@ -199,7 +199,7 @@ public sealed class PanelReadingTests
         model.Chosen.Show();
 
         inspector.Release();
-        await first.WaitAsync(TimeSpan.FromSeconds(10));
+        await first.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(next.Entry.Signature.IsPresent);
         Assert.Equal(string.Empty, model.Chosen.Notice);

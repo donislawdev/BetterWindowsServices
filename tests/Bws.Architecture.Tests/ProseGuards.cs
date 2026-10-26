@@ -134,7 +134,7 @@ public sealed class ProseGuards
     {
         var root = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(
             "/// <summary>\n/// Shaped like this:\n/// <code>\n/// var answer = 42;\n/// </code>\n/// </summary>\nclass C { }",
-            CodeShape.Language).GetRoot();
+            CodeShape.Language, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken);
         var lines = Prose.InCode("C.cs", root).ToArray();
 
         Assert.DoesNotContain(lines, line => Prose.Unquoted(line.Text).Contains(';', StringComparison.Ordinal));

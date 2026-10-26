@@ -23,7 +23,7 @@ namespace Bws.Integration.Tests;
 ///
 /// Read only, so it is safe on the machine we work on.
 /// </summary>
-public sealed class QueryParityContractTests(Xunit.Abstractions.ITestOutputHelper output)
+public sealed class QueryParityContractTests(ITestOutputHelper output)
 {
     /// <summary>
     /// Queries about how a machine is set up, which is the half that does not move while the

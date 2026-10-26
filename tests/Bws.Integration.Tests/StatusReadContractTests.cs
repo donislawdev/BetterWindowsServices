@@ -14,7 +14,7 @@ namespace Bws.Integration.Tests;
 /// enumeration, so a mistake inside that agrees with itself. The independent authority is
 /// <c>sc.exe</c>, which is why one of these asks it.
 /// </summary>
-public sealed class StatusReadContractTests(Xunit.Abstractions.ITestOutputHelper output)
+public sealed class StatusReadContractTests(ITestOutputHelper output)
 {
     [Fact]
     public void The_cheap_reading_covers_every_entry_the_full_one_does()

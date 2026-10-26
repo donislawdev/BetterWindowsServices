@@ -71,7 +71,7 @@ public sealed class SnapshotFormTests : IDisposable
         var model = Model();
         var path = Path.Combine(_folder, "somebody-elses.json");
 
-        await File.WriteAllTextAsync(path, "this is not a snapshot");
+        await File.WriteAllTextAsync(path, "this is not a snapshot", TestContext.Current.CancellationToken);
 
         model.Snapshotting.Prepare();
         model.Snapshotting.Form!.Note = "Before the patch";
@@ -79,7 +79,7 @@ public sealed class SnapshotFormTests : IDisposable
         await model.Snapshotting.TakeAsync(path);
 
         Assert.Equal("Before the patch", model.Snapshotting.Form?.Note);
-        Assert.Equal("this is not a snapshot", await File.ReadAllTextAsync(path));
+        Assert.Equal("this is not a snapshot", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class SnapshotFormTests : IDisposable
             machine.ReleaseReadings();
         }
 
-        await taking.WaitAsync(TimeSpan.FromSeconds(10));
+        await taking.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     private static MainViewModel Model() => new(new LiveMachine(Rows.Entry("Spooler"), Rows.Entry("BITS")), new SteppedClock(), new Inspector());

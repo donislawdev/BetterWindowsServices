@@ -1,6 +1,5 @@
 using System.Windows.Controls;
 using Bws.Gui.ViewModels;
-using Xunit.Abstractions;
 
 namespace Bws.Gui.Tests;
 
@@ -185,7 +184,7 @@ public sealed class CatalogueViewGuards(ITestOutputHelper output)
         // Awaited rather than polled: the task is kept exactly so that somebody can. With a limit,
         // because a gate that stays shut is the fault this guards against, and a guard that
         // waited forever for it would hang the whole run instead of going red.
-        await ready.StillReading.WaitAsync(TimeSpan.FromSeconds(10));
+        await ready.StillReading.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.NotEqual(Texts.Of("gui.status.reading"), loading.Says.Status);
         Assert.Empty(loading.Rows);

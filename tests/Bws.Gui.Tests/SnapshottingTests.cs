@@ -40,11 +40,11 @@ public sealed class SnapshottingTests : IDisposable
         var model = Model(new LiveMachine(Rows.Entry("Spooler")));
         var path = Path.Combine(_folder, "somebody-elses.json");
 
-        await File.WriteAllTextAsync(path, "this is not a snapshot");
+        await File.WriteAllTextAsync(path, "this is not a snapshot", TestContext.Current.CancellationToken);
 
         await model.Snapshotting.TakeAsync(path);
 
-        Assert.Equal("this is not a snapshot", await File.ReadAllTextAsync(path));
+        Assert.Equal("this is not a snapshot", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
         Assert.Contains(Texts.Of("gui.snapshot.fault.notReplaced", string.Empty).Trim(), model.Says.Problem, StringComparison.Ordinal);
         Assert.Equal(string.Empty, model.Says.Done);
     }
@@ -58,7 +58,7 @@ public sealed class SnapshottingTests : IDisposable
         var model = Model(machine);
         var path = Path.Combine(_folder, "refused-early.json");
 
-        await File.WriteAllTextAsync(path, "this is not a snapshot");
+        await File.WriteAllTextAsync(path, "this is not a snapshot", TestContext.Current.CancellationToken);
 
         var reads = machine.FullReads;
 
@@ -86,22 +86,22 @@ public sealed class SnapshottingTests : IDisposable
         {
             for (var waited = 0; machine.FullReads == reads && waited < 10_000; waited += 10)
             {
-                await Task.Delay(10);
+                await Task.Delay(10, TestContext.Current.CancellationToken);
             }
 
             // Past the first ask by now - the reading counts itself before it waits on the hold.
             Assert.True(machine.FullReads > reads, "the reading never started");
 
-            await File.WriteAllTextAsync(path, "somebody else's, written meanwhile");
+            await File.WriteAllTextAsync(path, "somebody else's, written meanwhile", TestContext.Current.CancellationToken);
         }
         finally
         {
             machine.ReleaseReadings();
         }
 
-        await taking.WaitAsync(TimeSpan.FromSeconds(10));
+        await taking.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        Assert.Equal("somebody else's, written meanwhile", await File.ReadAllTextAsync(path));
+        Assert.Equal("somebody else's, written meanwhile", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
         Assert.Contains(Texts.Of("gui.snapshot.fault.notReplaced", string.Empty).Trim(), model.Says.Problem, StringComparison.Ordinal);
     }
 
@@ -152,7 +152,7 @@ public sealed class SnapshottingTests : IDisposable
         var model = Model(new LiveMachine(Rows.Entry("Spooler")));
         var path = Path.Combine(_folder, "not-a-snapshot.json");
 
-        await File.WriteAllTextAsync(path, "{}");
+        await File.WriteAllTextAsync(path, "{}", TestContext.Current.CancellationToken);
 
         await model.Snapshotting.CompareAsync(path);
 

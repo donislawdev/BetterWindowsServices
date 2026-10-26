@@ -180,7 +180,7 @@ public sealed class KeptOrderGuards : IDisposable
 
         Assert.DoesNotContain(
             "\"sort\"",
-            await File.ReadAllTextAsync(file.Where),
+            await File.ReadAllTextAsync(file.Where, TestContext.Current.CancellationToken),
             StringComparison.Ordinal);
 
         // A small machine of its own, handed over BEFORE the window, for the reason WpfHost gives:

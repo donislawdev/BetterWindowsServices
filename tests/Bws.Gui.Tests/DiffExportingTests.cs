@@ -82,7 +82,7 @@ public sealed class DiffExportingTests : IDisposable
 
         Assert.Null(await model.Snapshotting.ExportAsync(path, rows));
 
-        var bytes = await File.ReadAllBytesAsync(path);
+        var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal([0xEF, 0xBB, 0xBF], bytes.Take(3));
         Assert.Equal(DiffExporting.Done(rows.Count, "comparison.csv"), model.Says.Done);

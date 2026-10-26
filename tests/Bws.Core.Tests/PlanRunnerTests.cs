@@ -332,7 +332,7 @@ public sealed class PlanRunnerTests
         new PlanRunner(control, new FakeClock()).Run(
             Plan(ActionKind.Restart, "MRxSmb20"),
             Minute,
-            starting: (_, number) => announced.Add(number));
+            starting: (_, number) => announced.Add(number), cancellation: TestContext.Current.CancellationToken);
 
         // Three and four are missing, because the forward path stopped at the refusal, and
         // five to seven since 2026-09-30, because what they would put back was never taken
@@ -392,7 +392,7 @@ public sealed class PlanRunnerTests
 
         var runner = new PlanRunner(new FakeScmControl(), new FakeClock());
 
-        Assert.Throws<InvalidOperationException>(() => runner.Run(plan, Minute));
+        Assert.Throws<InvalidOperationException>(() => runner.Run(plan, Minute, cancellation: TestContext.Current.CancellationToken));
     }
 
     // -- fixtures --------------------------------------------------------------------------

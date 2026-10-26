@@ -75,7 +75,7 @@ public sealed class StartFellOverTests
                 new ServiceProgress(EntryStatus.Running, 0, TimeSpan.Zero, ProcessId: FakeScmControl.FakeProcess),
                 new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 
-        var run = new PlanRunner(control, clock).Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60));
+        var run = new PlanRunner(control, clock).Run(PlanRunProgressTests.Stopping(), TimeSpan.FromSeconds(60), cancellation: TestContext.Current.CancellationToken);
         var result = Assert.Single(run.Results);
 
         Assert.Equal(StepOutcome.Succeeded, result.Outcome);

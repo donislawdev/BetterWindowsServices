@@ -30,7 +30,7 @@ public sealed class EscalationRunTests
             .RunningIn("Spooler", Held)
             .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, Held));
 
-        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(StepOutcome.TimedOut, run.Results[0].Outcome);
         Assert.Equal(StepOutcome.Succeeded, run.Results[1].Outcome);
@@ -45,7 +45,7 @@ public sealed class EscalationRunTests
         // a stop that worked does nothing at all.
         var control = new FakeScmControl().At("Spooler", EntryStatus.Running).RunningIn("Spooler", Held);
 
-        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(StepOutcome.Succeeded, run.Results[0].Outcome);
         Assert.Equal(SkipReason.AlreadyThere, run.Results[1].SkippedBecause);
@@ -83,7 +83,7 @@ public sealed class EscalationRunTests
             .RunningIn("Spooler", 9999)
             .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, 9999));
 
-        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(StepOutcome.Failed, run.Results[1].Outcome);
         Assert.Empty(control.Ended);
@@ -110,7 +110,7 @@ public sealed class EscalationRunTests
             .RunningIn("Spooler", Held)
             .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, Held));
 
-        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(StepOutcome.TimedOut, run.Results[0].Outcome);
         Assert.Equal(StepOutcome.Succeeded, run.Results[1].Outcome);
@@ -134,7 +134,7 @@ public sealed class EscalationRunTests
             .SurvivingTermination(Held)
             .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, Held));
 
-        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30));
+        var run = new PlanRunner(control, new FakeClock()).Run(Forced(), TimeSpan.FromSeconds(30), cancellation: TestContext.Current.CancellationToken);
 
         Assert.Equal(Held, Assert.Single(control.Ended));
         Assert.Equal(StepOutcome.TimedOut, run.Results[1].Outcome);

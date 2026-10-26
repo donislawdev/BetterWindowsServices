@@ -14,4 +14,12 @@
 //
 // Cost: this assembly held 39 tests running in 414 ms when the line was added, so serialising
 // them is not a trade anybody has to think about.
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
+//
+// Written as Parallelization(Mode = None) since xUnit.net v3 4.0, whose documentation gives the old
+// DisableTestParallelization = true as equivalent to none, and which turned the old spelling into
+// a compile error. The attribute lives in Xunit.v3 and the mode in Xunit.Sdk, neither of which the
+// project imports for everything else.
+using Xunit.Sdk;
+using Xunit.v3;
+
+[assembly: Parallelization(Mode = ParallelMode.None)]

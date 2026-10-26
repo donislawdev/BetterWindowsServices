@@ -42,7 +42,7 @@ public sealed class PlanRunClockTests
                 new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 
         var run = new PlanRunner(control, new JumpingClock(TimeSpan.FromHours(1)))
-            .Run(Stopping(), TimeSpan.FromMinutes(1));
+            .Run(Stopping(), TimeSpan.FromMinutes(1), cancellation: TestContext.Current.CancellationToken);
 
         var result = Assert.Single(run.Results);
 
@@ -64,7 +64,7 @@ public sealed class PlanRunClockTests
                 new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, ProcessId: 0));
 
         var run = new PlanRunner(control, new JumpingClock(TimeSpan.FromHours(-1)))
-            .Run(Stopping(), TimeSpan.FromMinutes(1));
+            .Run(Stopping(), TimeSpan.FromMinutes(1), cancellation: TestContext.Current.CancellationToken);
 
         var result = Assert.Single(run.Results);
 
