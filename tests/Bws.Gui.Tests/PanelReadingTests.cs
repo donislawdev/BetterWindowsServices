@@ -180,11 +180,15 @@ public sealed class PanelReadingTests
     /// The figure belongs to the process it was read for - logic report R07, 2026-10-27. The tick moved
     /// the status and the process and left the megabytes, so a stopped service went on "using" what its
     /// old process used, and the panel did not ask again because its claim still stood.
+    ///
+    /// <b>The panel's second reading is held</b>, since it went red in CI on PR #96 and green here: the
+    /// panel stays open on the row and asks for the new process the moment the row moves, so "not read"
+    /// is a moment, and a fast enough runner had already read past it when the test looked.
     /// </summary>
     [Fact]
     public async Task Memory_goes_with_its_process_and_the_panel_reads_the_next_ones()
     {
-        var memory = new Memory();
+        var memory = new Memory { HoldTheSecond = true };
         var machine = new LiveMachine(Entry());
         var model = new MainViewModel(machine, new SteppedClock(), new Inspector(), memory);
         await model.LoadAsync();
@@ -203,7 +207,8 @@ public sealed class PanelReadingTests
 
         Assert.Equal(ReadOutcome.NotRead, row.Entry.Memory.Outcome);
 
-        await Open(model, row);
+        memory.Release();
+        await model.Chosen.CatchingUp.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Equal(Memory.Of(4321), row.Entry.Memory.Value!.WorkingSet);
         Assert.Equal(2, memory.Asked);
