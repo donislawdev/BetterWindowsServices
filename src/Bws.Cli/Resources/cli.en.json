@@ -144,9 +144,11 @@
   "cli.run.putBack.line": "  {0}",
 
   "cli.run.outcome.succeeded": "done in {0}",
+  "cli.run.outcome.arrivedUnasked": "already on its way there and got there by itself in {0} - nothing was asked",
   "cli.run.outcome.failed": "refused: {0} (error {1})",
   "cli.run.outcome.stoppedWhileStarting": "did not start - it stopped again after {2}, exit code {1}: {0}",
   "cli.run.outcome.startedAgain": "the process was ended, and Windows started the service again at once, in process {0}, after {1}",
+  "cli.run.outcome.lostSight": "asked, and then it could not be read, so where it went is not known: {0} (error {1})",
   "cli.run.outcome.timedOut": "gave up after {0}, still {1}",
   "cli.run.outcome.timedOut.process": "gave up after {0}, still {1}, held by process {2}",
   "cli.run.outcome.alreadyThere": "already there, nothing to do",
@@ -180,6 +182,9 @@
   "cli.plan.problem.aftermathUnreadable.process": "Could not read whether the machine survives losing the process {0} runs in, so there is no plan.",
   "cli.plan.problem.aftermathUnreadable.one": "Could not read what Windows does to {1} once its process dies - it could restart the computer - so there is no plan.",
   "cli.plan.problem.aftermathUnreadable.many": "Could not read what Windows does to these once their process dies - it could restart the computer - so there is no plan: {1}",
+  "cli.plan.problem.neighboursUnreadable.list": "Could not read which services Windows keeps, so the list of what ending the process {0} runs in would take down could be shorter than the truth. There is no plan. If this prompt is not elevated, an elevated one may be able to read them.",
+  "cli.plan.problem.neighboursUnreadable.one": "Windows does not show this account the service {1}, and it could live in the process {0} runs in - so the list of what ending that process would take down could be shorter than the truth. There is no plan. If this prompt is not elevated, an elevated one may be shown it, unless its own permissions keep administrators out.",
+  "cli.plan.problem.neighboursUnreadable.many": "Windows does not show this account these services, and any of them could live in the process {0} runs in - so the list of what ending that process would take down could be shorter than the truth. There is no plan. If this prompt is not elevated, an elevated one may be shown them, unless their own permissions keep administrators out: {1}",
 
   "cli.column.name": "NAME",
   "cli.column.displayName": "DISPLAY NAME",

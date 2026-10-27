@@ -101,6 +101,100 @@ public sealed class PlanRunHaltTests
         Assert.True(run.Cancelled);
     }
 
+    [Fact]
+    public void Stop_pressed_while_a_step_gets_ready_sends_nothing_and_a_restart_then_puts_nothing_back()
+    {
+        // Logic report R09, 2026-10-26. The loop asks between steps, and a step then announces itself and
+        // reads the entry - Stop pressed in between used to let the request go after the reading. Nothing
+        // of the step had changed the machine, so it is held exactly as a step not yet reached.
+        using var interruption = new CancellationTokenSource();
+        var control = new FakeScmControl().At(Name, EntryStatus.Running);
+
+        var run = new PlanRunner(control, new FakeClock()).Run(
+            PlanRunProgressTests.Restarting(),
+            TimeSpan.FromSeconds(60),
+            interruption.Token,
+            starting: (_, _) => interruption.Cancel());
+
+        Assert.Equal(SkipReason.Cancelled, run.Results[0].SkippedBecause);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[1].SkippedBecause);
+        Assert.Empty(control.Requested);
+        Assert.True(run.Cancelled);
+    }
+
+    [Fact]
+    public void Stop_pressed_while_an_ending_reads_the_process_ends_nothing()
+    {
+        // The widest of the gaps R09 named: before a process dies, the step reads the whole listing and the
+        // dependants of everything in it, and Stop pressed during that used to be answered by the ending.
+        using var interruption = new CancellationTokenSource();
+        var control = new FakeScmControl();
+
+        var run = new PlanRunner(new Interrupting(control, interruption, whileReadingStatuses: true), new FakeClock())
+            .Run(Ending(), TimeSpan.FromSeconds(60), interruption.Token);
+
+        Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);
+        Assert.Empty(control.Ended);
+    }
+
+    [Fact]
+    public void Stop_pressed_just_before_a_setting_is_written_writes_nothing()
+    {
+        using var interruption = new CancellationTokenSource();
+        var control = new FakeScmControl().At(Name, EntryStatus.Running);
+
+        var run = new PlanRunner(control, new FakeClock()).Run(
+            Setting(),
+            TimeSpan.FromSeconds(60),
+            interruption.Token,
+            starting: (_, _) => interruption.Cancel());
+
+        Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);
+        Assert.Empty(control.Configured);
+    }
+
+    [Fact]
+    public void Abandoning_just_before_a_step_putting_something_back_starts_nothing()
+    {
+        // The first level promises the steps that give back what earlier ones took - the second promises
+        // nothing, and is now heard after the reading too, not only between steps.
+        using var abandonment = new CancellationTokenSource();
+        var control = new FakeScmControl().At(Name, EntryStatus.Running);
+
+        var run = new PlanRunner(control, new FakeClock()).Run(
+            PlanRunProgressTests.Restarting(),
+            TimeSpan.FromSeconds(60),
+            TestContext.Current.CancellationToken,
+            abandonment.Token,
+            starting: (_, number) =>
+            {
+                if (number == 2)
+                {
+                    abandonment.Cancel();
+                }
+            });
+
+        Assert.Equal(StepOutcome.Succeeded, run.Results[0].Outcome);
+        Assert.Equal(SkipReason.Cancelled, run.Results[1].SkippedBecause);
+        Assert.Equal([Name], control.Requested);
+    }
+
+    private static OperationPlan Ending() => new()
+    {
+        Action = new ServiceAction(ActionKind.ForceStop, Name, Immediate: true),
+        Steps = [new PlanStep(Name, Name, StepOperation.Terminate, StepReason.Requested, ProcessId: (int)FakeScmControl.FakeProcess)],
+        Warnings = [],
+        Problems = []
+    };
+
+    private static OperationPlan Setting() => new()
+    {
+        Action = new ServiceAction(ActionKind.SetStartType, Name, To: StartSetting.Disabled),
+        Steps = [new PlanStep(Name, Name, StepOperation.SetStartType, StepReason.Requested, To: StartSetting.Disabled)],
+        Warnings = [],
+        Problems = []
+    };
+
     /// <summary>
     /// Time that only moves when somebody waits, and that pulls one of the run's two levers once it has
     /// moved far enough - the only way to reach a runner in the middle of a step without a second thread.

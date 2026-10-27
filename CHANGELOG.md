@@ -107,6 +107,39 @@ is not part of this repository.
 
 ### Fixed
 
+- A restart no longer starts, at its end, a service this run did not stop - one somebody else was
+  already stopping when the step came, or one that was starting and then stopped by itself. The step
+  asked for nothing and only watched the service get there, and its line in a terminal now says so -
+  the service "got there by itself" and "nothing was asked".
+- A step whose request Windows took, after which the service could no longer be read, now counts as
+  something the run may have done. It used to read as a refused request, so a restart did not try to
+  start the service again and the list of what undoes the run left it out. Both the terminal and the
+  window now say the request was taken and that where the service went is not known.
+- Interrupting a run - the Interrupt button in the window, or the first Ctrl+C in a terminal - while a
+  step is getting ready no longer lets that step send its request. Before asking for anything a step
+  reads the service, and before ending a process it reads the whole process, and a press during those
+  readings used to be noticed only after the request had gone. Such a step is now held as one not
+  reached, a change of startup type included.
+- A restart no longer stops a service that was set to Disabled after its plan was shown, which Windows
+  would then refuse to start again. Just before the first step the run reads the startup type of
+  everything it would stop and start again, and when one is Disabled it changes nothing and says the
+  machine changed since the plan was shown. The window used to build the plan from the startup type it
+  read at the last full refresh.
+- Setting a service to Disabled together with stopping it now always stops it, also when the plan read
+  the service as stopped. One started between the plan and the run used to be left running.
+- `bws kill`, and Force stop and Force restart in the window, read once more, just before ending a
+  process, whether Windows marks the process critical and what Windows does to each service in it once
+  the process dies (its recovery actions). When the process became critical, when either could not be
+  read, or when any of those recovery actions differ from what the plan showed, the process is not
+  ended and the step says why. It used to go ahead on what the plan had read, however long before.
+- `bws kill`, and Force stop and Force restart in the window, refuse to end the process of a service
+  that can share its process while Windows does not show this account every service that could share
+  one. Windows leaves such a service out of the list without an error, so the plan could name fewer
+  services than the ending would take down. The list does not say which process a hidden service
+  lives in, so on such a machine every shared process is refused, even one holding a single service.
+  The refusal names the services Windows did not show, or says that the list of them could not be
+  read. Where an account is shown every service - as an administrator was on the machine this was
+  measured on - nothing changes.
 - `bws kill`, and Force stop and Force restart in the window, now ask the other services living in the
   same process to stop in an order Windows accepts: a service another of them needs is asked after
   it. They used to be asked in the order of the list, so a service another one still needed was

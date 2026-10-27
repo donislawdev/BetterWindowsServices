@@ -151,6 +151,33 @@ public sealed record StepResult
     /// </summary>
     public bool StartedAgain { get; init; }
 
+    /// <summary>
+    /// The entry reached the state the step wanted WITHOUT this step asking the manager anything - it was
+    /// already on its way there when the step reached it, so somebody else had asked.
+    ///
+    /// <b>A fact beside a success rather than another outcome, on the owner's decision of 2026-10-26</b>
+    /// (logic report R01). The outcome stays Succeeded, because that is what it has always meant: the entry
+    /// is where the step wanted it. What changed that day is that the way back, and the step putting the
+    /// entry back, no longer count it as a move this run made - the rule the owner set on 2026-10-17 for
+    /// the same watch running out of time (finding E of the fuzzing project), now for the same watch
+    /// arriving. Until then a restart that met a dependant somebody else was stopping waited for it, and
+    /// then started it again, undoing a decision that was not this tool's. Not in the machine readable
+    /// output, like the two facts above.
+    /// </summary>
+    public bool ArrivedUnasked { get; init; }
+
+    /// <summary>
+    /// The manager took this step's request, and then the entry could not be read any more, so nobody saw
+    /// where it went. <see cref="ErrorCode"/> and <see cref="Error"/> are the refused reading's.
+    ///
+    /// <b>Counted as a move, the way a step that ran out of time is</b> - logic report R02, 2026-10-26. The
+    /// request was accepted and the entry may well have arrived, so leaving it out is a claim about
+    /// something nobody saw, in the bad direction. Until that day it was an ordinary failure, which the way
+    /// back read as "nothing moved": a restart whose stop was taken and then went unseen named no way back
+    /// and did not try to start the entry again. Not in the machine readable output either.
+    /// </summary>
+    public bool LostSight { get; init; }
+
     /// <summary>The entry is where the step wanted it, whether or not we had to do anything.</summary>
     public bool Arrived =>
         Outcome == StepOutcome.Succeeded

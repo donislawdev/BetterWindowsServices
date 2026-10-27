@@ -95,6 +95,37 @@ internal sealed class FakeEndingFacts : IEndingFactsReader
             : Reading<RecoveryList>.Present(new RecoveryList([], ADay));
     }
 
+    private Reading<IReadOnlyList<string>> _unlisted = Reading<IReadOnlyList<string>>.Present([]);
+
+    /// <summary>The names handed in each time the manager's unlisted entries were asked for, in order.</summary>
+    internal List<IReadOnlyList<string>> AskedUnlisted { get; } = [];
+
+    /// <summary>
+    /// The manager keeps these and does not list them to this account (logic report R04) - the shape a real
+    /// machine produces under elevation only when a service's own permissions keep administrators out.
+    /// </summary>
+    internal FakeEndingFacts Unlisting(params string[] serviceNames)
+    {
+        _unlisted = Reading<IReadOnlyList<string>>.Present(serviceNames);
+        return this;
+    }
+
+    /// <summary>The list of names to check could not be read.</summary>
+    internal FakeEndingFacts RefusingUnlisted(int errorCode = 5)
+    {
+        _unlisted = Reading<IReadOnlyList<string>>.Denied(errorCode, "Access is denied.");
+        return this;
+    }
+
+    public Reading<IReadOnlyList<string>> ReadUnlisted(IEnumerable<string> listed)
+    {
+        AskedUnlisted.Add([.. listed]);
+
+        // Nobody scripted anything - the listing left nobody out, which is what elevation gives on the
+        // owner's machine.
+        return _unlisted;
+    }
+
     /// <summary>Every process this was asked about, in order, so a test can see it was asked once.</summary>
     internal List<int> Asked { get; } = [];
 

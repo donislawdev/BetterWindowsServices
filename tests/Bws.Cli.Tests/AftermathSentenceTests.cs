@@ -50,6 +50,23 @@ public sealed class AftermathSentenceTests
     }
 
     [Fact]
+    public void Neighbours_the_manager_did_not_list_are_named_and_no_names_is_the_list_refused()
+    {
+        // Logic report R04, 2026-10-27: three shapes - the list of names refused, one withheld, several.
+        Assert.Equal(
+            Texts.Of("cli.plan.problem.neighboursUnreadable.list", "Netlogon", string.Empty),
+            PlanText.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", [])));
+
+        Assert.Equal(
+            Texts.Of("cli.plan.problem.neighboursUnreadable.one", "Netlogon", "Withheld"),
+            PlanText.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", ["Withheld"])));
+
+        Assert.Equal(
+            Texts.Of("cli.plan.problem.neighboursUnreadable.many", "Netlogon", "Withheld, Kept"),
+            PlanText.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", ["Withheld", "Kept"])));
+    }
+
+    [Fact]
     public void A_computer_restart_names_who_carries_it()
     {
         Assert.Equal(

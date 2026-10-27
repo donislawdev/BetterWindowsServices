@@ -312,6 +312,14 @@ internal static partial class PlanWords
         { StartedAgain: true } => Texts.Of(
             "gui.plan.failure.startedAgain", result.Step.ServiceName, result.ProcessId.Value),
 
+        // NOT "WOULD NOT", because the manager took the request - it is the reading after it that was
+        // refused, so where the entry went is not known (logic report R02, 2026-10-26).
+        { LostSight: true } => Texts.Of(
+            "gui.plan.failure.lostSight",
+            result.Step.ServiceName,
+            Word(result.Step.Operation),
+            result.Error ?? string.Empty),
+
         _ => Texts.Of(
             "gui.plan.failure.refused",
             result.Step.ServiceName,

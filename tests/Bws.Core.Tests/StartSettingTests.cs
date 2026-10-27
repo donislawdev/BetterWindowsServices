@@ -203,15 +203,39 @@ public sealed class StartSettingTests
             warning => warning.Kind is PlanWarningKind.KeepsRunning or PlanWarningKind.ReturnsAfterReboot);
     }
 
-    /// <summary>An entry that is already stopped gets no stop step from the offer.</summary>
+    /// <summary>
+    /// AN ENTRY READ AS STOPPED KEEPS THE STOP, SINCE 2026-10-26 - logic report R03, the owner's decision of
+    /// that day. Until then it got no stop step, and one started between the preview and the press was set
+    /// to Disabled and left running under a plan that said "and stop it". The step is free when it is not
+    /// needed: the runner finds the entry already there.
+    /// </summary>
     [Fact]
-    public void The_offer_adds_no_stop_to_an_entry_already_stopped()
+    public void The_offer_keeps_its_stop_for_an_entry_read_as_stopped()
     {
         var plan = Plan(
             Ask("Spooler", StartSetting.Disabled, alsoStop: true),
             Specimens.Ordinary with { Status = EntryStatus.Stopped });
 
-        Assert.Equal(StepOperation.SetStartType, Assert.Single(plan.Steps).Operation);
+        Assert.Equal([StepOperation.SetStartType, StepOperation.Stop], plan.Steps.Select(step => step.Operation));
+
+        var still = Run(new FakeScmControl().At("Spooler", EntryStatus.Stopped), plan);
+
+        Assert.Equal(SkipReason.AlreadyThere, still.Results[1].SkippedBecause);
+    }
+
+    /// <summary>The shape R03 was about: read as stopped, started before the press - and stopped by the plan.</summary>
+    [Fact]
+    public void An_entry_started_after_the_preview_of_disable_and_stop_is_stopped()
+    {
+        var plan = Plan(
+            Ask("Spooler", StartSetting.Disabled, alsoStop: true),
+            Specimens.Ordinary with { Status = EntryStatus.Stopped });
+        var control = new FakeScmControl().At("Spooler", EntryStatus.Running);
+
+        var run = Run(control, plan);
+
+        Assert.All(run.Results, result => Assert.Equal(StepOutcome.Succeeded, result.Outcome));
+        Assert.Equal(["Spooler"], control.Requested);
     }
 
     /// <summary>
@@ -245,6 +269,31 @@ public sealed class StartSettingTests
             plan.Warnings,
             warning => warning.Kind == PlanWarningKind.DependentsInTheWay && warning.Related.Contains("Fax"));
         Assert.DoesNotContain(plan.Steps, step => step.ServiceName == "Fax");
+    }
+
+    /// <summary>
+    /// THE CASCADE WORD DOES NOT REACH A SETTING EVEN WHEN IT CARRIES A STOP - logic report R08, 2026-10-26.
+    /// The command line refuses it, the line handed back leaves it out and the window's hand-over refuses
+    /// it, and until that day this builder alone planned the dependants' stops - a preview doing more than
+    /// the command it printed. They are named in the way instead, as without the word.
+    /// </summary>
+    [Fact]
+    public void A_setting_that_stops_takes_no_dependants_down_whatever_it_carries()
+    {
+        var catalog = new FakeScmCatalog(new List<ScmEntry>(Specimens.All)
+        {
+            Specimens.Ordinary with { ServiceName = "Fax", DisplayName = "Faks" }
+        }).DependedOnBy("Spooler", "Fax");
+
+        var ask = new ServiceAction(
+            ActionKind.SetStartType, "Spooler", IncludeDependents: true, To: StartSetting.Disabled, AlsoStop: true);
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog).Build(ask);
+
+        Assert.DoesNotContain(plan.Steps, step => step.ServiceName == "Fax");
+        Assert.Contains(
+            plan.Warnings,
+            warning => warning.Kind == PlanWarningKind.DependentsInTheWay && warning.Related.Contains("Fax"));
+        Assert.Equal("bws start-type Spooler disabled --stop", EquivalentCommand.For(ask));
     }
 
     /// <summary>
@@ -309,6 +358,8 @@ public sealed class StartSettingTests
         return new PlanBuilder(catalog.ReadAll(), catalog).Build(action);
     }
 
-    private static PlanRun Run(FakeScmControl control, ServiceAction action) =>
-        new PlanRunner(control, new FakeClock()).Run(Plan(action), TimeSpan.FromSeconds(5));
+    private static PlanRun Run(FakeScmControl control, ServiceAction action) => Run(control, Plan(action));
+
+    private static PlanRun Run(FakeScmControl control, OperationPlan plan) =>
+        new PlanRunner(control, new FakeClock()).Run(plan, TimeSpan.FromSeconds(5));
 }

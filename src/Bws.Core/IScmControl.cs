@@ -182,4 +182,14 @@ public interface IScmControl
     /// question and the same answer as <see cref="IScmCatalog.ReadDependents"/>, for the same step.
     /// </summary>
     Reading<IReadOnlyList<string>> ReadDependents(string serviceName);
+
+    /// <summary>
+    /// The start type the manager holds for one entry now - asked by a run just before its first step, of
+    /// every entry the plan will start back, since 2026-10-26 (logic report R03).
+    ///
+    /// <b>A reading rather than an exception on failure</b>, for the reason <see cref="ReadStatuses"/> gives,
+    /// and here a refusal decides nothing at all: an unreadable start type is missing information, and the
+    /// run goes on exactly as the builder would have.
+    /// </summary>
+    Reading<StartType> ReadStartType(string serviceName);
 }

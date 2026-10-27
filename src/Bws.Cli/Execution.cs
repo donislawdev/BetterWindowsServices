@@ -72,7 +72,7 @@ internal static class Execution
 
         try
         {
-            return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run(
+            return new PlanRunner(new WindowsScmControl(), new SystemClock(), new WindowsEndingFactsReader()).Run(
                 plan,
                 timeout,
                 interruption.Token,

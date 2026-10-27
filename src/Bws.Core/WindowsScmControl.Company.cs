@@ -32,4 +32,8 @@ public sealed partial class WindowsScmControl
 
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
         new WindowsScmCatalog().ReadDependents(serviceName);
+
+    /// <summary>The listing's own query on one entry, since 2026-10-26 - the argument above, for logic report R03.</summary>
+    public Reading<StartType> ReadStartType(string serviceName) =>
+        new WindowsScmCatalog().ReadStartType(serviceName);
 }

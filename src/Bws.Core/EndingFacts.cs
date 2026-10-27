@@ -113,7 +113,37 @@ public readonly record struct RecoveryItem(RecoveryAction Action, TimeSpan Delay
 /// <c>INFINITE</c>, a count that starts again only when the machine does. Zero is a value Microsoft does not
 /// describe, and measured on the throwaway machine on 2026-10-07 it makes every failure the first.
 /// </param>
-public sealed record RecoveryList(IReadOnlyList<RecoveryItem> Items, TimeSpan ResetPeriod);
+public sealed record RecoveryList(IReadOnlyList<RecoveryItem> Items, TimeSpan ResetPeriod)
+{
+    /// <summary>
+    /// Whether two readings of a recovery list say the same thing - the same outcome and, when there is a
+    /// list, the same items in the same order and the same reset period.
+    ///
+    /// <b>Written out rather than left to the record</b>, because the record compares its list of items by
+    /// reference, and two readings of one unchanged list are two lists. Asked by the run just before it
+    /// ends a process, against the reading the preview was built from (logic report R05, 2026-10-26).
+    /// </summary>
+    public static bool Same(Reading<RecoveryList> first, Reading<RecoveryList> second)
+    {
+        if (first.Outcome != second.Outcome)
+        {
+            return false;
+        }
+
+        return !first.IsPresent
+            || (first.Value!.ResetPeriod == second.Value!.ResetPeriod && first.Value.Items.SequenceEqual(second.Value.Items));
+    }
+}
+
+/// <summary>
+/// One entry that dies with an ended process, and its recovery list as the manager answered - the pair the
+/// preview's recovery sentences are made from and the run compares against.
+///
+/// <b>Public since 2026-10-26</b>, when it began travelling on the step that ends the process
+/// (<see cref="Planning.PlanStep.Recovery"/>, logic report R05). Until then it lived inside the class that
+/// worked out the warnings and went no further than the plan being built.
+/// </summary>
+public readonly record struct RecoveryReading(string ServiceName, Reading<RecoveryList> Actions);
 
 /// <summary>
 /// What one item of the recovery list does when an entry's process dies without the entry saying it
@@ -192,6 +222,22 @@ public interface IEndingFactsReader
     /// the same shape as one known to be short.
     /// </summary>
     Reading<RecoveryList> ReadRecovery(string serviceName);
+
+    /// <summary>
+    /// The entries the manager keeps, could share a process, and did not list to this account - the names
+    /// missing from <paramref name="listed"/> that exist and that this account may not query.
+    ///
+    /// <b>Asked because the listing can be short with nothing failing</b> (logic report R04, 2026-10-26).
+    /// Microsoft says <c>EnumServicesStatusEx</c> silently omits every service the caller lacks
+    /// <c>SERVICE_QUERY_STATUS</c> for, so a plan that ends a shared process cannot learn from the listing
+    /// alone that nobody else lives there.
+    ///
+    /// <b>Present and empty is the ordinary answer</b> - measured on the owner's machine on 2026-10-26, under
+    /// elevation the listing leaves out nothing. Denied when the list of names to check could not be read,
+    /// and the plan refuses on that, for the reason <see cref="ReadRecovery"/> gives.
+    /// </summary>
+    /// <param name="listed">Every name the listing the plan was built from holds.</param>
+    Reading<IReadOnlyList<string>> ReadUnlisted(IEnumerable<string> listed);
 }
 
 /// <summary>
@@ -209,4 +255,7 @@ internal sealed class NobodyToAsk : IEndingFactsReader
 
     public Reading<RecoveryList> ReadRecovery(string serviceName) =>
         Reading<RecoveryList>.NotRead();
+
+    public Reading<IReadOnlyList<string>> ReadUnlisted(IEnumerable<string> listed) =>
+        Reading<IReadOnlyList<string>>.NotRead();
 }

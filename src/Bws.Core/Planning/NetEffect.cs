@@ -58,7 +58,10 @@ public static class NetEffect
     /// <see cref="StepOutcome.TimedOut"/> is not <see cref="StepOutcome.Failed"/>: the manager
     /// accepted the request and the entry may well have arrived after we stopped watching. Leaving
     /// it out would be a claim about something nobody saw, and the direction of that error is the
-    /// bad one - it would stay silent about an entry somebody was left holding.
+    /// bad one - it would stay silent about an entry somebody was left holding. <b>So does a step that
+    /// lost sight of the entry after its request was taken</b>, since 2026-10-26 (logic report R02),
+    /// for the same reason. <b>And an arrival nothing asked for is not a move at all</b> - it only says
+    /// where an entry this run already moved ended up (R01, the same day).
     ///
     /// Skipped steps moved nothing by definition, and a refusal moved nothing either - <b>with one
     /// exception since 2026-09-29:</b> a neighbour in a process that was ended moved, whatever its own
@@ -130,7 +133,8 @@ public static class NetEffect
     /// <b>HERE RATHER THAN IN THE RUNNER BECAUSE IT IS THE WAY BACK'S OWN QUESTION, and two answers to it
     /// would be two things that have to agree</b> - the argument this file was made for. On the owner's
     /// decision of 2026-09-30 (stability report W-5) a step putting something back gives back only what the
-    /// run took: a stop that arrived or timed out, or an ending that took the entry with its process. Until
+    /// run took: a stop it ASKED for that arrived, timed out or went out of sight (the last two qualifiers
+    /// since 2026-10-26, logic report R01 and R02), or an ending that took the entry with its process. Until
     /// then every such step ran, and an entry that was stopped all along was started by a restart nobody
     /// let begin.
     ///
@@ -175,8 +179,8 @@ public static class NetEffect
         var settings = new Dictionary<string, (StartSetting? From, StartSetting? To, int When)>(
             StringComparer.OrdinalIgnoreCase);
 
-        // Entries a stop found already stopped - the one thing that tells a neighbour who was not in
-        // the process when it ended from one who died with it.
+        // Entries a stop found already stopped, or watched stop without asking - the one thing that tells
+        // a neighbour who was not in the process when it ended from one who died with it.
         var foundStopped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var index = 0;
@@ -185,13 +189,17 @@ public static class NetEffect
         {
             var at = index++;
 
-            if (result is { SkippedBecause: SkipReason.AlreadyThere, Step.Operation: StepOperation.Stop })
+            if (result.Step.Operation == StepOperation.Stop
+                && (result.SkippedBecause == SkipReason.AlreadyThere || result.ArrivedUnasked))
             {
                 foundStopped.Add(result.Step.ServiceName);
             }
 
+            // A request the manager took counts whatever came of the watching after it - arrived, ran
+            // out of time, or lost from sight (R02, 2026-10-26). A refusal and a skip moved nothing.
             if (result.Outcome != StepOutcome.Succeeded
                 && result.Outcome != StepOutcome.TimedOut
+                && !result.LostSight
                 && !(endingCounts && result.StartedAgain))
             {
                 continue;
@@ -217,15 +225,37 @@ public static class NetEffect
                 continue;
             }
 
-            var operation = result.Step.Operation;
-
-            moves[name] = moves.TryGetValue(name, out var seen)
-                ? (seen.First, operation, at)
-                : (operation, operation, at);
+            Moved(moves, name, result.Step.Operation, at, result.ArrivedUnasked);
         }
 
         return (moves, settings);
     }
+
+    /// <summary>
+    /// Counts one step's move: the first operation and the last, which is the move arithmetic Of answers.
+    ///
+    /// <b>SOMEBODY ELSE'S MOVE, on the owner's decision of 2026-10-26 (logic report R01).</b> An entry the
+    /// step only watched arrive says where the entry is NOW, so it ends a move this run already made - a
+    /// restart's start that found the entry being started by somebody else still leaves nothing to undo. It
+    /// never begins one: what this run never asked for is not taken down, and nothing puts it back.
+    /// </summary>
+    private static void Moved(
+        Dictionary<string, (StepOperation First, StepOperation Last, int When)> moves,
+        string name,
+        StepOperation operation,
+        int at,
+        bool unasked)
+    {
+        if (moves.TryGetValue(name, out var seen))
+        {
+            moves[name] = (seen.First, operation, at);
+        }
+        else if (!unasked)
+        {
+            moves[name] = (operation, operation, at);
+        }
+    }
+
     /// <summary>
     /// The neighbours an ended process took down with it, counted as moved by the step that ended it.
     ///

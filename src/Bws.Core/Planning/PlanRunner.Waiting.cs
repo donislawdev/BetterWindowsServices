@@ -48,6 +48,25 @@ public sealed partial class PlanRunner
     internal static readonly TimeSpan FirstLook = TimeSpan.FromMilliseconds(10);
 
     /// <summary>
+    /// Where a step is watched to. Here with the watching since 2026-10-27, when the file that asks for
+    /// it stood one line of code into the crowd near the ceiling.
+    /// </summary>
+    private static EntryStatus Target(StepOperation operation) => operation switch
+    {
+        StepOperation.Stop => EntryStatus.Stopped,
+
+        // THE SAME TARGET AS A STOP, and that is the point of it rather than a shortcut. Ending the
+        // process is how this step gets there, and the manager noticing the process die and moving
+        // the entry is what finishes it - so the step is done when the ENTRY says so, never when
+        // the call returns.
+        StepOperation.Terminate => EntryStatus.Stopped,
+
+        StepOperation.Start => EntryStatus.Running,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(operation), operation, EquivalentCommand.Unhandled)
+    };
+
+    /// <summary>
     /// What a step does before it asks for anything, when the entry is already on its way somewhere -
     /// or null, when it should go on and ask.
     ///
@@ -60,7 +79,9 @@ public sealed partial class PlanRunner
     ///
     /// <b>Already heading where the step wants it:</b> nothing is asked, the entry is watched, and if it
     /// arrives the step succeeded - which is what the outcome has always meant, the entry reaching the
-    /// state the step asked for, not this tool sending it there. <b>Heading the other way:</b> it is
+    /// state the step asked for, not this tool sending it there. Marked <see cref="StepResult.ArrivedUnasked"/>
+    /// since 2026-10-26 (logic report R01), so the way back never counts it as this run's move.
+    /// <b>Heading the other way:</b> it is
     /// watched until it leaves that state, and the step then goes on as though it had just found it
     /// there. One that never leaves it is a failure with nothing sent, in our own words, because the
     /// way back must not count as a move something this tool never asked for.
@@ -81,8 +102,9 @@ public sealed partial class PlanRunner
 
         return watched.End switch
         {
+            // Nothing was asked on this path, so an arrival is somebody else's move - ArrivedUnasked.
             Settled.Over when Where(seen) == target =>
-                Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)),
+                Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)) with { ArrivedUnasked = true },
 
             Settled.Over when OnItsWay(target, Where(seen)) =>
                 WaitFor(step, target, timeout, started, Unasked, asked: false),
@@ -111,7 +133,8 @@ public sealed partial class PlanRunner
     /// watching ended - the entry may still arrive, which is what TimedOut says - and one before any
     /// request is a step never attempted. A watch that runs out of time before any request is a
     /// failure in our own words rather than TimedOut, since 2026-10-17, so it is never counted as a
-    /// move this tool made.
+    /// move this tool made. One that arrives before any request is marked ArrivedUnasked, and one whose
+    /// entry stops being readable after a request is marked LostSight - both since 2026-10-26.
     /// </param>
     private StepResult WaitFor(
         PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked)
@@ -130,9 +153,12 @@ public sealed partial class PlanRunner
 
         return watched.End switch
         {
-            Settled.Unreadable => Refused(step, watched.Last, Where(seen), Holding(seen), started),
+            // After a request the manager took, losing sight of the entry is not "nothing moved" - LostSight.
+            Settled.Unreadable =>
+                Refused(step, watched.Last, Where(seen), Holding(seen), started) with { LostSight = asked },
+
             Settled.Over when Where(seen) == target =>
-                Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)),
+                Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)) with { ArrivedUnasked = !asked },
 
             // The only other way an ending's watch is over: the entry is held by a process that is not the
             // one ended. Nothing falls back for a stop, so this arm and the next never meet.

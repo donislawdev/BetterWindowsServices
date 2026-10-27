@@ -141,6 +141,113 @@ public sealed class PlanRunProgressTests
     }
 
     [Fact]
+    public void A_restart_that_only_watched_an_entry_stop_by_itself_does_not_start_it()
+    {
+        // Logic report R01, the owner's decision of 2026-10-26 - finding E above, the same watch ARRIVING.
+        // Somebody else is stopping the entry when the step reaches it, so the step asks nothing and watches
+        // it get there. The entry is where the step wanted it, which is what Succeeded says - and until that
+        // day the way back read it as this run's own stop, so the restart started a service somebody else
+        // had just stopped.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .OnItsWay(Name, TimeSpan.FromSeconds(5), Pending(1, TimeSpan.FromSeconds(10)));
+
+        var run = Run(control, clock, Restarting());
+
+        Assert.Equal(StepOutcome.Succeeded, run.Results[0].Outcome);
+        Assert.True(run.Results[0].ArrivedUnasked);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[1].SkippedBecause);
+        Assert.Empty(control.Requested);
+        Assert.Empty(run.Reversal);
+    }
+
+    [Fact]
+    public void A_stop_that_meets_an_entry_starting_which_falls_back_to_stopped_puts_nothing_back()
+    {
+        // The other road to an arrival nobody asked for: the entry was heading the other way - somebody
+        // else was starting it - and it stopped by itself. The step watched it leave StartPending, found it
+        // where the step wanted it, and asked nothing.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .OnItsWay(
+                Name,
+                TimeSpan.FromSeconds(5),
+                new ServiceProgress(EntryStatus.StartPending, 1, TimeSpan.FromSeconds(10), FakeScmControl.FakeProcess))
+            .EndingIn(Name, EntryStatus.Stopped);
+
+        var run = Run(control, clock, Restarting());
+
+        Assert.True(run.Results[0].ArrivedUnasked);
+        Assert.Equal(SkipReason.NothingToPutBack, run.Results[1].SkippedBecause);
+        Assert.Empty(control.Requested);
+    }
+
+    [Fact]
+    public void A_start_putting_back_an_entry_somebody_else_was_already_starting_leaves_no_way_back()
+    {
+        // The other half of R01: an arrival nobody asked for still says where the entry ended up. The
+        // restart's stop was this run's, the start found the entry already on its way up and only watched -
+        // so the entry ended where it began, and "start it" would be a line about a service that is running.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .At(Name, EntryStatus.Running)
+            .Reaching(
+                Name,
+                Stopped,
+                new ServiceProgress(EntryStatus.StartPending, 1, TimeSpan.FromSeconds(10), FakeScmControl.FakeProcess),
+                new ServiceProgress(EntryStatus.Running, 0, TimeSpan.Zero, FakeScmControl.FakeProcess));
+
+        var run = Run(control, clock, Restarting());
+
+        Assert.False(run.Results[0].ArrivedUnasked);
+        Assert.True(run.Results[1].ArrivedUnasked);
+        Assert.Equal([Name], control.Requested);
+        Assert.Empty(run.Reversal);
+    }
+
+    [Fact]
+    public void A_stop_the_manager_took_and_then_lost_from_sight_is_still_this_run_s_move()
+    {
+        // Logic report R02, 2026-10-26. The manager took the stop, and then the entry could not be read.
+        // Until that day that was a plain failure, which the way back reads as "nothing moved" - so the
+        // restart did not try to put the entry back and the way back named nothing. It may well have
+        // stopped, the same reason a step that ran out of time counts.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .At(Name, EntryStatus.Running)
+            .RefusingReadsOnceAsked(Name, AccessDenied);
+
+        var run = Run(control, clock, Restarting());
+
+        Assert.Equal(StepOutcome.Failed, run.Results[0].Outcome);
+        Assert.True(run.Results[0].LostSight);
+        Assert.Equal(AccessDenied, run.Results[0].ErrorCode);
+
+        // Tried rather than skipped - and refused, because the entry still cannot be read, which says so.
+        Assert.Equal(StepOutcome.Failed, run.Results[1].Outcome);
+        Assert.False(run.Results[1].LostSight);
+        Assert.Equal(StepOperation.Start, Assert.Single(run.Reversal).Operation);
+    }
+
+    [Fact]
+    public void A_refusal_before_anything_was_asked_is_not_lost_sight()
+    {
+        // The line the fact draws: nothing was taken, so nothing is out of sight.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .At(Name, EntryStatus.Running)
+            .RefusingReads(Name, AccessDenied);
+
+        var result = Assert.Single(Run(control, clock, Stopping()).Results);
+
+        Assert.Equal(StepOutcome.Failed, result.Outcome);
+        Assert.False(result.LostSight);
+        Assert.Empty(control.Requested);
+    }
+
+    private const int AccessDenied = 5;
+
+    [Fact]
     public void The_time_the_manager_sits_on_a_request_is_what_outruns_the_limit()
     {
         // Half a minute inside the start call, as measured on Windows Server 2025, under a limit of one

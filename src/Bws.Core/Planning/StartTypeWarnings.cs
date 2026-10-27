@@ -32,7 +32,7 @@ internal static class StartTypeWarnings
         // that already stops the entry has nothing to warn about - that is what the offer was for.
         if (setting == StartSetting.Disabled
             && target.Status != EntryStatus.Stopped
-            && !PlanBuilder.StopsAlong(action, target))
+            && !PlanBuilder.StopsAlong(action))
         {
             warnings.Add(new PlanWarning(PlanWarningKind.KeepsRunning, target.ServiceName));
         }

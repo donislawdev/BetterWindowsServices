@@ -216,6 +216,16 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
     }
 
     /// <summary>
+    /// Where an entry on its way gets to instead, when that is not where its pending state points - a start
+    /// that falls back to Stopped, say. Since 2026-10-26 (logic report R01), after <see cref="OnItsWay"/>.
+    /// </summary>
+    internal FakeScmControl EndingIn(string serviceName, EntryStatus status)
+    {
+        Entry(serviceName).Heading = status;
+        return this;
+    }
+
+    /// <summary>
     /// An entry whose manager sits on every request for <paramref name="by"/> before answering it -
     /// the shape measured on Windows Server 2025, where one start took half a minute to come back.
     /// </summary>
@@ -250,6 +260,17 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         return this;
     }
 
+    /// <summary>
+    /// An entry that can be read until the manager takes a request for it, and not after - somebody took the
+    /// right to read its state away while the run went on. Since 2026-10-26, logic report R02: until then
+    /// this double could only refuse every reading of an entry, so a step was refused before it asked.
+    /// </summary>
+    internal FakeScmControl RefusingReadsOnceAsked(string serviceName, int errorCode)
+    {
+        Entry(serviceName).ReadRefusedOnceAsked = errorCode;
+        return this;
+    }
+
     public ControlAnswer Request(string serviceName, StepOperation operation)
     {
         Requested.Add(serviceName);
@@ -266,6 +287,7 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
             return refused;
         }
 
+        entry.ReadRefusedWith ??= entry.ReadRefusedOnceAsked;
         entry.AskedAgain();
         entry.Moving = true;
 
@@ -427,6 +449,9 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         internal EntryStatus? BecomesOnRefusal { get; set; }
 
         internal int? ReadRefusedWith { get; set; }
+
+        /// <summary>What every reading is refused with from the first request the manager takes - R02.</summary>
+        internal int? ReadRefusedOnceAsked { get; set; }
 
         internal Arrival? Arrival { get; set; }
 

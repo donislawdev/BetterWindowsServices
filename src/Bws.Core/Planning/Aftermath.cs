@@ -16,9 +16,6 @@ namespace Bws.Core.Planning;
 /// </summary>
 internal static class Aftermath
 {
-    /// <summary>One entry that dies with the process, and its recovery list and reset period as the manager answered.</summary>
-    internal readonly record struct Recovered(string ServiceName, Reading<RecoveryList> Actions);
-
     /// <summary>
     /// The last question before a plan that ends a process exists - what the manager does to the dead once
     /// the process is gone, which can still refuse it - and the ending it describes when it does not.
@@ -51,11 +48,11 @@ internal static class Aftermath
     }
 
     /// <summary>The entry first and its neighbours in the order the listing gave them - the order every sentence names them in.</summary>
-    private static IReadOnlyList<Recovered> Read(
+    private static IReadOnlyList<RecoveryReading> Read(
         IEndingFactsReader processes, ScmEntry target, IReadOnlyList<ScmEntry> sharing) =>
     [
         .. sharing.Prepend(target)
-            .Select(entry => new Recovered(entry.ServiceName, processes.ReadRecovery(entry.ServiceName)))
+            .Select(entry => new RecoveryReading(entry.ServiceName, processes.ReadRecovery(entry.ServiceName)))
     ];
 
     /// <summary>
@@ -77,7 +74,7 @@ internal static class Aftermath
     /// A computer restart anywhere in a list, then a list that could not be read - in that order, because the
     /// first is a fact about the machine and the second is only the absence of one.
     /// </summary>
-    private static PlanProblem? Refusal(ScmEntry target, IReadOnlyList<Recovered> recovery)
+    private static PlanProblem? Refusal(ScmEntry target, IReadOnlyList<RecoveryReading> recovery)
     {
         var restarting = Having(recovery, RecoveryAction.RestartComputer);
 
@@ -98,7 +95,7 @@ internal static class Aftermath
     /// <b>The first carries WHEN since 2026-09-30</b> (backlog 501) - <see cref="PlanWarning.Restarts"/>, the
     /// names in <see cref="PlanWarning.Related"/> taken from the same list in the same order.
     /// </summary>
-    internal static void AddWarnings(List<PlanWarning> warnings, ScmEntry target, IReadOnlyList<Recovered> recovery)
+    internal static void AddWarnings(List<PlanWarning> warnings, ScmEntry target, IReadOnlyList<RecoveryReading> recovery)
     {
         var restarts = Restarts(recovery);
 
@@ -120,7 +117,7 @@ internal static class Aftermath
     /// them - WSearch names 30 s five times and comes out as one - and, since 2026-10-07, which failures they
     /// are when not every one restarts it (backlog 541).
     /// </summary>
-    private static List<RecoveryRestart> Restarts(IReadOnlyList<Recovered> recovery) =>
+    private static List<RecoveryRestart> Restarts(IReadOnlyList<RecoveryReading> recovery) =>
     [
         .. recovery
             .Where(one => one.Actions.IsPresent)
@@ -217,14 +214,15 @@ internal static class Aftermath
 
     /// <summary>
     /// Where the step that ended the process is, when it ended it - arrived, timed out watching the entry
-    /// after the call worked, or answered by Windows starting the entry again at once.
+    /// after the call worked, lost sight of it after the call worked (since 2026-10-26, logic report R02),
+    /// or answered by Windows starting the entry again at once.
     /// </summary>
     private static int? EndedAt(IReadOnlyList<StepResult> results)
     {
         for (var index = 0; index < results.Count; index++)
         {
             if (results[index] is { Step.Operation: StepOperation.Terminate } result
-                && (result.Outcome is StepOutcome.Succeeded or StepOutcome.TimedOut || result.StartedAgain))
+                && (result.Outcome is StepOutcome.Succeeded or StepOutcome.TimedOut || result.StartedAgain || result.LostSight))
             {
                 return index;
             }
@@ -263,6 +261,6 @@ internal static class Aftermath
     /// nothing. The restart warning says which failures since 2026-10-07 (<see cref="Only"/>) - the program
     /// and the unnamed item still say "anywhere", backlog 543.
     /// </summary>
-    private static List<string> Having(IReadOnlyList<Recovered> recovery, RecoveryAction action) =>
+    private static List<string> Having(IReadOnlyList<RecoveryReading> recovery, RecoveryAction action) =>
         [.. recovery.Where(one => one.Actions.IsPresent && one.Actions.Value!.Items.Any(item => item.Action == action)).Select(one => one.ServiceName)];
 }

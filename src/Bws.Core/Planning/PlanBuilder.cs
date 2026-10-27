@@ -64,14 +64,11 @@ public sealed class PlanBuilder(
         // arise. Both end up with an empty list and they get there for different reasons. A setting
         // carrying a stop is the exception, and it asks exactly what a plain stop asks.
         var blocking = asked.Kind is ActionKind.Start
-            || (asked.Kind == ActionKind.SetStartType && !StopsAlong(asked, target))
+            || (asked.Kind == ActionKind.SetStartType && !StopsAlong(asked))
             ? []
             : StoppingOrder(target, warnings);
 
-        // Asking to stop one service is not asking to stop seven. Without the word, the
-        // ones in the way are named and left alone, and the plan says plainly that the
-        // manager will refuse the stop while they run.
-        var cascade = asked.IncludeDependents ? blocking : [];
+        var cascade = Cascade(asked, blocking);
 
         // Found by looking at a real plan rather than by reasoning: stopping BFE on this
         // machine drags in WdNisDrv and wtd, both kernel drivers. Refusing a driver as the
@@ -111,7 +108,9 @@ public sealed class PlanBuilder(
             return Refuse(action, PlanProblemKind.CannotComeBack, cannotComeBack);
         }
 
-        if (!asked.IncludeDependents && blocking.Count > 0)
+        // Asked of the cascade rather than of the word since 2026-10-26: a setting carrying a stop can hold
+        // the word and no cascade (above), and its dependants are then in the way like anybody's.
+        if (cascade.Count == 0 && blocking.Count > 0)
         {
             warnings.Add(new PlanWarning(
                 PlanWarningKind.DependentsInTheWay,
@@ -248,7 +247,7 @@ public sealed class PlanBuilder(
                 // running - exactly the plan of one step, and the failure offers a forced stop.
                 steps.Add(PlanSteps.Made(target, StepOperation.SetStartType, StepReason.Requested, to));
 
-                if (StopsAlong(action, target))
+                if (StopsAlong(action))
                 {
                     AddStops(steps, cascade, target);
                 }
@@ -354,20 +353,39 @@ public sealed class PlanBuilder(
             : action;
 
     /// <summary>
-    /// Whether a startup setting carries a stop of its own entry - somebody took the offer, and the
-    /// entry is not already stopped. An entry whose state could not be read gets the step, because
-    /// the runner reads it again before acting and reports "already there" if it was.
+    /// Whether a startup setting carries a stop of its own entry - somebody took the offer.
+    ///
+    /// <b>Whatever the entry was read as, since 2026-10-26</b> (logic report R03, the owner's decision of that
+    /// day). Until then an entry read as stopped got no stop step, and one started between the preview and the
+    /// press was set to Disabled and left running under a plan that said "and stop it". The step costs nothing
+    /// when it is not needed: the runner reads the entry before acting and reports "already there" - the
+    /// argument this line already made for an entry whose state could not be read.
     /// </summary>
-    internal static bool StopsAlong(ServiceAction action, ScmEntry target) =>
-        action is { Kind: ActionKind.SetStartType, AlsoStop: true } && target.Status != EntryStatus.Stopped;
+    internal static bool StopsAlong(ServiceAction action) =>
+        action is { Kind: ActionKind.SetStartType, AlsoStop: true };
+
+    /// <summary>
+    /// The running dependants this ask takes down with it. Asking to stop one service is not asking to stop
+    /// seven: without the word, the ones in the way are named and left alone, and the plan says plainly that
+    /// the manager will refuse the stop while they run.
+    ///
+    /// <b>NEVER ON A STARTUP SETTING, EVEN ONE CARRYING A STOP - logic report R08, 2026-10-26.</b> The command
+    /// line refuses --dependents on start-type, the line handed back leaves it out and the window's hand-over
+    /// refuses it, so a cascade planned here was the one layer of four saying yes: a preview stopping
+    /// dependants under a command that stops none. No interface builds that ask today (the window offers
+    /// nothing for them on such a sheet), and this makes it harmless rather than merely unreached - the same
+    /// tick box a selection carries does not reach a setting.
+    /// </summary>
+    private static IReadOnlyList<ScmEntry> Cascade(ServiceAction asked, IReadOnlyList<ScmEntry> blocking) =>
+        asked.IncludeDependents && asked.Kind != ActionKind.SetStartType ? blocking : [];
 
     /// <summary>
     /// Whether this plan asks the target to stop, politely: the two stopping kinds, and a startup
     /// setting carrying a stop. The forcing kinds are asked apart, because what they say about the
     /// neighbours and the critical entries is said by <see cref="ForcedStop"/> instead.
     /// </summary>
-    internal static bool StopsPolitely(ServiceAction action, ScmEntry target) =>
-        action.Kind is ActionKind.Stop or ActionKind.Restart || StopsAlong(action, target);
+    internal static bool StopsPolitely(ServiceAction action) =>
+        action.Kind is ActionKind.Stop or ActionKind.Restart || StopsAlong(action);
 
     private static void AddStops(List<PlanStep> steps, IReadOnlyList<ScmEntry> cascade, ScmEntry target)
     {
@@ -486,7 +504,7 @@ public sealed class PlanBuilder(
         // Without this the warning would tell somebody that changing a setting leaves the
         // neighbours running, which is true, irrelevant, and exactly the kind of sentence that
         // teaches people to stop reading warnings.
-        if (StopsPolitely(action, target) && target.EntryType == EntryType.SharedProcess)
+        if (StopsPolitely(action) && target.EntryType == EntryType.SharedProcess)
         {
             var neighbours = entries
                 .Where(entry => entry.ProcessId.IsPresent
@@ -519,7 +537,7 @@ public sealed class PlanBuilder(
         // refusal next to a step that is going to be skipped for having nothing to do.
         //
         // A forced stop asks its neighbours too (stability report W-6): each is a stop step of its own.
-        if (StopsPolitely(action, target) || ForcedStop.Asked(action.Kind))
+        if (StopsPolitely(action) || ForcedStop.Asked(action.Kind))
         {
             IEnumerable<ScmEntry> asked = [.. cascade, target, .. ending?.Sharing ?? []];
 

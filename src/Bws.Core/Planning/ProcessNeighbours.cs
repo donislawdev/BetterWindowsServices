@@ -77,6 +77,37 @@ internal static class ProcessNeighbours
     }
 
     /// <summary>
+    /// A refusal when the manager kept out of the listing anybody who could live in this process, and
+    /// nothing otherwise - logic report R04, the owner's decision of 2026-10-26.
+    ///
+    /// <b>Asked of a shared process only</b>, because an entry with its own process has no neighbours to
+    /// leave out. <b>Asked of every unlisted entry that could share, not of the ones in this process</b>,
+    /// because which process an entry lives in is exactly what this account was not shown. The price is
+    /// said out loud in the glossary: on a machine that keeps one shared entry from this account, every
+    /// shared process is refused an ending. Under elevation on the owner's machine nothing is kept out.
+    ///
+    /// <b>Asked while the plan is built and not again just before the ending.</b> An entry hidden between
+    /// the preview and the press is not seen.
+    /// </summary>
+    internal static PlanProblem? Unlisted(IEndingFactsReader processes, IReadOnlyList<ScmEntry> entries, ScmEntry target)
+    {
+        if (target.EntryType != EntryType.SharedProcess)
+        {
+            return null;
+        }
+
+        var unlisted = processes.ReadUnlisted(entries.Select(entry => entry.ServiceName));
+
+        return unlisted.Outcome switch
+        {
+            ReadOutcome.Denied => new PlanProblem(PlanProblemKind.NeighboursUnreadable, target.ServiceName, []),
+            ReadOutcome.Present when unlisted.Value!.Count > 0 =>
+                new PlanProblem(PlanProblemKind.NeighboursUnreadable, target.ServiceName, unlisted.Value),
+            _ => null
+        };
+    }
+
+    /// <summary>
     /// Whether this entry has already been asked to stop.
     ///
     /// <b>The plan is built after a stop that did not work, which is the only way into it from the

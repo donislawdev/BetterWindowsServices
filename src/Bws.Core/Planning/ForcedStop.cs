@@ -38,7 +38,7 @@ internal static class ForcedStop
         IReadOnlyList<ScmEntry> Sharing,
         bool Immediate,
         long? CreatedAt,
-        IReadOnlyList<Aftermath.Recovered> Recovery);
+        IReadOnlyList<RecoveryReading> Recovery);
 
     internal static bool Asked(ActionKind kind) =>
         kind is ActionKind.ForceStop or ActionKind.ForceRestart;
@@ -102,6 +102,12 @@ internal static class ForcedStop
             // do more than it shows, which is said out loud and left to a person. Here it is a list
             // of what dies, known to be short, and no wording makes that acceptable.
             return (Because(PlanProblemKind.CascadeUnreadable, target), null);
+        }
+
+        // The same rule for a casualty list short without anybody saying so (logic report R04).
+        if (ProcessNeighbours.Unlisted(processes, entries, target) is { } unlisted)
+        {
+            return (unlisted, null);
         }
 
         if (InTheWay(action, target, blocking) is { } inTheWay)
@@ -360,7 +366,8 @@ internal static class ForcedStop
             ending.Immediate ? StepReason.Requested : StepReason.Escalation,
             ProcessId: ending.ProcessId,
             ProcessCreatedAt: ending.CreatedAt,
-            TakesWithIt: [.. ending.Sharing.Select(entry => entry.ServiceName)]));
+            TakesWithIt: [.. ending.Sharing.Select(entry => entry.ServiceName)],
+            Recovery: ending.Recovery));
     }
 
     /// <summary>

@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Bws.Architecture.Tests;
 
@@ -125,14 +127,7 @@ public sealed class PlanOnlyGuards
             foreach (Match match in Regex.Matches(
                 text, @"new\s+WindowsScmControl\s*\(", RegexOptions.None, Sources.Ceiling))
             {
-                // The statement around it, which is where a plan runner would have to be built too.
-                // Bounded by the punctuation that ends one, so a construction two statements away
-                // from a plan is as visible here as one on the other side of the file.
-                var opens = text.LastIndexOfAny([';', '{', '}'], match.Index) + 1;
-                var closes = text.IndexOfAny([';', '{'], match.Index);
-                var statement = text[opens..(closes < 0 ? text.Length : closes)];
-
-                if (!statement.Contains("new PlanRunner", StringComparison.Ordinal))
+                if (!Statement(text, match.Index).Contains("new PlanRunner", StringComparison.Ordinal))
                 {
                     loose.Add($"{Path.GetFileName(file)} at offset {match.Index}");
                 }
@@ -145,6 +140,82 @@ public sealed class PlanOnlyGuards
             "Rule 1 says every write goes through a plan - a writer held anywhere else is a write " +
             "waiting to skip one:" +
             Environment.NewLine + string.Join(Environment.NewLine, loose));
+    }
+
+    /// <summary>
+    /// AND THE RUNNER THAT WRITER GOES INTO CAN READ THE PROCESS AGAIN, since 2026-10-27 (logic report R05).
+    ///
+    /// <b>A runner built without the reader asks nothing, by the builder's own rule</b>, so leaving the
+    /// argument out compiles, keeps every test of the runner green, and quietly drops the last look at
+    /// whether the process became critical and whether its recovery actions changed before it is ended.
+    ///
+    /// <b>Parsed rather than matched as text, since the review of #94</b>: a reader named in a comment or a
+    /// string beside the runner satisfied the first version, and only a construction among the runner's own
+    /// arguments counts now. The guard above is still a shape on text, and says so.
+    /// </summary>
+    [Fact]
+    public void Every_runner_on_the_real_machine_reads_the_process_again_before_ending_it()
+    {
+        List<string> blind =
+        [
+            .. Sources.Shipped().SelectMany(file =>
+                Blind(File.ReadAllText(file)).Select(line => $"{Path.GetFileName(file)} line {line}"))
+        ];
+
+        Assert.True(
+            blind.Count == 0,
+            "A PlanRunner on the real machine is built without a WindowsEndingFactsReader, so it ends a process " +
+            "on what the preview read, however long ago:" +
+            Environment.NewLine + string.Join(Environment.NewLine, blind));
+    }
+
+    /// <summary>The guard above against the shapes that fooled its first version, and the one it must pass.</summary>
+    [Fact]
+    public void A_reader_named_only_in_a_comment_or_a_string_does_not_count()
+    {
+        const string commented =
+            "class C { object M() => new PlanRunner(new WindowsScmControl(), new SystemClock(), null /* new WindowsEndingFactsReader() */); }";
+        const string quoted =
+            "class C { object M() => new PlanRunner(new WindowsScmControl(), new SystemClock(), Of(\"new WindowsEndingFactsReader()\")); }";
+        const string handed =
+            "class C { object M() => new PlanRunner(new WindowsScmControl(), new SystemClock(), new WindowsEndingFactsReader()); }";
+
+        Assert.Single(Blind(commented));
+        Assert.Single(Blind(quoted));
+        Assert.Empty(Blind(handed));
+    }
+
+    /// <summary>
+    /// The lines of every writer built where no reader is built among the arguments of the plan runner it goes
+    /// into - a writer with no runner around it counted too, which the guard before this one names as well.
+    /// </summary>
+    private static IEnumerable<int> Blind(string text) =>
+        CSharpSyntaxTree.ParseText(text).GetRoot().DescendantNodes()
+            .OfType<ObjectCreationExpressionSyntax>()
+            .Where(writer => Named(writer, "WindowsScmControl") && !Reads(writer))
+            .Select(writer => writer.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
+
+    /// <summary>Whether the nearest plan runner around this writer builds a reader among its own arguments.</summary>
+    private static bool Reads(ObjectCreationExpressionSyntax writer) =>
+        writer.Ancestors().OfType<ObjectCreationExpressionSyntax>().FirstOrDefault(runner => Named(runner, "PlanRunner"))
+            is { ArgumentList: { } arguments }
+        && arguments.Arguments.Any(argument =>
+            argument.Expression is ObjectCreationExpressionSyntax reader && Named(reader, "WindowsEndingFactsReader"));
+
+    private static bool Named(ObjectCreationExpressionSyntax creation, string name) =>
+        string.Equals(creation.Type.ToString(), name, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The statement around a construction, which is where a plan runner and its reader would have to be
+    /// built too. Bounded by the punctuation that ends one, so a construction two statements away from a
+    /// plan is as visible here as one on the other side of the file.
+    /// </summary>
+    private static string Statement(string text, int at)
+    {
+        var opens = text.LastIndexOfAny([';', '{', '}'], at) + 1;
+        var closes = text.IndexOfAny([';', '{'], at);
+
+        return text[opens..(closes < 0 ? text.Length : closes)];
     }
 
     private static Dictionary<string, int> Builders()
