@@ -8,8 +8,9 @@ namespace Bws.Core.Tests;
 /// owner's decision of 2026-10-26 "a budget for the whole query". Before it each entry had fifty milliseconds
 /// of its own: 37.5 s over 804 entries from the terminal, and the window still for as long.
 ///
-/// <b>A ruler handed in, not the clock</b>, for every test but the last: what is held is which matches are
-/// tried and which are not, and a stopwatch would also be measuring the machine (QueryPatterns says why).
+/// <b>A ruler handed in, not the clock</b>, for every test but two: what is held is which matches are tried
+/// and which are not, and a stopwatch would also be measuring the machine (QueryPatterns says why). The two
+/// are about the budget <c>Query</c> hands out itself, which only the clock spends.
 /// </summary>
 public sealed class QueryBudgetTests
 {
@@ -49,11 +50,23 @@ public sealed class QueryBudgetTests
     public void Every_walk_begins_with_the_whole_budget()
     {
         // The window walks its rows again at every keystroke - a spent budget is not carried into the next.
-        var query = QueryParserTests.Valid("name:/Spool(?=er)/");
+        // SPENT FOR REAL FIRST, since the review of PR #96: the first version spent microseconds, and would
+        // have passed with one budget shared by every walk. Each runaway match takes its whole fifty
+        // milliseconds, so four reach the two hundred and six leave room for a limit that fires a little
+        // early - the matches after the budget is gone are not tried, so the six cost about a quarter second.
+        var runOfAs = new string('a', 32);
+        var runaway = Entries.Named(runOfAs, runOfAs);
+        var quick = Entries.Named("aab", "aab");
+        var query = QueryParserTests.Valid(@"name:/(a+)+\1b/");
+        var spent = query.Pass();
 
-        query.Pass().Match(Entries.Named("Spooler", "Spooler"));
+        for (var match = 0; match < 6; match++)
+        {
+            spent.Match(runaway);
+        }
 
-        Assert.True(query.Pass().Match(Entries.Named("Spooler", "Spooler")).Matched);
+        Assert.True(spent.Match(quick).TooCostly, "The first walk never spent its budget, so the rest proves nothing.");
+        Assert.True(query.Pass().Match(quick).Matched);
     }
 
     [Fact]

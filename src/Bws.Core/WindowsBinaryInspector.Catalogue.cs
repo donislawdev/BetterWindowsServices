@@ -29,9 +29,25 @@ public sealed partial class WindowsBinaryInspector
     /// that catalogue. The hash doubles as the member tag, spelled out in hex, which is how
     /// the verification finds the right entry inside the catalogue.
     /// </summary>
-    private Reading<BinarySignature> ThroughCatalogue(string file, SafeFileHandle handle, HANDLE raw)
+    private Reading<BinarySignature> ThroughCatalogue(string file, SafeFileHandle handle, HANDLE raw) =>
+        Rescued(algorithm => ThroughCatalogue(file, handle, raw, algorithm));
+
+    /// <summary>
+    /// One catalogue question's answer - null when no catalogue lists the file under that algorithm - and
+    /// whether a catalogue listing it was found, which is what decides the SHA-1 rescue (C03).
+    /// </summary>
+    internal readonly record struct CatalogueAnswer(Reading<BinarySignature>? Signature, bool Listed);
+
+    /// <summary>
+    /// The two questions in their order, given a way to ask one. <b>Its own method since the review of PR
+    /// #96</b>, so a test can hand it answers no machine here gives - a catalogue found under SHA-1 that then
+    /// refuses - and see them carried through, not only the rule at the end.
+    /// </summary>
+    internal static Reading<BinarySignature> Rescued(Func<string, CatalogueAnswer> ask)
     {
-        if (ThroughCatalogue(file, handle, raw, "SHA256", out _) is { } bySha256)
+        ArgumentNullException.ThrowIfNull(ask);
+
+        if (ask("SHA256").Signature is { } bySha256)
         {
             return bySha256;
         }
@@ -52,9 +68,9 @@ public sealed partial class WindowsBinaryInspector
         // that lists the file and then cannot be read or verified is not "nobody signed this" - the
         // file is somebody's member, and a refusal with Windows' number is what is known. Until that day
         // it came back as NotSigned too, a confident answer about a file that may well be signed.
-        var bySha1 = ThroughCatalogue(file, handle, raw, "SHA1", out var listed);
+        var bySha1 = ask("SHA1");
 
-        return AfterSha1(bySha1, listed);
+        return AfterSha1(bySha1.Signature, bySha1.Listed);
     }
 
     /// <summary>
@@ -68,21 +84,16 @@ public sealed partial class WindowsBinaryInspector
             : Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
 
     /// <summary>
-    /// One catalogue question asked with one hash algorithm. Null when no catalogue lists the file
-    /// under it, which is not yet an answer - see the method above.
+    /// One catalogue question asked with one hash algorithm. No signature when no catalogue lists the
+    /// file under it, which is not yet an answer - see <see cref="Rescued"/>. Listed for every answer from
+    /// the verification against a catalogue found, refusals included, and not for a refusal that came
+    /// before anybody looked (C03).
     ///
     /// The member hash comes from the same handle as everything else, and measured 2026-10-06 it
     /// does not depend on where the handle's file pointer stands (one-handle.ps1, P6).
     /// </summary>
-    /// <param name="listed">
-    /// Whether a catalogue listing the file was found - true for every answer from the verification
-    /// against it, refusals included, and false for a refusal that came before anybody looked (C03).
-    /// </param>
-    private unsafe Reading<BinarySignature>? ThroughCatalogue(
-        string file, SafeFileHandle handle, HANDLE raw, string algorithm, out bool listed)
+    private unsafe CatalogueAnswer ThroughCatalogue(string file, SafeFileHandle handle, HANDLE raw, string algorithm)
     {
-        listed = false;
-
         // One context per file, and a context held per worker instead was measured on 2026-09-29
         // (tools/signature-probe/auto-cache.ps1, variant "held"). Acquiring and releasing is almost
         // free - what a fresh context costs is its FIRST catalogue lookup, about 1 ms per file on
@@ -91,9 +102,7 @@ public sealed partial class WindowsBinaryInspector
         // smaller than that pass's own spread. Not worth a context whose lifetime spans calls.
         if (!PInvoke.CryptCATAdminAcquireContext2(out var admin, null, algorithm, null))
         {
-            var error = Marshal.GetLastWin32Error();
-
-            return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
+            return Unlisted(Marshal.GetLastWin32Error());
         }
 
         try
@@ -110,7 +119,7 @@ public sealed partial class WindowsBinaryInspector
 
             if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
             {
-                return Reading<BinarySignature>.Denied(probeError, ManagerTerms.Describe(probeError));
+                return Unlisted(probeError);
             }
 
             if (size == 0)
@@ -118,18 +127,14 @@ public sealed partial class WindowsBinaryInspector
                 // Asked for no room and did not fail. A file always hashes to something, so this
                 // is not a shape the system produces - refused with a definite code rather than
                 // with a stale one, because there is nothing true to say about it.
-                return Reading<BinarySignature>.Denied(
-                    (int)WIN32_ERROR.ERROR_INVALID_DATA,
-                    ManagerTerms.Describe((int)WIN32_ERROR.ERROR_INVALID_DATA));
+                return Unlisted((int)WIN32_ERROR.ERROR_INVALID_DATA);
             }
 
             var hash = new byte[size];
 
             if (!PInvoke.CryptCATAdminCalcHashFromFileHandle2(admin, handle, ref size, hash))
             {
-                var error = Marshal.GetLastWin32Error();
-
-                return Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error));
+                return Unlisted(Marshal.GetLastWin32Error());
             }
 
             var catalogue = PInvoke.CryptCATAdminEnumCatalogFromHash(admin, hash);
@@ -138,14 +143,12 @@ public sealed partial class WindowsBinaryInspector
             {
                 // No catalogue lists this file under this algorithm, and it carries nothing of its
                 // own. "Nobody signed this" is the honest answer only once both have been asked.
-                return null;
+                return new CatalogueAnswer(Signature: null, Listed: false);
             }
-
-            listed = true;
 
             try
             {
-                return VerifyAgainst(catalogue, admin, file, raw, hash);
+                return new CatalogueAnswer(VerifyAgainst(catalogue, admin, file, raw, hash), Listed: true);
             }
             finally
             {
@@ -157,6 +160,10 @@ public sealed partial class WindowsBinaryInspector
             PInvoke.CryptCATAdminReleaseContext(admin, 0);
         }
     }
+
+    /// <summary>Refused before any catalogue was looked for - the context, or the hash.</summary>
+    private static CatalogueAnswer Unlisted(int error) =>
+        new(Reading<BinarySignature>.Denied(error, ManagerTerms.Describe(error)), Listed: false);
 
     private unsafe Reading<BinarySignature> VerifyAgainst(
         nint catalogue, nint admin, string file, HANDLE raw, byte[] hash)

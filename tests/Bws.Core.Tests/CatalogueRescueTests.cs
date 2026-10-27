@@ -6,12 +6,60 @@ namespace Bws.Core.Tests;
 /// No catalogue, or no way to ask, is "not signed" as before.
 ///
 /// <b>The rule without Windows</b>, because no machine here has a catalogue that fails once found - the
-/// owner's has no file only an SHA-1 catalogue names at all (R-6, 2026-10-05).
+/// owner's has no file only an SHA-1 catalogue names at all (R-6, 2026-10-05). <b>And since the review of PR
+/// #96 the questions too</b>, through <see cref="WindowsBinaryInspector.Rescued"/>: the rule held on its own
+/// would stay green if the answer to the SHA-1 question stopped reaching it.
 /// </summary>
 public sealed class CatalogueRescueTests
 {
     private const int TrustFailure = unchecked((int)0x80096010);
     private const int NoSignature = unchecked((int)0x800B0100);
+
+    private static readonly WindowsBinaryInspector.CatalogueAnswer NotListed = new(Signature: null, Listed: false);
+
+    [Fact]
+    public void A_file_only_an_sha1_catalogue_lists_that_then_refuses_is_a_refusal_with_its_number()
+    {
+        var asked = new List<string>();
+
+        var answer = WindowsBinaryInspector.Rescued(algorithm =>
+        {
+            asked.Add(algorithm);
+
+            return algorithm == "SHA1"
+                ? new(Reading<BinarySignature>.Denied(TrustFailure, "The digital signature of the object did not verify."), Listed: true)
+                : NotListed;
+        });
+
+        Assert.Equal(["SHA256", "SHA1"], asked);
+        Assert.Equal(ReadOutcome.Denied, answer.Outcome);
+        Assert.Equal(TrustFailure, answer.ErrorCode);
+    }
+
+    [Fact]
+    public void A_file_an_sha256_catalogue_lists_is_never_asked_about_again()
+    {
+        var signed = Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.Trusted, 0, Publisher: "Microsoft Windows"));
+        var asked = new List<string>();
+
+        var answer = WindowsBinaryInspector.Rescued(algorithm =>
+        {
+            asked.Add(algorithm);
+
+            return new(signed, Listed: true);
+        });
+
+        Assert.Equal(["SHA256"], asked);
+        Assert.Equal(signed, answer);
+    }
+
+    [Fact]
+    public void A_file_no_catalogue_lists_under_either_is_not_signed()
+    {
+        var answer = WindowsBinaryInspector.Rescued(_ => NotListed);
+
+        Assert.Equal(SignatureStatus.NotSigned, answer.Value!.Status);
+    }
 
     [Fact]
     public void A_catalogue_found_and_not_verified_is_a_refusal_with_its_number()

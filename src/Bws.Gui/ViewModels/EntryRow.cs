@@ -356,9 +356,10 @@ public sealed class EntryRow : Observable
     ///
     /// Absent and present-with-a-value are different answers even when neither carries a
     /// number, and comparing only the numbers would miss a service stopping if the manager
-    /// happened to have refused the reading before.
+    /// happened to have refused the reading before. <b>Internal since the review of PR #96</b>, so the
+    /// panel's readings ask the same question rather than spelling it out twice.
     /// </summary>
-    private static bool SameProcess(Reading<int> left, Reading<int> right) =>
+    internal static bool SameProcess(Reading<int> left, Reading<int> right) =>
         left.Outcome == right.Outcome && left.Value == right.Value;
 
     /// <summary>

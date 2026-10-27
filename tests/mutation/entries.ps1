@@ -1220,19 +1220,21 @@ $mutations = @(
     },
     @{
         # Review of PR #16: a restart arrives through the tick, which never clears a claim, so the
-        # dropped memory stayed "not read" until the next full reading and Enter did nothing.
+        # dropped memory stayed "not read" until the next full reading and Enter did nothing. Since the
+        # review of PR #96 on the claim remembering its process (R07) - the hand-clearing in ReadAsync
+        # it used to break was found redundant by this very entry, and removed.
         Name = 'details: a restart lets the panel ask for the memory again'
         File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
-        From = '            _claimed[row.ServiceName] = had & ~ExtraRead.Memory;'
-        To = '            _claimed[row.ServiceName] = had;'
+        From = '? claimed & ~ExtraRead.Memory'
+        To = '? claimed'
         Test = 'PanelReadingTests.A_memory_read_for_a_process_that_has_since_restarted_is_read_again_for_the_new_one'
     },
     @{
         # Review of PR #16, case one: the failure followed the panel to the next entry.
         Name = 'details: a failure is said for the entry it happened to'
         File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
-        From = 'return _failures.GetValueOrDefault(row.ServiceName, string.Empty);'
-        To = 'return _failures.Values.FirstOrDefault() ?? string.Empty;'
+        From = 'return _failures.TryGetValue(row.ServiceName, out var failed) ? failed.Why : string.Empty;'
+        To = 'return _failures.Values.Select(failed => failed.Why).FirstOrDefault() ?? string.Empty;'
         Test = 'PanelReadingTests.A_failure_is_said_for_the_entry_that_failed_and_not_for_the_next'
     },
     @{
@@ -1255,7 +1257,7 @@ $mutations = @(
         # The failure swallowed: lines saying "not read" as though nobody had tried. Rule 8.
         Name = 'details: a failed panel reading is said'
         File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
-        From = '                _failures[row.ServiceName] = string.Join(" ", Causes.Of(failure));'
+        From = '                FailedAt(row, families, failure);'
         To = '                _ = failure;'
         Test = 'PanelReadingTests.A_reading_that_fails_is_said_in_the_panel'
     },
@@ -14637,6 +14639,14 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'CatalogueRescueTests.A_machine_that_will_not_ask_with_sha1_is_not_signed_as_before'
     }
     @{
+        # C03, review of PR #96: what the SHA-1 question found reaches the rule, not only the rule itself.
+        Name = 'signature: the SHA-1 question tells the rescue whether a catalogue was found'
+        File = 'src\Bws.Core\WindowsBinaryInspector.Catalogue.cs'
+        From = 'return AfterSha1(bySha1.Signature, bySha1.Listed);'
+        To = 'return AfterSha1(bySha1.Signature, listed: false);'
+        Test = 'CatalogueRescueTests.A_file_only_an_sha1_catalogue_lists_that_then_refuses_is_a_refusal_with_its_number'
+    }
+    @{
         # H02: only a circular log overwrites.
         Name = 'history: an archived log at its limit is not overwriting'
         File = 'src\Bws.Core\History\ChangeHistory.cs'
@@ -14666,6 +14676,14 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         File = 'src\Bws.Gui\ViewModels\HistoryReading.AfterPlan.cs'
         From = '_clock.Wait(LogWrites);'
         To = '_clock.Wait(TimeSpan.Zero);'
+        Test = 'HistoryAfterPlanTests.The_windows_own_plan_reads_the_history_again_once_the_log_has_had_time_to_hold_it'
+    }
+    @{
+        # H01, review of PR #96: the wait comes before the reading, not after it.
+        Name = 'window history: the reading after a plan reads only once it has waited'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.AfterPlan.cs'
+        From = '            _clock.Wait(LogWrites);'
+        To = '            var early = reader.Read(); _clock.Wait(LogWrites); return early;'
         Test = 'HistoryAfterPlanTests.The_windows_own_plan_reads_the_history_again_once_the_log_has_had_time_to_hold_it'
     }
     @{
@@ -14704,9 +14722,25 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # R07: with memory held for every row, a moved row is read at once.
         Name = 'window list: a row moved to another process has its memory read again'
         File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
-        From = 'if (!_have.HasFlag(ExtraRead.Memory) || _reader is null)'
-        To = 'if (_have.HasFlag(ExtraRead.Memory) || _reader is null)'
+        From = 'if (!_have.HasFlag(ExtraRead.Memory) || _reader is not { } reader)'
+        To = 'if (_have.HasFlag(ExtraRead.Memory) || _reader is not { } reader)'
         Test = 'PanelReadingTests.A_list_holding_every_rows_memory_reads_a_restarted_one_at_once'
+    }
+    @{
+        # R07, review of PR #96: a row the panel is reading is read by the tick too, so it is narrowed in.
+        Name = 'window list: a moved row the panel is reading is in the list the tick narrows'
+        File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
+        From = '.Where(row => row.Entry.Memory.Outcome == ReadOutcome.NotRead).ToList();'
+        To = '.Where(row => row.Entry.Memory.Outcome == ReadOutcome.NotRead && !Claimed(row).HasFlag(ExtraRead.Memory)).ToList();'
+        Test = 'MovedMemoryTests.A_row_the_panel_is_reading_is_in_the_list_the_tick_narrows'
+    }
+    @{
+        # R07, review of PR #96: a failure goes once what it was about has been read since.
+        Name = 'window panel: a failure goes once its families are read again'
+        File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
+        From = '(failed.Families & ~families) == ExtraRead.None'
+        To = '(failed.Families & families) == ExtraRead.None'
+        Test = 'MovedMemoryTests.A_failure_to_read_memory_goes_once_the_next_process_is_read'
     }
     @{
         # R10: a spent budget tries nothing more.
@@ -14731,6 +14765,14 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '        var pass = Pass();'
         To = '        var pass = new QueryPass(this, new QueryBudget(() => TimeSpan.Zero, QueryBudget.Whole));'
         Test = 'QueryBudgetTests.A_listing_filtered_at_once_shares_one_budget_rather_than_one_per_entry'
+    }
+    @{
+        # R10, review of PR #96: what one walk spent is not carried into the next.
+        Name = 'query budget: every walk begins with the whole budget'
+        File = 'src\Bws.Core\Querying\QueryBudget.cs'
+        From = '    private TimeSpan _spent;'
+        To = '    private static TimeSpan _spent;'
+        Test = 'QueryBudgetTests.Every_walk_begins_with_the_whole_budget'
     }
 )
 

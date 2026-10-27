@@ -19,16 +19,20 @@ public sealed class HistoryAfterPlanTests
 
         await model.OpenHistory();
 
-        var before = clock.Elapsed;
+        // THE LOG HOLDS THE CHANGE ONLY ONCE THE TIME HAS PASSED, since the review of PR #96. The first
+        // version put it there before the plan, so a reading that read first and waited after would have
+        // found it all the same.
+        var landsAt = clock.Elapsed + HistoryReading.LogWrites;
 
-        log.History = new ChangeHistory(
-            HistoryLog.Log(), [.. HistoryLog.Ordinary().Changes.Prepend(HistoryLog.ByPerson("Spooler", HistoryLog.Day(21, 9), back: true))]);
+        log.Later = (
+            new ChangeHistory(
+                HistoryLog.Log(), [.. HistoryLog.Ordinary().Changes.Prepend(HistoryLog.ByPerson("Spooler", HistoryLog.Day(21, 9), back: true))]),
+            () => clock.Elapsed >= landsAt);
 
         await model.LoadKeepingAsync();
         await model.History.Out;
 
         Assert.Equal(2, log.Reads);
-        Assert.True(clock.Elapsed - before >= HistoryReading.LogWrites, "the reading did not wait for the log");
         Assert.Equal(8, model.History.Shown!.Filter.Rows.Sum(row => row.Count));
     }
 

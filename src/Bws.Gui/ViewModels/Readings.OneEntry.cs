@@ -62,15 +62,38 @@ internal sealed partial class Readings : IEntryReads
     /// said nothing at all - the claim stood, so nothing was read, and the lines said "not read" as
     /// though nobody had tried. Kept here, a failure is said for the entry it happened to, every time
     /// that entry is shown, until a new listing lets the panel try again.
+    ///
+    /// <b>With the families it was for, since the review of PR #96.</b> A claim on memory no longer
+    /// stands for the whole listing (R07), so memory is read again once the process moves - and a failure
+    /// that stood until the next listing went on saying the reading failed beside a figure read since. It
+    /// goes once every family it was for has been read again (<see cref="Answered"/>).
     /// </summary>
-    private readonly Dictionary<string, string> _failures = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (ExtraRead Families, string Why)> _failures = new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public string FailureOf(EntryRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
 
-        return _failures.GetValueOrDefault(row.ServiceName, string.Empty);
+        return _failures.TryGetValue(row.ServiceName, out var failed) ? failed.Why : string.Empty;
+    }
+
+    /// <summary>A reading of these families failed for this row - added to whatever it already failed at.</summary>
+    private void FailedAt(EntryRow row, ExtraRead families, Exception failure) =>
+        _failures[row.ServiceName] = (
+            families | _failures.GetValueOrDefault(row.ServiceName).Families,
+            string.Join(" ", Causes.Of(failure)));
+
+    /// <summary>
+    /// These families were read for this row: a failure they cover in full is over. One that also covered a
+    /// family nobody has read since stays said - that family's line still says "not read", and why.
+    /// </summary>
+    private void Answered(EntryRow row, ExtraRead families)
+    {
+        if (_failures.TryGetValue(row.ServiceName, out var failed) && (failed.Families & ~families) == ExtraRead.None)
+        {
+            _failures.Remove(row.ServiceName);
+        }
     }
 
     /// <inheritdoc />
@@ -99,33 +122,52 @@ internal sealed partial class Readings : IEntryReads
     /// <summary>
     /// The list holds every row's memory, and the tick has just moved rows to another process - read
     /// theirs now rather than leaving "not read" in a column somebody turned on until F5 (R07, 2026-10-27).
-    /// The panel's own path, one row at a time: a tick moves a handful of rows at most, and a pass over
-    /// the listing costs 5-8 ms (MemoryPass). A row whose memory is already being read is not asked twice.
+    ///
+    /// <b>ONE PASS FOR EVERY MOVED ROW, since the review of PR #96.</b> The first version took the panel's
+    /// path, one row at a time, and each of those is a whole <see cref="MemoryPass"/> over the listing - so
+    /// a host process restarting, which moves every service it holds in one tick, cost one pass per service.
+    /// The pass counts sharing over the whole listing whatever it is asked, so one answers them all.
+    ///
+    /// <b>A row the panel is reading as well is read here too</b>, the other half of that review. An open
+    /// panel claims a moved row the moment it moves, and skipping claimed rows let the list be narrowed
+    /// before the panel's answer came - which lands through AbsorbOne and narrows nothing, so a question
+    /// about memory left that row out until something else moved. Asked twice, it costs one process more.
     ///
     /// <b>Inside the tick, awaited, the way the second phase runs inside a reading</b> - so the list is
-    /// narrowed once, with the new figures, and no read is started and walked away from.
+    /// narrowed once, with the new figures, and no read is started and walked away from. The tick holds the
+    /// reading guard, so nothing moves a process or replaces the listing while this is out.
     /// </summary>
-    private Task MemoryAgainForMovedAsync()
+    private async Task MemoryAgainForMovedAsync()
     {
-        if (!_have.HasFlag(ExtraRead.Memory) || _reader is null)
+        if (!_have.HasFlag(ExtraRead.Memory) || _reader is not { } reader)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        var reads = new List<Task>();
+        var moved = _index.Ordered.Where(row => row.Entry.Memory.Outcome == ReadOutcome.NotRead).ToList();
 
-        foreach (var row in _index.Ordered)
+        if (moved.Count == 0)
         {
-            var claimed = Claimed(row);
-
-            if (row.Entry.Memory.Outcome == ReadOutcome.NotRead && !claimed.HasFlag(ExtraRead.Memory))
-            {
-                Stake(row, claimed | ExtraRead.Memory);
-                reads.Add(ReadAsync(row, ExtraRead.Memory));
-            }
+            return;
         }
 
-        return Task.WhenAll(reads);
+        var everything = _index.Everything;
+        var counted = await Attempt(() => MemoryPass.Fill(everything, reader)).ConfigureAwait(true);
+
+        if (counted.Failure is { } failure)
+        {
+            moved.ForEach(row => FailedAt(row, ExtraRead.Memory, failure));
+
+            return;
+        }
+
+        var byName = counted.Answer!.ToDictionary(entry => entry.ServiceName, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in moved.Where(row => byName.ContainsKey(row.ServiceName)))
+        {
+            _index.AbsorbOne(row.Entry with { Memory = byName[row.ServiceName].Memory });
+            Answered(row, ExtraRead.Memory);
+        }
     }
 
     /// <summary>What has been claimed for this row - less a claim on memory made for another process (R07).</summary>
@@ -135,7 +177,7 @@ internal sealed partial class Readings : IEntryReads
 
         return claimed.HasFlag(ExtraRead.Memory)
                && _memoryFor.TryGetValue(row.ServiceName, out var process)
-               && !(process.Outcome == row.Entry.ProcessId.Outcome && process.Value == row.Entry.ProcessId.Value)
+               && !EntryRow.SameProcess(process, row.Entry.ProcessId)
             ? claimed & ~ExtraRead.Memory
             : claimed;
     }
@@ -163,29 +205,21 @@ internal sealed partial class Readings : IEntryReads
         // - MemoryPass says so where it is written. The index is fresher than the last full reading,
         // because the tick writes the process identifiers back into it.
         var everything = _index.Everything;
+        var attempt = await Attempt(() => One(before, everything, families)).ConfigureAwait(true);
 
-        ScmEntry read;
-
-        try
-        {
-            read = await Task.Run(() => One(before, everything, families)).ConfigureAwait(true);
-        }
-#pragma warning disable CA1031
-        // Broad, for the reason the second phase gives at its own catch: every file answers for
-        // itself, so what arrives here is the reading failing as a whole. It must neither take the
-        // window down nor leave the panel implying that nobody tried - so it becomes a sentence
-        // about THIS entry, said by the panel whenever the entry is shown. Not for a listing that
-        // has gone, whose entries nobody will be shown again.
-        catch (Exception failure)
+        // A failure is a sentence about THIS entry - not for a listing that has gone, whose entries nobody
+        // will be shown again.
+        if (attempt.Failure is { } failure)
         {
             if (!_gone && listing == _listing)
             {
-                _failures[row.ServiceName] = string.Join(" ", Causes.Of(failure));
+                FailedAt(row, families, failure);
             }
 
             return;
         }
-#pragma warning restore CA1031
+
+        var read = attempt.Answer!;
 
         // ANSWERED FOR ENTRIES THAT NO LONGER EXIST, or for a window nobody is looking at: dropped.
         // The panel asks again for the fresh entry, because the new listing cleared what it claimed.
@@ -195,20 +229,42 @@ internal sealed partial class Readings : IEntryReads
         }
 
         var now = row.Entry;
-        var sameProcess = now.ProcessId.Outcome == before.ProcessId.Outcome && now.ProcessId.Value == before.ProcessId.Value;
+        var sameProcess = EntryRow.SameProcess(now.ProcessId, before.ProcessId);
 
         // A RESTART BETWEEN THE QUESTION AND THE ANSWER, since the review of PR #16: the memory read
-        // belongs to the old process and is dropped below, and the claim goes with it so the panel
-        // asks again for the new one. A restart arrives through the tick, which never clears a
-        // claim - without this the line said "not read" until the next full reading, and Enter did
-        // nothing. It cannot spin: each round is a real reading, and it stops the moment the process
-        // holds still for the few milliseconds one takes.
-        if (families.HasFlag(ExtraRead.Memory) && !sameProcess && _claimed.TryGetValue(row.ServiceName, out var had))
-        {
-            _claimed[row.ServiceName] = had & ~ExtraRead.Memory;
-        }
-
+        // belongs to the old process and is dropped (Carry), and the panel asks again for the new one -
+        // without that the line said "not read" until the next full reading, and Enter did nothing. The
+        // claim used to be cleared here by hand. Since R07 it no longer needs to be: a claim on memory
+        // remembers its process, and Claimed drops it once the process moves, which is what a restart
+        // mid-reading is too. The mutation registry found the hand-clearing could be removed with no
+        // test noticing (review of PR #96), so it was. It cannot spin: each round is a real reading,
+        // and it stops the moment the process holds still for the few milliseconds one takes.
         _index.AbsorbOne(Carry(now, read, families, sameProcess));
+        Answered(row, sameProcess ? families : families & ~ExtraRead.Memory);
+    }
+
+    /// <summary>
+    /// Work for the pool, with what it threw handed back rather than thrown - the one broad catch both readings
+    /// in this file share, since the review of PR #96 gave the tick a reading of its own beside the panel's.
+    ///
+    /// Broad, for the reason the second phase gives at its own catch: every file and every process answers
+    /// for itself, so what arrives here is a reading failing as a whole. It must neither take the window down
+    /// nor leave the panel implying that nobody tried - so each caller turns it into a sentence about the
+    /// entries it was for, said by the panel whenever one of them is shown.
+    /// </summary>
+    private static async Task<(T? Answer, Exception? Failure)> Attempt<T>(Func<T> work)
+        where T : class
+    {
+        try
+        {
+            return (await Task.Run(work).ConfigureAwait(true), null);
+        }
+#pragma warning disable CA1031
+        catch (Exception failure)
+        {
+            return (null, failure);
+        }
+#pragma warning restore CA1031
     }
 
     /// <summary>Called wherever the index takes a whole list - see <see cref="_listing"/>.</summary>

@@ -23,6 +23,12 @@ internal sealed class HistoryLog : IChangeHistoryReader
     /// <summary>Thrown by the next reading instead of answering, when set.</summary>
     internal Exception? FailWith { get; set; }
 
+    /// <summary>
+    /// What the log holds once the test says it has landed - the way the real log shows a change about a second
+    /// after it is made (H01). Until then a reading answers with <see cref="History"/>.
+    /// </summary>
+    internal (ChangeHistory History, Func<bool> Landed)? Later { get; set; }
+
     /// <summary>How many readings were asked for.</summary>
     internal int Reads => Volatile.Read(ref _reads);
 
@@ -31,7 +37,9 @@ internal sealed class HistoryLog : IChangeHistoryReader
         Interlocked.Increment(ref _reads);
         _gate.Wait(TimeSpan.FromSeconds(30));
 
-        return FailWith is { } failure ? throw failure : History;
+        return FailWith is { } failure ? throw failure
+            : Later is { } later && later.Landed() ? later.History
+            : History;
     }
 
     internal void Hold() => _gate.Reset();
