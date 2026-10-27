@@ -16,27 +16,39 @@ public sealed class ChangeHistoryTests
     public void A_log_with_room_left_is_not_overwriting()
     {
         // The owner's System log, 2026-10-15: 1 118 208 bytes of a 20 MB limit.
-        var log = ChangeHistory.Cover("System", new LogFacts(1_118_208, Limit, Full: false), At(), cleared: null);
+        var log = ChangeHistory.Cover("System", new LogFacts(1_118_208, Limit, Full: false, LogMode.Circular), At(), cleared: null);
 
         Assert.False(log.Overwritten);
         Assert.False(log.Full);
+        Assert.Equal(LogMode.Circular, log.Mode);
     }
 
     [Fact]
     public void A_log_at_its_limit_is_overwriting()
     {
         // The owner's Security log the same day: a 4096 byte header plus the whole limit, overwriting.
-        var log = ChangeHistory.Cover("System", new LogFacts(Limit + 4096, Limit, Full: false), At(), cleared: null);
+        var log = ChangeHistory.Cover("System", new LogFacts(Limit + 4096, Limit, Full: false, LogMode.Circular), At(), cleared: null);
 
         Assert.True(log.Overwritten);
+    }
+
+    [Fact]
+    public void An_archived_log_at_its_limit_is_not_called_overwritten()
+    {
+        // H02: Windows puts the full file aside and begins a new one, and documents EvtLogFull as always
+        // false for such a log - which until 2026-10-27 made "not full and at the limit" read as overwriting.
+        var log = ChangeHistory.Cover("System", new LogFacts(Limit + 4096, Limit, Full: false, LogMode.AutoBackup), At(), cleared: null);
+
+        Assert.False(log.Overwritten);
+        Assert.Equal(LogMode.AutoBackup, log.Mode);
     }
 
     [Fact]
     public void A_log_with_less_than_one_chunk_of_room_is_already_at_its_limit()
     {
         // The file grows a chunk at a time, so the last chunk that does not fit is the limit.
-        Assert.True(new LogFacts(Limit - LogFacts.Chunk + 1, Limit, Full: false).AtSizeLimit);
-        Assert.False(new LogFacts(Limit - LogFacts.Chunk, Limit, Full: false).AtSizeLimit);
+        Assert.True(new LogFacts(Limit - LogFacts.Chunk + 1, Limit, Full: false, LogMode.Circular).AtSizeLimit);
+        Assert.False(new LogFacts(Limit - LogFacts.Chunk, Limit, Full: false, LogMode.Circular).AtSizeLimit);
     }
 
     [Fact]
@@ -44,7 +56,7 @@ public sealed class ChangeHistoryTests
     {
         // Full means Windows keeps what it has and drops the new - the opposite end of the history is
         // missing, and saying "anything older is gone" too would be untrue.
-        var log = ChangeHistory.Cover("System", new LogFacts(Limit + 4096, Limit, Full: true), At(), cleared: null);
+        var log = ChangeHistory.Cover("System", new LogFacts(Limit + 4096, Limit, Full: true, LogMode.Retain), At(), cleared: null);
 
         Assert.True(log.Full);
         Assert.False(log.Overwritten);
@@ -125,7 +137,7 @@ public sealed class ChangeHistoryTests
     private static DateTimeOffset At() => new(2026, 10, 11, 14, 58, 5, TimeSpan.Zero);
 
     private static ChangeHistory History(params ServiceChange[] changes) =>
-        new(ChangeHistory.Cover("System", new LogFacts(0, Limit, Full: false), At(), cleared: null), changes);
+        new(ChangeHistory.Cover("System", new LogFacts(0, Limit, Full: false, LogMode.Circular), At(), cleared: null), changes);
 
     private static ServiceChange Changed(string? name) =>
         new() { At = At(), Kind = ChangeKind.StartTypeChanged, ServiceName = name, DisplayName = name };

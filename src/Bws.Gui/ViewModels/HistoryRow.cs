@@ -20,16 +20,29 @@ public sealed class HistoryRow
         ArgumentNullException.ThrowIfNull(group);
 
         Group = group;
-        When = HistoryWords.When(group.Last ?? group.Latest.At);
+        At = group.Last ?? group.Latest.At;
+        FirstAt = group.Times > 1 ? group.First : null;
+        When = HistoryWords.When(At);
         Times = group.Times > 1 ? group.Times.ToString(CultureInfo.CurrentCulture) : string.Empty;
         Entry = HistoryWords.Entry(group.Latest);
         Change = HistoryWords.What(group.Latest);
         By = HistoryWords.Who(group.Latest.By);
-        Since = group.Times > 1 ? HistoryWords.When(group.First) : string.Empty;
+        Since = FirstAt is null ? string.Empty : HistoryWords.When(FirstAt);
     }
 
     /// <summary>When - the last time, for a group.</summary>
     public string When { get; }
+
+    /// <summary>
+    /// The moment behind <see cref="When"/>, which the table sorts by - since 2026-10-27, logic report H04.
+    /// The text is this machine's local time without its offset, so the hour after the clocks go back
+    /// sorts before the hour it repeats, and two changes in it read as one moment. An instant does not.
+    /// Null when the log recorded no time, which sorts as the oldest, where the text "(not recorded)" sorted.
+    /// </summary>
+    public DateTimeOffset? At { get; }
+
+    /// <summary>The moment behind <see cref="Since"/>, for the same reason - null for a change recorded once.</summary>
+    public DateTimeOffset? FirstAt { get; }
 
     /// <summary>How many changes the line stands for, and empty for one - "1" in a column of counts is noise.</summary>
     public string Times { get; }

@@ -26,20 +26,35 @@ public sealed class HistoryOutputTests
     }
 
     [Fact]
-    public void A_log_that_lost_nothing_says_so_and_one_that_did_does_not()
+    public void No_log_is_promised_to_have_lost_nothing_and_one_that_loses_says_which_end()
     {
+        // H02, 2026-10-27: nothing about a log proves it was written to without a gap, so the first
+        // sentence says how far back it reaches and stops there.
         var whole = HistoryText.Admissions(History(Log()), [], serviceName: null);
         var overwritten = HistoryText.Admissions(History(Log(overwritten: true)), [], serviceName: null);
-        var full = HistoryText.Admissions(History(Log(full: true)), [], serviceName: null);
+        var full = HistoryText.Admissions(History(Log(full: true) with { Mode = LogMode.Retain }), [], serviceName: null);
 
-        Assert.Contains("has lost nothing since", whole[0], StringComparison.Ordinal);
+        Assert.Equal(
+            "The System log reaches back to "
+            + Cleared.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + ".",
+            whole[0]);
+        Assert.DoesNotContain(whole, line => line.Contains("lost nothing", StringComparison.Ordinal));
 
-        Assert.DoesNotContain("lost nothing", overwritten[0], StringComparison.Ordinal);
         Assert.Contains(overwritten, line => line.Contains("anything older is gone", StringComparison.Ordinal));
 
         // The other end missing: a full log that keeps what it has is not writing the newest.
-        Assert.DoesNotContain("lost nothing", full[0], StringComparison.Ordinal);
         Assert.Contains(full, line => line.Contains("latest changes are missing", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void An_archived_log_says_older_events_may_be_in_files_bws_does_not_read()
+    {
+        // H02: said whatever its size, because the archives are there from the first time it filled.
+        var archived = HistoryText.Admissions(History(Log() with { Mode = LogMode.AutoBackup }), [], serviceName: null);
+        var circular = HistoryText.Admissions(History(Log()), [], serviceName: null);
+
+        Assert.Contains(archived, line => line.Contains("archive files", StringComparison.Ordinal));
+        Assert.DoesNotContain(circular, line => line.Contains("archive", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -125,7 +140,7 @@ public sealed class HistoryOutputTests
 
         Assert.Equal(["log", "changes"], root.EnumerateObject().Select(property => property.Name));
         Assert.Equal(
-            ["name", "reachesBack", "overwritten", "full", "cleared"],
+            ["name", "reachesBack", "overwritten", "full", "cleared", "mode"],
             root.GetProperty("log").EnumerateObject().Select(property => property.Name));
 
         string[] fields = ["at", "kind", "serviceName", "displayName", "by", "binaryPath", "account", "windowsWords"];
@@ -197,13 +212,15 @@ public sealed class HistoryOutputTests
         Assert.Null(Refusals.Answer(CommandLine.Read(["history", "Spooler", "--json", "--timing"])));
     }
 
+    /// <summary>A circular log - another mode is <c>Log() with { Mode = ... }</c>.</summary>
     private static LogCoverage Log(bool cleared = false, bool overwritten = false, bool full = false) => new()
     {
         Name = "System",
         ReachesBack = Cleared,
         Overwritten = overwritten,
         Full = full,
-        Cleared = cleared ? new Clearing(Cleared, new Actor(Person, "HOST\\USER")) : null
+        Cleared = cleared ? new Clearing(Cleared, new Actor(Person, "HOST\\USER")) : null,
+        Mode = LogMode.Circular
     };
 
     private static ChangeHistory History(LogCoverage log, params ServiceChange[] changes) => new(log, changes);

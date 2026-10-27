@@ -49,16 +49,23 @@ internal static class Narrowing
     /// list's own reaction to the change (backlog 153) - so the budget is met here and not on
     /// screen, and a number from this method is no answer to "is typing fast enough".
     /// </summary>
+    /// <remarks>
+    /// <b>One walk, one budget</b> - since 2026-10-27, logic report R10. Each row was its own question, so a
+    /// pattern the linear engine would not take had fifty milliseconds per row and the window stood still
+    /// for their sum - 37.5 s over 804 entries from the terminal. Through one pass, the costly matches of
+    /// the whole walk share about 200 ms, and the rows past that say they were never checked.
+    /// </remarks>
     public static Narrowed Of(Query query, IReadOnlyList<EntryRow> everything)
     {
         var selected = new List<EntryRow>(everything.Count);
         var unreadable = 0;
         var tooCostly = 0;
         var unvouched = 0;
+        var pass = query.Pass();
 
         foreach (var row in everything)
         {
-            var match = query.Match(row.Entry);
+            var match = pass.Match(row.Entry);
 
             if (match.Matched)
             {

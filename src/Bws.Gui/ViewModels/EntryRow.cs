@@ -265,7 +265,12 @@ public sealed class EntryRow : Observable
             return false;
         }
 
-        _entry = _entry with { Status = status.Status, ProcessId = status.ProcessId };
+        _entry = _entry with
+        {
+            Status = status.Status,
+            ProcessId = status.ProcessId,
+            Memory = SameProcess(_entry.ProcessId, status.ProcessId) ? _entry.Memory : MemoryOfAnother(_entry.Memory, status.ProcessId)
+        };
 
         StatusShape = CellFaces.StatusShape(_entry.Status);
 
@@ -351,10 +356,27 @@ public sealed class EntryRow : Observable
     ///
     /// Absent and present-with-a-value are different answers even when neither carries a
     /// number, and comparing only the numbers would miss a service stopping if the manager
-    /// happened to have refused the reading before.
+    /// happened to have refused the reading before. <b>Internal since the review of PR #96</b>, so the
+    /// panel's readings ask the same question rather than spelling it out twice.
     /// </summary>
-    private static bool SameProcess(Reading<int> left, Reading<int> right) =>
+    internal static bool SameProcess(Reading<int> left, Reading<int> right) =>
         left.Outcome == right.Outcome && left.Value == right.Value;
+
+    /// <summary>
+    /// The memory of an entry whose process has just changed - since 2026-10-27, logic report R07. Until
+    /// then the tick moved the status and the process and left the figure: a service stopped, or started
+    /// again in another process, went on showing the old process's megabytes, and a query on memory judged
+    /// it on them.
+    ///
+    /// <b>No process now</b> is what <see cref="MemoryPass"/> says of a stopped entry, so it is said here
+    /// too. <b>Another process</b> was never read, so it is not read - which lets the panel, and the list
+    /// when it holds memory for every row, ask for it. <b>Never read before</b> stays never read: nothing
+    /// was shown that could be wrong.
+    /// </summary>
+    private static Reading<ProcessMemory> MemoryOfAnother(Reading<ProcessMemory> memory, Reading<int> process) =>
+        memory.Outcome == ReadOutcome.NotRead ? memory
+            : process.IsPresent ? Reading<ProcessMemory>.NotRead()
+            : Reading<ProcessMemory>.Absent();
 
     // A Describe helper stood here until 2026-09-15, wrapping CellFaces.Say for the one caller
     // left - the account. The account now goes through SystemAccounts.Shown, which is Say with

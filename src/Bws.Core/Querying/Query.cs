@@ -135,6 +135,9 @@ public sealed class Query
         return false;
     }
 
+    /// <summary>
+    /// The whole listing judged in one walk, with one budget for costly patterns (<see cref="Pass"/>).
+    /// </summary>
     public QueryResult Filter(IReadOnlyList<ScmEntry> entries)
     {
         if (IsEmpty)
@@ -146,10 +149,11 @@ public sealed class Query
         var unreadable = 0;
         var tooCostly = 0;
         var unvouched = 0;
+        var pass = Pass();
 
         foreach (var entry in entries)
         {
-            var match = Match(entry);
+            var match = pass.Match(entry);
 
             if (match.Matched)
             {
@@ -176,6 +180,19 @@ public sealed class Query
     }
 
     /// <summary>
+    /// One walk over a listing, which every entry of it is judged in - so a costly pattern has one budget
+    /// for the whole listing rather than one per entry (logic report R10, 2026-10-27). Begin one per walk:
+    /// the window narrows its rows through one, and <see cref="Filter"/> does.
+    /// </summary>
+    public QueryPass Pass() => new(this, new QueryBudget());
+
+    /// <summary>
+    /// Judges one entry against every member, as a walk of its own - a costly pattern has the whole
+    /// budget for this one entry. A listing goes through <see cref="Pass"/>.
+    /// </summary>
+    public QueryMatch Match(ScmEntry entry) => Match(entry, new QueryBudget());
+
+    /// <summary>
     /// Judges one entry against every member.
     ///
     /// Deliberately without short circuits across members. The order a person typed their
@@ -184,7 +201,7 @@ public sealed class Query
     /// admission depend on typing order, which is exactly the kind of difference nobody
     /// would ever find.
     /// </summary>
-    public QueryMatch Match(ScmEntry entry)
+    internal QueryMatch Match(ScmEntry entry, QueryBudget budget)
     {
         var matched = true;
         var unreadable = false;
@@ -194,8 +211,8 @@ public sealed class Query
         foreach (var term in _terms)
         {
             var verdict = term.Field is null
-                ? AcrossFreeSearch(term.Values, entry)
-                : AnyValue(term.Field, term.Values, entry);
+                ? AcrossFreeSearch(term.Values, entry, budget)
+                : AnyValue(term.Field, term.Values, entry, budget);
 
             unreadable |= verdict.Unreadable;
             tooCostly |= verdict.TooCostly;
@@ -214,27 +231,47 @@ public sealed class Query
         return new QueryMatch(matched, unreadable, tooCostly, unvouched);
     }
 
-    private static Verdict AnyValue(QueryField field, IReadOnlyList<IQueryValue> values, ScmEntry entry)
+    private static Verdict AnyValue(QueryField field, IReadOnlyList<IQueryValue> values, ScmEntry entry, QueryBudget budget)
     {
         var verdict = Verdict.NoMatch;
 
         foreach (var value in values)
         {
-            verdict = verdict.Or(value.Test(field, entry));
+            verdict = verdict.Or(value.Test(field, entry, budget));
         }
 
         return verdict;
     }
 
-    private static Verdict AcrossFreeSearch(IReadOnlyList<IQueryValue> values, ScmEntry entry)
+    private static Verdict AcrossFreeSearch(IReadOnlyList<IQueryValue> values, ScmEntry entry, QueryBudget budget)
     {
         var verdict = Verdict.NoMatch;
 
         foreach (var field in QueryFields.FreeSearch)
         {
-            verdict = verdict.Or(AnyValue(field, values, entry));
+            verdict = verdict.Or(AnyValue(field, values, entry, budget));
         }
 
         return verdict;
     }
+}
+
+/// <summary>
+/// One walk of a query over a listing - every entry judged with the same budget for costly patterns, so
+/// the walk as a whole is bounded rather than each entry (logic report R10). Not shared between walks and
+/// not between threads: it is one walk's state.
+/// </summary>
+public sealed class QueryPass
+{
+    private readonly Query _query;
+    private readonly QueryBudget _budget;
+
+    internal QueryPass(Query query, QueryBudget budget)
+    {
+        _query = query;
+        _budget = budget;
+    }
+
+    /// <summary>The next entry of the walk.</summary>
+    public QueryMatch Match(ScmEntry entry) => _query.Match(entry, _budget);
 }

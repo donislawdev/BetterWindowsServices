@@ -49,13 +49,15 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
 
         // The oldest record says how far back the log reaches, and - when it is the event Windows
         // writes after emptying a log - who emptied it.
-        var oldest = Rendered("*", newestFirst: false, limit: 1);
+        var oldest = Rendered("*", newestFirst: false, limit: 1, xml => xml);
 
-        var changes = Rendered(Changes, newestFirst: true, limit: int.MaxValue)
-            .Select(xml => ChangeEvents.Change(xml)
-                           ?? throw new InvalidDataException(
-                               "The System log answered a query for events 7040 and 7045 with an event that is neither."))
-            .ToList();
+        // EACH EVENT PARSED AS IT IS RENDERED, since 2026-10-27 - logic report C02, owner's decision "parse
+        // on the fly". Until then every event was kept as its XML in one list and parsed afterwards, so a
+        // large log held all of its text and all of its changes at once. The range and the absence of a
+        // limit are unchanged, by the same decision: only the text goes once it has been read.
+        var changes = Rendered(Changes, newestFirst: true, limit: int.MaxValue, xml => ChangeEvents.Change(xml)
+            ?? throw new InvalidDataException(
+                "The System log answered a query for events 7040 and 7045 with an event that is neither."));
 
         var cleared = oldest.Count == 0 ? null : ChangeEvents.ClearingOf(oldest[0], Channel);
         var reach = oldest.Count == 0 ? null : ChangeEvents.TimeOf(oldest[0]);
@@ -98,7 +100,35 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
 
         Expect(maximum, EVT_VARIANT_TYPE.EvtVarTypeUInt64, "size limit");
 
-        return new LogFacts(size, maximum.UInt64Val, full);
+        return new LogFacts(size, maximum.UInt64Val, full, Mode(channel));
+    }
+
+    /// <summary>
+    /// What the channel does at its size limit - H02, 2026-10-27. Microsoft's channel schema: retention true
+    /// is a sequential log, false a circular one, and autoBackup may only be true with retention, when the
+    /// full file is put aside as an archive. Autobackup without retention is not a shape Windows accepts, so
+    /// such an answer is read as what retention alone says - circular.
+    /// </summary>
+    private static LogMode Mode(SafeHandle channel)
+    {
+        var retention = Configured(channel, EVT_CHANNEL_CONFIG_PROPERTY_ID.EvtChannelLoggingConfigRetention, "retention");
+        var autoBackup = Configured(channel, EVT_CHANNEL_CONFIG_PROPERTY_ID.EvtChannelLoggingConfigAutoBackup, "automatic backup");
+
+        return !retention ? LogMode.Circular
+            : autoBackup ? LogMode.AutoBackup
+            : LogMode.Retain;
+    }
+
+    private static bool Configured(SafeHandle channel, EVT_CHANNEL_CONFIG_PROPERTY_ID property, string what)
+    {
+        if (!PInvoke.EvtGetChannelConfigProperty(channel, property, 0, out EVT_VARIANT value, out _))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), $"Could not read the {what} setting of the System event log.");
+        }
+
+        Expect(value, EVT_VARIANT_TYPE.EvtVarTypeBoolean, what);
+
+        return value.BooleanVal;
     }
 
     private static EVT_VARIANT Property(SafeHandle log, EVT_LOG_PROPERTY_ID property, EVT_VARIANT_TYPE type)
@@ -127,9 +157,10 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
     }
 
     /// <summary>
-    /// The events a query matches, rendered as XML, newest or oldest first.
+    /// The events a query matches, newest or oldest first, each rendered as XML and handed to
+    /// <paramref name="parse"/> at once - the text of one event is all that is held at a time.
     /// </summary>
-    private static List<string> Rendered(string query, bool newestFirst, int limit)
+    private static List<T> Rendered<T>(string query, bool newestFirst, int limit, Func<string, T> parse)
     {
         var direction = newestFirst ? EVT_QUERY_FLAGS.EvtQueryReverseDirection : EVT_QUERY_FLAGS.EvtQueryForwardDirection;
 
@@ -140,7 +171,7 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not query the System event log.");
         }
 
-        var found = new List<string>();
+        var found = new List<T>();
         var handles = new nint[Batch];
         var renderer = new Renderer();
 
@@ -152,7 +183,7 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
 
             try
             {
-                found.AddRange(events.Take(limit - found.Count).Select(renderer.Xml));
+                found.AddRange(events.Take(limit - found.Count).Select(one => parse(renderer.Xml(one))));
             }
             finally
             {

@@ -15,9 +15,10 @@
         log recorded, not a service somebody can act on - an installation names no entry at all.
 
         NEWEST FIRST UNTIL SOMEBODY SORTS, AND THE HEADING SAYS SO (AS-d, 2026-10-20): FirstSort lays the
-        sort on "When" and its mark with it. The time column sorts as text, which is right because every
-        time is in one shape that sorts the way it reads (HistoryWords.When). The count column sorts by
-        the number behind it - the text is empty for one, and text puts "9" after "56".
+        sort on "At" and its mark with it. BOTH TIME COLUMNS SORT BY THE MOMENT BEHIND THEM SINCE 2026-10-27
+        (logic report H04), not by the text: the text is local time without its offset, and in the hour the
+        clocks go back it sorts a later change before an earlier one. The count column sorts by the number
+        behind it - the text is empty for one, and text puts "9" after "56".
 
         GONE WHEN NO LINE IS LEFT - an empty log, or a search that finds nothing. The sentences above the
         table say the first, the line beside the search the second (HistoryFilter.Showing).
@@ -40,6 +41,7 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{DynamicResource gui.history.column.when}"
                                     Binding="{Binding When}"
+                                    SortMemberPath="At"
                                     ElementStyle="{StaticResource CellText}"
                                     Width="Auto" />
                 <DataGridTextColumn Header="{DynamicResource gui.history.column.times}"
@@ -61,6 +63,7 @@
                                     Width="Auto" />
                 <DataGridTextColumn Header="{DynamicResource gui.history.column.since}"
                                     Binding="{Binding Since}"
+                                    SortMemberPath="FirstAt"
                                     ElementStyle="{StaticResource CellText}"
                                     Width="Auto" />
             </DataGrid.Columns>

@@ -113,12 +113,30 @@ public sealed class HistoryWindowGuards
         // opening is a new sheet - so the mark has to come back each time, not once.
         var (window, model) = await Opened();
 
-        Assert.Equal((nameof(HistoryRow.When), ListSortDirection.Descending, ListSortDirection.Descending), Sorted(window));
+        Assert.Equal((nameof(HistoryRow.At), ListSortDirection.Descending, ListSortDirection.Descending), Sorted(window));
 
         WpfHost.On(() => model.History.PutAway());
         await Open(window, model);
 
-        Assert.Equal((nameof(HistoryRow.When), ListSortDirection.Descending, ListSortDirection.Descending), Sorted(window));
+        Assert.Equal((nameof(HistoryRow.At), ListSortDirection.Descending, ListSortDirection.Descending), Sorted(window));
+    }
+
+    [Fact]
+    public async Task The_hour_the_clocks_go_back_is_sorted_by_when_it_happened()
+    {
+        // H04: 02:50 summer time comes BEFORE 02:10 winter time the same night - 00:50 and 01:10 UTC. In
+        // a zone with that night the local text of the first sorts after the second, which put the
+        // older change on top. The two moments are the same in every zone, so this holds in all of them.
+        var earlier = HistoryLog.ByPerson("Spooler", new DateTimeOffset(2026, 10, 25, 2, 50, 0, TimeSpan.FromHours(2)));
+        var later = HistoryLog.BySystem("BITS", new DateTimeOffset(2026, 10, 25, 2, 10, 0, TimeSpan.FromHours(1)));
+        var model = Model(new HistoryLog(new Bws.Core.History.ChangeHistory(HistoryLog.Log(), [earlier, later])));
+        var window = WpfHost.Window(model);
+
+        await Open(window, model);
+
+        Assert.Equal(
+            ["BITS", "Spooler"],
+            WpfHost.On(() => window.ChangeHistory.Table.Lines.Items.Cast<HistoryRow>().Select(row => row.Entry).ToList()));
     }
 
     [Fact]

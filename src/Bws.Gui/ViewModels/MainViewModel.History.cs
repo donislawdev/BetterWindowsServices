@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Core.History;
 
 namespace Bws.Gui.ViewModels;
@@ -33,9 +34,9 @@ public sealed partial class MainViewModel
     /// about the list is said again, because whether it may speak has just changed - the arrangement
     /// <see cref="Comparing"/> makes for a comparison.
     /// </summary>
-    private HistoryReading HistoryOf(IChangeHistoryReader? reader)
+    private HistoryReading HistoryOf(IChangeHistoryReader? reader, IClock clock)
     {
-        var history = new HistoryReading(reader, () => Says);
+        var history = new HistoryReading(reader, clock, () => Says);
 
         history.PropertyChanged += (_, changed) =>
         {

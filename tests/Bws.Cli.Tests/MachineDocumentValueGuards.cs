@@ -85,13 +85,28 @@ public sealed class MachineDocumentValueGuards
             .Select(kind => new ServiceChange { At = null, Kind = kind })
             .ToList();
 
-        var log = ChangeHistory.Cover("System", new LogFacts(0, 1, Full: false), oldest: null, cleared: null);
+        var log = ChangeHistory.Cover("System", new LogFacts(0, 1, Full: false, LogMode.Circular), oldest: null, cleared: null);
 
         var written = JsonDocument.Parse(HistoryJson.Render(log, changes)).RootElement
             .GetProperty("changes").EnumerateArray()
             .Sum(change => Member<ChangeKind>(change, "kind"));
 
         Assert.Equal(changes.Count, written);
+    }
+
+    [Fact]
+    public void The_mode_of_the_log_is_a_member_spelled_as_its_enumeration_spells_it_and_the_last_key()
+    {
+        // H02, 2026-10-27: added at the end of "log", so a script reading the keys before it reads the same.
+        foreach (var mode in Enum.GetValues<LogMode>())
+        {
+            var log = ChangeHistory.Cover("System", new LogFacts(0, 1, Full: false, mode), oldest: null, cleared: null);
+            var written = JsonDocument.Parse(HistoryJson.Render(log, [])).RootElement.GetProperty("log");
+
+            Assert.Equal(1, Member<LogMode>(written, "mode"));
+            Assert.Equal(mode.ToString(), written.GetProperty("mode").GetString());
+            Assert.Equal("mode", written.EnumerateObject().Last().Name);
+        }
     }
 
     /// <summary>

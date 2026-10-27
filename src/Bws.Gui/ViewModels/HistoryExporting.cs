@@ -15,11 +15,13 @@ namespace Bws.Gui.ViewModels;
 /// on which four things changed. Then an empty line, then the table.
 ///
 /// <b>The table as it stands on screen</b> - the lines "Show" and the search leave, grouped or each on
-/// its own the way the table has them, in the order somebody sorted them into. Two columns differ from
-/// the screen, both on purpose. <b>Times is a number on every line</b>, where the screen leaves one
+/// its own the way the table has them, in the order somebody sorted them into. Three things differ from
+/// the screen, all on purpose. <b>Times is a number on every line</b>, where the screen leaves one
 /// blank because "1" in a column of counts is noise: a spreadsheet sums and filters numbers, and a blank
 /// is not one. <b>The account's SID is a column of its own</b>: an account's name is translated, or not
-/// known at all, and the SID is what the account is (rule 3 of the project notes).
+/// known at all, and the SID is what the account is (rule 3 of the project notes). <b>Both times carry
+/// their offset</b>, since 2026-10-27 (logic report H04): a file outlives the screen it came from, and in
+/// the hour the clocks go back two changes an hour apart read as one moment without it.
 ///
 /// <b>Every protection the list export has, by calling the same code</b> - Exporting.Line, for the
 /// reason DiffExporting gives: a display name is written by whoever installed the service.
@@ -62,7 +64,15 @@ internal static class HistoryExporting
         {
             Exporting.Line(
                 text,
-                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],
+                [
+                    HistoryWords.Exact(row.At),
+                    row.Count.ToString(CultureInfo.InvariantCulture),
+                    row.FirstAt is null ? string.Empty : HistoryWords.Exact(row.FirstAt),
+                    row.Entry,
+                    row.Change,
+                    row.By,
+                    row.Group.Latest.By?.Sid ?? string.Empty
+                ],
                 separator);
         }
 
