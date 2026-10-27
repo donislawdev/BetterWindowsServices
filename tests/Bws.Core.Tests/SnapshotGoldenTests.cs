@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using Bws.Core.Snapshots;
 using Bws.Core.Tests.Fakes;
 
@@ -213,6 +214,30 @@ public sealed class SnapshotGoldenTests
         Assert.True(SnapshotDiff.TryBetween(six!, newer!, out var narrowed, out failure), failure);
         Assert.True(narrowed.Caveats.TriggerDetailDiffers);
         Assert.Empty(narrowed.Changed);
+    }
+
+    /// <summary>
+    /// <b>A seven whose trigger has no data list is refused</b> - review of PR #97. A seven always writes
+    /// the list, so a file without it does not hold what its schema promises, and two such files would
+    /// compare as equal on what neither holds. The same file labelled six reads, because a six never
+    /// wrote the data - the rule belongs to the schema, which is why the second half is here.
+    /// </summary>
+    [Fact]
+    public void A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not()
+    {
+        var tree = JsonNode.Parse(KeptText(Kept))!;
+        var appinfo = tree["entries"]!.AsArray().Single(entry => (string?)entry!["serviceName"] == "Appinfo")!;
+
+        appinfo["triggers"]![0]!.AsObject().Remove("data");
+
+        var seven = tree.ToJsonString();
+
+        Assert.False(SnapshotJson.TryRead(seven, out _, out var failure));
+        Assert.Contains("'Appinfo') has trigger 1 without its whole data list", failure!, StringComparison.Ordinal);
+
+        tree["metadata"]!["schemaVersion"] = 6;
+
+        Assert.True(SnapshotJson.TryRead(tree.ToJsonString(), out _, out failure), failure);
     }
 
     /// <summary>The text with one occurrence of a piece replaced, failing when the piece is not there.</summary>

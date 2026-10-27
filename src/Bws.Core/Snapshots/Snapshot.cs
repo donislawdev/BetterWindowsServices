@@ -369,7 +369,7 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
                 return true;
             }
 
-            if (Contradiction(entry) is { } said)
+            if ((Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion)) is { } said)
             {
                 failure = $"Entry {index + 1} ('{entry.ServiceName}') {said}";
 
@@ -427,4 +427,34 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             ? $"holds a value for '{held}' and also says it was not read."
             : null;
     }
+
+    /// <summary>
+    /// Which trigger of a schema seven entry is not whole, or nothing - since 2026-10-27, the review of
+    /// PR #97.
+    ///
+    /// <b>A seven always writes a data list for every trigger</b>, empty for the kinds that carry none,
+    /// and every item in it with a type and at least one value (<see cref="TriggerData"/>). A trigger
+    /// without them is a file that does not hold what its schema promises - and two such files would
+    /// compare as equal on exactly what neither of them holds, which is the false "the same" a snapshot
+    /// is for avoiding. A rule of schema seven only: an older file never wrote the data, and its triggers
+    /// read with it as null. A trigger that is null as a whole is left alone, as it was before seven.
+    /// </summary>
+    private static string? TriggerGap(EntryDocument entry, int schema)
+    {
+        if (schema < ComparisonCaveats.WholeTriggersSince || entry.Triggers is null)
+        {
+            return null;
+        }
+
+        var gap = entry.Triggers.ToList().FindIndex(trigger => trigger is not null && !Whole(trigger));
+
+        return gap < 0
+            ? null
+            : $"has trigger {gap + 1} without its whole data list, which a version {schema} snapshot always holds.";
+    }
+
+    /// <summary>A data list, and every item in it with a type and at least one value, none of them missing.</summary>
+    private static bool Whole(TriggerDocument trigger) =>
+        trigger.Data is { } data
+        && data.All(item => item is { Type: not null, Values.Count: > 0 } && item.Values.All(value => value is not null));
 }

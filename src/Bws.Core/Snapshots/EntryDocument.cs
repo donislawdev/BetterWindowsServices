@@ -19,9 +19,10 @@ public sealed record UnreadableDocument(int ErrorCode, string Message);
 /// <b>Subtype and data since schema seven</b> (2026-10-27, logic report C01, owner's decision): until
 /// then it held the kind and the action only. The subtype is the GUID in lower case, null when the
 /// manager points at none. The data is always a list in a seven, empty for the kinds that carry
-/// none - and null only in a file written before seven, which never held it. That null is how a
-/// comparison of a seven with an older file knows to compare kinds and actions alone
-/// (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>).
+/// none - and null only in a file written before seven, which never held it. A seven whose trigger
+/// has no data list is refused when it is read (<c>Snapshot.BrokenEntries</c>, since the review of
+/// PR #97). Whether a comparison looks at kinds and actions alone is decided by the two schema
+/// numbers, never by this null (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>).
 /// </summary>
 public sealed record TriggerDocument(
     string Kind, string Action, string? Subtype, IReadOnlyList<TriggerDataDocument>? Data);

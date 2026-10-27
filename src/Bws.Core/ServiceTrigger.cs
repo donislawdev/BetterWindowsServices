@@ -93,7 +93,29 @@ public enum TriggerDataType
 /// machine this was written on, 38 are upper case, 41 lower case and some mix the two inside one value -
 /// so case is something the manager hands over, and a change of it may change whether the trigger fires.
 /// </summary>
-public sealed record TriggerData(TriggerDataType Type, IReadOnlyList<string> Values);
+public sealed record TriggerData(TriggerDataType Type, IReadOnlyList<string> Values)
+{
+    /// <summary>
+    /// The same type and the same values in the same order, spelled the same - not the same list object,
+    /// which is what a record compares a list by unless told otherwise. Review of PR #97.
+    /// </summary>
+    public bool Equals(TriggerData? other) =>
+        other is not null && Type == other.Type && Values.SequenceEqual(other.Values, StringComparer.Ordinal);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+
+        hash.Add(Type);
+
+        foreach (var value in Values)
+        {
+            hash.Add(value, StringComparer.Ordinal);
+        }
+
+        return hash.ToHashCode();
+    }
+}
 
 /// <summary>
 /// One condition under which the manager starts or stops an entry by itself.
@@ -117,4 +139,35 @@ public sealed record ServiceTrigger(
 {
     /// <summary>The data items in the order the manager holds them, empty when there are none.</summary>
     public IReadOnlyList<TriggerData> Data { get; init; } = Data ?? [];
+
+    /// <summary>
+    /// Equal when everything a trigger says is equal, its data item by item in the manager's order.
+    ///
+    /// <b>Written out since the review of PR #97</b>: until schema seven this record held two enumeration
+    /// values and was equal by them, and the list of data items would have quietly turned that into
+    /// "the same list object" - two readings of one unchanged trigger unequal. Nothing compares triggers
+    /// this way today, which is when a value type is cheapest to keep honest.
+    /// </summary>
+    public bool Equals(ServiceTrigger? other) =>
+        other is not null
+        && Kind == other.Kind
+        && Action == other.Action
+        && Subtype == other.Subtype
+        && Data.SequenceEqual(other.Data);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+
+        hash.Add(Kind);
+        hash.Add(Action);
+        hash.Add(Subtype);
+
+        foreach (var item in Data)
+        {
+            hash.Add(item);
+        }
+
+        return hash.ToHashCode();
+    }
 }

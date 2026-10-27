@@ -14834,6 +14834,38 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = 'false,'
         Test = 'SnapshotGoldenTests.A_version_six_file_is_read_and_its_triggers_are_compared_by_kind_and_action'
     }
+    @{
+        # C01, review of PR #97: a seven whose trigger has no data list is refused when read.
+        Name = 'snapshot: a seven whose trigger is not whole is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = '(Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion))'
+        To = '(Contradiction(entry))'
+        Test = 'SnapshotGoldenTests.A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not'
+    }
+    @{
+        # C01, review of PR #97: the rule is one of schema seven - a six never wrote the data.
+        Name = 'snapshot: the rule on whole triggers is a rule of seven'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'if (schema < ComparisonCaveats.WholeTriggersSince || entry.Triggers is null)'
+        To = 'if (schema < 0 || entry.Triggers is null)'
+        Test = 'SnapshotGoldenTests.A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not'
+    }
+    @{
+        # C01, review of PR #97: a trigger is a value - equal by its data, not by the list object.
+        Name = 'triggers: a trigger is equal by its data items'
+        File = 'src\Bws.Core\ServiceTrigger.cs'
+        From = '&& Data.SequenceEqual(other.Data);'
+        To = '&& ReferenceEquals(Data, other.Data);'
+        Test = 'ServiceTriggerTests.Two_triggers_built_apart_from_the_same_reading_are_equal_and_hash_alike'
+    }
+    @{
+        # C01, review of PR #97: case is part of a data item's value.
+        Name = 'triggers: a data item is equal by its values with their case'
+        File = 'src\Bws.Core\ServiceTrigger.cs'
+        From = 'Values.SequenceEqual(other.Values, StringComparer.Ordinal)'
+        To = 'Values.SequenceEqual(other.Values, StringComparer.OrdinalIgnoreCase)'
+        Test = 'ServiceTriggerTests.A_trigger_whose_data_differs_only_in_case_is_a_different_trigger'
+    }
 )
 
 $mutations

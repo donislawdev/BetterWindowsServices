@@ -137,13 +137,27 @@ public sealed class DocumentValueGuards
         {
             checkedValues += Member<TriggerKind>(trigger, "kind") + Member<TriggerAction>(trigger, "action");
 
-            if (trigger.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
-            {
-                checkedValues += data.EnumerateArray().Sum(item => Member<TriggerDataType>(item, "type"));
-            }
+            // A seven writes the list and every item's type always, so here an absence FAILS rather than
+            // counting as nothing checked - review of PR #97: the count floor in the test above is met by
+            // the other fields alone, and would have let every type go missing without a word.
+            Assert.True(
+                trigger.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array,
+                $"A trigger is written without its data list: {trigger}");
+
+            checkedValues += data.EnumerateArray().Sum(Typed);
         }
 
         return checkedValues;
+    }
+
+    /// <summary>The type of one data item, which must be there - see the comment where this is called.</summary>
+    private static int Typed(JsonElement item)
+    {
+        Assert.True(
+            item.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String,
+            $"A trigger data item is written without its type: {item}");
+
+        return Member<TriggerDataType>(item, "type");
     }
 
     /// <summary>
