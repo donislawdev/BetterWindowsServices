@@ -48,10 +48,33 @@ public static class AtomicFile
     private static readonly UTF8Encoding Encoding = new(encoderShouldEmitUTF8Identifier: false);
 
     /// <summary>
-    /// Puts the text at the path, atomically.
+    /// <c>ERROR_ALREADY_EXISTS</c> and <c>ERROR_FILE_EXISTS</c> as the <see cref="IOException"/> carries them -
+    /// what a move that may not replace says when something stands at the target. Measured 2026-10-27 on .NET
+    /// 10.0.13: a file there and a folder there both answer the first.
+    /// </summary>
+    private const int AlreadyExists = unchecked((int)0x800700B7);
+
+    private const int FileExists = unchecked((int)0x80070050);
+
+    /// <summary>
+    /// Puts the text at the path, atomically, replacing whatever file stands there.
     /// </summary>
     /// <exception cref="DirectoryNotFoundException">The directory does not exist.</exception>
-    public static void Write(string path, string content)
+    public static void Write(string path, string content) => Land(path, content, replace: true);
+
+    /// <summary>
+    /// Puts the text at the path, atomically, only if nothing stands there at the moment it lands - false,
+    /// with nothing written and nothing left beside it, when something does.
+    ///
+    /// <b>Since 2026-10-27, logic report R11.</b> Every caller that may not replace asks first whether
+    /// something is there, and the answer was true only until the move: two runs writing one name, or a
+    /// file appearing while the machine was read, slipped between the question and a move that always
+    /// replaced. The refusal now lives in the move itself, which Windows makes in one step.
+    /// </summary>
+    /// <exception cref="DirectoryNotFoundException">The directory does not exist.</exception>
+    public static bool WriteNew(string path, string content) => Land(path, content, replace: false);
+
+    private static bool Land(string path, string content, bool replace)
     {
         var full = Path.GetFullPath(path);
         var directory = Path.GetDirectoryName(full);
@@ -83,7 +106,23 @@ public static class AtomicFile
         try
         {
             File.WriteAllText(beside, content, Encoding);
-            File.Move(beside, full, overwrite: true);
+            File.Move(beside, full, overwrite: replace);
+
+            return true;
+        }
+        catch (IOException refused) when (!replace)
+        {
+            // The temporary file goes either way, for the reason the clause below gives.
+            Delete(beside);
+
+            // Something got there first, and it stays exactly as it was - the caller is told, and says
+            // so. Any other refusal of the move is the caller's to hear about as it was.
+            if (refused.HResult is AlreadyExists or FileExists)
+            {
+                return false;
+            }
+
+            throw;
         }
         catch
         {

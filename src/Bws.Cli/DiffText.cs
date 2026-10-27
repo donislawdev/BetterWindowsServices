@@ -41,6 +41,10 @@ internal static class DiffText
         // of these files could not see them" are different sentences and only one is a fact.
         Presence(text, "cli.diff.uncertain", diff.Uncertain);
 
+        // And its own again, since 2026-10-27 (logic report S03): these the manager says it still holds,
+        // which is a fact rather than a "cannot tell" - only this account was not shown them.
+        Presence(text, "cli.diff.unlisted", diff.Unlisted);
+
         Changed(text, "cli.diff.changed", diff.Changed);
 
         // Also its own heading, for the same reason one level down. These entries have
@@ -180,7 +184,10 @@ internal static class DiffText
         // Said in the summary too, not only above. Somebody who reads the last line and
         // stops must not come away with "nothing changed" when part of it was never looked
         // at - that is the difference between an answer and a comfortable one.
-        if (diff.NotFullyCompared.Count > 0 || diff.Uncertain.Count > 0)
+        // Entries the manager holds and did not list are seen by one side too - the snapshot's.
+        var seenByOne = diff.Uncertain.Count + diff.Unlisted.Count;
+
+        if (diff.NotFullyCompared.Count > 0 || seenByOne > 0)
         {
             // A HEADING AND A LINE PER COUNT SINCE 2026-09-01, WHERE IT USED TO BE ONE SENTENCE
             // HOLDING BOTH - backlog 207. One sentence could not carry a singular, because each
@@ -196,11 +203,11 @@ internal static class DiffText
                     : Texts.Of("cli.diff.incomplete.neverRead.many", diff.NotFullyCompared.Count));
             }
 
-            if (diff.Uncertain.Count > 0)
+            if (seenByOne > 0)
             {
-                text.AppendLine(diff.Uncertain.Count == 1
-                    ? Texts.Of("cli.diff.incomplete.seenByOne.one", diff.Uncertain.Count)
-                    : Texts.Of("cli.diff.incomplete.seenByOne.many", diff.Uncertain.Count));
+                text.AppendLine(seenByOne == 1
+                    ? Texts.Of("cli.diff.incomplete.seenByOne.one", seenByOne)
+                    : Texts.Of("cli.diff.incomplete.seenByOne.many", seenByOne));
             }
         }
     }

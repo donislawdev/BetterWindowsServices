@@ -89,7 +89,8 @@ public sealed class TerminalTextTests
             [new ChangedEntry("Bbb", Hostile, [new FieldDifference("account", DifferenceGroup.Configuration, Hostile, "LocalSystem")], [])],
             [], [Hostile], [new RefusedField(Hostile, [Hostile])], [new EntryPresence("Ccc", Hostile)],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
-            new InstancesLeftOut(0, 0));
+            new InstancesLeftOut(0, 0),
+            [new EntryPresence("Ddd", Hostile)]);
 
         Clean(DiffText.Render(diff));
     }

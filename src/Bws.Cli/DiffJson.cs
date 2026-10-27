@@ -52,7 +52,10 @@ internal static class DiffJson
                     diff.Caveats.FileVersionSourceDiffers),
                 [.. diff.Added.Select(Presence)],
                 [.. diff.Removed.Select(Presence)],
-                [.. diff.Uncertain.Select(Presence)],
+                // With the entries the manager still holds and did not list (logic report S03, 2026-10-27) -
+                // the owner's decision named them uncertain, and a key of their own would be a new contract.
+                // The text report gives them their own heading. Sorted together, as uncertain always was.
+                [.. diff.Uncertain.Concat(diff.Unlisted).OrderBy(entry => entry.ServiceName, StringComparer.Ordinal).Select(Presence)],
                 [.. diff.Changed.Select(Changed)],
                 [.. diff.NotFullyCompared.Select(Changed)],
                 diff.NeitherRead,

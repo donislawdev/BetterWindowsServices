@@ -115,6 +115,36 @@ public sealed class DiffOutputTests
     }
 
     [Fact]
+    public void An_entry_the_manager_still_holds_has_its_own_heading_and_is_seen_by_one_side()
+    {
+        // Logic report S03: not removed, and not "cannot tell" either - the manager says it holds it.
+        var diff = Of(changed: []) with { Unlisted = [new EntryPresence("ZTDNS", "ZTDNS display name")] };
+
+        var text = DiffText.Render(diff);
+
+        Assert.Contains(Texts.Of("cli.diff.unlisted", 1), text, StringComparison.Ordinal);
+        Assert.Contains(Texts.Of("cli.diff.incomplete.seenByOne.one", 1), text, StringComparison.Ordinal);
+        Assert.DoesNotContain(Texts.Of("cli.diff.same"), text, StringComparison.Ordinal);
+        Assert.False(Document(diff).GetProperty("differs").GetBoolean());
+    }
+
+    [Fact]
+    public void A_script_finds_entries_the_manager_still_holds_among_the_uncertain_in_order()
+    {
+        // The owner's decision named them uncertain, and a key of their own would be a new contract.
+        var diff = Of(changed: []) with
+        {
+            Uncertain = [new EntryPresence("Zeta", "Zeta")],
+            Unlisted = [new EntryPresence("Alpha", "Alpha")]
+        };
+
+        var names = Document(diff).GetProperty("uncertain").EnumerateArray()
+            .Select(entry => entry.GetProperty("serviceName").GetString());
+
+        Assert.Equal(["Alpha", "Zeta"], names);
+    }
+
+    [Fact]
     public void One_entry_refused_a_field_on_both_sides_is_said_in_the_singular()
     {
         var text = DiffText.Render(Of(changed: []) with
@@ -152,7 +182,8 @@ public sealed class DiffOutputTests
         new(
             [], [], changed, [], [], [], [],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
-            leftOut ?? new InstancesLeftOut(0, 0));
+            leftOut ?? new InstancesLeftOut(0, 0),
+            []);
 
     private static ChangedEntry Changed(DifferenceGroup group) =>
         new("Spooler", "Print Spooler", [new FieldDifference("status", group, "Running", "Stopped")], []);

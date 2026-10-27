@@ -37,6 +37,10 @@ public static partial class Catalogue
         // which is the plan that is easiest to read on a sheet.
         public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
             Reading<IReadOnlyList<string>>.Present([]);
+
+        // Everything it holds it also lists, so a name missing from the listing is gone.
+        public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) =>
+            [.. names.Where(name => entries.Any(entry => string.Equals(entry.ServiceName, name, StringComparison.OrdinalIgnoreCase)))];
     }
 
     /// <summary>
@@ -53,6 +57,8 @@ public static partial class Catalogue
 
         public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
             Reading<IReadOnlyList<string>>.Denied(AccessDenied, new System.ComponentModel.Win32Exception(AccessDenied).Message);
+
+        public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) => throw new System.ComponentModel.Win32Exception(AccessDenied);
     }
 
     /// <summary>
@@ -77,6 +83,9 @@ public static partial class Catalogue
 
         public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) =>
             Reading<IReadOnlyList<string>>.NotRead();
+
+        // Asked only after a listing, which this machine never finishes - so never asked.
+        public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) => [];
     }
 
     /// <summary>

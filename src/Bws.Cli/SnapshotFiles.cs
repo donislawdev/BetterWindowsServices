@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Bws.Core;
 using Bws.Core.Snapshots;
 
 namespace Bws.Cli;
@@ -30,16 +31,54 @@ internal static class SnapshotFiles
     /// </summary>
     internal static bool MayWrite(string target, bool force, out string? refusal)
     {
-        refusal = SnapshotOnDisk.WhyNotWritten(target, force) switch
-        {
-            null => null,
-            { Fault: DiskFault.IsFolder } => Texts.Of("cli.snapshot.isFolder", target),
-            { Fault: DiskFault.AlreadyThere } => Texts.Of("cli.snapshot.fileExists", target),
-            var other => Said(other) + " " + Texts.Of("cli.snapshot.notReplaced")
-        };
+        refusal = SnapshotOnDisk.WhyNotWritten(target, force) is { } refused ? NotWritten(refused) : null;
 
         return refusal is null;
     }
+
+    /// <summary>
+    /// Writes the snapshot, or gives the sentence saying why it was not - the rule is
+    /// <see cref="SnapshotOnDisk.Write"/>, which asks again what stands there and refuses in the move itself
+    /// when nobody said a snapshot may be replaced.
+    /// </summary>
+    internal static bool TryWrite(string target, Snapshot snapshot, bool force, out string? refusal)
+    {
+        try
+        {
+            refusal = SnapshotOnDisk.Write(target, SnapshotJson.Render(snapshot), force) is { } refused
+                ? NotWritten(refused)
+                : null;
+        }
+        catch (Exception theirs) when (theirs is DirectoryNotFoundException or UnauthorizedAccessException)
+        {
+            // What somebody typed, not something that went wrong inside. ADR-18 forbids
+            // inventing directories, so the honest answer is the one the usage code carries.
+            //
+            // BEING REFUSED THE FOLDER JOINED IT 2026-09-03 - backlog 308(d). It is the same
+            // sentence about the same thing: a path somebody chose that this account cannot write
+            // to. It used to fall through to the entry point, come back as code 1, and tell a
+            // script that the machine had failed - which is the distinction docs/12 step 5 asks
+            // about and the one audit.ps1 cannot check, because it asks whether a code is in the
+            // table rather than whether it is the right one. Moved here from Program.cs with the
+            // write, 2026-10-27.
+            refusal = theirs.Message;
+        }
+
+        return refusal is null;
+    }
+
+    /// <summary>
+    /// Why a snapshot was not written, and - for what is not a snapshot - that it was left alone. Internal
+    /// rather than private because one refusal, a snapshot too large to read back, takes sixty four
+    /// megabytes to reach from outside, and a sentence nothing can reach is a sentence nothing checks.
+    /// </summary>
+    internal static string NotWritten(DiskRefusal refusal) => refusal switch
+    {
+        { Fault: DiskFault.IsFolder } => Texts.Of("cli.snapshot.isFolder", refusal.Path),
+        { Fault: DiskFault.AlreadyThere } => Texts.Of("cli.snapshot.fileExists", refusal.Path),
+        { Fault: DiskFault.WouldBeTooBig } => Texts.Of("cli.snapshot.wouldBeTooBig", refusal.Path, SnapshotOnDisk.Biggest / (1024 * 1024)),
+        _ => Said(refusal) + " " + Texts.Of("cli.snapshot.notReplaced")
+    };
 
     /// <summary>
     /// Reads one snapshot from disk, or says what is wrong with what was pointed at.
@@ -87,12 +126,18 @@ internal static class SnapshotFiles
     /// Annotated rather than left for the caller to assert with an exclamation mark. The compiler then
     /// knows what the return value already meant.
     /// </param>
+    /// <param name="machine">
+    /// The manager the later side was read from, for a comparison with this machine - asked by name about
+    /// every entry the earlier side holds and the reading lacks (logic report S03). Null for two files.
+    /// </param>
     internal static bool Compare(
-        Snapshot before, Snapshot after, [NotNullWhen(true)] out SnapshotDiff? difference, out int code)
+        Snapshot before, Snapshot after, IScmCatalog? machine, [NotNullWhen(true)] out SnapshotDiff? difference, out int code)
     {
         code = ExitCode.Ok;
 
-        if (SnapshotDiff.TryBetween(before, after, out difference, out var failure))
+        if (machine is null
+                ? SnapshotDiff.TryBetween(before, after, out difference, out var failure)
+                : SnapshotDiff.TryAgainstMachine(before, after, machine, out difference, out failure))
         {
             return true;
         }

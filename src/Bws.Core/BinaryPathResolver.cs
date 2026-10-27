@@ -379,6 +379,11 @@ public static class BinaryPathResolver
         return rest.Length > 1 && rest[1] == ':' ? rest : Win32Device + rest;
     }
 
-    private static bool HasExecutableExtension(string path) =>
+    /// <summary>
+    /// Whether a name ends the way a file Windows runs or loads ends. Internal since 2026-10-27, for the
+    /// comparison of two launch commands, which has to find where the file ends without a disk to ask
+    /// (SnapshotDiff.Values.cs) - one list, so the two never disagree about what counts.
+    /// </summary>
+    internal static bool HasExecutableExtension(string path) =>
         ExecutableExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 }

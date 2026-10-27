@@ -337,6 +337,16 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
                 return true;
             }
 
+            // EMPTY IS NOT A NAME EITHER, since 2026-10-27 - logic report S06. The manager holds no
+            // entry without a name, so the document describes no machine, and a comparison would match
+            // it against nothing and report it as an entry that came or went.
+            if (entry.ServiceName.Length == 0)
+            {
+                failure = $"Entry {index + 1} has an empty service name.";
+
+                return true;
+            }
+
             // THE ELEMENTS OF ONE LIST, since 2026-09-30 - stability report D-3, measured: a copy of a
             // real snapshot with `"notRead": [null]` in one entry ended `bws snapshot diff` with
             // "Object reference not set to an instance of an object." and code 1. The comparison
@@ -346,6 +356,13 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             if (entry.NotRead?.Any(field => field is null) == true)
             {
                 failure = $"Entry {index + 1} ('{entry.ServiceName}') has an empty name in its list of fields nobody read.";
+
+                return true;
+            }
+
+            if (Contradiction(entry) is { } said)
+            {
+                failure = $"Entry {index + 1} ('{entry.ServiceName}') {said}";
 
                 return true;
             }
@@ -361,5 +378,44 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
         failure = null;
 
         return false;
+    }
+
+    /// <summary>
+    /// What one entry says about a field that cannot all be true, or nothing - since 2026-10-27, logic
+    /// report S06, owner's decision "refuse contradictions".
+    ///
+    /// <b>Two shapes, and this build writes neither</b> (EntryDocument.From puts a field in one place by
+    /// the outcome of its reading): a field named both as refused and as never asked about, and a field
+    /// holding a value while either list says it was not read. Until that day both were read, and the
+    /// comparison believed the list - a value beside "not read" was left out of the comparison, so a
+    /// startup type that changed was reported as one nobody could compare.
+    ///
+    /// <b>Asked of the entry as the comparison sees it</b> (<see cref="SnapshotJson.Document"/>), so a
+    /// field the comparison drops - memory - is not held against a list naming it. Unknown names and
+    /// unknown values are left alone, as the decision said: a later build may write a field this one
+    /// has never heard of.
+    /// </summary>
+    private static string? Contradiction(EntryDocument entry)
+    {
+        // Lists rather than sets, so the field named is the first one the file names - the same file gives
+        // the same sentence every time. Both are a handful of names.
+        var notRead = (entry.NotRead ?? []).Select(EntryDocument.Camel).ToList();
+        var refused = (entry.Unreadable?.Keys ?? Enumerable.Empty<string>()).Select(EntryDocument.Camel).ToList();
+
+        if (notRead.Count == 0 && refused.Count == 0)
+        {
+            return null;
+        }
+
+        if (notRead.FirstOrDefault(refused.Contains) is { } both)
+        {
+            return $"names '{both}' both as refused and as never asked about.";
+        }
+
+        var document = SnapshotJson.Document(entry);
+
+        return notRead.Concat(refused).FirstOrDefault(field => document[field] is not null) is { } held
+            ? $"holds a value for '{held}' and also says it was not read."
+            : null;
     }
 }

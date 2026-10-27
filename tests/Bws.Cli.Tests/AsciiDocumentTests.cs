@@ -89,7 +89,8 @@ public sealed class AsciiDocumentTests
         var diff = new SnapshotDiff(
             [new EntryPresence("Aaa", Hostile)], [], [], [], [], [new RefusedField("description", [Hostile])], [],
             new ComparisonCaveats(false, false, false, false, false, false, false, []),
-            new InstancesLeftOut(0, 0));
+            new InstancesLeftOut(0, 0),
+            [new EntryPresence("Ddd", Hostile)]);
 
         var written = DiffJson.Render(diff);
 
