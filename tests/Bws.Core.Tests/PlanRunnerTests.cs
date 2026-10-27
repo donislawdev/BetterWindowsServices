@@ -244,15 +244,17 @@ public sealed class PlanRunnerTests
         // classified as forward progress rather than as giving something back. A restart
         // that leaves the thing it was restarting switched off is the worst outcome this
         // command has.
+        //
+        // Pressed once the manager has taken the stop - the moment the step is watched. Pressed before
+        // the request, nothing is stopped at all since 2026-10-26 (logic report R09, PlanRunHaltTests).
         using var interruption = new CancellationTokenSource();
 
         var control = Running("MRxSmb20");
 
-        var run = new PlanRunner(control, new FakeClock()).Run(
+        var run = new PlanRunner(new Interrupting(control, interruption), new FakeClock()).Run(
             Plan(ActionKind.Restart, "MRxSmb20", dependents: false),
             Minute,
-            interruption.Token,
-            starting: (_, _) => interruption.Cancel());
+            interruption.Token);
 
         Assert.True(run.Cancelled);
         Assert.Equal(StepOutcome.Succeeded, Outcome(run, "MRxSmb20", StepOperation.Stop));
@@ -287,22 +289,15 @@ public sealed class PlanRunnerTests
     {
         // Somebody who presses Ctrl+C half way through a restart has to be left with a
         // machine, not with three stopped services and no message. The forward path stops
-        // and the restores still run.
+        // and the restores still run. Pressed once the manager has taken the first stop.
         using var interruption = new CancellationTokenSource();
 
         var control = Running("SessionEnv", "Netlogon", "LanmanWorkstation", "MRxSmb20");
 
-        var run = new PlanRunner(control, new FakeClock()).Run(
+        var run = new PlanRunner(new Interrupting(control, interruption), new FakeClock()).Run(
             Plan(ActionKind.Restart, "MRxSmb20"),
             Minute,
-            interruption.Token,
-            starting: (_, number) =>
-            {
-                if (number == 1)
-                {
-                    interruption.Cancel();
-                }
-            });
+            interruption.Token);
 
         Assert.True(run.Cancelled);
 

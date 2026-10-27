@@ -146,7 +146,12 @@ internal static partial class PlanText
     /// </summary>
     internal static string Describe(StepResult result) => result.Outcome switch
     {
-        StepOutcome.Succeeded => Texts.Of("cli.run.outcome.succeeded", Took(result.Milliseconds)),
+        // Two sentences for one outcome since 2026-10-26 (logic report R01): an entry that was already on
+        // its way and was only watched arrive is where the step wanted it, and this tool did not send it -
+        // which is also why a restart then says it never stopped it.
+        StepOutcome.Succeeded => result.ArrivedUnasked
+            ? Texts.Of("cli.run.outcome.arrivedUnasked", Took(result.Milliseconds))
+            : Texts.Of("cli.run.outcome.succeeded", Took(result.Milliseconds)),
 
         // Never without words: a refusal is only ever built from a code and the system's own
         // sentence for it, together. A start that fell over is not a refusal - the manager took the
@@ -155,6 +160,10 @@ internal static partial class PlanText
         // either - the process died, and the sentence says that first (W-3, the same day).
         StepOutcome.Failed when result.StartedAgain => Texts.Of(
             "cli.run.outcome.startedAgain", result.ProcessId.Value, Took(result.Milliseconds)),
+
+        // Not "refused" - the manager took the request, and the READING was refused afterwards (R02).
+        StepOutcome.Failed when result.LostSight => Texts.Of(
+            "cli.run.outcome.lostSight", result.Error!, result.ErrorCode),
 
         StepOutcome.Failed => result.StoppedWhileStarting
             ? Texts.Of(

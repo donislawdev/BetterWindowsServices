@@ -139,7 +139,8 @@ public sealed class PlanGraphPropertyTests
 
     /// <summary>
     /// The cascade is exactly the running entries the manager named as needing the target, each once,
-    /// and none at all where nobody asked for one or the target is not being stopped.
+    /// and none at all where nobody asked for one or the target is not being stopped - or where the ask is
+    /// a startup setting, whose stop never carries one since 2026-10-26 (logic report R08).
     /// </summary>
     private static string? CascadeWrong(Graph graph, OperationPlan plan)
     {
@@ -157,6 +158,7 @@ public sealed class PlanGraphPropertyTests
 
         if (target is null
             || !graph.Ask.IncludeDependents
+            || graph.Ask.Kind == ActionKind.SetStartType
             || !StopsTarget(plan, target)
             || graph.Answers[target.ServiceName] is not { IsPresent: true } answer)
         {

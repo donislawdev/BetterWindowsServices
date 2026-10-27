@@ -125,14 +125,7 @@ public sealed class PlanOnlyGuards
             foreach (Match match in Regex.Matches(
                 text, @"new\s+WindowsScmControl\s*\(", RegexOptions.None, Sources.Ceiling))
             {
-                // The statement around it, which is where a plan runner would have to be built too.
-                // Bounded by the punctuation that ends one, so a construction two statements away
-                // from a plan is as visible here as one on the other side of the file.
-                var opens = text.LastIndexOfAny([';', '{', '}'], match.Index) + 1;
-                var closes = text.IndexOfAny([';', '{'], match.Index);
-                var statement = text[opens..(closes < 0 ? text.Length : closes)];
-
-                if (!statement.Contains("new PlanRunner", StringComparison.Ordinal))
+                if (!Statement(text, match.Index).Contains("new PlanRunner", StringComparison.Ordinal))
                 {
                     loose.Add($"{Path.GetFileName(file)} at offset {match.Index}");
                 }
@@ -145,6 +138,53 @@ public sealed class PlanOnlyGuards
             "Rule 1 says every write goes through a plan - a writer held anywhere else is a write " +
             "waiting to skip one:" +
             Environment.NewLine + string.Join(Environment.NewLine, loose));
+    }
+
+    /// <summary>
+    /// AND THE RUNNER THAT WRITER GOES INTO CAN READ THE PROCESS AGAIN, since 2026-10-27 (logic report R05).
+    ///
+    /// <b>A runner built without the reader asks nothing, by the builder's own rule</b>, so leaving the
+    /// argument out compiles, keeps every test of the runner green, and quietly drops the last look at
+    /// whether the process became critical and whether its recovery actions changed before it is ended. The
+    /// same statement as the guard above, because the writer and the reader travel into one runner.
+    /// </summary>
+    [Fact]
+    public void Every_runner_on_the_real_machine_reads_the_process_again_before_ending_it()
+    {
+        var blind = new List<string>();
+
+        foreach (var file in Sources.Shipped())
+        {
+            var text = File.ReadAllText(file);
+
+            foreach (Match match in Regex.Matches(
+                text, @"new\s+WindowsScmControl\s*\(", RegexOptions.None, Sources.Ceiling))
+            {
+                if (!Statement(text, match.Index).Contains("new WindowsEndingFactsReader", StringComparison.Ordinal))
+                {
+                    blind.Add($"{Path.GetFileName(file)} at offset {match.Index}");
+                }
+            }
+        }
+
+        Assert.True(
+            blind.Count == 0,
+            "A PlanRunner on the real machine is built without a WindowsEndingFactsReader, so it ends a process " +
+            "on what the preview read, however long ago:" +
+            Environment.NewLine + string.Join(Environment.NewLine, blind));
+    }
+
+    /// <summary>
+    /// The statement around a construction, which is where a plan runner and its reader would have to be
+    /// built too. Bounded by the punctuation that ends one, so a construction two statements away from a
+    /// plan is as visible here as one on the other side of the file.
+    /// </summary>
+    private static string Statement(string text, int at)
+    {
+        var opens = text.LastIndexOfAny([';', '{', '}'], at) + 1;
+        var closes = text.IndexOfAny([';', '{'], at);
+
+        return text[opens..(closes < 0 ? text.Length : closes)];
     }
 
     private static Dictionary<string, int> Builders()

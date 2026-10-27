@@ -264,6 +264,17 @@ public sealed record ServiceAction(
 /// <b>The same names as the warning that says so</b>, <see cref="PlanWarningKind.TerminationTakesWithIt"/>,
 /// taken from the same list at the same moment. Empty for a process holding nobody else.
 /// </param>
+/// <param name="Recovery">
+/// What the manager does to the entry and to each neighbour once the process a step of kind
+/// <see cref="StepOperation.Terminate"/> ends is gone, as it answered when the plan was built - the lists
+/// the preview's sentences about recovery were made from. Nothing at all for the other three.
+///
+/// <b>Frozen here so the run can ask the same question again and compare, on the owner's decision of
+/// 2026-10-26</b> (logic report R05). A recovery list can be changed between the preview and the press -
+/// to restarting the computer, say - and until that day the ending went ahead on the preview's answer.
+/// The run now reads every list once more just before the process dies and refuses when any of them is
+/// not the one shown. Never printed: the warnings already say what the lists mean.
+/// </param>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
@@ -273,7 +284,8 @@ public sealed record PlanStep(
     StartSetting? From = null,
     int? ProcessId = null,
     long? ProcessCreatedAt = null,
-    IReadOnlyList<string>? TakesWithIt = null);
+    IReadOnlyList<string>? TakesWithIt = null,
+    IReadOnlyList<RecoveryReading>? Recovery = null);
 
 /// <summary>Why a plan could not be made at all.</summary>
 public enum PlanProblemKind
@@ -430,7 +442,19 @@ public enum PlanProblemKind
     /// 2026-09-30: the preview of the one step nobody can undo is not shown when it is known to be missing
     /// a consequence.
     /// </summary>
-    AftermathUnreadable
+    AftermathUnreadable,
+
+    /// <summary>
+    /// The process is shared, and the manager did not list to this account some entries that could live in
+    /// it - or the list of names to check could not be read. Related names the entries it did not list.
+    ///
+    /// <b>The rule <see cref="CascadeUnreadable"/> holds, for a list that is short without anybody saying
+    /// so</b> (logic report R04, the owner's decision of 2026-10-26). Microsoft's enumeration silently leaves
+    /// out every entry the caller may not query, so "who else lives here" read from it can be short with
+    /// every call succeeding, and the preview of the one step nobody can undo would name fewer casualties
+    /// than the process has.
+    /// </summary>
+    NeighboursUnreadable
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>

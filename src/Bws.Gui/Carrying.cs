@@ -81,7 +81,7 @@ internal static class Carrying
                 // from a manager handed in from somewhere else would put this construction in a
                 // caller with no plan beside it, which is the first step towards a write that skips
                 // one.
-                var runner = new BulkRunner(new PlanRunner(new WindowsScmControl(), new SystemClock()));
+                var runner = new BulkRunner(new PlanRunner(new WindowsScmControl(), new SystemClock(), new WindowsEndingFactsReader()));
 
                 return runner.Run(plan, ceiling, stopping, abandoning, starting: announce);
             },

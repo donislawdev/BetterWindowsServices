@@ -13,8 +13,20 @@ namespace Bws.Core.Planning;
 /// Nothing runs side by side. C2 promises independent work in parallel and that belongs to
 /// bulk operations, where there are independent things to run - here the whole plan is one
 /// service and its cascade, which is a chain by construction.
+///
+/// <b>Where it does look again, it only ever declines</b> - the process an ending names (<see cref="Unfit"/>),
+/// and since 2026-10-26 whether what a restart takes down can come back (<see cref="CannotComeBack"/>,
+/// logic report R03). Each reads the machine immediately before the first thing that cannot be undone and
+/// refuses in our own words when the preview no longer describes it, which is the plan that was shown or
+/// nothing at all - never a different plan worked out on the spot.
 /// </summary>
-public sealed partial class PlanRunner(IScmControl control, IClock clock)
+/// <param name="processes">
+/// What to ask about a process just before ending it - the questions the preview asked of it, asked once
+/// more, since 2026-10-26 (logic report R05). Null asks nothing, the way <see cref="PlanBuilder"/> does with
+/// nobody to ask: both interfaces hand one to the builder and the runner alike, and a test of something
+/// else need not.
+/// </param>
+public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndingFactsReader? processes = null)
 {
     /// <summary>
     /// Runs every step, in order.
@@ -79,6 +91,10 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         var forwardFailed = false;
         var cascadeFailed = false;
 
+        // Asked once, before the first step - and handed to that step only, as its refusal, because a
+        // plan that cannot put back what it takes down must take nothing down at all (R03).
+        var cannotComeBack = CannotComeBack(plan);
+
         for (var index = 0; index < plan.Steps.Count; index++)
         {
             var step = plan.Steps[index];
@@ -106,14 +122,24 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
 
             starting?.Invoke(step, index + 1);
 
-            var result = RunStep(step, timeout, new Halt(cancellation, abandonment));
+            var wholePlan = cannotComeBack is not null;
+            var result = cannotComeBack is { } refusal
+                ? Refused(step, refusal, EntryStatus.Unknown, Reading<int>.NotRead(), clock.Elapsed)
+                : RunStep(step, timeout, new Halt(cancellation, abandonment));
+
+            cannotComeBack = null;
 
             results.Add(result);
 
             if (!result.Arrived && step.Reason != StepReason.Restore)
             {
                 forwardFailed = true;
-                cascadeFailed |= step.Reason == StepReason.Cascade;
+
+                // A REFUSAL OF THE WHOLE PLAN HOLDS THE STEPS STANDING BEHIND A FAILURE AS WELL. They go on
+                // after an ordinary failure - that is what they are for - and in a forced restart they are
+                // the neighbours and the ending, so a plan refused for what it could not put back would
+                // still have ended the process. Found by the second analysis of R03, before any run.
+                cascadeFailed |= step.Reason == StepReason.Cascade || wholePlan;
             }
         }
 
@@ -214,7 +240,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             return true;
         }
 
-        // THE QUESTION END ASKS, ASKED THE SAME WAY, and one question answers all three. An entry that
+        // THE QUESTION UNFIT ASKS, ASKED THE SAME WAY, and one question answers all three. An entry that
         // stopped is held by no process - the manager answers zero, which Holding makes an absence -
         // and one that cannot be read is held by nothing anybody saw. Until a mutation run on
         // 2026-09-29 this spelled the stopped case out as well, and removing it changed nothing.
@@ -236,7 +262,11 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         // a start type moves nothing, so there is no state to arrive at and nothing to poll.
         if (step.Operation == StepOperation.SetStartType)
         {
-            return Configure(step, started);
+            // The last look at both ways to stop, as below - here nothing is read first, so it comes
+            // straight after the progress call the loop made.
+            return halt.Unasked(step.Reason)
+                ? Skipped(step, SkipReason.Cancelled, EntryStatus.Unknown, Reading<int>.NotRead(), Elapsed(started))
+                : Configure(step, started);
         }
 
         var target = Target(step.Operation);
@@ -266,11 +296,25 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
         // ENDING A PROCESS DOES NOT GO THROUGH THE MANAGER, so it is not a Request - and the reading
         // taken above is the whole reason this sits here rather than anywhere else. It is the freshest
         // answer available about where the entry is and what is holding it, taken immediately before
-        // anything happens.
+        // anything happens. Unfit says what else is looked at once more before the process dies.
+        var refusal = step.Operation == StepOperation.Terminate ? Unfit(step, before) : null;
+
+        // THE LAST LOOK AT BOTH WAYS TO STOP, IMMEDIATELY BEFORE ANYTHING IS SENT - logic report R09,
+        // 2026-10-26. The loop asks between steps, and a step then reads the entry and, before an ending,
+        // the whole process - so Stop pressed during those readings still sent the request after them.
+        // Nothing of this step has changed the machine yet, so it is held exactly as a step not reached.
+        if (refusal is null && halt.Unasked(step.Reason))
+        {
+            return Skipped(step, SkipReason.Cancelled, Where(before), Holding(before), Elapsed(started));
+        }
+
+        // The process the entry is held by, which Unfit has just found to be the plan's - not the plan's
+        // number as such. Equal whenever this line runs, and the difference is what a guard can see: with
+        // that check gone, this ends a process the preview never named rather than a number it did.
         var asking = clock.Elapsed;
-        var request = step.Operation == StepOperation.Terminate
-            ? End(step, before)
-            : control.Request(step.ServiceName, step.Operation);
+        var request = refusal ?? (step.Operation == StepOperation.Terminate
+            ? control.Terminate(Holding(before).Value, step.ProcessCreatedAt)
+            : control.Request(step.ServiceName, step.Operation));
         var answered = Elapsed(asking);
 
         if (!request.Worked)
@@ -314,60 +358,6 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock)
             ? Result(step, StepOutcome.Succeeded, Where(seen), Holding(seen), Elapsed(started))
             : Refused(step, answer, Where(seen), Holding(seen), started);
     }
-
-    /// <summary>
-    /// Ends the process the step named, having checked it is still the one the step named.
-    ///
-    /// <b>THE ONE PLACE THIS CLASS LOOKS AT SOMETHING AGAIN, AND IT IS NOT THE CLASS WORKING
-    /// ANYTHING OUT AFRESH.</b> Windows hands out process numbers again once a process is gone, and
-    /// a plan built one moment is carried out the next - so the number in the preview can, by the
-    /// time this runs, belong to something nobody has ever heard of. Refusing on a mismatch
-    /// delivers exactly the plan that was shown or nothing at all, which is the promise. Deciding
-    /// to end a DIFFERENT process would be the class inventing a step, and it does not do that.
-    ///
-    /// <b>The window between this reading and the call is narrow and is not closed.</b> Holding the
-    /// process open would close it, at the cost of a handle outliving the step, and the honest
-    /// answer is that a process identity Windows hands out in one piece is what this really wants
-    /// and there is not one.
-    /// </summary>
-    private ControlAnswer End(PlanStep step, ControlAnswer before)
-    {
-        var holding = Holding(before);
-
-        // THE CREATION TIME GOES DOWN WITH THE NUMBER AND THE OTHER SIDE CHECKS IT ON THE HANDLE IT
-        // KILLS WITH. This class checks that the ENTRY still names the same process, which is a
-        // different question from whether the NUMBER still names the same process - Windows gives
-        // numbers out again, and only something holding a handle can rule that out. So this half of
-        // the identity is carried rather than compared here. Backlog 323. And the process is read for
-        // who lives in it NOW before anything dies, since 2026-09-30 - Crowded says why.
-        return holding.IsPresent && holding.Value == step.ProcessId
-            ? Crowded(step) ?? control.Terminate(holding.Value, step.ProcessCreatedAt)
-            : ControlAnswer.Refused(0, ProcessMoved);
-    }
-
-    /// <summary>
-    /// Said in the plainest words available, because it is the one refusal here that is ours rather
-    /// than the system's - the same shape as the one <see cref="Configure"/> gives for a start type
-    /// it has no number for.
-    /// </summary>
-    private const string ProcessMoved =
-        "The process behind this entry is not the one the plan named, so nothing was ended. "
-        + "Ask again to build a plan against the machine as it is now.";
-
-    private static EntryStatus Target(StepOperation operation) => operation switch
-    {
-        StepOperation.Stop => EntryStatus.Stopped,
-
-        // THE SAME TARGET AS A STOP, and that is the point of it rather than a shortcut. Ending the
-        // process is how this step gets there, and the manager noticing the process die and moving
-        // the entry is what finishes it - so the step is done when the ENTRY says so, never when
-        // the call returns.
-        StepOperation.Terminate => EntryStatus.Stopped,
-
-        StepOperation.Start => EntryStatus.Running,
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(operation), operation, EquivalentCommand.Unhandled)
-    };
 
     private static EntryStatus Where(ControlAnswer answer) =>
         answer.Worked ? answer.Progress!.Value.Status : EntryStatus.Unknown;

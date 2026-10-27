@@ -12,7 +12,35 @@ internal sealed partial class FakeScmControl
 {
     private readonly Dictionary<string, List<string>> _dependents = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _dependentsRefusedWith = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Reading<StartType>> _startTypes = new(StringComparer.OrdinalIgnoreCase);
     private int? _statusesRefusedWith;
+
+    /// <summary>
+    /// The start type the manager holds for an entry now - since 2026-10-26, for the run's look before its first
+    /// step (logic report R03). An entry nobody set is Manual, which is what lets every older test go on as it was.
+    /// </summary>
+    internal FakeScmControl StartingAs(string serviceName, StartType startType)
+    {
+        _startTypes[serviceName] = Reading<StartType>.Present(startType);
+        return this;
+    }
+
+    /// <summary>The manager will not say how an entry starts.</summary>
+    internal FakeScmControl RefusingStartType(string serviceName, int errorCode)
+    {
+        _startTypes[serviceName] = Reading<StartType>.Denied(errorCode, $"refused with {errorCode}");
+        return this;
+    }
+
+    /// <summary>How many times anybody asked how an entry starts.</summary>
+    internal int StartTypeReads { get; private set; }
+
+    public Reading<StartType> ReadStartType(string serviceName)
+    {
+        StartTypeReads++;
+
+        return _startTypes.GetValueOrDefault(serviceName, Reading<StartType>.Present(StartType.Manual));
+    }
 
     /// <summary>Entries that depend on this one, whatever they are doing.</summary>
     internal FakeScmControl DependedOnBy(string serviceName, params string[] dependents)

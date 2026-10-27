@@ -221,6 +221,26 @@ public sealed class ForcedRunTests
         Assert.Equal("Spooler", Assert.Single(run.Reversal).ServiceName);
     }
 
+    [Fact]
+    public void A_neighbour_watched_stopping_by_itself_before_the_ending_is_not_handed_back()
+    {
+        // Logic report R01, 2026-10-27. Somebody else was stopping it, so its own step asked nothing and only
+        // watched it arrive - it was not in the process when the process ended, exactly like one found already
+        // stopped. It arrives after the entry's own stop has given up, which is when its step reaches it.
+        var clock = new FakeClock();
+        var control = new FakeScmControl(clock)
+            .Reaching("Spooler", new ServiceProgress(EntryStatus.StopPending, 0, TimeSpan.Zero, Held))
+            .OnItsWay("Housemate", TimeSpan.FromSeconds(40), new ServiceProgress(EntryStatus.StopPending, 1, TimeSpan.FromSeconds(10), Held));
+
+        var run = new PlanRunner(control, clock).Run(
+            Forced(Stop("Spooler", StepReason.Requested), Stop("Housemate", StepReason.SharesTheProcess), Ending("Housemate")),
+            TimeSpan.FromSeconds(30),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(run.Results[1].ArrivedUnasked);
+        Assert.Equal("Spooler", Assert.Single(run.Reversal).ServiceName);
+    }
+
     private static PlanStep Stop(string name, StepReason reason) => new(name, name, StepOperation.Stop, reason);
 
     private static PlanStep Start(string name) => new(name, name, StepOperation.Start, StepReason.Restore);

@@ -155,11 +155,12 @@ public sealed class BulkRunTests
         var plan = Bulk(ActionKind.Stop, ["Spooler", "MRxSmb20"]);
         var control = Running("Spooler", "MRxSmb20");
 
-        var run = new BulkRunner(new PlanRunner(control, new FakeClock())).Run(
+        // Pressed once the manager has taken the first stop - before it, nothing is sent at all since
+        // 2026-10-26 (logic report R09).
+        var run = new BulkRunner(new PlanRunner(new Interrupting(control, interruption), new FakeClock())).Run(
             plan,
             Minute,
-            interruption.Token,
-            starting: (_, _) => interruption.Cancel());
+            interruption.Token);
 
         Assert.True(run.Cancelled);
 

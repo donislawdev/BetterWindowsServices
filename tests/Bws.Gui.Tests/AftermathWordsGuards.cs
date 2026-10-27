@@ -48,6 +48,23 @@ public sealed class AftermathWordsGuards
     }
 
     [Fact]
+    public void Neighbours_the_manager_did_not_list_are_named_and_no_names_is_the_list_refused()
+    {
+        // Logic report R04, 2026-10-27: three shapes - the list of names refused, one withheld, several.
+        Assert.Equal(
+            Texts.Of("gui.plan.problem.neighboursUnreadable.list", "Netlogon"),
+            PlanWords.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", [])));
+
+        Assert.Equal(
+            Texts.Of("gui.plan.problem.neighboursUnreadable.one", "Netlogon", "Withheld"),
+            PlanWords.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", ["Withheld"])));
+
+        Assert.Equal(
+            Texts.Of("gui.plan.problem.neighboursUnreadable.many", "Netlogon", "Kept, Withheld"),
+            PlanWords.Describe(new PlanProblem(PlanProblemKind.NeighboursUnreadable, "Netlogon", ["Kept", "Withheld"])));
+    }
+
+    [Fact]
     public void An_ending_the_manager_undid_at_once_names_the_new_process()
     {
         var said = PlanWords.Describe(new StepResult

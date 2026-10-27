@@ -83,7 +83,7 @@ internal static class CriticalEntries
         ServiceAction action,
         IReadOnlyList<ScmEntry> cascade)
     {
-        if (PlanBuilder.StopsPolitely(action, target))
+        if (PlanBuilder.StopsPolitely(action))
         {
             var stopping = Named([.. cascade, target]);
 

@@ -178,11 +178,12 @@ $mutations = @(
         File = 'src\Bws.Core\Planning\CriticalEntries.cs'
         #
         # RE-ANCHORED 2026-09-24: the condition became PlanBuilder.StopsPolitely when a startup
-        # setting of disabled learned to carry a stop. The swap it makes is unchanged.
-        From = 'if (PlanBuilder.StopsPolitely(action, target))
+        # setting of disabled learned to carry a stop. The swap it makes is unchanged. Again on
+        # 2026-10-27, when StopsPolitely lost the entry it no longer asks about (logic report R03).
+        From = 'if (PlanBuilder.StopsPolitely(action))
         {
             var stopping = Named([.. cascade, target]);'
-        To = 'if (PlanBuilder.StopsPolitely(action, target))
+        To = 'if (PlanBuilder.StopsPolitely(action))
         {
             var stopping = Named([]);'
         Test = 'CriticalEntryGuards.A_stop_names_the_entry_the_machine_does_not_work_without'
@@ -412,8 +413,9 @@ $mutations = @(
     @{
         # Windows hands out process numbers again once a process is gone, and a plan is built one
         # moment and carried out the next.
+        # Re-filed 2026-10-27: the check moved to PlanRunner.Ending.cs with the size ratchet.
         Name = 'forced stop: a process that moved since the preview is left alone'
-        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
         From = 'return holding.IsPresent && holding.Value == step.ProcessId'
         To = 'return holding.IsPresent'
         Test = 'EscalationRunTests.A_process_that_is_no_longer_the_one_the_plan_named_is_left_alone'
@@ -462,10 +464,11 @@ $mutations = @(
     },
     @{
         # With --force the neighbours have no steps, and this list is all a way back can learn them from.
+        # Re-anchored 2026-10-27: the recovery lists the preview read now ride on the same step (R05).
         Name = 'forced stop: the ending names what it takes with it'
         File = 'src\Bws.Core\Planning\ForcedStop.cs'
-        From = 'TakesWithIt: [.. ending.Sharing.Select(entry => entry.ServiceName)]));'
-        To = 'TakesWithIt: []));'
+        From = 'TakesWithIt: [.. ending.Sharing.Select(entry => entry.ServiceName)],'
+        To = 'TakesWithIt: [],'
         Test = 'ForcedStopRefusalTests.The_ending_names_the_neighbours_it_takes_with_it'
     },
     @{
@@ -492,10 +495,11 @@ $mutations = @(
     },
     @{
         # A dependant that refused is still running on the process - the owner's decision of 2026-09-29.
+        # Re-anchored 2026-10-27: a refused second look holds the steps behind as well (R03).
         Name = 'forced stop: a dependant that did not stop holds the ending'
         File = 'src\Bws.Core\Planning\PlanRunner.cs'
-        From = 'cascadeFailed |= step.Reason == StepReason.Cascade;'
-        To = 'cascadeFailed |= step.Reason == StepReason.Restore;'
+        From = 'cascadeFailed |= step.Reason == StepReason.Cascade || wholePlan;'
+        To = 'cascadeFailed |= step.Reason == StepReason.Restore || wholePlan;'
         Test = 'ForcedRunTests.A_dependant_that_will_not_stop_holds_the_ending'
     },
     @{
@@ -572,10 +576,11 @@ $mutations = @(
         Test = 'ForcedRunTests.A_neighbour_that_died_with_the_process_is_handed_back'
     },
     @{
+        # Re-anchored 2026-10-27: a stop that only watched the entry arrive found it stopped as well (R01).
         Name = 'way back: a neighbour found already stopped is not handed back'
         File = 'src\Bws.Core\Planning\NetEffect.cs'
-        From = 'if (result is { SkippedBecause: SkipReason.AlreadyThere, Step.Operation: StepOperation.Stop })'
-        To = 'if (result is { SkippedBecause: SkipReason.Cancelled, Step.Operation: StepOperation.Stop })'
+        From = '(result.SkippedBecause == SkipReason.AlreadyThere || result.ArrivedUnasked))'
+        To = '(result.SkippedBecause == SkipReason.Cancelled || result.ArrivedUnasked))'
         Test = 'ForcedRunTests.A_neighbour_found_already_stopped_is_not_handed_back'
     },
     @{
@@ -3209,7 +3214,8 @@ $mutations = @(
         # holder's name, which carries accented letters, and came back STALE - Windows PowerShell
         # reads a file with no byte order mark differently from how the text was written, so the
         # two sides stopped being the same string without either being wrong.
-        From = '| Meziantou.Analyzer 3.0.138 |'
+        # Re-anchored 2026-10-27: the analyser moved to 3.0.313 and this anchor stayed behind.
+        From = '| Meziantou.Analyzer 3.0.313 |'
         To = '| An analyser |'
         Test = 'LicenceNoticeGuards.Every_package_that_ships_is_named_in_the_notices'
     },
@@ -4459,10 +4465,11 @@ $mutations = @(
         # The writer built into a variable of its own instead of straight into the plan. It still
         # compiles, still runs, and is exactly the first step towards a call that skips the plan -
         # which is how this rule is described as eroding: one exception at a time, each reasonable.
+        # Re-anchored 2026-10-27: the runner reads the process again before an ending (R05).
         Name = 'plan: the writer is never held loose, only handed to a plan'
         File = 'src\Bws.Cli\Execution.cs'
-        From = '            return new PlanRunner(new WindowsScmControl(), new SystemClock()).Run('
-        To = '            var loose = new WindowsScmControl();' + [char]13 + [char]10 + '            return new PlanRunner(loose, new SystemClock()).Run('
+        From = '            return new PlanRunner(new WindowsScmControl(), new SystemClock(), new WindowsEndingFactsReader()).Run('
+        To = '            var loose = new WindowsScmControl();' + [char]13 + [char]10 + '            return new PlanRunner(loose, new SystemClock(), new WindowsEndingFactsReader()).Run('
         Test = 'PlanOnlyGuards.Every_writer_that_is_built_goes_straight_into_a_plan_runner'
     },
     @{
@@ -6989,10 +6996,11 @@ $mutations = @(
         # on the other side of a call no test in this project can reach - so the only thing a test
         # CAN prove is that the value gets there.
         # Re-anchored 2026-09-30: the call shares its line with the company check since package B2.
+        # And 2026-10-27: the call moved after the last look at Stop (R09), the checks stayed in Unfit.
         Name = 'ending: the identity the plan froze reaches the call that ends the process'
         File = 'src\Bws.Core\Planning\PlanRunner.cs'
-        From = '            ? Crowded(step) ?? control.Terminate(holding.Value, step.ProcessCreatedAt)'
-        To = '            ? Crowded(step) ?? control.Terminate(holding.Value, null)'
+        From = '            ? control.Terminate(Holding(before).Value, step.ProcessCreatedAt)'
+        To = '            ? control.Terminate(Holding(before).Value, null)'
         Test = 'EndingRightsTests.The_ending_is_handed_the_identity_the_plan_froze'
     }
 
@@ -9030,8 +9038,8 @@ $mutations = @(
     @{
         Name = 'keeps running: not said on a plan that already stops the entry'
         File = 'src\Bws.Core\Planning\StartTypeWarnings.cs'
-        From = '            && !PlanBuilder.StopsAlong(action, target))'
-        To = '            && PlanBuilder.StopsAlong(action, target) == PlanBuilder.StopsAlong(action, target))'
+        From = '            && !PlanBuilder.StopsAlong(action))'
+        To = '            && PlanBuilder.StopsAlong(action) == PlanBuilder.StopsAlong(action))'
         Test = 'StartSettingTests.Taking_the_offer_puts_the_stop_after_the_setting_and_drops_the_sentence'
     },
     @{
@@ -9044,20 +9052,29 @@ $mutations = @(
     @{
         Name = 'also stop: taking the offer adds the stop step after the setting'
         File = 'src\Bws.Core\Planning\PlanBuilder.cs'
-        From = '                if (StopsAlong(action, target))
+        From = '                if (StopsAlong(action))
                 {
                     AddStops(steps, cascade, target);'
-        To = '                if (StopsAlong(action, target) && false)
+        To = '                if (StopsAlong(action) && false)
                 {
                     AddStops(steps, cascade, target);'
         Test = 'StartSettingTests.Taking_the_offer_puts_the_stop_after_the_setting_and_drops_the_sentence'
     },
     @{
-        Name = 'also stop: no stop step for an entry already stopped'
+        # REVERSED 2026-10-27, cause 6 above: until that day this entry proved there was NO stop step for an
+        # entry read as stopped. Logic report R03 (the owner's decision "Sprawdzenie przed biegiem"): an entry
+        # started between the preview and the press was then set to Disabled and left running under a plan
+        # that said "and stop it". The step is always there now, and the runner says "already there" when it
+        # is not needed - so this puts the old condition back where the step is added.
+        Name = 'also stop: a stop step even for an entry read as stopped'
         File = 'src\Bws.Core\Planning\PlanBuilder.cs'
-        From = 'action is { Kind: ActionKind.SetStartType, AlsoStop: true } && target.Status != EntryStatus.Stopped;'
-        To = 'action is { Kind: ActionKind.SetStartType, AlsoStop: true } && target.Status != EntryStatus.Unknown;'
-        Test = 'StartSettingTests.The_offer_adds_no_stop_to_an_entry_already_stopped'
+        From = '                if (StopsAlong(action))
+                {
+                    AddStops(steps, cascade, target);'
+        To = '                if (StopsAlong(action) && target.Status != EntryStatus.Stopped)
+                {
+                    AddStops(steps, cascade, target);'
+        Test = 'StartSettingTests.The_offer_keeps_its_stop_for_an_entry_read_as_stopped'
     },
     @{
         Name = 'also stop: a stop rides only on disabled'
@@ -10874,10 +10891,11 @@ $mutations = @(
     },
     @{
         # A failed ending counts as one - caught in the terminal, where the report of a refused ending is.
+        # Re-anchored 2026-10-27: an ending lost from sight after it was sent counts as ended (R02).
         Name = 'coming back: nothing unless the process was ended'
         File = 'src\Bws.Core\Planning\Aftermath.cs'
-        From = '(result.Outcome is StepOutcome.Succeeded or StepOutcome.TimedOut || result.StartedAgain)'
-        To = '(result.Outcome is not StepOutcome.Skipped || result.StartedAgain)'
+        From = '(result.Outcome is StepOutcome.Succeeded or StepOutcome.TimedOut || result.StartedAgain || result.LostSight)'
+        To = '(result.Outcome is not StepOutcome.Skipped || result.StartedAgain || result.LostSight)'
         Test = 'ComingBackTextTests.A_run_that_never_ended_the_process_says_nothing_about_coming_back'
     },
     @{
@@ -13510,8 +13528,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         # The number in the preview can belong to a process nobody has heard of by the time the step
         # runs, and ending it would be a step the preview never showed.
+        # Re-filed 2026-10-27: the check moved to PlanRunner.Ending.cs with the size ratchet.
         Name = 'search: a run ends only the process the preview named'
-        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
         From = 'return holding.IsPresent && holding.Value == step.ProcessId'
         To = 'return holding.IsPresent'
         Test = 'PlanRunPropertyTests.A_run_asks_only_what_the_preview_showed_and_puts_back_what_it_took_down'
@@ -14063,6 +14082,219 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '"history", "license", "snapshot", "tool"]'
         To = '"history", "license", "snapshot"]'
         Test = 'CommandLinePropertyTests.The_words_drawn_above_reach_every_kind_of_command'
+    }
+    # ---- Logic report, package L1 (running a plan), 2026-10-27 - docs/ANALIZA-RAPORTU-LOGIKI-20261026.md ----
+    @{
+        # R01: an entry that came back from the other way and stopped by itself was nobody's move here.
+        Name = 'run: an arrival after the entry turned round is not this run''s move'
+        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
+        From = 'Elapsed(started)) with { ArrivedUnasked = true },'
+        To = 'Elapsed(started)) with { ArrivedUnasked = false },'
+        Test = 'PlanRunProgressTests.A_stop_that_meets_an_entry_starting_which_falls_back_to_stopped_puts_nothing_back'
+    }
+    @{
+        # R01: an entry already on its way, only watched arrive, was nobody's move here either.
+        Name = 'run: an arrival before any request is not this run''s move'
+        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
+        From = 'with { ArrivedUnasked = !asked },'
+        To = 'with { ArrivedUnasked = false },'
+        Test = 'PlanRunProgressTests.A_restart_that_only_watched_an_entry_stop_by_itself_does_not_start_it'
+    }
+    @{
+        # R01, the way back: an arrival nobody asked for never begins a move, so nothing puts it back.
+        Name = 'way back: an arrival nobody asked for never begins a move'
+        File = 'src\Bws.Core\Planning\NetEffect.cs'
+        From = '        else if (!unasked)'
+        To = '        else if (at >= 0)'
+        Test = 'PlanRunProgressTests.A_restart_that_only_watched_an_entry_stop_by_itself_does_not_start_it'
+    }
+    @{
+        # R01, the way back: it still ends a move this run made, so a restart whose start only watched leaves no line.
+        Name = 'way back: an arrival nobody asked for ends a move this run made'
+        File = 'src\Bws.Core\Planning\NetEffect.cs'
+        From = 'moves[name] = (seen.First, operation, at);'
+        To = 'moves[name] = unasked ? seen : (seen.First, operation, at);'
+        Test = 'PlanRunProgressTests.A_start_putting_back_an_entry_somebody_else_was_already_starting_leaves_no_way_back'
+    }
+    @{
+        # R01: a neighbour watched stopping by itself was not in the process when it ended.
+        Name = 'way back: a neighbour watched stopping by itself is not handed back'
+        File = 'src\Bws.Core\Planning\NetEffect.cs'
+        From = '(result.SkippedBecause == SkipReason.AlreadyThere || result.ArrivedUnasked))'
+        To = '(result.SkippedBecause == SkipReason.AlreadyThere || result.StartedAgain))'
+        Test = 'ForcedRunTests.A_neighbour_watched_stopping_by_itself_before_the_ending_is_not_handed_back'
+    }
+    @{
+        Name = 'terminal: an arrival nobody asked for is not called done'
+        File = 'src\Bws.Cli\PlanText.cs'
+        From = '        StepOutcome.Succeeded => result.ArrivedUnasked'
+        To = '        StepOutcome.Succeeded => result.StartedAgain'
+        Test = 'WatchedStepSentenceTests.An_arrival_nothing_asked_for_says_so_rather_than_done'
+    }
+    @{
+        # R02: a request the manager took and then lost from sight is marked as such.
+        Name = 'run: a request lost from sight after the manager took it is marked'
+        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
+        From = 'with { LostSight = asked },'
+        To = 'with { LostSight = false },'
+        Test = 'PlanRunProgressTests.A_stop_the_manager_took_and_then_lost_from_sight_is_still_this_run_s_move'
+    }
+    @{
+        # R02, the way back: it counts as a move, the way a request that ran out of time does.
+        Name = 'way back: a request lost from sight is this run''s move'
+        File = 'src\Bws.Core\Planning\NetEffect.cs'
+        From = '                && !result.LostSight'
+        To = '                && !result.ArrivedUnasked'
+        Test = 'PlanRunProgressTests.A_stop_the_manager_took_and_then_lost_from_sight_is_still_this_run_s_move'
+    }
+    @{
+        # Not a constant: the earlier arms already take StartedAgain and StoppedWhileStarting, so either would not compile.
+        Name = 'terminal: a request lost from sight is not called refused'
+        File = 'src\Bws.Cli\PlanText.cs'
+        From = '        StepOutcome.Failed when result.LostSight => Texts.Of('
+        To = '        StepOutcome.Failed when result.LostSight && result.ErrorCode == 0 => Texts.Of('
+        Test = 'WatchedStepSentenceTests.A_request_taken_and_then_lost_from_sight_is_not_called_refused'
+    }
+    @{
+        Name = 'window: a request lost from sight is not called refused'
+        File = 'src\Bws.Gui\ViewModels\PlanWords.cs'
+        From = '        { LostSight: true } => Texts.Of('
+        To = '        { LostSight: true, ErrorCode: 0 } => Texts.Of('
+        Test = 'WatchedStepWordsGuards.A_request_taken_and_then_lost_from_sight_is_not_called_refused'
+    }
+    @{
+        # R09: the last look at Stop comes after the readings a step makes, immediately before the request.
+        Name = 'run: Stop pressed while a step gets ready sends nothing'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'if (refusal is null && halt.Unasked(step.Reason))'
+        To = 'if (refusal is not null && halt.Unasked(step.Reason))'
+        Test = 'PlanRunHaltTests.Stop_pressed_while_a_step_gets_ready_sends_nothing_and_a_restart_then_puts_nothing_back'
+    }
+    @{
+        Name = 'run: Stop pressed while an ending reads the process ends nothing'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'if (refusal is null && halt.Unasked(step.Reason))'
+        To = 'if (refusal is not null && halt.Unasked(step.Reason))'
+        Test = 'PlanRunHaltTests.Stop_pressed_while_an_ending_reads_the_process_ends_nothing'
+    }
+    @{
+        Name = 'run: Stop pressed just before a setting is written writes nothing'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = '            return halt.Unasked(step.Reason)'
+        To = '            return !halt.Unasked(step.Reason)'
+        Test = 'PlanRunHaltTests.Stop_pressed_just_before_a_setting_is_written_writes_nothing'
+    }
+    @{
+        # R05: the run asks again just before it ends a process, and a critical one is not ended.
+        Name = 'ending: a process that became critical after the preview is not ended'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
+        From = 'if (critical is { IsPresent: true, Value: true })'
+        To = 'if (critical is { IsPresent: true, Value: false })'
+        Test = 'SecondLookTests.A_process_that_became_critical_after_the_preview_is_not_ended'
+    }
+    @{
+        Name = 'ending: criticality unreadable just before is a refusal'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
+        From = 'if (critical.Outcome == ReadOutcome.Denied)'
+        To = 'if (critical.Outcome == ReadOutcome.Absent)'
+        Test = 'SecondLookTests.A_process_whose_criticality_cannot_be_read_just_before_is_not_ended'
+    }
+    @{
+        Name = 'ending: a recovery list changed since the preview holds the ending'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
+        From = '.Where(frozen => !RecoveryList.Same('
+        To = '.Where(frozen => RecoveryList.Same('
+        Test = 'SecondLookTests.An_ending_whose_recovery_list_changed_after_the_preview_ends_nothing'
+    }
+    @{
+        # Two readings of one unchanged list are two lists - by reference every ending on a real machine is refused.
+        Name = 'ending: recovery lists are compared by value'
+        File = 'src\Bws.Core\EndingFacts.cs'
+        From = 'first.Value.Items.SequenceEqual(second.Value.Items)'
+        To = 'ReferenceEquals(first.Value.Items, second.Value.Items)'
+        Test = 'SecondLookTests.An_ending_whose_recovery_list_is_what_the_preview_read_goes_ahead'
+    }
+    @{
+        Name = 'ending: the step carries the recovery lists the preview read'
+        File = 'src\Bws.Core\Planning\ForcedStop.cs'
+        From = 'Recovery: ending.Recovery));'
+        To = 'Recovery: null));'
+        Test = 'SecondLookTests.The_builder_freezes_what_it_read_and_the_same_machine_lets_the_run_through'
+    }
+    @{
+        # R03: before the first step the run reads the start type of everything it would take down and put back.
+        Name = 'run: an entry set to Disabled since the preview holds the restart'
+        File = 'src\Bws.Core\Planning\PlanRunner.ComingBack.cs'
+        From = 'is { IsPresent: true, Value: StartType.Disabled })'
+        To = 'is { IsPresent: true, Value: StartType.Manual })'
+        Test = 'SecondLookTests.A_restart_of_an_entry_set_to_Disabled_after_the_preview_stops_nothing'
+    }
+    @{
+        # R03, found by the second analysis of the design: the steps behind (neighbours, the ending) are held too.
+        Name = 'run: a refused second look holds the steps behind as well'
+        File = 'src\Bws.Core\Planning\PlanRunner.cs'
+        From = 'cascadeFailed |= step.Reason == StepReason.Cascade || wholePlan;'
+        To = 'cascadeFailed |= step.Reason == StepReason.Cascade || (wholePlan && step.Reason == StepReason.Cascade);'
+        Test = 'SecondLookTests.A_forced_restart_refused_for_a_disabled_neighbour_ends_no_process'
+    }
+    @{
+        # R08: a startup setting never takes dependants down, whatever the ask carries.
+        Name = 'plan: a setting that stops takes no dependants down'
+        File = 'src\Bws.Core\Planning\PlanBuilder.cs'
+        From = 'asked.IncludeDependents && asked.Kind != ActionKind.SetStartType ? blocking : []'
+        To = 'asked.IncludeDependents ? blocking : []'
+        Test = 'StartSettingTests.A_setting_that_stops_takes_no_dependants_down_whatever_it_carries'
+    }
+    @{
+        # R04: an entry the manager did not list to this account could live in the process.
+        Name = 'forced stop: an entry the manager did not list holds the ending'
+        File = 'src\Bws.Core\Planning\ProcessNeighbours.cs'
+        From = 'ReadOutcome.Present when unlisted.Value!.Count > 0 =>'
+        To = 'ReadOutcome.Present when unlisted.Value!.Count > 1 =>'
+        Test = 'UnlistedNeighbourTests.An_entry_the_manager_did_not_list_is_named_and_nothing_is_ended'
+    }
+    @{
+        Name = 'forced stop: a list of names nobody could read holds the ending'
+        File = 'src\Bws.Core\Planning\ProcessNeighbours.cs'
+        From = 'ReadOutcome.Denied => new PlanProblem(PlanProblemKind.NeighboursUnreadable, target.ServiceName, []),'
+        To = 'ReadOutcome.Absent => new PlanProblem(PlanProblemKind.NeighboursUnreadable, target.ServiceName, []),'
+        Test = 'UnlistedNeighbourTests.A_list_of_names_nobody_could_read_is_a_refusal_naming_nobody'
+    }
+    @{
+        Name = 'forced stop: only a shared process is asked who the manager left out'
+        File = 'src\Bws.Core\Planning\ProcessNeighbours.cs'
+        From = 'if (target.EntryType != EntryType.SharedProcess)'
+        To = 'if (target.EntryType == EntryType.Unknown)'
+        Test = 'UnlistedNeighbourTests.An_entry_with_a_process_of_its_own_has_no_neighbours_to_leave_out_and_is_not_asked'
+    }
+    @{
+        Name = 'forced stop: the question carries the whole listing'
+        File = 'src\Bws.Core\Planning\ProcessNeighbours.cs'
+        From = 'processes.ReadUnlisted(entries.Select(entry => entry.ServiceName))'
+        To = 'processes.ReadUnlisted(entries.Skip(1).Select(entry => entry.ServiceName))'
+        Test = 'UnlistedNeighbourTests.The_question_carries_every_name_of_the_listing_the_plan_was_built_from'
+    }
+    @{
+        Name = 'forced stop: the plan asks the reader it was given'
+        File = 'src\Bws.Core\Planning\ForcedStop.cs'
+        From = 'if (ProcessNeighbours.Unlisted(processes, entries, target) is { } unlisted)'
+        To = 'if (ProcessNeighbours.Unlisted(NobodyToAsk.Instance, entries, target) is { } unlisted)'
+        Test = 'UnlistedNeighbourTests.An_entry_the_manager_did_not_list_is_named_and_nothing_is_ended'
+    }
+    @{
+        # R05: a runner given no reader asks nothing, so the terminal's would end a process on the preview alone.
+        Name = 'plan: the terminal''s runner reads the process again before an ending'
+        File = 'src\Bws.Cli\Execution.cs'
+        From = 'new SystemClock(), new WindowsEndingFactsReader()).Run('
+        To = 'new SystemClock()).Run('
+        Test = 'PlanOnlyGuards.Every_runner_on_the_real_machine_reads_the_process_again_before_ending_it'
+    }
+    @{
+        Name = 'plan: the window''s runner reads the process again before an ending'
+        File = 'src\Bws.Gui\Carrying.cs'
+        From = 'new SystemClock(), new WindowsEndingFactsReader()));'
+        To = 'new SystemClock()));'
+        Test = 'PlanOnlyGuards.Every_runner_on_the_real_machine_reads_the_process_again_before_ending_it'
     }
 )
 

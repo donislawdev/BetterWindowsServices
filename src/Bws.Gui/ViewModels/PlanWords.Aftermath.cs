@@ -64,8 +64,9 @@ internal static partial class PlanWords
     }
 
     /// <summary>
-    /// The three refusals. An unreadable consequence with no names is the process itself - whether it is
-    /// critical could not be read - so it has a sentence of its own.
+    /// The four refusals - the fourth since 2026-10-27, neighbours the manager did not list (logic report R04).
+    /// An unreadable consequence with no names is the process itself - whether it is critical could not be
+    /// read - so it has a sentence of its own.
     /// </summary>
     private static string Aftermath(PlanProblem problem) => problem.Kind switch
     {
@@ -81,6 +82,14 @@ internal static partial class PlanWords
         PlanProblemKind.AftermathUnreadable => problem.Related.Count == 1
             ? Texts.Of("gui.plan.problem.aftermathUnreadable.one", problem.ServiceName, Listed(problem.Related))
             : Texts.Of("gui.plan.problem.aftermathUnreadable.many", problem.ServiceName, Listed(problem.Related)),
+
+        // No names is the list of names itself refused, logic report R04.
+        PlanProblemKind.NeighboursUnreadable when problem.Related.Count == 0 =>
+            Texts.Of("gui.plan.problem.neighboursUnreadable.list", problem.ServiceName),
+
+        PlanProblemKind.NeighboursUnreadable => problem.Related.Count == 1
+            ? Texts.Of("gui.plan.problem.neighboursUnreadable.one", problem.ServiceName, Listed(problem.Related))
+            : Texts.Of("gui.plan.problem.neighboursUnreadable.many", problem.ServiceName, Listed(problem.Related)),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)

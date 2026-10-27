@@ -191,7 +191,13 @@ public sealed class PlanRunPropertyTests
         (control, name, _) => control.Reaching(
             name,
             new ServiceProgress(EntryStatus.StartPending, 1, TimeSpan.FromSeconds(2), 0),
-            new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, 0, ExitCode: 1067))
+            new ServiceProgress(EntryStatus.Stopped, 0, TimeSpan.Zero, 0, ExitCode: 1067)),
+
+        // Lost from sight: readable until the manager takes a request for it, refused after (R02, 2026-10-26).
+        (control, name, _) => control.RefusingReadsOnceAsked(name, Entries.AccessDenied),
+
+        // Set to Disabled since the preview, so a restart refuses before its first step (R03, 2026-10-26).
+        (control, name, _) => control.StartingAs(name, StartType.Disabled)
     ];
 
     private static ServiceProgress Pending(EntryStatus settled) =>
@@ -271,14 +277,13 @@ public sealed class PlanRunPropertyTests
         position > ran.StoppedAt && ran.Step(position).Reason != StepReason.Restore;
 
     /// <summary>
-    /// Nothing is put back that the run did not take down - by sending a stop or an ending, or by
-    /// watching it arrive at Stopped under a step that asked for exactly that.
+    /// Nothing is put back that the run did not take down by SENDING a stop or an ending.
     ///
-    /// <b>The second half was learnt from the first minute-long search, 2026-10-17</b> (seed
-    /// 0l4gUzq4NGe5, 7.8 million draws). A housemate already on its way down when its step came was
-    /// watched, arrived, and the step succeeded with nothing sent - which PlanRunner.Waiting says is
-    /// meant: success is the entry reaching the state the step asked for, not this tool sending it
-    /// there. The preview had shown it stopped and started again, so starting it is the preview kept.
+    /// <b>A second half stood here from 2026-10-17 to 2026-10-26 and it is gone on the owner's decision of
+    /// that day</b> (logic report R01). The first minute-long search (seed 0l4gUzq4NGe5) found a housemate
+    /// already on its way down, watched, arrived, its step succeeded with nothing sent - and this oracle was
+    /// widened to call that "taken down", so starting it again counted as the preview kept. It is somebody
+    /// else's stop: the step is marked ArrivedUnasked and nothing puts the entry back.
     /// </summary>
     private static string? PutBackUntaken(Ran ran)
     {
@@ -290,7 +295,7 @@ public sealed class PlanRunPropertyTests
 
     private static bool TakenDownBefore(Ran ran, int at) =>
         ran.Positions.Any(before => before < at
-            && (ran.Wrote(before) || ran.Result(before).Outcome == StepOutcome.Succeeded)
+            && ran.Wrote(before)
             && TakesDown(ran.Step(before), ran.Step(at).ServiceName));
 
     private static bool TakesDown(PlanStep step, string name) =>
@@ -317,10 +322,11 @@ public sealed class PlanRunPropertyTests
         && !(at >= ran.AbandonedAt)
         && ran.Positions.Any(before => before < at && StoppedHere(ran, before, ran.Step(at).ServiceName));
 
+    /// <summary>A stop this run sent and saw arrive - an arrival it only watched is somebody else's (R01).</summary>
     private static bool StoppedHere(Ran ran, int position, string name) =>
         ran.Step(position).Operation == StepOperation.Stop
         && string.Equals(ran.Step(position).ServiceName, name, StringComparison.OrdinalIgnoreCase)
-        && ran.Result(position).Outcome == StepOutcome.Succeeded;
+        && ran.Result(position) is { Outcome: StepOutcome.Succeeded, ArrivedUnasked: false };
 
     private static bool Forward(PlanStep step) => step.Reason is StepReason.Requested or StepReason.Cascade;
 
@@ -378,6 +384,8 @@ internal sealed class Watched(IScmControl inner) : IScmControl
     public Reading<IReadOnlyList<ScmStatus>> ReadStatuses() => inner.ReadStatuses();
 
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName) => inner.ReadDependents(serviceName);
+
+    public Reading<StartType> ReadStartType(string serviceName) => inner.ReadStartType(serviceName);
 }
 
 /// <summary>A plan, its run, and what the machine was sent - with positions counted from one, as the runner counts them.</summary>
