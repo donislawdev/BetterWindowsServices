@@ -312,10 +312,31 @@ internal static partial class Specimens
         // this entry from "automatic and did not start" into "waiting to be asked for", and
         // that difference is the whole reason triggers are read at all. One of them is the
         // kind the interop metadata has no name for.
+        //
+        // Whole since schema seven (2026-10-27). The subtypes are the real ones - the ETW provider
+        // sc qtriggerinfo names for this service, and the GUID every system state trigger on that
+        // machine carries - and so are the eight bytes of the second. THE DATA ON THE FIRST IS NOT:
+        // the real one carries none. It is here so the kept copy of the file holds every type of
+        // data item in one place - a run of strings shaped like the two firewall triggers, one with
+        // an empty string between two others, a level and both keyword masks.
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
         [
-            new ServiceTrigger(TriggerKind.Custom, TriggerAction.Start),
-            new ServiceTrigger(TriggerKind.CustomSystemStateChange, TriggerAction.Start)
+            new ServiceTrigger(
+                TriggerKind.Custom,
+                TriggerAction.Start,
+                new Guid("f5528ada-be5f-4f14-8aef-a95de7281161"),
+                [
+                    new TriggerData(TriggerDataType.String, ["500", "UDP", @"%windir%\system32\svchost.exe", "IKEEXT"]),
+                    new TriggerData(TriggerDataType.String, ["first", "", "third"]),
+                    new TriggerData(TriggerDataType.Level, ["4"]),
+                    new TriggerData(TriggerDataType.KeywordAny, ["0x0000000000000001"]),
+                    new TriggerData(TriggerDataType.KeywordAll, ["0x8000000000000010"])
+                ]),
+            new ServiceTrigger(
+                TriggerKind.CustomSystemStateChange,
+                TriggerAction.Start,
+                new Guid("2d7a2816-0c5e-45fc-9ce7-570e5ecde9c9"),
+                [new TriggerData(TriggerDataType.Binary, ["7528bca32e07c641"])])
         ])
     };
 
@@ -434,6 +455,10 @@ internal static partial class Specimens
     ///
     /// Read from a real machine: this entry carries six network endpoint triggers,
     /// all the same kind and all the same action, and sc qtriggerinfo lists six.
+    ///
+    /// <b>Whole since schema seven</b>, with the RPC interfaces read on 2026-10-27 - and one of the six
+    /// is written in upper case by the manager while the other five are not, which is why trigger data
+    /// is compared exactly. They are six different triggers, and before seven a file could not say so.
     /// </summary>
     internal static ScmEntry ManyTriggersOfOneKind => Entries.Any with
     {
@@ -443,8 +468,29 @@ internal static partial class Specimens
         StartType = Reading<StartType>.Present(Core.StartType.Manual),
         DelayedAuto = Reading<bool>.Absent(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
-            [.. Enumerable.Repeat(new ServiceTrigger(TriggerKind.NetworkEndpoint, TriggerAction.Start), 6)])
+        [
+            .. new[]
+            {
+                "201ef99a-7fa0-444c-9399-19ba84f12a1a",
+                "5f54ce7d-5b79-4175-8584-cb65313a0e98",
+                "fd7a0523-dc70-43dd-9b2e-9c5ed48225b1",
+                "58e604e8-9adb-4d2e-a464-3b0683fb1480",
+                "0497B57D-2E66-424F-A0C6-157CD5D41700",
+                "0f738e20-73c0-4ca8-aa6a-8dfef545fea8"
+            }.Select(rpcInterface => new ServiceTrigger(
+                TriggerKind.NetworkEndpoint,
+                TriggerAction.Start,
+                RpcInterfaceEvent,
+                [new TriggerData(TriggerDataType.String, [rpcInterface])]))
+        ])
     };
+
+    /// <summary>
+    /// RPC_INTERFACE_EVENT_GUID: the subtype saying a network endpoint trigger waits for an RPC interface
+    /// rather than a named pipe. From the documentation of SERVICE_TRIGGER, and the one sc qtriggerinfo
+    /// prints beside every such trigger.
+    /// </summary>
+    internal static Guid RpcInterfaceEvent => new("bc90d167-9470-4139-a9ba-be0bbbf5b74d");
 
     /// <summary>
     /// Triggers nobody asked for yet. The fourth state, and the reason ADR-13 exists.

@@ -19,9 +19,10 @@ namespace Bws.Core.Snapshots;
 public sealed partial record SnapshotDiff
 {
     /// <summary>
-    /// Fields whose value is a list where neither the order nor the spelling carries meaning.
+    /// Fields whose value is a list where the order carries no meaning - and, for all but one of them,
+    /// neither does the spelling (<see cref="ItemsIgnoreCase"/>).
     ///
-    /// <b>Three fields, and each one is on this list for a written reason rather than because it
+    /// <b>Four fields, and each one is on this list for a written reason rather than because it
     /// happens to be an array.</b>
     ///
     /// <c>requiredPrivileges</c> - the manager hands these back exactly as each service declared
@@ -36,8 +37,10 @@ public sealed partial record SnapshotDiff
     /// in whatever order the manager answered. That order is promised nowhere. This file's own
     /// neighbour sorts ENTRIES for precisely that reason, having seen the order move.
     ///
-    /// <c>triggers</c> - same argument about order. The two words inside each one are written by
-    /// this build rather than by the manager, so their spelling is ours and stable.
+    /// <c>triggers</c> - same argument about order. <b>Its spelling counts since 2026-10-27</b> (logic
+    /// report C01, owner's decision "yes, exactly"): until schema seven a trigger was two words this
+    /// build writes, so folding their case cost nothing. Since seven it carries the manager's data,
+    /// and a network endpoint trigger fires on "an exact match" of it - see <see cref="TriggerData"/>.
     ///
     /// <c>requiredBy</c> - the other direction of dependsOn, added 2026-09-06, and the same
     /// argument twice over: service names, compared without case, in an order the manager promises
@@ -53,6 +56,52 @@ public sealed partial record SnapshotDiff
     /// for that one field, silently, on a surface whose whole job is telling real drift from noise.
     /// </remarks>
     internal static readonly string[] Unordered = ["dependsOn", "requiredBy", "requiredPrivileges", "triggers"];
+
+    /// <summary>
+    /// The lists of <see cref="Unordered"/> whose items are names Windows compares without case - every
+    /// one of them but <c>triggers</c>, for the reason given there.
+    /// </summary>
+    private static readonly string[] ItemsIgnoreCase = ["dependsOn", "requiredBy", "requiredPrivileges"];
+
+    /// <summary>The one list whose items are narrowed when one side is older than whole triggers.</summary>
+    private const string Triggers = "triggers";
+
+    /// <summary>The two entries in the form the comparison reads them, narrowed when one side is older than whole triggers.</summary>
+    private static (JsonObject Was, JsonObject Now) Documents(EntryDocument before, EntryDocument after, bool kindsOnly)
+    {
+        var was = SnapshotJson.Document(before);
+        var now = SnapshotJson.Document(after);
+
+        if (kindsOnly)
+        {
+            KindsAndActions(was);
+            KindsAndActions(now);
+        }
+
+        return (was, now);
+    }
+
+    /// <summary>
+    /// Narrows every trigger in a document to its kind and action - what a file older than schema seven
+    /// holds - so the two sides of <see cref="ComparisonCaveats.TriggerDetailDiffers"/> compare the same
+    /// question. A document without triggers is left as it is.
+    /// </summary>
+    private static void KindsAndActions(JsonObject document)
+    {
+        if (document[Triggers] is not JsonArray triggers)
+        {
+            return;
+        }
+
+        document[Triggers] = new JsonArray(
+        [
+            .. triggers.Select(trigger => new JsonObject
+            {
+                ["kind"] = trigger?["kind"]?.DeepClone(),
+                ["action"] = trigger?["action"]?.DeepClone()
+            })
+        ]);
+    }
 
     /// <summary>
     /// Fields whose value names something Windows itself compares without case.
@@ -105,12 +154,16 @@ public sealed partial record SnapshotDiff
     {
         if (node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal))
         {
+            var caseless = ItemsIgnoreCase.Contains(field, StringComparer.Ordinal);
+
             // The unit separator, because it is the one character none of these values can hold -
-            // joining on a comma would let two lists made of different pieces compare equal.
+            // joining on a comma would let two lists made of different pieces compare equal. A trigger
+            // is written as JSON here, where the separator would come out escaped, so it holds for them too.
             return string.Join(
                 '\u001f',
                 items
-                    .Select(item => (Text(item) ?? string.Empty).ToLowerInvariant())
+                    .Select(item => Text(item) ?? string.Empty)
+                    .Select(text => caseless ? text.ToLowerInvariant() : text)
                     .OrderBy(text => text, StringComparer.Ordinal));
         }
 

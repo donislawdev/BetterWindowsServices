@@ -34,19 +34,27 @@ internal static class ShapeCeilings
     internal const double NearShare = 0.7;
 
     /// <summary>
-    /// 68 lines of code, EntryDocument.From - the snapshot document built field by field. Refusals.Answer
-    /// is one behind at 67 and three more stand at 66, so the band is crowded right under the top.
+    /// 66 lines of code, shared by PlanText.Render, Refusals.Answer and PlanBuilder.Build, so the band is
+    /// crowded right under the top. 68 until 2026-10-27, when EntryDocument.From - the snapshot document
+    /// built field by field - handed its trigger mapping to a method of its own (logic report C01) and
+    /// fell to 65.
     /// </summary>
-    internal const int LongestMethod = 68;
+    internal const int LongestMethod = 66;
 
     /// <summary>
-    /// Eleven at 48 lines of code or more. Fourteen until 2026-10-05, when BinaryPathResolver.Resolve
+    /// Fifteen at 47 lines of code or more. Fourteen until 2026-10-05, when BinaryPathResolver.Resolve
     /// handed its prefix walk to a method of its own (stability report R-3) and left the crowd, and
     /// thirteen until later that day, when Execution.Report did the same with its timing lines (C-4).
     /// Twelve until the review of PR #96, when the catalogue question in WindowsBinaryInspector answered
     /// with one value instead of an answer and a flag beside it, and went from 50 lines to 43.
+    ///
+    /// <b>Eleven to fifteen on 2026-10-27 by the owner's decision, and nothing grew.</b> The ceiling went
+    /// down from 68 to 66 (see <see cref="LongestMethod"/>), the band followed it from 48 to 47, and four
+    /// methods that already stood at 47 came inside it untouched: PlanJson.Render, PlanRunner.RunStep,
+    /// MainWindow.CarryOut and Catalogue.Make. The alternative - shortening four methods outside the
+    /// change that moved the line - was put to the owner and declined.
     /// </summary>
-    internal const int MethodsNearLongest = 11;
+    internal const int MethodsNearLongest = 15;
 
     /// <summary>
     /// 23 forks, EntryDocument.From. Catalogue.Make is next at 22 - measured 2026-10-05, when this

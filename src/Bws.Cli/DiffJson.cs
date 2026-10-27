@@ -49,7 +49,8 @@ internal static class DiffJson
                     diff.Caveats.LanguageDiffers,
                     diff.Caveats.AccountDiffers,
                     diff.Caveats.NotKnown,
-                    diff.Caveats.FileVersionSourceDiffers),
+                    diff.Caveats.FileVersionSourceDiffers,
+                    diff.Caveats.TriggerDetailDiffers),
                 [.. diff.Added.Select(Presence)],
                 [.. diff.Removed.Select(Presence)],
                 [.. diff.Uncertain.Select(Presence)],
@@ -128,6 +129,10 @@ internal static class DiffJson
     /// document only grew at its end. True when one side is schema six and the other older: file
     /// versions were then not compared on any entry.
     /// </param>
+    /// <param name="TriggerDetailDiffers">
+    /// Added 2026-10-27 (logic report C01, schema seven) and LAST, for the same reason. True when one side
+    /// is schema seven and the other older: triggers were then compared by kind and action only.
+    /// </param>
     private sealed record CaveatsDocument(
         bool ElevationDiffers,
         bool MachineDiffers,
@@ -136,7 +141,8 @@ internal static class DiffJson
         bool LanguageDiffers,
         bool AccountDiffers,
         IReadOnlyList<string> NotKnown,
-        bool FileVersionSourceDiffers);
+        bool FileVersionSourceDiffers,
+        bool TriggerDetailDiffers);
 
     private sealed record LeftOutDocument(int Earlier, int Later);
 

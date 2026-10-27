@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Bws.Core.Snapshots;
@@ -12,8 +13,25 @@ namespace Bws.Core.Snapshots;
 /// </summary>
 public sealed record UnreadableDocument(int ErrorCode, string Message);
 
-/// <summary>One condition that starts or stops the entry by itself.</summary>
-public sealed record TriggerDocument(string Kind, string Action);
+/// <summary>
+/// One condition that starts or stops the entry by itself.
+///
+/// <b>Subtype and data since schema seven</b> (2026-10-27, logic report C01, owner's decision): until
+/// then it held the kind and the action only. The subtype is the GUID in lower case, null when the
+/// manager points at none. The data is always a list in a seven, empty for the kinds that carry
+/// none - and null only in a file written before seven, which never held it. A seven whose trigger
+/// has no data list is refused when it is read (<c>Snapshot.BrokenEntries</c>, since the review of
+/// PR #97). Whether a comparison looks at kinds and actions alone is decided by the two schema
+/// numbers, never by this null (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>).
+/// </summary>
+public sealed record TriggerDocument(
+    string Kind, string Action, string? Subtype, IReadOnlyList<TriggerDataDocument>? Data);
+
+/// <summary>
+/// One data item of a trigger: its type in our words and its values as text - see
+/// <see cref="TriggerData"/> for which form each type is written in and why.
+/// </summary>
+public sealed record TriggerDataDocument(string Type, IReadOnlyList<string> Values);
 
 /// <summary>
 /// What the system concluded about a file's signature.
@@ -339,10 +357,7 @@ public sealed record EntryDocument
             DependsOn = entry.DependsOn.IsPresent ? entry.DependsOn.Value : null,
             RequiredBy = entry.RequiredBy.IsPresent ? entry.RequiredBy.Value : null,
 
-            Triggers = entry.Triggers.IsPresent
-                ? [.. entry.Triggers.Value!.Select(trigger =>
-                    new TriggerDocument(trigger.Kind.ToString(), trigger.Action.ToString()))]
-                : null,
+            Triggers = entry.Triggers.IsPresent ? [.. entry.Triggers.Value!.Select(Trigger)] : null,
 
             BinaryPath = entry.BinaryPath.IsPresent ? entry.BinaryPath.Value : null,
             BinaryFile = entry.BinaryFile.IsPresent ? entry.BinaryFile.Value : null,
@@ -376,6 +391,17 @@ public sealed record EntryDocument
             NotRead = notRead.Count == 0 ? null : notRead
         };
     }
+
+    /// <summary>
+    /// One trigger as the document writes it. The GUID in lower case through the "D" form, the one
+    /// <c>sc qtriggerinfo</c> prints, so a person can put the two side by side.
+    /// </summary>
+    private static TriggerDocument Trigger(ServiceTrigger trigger) =>
+        new(
+            trigger.Kind.ToString(),
+            trigger.Action.ToString(),
+            trigger.Subtype?.ToString("D", CultureInfo.InvariantCulture),
+            [.. trigger.Data.Select(item => new TriggerDataDocument(item.Type.ToString(), item.Values))]);
 
     /// <summary>
     /// Takes the whole reading rather than its pieces. The pieces used to be handed over

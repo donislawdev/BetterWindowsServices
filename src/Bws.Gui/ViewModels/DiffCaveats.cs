@@ -10,7 +10,7 @@ namespace Bws.Gui.ViewModels;
 /// learning that one side was read without administrator rights has already believed something.
 /// The same facts the command line says, in the window's own words and its own language file.
 ///
-/// <b>Seven of them name the sides, and those come in two wordings since W2</b> - "the snapshot and
+/// <b>Eight of them name the sides, and those come in two wordings since W2</b> - "the snapshot and
 /// this window" against a machine read now, "the two snapshots" against a second file, which is the
 /// wording the command line has always used for two files. The other four speak of "either side" and
 /// are true of both.
@@ -31,6 +31,7 @@ internal static class DiffCaveats
             (caveats.LanguageDiffers, () => Texts.Of("gui.diff.caveat.language")),
             (caveats.AccountDiffers, () => files ? Texts.Of("gui.diff.files.caveat.account") : Texts.Of("gui.diff.caveat.account")),
             (caveats.FileVersionSourceDiffers, () => files ? Texts.Of("gui.diff.files.caveat.fileVersion") : Texts.Of("gui.diff.caveat.fileVersion")),
+            (caveats.TriggerDetailDiffers, () => files ? Texts.Of("gui.diff.files.caveat.triggers") : Texts.Of("gui.diff.caveat.triggers")),
             (caveats.NotKnown.Count > 0, () => Texts.Of("gui.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
             (diff.NeitherRead.Count > 0, () => Texts.Of("gui.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead.Select(DiffLines.Label)))),
             (diff.LeftOut.Any, () => LeftOut(diff.LeftOut, files)),

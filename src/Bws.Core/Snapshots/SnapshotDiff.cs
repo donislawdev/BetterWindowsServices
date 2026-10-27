@@ -303,7 +303,7 @@ public sealed partial record SnapshotDiff(
         {
             if (left.TryGetValue(entry.ServiceName, out var was))
             {
-                var difference = Compare(was, entry, unseen, ignored);
+                var difference = Compare(was, entry, unseen, ignored, caveats.TriggerDetailDiffers);
 
                 if (difference is not null)
                 {
@@ -385,11 +385,15 @@ public sealed partial record SnapshotDiff(
     /// Fields not looked at on this entry at all, because a caveat about the whole comparison already
     /// says why - never listed as incomparable here, which would repeat that sentence on every row.
     /// </param>
+    /// <param name="kindsOnly">
+    /// One side is older than whole triggers, so both are narrowed to what the older one holds
+    /// (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>), and a reported difference shows the two
+    /// narrowed values rather than one whole and one not.
+    /// </param>
     private static ChangedEntry? Compare(
-        EntryDocument before, EntryDocument after, Unseen unseen, string[] ignored)
+        EntryDocument before, EntryDocument after, Unseen unseen, string[] ignored, bool kindsOnly)
     {
-        var was = SnapshotJson.Document(before);
-        var now = SnapshotJson.Document(after);
+        var (was, now) = Documents(before, after, kindsOnly);
 
         // Two ways a field can be missing, and the snapshot format already tells them apart.
         // Using that distinction here is the whole of this decision.

@@ -54,15 +54,7 @@ public sealed class DocumentValueGuards
                 checkedValues += Member<SignatureStatus>(signature, "status");
             }
 
-            if (document.TryGetProperty("triggers", out var triggers)
-                && triggers.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var trigger in triggers.EnumerateArray())
-                {
-                    checkedValues += Member<TriggerKind>(trigger, "kind");
-                    checkedValues += Member<TriggerAction>(trigger, "action");
-                }
-            }
+            checkedValues += Triggers(document);
         }
 
         // A GUARD THAT READ NOTHING PASSES, which is how this whole family goes quietly wrong -
@@ -125,6 +117,47 @@ public sealed class DocumentValueGuards
             + "as a set - SnapshotDiff.Unordered - or named here as one whose order means something. "
             + $"The document holds [{string.Join(", ", lists)}] and the two sets name "
             + $"[{string.Join(", ", decided)}].");
+    }
+
+    /// <summary>
+    /// The enumerated values of one entry's triggers: kind and action, and since schema seven
+    /// (2026-10-27) the type of each data item - the one a script reads to know how to read the values
+    /// beside it.
+    /// </summary>
+    private static int Triggers(JsonElement document)
+    {
+        if (!document.TryGetProperty("triggers", out var triggers) || triggers.ValueKind != JsonValueKind.Array)
+        {
+            return 0;
+        }
+
+        var checkedValues = 0;
+
+        foreach (var trigger in triggers.EnumerateArray())
+        {
+            checkedValues += Member<TriggerKind>(trigger, "kind") + Member<TriggerAction>(trigger, "action");
+
+            // A seven writes the list and every item's type always, so here an absence FAILS rather than
+            // counting as nothing checked - review of PR #97: the count floor in the test above is met by
+            // the other fields alone, and would have let every type go missing without a word.
+            Assert.True(
+                trigger.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array,
+                $"A trigger is written without its data list: {trigger}");
+
+            checkedValues += data.EnumerateArray().Sum(Typed);
+        }
+
+        return checkedValues;
+    }
+
+    /// <summary>The type of one data item, which must be there - see the comment where this is called.</summary>
+    private static int Typed(JsonElement item)
+    {
+        Assert.True(
+            item.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String,
+            $"A trigger data item is written without its type: {item}");
+
+        return Member<TriggerDataType>(item, "type");
     }
 
     /// <summary>

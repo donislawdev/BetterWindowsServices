@@ -5934,7 +5934,8 @@ $mutations = @(
         # The pointer half of the bound. Without it the walk follows whatever the block claims,
         # and a block claiming nothing at address zero is where the program ends.
         Name = 'blocks: a trigger pointer that lands nowhere is not followed'
-        File = 'src\Bws.Core\ManagerBlocks.cs'
+        # MOVED 2026-10-27 with the whole trigger walk, into a file of its own (logic report C01).
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
         From = 'if (info.pTriggers is null || offset < 0 || offset >= buffer.Length)'
         To = 'if ((info.pTriggers is null || offset < 0 || offset >= buffer.Length) && false)'
         Test = 'ManagerBlockTests.A_count_with_a_pointer_to_nowhere_is_refused_rather_than_followed'
@@ -5943,7 +5944,8 @@ $mutations = @(
         # The count half. Max rather than a plain removal, so that `room` is still used and the
         # tree still compiles - the "mutate a value, not a proof" advice from the header.
         Name = 'blocks: a trigger count is held down to what the block holds'
-        File = 'src\Bws.Core\ManagerBlocks.cs'
+        # MOVED 2026-10-27 with the whole trigger walk, into a file of its own (logic report C01).
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
         From = 'var count = Math.Min(info.cTriggers, room);'
         To = 'var count = Math.Max(info.cTriggers, room);'
         Test = 'ManagerBlockTests.A_count_larger_than_the_block_is_held_down_to_what_the_block_holds'
@@ -6245,8 +6247,9 @@ $mutations = @(
         File = 'src\Bws.Core\Snapshots\Snapshot.cs'
         # RE-ANCHORED 2026-09-30: schema five, stability report D-5, package E.
         # RE-ANCHORED 2026-10-06: schema six, package SB - the source of fileVersion.
-        From = 'public const int CurrentSchemaVersion = 6;'
-        To = 'public const int CurrentSchemaVersion = 7;'
+        # RE-ANCHORED 2026-10-27: schema seven, logic report C01 - whole triggers.
+        From = 'public const int CurrentSchemaVersion = 7;'
+        To = 'public const int CurrentSchemaVersion = 8;'
         Test = 'SnapshotContractTests.The_file_says_what_it_needs_to_be_compared_later'
     },
     @{
@@ -14773,6 +14776,95 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '    private TimeSpan _spent;'
         To = '    private static TimeSpan _spent;'
         Test = 'QueryBudgetTests.Every_walk_begins_with_the_whole_budget'
+    }
+    @{
+        # C01: a data item is read only when every byte of it is inside the block. The mutant checks
+        # where it starts and not how long it is, and reads six bytes past a pinned test array.
+        Name = 'triggers: a data item running past the block refuses the field'
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
+        From = 'return offset >= 0 && offset <= length && size <= length - offset ? offset : null;'
+        To = 'return offset >= 0 && offset <= length ? offset : null;'
+        Test = 'TriggerBlockTests.A_data_item_running_past_the_end_of_the_block_refuses_the_field'
+    }
+    @{
+        # C01: bytes in lower case hexadecimal - the comparison folds nothing in a trigger since seven.
+        Name = 'triggers: bytes are written in lower case'
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
+        From = 'new TriggerData(TriggerDataType.Binary, [Convert.ToHexStringLower(bytes)]),'
+        To = 'new TriggerData(TriggerDataType.Binary, [Convert.ToHexString(bytes)]),'
+        Test = 'TriggerBlockTests.A_trigger_is_read_whole_with_its_subtype_and_every_type_of_data'
+    }
+    @{
+        # C01: the nulls closing a run of strings are not values.
+        Name = 'triggers: the nulls that close a run of strings are taken off'
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
+        From = 'while (kept > 1 && values[kept - 1].Length == 0)'
+        To = 'while (kept > values.Length)'
+        Test = 'TriggerBlockTests.A_trigger_is_read_whole_with_its_subtype_and_every_type_of_data'
+    }
+    @{
+        # C01: a keyword is eight bytes exactly - nine is a block that does not describe itself.
+        Name = 'triggers: a keyword of any size but eight refuses the field'
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
+        From = 'bytes.Length == sizeof(ulong)'
+        To = 'bytes.Length >= sizeof(ulong)'
+        Test = 'TriggerBlockTests.A_data_item_of_a_size_its_type_does_not_allow_refuses_the_field'
+    }
+    @{
+        # C01, owner's decision "yes, exactly": trigger data is compared with its case.
+        Name = 'diff: trigger data is compared with its case'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'private static readonly string[] ItemsIgnoreCase = ["dependsOn", "requiredBy", "requiredPrivileges"];'
+        To = 'private static readonly string[] ItemsIgnoreCase = ["dependsOn", "requiredBy", "requiredPrivileges", "triggers"];'
+        Test = 'SnapshotGoldenTests.A_change_of_case_in_trigger_data_is_a_difference_between_two_sevens_only'
+    }
+    @{
+        # C01: beside an older file both sides are narrowed to kind and action.
+        Name = 'diff: a seven beside an older file compares triggers by kind and action'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'if (kindsOnly)'
+        To = 'if (kindsOnly && false)'
+        Test = 'SnapshotGoldenTests.A_version_six_file_is_read_and_its_triggers_are_compared_by_kind_and_action'
+    }
+    @{
+        # C01: the caveat comes from the two schema numbers, which every file carries.
+        Name = 'diff: the trigger caveat is decided by the schema numbers'
+        File = 'src\Bws.Core\Snapshots\ComparisonCaveats.cs'
+        From = '(before.SchemaVersion >= WholeTriggersSince) != (after.SchemaVersion >= WholeTriggersSince),'
+        To = 'false,'
+        Test = 'SnapshotGoldenTests.A_version_six_file_is_read_and_its_triggers_are_compared_by_kind_and_action'
+    }
+    @{
+        # C01, review of PR #97: a seven whose trigger has no data list is refused when read.
+        Name = 'snapshot: a seven whose trigger is not whole is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = '(Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion))'
+        To = '(Contradiction(entry))'
+        Test = 'SnapshotGoldenTests.A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not'
+    }
+    @{
+        # C01, review of PR #97: the rule is one of schema seven - a six never wrote the data.
+        Name = 'snapshot: the rule on whole triggers is a rule of seven'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'if (schema < ComparisonCaveats.WholeTriggersSince || entry.Triggers is null)'
+        To = 'if (schema < 0 || entry.Triggers is null)'
+        Test = 'SnapshotGoldenTests.A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not'
+    }
+    @{
+        # C01, review of PR #97: a trigger is a value - equal by its data, not by the list object.
+        Name = 'triggers: a trigger is equal by its data items'
+        File = 'src\Bws.Core\ServiceTrigger.cs'
+        From = '&& Data.SequenceEqual(other.Data);'
+        To = '&& ReferenceEquals(Data, other.Data);'
+        Test = 'ServiceTriggerTests.Two_triggers_built_apart_from_the_same_reading_are_equal_and_hash_alike'
+    }
+    @{
+        # C01, review of PR #97: case is part of a data item's value.
+        Name = 'triggers: a data item is equal by its values with their case'
+        File = 'src\Bws.Core\ServiceTrigger.cs'
+        From = 'Values.SequenceEqual(other.Values, StringComparer.Ordinal)'
+        To = 'Values.SequenceEqual(other.Values, StringComparer.OrdinalIgnoreCase)'
+        Test = 'ServiceTriggerTests.A_trigger_whose_data_differs_only_in_case_is_a_different_trigger'
     }
 )
 

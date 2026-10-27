@@ -19,6 +19,21 @@ ignoreUntil = 2026-11-16
 reason = "mcp 1.29.0 is here only because semgrep requires it, and CI runs semgrep as semgrep scan. The advisory is about an MCP server over Streamable HTTP, and nothing in this repository serves MCP. The fix is mcp 1.30.0, but every semgrep release from 1.180.0 to 1.182.1 requires mcp==1.29.0 exactly (read on the package index on 2026-10-26), so pip cannot install it. Remove this entry once a semgrep release allows mcp 1.30.0 or later."
 
 [[IgnoredVulns]]
+id = "GHSA-5h93-6whr-6q8j"
+ignoreUntil = 2026-11-16
+reason = "mcp 1.29.0 is here only because semgrep requires it, for the reason given at GHSA-84m7-p3x7-pcfv above. The advisory, published 2026-10-27, is about the MCP client's HTTP transports following cross-origin redirects with custom headers and bodies. CI runs semgrep as semgrep scan (.github/workflows/security.yml), which acts as no MCP client and connects to no MCP server. The fix is mcp 1.30.0, and every semgrep release up to 1.182.1, the newest on 2026-10-27, requires mcp==1.29.0 exactly. Remove this entry once a semgrep release allows mcp 1.30.0 or later."
+
+[[IgnoredVulns]]
+id = "GHSA-rwrf-2pqf-9j8j"
+ignoreUntil = 2026-11-16
+reason = "mcp 1.29.0 is here only because semgrep requires it, for the reason given at GHSA-84m7-p3x7-pcfv above. The advisory, published 2026-10-27, is about the MCP client fetching $ref URLs chosen by a server while it validates tool results. CI runs semgrep as semgrep scan, which acts as no MCP client and validates no tool result. The fix is mcp 1.30.0, which pip cannot install next to any semgrep release up to 1.182.1. Remove this entry once a semgrep release allows mcp 1.30.0 or later."
+
+[[IgnoredVulns]]
+id = "GHSA-w4fh-qvv9-3v23"
+ignoreUntil = 2026-11-16
+reason = "mcp 1.29.0 is here only because semgrep requires it, for the reason given at GHSA-84m7-p3x7-pcfv above. The advisory, published 2026-10-27, is about an MCP server accepting bearer tokens issued for a different resource server. Nothing in this repository serves MCP, and CI runs semgrep as semgrep scan, which starts no server. The fix is mcp 1.30.0, which pip cannot install next to any semgrep release up to 1.182.1. Remove this entry once a semgrep release allows mcp 1.30.0 or later."
+
+[[IgnoredVulns]]
 id = "GHSA-xcq7-p3pf-p88h"
 ignoreUntil = 2026-11-16
 reason = "opentelemetry-api 1.37.0 is here only because semgrep requires opentelemetry-api~=1.37.0, which excludes every release from 1.38 up. The advisory is a denial of service through a slow regular expression in TraceState.from_header, reached when server instrumentation passes an incoming tracestate header to the propagator. CI runs semgrep as a one-off command line scan with metrics off (.github/workflows/security.yml, the semgrep scan step), so it serves no HTTP and receives no such header. The fix is opentelemetry-api 1.45.1, which pip cannot install next to the pinned semgrep. Remove this entry once a semgrep release allows opentelemetry-api 1.45.1 or later."

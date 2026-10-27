@@ -232,8 +232,17 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// instead of reporting hundreds of changes on a machine nobody touched. And an older build, which
     /// cannot know any of this, refuses a six by name rather than comparing two different questions.
     /// Four and five are still read - nothing in them is missing, only differently sourced.
+    ///
+    /// <b>SIX TO SEVEN ON 2026-10-27, AND A TRIGGER IS WHOLE</b> - logic report C01, the owner's decision
+    /// to do it in that series rather than leave it in the backlog. Each trigger carries its subtype and its
+    /// data items beside the kind and the action (<see cref="TriggerDocument"/>), where until then a file
+    /// could not tell one RPC interface from another. Four to six are still read: a trigger in them has
+    /// neither member and reads with both as null. A seven against an older file compares triggers by kind
+    /// and action alone and says so once (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>) - without
+    /// that, every entry with a trigger would differ by format alone, 117 of 780 on the machine this was
+    /// written on. And an older build refuses a seven by name rather than dropping what it cannot read.
     /// </summary>
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     /// <summary>
     /// The oldest schema this build still reads. Four since 2026-09-30 - see the version five
@@ -360,7 +369,7 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
                 return true;
             }
 
-            if (Contradiction(entry) is { } said)
+            if ((Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion)) is { } said)
             {
                 failure = $"Entry {index + 1} ('{entry.ServiceName}') {said}";
 
@@ -418,4 +427,34 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             ? $"holds a value for '{held}' and also says it was not read."
             : null;
     }
+
+    /// <summary>
+    /// Which trigger of a schema seven entry is not whole, or nothing - since 2026-10-27, the review of
+    /// PR #97.
+    ///
+    /// <b>A seven always writes a data list for every trigger</b>, empty for the kinds that carry none,
+    /// and every item in it with a type and at least one value (<see cref="TriggerData"/>). A trigger
+    /// without them is a file that does not hold what its schema promises - and two such files would
+    /// compare as equal on exactly what neither of them holds, which is the false "the same" a snapshot
+    /// is for avoiding. A rule of schema seven only: an older file never wrote the data, and its triggers
+    /// read with it as null. A trigger that is null as a whole is left alone, as it was before seven.
+    /// </summary>
+    private static string? TriggerGap(EntryDocument entry, int schema)
+    {
+        if (schema < ComparisonCaveats.WholeTriggersSince || entry.Triggers is null)
+        {
+            return null;
+        }
+
+        var gap = entry.Triggers.ToList().FindIndex(trigger => trigger is not null && !Whole(trigger));
+
+        return gap < 0
+            ? null
+            : $"has trigger {gap + 1} without its whole data list, which a version {schema} snapshot always holds.";
+    }
+
+    /// <summary>A data list, and every item in it with a type and at least one value, none of them missing.</summary>
+    private static bool Whole(TriggerDocument trigger) =>
+        trigger.Data is { } data
+        && data.All(item => item is { Type: not null, Values.Count: > 0 } && item.Values.All(value => value is not null));
 }
