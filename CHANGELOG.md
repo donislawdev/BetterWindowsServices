@@ -104,6 +104,17 @@ is not part of this repository.
   read".
 - The window cannot be made narrower than 1000 points, up from 900, so the new button fits in the
   bar of actions.
+- A snapshot now keeps what exactly each trigger waits for: its subtype - the device class, the
+  event provider, or which of a kind's two halves it is, such as a port opening rather than closing -
+  and its data, such as the RPC interface, the hardware ID or the port and protocol. Until now it kept
+  only the kind and the action, so two machines whose triggers waited for different things compared as
+  the same. Snapshots are now schema version 7, and this version still reads versions 4 to 6. A
+  comparison of a version 7 snapshot with an older one compares triggers by kind and action only and
+  says so once. Between two version 7 snapshots the data is compared exactly, including upper and lower
+  case, because Windows matches some of it exactly. The same subtype and data are in `bws list --json`
+  and `bws show --json`, as `subtype` and a `data` list of items with a `type` and their `values`. In
+  the JSON of a comparison the new caveat is `triggerDetailDiffers`, at the end of `caveats`. An older
+  version of this tool refuses a version 7 snapshot by name.
 
 ### Fixed
 

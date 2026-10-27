@@ -48,6 +48,23 @@ public sealed class TwoSnapshotsTests : IDisposable
         Assert.Equal(Texts.Of("gui.diff.files.row.added"), Assert.Single(sheet.Lines).What);
     }
 
+    /// <summary>
+    /// A snapshot written before whole triggers beside one written now: the sheet says once, in the
+    /// two-files wording, that triggers were compared by kind and action only (logic report C01,
+    /// 2026-10-27).
+    /// </summary>
+    [Fact]
+    public void An_older_snapshot_says_its_triggers_were_compared_by_kind_and_action_only()
+    {
+        var older = TwoFiles.Of(new Side(), Rows.Entry("Spooler"));
+        var sheet = TwoFiles.Sheet(
+            older with { Metadata = older.Metadata with { SchemaVersion = 6 } },
+            TwoFiles.Of(new Side { Hour = 1 }, Rows.Entry("Spooler")));
+
+        Assert.Contains(Texts.Of("gui.diff.files.caveat.triggers"), sheet.Caveats);
+        Assert.DoesNotContain(Texts.Of("gui.diff.caveat.triggers"), sheet.Caveats);
+    }
+
     [Fact]
     public void Both_notes_are_shown_and_both_sides_say_their_rights()
     {

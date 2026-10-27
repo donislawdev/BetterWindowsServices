@@ -35,6 +35,14 @@ namespace Bws.Core.Snapshots;
 /// owner's decision). Decided by the schema number, which both files always carry, so it is never
 /// "not known".
 /// </param>
+/// <param name="TriggerDetailDiffers">
+/// One side holds whole triggers and the other only their kinds and actions - schema seven against an
+/// older one (logic report C01, 2026-10-27). Triggers are then compared by kind and action alone on every
+/// entry, so a trigger added, removed or turned from start to stop is still reported, and a change in what
+/// exactly one waits for is not looked at. Decided by the schema number, so never "not known". The owner's
+/// decision that day, over the alternative of not comparing triggers at all, which is how file versions
+/// are treated beside six: there the older value is a different measurement, here it is a smaller one.
+/// </param>
 /// <param name="NotKnown">
 /// Metadata fields at least one of the two files does not carry, so the caveat each one feeds could
 /// not be decided either way - camelCase names, as they are written in the file. A version four
@@ -49,6 +57,7 @@ public sealed record ComparisonCaveats(
     bool LanguageDiffers,
     bool AccountDiffers,
     bool FileVersionSourceDiffers,
+    bool TriggerDetailDiffers,
     IReadOnlyList<string> NotKnown)
 {
     /// <summary>
@@ -56,6 +65,12 @@ public sealed record ComparisonCaveats(
     /// <see cref="Snapshot.CurrentSchemaVersion"/>, the paragraph on five to six.
     /// </summary>
     internal const int OwnFileVersionSince = 6;
+
+    /// <summary>
+    /// The first schema whose triggers carry their subtype and data - see
+    /// <see cref="Snapshot.CurrentSchemaVersion"/>, the paragraph on six to seven.
+    /// </summary>
+    internal const int WholeTriggersSince = 7;
 
     /// <summary>
     /// The two fields a person reads in their own language, left out of every entry when the two
@@ -118,6 +133,7 @@ public sealed record ComparisonCaveats(
             Disagree(before.NamesLanguage, after.NamesLanguage, StringComparison.OrdinalIgnoreCase),
             !string.Equals(before.TakenBy, after.TakenBy, StringComparison.OrdinalIgnoreCase),
             (before.SchemaVersion >= OwnFileVersionSince) != (after.SchemaVersion >= OwnFileVersionSince),
+            (before.SchemaVersion >= WholeTriggersSince) != (after.SchemaVersion >= WholeTriggersSince),
             notKnown);
     }
 

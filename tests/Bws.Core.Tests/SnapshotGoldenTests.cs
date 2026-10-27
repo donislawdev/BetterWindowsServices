@@ -32,7 +32,13 @@ namespace Bws.Core.Tests;
 /// </summary>
 public sealed class SnapshotGoldenTests
 {
-    private const string Kept = "snapshot-schema-6.json";
+    private const string Kept = "snapshot-schema-7.json";
+
+    /// <summary>
+    /// The copy kept before schema seven, 2026-10-27 - the same entries, with every trigger holding its
+    /// kind and action only. Still read, and compared with a seven by those two alone.
+    /// </summary>
+    private const string KeptSix = "snapshot-schema-6.json";
 
     /// <summary>
     /// The copy kept before schema six, 2026-10-06 - the same shape and the same entries, with file
@@ -59,7 +65,7 @@ public sealed class SnapshotGoldenTests
             return;
         }
 
-        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-6.actual.json");
+        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-7.actual.json");
         File.WriteAllText(actual, written, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         Assert.Fail(
@@ -86,7 +92,7 @@ public sealed class SnapshotGoldenTests
         // an old file and calling the difference a fault. The file name carries the number so
         // the bump has to touch both.
         Assert.True(
-            Snapshot.CurrentSchemaVersion == 6,
+            Snapshot.CurrentSchemaVersion == 7,
             $"The schema is now {Snapshot.CurrentSchemaVersion}. Keep a new copy named for it beside {Kept}.");
     }
 
@@ -151,6 +157,74 @@ public sealed class SnapshotGoldenTests
         Assert.True(plain.Drifted);
     }
 
+    /// <summary>
+    /// A file written before schema seven still reads, and its triggers are compared with a seven by kind
+    /// and action alone, said once - logic report C01, the owner's decision of 2026-10-27. The two kept
+    /// copies hold the same entries, so nothing may differ: without the caveat, every entry with a trigger
+    /// would differ by format alone.
+    /// </summary>
+    [Fact]
+    public void A_version_six_file_is_read_and_its_triggers_are_compared_by_kind_and_action()
+    {
+        Assert.True(SnapshotJson.TryRead(KeptText(KeptSix), out var older, out var failure), failure);
+        Assert.True(SnapshotJson.TryRead(KeptText(Kept), out var newer, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(older!, newer!, out var diff, out failure), failure);
+
+        Assert.True(diff.Caveats.TriggerDetailDiffers);
+        Assert.False(diff.Drifted);
+        Assert.Empty(diff.Changed);
+
+        // The canary: the kind is still compared under the caveat, so one trigger turned into another
+        // kind in the older file IS a difference - the lines above are about the narrowing, not about
+        // triggers going unread.
+        var moved = Once(KeptText(KeptSix), "\"kind\": \"CustomSystemStateChange\"", "\"kind\": \"DeviceArrival\"");
+
+        Assert.True(SnapshotJson.TryRead(moved, out var olderMoved, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(olderMoved!, newer!, out var kinds, out failure), failure);
+        Assert.True(kinds.Drifted);
+        Assert.Equal("sppsvc", Assert.Single(kinds.Changed).ServiceName);
+    }
+
+    /// <summary>
+    /// <b>Between two sevens a trigger's data is compared exactly</b>, the owner's decision of 2026-10-27:
+    /// one RPC interface the manager writes in upper case, written in lower case, is a difference - a
+    /// network endpoint trigger fires on an exact match. And the same edit in a file labelled six is not,
+    /// because against an older file only the kind and the action are looked at.
+    /// </summary>
+    [Fact]
+    public void A_change_of_case_in_trigger_data_is_a_difference_between_two_sevens_only()
+    {
+        Assert.True(SnapshotJson.TryRead(KeptText(Kept), out var newer, out var failure), failure);
+
+        var lowered = Once(KeptText(Kept), "0497B57D-2E66-424F-A0C6-157CD5D41700", "0497b57d-2e66-424f-a0c6-157cd5d41700");
+
+        Assert.True(SnapshotJson.TryRead(lowered, out var seven, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(seven!, newer!, out var exact, out failure), failure);
+
+        var changed = Assert.Single(exact.Changed);
+
+        Assert.Equal("Appinfo", changed.ServiceName);
+        Assert.Equal("triggers", Assert.Single(changed.Differences).Field);
+        Assert.False(exact.Caveats.TriggerDetailDiffers);
+
+        var labelledSix = Once(lowered, "\"schemaVersion\": 7", "\"schemaVersion\": 6");
+
+        Assert.True(SnapshotJson.TryRead(labelledSix, out var six, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(six!, newer!, out var narrowed, out failure), failure);
+        Assert.True(narrowed.Caveats.TriggerDetailDiffers);
+        Assert.Empty(narrowed.Changed);
+    }
+
+    /// <summary>The text with one occurrence of a piece replaced, failing when the piece is not there.</summary>
+    private static string Once(string text, string piece, string replacement)
+    {
+        var at = text.IndexOf(piece, StringComparison.Ordinal);
+
+        Assert.True(at >= 0, $"The kept copy holds no {piece}.");
+
+        return string.Concat(text.AsSpan(0, at), replacement, text.AsSpan(at + piece.Length));
+    }
+
     private static string MovedVersion(string text)
     {
         const string field = "\"fileVersion\": \"";
@@ -175,7 +249,7 @@ public sealed class SnapshotGoldenTests
         {
             Metadata = new SnapshotMetadata
             {
-                SchemaVersion = 6,
+                SchemaVersion = 7,
                 Machine = "GOLDEN",
                 OperatingSystem = "Microsoft Windows NT 10.0.26100.0",
                 TakenAt = new DateTimeOffset(2026, 9, 29, 12, 0, 0, TimeSpan.FromHours(2)),

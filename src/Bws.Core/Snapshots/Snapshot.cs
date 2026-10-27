@@ -232,8 +232,17 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// instead of reporting hundreds of changes on a machine nobody touched. And an older build, which
     /// cannot know any of this, refuses a six by name rather than comparing two different questions.
     /// Four and five are still read - nothing in them is missing, only differently sourced.
+    ///
+    /// <b>SIX TO SEVEN ON 2026-10-27, AND A TRIGGER IS WHOLE</b> - logic report C01, the owner's decision
+    /// to do it in that series rather than leave it in the backlog. Each trigger carries its subtype and its
+    /// data items beside the kind and the action (<see cref="TriggerDocument"/>), where until then a file
+    /// could not tell one RPC interface from another. Four to six are still read: a trigger in them has
+    /// neither member and reads with both as null. A seven against an older file compares triggers by kind
+    /// and action alone and says so once (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>) - without
+    /// that, every entry with a trigger would differ by format alone, 117 of 780 on the machine this was
+    /// written on. And an older build refuses a seven by name rather than dropping what it cannot read.
     /// </summary>
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     /// <summary>
     /// The oldest schema this build still reads. Four since 2026-09-30 - see the version five

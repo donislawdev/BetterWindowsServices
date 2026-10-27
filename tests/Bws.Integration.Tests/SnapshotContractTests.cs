@@ -121,7 +121,10 @@ public sealed class SnapshotContractTests : IDisposable
         // SIX SINCE 2026-10-06, package SB: nothing in the shape changed, the source of fileVersion did -
         // the file's own resource instead of a language file beside it. A five against a six does not
         // compare file versions and says so once, which is the whole reason the number moved.
-        Assert.Equal(6, metadata.GetProperty("schemaVersion").GetInt32());
+        //
+        // SEVEN SINCE 2026-10-27, logic report C01: every trigger carries its subtype and its data. A six
+        // against a seven compares triggers by kind and action only and says so once.
+        Assert.Equal(7, metadata.GetProperty("schemaVersion").GetInt32());
         Assert.StartsWith(
             $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}.{Environment.OSVersion.Version.Build}.",
             metadata.GetProperty("operatingSystemVersion").GetString()!,

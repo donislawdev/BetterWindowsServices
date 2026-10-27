@@ -57,7 +57,7 @@ public sealed class DiffOutputTests
     {
         var diff = Of(changed: []) with
         {
-            Caveats = new ComparisonCaveats(false, false, false, false, true, true, false, ["operatingSystemVersion", "namesLanguage"])
+            Caveats = new ComparisonCaveats(false, false, false, false, true, true, false, false, ["operatingSystemVersion", "namesLanguage"])
         };
 
         var text = DiffText.Render(diff);
@@ -80,16 +80,39 @@ public sealed class DiffOutputTests
     {
         var diff = Of(changed: []) with
         {
-            Caveats = new ComparisonCaveats(false, false, false, false, false, false, true, [])
+            Caveats = new ComparisonCaveats(false, false, false, false, false, false, true, false, [])
         };
 
         Assert.Contains(Texts.Of("cli.diff.caveat.fileVersion"), DiffText.Render(diff), StringComparison.Ordinal);
 
-        // Last, so a script reading the document by position before 2026-10-06 still finds what it found.
+        // After everything that was there before it, so a script reading the document by position before
+        // 2026-10-06 still finds what it found - and followed only by the caveat schema seven added.
         var caveats = Document(diff).GetProperty("caveats");
 
         Assert.True(caveats.GetProperty("fileVersionSourceDiffers").GetBoolean());
-        Assert.Equal("fileVersionSourceDiffers", caveats.EnumerateObject().Last().Name);
+        Assert.Equal(
+            ["fileVersionSourceDiffers", "triggerDetailDiffers"],
+            caveats.EnumerateObject().TakeLast(2).Select(field => field.Name));
+    }
+
+    /// <summary>
+    /// The caveat of schema seven (logic report C01, 2026-10-27): said in the text and written last in
+    /// the document, so nothing a script read by position before that day moved.
+    /// </summary>
+    [Fact]
+    public void The_caveat_of_schema_seven_is_said_and_written_last()
+    {
+        var diff = Of(changed: []) with
+        {
+            Caveats = new ComparisonCaveats(false, false, false, false, false, false, false, true, [])
+        };
+
+        Assert.Contains(Texts.Of("cli.diff.caveat.triggers"), DiffText.Render(diff), StringComparison.Ordinal);
+
+        var caveats = Document(diff).GetProperty("caveats");
+
+        Assert.True(caveats.GetProperty("triggerDetailDiffers").GetBoolean());
+        Assert.Equal("triggerDetailDiffers", caveats.EnumerateObject().Last().Name);
     }
 
     [Fact]
@@ -182,7 +205,7 @@ public sealed class DiffOutputTests
     private static SnapshotDiff Of(IReadOnlyList<ChangedEntry> changed, InstancesLeftOut? leftOut = null) =>
         new(
             [], [], changed, [], [], [], [],
-            new ComparisonCaveats(false, false, false, false, false, false, false, []),
+            new ComparisonCaveats(false, false, false, false, false, false, false, false, []),
             leftOut ?? new InstancesLeftOut(0, 0),
             []);
 
