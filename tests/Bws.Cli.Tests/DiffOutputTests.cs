@@ -129,19 +129,19 @@ public sealed class DiffOutputTests
     }
 
     [Fact]
-    public void A_script_finds_entries_the_manager_still_holds_among_the_uncertain_in_order()
+    public void A_script_finds_entries_the_manager_still_holds_under_their_own_key_at_the_end()
     {
-        // The owner's decision named them uncertain, and a key of their own would be a new contract.
-        var diff = Of(changed: []) with
+        // Backlog 623, owner's decision: their own key, so a script tells "the manager says it is there"
+        // from "the other side may not have been shown it" - and last, so the document only grew at its end.
+        var root = Document(Of(changed: []) with
         {
             Uncertain = [new EntryPresence("Zeta", "Zeta")],
             Unlisted = [new EntryPresence("Alpha", "Alpha")]
-        };
+        });
 
-        var names = Document(diff).GetProperty("uncertain").EnumerateArray()
-            .Select(entry => entry.GetProperty("serviceName").GetString());
-
-        Assert.Equal(["Alpha", "Zeta"], names);
+        Assert.Equal("unlisted", root.EnumerateObject().Last().Name);
+        Assert.Equal("Alpha", Assert.Single(root.GetProperty("unlisted").EnumerateArray()).GetProperty("serviceName").GetString());
+        Assert.Equal("Zeta", Assert.Single(root.GetProperty("uncertain").EnumerateArray()).GetProperty("serviceName").GetString());
     }
 
     [Fact]
@@ -161,15 +161,16 @@ public sealed class DiffOutputTests
     [Fact]
     public void A_field_refused_to_both_snapshots_is_written_last_with_its_entries()
     {
-        // Last, so a script reading the document by position before 2026-10-14 still finds what it
-        // found. And the entries are in it by name, so a script loses nothing that the old
-        // per-entry place under notFullyCompared told it.
+        // Last when it came, so a script reading the document by position before 2026-10-14 still finds
+        // what it found - and since 2026-10-27 followed only by "unlisted", which came after it. And the
+        // entries are in it by name, so a script loses nothing that the old per-entry place under
+        // notFullyCompared told it.
         var root = Document(Of(changed: []) with
         {
             RefusedByBoth = [new RefusedField("description", ["IsoSessionCore", "Tcpip6"])]
         });
 
-        Assert.Equal("refusedByBoth", root.EnumerateObject().Last().Name);
+        Assert.Equal(["refusedByBoth", "unlisted"], root.EnumerateObject().TakeLast(2).Select(property => property.Name));
 
         var refused = Assert.Single(root.GetProperty("refusedByBoth").EnumerateArray());
 

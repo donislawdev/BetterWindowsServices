@@ -111,9 +111,8 @@ public sealed record RefusedField(string Field, IReadOnlyList<string> Entries);
 /// Entries the snapshot holds that this machine's listing did not, and that the manager, asked by name,
 /// says it still holds - only a comparison with this machine fills it (<see cref="TryAgainstMachine"/>,
 /// logic report S03, 2026-10-27). Not drift and not removed: the listing leaves out what this account
-/// may not query. The machine-readable comparison puts them under "uncertain", where a script already
-/// looks for what one side could not see - the owner's decision named them so, and a key of their own
-/// would be a new contract.
+/// may not query. Their own key at the end of the machine-readable comparison, "unlisted" - owner's
+/// decision of the same day (backlog 623), so a script tells them from "cannot tell" as a person does.
 /// </param>
 public sealed partial record SnapshotDiff(
     IReadOnlyList<EntryPresence> Added,

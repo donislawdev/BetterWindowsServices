@@ -12465,8 +12465,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'diff json: a field refused to both sides is written with its entries'
         File = 'src\Bws.Cli\DiffJson.cs'
-        From = '                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))]),'
-        To = '                [.. diff.RefusedByBoth.Take(0).Select(field => new RefusedDocument(field.Field, field.Entries))]),'
+        # RE-ANCHORED 2026-10-27: "unlisted" follows it at the end of the document (backlog 623).
+        From = '                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))],'
+        To = '                [.. diff.RefusedByBoth.Take(0).Select(field => new RefusedDocument(field.Field, field.Entries))],'
         Test = 'DiffOutputTests.A_field_refused_to_both_snapshots_is_written_last_with_its_entries'
     }
     @{
@@ -14540,12 +14541,12 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'SnapshottingTests.An_entry_the_machine_still_holds_and_no_longer_lists_is_not_a_removal'
     }
     @{
-        # S03: a script finds them among the uncertain.
-        Name = 'live diff json: entries still held are among the uncertain'
+        # S03 and backlog 623: a script finds them under their own key.
+        Name = 'live diff json: entries still held have their own key'
         File = 'src\Bws.Cli\DiffJson.cs'
-        From = 'diff.Uncertain.Concat(diff.Unlisted)'
-        To = 'diff.Uncertain'
-        Test = 'DiffOutputTests.A_script_finds_entries_the_manager_still_holds_among_the_uncertain_in_order'
+        From = '                [.. diff.Unlisted.Select(Presence)]),'
+        To = '                [.. diff.Uncertain.Select(Presence)]),'
+        Test = 'DiffOutputTests.A_script_finds_entries_the_manager_still_holds_under_their_own_key_at_the_end'
     }
     @{
         # S03: and the summary counts them as seen by one side.
