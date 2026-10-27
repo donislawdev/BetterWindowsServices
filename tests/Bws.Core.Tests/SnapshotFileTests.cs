@@ -78,6 +78,19 @@ public sealed class SnapshotFileTests : IDisposable
     }
 
     [Fact]
+    public void Without_force_a_folder_arriving_before_the_move_stays_and_is_named()
+    {
+        // The move refuses a folder with the same code as a file (AtomicFileTests), and the person is told it
+        // is a folder rather than that a snapshot is already there.
+        var refusal = SnapshotOnDisk.Write(
+            Target, Rendered(), force: false, SnapshotOnDisk.Biggest, meanwhile: () => Directory.CreateDirectory(Target));
+
+        Assert.Equal(DiskFault.IsFolder, refusal?.Fault);
+        Assert.True(Directory.Exists(Target));
+        Assert.Single(Directory.GetFileSystemEntries(_directory));
+    }
+
+    [Fact]
     public void With_force_a_snapshot_arriving_before_the_move_is_replaced()
     {
         // Told that a snapshot standing there may go - the gap is left as it was, and said in SnapshotOnDisk.

@@ -70,6 +70,11 @@ public static class AtomicFile
     /// something is there, and the answer was true only until the move: two runs writing one name, or a
     /// file appearing while the machine was read, slipped between the question and a move that always
     /// replaced. The refusal now lives in the move itself, which Windows makes in one step.
+    ///
+    /// <b>Where "nothing left beside it" stops</b>, said because the sentence above is a promise: the
+    /// temporary file is deleted the way every failure here deletes it, and a delete that something else
+    /// refuses at that instant is not reported (<see cref="Delete"/> says why). Something would have to
+    /// hold, at that instant, a file this method created microseconds earlier under a random name.
     /// </summary>
     /// <exception cref="DirectoryNotFoundException">The directory does not exist.</exception>
     public static bool WriteNew(string path, string content) => Land(path, content, replace: false);

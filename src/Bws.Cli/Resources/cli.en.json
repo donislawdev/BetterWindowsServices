@@ -316,7 +316,7 @@
   "cli.diff.added": "Added ({0}):",
   "cli.diff.removed": "Removed ({0}):",
   "cli.diff.uncertain": "Cannot tell ({0}) - present in the elevated snapshot, and the other was taken without elevation, so the manager may simply not have handed these over:",
-  "cli.diff.unlisted": "Still there ({0}) - missing from this machine's list, but Windows says it still holds these. Its list leaves out what this account may not query, so they were not compared:",
+  "cli.diff.unlisted": "Still there ({0}) - Windows still holds these, but leaves them out of the list it shows this account, so they were not compared:",
   "cli.diff.changed": "Changed ({0}):",
   "cli.diff.notFullyCompared": "Not fully compared ({0}) - nothing differs, and a field one of the two could not put a value to, so nobody can say either way:",
   "cli.diff.entry": "  {0}  {1}",

@@ -164,9 +164,8 @@ is not part of this repository.
   this account - after its permissions changed, for example. Every service the reading lacks is asked
   about by name. One Windows still holds is listed under its own heading as still there and not
   compared, and is not a change of configuration - in `--json` it is in a new `unlisted` list at the
-  end of the document. One Windows no
-  longer holds is removed, also when the snapshot was taken with administrator rights and the
-  comparison runs without them, where the answer used to be "cannot tell".
+  end of the document. One Windows no longer holds is removed, also when the snapshot was taken with
+  administrator rights and the comparison runs without them, where the answer used to be "cannot tell".
 - The caveat about fields neither side of a comparison holds now says it applies to at least one entry.
   It used to say no entry was compared on them, also when only one entry lacked them.
 - In the window, a comparison that finishes after you have gone to another tab, opened the form for a

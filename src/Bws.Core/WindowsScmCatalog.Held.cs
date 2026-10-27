@@ -37,6 +37,13 @@ public sealed partial class WindowsScmCatalog
                 "Could not open the service control manager to ask about entries missing from its list.");
         }
 
+        // ONE NAME AT A TIME ON PURPOSE, measured rather than copied from ReadAll, which is parallel because
+        // describing an entry costs about a millisecond. Asking whether a name is held costs one open and one
+        // close: measured 2026-10-27 (16 processors, elevated, five runs after a cold one) at 31.0-33.5 ms for
+        // 781 real names one at a time against 16.5-17.4 ms spread over the processors, and at 13.3-13.6 ms
+        // for 781 names that do not exist either way. The ordinary answer is a handful of names, so threads
+        // would buy nothing a person can see, and they would not shorten a hostile file full of invented
+        // names at all - those answer in one call each, as fast in a row as spread out.
         return [.. names.Where(name => Held(manager, name))];
     }
 

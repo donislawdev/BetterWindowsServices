@@ -542,7 +542,7 @@
   "gui.diff.row.added": "Added since the snapshot",
   "gui.diff.row.removed": "Gone since the snapshot",
   "gui.diff.row.uncertain": "Seen on one side only - the other side was read without administrator rights",
-  "gui.diff.row.unlisted": "Not in this machine's list - Windows still holds it and leaves out of the list what this account may not query",
+  "gui.diff.row.unlisted": "Still there - Windows still holds it, but leaves it out of the list it shows this account",
   "gui.diff.row.notListed": "there, not listed",
   "gui.diff.row.there": "there",
   "gui.diff.row.notThere": "not there",
