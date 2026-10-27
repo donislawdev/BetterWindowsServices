@@ -104,6 +104,47 @@ public sealed partial record SnapshotDiff
     }
 
     /// <summary>
+    /// The triggers each side holds and the other does not, for the triggers field - null for any other.
+    ///
+    /// <b>Keyed by the very text <see cref="Compared"/> sorts</b>, so this agrees with the decision that the
+    /// field differs: exact case since schema seven, and the narrowed kind and action when one side is older
+    /// (the two documents arrive already narrowed by <see cref="Documents"/>). A quadratic match, said rather
+    /// than hidden: the most triggers one entry holds on the machine this was written on is thirteen.
+    /// </summary>
+    private static TriggerChange? Change(string field, JsonNode? was, JsonNode? now)
+    {
+        if (field != Triggers)
+        {
+            return null;
+        }
+
+        var added = Listed(now).ToList();
+        var removed = new List<TriggerDocument>();
+
+        foreach (var (key, trigger) in Listed(was))
+        {
+            var match = added.FindIndex(other => other.Key == key);
+
+            if (match < 0)
+            {
+                removed.Add(trigger);
+            }
+            else
+            {
+                added.RemoveAt(match);
+            }
+        }
+
+        return new TriggerChange(removed, [.. added.Select(item => item.Trigger)]);
+    }
+
+    /// <summary>The triggers of one side with the text they are compared by. A side with none holds an empty list.</summary>
+    private static IEnumerable<(string Key, TriggerDocument Trigger)> Listed(JsonNode? node) =>
+        node is JsonArray items
+            ? items.Select(item => (Text(item) ?? string.Empty, SnapshotJson.Trigger(item)))
+            : [];
+
+    /// <summary>
     /// Fields whose value names something Windows itself compares without case.
     ///
     /// <b>Three fields, four from 2026-08-26 until 2026-10-27, and each one is here because the

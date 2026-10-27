@@ -202,6 +202,54 @@ public sealed class DiffOutputTests
         Assert.Empty(root.GetProperty("notFullyCompared").EnumerateArray());
     }
 
+    /// <summary>
+    /// <b>A line per trigger only one side holds, the other side "nothing"</b> - backlog 625, the owner's
+    /// decision "a line per trigger" of 2026-10-27, in the words of the preview the owner chose. A value
+    /// changed in one trigger is one line out and one line in. And the machine document keeps the two
+    /// whole lists, which is the contract a script reads.
+    /// </summary>
+    [Fact]
+    public void A_trigger_change_is_a_line_per_trigger_and_the_json_keeps_the_two_lists()
+    {
+        var removed = new TriggerDocument(
+            "FirewallPort", "Start", "b7569e07-8421-4ee0-ad10-86915afdad09", [new TriggerDataDocument("String", ["500", "UDP"])]);
+        var added = removed with { Data = [new TriggerDataDocument("String", ["501", "UDP"])] };
+        var difference = new FieldDifference("triggers", DifferenceGroup.Configuration, "[before]", "[after]")
+        {
+            Triggers = new TriggerChange([removed], [added])
+        };
+        var diff = Of(changed: [new ChangedEntry("IKEEXT", "IKE and AuthIP", [difference], [])]);
+
+        var text = DiffText.Render(diff);
+
+        Assert.Contains("    triggers: Firewall port/Start  Port opened  500, UDP -> nothing" + Environment.NewLine, text, StringComparison.Ordinal);
+        Assert.Contains("    triggers: nothing -> Firewall port/Start  Port opened  501, UDP" + Environment.NewLine, text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[before]", text, StringComparison.Ordinal);
+
+        var written = Document(diff).GetProperty("changed")[0].GetProperty("differences")[0];
+
+        Assert.Equal("[before]", written.GetProperty("before").GetString());
+        Assert.Equal("[after]", written.GetProperty("after").GetString());
+        Assert.False(written.TryGetProperty("triggers", out _));
+    }
+
+    /// <summary>
+    /// A triggers field that differs with no trigger on either side alone - nothing against an empty list,
+    /// which a file can hold - still says its two values. A difference with no line under it is silence.
+    /// </summary>
+    [Fact]
+    public void A_trigger_difference_with_no_line_to_give_says_its_two_values()
+    {
+        var difference = new FieldDifference("triggers", DifferenceGroup.Configuration, null, "[]")
+        {
+            Triggers = new TriggerChange([], [])
+        };
+
+        var text = DiffText.Render(Of(changed: [new ChangedEntry("Spooler", "Print Spooler", [difference], [])]));
+
+        Assert.Contains("    triggers: nothing -> []" + Environment.NewLine, text, StringComparison.Ordinal);
+    }
+
     private static SnapshotDiff Of(IReadOnlyList<ChangedEntry> changed, InstancesLeftOut? leftOut = null) =>
         new(
             [], [], changed, [], [], [], [],

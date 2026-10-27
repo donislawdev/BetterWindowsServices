@@ -88,7 +88,8 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Column="0"
+                <TextBlock x:Name="Label"
+                           Grid.Column="0"
                            Text="{Binding Label}"
                            Margin="{StaticResource MarginBetweenControls}"
                            Style="{StaticResource DetailLabelText}" />
@@ -104,7 +105,15 @@
             </Grid>
 
             <DataTemplate.Triggers>
+                <!--
+                    AND THE LABEL SPANS TOO, SINCE 2026-10-27 (backlog 625). A prose line's label stands on a
+                    row of its own, so it has no column to line up with - but in column 0 it still took part
+                    in the shared label width, and a trigger's label ("Network endpoint/Start") widened the
+                    label column of the WHOLE panel by 7 device pixels, measured: every value of every
+                    section moved by how long the entry's trigger names happened to be.
+                -->
                 <DataTrigger Binding="{Binding Wears}" Value="prose">
+                    <Setter TargetName="Label" Property="Grid.ColumnSpan" Value="3" />
                     <Setter TargetName="Value" Property="Grid.Row" Value="1" />
                     <Setter TargetName="Value" Property="Grid.Column" Value="0" />
                     <Setter TargetName="Value" Property="Grid.ColumnSpan" Value="3" />

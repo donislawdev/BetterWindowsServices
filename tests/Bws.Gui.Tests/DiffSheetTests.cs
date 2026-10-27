@@ -78,6 +78,35 @@ public sealed class DiffSheetTests
             sheet.Caveats);
     }
 
+    /// <summary>
+    /// <b>A row per trigger only one side holds, the other side the word for nothing</b> - backlog 625, the
+    /// owner's decision "a line per trigger" of 2026-10-27, the command line's lines as rows. A value
+    /// changed in one of two triggers is one row out and one row in, and the trigger both sides hold is no
+    /// row at all. The changed value carries a right to left override, written out like any value from a
+    /// file - the window's texts do not escape what they are given, so the trigger's words must.
+    /// </summary>
+    [Fact]
+    public void A_trigger_change_is_a_row_per_trigger_and_a_foreign_value_in_it_is_written_out()
+    {
+        var reversed = "50" + char.ConvertFromUtf32(0x202E) + "1";
+        var nothing = Texts.Of("gui.diff.row.nothing");
+
+        var sheet = Sheet(
+            [Rows.Entry("IKEEXT") with { Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present([Port("500"), Port("4500")]) }],
+            [Rows.Entry("IKEEXT") with { Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present([Port(reversed), Port("4500")]) }]);
+
+        Assert.Equal(2, sheet.Lines.Count);
+        Assert.All(sheet.Lines, line => Assert.Equal(Texts.Of(Columns.Of("triggers")!.LabelKey), line.What));
+        Assert.Contains(sheet.Lines, line => line.Before == "Firewall port/Start  Port opened  500, UDP" && line.After == nothing);
+        Assert.Contains(sheet.Lines, line => line.Before == nothing && line.After == "Firewall port/Start  Port opened  50<U+202E>1, UDP");
+    }
+
+    private static ServiceTrigger Port(string number) => new(
+        TriggerKind.FirewallPort,
+        TriggerAction.Start,
+        new Guid("b7569e07-8421-4ee0-ad10-86915afdad09"),
+        [new TriggerData(TriggerDataType.String, [number, "UDP"])]);
+
     [Fact]
     public void A_character_in_a_foreign_file_cannot_reorder_the_text_around_it()
     {

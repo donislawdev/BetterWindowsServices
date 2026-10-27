@@ -239,6 +239,14 @@ public static class SnapshotJson
         return tree;
     }
 
+    /// <summary>
+    /// One trigger of a document tree back as its record, in the shape the file is read with - for the
+    /// comparison, which works on trees and tells a person about triggers. A trigger a tree holds as
+    /// nothing comes back as one of no kind, so the person is told something rather than nothing.
+    /// </summary>
+    internal static TriggerDocument Trigger(JsonNode? node) =>
+        node?.Deserialize<TriggerDocument>(Shape) ?? new TriggerDocument(string.Empty, string.Empty, null, null);
+
     private static void Drop(JsonObject entry, string property)
     {
         entry.Remove(property);

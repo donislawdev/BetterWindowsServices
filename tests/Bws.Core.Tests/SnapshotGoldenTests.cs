@@ -295,7 +295,8 @@ public sealed class SnapshotGoldenTests
     /// would get, so it has to fail here rather than be skipped over quietly. The line endings
     /// survive a checkout because .gitattributes marks the folder as not text.
     /// </summary>
-    private static string KeptText(string name)
+    /// <summary>A kept copy's text. Internal since 2026-10-27 so the trigger comparison tests read the same copies.</summary>
+    internal static string KeptText(string name)
     {
         using var stream = typeof(SnapshotGoldenTests).Assembly.GetManifestResourceStream(name)
             ?? throw new InvalidOperationException($"{name} is not embedded in the test assembly.");

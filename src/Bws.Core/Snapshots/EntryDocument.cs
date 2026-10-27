@@ -25,7 +25,28 @@ public sealed record UnreadableDocument(int ErrorCode, string Message);
 /// numbers, never by this null (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>).
 /// </summary>
 public sealed record TriggerDocument(
-    string Kind, string Action, string? Subtype, IReadOnlyList<TriggerDataDocument>? Data);
+    string Kind, string Action, string? Subtype, IReadOnlyList<TriggerDataDocument>? Data)
+{
+    /// <summary>
+    /// One trigger as the document writes it. The GUID in lower case through the "D" form, the one
+    /// <c>sc qtriggerinfo</c> prints, so a person can put the two side by side.
+    ///
+    /// <b>Public, and here rather than private to <see cref="EntryDocument"/>, since 2026-10-27</b>
+    /// (backlog 625): the words a person reads about a trigger are made from this form in both
+    /// interfaces, for <c>bws show</c> as much as for a comparison, so a trigger reads the same in a
+    /// live entry and in a snapshot - one mapping, not one per caller.
+    /// </summary>
+    public static TriggerDocument Of(ServiceTrigger trigger)
+    {
+        ArgumentNullException.ThrowIfNull(trigger);
+
+        return new(
+            trigger.Kind.ToString(),
+            trigger.Action.ToString(),
+            trigger.Subtype?.ToString("D", CultureInfo.InvariantCulture),
+            [.. trigger.Data.Select(item => new TriggerDataDocument(item.Type.ToString(), item.Values))]);
+    }
+}
 
 /// <summary>
 /// One data item of a trigger: its type in our words and its values as text - see
@@ -357,7 +378,7 @@ public sealed record EntryDocument
             DependsOn = entry.DependsOn.IsPresent ? entry.DependsOn.Value : null,
             RequiredBy = entry.RequiredBy.IsPresent ? entry.RequiredBy.Value : null,
 
-            Triggers = entry.Triggers.IsPresent ? [.. entry.Triggers.Value!.Select(Trigger)] : null,
+            Triggers = entry.Triggers.IsPresent ? [.. entry.Triggers.Value!.Select(TriggerDocument.Of)] : null,
 
             BinaryPath = entry.BinaryPath.IsPresent ? entry.BinaryPath.Value : null,
             BinaryFile = entry.BinaryFile.IsPresent ? entry.BinaryFile.Value : null,
@@ -391,17 +412,6 @@ public sealed record EntryDocument
             NotRead = notRead.Count == 0 ? null : notRead
         };
     }
-
-    /// <summary>
-    /// One trigger as the document writes it. The GUID in lower case through the "D" form, the one
-    /// <c>sc qtriggerinfo</c> prints, so a person can put the two side by side.
-    /// </summary>
-    private static TriggerDocument Trigger(ServiceTrigger trigger) =>
-        new(
-            trigger.Kind.ToString(),
-            trigger.Action.ToString(),
-            trigger.Subtype?.ToString("D", CultureInfo.InvariantCulture),
-            [.. trigger.Data.Select(item => new TriggerDataDocument(item.Type.ToString(), item.Values))]);
 
     /// <summary>
     /// Takes the whole reading rather than its pieces. The pieces used to be handed over

@@ -174,6 +174,74 @@ public sealed class DetailsGuards
     /// One grouping decided in one place - <see cref="Columns"/> - so somebody who learned where a
     /// field lives while choosing columns finds it in the same place while reading about an entry.
     /// </summary>
+    /// <summary>
+    /// <b>Every trigger is a line of a section of its own, after the four sections of fields</b> - backlog
+    /// 625, the owner's decisions of 2026-10-27 ("V1 - full width", "after Advanced, before History"). The
+    /// label is the kind and the action, the value the subtype and each data item on a line under it, and
+    /// the line wears prose, so the panel draws it at full width. The advanced section's own line keeps the
+    /// cell's words - the kinds, once each - because that line is the column.
+    /// </summary>
+    [Fact]
+    public void Every_trigger_is_a_line_of_its_own_section_after_the_fields_drawn_at_full_width()
+    {
+        var sections = Details.Of(Triggered());
+        var triggers = sections[^1];
+
+        Assert.Equal(5, sections.Count);
+        Assert.Equal(Texts.Of("gui.details.section.triggers"), triggers.Heading);
+        Assert.All(triggers.Lines, line => Assert.Equal("prose", line.Wears));
+        Assert.Equal(
+            [
+                ("Firewall port/Start", "Port opened\n500, UDP"),
+                ("Group policy/Start", "Machine policy"),
+                ("Custom/Stop", "a9f076c5-7e2b-48c4-8812-77bf7a616dfe\nlevel 4")
+            ],
+            triggers.Lines.Select(line => (line.Label, line.Value)));
+
+        var advanced = sections.Single(section => section.Heading == Texts.Of(Columns.Advanced));
+
+        Assert.Equal(
+            "Firewall port, Group policy, Custom",
+            advanced.Lines.Single(line => line.Label == Texts.Of("gui.column.triggers")).Value);
+    }
+
+    /// <summary>
+    /// No section for an entry with no triggers - the ordinary case - and none for a reading that was
+    /// refused either: the advanced line already says "no access", and a section would repeat it.
+    /// </summary>
+    [Fact]
+    public void An_entry_with_no_triggers_or_a_refused_reading_has_no_triggers_section()
+    {
+        var refused = Rows.Entry("Spooler") with { Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Denied(5, "Access is denied.") };
+
+        Assert.DoesNotContain(Details.Of(Rows.Entry("Spooler")), section => section.Heading == Texts.Of("gui.details.section.triggers"));
+        Assert.DoesNotContain(Details.Of(refused), section => section.Heading == Texts.Of("gui.details.section.triggers"));
+    }
+
+    /// <summary>A copy carries the section, the owner's decision "yes" of 2026-10-27 - a copy is what the panel says.</summary>
+    [Fact]
+    public void A_copy_carries_the_triggers_section()
+    {
+        var copied = Details.AsText(Triggered());
+
+        Assert.Contains(Texts.Of("gui.details.section.triggers") + Environment.NewLine + "Firewall port/Start\tPort opened\n500, UDP", copied, StringComparison.Ordinal);
+    }
+
+    /// <summary>A firewall port with its four values cut to two, a group policy with none, and a stop trigger with a level.</summary>
+    private static ScmEntry Triggered() => Rows.Entry("IKEEXT") with
+    {
+        Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+        [
+            new ServiceTrigger(
+                TriggerKind.FirewallPort, TriggerAction.Start, new Guid("b7569e07-8421-4ee0-ad10-86915afdad09"),
+                [new TriggerData(TriggerDataType.String, ["500", "UDP"])]),
+            new ServiceTrigger(TriggerKind.GroupPolicy, TriggerAction.Start, new Guid("659fcae6-5bdb-4da9-b1ff-ca2a178d46e0"), []),
+            new ServiceTrigger(
+                TriggerKind.Custom, TriggerAction.Stop, new Guid("a9f076c5-7e2b-48c4-8812-77bf7a616dfe"),
+                [new TriggerData(TriggerDataType.Level, ["4"])])
+        ])
+    };
+
     [Fact]
     public void Every_line_sits_under_the_heading_its_column_belongs_to()
     {

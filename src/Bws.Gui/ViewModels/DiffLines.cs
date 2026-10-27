@@ -105,12 +105,12 @@ internal static class DiffLines
         var name = Printable.Of(entry.ServiceName);
         var shown = Printable.Of(entry.DisplayName);
 
-        foreach (var difference in entry.Differences)
+        foreach (var row in entry.Differences.SelectMany(Rows))
         {
-            yield return new DiffLine(name, shown, What(difference), Value(difference.Before), Value(difference.After))
+            yield return new DiffLine(name, shown, What(row.Difference), row.Before, row.After)
             {
                 Kind = DiffLineKind.Changed,
-                Field = difference.Field
+                Field = row.Difference.Field
             };
         }
 
@@ -135,6 +135,30 @@ internal static class DiffLines
         difference.Group == DifferenceGroup.RunningState
             ? Texts.Of("gui.diff.row.state", Label(difference.Field))
             : Label(difference.Field);
+
+    /// <summary>
+    /// The before and the after of each row one difference makes: one row, or for the triggers a row per
+    /// trigger only one side holds, the other side the word for nothing (backlog 625, owner's decision "a
+    /// line per trigger", 2026-10-27) - the command line's lines as rows, so the filter, the sort and the
+    /// export take them without a mechanism of their own. Until then a trigger row held the two whole lists
+    /// as JSON, about three thousand characters for an entry losing one of thirteen.
+    ///
+    /// <b>The two whole lists are still the row when there is no trigger to name</b> - nothing against an
+    /// empty list, which a file can hold. A difference with no row under it would be silence.
+    /// </summary>
+    private static IEnumerable<ChangedRow> Rows(FieldDifference difference)
+    {
+        if (difference.Triggers is not { } change || change.Removed.Count + change.Added.Count == 0)
+        {
+            return [new ChangedRow(difference, Value(difference.Before), Value(difference.After))];
+        }
+
+        return change.Removed.Select(trigger => new ChangedRow(difference, TriggerLines.Line(trigger), Value(null)))
+            .Concat(change.Added.Select(trigger => new ChangedRow(difference, Value(null), TriggerLines.Line(trigger))));
+    }
+
+    /// <summary>One row a difference makes, before it is a <see cref="DiffLine"/>.</summary>
+    private readonly record struct ChangedRow(FieldDifference Difference, string Before, string After);
 
     /// <summary>A missing value in a word rather than a blank cell, which reads as the window running out of room.</summary>
     private static string Value(string? value) =>

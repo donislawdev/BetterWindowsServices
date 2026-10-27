@@ -21,7 +21,29 @@ public enum DifferenceGroup
 
 /// <summary>One field that says something different in the two snapshots.</summary>
 /// <param name="Before">Null means the field was absent, which is itself a difference.</param>
-public sealed record FieldDifference(string Field, DifferenceGroup Group, string? Before, string? After);
+public sealed record FieldDifference(string Field, DifferenceGroup Group, string? Before, string? After)
+{
+    /// <summary>
+    /// For the triggers field, the triggers each side holds and the other does not - null for every
+    /// other field (backlog 625, owner's decision "a line per trigger").
+    ///
+    /// <b>Beside <see cref="Before"/> and <see cref="After"/>, not instead of them</b>: those two are the
+    /// whole lists as JSON, which is what <c>--json</c> writes and a script reads - a frozen contract.
+    /// This is what a person reads instead of two lines of three thousand characters, and the machine
+    /// document maps its fields one by one, so it does not reach it.
+    /// </summary>
+    public TriggerChange? Triggers { get; init; }
+}
+
+/// <summary>
+/// The triggers on one side of a comparison only. <b>Counted as a multiset, not a set</b>: two identical
+/// triggers on one side and one on the other leave one behind, where a set would say nothing changed.
+/// <b>Not paired</b> - a trigger with one value changed is one removed and one added, because a trigger has
+/// no identity of its own to pair them by.
+/// </summary>
+/// <param name="Removed">In the earlier snapshot only, in the order it holds them.</param>
+/// <param name="Added">In the later snapshot only, in the order it holds them.</param>
+public sealed record TriggerChange(IReadOnlyList<TriggerDocument> Removed, IReadOnlyList<TriggerDocument> Added);
 
 /// <summary>An entry that is in one snapshot and not the other.</summary>
 public sealed record EntryPresence(string ServiceName, string DisplayName);
@@ -456,7 +478,7 @@ public sealed partial record SnapshotDiff(
                     field,
                     field == State ? DifferenceGroup.RunningState : DifferenceGroup.Configuration,
                     left,
-                    right));
+                    right) { Triggers = Change(field, was[field], now[field]) });
             }
         }
 

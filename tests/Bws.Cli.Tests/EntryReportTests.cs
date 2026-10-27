@@ -146,5 +146,78 @@ public sealed class EntryReportTests
         Assert.Contains("Start", report, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// <b>A trigger per line with its subtype, and each data item on a line under it</b> - backlog 625, the
+    /// owner's decision "B - data under the trigger" of 2026-10-27. Every line after the first starts where
+    /// the first line's value starts, and an item sits two further in. A documented subtype is a word, any
+    /// other the GUID. Shapes from the owner's machine: the firewall port's one item of four values, a
+    /// device trigger's two items, the system state's eight bytes, and a level.
+    /// </summary>
+    [Fact]
+    public void Each_trigger_is_a_line_with_its_subtype_and_each_data_item_a_line_under_it()
+    {
+        var entry = Entry with
+        {
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+            [
+                new ServiceTrigger(
+                    TriggerKind.FirewallPort, TriggerAction.Start, new Guid("b7569e07-8421-4ee0-ad10-86915afdad09"),
+                    [new TriggerData(TriggerDataType.String, ["500", "UDP", @"%windir%\system32\svchost.exe", "IKEEXT"])]),
+                new ServiceTrigger(
+                    TriggerKind.DeviceArrival, TriggerAction.Start, new Guid("4d1e55b2-f16f-11cf-88cb-001111000030"),
+                    [new TriggerData(TriggerDataType.String, ["HID_DEVICE_UP:000D_U:0001"]), new TriggerData(TriggerDataType.String, ["HID_DEVICE_UP:000D_U:0002"])]),
+                new ServiceTrigger(
+                    TriggerKind.CustomSystemStateChange, TriggerAction.Start, new Guid("2d7a2816-0c5e-45fc-9ce7-570e5ecde9c9"),
+                    [new TriggerData(TriggerDataType.Binary, ["7518bca328009213"])]),
+                new ServiceTrigger(
+                    TriggerKind.Custom, TriggerAction.Stop, new Guid("a9f076c5-7e2b-48c4-8812-77bf7a616dfe"),
+                    [new TriggerData(TriggerDataType.Level, ["4"])])
+            ])
+        };
+
+        var lines = EntryReport.Render(entry, full: false).Split(Environment.NewLine);
+        var at = Array.FindIndex(lines, line => line.TrimStart().StartsWith("Triggers ", StringComparison.Ordinal));
+        var column = lines[at].IndexOf("Firewall port/Start", StringComparison.Ordinal);
+        var block = lines.Skip(at).Take(9).ToList();
+
+        Assert.All(block.Skip(1), line => Assert.True(string.IsNullOrWhiteSpace(line[..column]), line));
+        Assert.Equal(
+            [
+                "Firewall port/Start  Port opened",
+                @"  500, UDP, %windir%\system32\svchost.exe, IKEEXT",
+                "Device arrival/Start  4d1e55b2-f16f-11cf-88cb-001111000030",
+                "  HID_DEVICE_UP:000D_U:0001",
+                "  HID_DEVICE_UP:000D_U:0002",
+                "System state/Start  2d7a2816-0c5e-45fc-9ce7-570e5ecde9c9",
+                "  75 18 bc a3 28 00 92 13",
+                "Custom/Stop  a9f076c5-7e2b-48c4-8812-77bf7a616dfe",
+                "  level 4"
+            ],
+            block.Select(line => line[column..]));
+    }
+
+    /// <summary>
+    /// <b>Only the triggers are several lines - a line break inside any other value stays written out</b>,
+    /// on the line it belongs to (stability report C-4). The first version of the triggers' layout split
+    /// every value at its line breaks, which let a description print a line looking like a field of this
+    /// report, and <c>TerminalTextTests</c> caught it - this says the same next to the layout itself. The
+    /// trigger's own data takes the same door: a line break in it is written out too.
+    /// </summary>
+    [Fact]
+    public void A_line_break_inside_a_value_stays_written_out_and_only_the_triggers_are_several_lines()
+    {
+        var entry = Entry with
+        {
+            Description = Reading<string>.Present("First line.\r\nAccount  LocalSystem"),
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                [new ServiceTrigger(TriggerKind.Custom, TriggerAction.Start, Guid.Empty, [new TriggerData(TriggerDataType.String, ["a\nb"])])])
+        };
+
+        var report = EntryReport.Render(entry, full: false);
+
+        Assert.Contains("First line.<U+000D><U+000A>Account  LocalSystem", report, StringComparison.Ordinal);
+        Assert.Contains("  a<U+000A>b", report, StringComparison.Ordinal);
+    }
+
     private static ScmEntry Entry => Entries.Full;
 }
