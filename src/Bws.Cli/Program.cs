@@ -170,7 +170,7 @@ try
             return laterFailed;
         }
 
-        if (!SnapshotFiles.Compare(before!, after!, out var difference, out var refused))
+        if (!SnapshotFiles.Compare(before!, after!, options.Live ? catalog : null, out var difference, out var refused))
         {
             stopwatch.Stop();
 
@@ -253,32 +253,15 @@ try
         //
         // NOTHING IS MOVED ASIDE HERE ANY MORE, since 2026-10-06 - security report S-8. A file this
         // build cannot read as a snapshot used to go into quarantine so it could be replaced, and now
-        // MayWrite refuses it instead and leaves it where it is.
-        if (!SnapshotFiles.MayWrite(target, options.Force, out var refusal))
+        // it is refused instead and left where it is.
+        //
+        // ASKED BY THE WRITE ITSELF SINCE 2026-10-27 (logic report R11 and S02) - the question used to
+        // stand here and the write after it always replaced, so a file arriving between the two went.
+        if (!SnapshotFiles.TryWrite(target, snapshot, options.Force, out var refusal))
         {
             stopwatch.Stop();
             Console.Error.WriteLine(refusal);
 
-            return ExitCode.Usage;
-        }
-
-        try
-        {
-            AtomicFile.Write(target, SnapshotJson.Render(snapshot));
-        }
-        catch (Exception theirs) when (theirs is DirectoryNotFoundException or UnauthorizedAccessException)
-        {
-            // What somebody typed, not something that went wrong inside. ADR-18 forbids
-            // inventing directories, so the honest answer is the one the usage code carries.
-            //
-            // BEING REFUSED THE FOLDER JOINED IT 2026-09-03 - backlog 308(d). It is the same
-            // sentence about the same thing: a path somebody chose that this account cannot write
-            // to. It used to fall through to the entry point, come back as code 1, and tell a
-            // script that the machine had failed - which is the distinction docs/12 step 5 asks
-            // about and the one audit.ps1 cannot check, because it asks whether a code is in the
-            // table rather than whether it is the right one.
-            stopwatch.Stop();
-            Console.Error.WriteLine(theirs.Message);
             return ExitCode.Usage;
         }
 

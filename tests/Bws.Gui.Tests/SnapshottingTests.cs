@@ -178,6 +178,140 @@ public sealed class SnapshottingTests : IDisposable
         Assert.True(model.ListOnScreen);
     }
 
+    [Fact]
+    public async Task A_comparison_that_comes_back_after_somebody_went_to_another_tab_does_not_take_the_window_back()
+    {
+        // Logic report S05: the Tools tab put away a middle that held nothing yet, and the comparison
+        // arriving afterwards took the window from the page somebody had gone to.
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "left-behind.json");
+
+        await model.Snapshotting.TakeAsync(path);
+
+        var comparing = await Held(machine, () => model.Snapshotting.CompareAsync(path), () => model.Tabs.ShowingTools = true);
+
+        await comparing;
+
+        Assert.Null(model.Snapshotting.Shown);
+        Assert.True(model.Tabs.ShowingTools);
+        Assert.Equal(Texts.Of("gui.snapshot.movedOn"), model.Says.Done);
+        Assert.False(model.Snapshotting.Busy);
+    }
+
+    [Fact]
+    public async Task A_comparison_that_comes_back_after_the_form_was_opened_leaves_the_form()
+    {
+        // Opening the form puts nothing away - nothing stood in the middle yet - and is a move all the same.
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "form-meanwhile.json");
+
+        await model.Snapshotting.TakeAsync(path);
+
+        await await Held(machine, () => model.Snapshotting.CompareAsync(path), model.Snapshotting.Prepare);
+
+        Assert.Null(model.Snapshotting.Shown);
+        Assert.NotNull(model.Snapshotting.Form);
+    }
+
+    [Fact]
+    public async Task A_comparison_nobody_moved_away_from_still_takes_the_middle()
+    {
+        // The other side, so a model that never showed anything would fail here.
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "stayed.json");
+
+        await model.Snapshotting.TakeAsync(path);
+
+        await await Held(machine, () => model.Snapshotting.CompareAsync(path), () => { });
+
+        Assert.NotNull(model.Snapshotting.Shown);
+    }
+
+    [Fact]
+    public async Task A_form_opened_afresh_while_a_snapshot_was_read_is_left_open_when_it_is_written()
+    {
+        var machine = new LiveMachine(Rows.Entry("Spooler"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "second-form.json");
+
+        model.Snapshotting.Prepare();
+
+        var taking = await Held(machine, () => model.Snapshotting.TakeAsync(path), () =>
+        {
+            model.Snapshotting.PutAway();
+            model.Snapshotting.Prepare();
+        });
+
+        var reopened = model.Snapshotting.Form;
+
+        await taking;
+
+        Assert.True(File.Exists(path));
+        Assert.NotNull(reopened);
+        Assert.Same(reopened, model.Snapshotting.Form);
+    }
+
+    [Fact]
+    public async Task An_entry_the_machine_still_holds_and_no_longer_lists_is_not_a_removal()
+    {
+        // Logic report S03, in the window: the manager asked by name says it still holds BITS.
+        var machine = new LiveMachine(Rows.Entry("Spooler"), Rows.Entry("BITS"));
+        var model = Model(machine);
+        var path = Path.Combine(_folder, "hidden-since.json");
+
+        await model.Snapshotting.TakeAsync(path);
+        machine.Remove("BITS");
+        machine.HeldUnlisted.Add("BITS");
+        await model.Snapshotting.CompareAsync(path);
+
+        var line = Assert.Single(model.Snapshotting.Shown!.Lines, line => line.ServiceName == "BITS");
+
+        Assert.Equal(Texts.Of("gui.diff.row.unlisted"), line.What);
+        Assert.Equal(Texts.Of("gui.diff.row.notListed"), line.After);
+    }
+
+    [Fact]
+    public void A_snapshot_too_large_to_read_back_is_said_on_its_own()
+    {
+        Assert.Equal(
+            Texts.Of("gui.snapshot.fault.wouldBeTooBig", "x.json", 64),
+            SnapshotWords.NotWritten(new DiskRefusal(DiskFault.WouldBeTooBig, "x.json", string.Empty)));
+    }
+
+    /// <summary>
+    /// Starts a reading with the machine held, waits until it has reached the machine, does what somebody
+    /// does in the meantime, and lets the machine go - handing back the reading, still to be awaited.
+    /// </summary>
+    private static async Task<Task> Held(LiveMachine machine, Func<Task> reading, Action meanwhile)
+    {
+        var reads = machine.FullReads;
+
+        machine.HoldReadings();
+
+        var started = reading();
+
+        try
+        {
+            for (var waited = 0; machine.FullReads == reads && waited < 10_000; waited += 10)
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+
+            Assert.True(machine.FullReads > reads, "the reading never started");
+
+            meanwhile();
+        }
+        finally
+        {
+            machine.ReleaseReadings();
+        }
+
+        return started.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
     private static MainViewModel Model(LiveMachine machine) => new(machine, new SteppedClock(), new Inspector());
 
     /// <summary>Every file signed and readable, which is all a snapshot needs from an inspector here.</summary>

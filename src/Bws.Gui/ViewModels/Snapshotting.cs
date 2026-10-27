@@ -96,6 +96,7 @@ public sealed partial class Snapshotting : Observable
             return;
         }
 
+        _turn++;
         Shown = null;
         Form = new SnapshotForm(_says().Elevated);
     }
@@ -122,6 +123,8 @@ public sealed partial class Snapshotting : Observable
             return;
         }
 
+        var turn = _turn;
+
         try
         {
             // Read here, on the window's thread, before the reading leaves it - the note is what the
@@ -145,7 +148,11 @@ public sealed partial class Snapshotting : Observable
 
             // Written, so the form has done its work and the list comes back. A refusal keeps it open
             // with the note still in it, so another folder is one more press rather than a retyping.
-            Form = null;
+            // And a form somebody opened afresh while this one was being read is theirs, not this one's.
+            if (turn == _turn)
+            {
+                Form = null;
+            }
         }
         catch (Win32Exception failure)
         {
@@ -182,6 +189,8 @@ public sealed partial class Snapshotting : Observable
             return;
         }
 
+        var turn = _turn;
+
         try
         {
             var (earlier, diff, trouble) = await Task.Run(() => Compared(path, inspector)).ConfigureAwait(true);
@@ -193,6 +202,11 @@ public sealed partial class Snapshotting : Observable
             {
                 _says().CouldNotDo(trouble ?? string.Empty);
 
+                return;
+            }
+
+            if (MovedOn(turn))
+            {
                 return;
             }
 
@@ -236,6 +250,8 @@ public sealed partial class Snapshotting : Observable
             return;
         }
 
+        var turn = _turn;
+
         try
         {
             var (earlier, later, diff, trouble) = await Task.Run(() => FilesCompared(first, second)).ConfigureAwait(true);
@@ -245,6 +261,11 @@ public sealed partial class Snapshotting : Observable
             {
                 _says().CouldNotDo(trouble ?? string.Empty);
 
+                return;
+            }
+
+            if (MovedOn(turn))
+            {
                 return;
             }
 
@@ -267,9 +288,15 @@ public sealed partial class Snapshotting : Observable
     /// <b>The form goes even while the machine is read for it</b> - the reading finishes and says what
     /// it wrote at the foot of the window, which is where that sentence goes whether or not the form
     /// is still up.
+    ///
+    /// <b>Counted even when there was nothing to take</b>, because that is what going to another tab
+    /// looks like while a comparison is still being read: nothing stands in the middle yet, and the
+    /// comparison must not arrive there afterwards (<see cref="_turn"/>).
     /// </summary>
     internal bool PutAway()
     {
+        _turn++;
+
         if (Shown is null && Form is null)
         {
             return false;
@@ -282,36 +309,15 @@ public sealed partial class Snapshotting : Observable
     }
 
     /// <summary>
-    /// Takes the one reading at a time, and says it is under way.
-    ///
-    /// <b>No inspector, no snapshot of this machine</b> - asked by the two callers that read it, not
-    /// here: a model built for a test without one cannot read signatures, and a snapshot without them
-    /// would compare as though every entry had changed. Two files need no inspector, so they start
-    /// through here without one. The window always has one - the parameterless MainViewModel hands it
-    /// the system's - so a missing one is a test's state.
-    /// </summary>
-    private bool Starting(string saying)
-    {
-        if (Busy)
-        {
-            return false;
-        }
-
-        Busy = true;
-        _says().Did(saying);
-
-        return true;
-    }
-
-    /// <summary>
     /// Reads the machine and writes it where somebody asked, or says why not - all of it off the
     /// interface thread, because asking about a file standing there may read it up to the size
     /// ceiling, and the write is a few megabytes to a disk that may be a share on the network.
     ///
     /// <b>Asked twice, and both are needed.</b> Before the reading, so a target that will be refused
     /// costs no second of reading the machine - the courtesy the command line extends at the same
-    /// place. And again right before the write, because a file can appear at the path while the
-    /// machine is read, and that second ask is the one S-8 stands on.
+    /// place. And again by the write itself (<see cref="SnapshotOnDisk.Write"/>), because a file can
+    /// appear at the path while the machine is read, and that second ask is the one S-8 stands on - it
+    /// also refuses a snapshot too large for this build to read back (logic report S02, 2026-10-27).
     /// </summary>
     private (Snapshot? Taken, string? Trouble) Written(string path, IBinaryInspector inspector, string? note)
     {
@@ -321,16 +327,10 @@ public sealed partial class Snapshotting : Observable
         }
 
         var read = Read(inspector, note);
-        var text = SnapshotJson.Render(read);
 
-        if (Refused(path) is { } late)
-        {
-            return (null, SnapshotWords.NotWritten(late));
-        }
-
-        AtomicFile.Write(path, text);
-
-        return (read, null);
+        return SnapshotOnDisk.Write(path, SnapshotJson.Render(read), force: true) is { } late
+            ? (null, SnapshotWords.NotWritten(late))
+            : (read, null);
     }
 
     /// <summary>
@@ -360,7 +360,8 @@ public sealed partial class Snapshotting : Observable
             return (null, null, SnapshotWords.Of(refusal));
         }
 
-        return SnapshotDiff.TryBetween(earlier, Read(inspector, note: null), out var diff, out var failure)
+        // Against this machine, so the manager is asked by name about what the reading lacks (logic report S03).
+        return SnapshotDiff.TryAgainstMachine(earlier, Read(inspector, note: null), _catalog, out var diff, out var failure)
             ? (earlier, diff, null)
             : (null, null, Texts.Of("gui.snapshot.cannotCompare", failure ?? string.Empty));
     }

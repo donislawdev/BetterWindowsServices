@@ -73,4 +73,22 @@ public interface IScmCatalog
     /// 05-PRZYPADKI-BRZEGOWE, because it decides whether a cascade has to recurse.
     /// </summary>
     Reading<IReadOnlyList<string>> ReadDependents(string serviceName);
+
+    /// <summary>
+    /// Which of these names the manager holds as entries right now, whether or not it lists them to this
+    /// account - since 2026-10-27, logic report S03.
+    ///
+    /// <b>Worth doubling because the listing is not the manager's word on what exists.</b> The call behind
+    /// <see cref="ReadAll"/> leaves out, without an error, every entry this account may not query
+    /// (Microsoft's page on <c>EnumServicesStatusEx</c>), so a snapshot compared with this machine called
+    /// such an entry removed. Asked by name, the manager says which of the missing ones it still has.
+    ///
+    /// A name it holds and refuses to open counts as held - the refusal is about this account, and only a
+    /// name it does not hold is answered with "does not exist".
+    /// </summary>
+    /// <exception cref="System.ComponentModel.Win32Exception">
+    /// The manager could not be opened - the same failure as <see cref="ReadAll"/>, and for the same
+    /// reason a whole answer rather than a part of one.
+    /// </exception>
+    IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names);
 }

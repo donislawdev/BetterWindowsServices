@@ -397,5 +397,12 @@ public sealed record EntryDocument
         }
     }
 
-    private static string Camel(string name) => char.ToLowerInvariant(name[0]) + name[1..];
+    /// <summary>
+    /// A field's name the way the document spells its key - and the way the names inside "unreadable" and
+    /// "notRead" are read back, since a file written by hand may carry them capitalised, as the property
+    /// names they come from are. One spelling rule for the writer, the comparison and the check of a
+    /// document read back (Snapshot.BrokenEntries), since 2026-10-27 - the comparison had its own copy.
+    /// </summary>
+    internal static string Camel(string name) =>
+        name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
 }

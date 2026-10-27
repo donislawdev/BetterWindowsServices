@@ -70,6 +70,32 @@ internal sealed class FakeScmCatalog : IScmCatalog
         return [.. _entries.Select(entry => new ScmStatus(entry.ServiceName, entry.Status, entry.ProcessId))];
     }
 
+    /// <summary>
+    /// Names the manager holds and leaves out of <see cref="ReadAll"/> - an entry this account may not
+    /// query, which the enumeration omits without an error (logic report S03).
+    /// </summary>
+    internal HashSet<string> HeldUnlisted { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Every list of names the double was asked whether it holds, in order.</summary>
+    internal List<IReadOnlyList<string>> HeldAsked { get; } = [];
+
+    /// <summary>Thrown by the next question about held names, for a manager that will not open.</summary>
+    internal Exception? FailHeld { get; set; }
+
+    public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names)
+    {
+        HeldAsked.Add(names);
+
+        if (FailHeld is { } failure)
+        {
+            throw failure;
+        }
+
+        return [.. names.Where(name =>
+            HeldUnlisted.Contains(name)
+            || _entries.Any(entry => string.Equals(entry.ServiceName, name, StringComparison.OrdinalIgnoreCase)))];
+    }
+
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
     {
         // LOCKED SINCE 2026-09-29, when RequiredByPass started asking several entries at once. A

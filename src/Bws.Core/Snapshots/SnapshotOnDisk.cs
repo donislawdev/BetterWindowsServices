@@ -26,7 +26,13 @@ public enum DiskFault
     IsFolder,
 
     /// <summary>A snapshot stands there, and nobody said it may be replaced.</summary>
-    AlreadyThere
+    AlreadyThere,
+
+    /// <summary>
+    /// The snapshot about to be written is larger than <see cref="SnapshotOnDisk.Biggest"/>, so this build
+    /// could not read it back - written nowhere. Since 2026-10-27, logic report S02.
+    /// </summary>
+    WouldBeTooBig
 }
 
 /// <param name="Detail">
@@ -144,6 +150,65 @@ public static class SnapshotOnDisk
     }
 
     /// <summary>
+    /// Writes a snapshot's text to the path, or says why not and writes nothing - the one way a snapshot
+    /// reaches a disk, for the command line and the window alike.
+    ///
+    /// <b>Since 2026-10-27, logic report R11 and S02, and both were the same shape:</b> a promise made by a
+    /// question asked earlier and not kept by the write. The size this build reads back was checked only
+    /// on files already there, so a snapshot over it was written, announced, and then refused by the same
+    /// build as "not a snapshot this build wrote". And "nothing replaces a file without being told to" was
+    /// true until the move, which always replaced. Both are now asked of the write itself, in this order:
+    /// the size of the text (nothing else is worth asking about a file that may not be written at all),
+    /// the rule about what stands there, and then a move that may not replace unless told it may.
+    /// </summary>
+    /// <param name="force">See <see cref="WhyNotWritten"/>.</param>
+    /// <exception cref="DirectoryNotFoundException">The directory does not exist.</exception>
+    public static DiskRefusal? Write(string target, string text, bool force) => Write(target, text, force, Biggest);
+
+    /// <param name="ceiling">
+    /// <see cref="Biggest"/> everywhere but in a test, which cannot afford sixty four megabytes of text to
+    /// show the refusal.
+    /// </param>
+    /// <param name="meanwhile">
+    /// What happens between the question about the target and the move - nothing, everywhere but in a
+    /// test, which puts a file there to show the move refusing it. The gap is microseconds wide and R11
+    /// was about exactly it, so without this nothing could tell a move that refuses from one that does not.
+    /// </param>
+    internal static DiskRefusal? Write(string target, string text, bool force, long ceiling, Action? meanwhile = null)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(text);
+
+        // In the bytes AtomicFile writes - UTF-8 without a mark - because that is the length the reader
+        // compares with the same ceiling.
+        if (Encoding.UTF8.GetByteCount(text) > ceiling)
+        {
+            return new DiskRefusal(DiskFault.WouldBeTooBig, target, string.Empty);
+        }
+
+        if (WhyNotWritten(target, force) is { } refusal)
+        {
+            return refusal;
+        }
+
+        meanwhile?.Invoke();
+
+        if (force)
+        {
+            AtomicFile.Write(target, text);
+
+            return null;
+        }
+
+        // Something arrived between the question above and the move. Asked again to name it - a folder, a
+        // snapshot, another program's file - and called a snapshot standing there when it went again
+        // before it could be named, which is still the truth about the moment the move was refused.
+        return AtomicFile.WriteNew(target, text)
+            ? null
+            : WhyNotWritten(target, force: false) ?? new DiskRefusal(DiskFault.AlreadyThere, target, string.Empty);
+    }
+
+    /// <summary>
     /// Reads one snapshot from disk, or says what is wrong with what was pointed at.
     ///
     /// Deliberately narrow catches rather than a broad one. The ways a path can be wrong are a list
@@ -171,15 +236,16 @@ public static class SnapshotOnDisk
             // ASKED HOW BIG IT IS BEFORE READING IT ALL, SINCE 2026-09-03 - backlog 308(c). The reader
             // below builds one string out of every byte, so a path pointing at something enormous ends
             // the process with an out of memory failure. A file that is not there falls through to the
-            // reader, which produces the sentence about a path somebody got wrong.
-            if (File.Exists(path) && new FileInfo(path).Length > Biggest)
+            // reader, which produces the sentence about a path somebody got wrong. Asked first of the
+            // path, which needs no handle - so a file too big is refused as too big even while something
+            // holds it - and AGAIN of the file once it is open, since 2026-10-27 (logic report S02),
+            // because the answer about the path is about a file that can change before it is opened.
+            if ((File.Exists(path) && new FileInfo(path).Length > Biggest) || !TryReadText(path, out content))
             {
                 refusal = new DiskRefusal(DiskFault.TooBig, path, string.Empty);
 
                 return false;
             }
-
-            content = ReadText(path);
         }
 
         // AHEAD OF THE TWO BELOW, and it has to be: a decoder failure IS an ArgumentException, so the
@@ -235,12 +301,15 @@ public static class SnapshotOnDisk
     {
         try
         {
-            if (new FileInfo(path).Length > Biggest)
+            // Of the open file only, since 2026-10-27 (logic report S02): asked of the path as well, the two
+            // would be two gates for one rule here, and no mutation could prove either. TryLoad keeps both,
+            // because there the path answers a question the open file cannot - a file held by somebody else.
+            if (!TryReadText(path, out var content))
             {
                 return new DiskRefusal(DiskFault.TooBig, path, string.Empty);
             }
 
-            return SnapshotJson.TryRead(ReadText(path), out _, out var failure)
+            return SnapshotJson.TryRead(content, out _, out var failure)
                 ? null
                 : new DiskRefusal(DiskFault.NotASnapshot, path, failure ?? string.Empty);
         }
@@ -275,16 +344,67 @@ public static class SnapshotOnDisk
     /// <b>Two hundred and ninety seven entries reported as changed, and not one of them had.</b> The
     /// mark is still honoured, so a snapshot saved as UTF-16 by something else still reads. Only bytes
     /// that are not any of those come back as a refusal.
+    ///
+    /// <b>THE MARK IS READ HERE, AND UNTIL 2026-10-27 THE READER READ IT - logic report S01, measured
+    /// 2026-10-26 on .NET 10.0.13.</b> A reader told to honour marks swaps the decoder it was handed for
+    /// the default one of the encoding it found, and the default ones substitute: a file WITHOUT a mark
+    /// and a broken byte was refused, the same file WITH a UTF-8 mark came back with U+FFFD inside a
+    /// value, and so did UTF-16 with a mark and a lone surrogate. Now the mark only chooses which strict
+    /// decoder reads the rest, so a broken byte is refused whatever stands in front of it.
+    ///
+    /// <b>The size is asked of the file once it is open as well</b>, since the same day (S02) - the
+    /// callers' question about the path is a question about a file that could change before it was
+    /// opened. Opened for reading with others allowed only to read, so nothing grows it while it is read.
     /// </summary>
+    /// <returns>False, with no text, when the file is larger than <see cref="Biggest"/>.</returns>
     /// <exception cref="DecoderFallbackException">The bytes are not text this build can read.</exception>
-    private static string ReadText(string path)
+    /// <exception cref="IOException">The path is not a file on a disk - a device or a pipe has no length.</exception>
+    private static bool TryReadText(string path, out string text)
     {
-        using var stream = File.OpenRead(path);
-        using var reader = new StreamReader(
-            stream,
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
-            detectEncodingFromByteOrderMarks: true);
+        text = string.Empty;
 
-        return reader.ReadToEnd();
+        using var stream = File.OpenRead(path);
+
+        if (!stream.CanSeek)
+        {
+            throw new IOException("It is not a file on a disk, so it was not read.");
+        }
+
+        if (stream.Length > Biggest)
+        {
+            return false;
+        }
+
+        using var reader = new StreamReader(stream, Strict(stream), detectEncodingFromByteOrderMarks: false);
+
+        text = reader.ReadToEnd();
+
+        return true;
+    }
+
+    /// <summary>
+    /// The decoder for what the first bytes say the file is, refusing rather than substituting, with the
+    /// stream left just past the mark. The five marks a reader recognises by itself, in its order -
+    /// UTF-32 little endian before UTF-16 little endian, because the first begins with the second - and
+    /// UTF-8 for a file with none, which is what this build writes.
+    /// </summary>
+    private static Encoding Strict(Stream stream)
+    {
+        Span<byte> head = stackalloc byte[4];
+        var read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+
+        var (encoding, mark) = head[..read] switch
+        {
+            [0xFF, 0xFE, 0x00, 0x00] => ((Encoding)new UTF32Encoding(bigEndian: false, byteOrderMark: false, throwOnInvalidCharacters: true), 4),
+            [0x00, 0x00, 0xFE, 0xFF] => (new UTF32Encoding(bigEndian: true, byteOrderMark: false, throwOnInvalidCharacters: true), 4),
+            [0xEF, 0xBB, 0xBF, ..] => (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), 3),
+            [0xFF, 0xFE, ..] => (new UnicodeEncoding(bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: true), 2),
+            [0xFE, 0xFF, ..] => (new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true), 2),
+            _ => (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), 0)
+        };
+
+        stream.Position = mark;
+
+        return encoding;
     }
 }

@@ -110,6 +110,8 @@ public sealed class RequiredByPassParallelTests
 
         public IReadOnlyList<ScmStatus> ReadStatuses() => [];
 
+        public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) => [];
+
         public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
         {
             if (Interlocked.Increment(ref _asked) <= 2)

@@ -65,6 +65,11 @@ internal static class DiffLines
         // different sentences, and only one of them is a fact.
         .. diff.Uncertain.Select(entry => Presence(
             entry, DiffLineKind.Uncertain, Texts.Of("gui.diff.row.uncertain"), Texts.Of("gui.diff.row.cannotTell"), Texts.Of("gui.diff.row.cannotTell"))),
+
+        // Seen on one side only too, and filtered with those - but the manager says it still holds these,
+        // so the row says so rather than "cannot tell" (logic report S03, 2026-10-27).
+        .. diff.Unlisted.Select(entry => Presence(
+            entry, DiffLineKind.Uncertain, Texts.Of("gui.diff.row.unlisted"), Texts.Of("gui.diff.row.there"), Texts.Of("gui.diff.row.notListed"))),
         .. diff.Changed.Concat(diff.NotFullyCompared).SelectMany(Fields)
     ];
 

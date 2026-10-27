@@ -23,6 +23,7 @@ internal static class SnapshotWords
             DiskFault.IsFolder => Texts.Of("gui.snapshot.fault.isFolder", path),
             DiskFault.AlreadyThere => Texts.Of("gui.snapshot.fault.alreadyThere", path),
             DiskFault.TooBig => Texts.Of("gui.snapshot.fault.tooBig", path, SnapshotOnDisk.Biggest / (1024 * 1024)),
+            DiskFault.WouldBeTooBig => Texts.Of("gui.snapshot.fault.wouldBeTooBig", path, SnapshotOnDisk.Biggest / (1024 * 1024)),
             DiskFault.NotUtf8 => Texts.Of("gui.snapshot.fault.notUtf8", path),
             DiskFault.NotASnapshot => Texts.Of("gui.snapshot.fault.notASnapshot", path, Printable.Of(refusal.Detail)),
             // The reason is the message of whatever the reading threw, and .NET quotes the path in
@@ -34,10 +35,11 @@ internal static class SnapshotWords
 
     /// <summary>
     /// Why a snapshot was not written where somebody asked - and, when what stands there is not a
-    /// snapshot, that it was left exactly as it was (S-8).
+    /// snapshot, that it was left exactly as it was (S-8). A snapshot too large to read back is about
+    /// the snapshot rather than about anything standing there, so it says so on its own.
     /// </summary>
     internal static string NotWritten(DiskRefusal refusal) =>
-        refusal.Fault is DiskFault.IsFolder or DiskFault.AlreadyThere
+        refusal.Fault is DiskFault.IsFolder or DiskFault.AlreadyThere or DiskFault.WouldBeTooBig
             ? Of(refusal)
             : Texts.Of("gui.snapshot.fault.notReplaced", Of(refusal));
 }

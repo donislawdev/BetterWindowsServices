@@ -159,6 +159,16 @@ internal sealed class LiveMachine : IScmCatalog
             : Reading<IReadOnlyList<string>>.Absent();
     }
 
+    /// <summary>
+    /// Names the manager still holds and leaves out of its listings - an entry whose permissions now keep
+    /// this account from querying it (logic report S03). Removed from the listing with <see cref="Remove"/>
+    /// and named here, it is the shape the enumeration produces without an error.
+    /// </summary>
+    internal HashSet<string> HeldUnlisted { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) =>
+        [.. names.Where(name => _entries.ContainsKey(name) || HeldUnlisted.Contains(name))];
+
     private void Throw()
     {
         if (FailNext is null)

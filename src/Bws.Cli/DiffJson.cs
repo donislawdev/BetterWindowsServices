@@ -57,7 +57,8 @@ internal static class DiffJson
                 [.. diff.NotFullyCompared.Select(Changed)],
                 diff.NeitherRead,
                 new LeftOutDocument(diff.LeftOut.Earlier, diff.LeftOut.Later),
-                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))]),
+                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))],
+                [.. diff.Unlisted.Select(Presence)]),
             Options);
 
     private static PresenceDocument Presence(EntryPresence entry) =>
@@ -93,6 +94,14 @@ internal static class DiffJson
     /// <b>What moved, said for whoever reads <paramref name="NotFullyCompared"/>:</b> an entry whose
     /// only uncompared field was refused to both sides is no longer there - it is named here instead.
     /// </param>
+    /// <param name="Unlisted">
+    /// Entries the earlier snapshot holds that this machine's listing did not, and that the service
+    /// manager, asked by name, says it still holds - only a comparison with this machine fills it (logic
+    /// report S03). Added 2026-10-27 and LAST, so the document only grew at its end, and its own key on
+    /// the owner's decision (backlog 623): beside <paramref name="Uncertain"/> a script could not tell
+    /// "the other side may not have been shown it" from "the manager says it is there", and a person is
+    /// shown the two under two headings. Never drift, so never part of <paramref name="Differs"/>.
+    /// </param>
     private sealed record DiffDocument(
         bool Differs,
         CaveatsDocument Caveats,
@@ -103,7 +112,8 @@ internal static class DiffJson
         IReadOnlyList<ChangedDocument> NotFullyCompared,
         IReadOnlyList<string> NeitherRead,
         LeftOutDocument InstancesLeftOut,
-        IReadOnlyList<RefusedDocument> RefusedByBoth);
+        IReadOnlyList<RefusedDocument> RefusedByBoth,
+        IReadOnlyList<PresenceDocument> Unlisted);
 
     private sealed record RefusedDocument(string Field, IReadOnlyList<string> Entries);
 

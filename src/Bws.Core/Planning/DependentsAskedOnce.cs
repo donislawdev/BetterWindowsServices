@@ -33,6 +33,8 @@ internal sealed class DependentsAskedOnce(IScmCatalog catalog) : IScmCatalog
 
     public IReadOnlyList<ScmStatus> ReadStatuses() => catalog.ReadStatuses();
 
+    public IReadOnlyList<string> ReadHeld(IReadOnlyList<string> names) => catalog.ReadHeld(names);
+
     public Reading<IReadOnlyList<string>> ReadDependents(string serviceName)
     {
         if (!_answers.TryGetValue(serviceName, out var answer))

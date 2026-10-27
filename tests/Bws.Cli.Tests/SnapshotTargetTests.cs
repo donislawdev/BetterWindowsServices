@@ -104,6 +104,36 @@ public sealed class SnapshotTargetTests : IDisposable
         Assert.Null(refusal);
     }
 
+    [Fact]
+    public void A_snapshot_written_where_nothing_stands_reads_back()
+    {
+        // The write itself asks the questions since 2026-10-27 (logic report R11, S02) - this is the
+        // ordinary case it must still let through.
+        var path = Fresh();
+
+        Assert.True(SnapshotFiles.TryWrite(path, Snapshot.Of([], note: null, new SystemClock()), force: false, out var refusal), refusal);
+        Assert.True(SnapshotOnDisk.TryLoad(path, out _, out _));
+    }
+
+    [Fact]
+    public void A_folder_that_is_not_there_is_the_sentence_about_the_path_somebody_typed()
+    {
+        // Moved here from Program.cs with the write: the usage code and Windows' own sentence, never a
+        // failure of the tool.
+        var path = Path.Combine(Path.GetTempPath(), $"bws-nowhere-{Guid.NewGuid():N}", "snapshot.json");
+
+        Assert.False(SnapshotFiles.TryWrite(path, Snapshot.Of([], note: null, new SystemClock()), force: false, out var refusal));
+        Assert.Contains(Path.GetDirectoryName(path)!, refusal, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void A_snapshot_too_large_to_read_back_is_said_on_its_own_and_not_as_a_file_left_alone()
+    {
+        Assert.Equal(
+            Texts.Of("cli.snapshot.wouldBeTooBig", "x.json", 64),
+            SnapshotFiles.NotWritten(new DiskRefusal(DiskFault.WouldBeTooBig, "x.json", string.Empty)));
+    }
+
     /// <summary>A snapshot this build reads, of no entries, at a fresh path.</summary>
     private string Snapshotted()
     {

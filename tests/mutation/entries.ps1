@@ -2029,8 +2029,10 @@ $mutations = @(
         # entry point's own catch cannot turn into a sentence worth reading.
         Name = 'snapshot: a file too big to be one is refused before it is read'
         File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
-        From = '            if (File.Exists(path) && new FileInfo(path).Length > Biggest)'
-        To = '            if (File.Exists(path) && new FileInfo(path).Length > long.MaxValue)'
+        # RE-ANCHORED 2026-10-27 (logic report S02): the open file is asked as well now, and only the
+        # question about the path answers for a file somebody else holds - which is what the test holds.
+        From = 'if ((File.Exists(path) && new FileInfo(path).Length > Biggest) || !TryReadText(path, out content))'
+        To = 'if ((File.Exists(path) && new FileInfo(path).Length > long.MaxValue) || !TryReadText(path, out content))'
         Test = 'SnapshotSizeGuards.A_file_too_big_to_be_a_snapshot_is_turned_back_before_it_is_even_opened'
     },
     @{
@@ -4910,8 +4912,9 @@ $mutations = @(
         # with --force, and the mutant takes that away by calling every file not a snapshot.
         Name = 'snapshot: a readable snapshot is replaced rather than kept'
         File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
-        From = '            return SnapshotJson.TryRead(ReadText(path), out _, out var failure)'
-        To = '            return SnapshotJson.TryRead(ReadText(path), out _, out var failure) && false'
+        # RE-ANCHORED 2026-10-27: the text is read through TryReadText since logic report S01.
+        From = '            return SnapshotJson.TryRead(content, out _, out var failure)'
+        To = '            return SnapshotJson.TryRead(content, out _, out var failure) && false'
         Test = 'SnapshotTargetTests.A_snapshot_is_replaced_with_force'
     },
     @{
@@ -4920,8 +4923,10 @@ $mutations = @(
         # ended after 4045 ms with code 1 and "Insufficient memory". Load had the ceiling, this did not.
         Name = 'snapshot: a file at the target too big to be one is not read to find out'
         File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
-        From = '            if (new FileInfo(path).Length > Biggest)'
-        To = '            if (new FileInfo(path).Length > long.MaxValue)'
+        # RE-ANCHORED 2026-10-27 (logic report S02): asked of the open file, which the target's question
+        # shares with every read - so the mutant reads sixty five megabytes and calls them not a snapshot.
+        From = '        if (stream.Length > Biggest)'
+        To = '        if (stream.Length > long.MaxValue)'
         Test = 'SnapshotTargetTests.A_file_too_big_to_be_a_snapshot_is_refused_by_its_size_before_it_is_read'
     },
 
@@ -4997,9 +5002,11 @@ $mutations = @(
         # reads. Without this, a repair that simply refused anything unusual would pass above.
         Name = 'snapshot: a byte order mark is still honoured'
         File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
-        From = 'detectEncodingFromByteOrderMarks: true);'
-        To = 'detectEncodingFromByteOrderMarks: false);'
-        Test = 'SnapshotContractTests.A_snapshot_saved_with_a_byte_order_mark_still_reads'
+        # RE-ANCHORED 2026-10-27 (logic report S01): the mark is read by this build now, not by the
+        # reader, so the mutant reads a file marked as UTF-16 as UTF-8.
+        From = '[0xFF, 0xFE, ..] => (new UnicodeEncoding(bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: true), 2),'
+        To = '[0xFF, 0xFE, ..] => (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), 2),'
+        Test = 'SnapshotFileTests.A_whole_snapshot_behind_any_mark_a_reader_knows_is_read'
     },
 
     # EIGHT FOR THE KEPT COLUMN LAYOUT, S6d3, 2026-08-13. The first file this product writes for a
@@ -5943,7 +5950,8 @@ $mutations = @(
         # Sends the list fields back through the plain text comparison, which is order for order
         # and capital for capital.
         Name = 'diff: a list is compared as a set rather than as its text'
-        File = 'src\Bws.Core\Snapshots\SnapshotDiff.cs'
+        # Moved with the value comparison to its own file, 2026-10-27 (logic report R06).
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
         From = 'node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal)'
         To = 'node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal) && false'
         Test = 'SnapshotDiffTests.A_privilege_spelled_differently_is_the_same_privilege'
@@ -6200,7 +6208,8 @@ $mutations = @(
         # Sends the four names Windows itself matches without case back through an exact comparison,
         # which is what reported LocalSystem against localsystem as drift.
         Name = 'diff: a name the system matches without case is not a difference'
-        File = 'src\Bws.Core\Snapshots\SnapshotDiff.cs'
+        # Moved with the value comparison to its own file, 2026-10-27 (logic report R06).
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
         From = 'return TheSystemIgnoresCase.Contains(field, StringComparer.Ordinal)'
         To = 'return TheSystemIgnoresCase.Contains(field, StringComparer.Ordinal) && false'
         Test = 'SnapshotDiffTests.A_name_the_system_matches_without_case_is_not_a_difference'
@@ -6220,7 +6229,8 @@ $mutations = @(
         # A list dropped from the set, which is what happens by omission when a field is ADDED and
         # nobody comes back here. Order-sensitivity returns for that one field and nothing says so.
         Name = 'diff: every list in the document has been decided about'
-        File = 'src\Bws.Core\Snapshots\SnapshotDiff.cs'
+        # Moved with the value comparison to its own file, 2026-10-27 (logic report R06).
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
         # RE-ANCHORED 2026-09-06: requiredBy joined the set the day it joined the document, and
         # the guard below only saw it once it was asked of the TYPE rather than of a rendered
         # specimen - a list field that is null in the fixture is not an array.
@@ -12455,8 +12465,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'diff json: a field refused to both sides is written with its entries'
         File = 'src\Bws.Cli\DiffJson.cs'
-        From = '                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))]),'
-        To = '                [.. diff.RefusedByBoth.Take(0).Select(field => new RefusedDocument(field.Field, field.Entries))]),'
+        # RE-ANCHORED 2026-10-27: "unlisted" follows it at the end of the document (backlog 623).
+        From = '                [.. diff.RefusedByBoth.Select(field => new RefusedDocument(field.Field, field.Entries))],'
+        To = '                [.. diff.RefusedByBoth.Take(0).Select(field => new RefusedDocument(field.Field, field.Entries))],'
         Test = 'DiffOutputTests.A_field_refused_to_both_snapshots_is_written_last_with_its_entries'
     }
     @{
@@ -12513,8 +12524,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window snapshot: what the window writes is a snapshot the command line reads'
         File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
-        From = '        AtomicFile.Write(path, text);'
-        To = '        AtomicFile.Write(path, text + "x");'
+        # RE-ANCHORED 2026-10-27: the window writes through SnapshotOnDisk.Write since logic report R11.
+        From = 'SnapshotOnDisk.Write(path, SnapshotJson.Render(read), force: true)'
+        To = 'SnapshotOnDisk.Write(path, SnapshotJson.Render(read) + "x", force: true)'
         Test = 'SnapshottingTests.A_snapshot_taken_in_the_window_is_one_the_command_line_reads'
     }
     @{
@@ -12528,9 +12540,11 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         # PR #61 review, 2026-10-14: and again right before the write, which is the ask S-8 stands on.
         Name = 'window snapshot: a file that appears while the machine is read is never written over'
-        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
-        From = '        if (Refused(path) is { } late)'
-        To = '        if (Refused(path + ".elsewhere") is { } late)'
+        # RE-ANCHORED 2026-10-27 (logic report R11): the ask right before the write belongs to the write
+        # itself now, in the core, for the window and the command line alike.
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = '        if (WhyNotWritten(target, force) is { } refusal)'
+        To = '        if (WhyNotWritten(target + ".elsewhere", force) is { } refusal)'
         Test = 'SnapshottingTests.A_file_that_appears_while_the_machine_is_read_is_still_never_written_over'
     }
     @{
@@ -12791,9 +12805,12 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window snapshot form: the form goes once the snapshot is written'
         File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
-        From = '            // with the note still in it, so another folder is one more press rather than a retyping.
-            Form = null;'
-        To = '            // with the note still in it, so another folder is one more press rather than a retyping.'
+        # RE-ANCHORED 2026-10-27: only a form nobody opened afresh meanwhile goes (logic report S05).
+        From = '            if (turn == _turn)
+            {
+                Form = null;'
+        To = '            if (turn == _turn)
+            {'
         Test = 'SnapshotFormTests.The_note_typed_in_the_form_is_kept_inside_the_snapshot_and_the_form_goes'
     }
     @{
@@ -14325,6 +14342,255 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'new SystemClock(), new WindowsEndingFactsReader()));'
         To = 'new SystemClock()));'
         Test = 'PlanOnlyGuards.Every_runner_on_the_real_machine_reads_the_process_again_before_ending_it'
+    }
+    # ---- Logic report, package L2 (snapshots and comparison), 2026-10-27 - docs/ANALIZA-RAPORTU-LOGIKI-20261026.md ----
+    @{
+        # R11: the move itself refuses to replace, so a file arriving after the question stays.
+        Name = 'atomic file: a new file never replaces what got there first'
+        File = 'src\Bws.Core\Snapshots\AtomicFile.cs'
+        From = 'File.Move(beside, full, overwrite: replace);'
+        To = 'File.Move(beside, full, overwrite: true);'
+        Test = 'AtomicFileTests.A_new_file_leaves_whatever_got_there_first_and_nothing_beside_it'
+    }
+    @{
+        # R11: "already there" is the answer for a file standing there - the number Windows gives for it.
+        Name = 'atomic file: a file standing there is a refusal and not a failure'
+        File = 'src\Bws.Core\Snapshots\AtomicFile.cs'
+        From = 'if (refused.HResult is AlreadyExists or FileExists)'
+        To = 'if (refused.HResult is FileExists)'
+        Test = 'AtomicFileTests.A_new_file_leaves_whatever_got_there_first_and_nothing_beside_it'
+    }
+    @{
+        # R11: without --force the snapshot goes through the move that may not replace.
+        Name = 'snapshot write: without force nothing that arrived meanwhile is replaced'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = '        if (force)
+        {
+            AtomicFile.Write(target, text);'
+        To = '        if (force || text.Length >= 0)
+        {
+            AtomicFile.Write(target, text);'
+        Test = 'SnapshotFileTests.Without_force_a_snapshot_arriving_before_the_move_stays'
+    }
+    @{
+        # R11: what arrived is named by asking again - another program's file is not "a snapshot".
+        Name = 'snapshot write: what arrived meanwhile is named for what it is'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = ': WhyNotWritten(target, force: false) ?? new DiskRefusal(DiskFault.AlreadyThere, target, string.Empty);'
+        To = ': new DiskRefusal(DiskFault.AlreadyThere, target, string.Empty);'
+        Test = 'SnapshotFileTests.Without_force_another_program_s_file_arriving_before_the_move_stays_and_is_named'
+    }
+    @{
+        # R11: a folder somebody typed that is not there stays the usage sentence after the write moved.
+        Name = 'snapshot write: a missing folder is the sentence about the typed path'
+        File = 'src\Bws.Cli\SnapshotFiles.cs'
+        From = 'when (theirs is DirectoryNotFoundException or UnauthorizedAccessException)'
+        To = 'when (theirs is UnauthorizedAccessException)'
+        Test = 'SnapshotTargetTests.A_folder_that_is_not_there_is_the_sentence_about_the_path_somebody_typed'
+    }
+    @{
+        # S02: the ceiling the reader keeps counts bytes, and so must the writer.
+        Name = 'snapshot write: the ceiling counts bytes and not characters'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = 'if (Encoding.UTF8.GetByteCount(text) > ceiling)'
+        To = 'if (text.Length > ceiling)'
+        Test = 'SnapshotFileTests.The_ceiling_counts_the_bytes_written_and_not_the_characters'
+    }
+    @{
+        # S02: the reader refuses only what is larger, so the writer may not refuse what is equal.
+        Name = 'snapshot write: a snapshot at the ceiling is written'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = 'if (Encoding.UTF8.GetByteCount(text) > ceiling)'
+        To = 'if (Encoding.UTF8.GetByteCount(text) >= ceiling)'
+        Test = 'SnapshotFileTests.A_snapshot_exactly_at_the_ceiling_is_written'
+    }
+    @{
+        # S02: a device has no length, and is refused rather than asked for one.
+        Name = 'snapshot read: a path with no length is refused'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = 'if (!stream.CanSeek)'
+        To = 'if (!stream.CanSeek && stream.CanWrite)'
+        Test = 'SnapshotFileTests.A_path_with_no_length_is_refused_rather_than_read'
+    }
+    @{
+        # S01: behind a UTF-8 mark the decoder still refuses a broken byte.
+        Name = 'snapshot read: a broken byte behind a utf8 mark is refused'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = '[0xEF, 0xBB, 0xBF, ..] => (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), 3),'
+        To = '[0xEF, 0xBB, 0xBF, ..] => (new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false), 3),'
+        Test = 'SnapshotFileTests.A_broken_byte_behind_a_utf8_mark_is_refused_rather_than_replaced'
+    }
+    @{
+        # S01: behind a UTF-16 mark too.
+        Name = 'snapshot read: a lone surrogate behind a utf16 mark is refused'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = '[0xFF, 0xFE, ..] => (new UnicodeEncoding(bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: true), 2),'
+        To = '[0xFF, 0xFE, ..] => (new UnicodeEncoding(bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: false), 2),'
+        Test = 'SnapshotFileTests.A_lone_surrogate_behind_a_utf16_mark_is_refused_rather_than_replaced'
+    }
+    @{
+        # S06: an empty name describes no entry.
+        Name = 'snapshot read: an empty service name is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'if (entry.ServiceName.Length == 0)'
+        To = 'if (entry.ServiceName.Length < 0)'
+        Test = 'SnapshotContradictionTests.An_empty_service_name_is_refused'
+    }
+    @{
+        # S06: a field both refused and never asked about.
+        Name = 'snapshot read: a field in both lists is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'if (notRead.FirstOrDefault(refused.Contains) is { } both)'
+        To = 'if (notRead.FirstOrDefault(name => refused.Contains(name + "?")) is { } both)'
+        Test = 'SnapshotContradictionTests.A_field_both_refused_and_never_asked_about_is_refused'
+    }
+    @{
+        # S06: a value beside "never asked about".
+        Name = 'snapshot read: a value beside never asked about is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'return notRead.Concat(refused).FirstOrDefault(field => document[field] is not null) is { } held'
+        To = 'return refused.FirstOrDefault(field => document[field] is not null) is { } held'
+        Test = 'SnapshotContradictionTests.A_value_beside_never_asked_about_is_refused_and_named'
+    }
+    @{
+        # S06: a value beside a refusal.
+        Name = 'snapshot read: a value beside a refusal is refused'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'return notRead.Concat(refused).FirstOrDefault(field => document[field] is not null) is { } held'
+        To = 'return notRead.FirstOrDefault(field => document[field] is not null) is { } held'
+        Test = 'SnapshotContradictionTests.A_value_beside_a_refusal_is_refused'
+    }
+    @{
+        # S06: a list name is read the way the comparison reads it.
+        Name = 'snapshot read: a list name with a capital is the same field'
+        File = 'src\Bws.Core\Snapshots\Snapshot.cs'
+        From = 'var notRead = (entry.NotRead ?? []).Select(EntryDocument.Camel).ToList();'
+        To = 'var notRead = (entry.NotRead ?? []).ToList();'
+        Test = 'SnapshotContradictionTests.A_list_name_spelled_with_a_capital_is_the_same_field'
+    }
+    @{
+        # R06: the launch command has its own form, and is no longer one of the names without case.
+        Name = 'diff: a launch command is compared in its own form'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'if (field == Command)'
+        To = 'if (field == Identity)'
+        Test = 'LaunchCommandComparisonTests.A_path_whose_case_changed_is_not_drift'
+    }
+    @{
+        # R06: the arguments keep their case.
+        Name = 'diff: the arguments of a launch command keep their case'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'return command[..end].ToLowerInvariant() + command[end..];'
+        To = 'return command.ToLowerInvariant();'
+        Test = 'LaunchCommandComparisonTests.An_argument_whose_case_changed_is_drift'
+    }
+    @{
+        # R06: with no prefix ending in a name Windows runs, the file ends at the first space.
+        Name = 'diff: a command with no extension ends its file at the first space'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'firstSpace ??= space;'
+        To = 'firstSpace ??= command.Length;'
+        Test = 'LaunchCommandComparisonTests.The_file_ends_where_the_text_alone_says'
+    }
+    @{
+        # S03: an entry the manager still holds is unlisted, not removed.
+        Name = 'live diff: an entry the manager holds is not removed'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Unseen.cs'
+        From = 'var into = stillHeld.Contains(entry.ServiceName) ? unlisted'
+        To = 'var into = stillHeld.Contains(entry.DisplayName) ? unlisted'
+        Test = 'LiveComparisonTests.An_entry_the_manager_still_holds_is_unlisted_and_not_removed'
+    }
+    @{
+        # S03: once the manager answered, elevation no longer makes a missing entry "cannot tell".
+        Name = 'live diff: the manager settles what elevation could not'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Unseen.cs'
+        From = ': held is null && mayBeUnseen ? uncertain'
+        To = ': mayBeUnseen ? uncertain'
+        Test = 'LiveComparisonTests.Asked_by_name_a_reading_without_elevation_can_tell_removed_from_unseen'
+    }
+    @{
+        # S03: a comparison with this machine asks it.
+        Name = 'live diff: the machine is asked'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.cs'
+        From = 'return TryBetween(before, now, machine.ReadHeld, out diff, out failure);'
+        To = 'return TryBetween(before, now, held: null, out diff, out failure);'
+        Test = 'LiveComparisonTests.An_entry_the_manager_still_holds_is_unlisted_and_not_removed'
+    }
+    @{
+        # S03: an entry still held is put in front of a person.
+        Name = 'live diff: an entry still held is reported'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.cs'
+        From = '|| Unlisted.Count > 0;'
+        To = '|| Unlisted.Count < 0;'
+        Test = 'LiveComparisonTests.An_entry_the_manager_still_holds_is_unlisted_and_not_removed'
+    }
+    @{
+        # S03: a name cut short by a NUL is not answered for the name before it.
+        Name = 'live diff: a name holding a NUL is not asked'
+        File = 'src\Bws.Core\WindowsScmCatalog.Held.cs'
+        From = '        if (name.Contains('
+        To = '        if (name.Length > 256 && name.Contains('
+        Test = 'HeldContractTests.A_name_cut_short_by_a_nul_is_not_answered_for_the_name_before_it'
+    }
+    @{
+        # S03: the window compares with the machine by asking it.
+        Name = 'window live diff: the machine is asked'
+        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
+        From = 'SnapshotDiff.TryAgainstMachine(earlier, Read(inspector, note: null), _catalog, out var diff, out var failure)'
+        To = 'SnapshotDiff.TryBetween(earlier, Read(inspector, note: null), out var diff, out var failure)'
+        Test = 'SnapshottingTests.An_entry_the_machine_still_holds_and_no_longer_lists_is_not_a_removal'
+    }
+    @{
+        # S03 and backlog 623: a script finds them under their own key.
+        Name = 'live diff json: entries still held have their own key'
+        File = 'src\Bws.Cli\DiffJson.cs'
+        From = '                [.. diff.Unlisted.Select(Presence)]),'
+        To = '                [.. diff.Uncertain.Select(Presence)]),'
+        Test = 'DiffOutputTests.A_script_finds_entries_the_manager_still_holds_under_their_own_key_at_the_end'
+    }
+    @{
+        # S03: and the summary counts them as seen by one side.
+        Name = 'live diff text: entries still held are counted as seen by one side'
+        File = 'src\Bws.Cli\DiffText.cs'
+        From = 'var seenByOne = diff.Uncertain.Count + diff.Unlisted.Count;'
+        To = 'var seenByOne = diff.Uncertain.Count;'
+        Test = 'DiffOutputTests.An_entry_the_manager_still_holds_has_its_own_heading_and_is_seen_by_one_side'
+    }
+    @{
+        # S05: going to another tab is a move, though nothing stood in the middle yet.
+        Name = 'window comparison: going elsewhere while it reads is a move'
+        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
+        From = '    internal bool PutAway()
+    {
+        _turn++;'
+        To = '    internal bool PutAway()
+    {'
+        Test = 'SnapshottingTests.A_comparison_that_comes_back_after_somebody_went_to_another_tab_does_not_take_the_window_back'
+    }
+    @{
+        # S05: so is opening the form.
+        Name = 'window comparison: opening the form while it reads is a move'
+        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
+        From = '        _turn++;
+        Shown = null;'
+        To = '        Shown = null;'
+        Test = 'SnapshottingTests.A_comparison_that_comes_back_after_the_form_was_opened_leaves_the_form'
+    }
+    @{
+        # S05: a comparison that comes back after a move does not take the middle.
+        Name = 'window comparison: a comparison after a move does not take the middle'
+        File = 'src\Bws.Gui\ViewModels\Snapshotting.Turns.cs'
+        From = 'if (turn == _turn)'
+        To = 'if (turn <= _turn)'
+        Test = 'SnapshottingTests.A_comparison_that_comes_back_after_somebody_went_to_another_tab_does_not_take_the_window_back'
+    }
+    @{
+        # S05: a form opened afresh while a snapshot was read is left open.
+        Name = 'window snapshot form: a form opened afresh meanwhile stays'
+        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
+        From = 'if (turn == _turn)'
+        To = 'if (turn <= _turn)'
+        Test = 'SnapshottingTests.A_form_opened_afresh_while_a_snapshot_was_read_is_left_open_when_it_is_written'
     }
 )
 

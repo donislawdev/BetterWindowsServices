@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 
 namespace Bws.Core.Snapshots;
 
@@ -108,6 +107,13 @@ public sealed record RefusedField(string Field, IReadOnlyList<string> Entries);
 /// The per-user session copies neither side was compared on - see <see cref="InstancesLeftOut"/>.
 /// Matched by the role the type bits give an entry, never by the shape of its name.
 /// </param>
+/// <param name="Unlisted">
+/// Entries the snapshot holds that this machine's listing did not, and that the manager, asked by name,
+/// says it still holds - only a comparison with this machine fills it (<see cref="TryAgainstMachine"/>,
+/// logic report S03, 2026-10-27). Not drift and not removed: the listing leaves out what this account
+/// may not query. Their own key at the end of the machine-readable comparison, "unlisted" - owner's
+/// decision of the same day (backlog 623), so a script tells them from "cannot tell" as a person does.
+/// </param>
 public sealed partial record SnapshotDiff(
     IReadOnlyList<EntryPresence> Added,
     IReadOnlyList<EntryPresence> Removed,
@@ -117,7 +123,8 @@ public sealed partial record SnapshotDiff(
     IReadOnlyList<RefusedField> RefusedByBoth,
     IReadOnlyList<EntryPresence> Uncertain,
     ComparisonCaveats Caveats,
-    InstancesLeftOut LeftOut)
+    InstancesLeftOut LeftOut,
+    IReadOnlyList<EntryPresence> Unlisted)
 {
     /// <summary>Identity, not a value - it is how the two sides are matched at all.</summary>
     private const string Identity = "serviceName";
@@ -168,7 +175,8 @@ public sealed partial record SnapshotDiff(
     /// something one side could not see, or something one side never read.
     /// </summary>
     public bool Reported =>
-        Added.Count > 0 || Removed.Count > 0 || Changed.Count > 0 || Uncertain.Count > 0 || NotFullyCompared.Count > 0;
+        Added.Count > 0 || Removed.Count > 0 || Changed.Count > 0 || Uncertain.Count > 0 || NotFullyCompared.Count > 0
+        || Unlisted.Count > 0;
 
     /// <summary>
     /// Compares two snapshots, or says why one of them is not something to compare.
@@ -197,7 +205,36 @@ public sealed partial record SnapshotDiff(
     /// switches off the check that would notice the day this stops being true.
     /// </param>
     public static bool TryBetween(
-        Snapshot before, Snapshot after, [NotNullWhen(true)] out SnapshotDiff? diff, out string? failure)
+        Snapshot before, Snapshot after, [NotNullWhen(true)] out SnapshotDiff? diff, out string? failure) =>
+        TryBetween(before, after, held: null, out diff, out failure);
+
+    /// <summary>
+    /// Compares a snapshot with this machine read now, asking the manager by name about every entry the
+    /// snapshot holds and the reading does not - since 2026-10-27, logic report S03.
+    ///
+    /// <b>Until then a missing entry was removed unless the two sides differed in elevation</b>, and the
+    /// listing is not the manager's word on what exists: it leaves out, without an error, what this account
+    /// may not query. An entry whose permissions changed between the two readings came back as removed,
+    /// and <c>--exit-code</c> called it drift. Asked by name, the manager settles it both ways - an entry it
+    /// holds is <see cref="Unlisted"/>, and one it does not is removed even across a difference in
+    /// elevation, where it used to be "cannot tell".
+    /// </summary>
+    /// <param name="machine">The manager the later side was read from, asked after it was read.</param>
+    /// <exception cref="System.ComponentModel.Win32Exception">The manager could not be opened to ask.</exception>
+    public static bool TryAgainstMachine(
+        Snapshot before, Snapshot now, IScmCatalog machine, [NotNullWhen(true)] out SnapshotDiff? diff, out string? failure)
+    {
+        ArgumentNullException.ThrowIfNull(machine);
+
+        return TryBetween(before, now, machine.ReadHeld, out diff, out failure);
+    }
+
+    private static bool TryBetween(
+        Snapshot before,
+        Snapshot after,
+        Func<IReadOnlyList<string>, IReadOnlyList<string>>? held,
+        [NotNullWhen(true)] out SnapshotDiff? diff,
+        out string? failure)
     {
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
@@ -212,7 +249,7 @@ public sealed partial record SnapshotDiff(
             return false;
         }
 
-        diff = Between(before, after);
+        diff = Between(before, after, held);
 
         return true;
     }
@@ -237,7 +274,8 @@ public sealed partial record SnapshotDiff(
         return false;
     }
 
-    private static SnapshotDiff Between(Snapshot before, Snapshot after)
+    private static SnapshotDiff Between(
+        Snapshot before, Snapshot after, Func<IReadOnlyList<string>, IReadOnlyList<string>>? held)
     {
         var caveats = ComparisonCaveats.Between(before.Metadata, after.Metadata);
         var elevationDiffers = caveats.ElevationDiffers;
@@ -285,17 +323,12 @@ public sealed partial record SnapshotDiff(
             }
         }
 
-        foreach (var entry in Ordered(earlier).Where(entry => !right.ContainsKey(entry.ServiceName)))
-        {
-            if (Invisible(elevationDiffers, blind: after.Metadata.Elevated))
-            {
-                uncertain.Add(Presence(entry));
-            }
-            else
-            {
-                removed.Add(Presence(entry));
-            }
-        }
+        var unlisted = Missing(
+            [.. Ordered(earlier).Where(entry => !right.ContainsKey(entry.ServiceName))],
+            held,
+            Invisible(elevationDiffers, blind: after.Metadata.Elevated),
+            removed,
+            uncertain);
 
         return new SnapshotDiff(
             added,
@@ -306,7 +339,8 @@ public sealed partial record SnapshotDiff(
             [.. unseen.RefusedByBoth.Select(pair => new RefusedField(pair.Key, pair.Value))],
             [.. uncertain.OrderBy(entry => entry.ServiceName, StringComparer.Ordinal)],
             caveats,
-            new InstancesLeftOut(leftOutEarlier, leftOutLater));
+            new InstancesLeftOut(leftOutEarlier, leftOutLater),
+            unlisted);
     }
 
     /// <summary>
@@ -336,8 +370,14 @@ public sealed partial record SnapshotDiff(
     ///
     /// Only in one direction, and the direction is the whole point. An unelevated snapshot is
     /// a subset of an elevated one, so a row the unelevated side lacks may simply be
-    /// invisible - but a row the *elevated* side lacks is genuinely gone, because anything
+    /// invisible. A row the *elevated* side lacks was called genuinely gone here, because anything
     /// the restricted view could see the full one could see too.
+    ///
+    /// <b>That last sentence is not true, and since 2026-10-27 it says so</b> (logic report S03): the
+    /// listing leaves out whatever this account may not query, elevated or not, and an entry whose
+    /// permissions changed between two readings at the same elevation is missing from the second. Two
+    /// files cannot settle it - nobody can ask a file's machine - so for them this rule stands, said.
+    /// A comparison with this machine asks the manager instead (<see cref="TryAgainstMachine"/>).
     /// </summary>
     private static bool Invisible(bool elevationDiffers, bool blind) => elevationDiffers && !blind;
 
@@ -423,119 +463,6 @@ public sealed partial record SnapshotDiff(
 
     private static bool Comparable(string field) =>
         field != Identity && field != Unstable && !Bookkeeping.Contains(field, StringComparer.Ordinal);
-
-    /// <summary>
-    /// Fields whose value is a list where neither the order nor the spelling carries meaning.
-    ///
-    /// <b>Three fields, and each one is on this list for a written reason rather than because it
-    /// happens to be an array.</b>
-    ///
-    /// <c>requiredPrivileges</c> - the manager hands these back exactly as each service declared
-    /// them, and the spelling varies between services on ONE machine: Schedule declares
-    /// SeSystemTimePrivilege and Sense declares SeSystemtimePrivilege, and they are the same
-    /// privilege. <see cref="ScmEntry.RequiredPrivileges"/> has said since it was written that
-    /// comparison is case-insensitive everywhere and that a diff comparing them as plain text
-    /// would report a change between two machines that had none. It did exactly that until
-    /// 2026-08-26.
-    ///
-    /// <c>dependsOn</c> - service names, which Windows itself compares without case (`ADR-14`),
-    /// in whatever order the manager answered. That order is promised nowhere. This file's own
-    /// neighbour sorts ENTRIES for precisely that reason, having seen the order move.
-    ///
-    /// <c>triggers</c> - same argument about order. The two words inside each one are written by
-    /// this build rather than by the manager, so their spelling is ours and stable.
-    ///
-    /// <c>requiredBy</c> - the other direction of dependsOn, added 2026-09-06, and the same
-    /// argument twice over: service names, compared without case, in an order the manager promises
-    /// nowhere. IT WAS MISSED HERE ON THE DAY IT WAS ADDED and the guard below did not say so,
-    /// because it read a rendered specimen and this field is unread in every one - so a list field
-    /// that happened to be null was not an array and was invisible to the check whose entire
-    /// subject is a field nobody came back for. That guard asks the TYPE now.
-    /// </summary>
-    /// <remarks>
-    /// <b>Internal rather than private so that a guard can check it covers every list in the
-    /// document.</b> The way this list goes wrong is not that a name in it is wrong - it is that a
-    /// field is ADDED to the document and nobody comes here, which brings order-sensitivity back
-    /// for that one field, silently, on a surface whose whole job is telling real drift from noise.
-    /// </remarks>
-    internal static readonly string[] Unordered = ["dependsOn", "requiredBy", "requiredPrivileges", "triggers"];
-
-    /// <summary>
-    /// Fields whose value names something Windows itself compares without case.
-    ///
-    /// <b>Four fields, added 2026-08-26, and each one is here because the SYSTEM says so rather
-    /// than because looser felt safer.</b>
-    ///
-    /// <c>account</c> - an account is a SID, and the name is the translated label on it. `ADR-14`
-    /// is the whole of that argument: identity travels by identifier and the name is for showing a
-    /// person. <c>LocalSystem</c> and <c>localsystem</c> are one account.
-    ///
-    /// <c>binaryPath</c>, <c>binaryFile</c> - Windows paths are case-insensitive, so two spellings
-    /// of one path run one file. A snapshot reporting drift because somebody retyped a path in
-    /// different capitals would be reporting a change that changed nothing about what runs.
-    ///
-    /// <c>loadOrderGroup</c> - a group name is matched by the manager without case, the same way a
-    /// service name is.
-    ///
-    /// <b>What is deliberately NOT here, and it is the half that matters:</b> <c>binaryHash</c>,
-    /// <c>securityDescriptor</c>, <c>displayName</c> and <c>description</c>. A hash differing in
-    /// case is a different hash. An SDDL string is read character for character by the system that
-    /// parses it. And the two human-facing names are TEXT rather than identifiers - somebody
-    /// recapitalising a display name really did change what an administrator will read.
-    /// </summary>
-    private static readonly string[] TheSystemIgnoresCase =
-        ["account", "binaryPath", "binaryFile", "loadOrderGroup"];
-
-    /// <summary>
-    /// A value in the form the comparison uses, which is NOT always the form a person is shown.
-    ///
-    /// <b>The two were one representation until 2026-08-26, and splitting them was deliberate
-    /// rather than a convenience.</b> The old sentence here said that keeping one form meant what
-    /// the comparison decided and what somebody is shown could never disagree - a real property,
-    /// and it was paid for with a false difference on every list whose order or spelling moved
-    /// without anything changing. A tool whose whole subject is telling real drift from noise may
-    /// not report drift that is not there.
-    ///
-    /// <b>So the split goes one way only.</b> This form exists to decide whether two values differ
-    /// and is never shown to anybody. What a person reads is still <see cref="Text"/> of the value
-    /// as it was written - original spelling, original order - so a difference that IS reported
-    /// still shows both sides exactly as the two snapshots hold them.
-    ///
-    /// Everything not named in <see cref="Unordered"/> is compared exactly as before. That is the
-    /// half of this that is easy to get wrong: comparing every field without case would quietly
-    /// stop <c>binaryHash</c> and <c>sddl</c> from reporting changes that are real.
-    /// </summary>
-    private static string? Compared(string field, JsonNode? node)
-    {
-        if (node is JsonArray items && Unordered.Contains(field, StringComparer.Ordinal))
-        {
-            // The unit separator, because it is the one character none of these values can hold -
-            // joining on a comma would let two lists made of different pieces compare equal.
-            return string.Join(
-                '\u001f',
-                items
-                    .Select(item => (Text(item) ?? string.Empty).ToLowerInvariant())
-                    .OrderBy(text => text, StringComparer.Ordinal));
-        }
-
-        return TheSystemIgnoresCase.Contains(field, StringComparer.Ordinal)
-            ? Text(node)?.ToLowerInvariant()
-            : Text(node);
-    }
-
-    /// <summary>
-    /// A value as text, for showing, and for comparing everything <see cref="Compared"/> does not
-    /// take a view on.
-    ///
-    /// Strings come out as themselves rather than quoted, because a quoted path in a table reads
-    /// like a mistake.
-    /// </summary>
-    private static string? Text(JsonNode? node) => node switch
-    {
-        null => null,
-        JsonValue value when value.TryGetValue<string>(out var text) => text,
-        _ => node.ToJsonString()
-    };
 
     private static EntryPresence Presence(EntryDocument entry) =>
         new(entry.ServiceName, entry.DisplayName);

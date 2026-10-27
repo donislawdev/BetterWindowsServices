@@ -73,6 +73,43 @@ public sealed class AtomicFileTests : IDisposable
     }
 
     [Fact]
+    public void A_new_file_lands_where_nothing_stands()
+    {
+        var path = Path.Combine(_directory, "snapshot.json");
+
+        Assert.True(AtomicFile.WriteNew(path, "content"));
+
+        Assert.Equal("content", File.ReadAllText(path));
+        Assert.Single(Directory.GetFileSystemEntries(_directory));
+    }
+
+    [Fact]
+    public void A_new_file_leaves_whatever_got_there_first_and_nothing_beside_it()
+    {
+        // Logic report R11: two runs writing one name both asked "is anything there?" and both heard
+        // no, and the second move replaced the first. The refusal lives in the move now.
+        var path = Path.Combine(_directory, "snapshot.json");
+        File.WriteAllText(path, "first");
+
+        Assert.False(AtomicFile.WriteNew(path, "second"));
+
+        Assert.Equal("first", File.ReadAllText(path));
+        Assert.Single(Directory.GetFileSystemEntries(_directory));
+    }
+
+    [Fact]
+    public void A_new_file_is_not_moved_onto_a_folder_that_got_there_first()
+    {
+        var path = Path.Combine(_directory, "snapshot.json");
+        Directory.CreateDirectory(path);
+
+        Assert.False(AtomicFile.WriteNew(path, "content"));
+
+        Assert.True(Directory.Exists(path));
+        Assert.Single(Directory.GetFileSystemEntries(_directory));
+    }
+
+    [Fact]
     public void A_directory_that_does_not_exist_is_an_error_and_not_an_invitation()
     {
         // ADR-18 says the tool does not invent directories. One that creates a tree from a

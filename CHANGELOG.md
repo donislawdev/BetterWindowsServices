@@ -140,6 +140,38 @@ is not part of this repository.
   The refusal names the services Windows did not show, or says that the list of them could not be
   read. Where an account is shown every service - as an administrator was on the machine this was
   measured on - nothing changes.
+- `bws snapshot create` without `--force` no longer replaces a snapshot that appeared under the same
+  name while the machine was being read. Two runs started together by a script, naming the file from
+  the same second, used to leave only the second snapshot. The second one now says a snapshot is
+  already there and writes nothing.
+- A snapshot too large for this version to read back - over 64 MB, which a very long note could make -
+  is no longer written. It used to be written and announced, and then refused by the same version as
+  not a snapshot it wrote. The terminal and the window now say why nothing was written. A path that is
+  not a file on a disk, such as `NUL`, is refused as one rather than read.
+- A snapshot file that begins with a byte order mark is now refused when a byte in it is not valid
+  text, as a file without the mark always was. With the mark, the broken byte used to be read as a
+  replacement character, and a comparison reported the damage as a change on the machine.
+- A snapshot that says two things about one field that cannot both be true - holds a value for it and
+  lists it as not read, or lists it both as refused and as never read - or that holds an entry with an
+  empty name, is refused when it is read, naming the entry and the field. Such a file used to be read,
+  and the comparison quietly left the field out.
+- A comparison now reports a change in the case of a service's launch arguments - `--tenant=ACME`
+  becoming `--tenant=acme` - as a change of configuration. The whole launch command used to be
+  compared without case, because Windows paths ignore case, and the arguments are read by the
+  service's own program, which may not. The path is still compared without case.
+- Comparing a snapshot with this machine (`bws snapshot diff --live`, and *Compare with this machine*
+  in the window) no longer calls a service removed when Windows still has it but no longer shows it to
+  this account - after its permissions changed, for example. Every service the reading lacks is asked
+  about by name. One Windows still holds is listed under its own heading as still there and not
+  compared, and is not a change of configuration - in `--json` it is in a new `unlisted` list at the
+  end of the document. One Windows no longer holds is removed, also when the snapshot was taken with
+  administrator rights and the comparison runs without them, where the answer used to be "cannot tell".
+- The caveat about fields neither side of a comparison holds now says it applies to at least one entry.
+  It used to say no entry was compared on them, also when only one entry lacked them.
+- In the window, a comparison that finishes after you have gone to another tab, opened the form for a
+  new snapshot or put the comparison away no longer takes the middle of the window back - the line at
+  the foot says it finished and was not shown. Saving a snapshot no longer closes a form for a new
+  snapshot opened while the first one was being read.
 - `bws kill`, and Force stop and Force restart in the window, now ask the other services living in the
   same process to stop in an order Windows accepts: a service another of them needs is asked after
   it. They used to be asked in the order of the list, so a service another one still needed was
