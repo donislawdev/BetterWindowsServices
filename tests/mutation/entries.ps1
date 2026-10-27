@@ -14202,9 +14202,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'ending: a recovery list changed since the preview holds the ending'
         File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
-        From = '.Where(frozen => !RecoveryList.Same('
-        To = '.Where(frozen => RecoveryList.Same('
+        From = 'if (!RecoveryList.Same(frozen.Actions, now))'
+        To = 'if (RecoveryList.Same(frozen.Actions, now))'
         Test = 'SecondLookTests.An_ending_whose_recovery_list_changed_after_the_preview_ends_nothing'
+    }
+    @{
+        # The review of #94: a refused read is said as unread, with the manager's number - not as a changed list.
+        Name = 'ending: a recovery list refused just before is said unread with its number'
+        File = 'src\Bws.Core\Planning\PlanRunner.Ending.cs'
+        From = 'if (now.Outcome == ReadOutcome.Denied)'
+        To = 'if (now.Outcome == ReadOutcome.Absent)'
+        Test = 'SecondLookTests.A_recovery_list_the_manager_refuses_just_before_is_said_unread_with_its_number'
     }
     @{
         # Two readings of one unchanged list are two lists - by reference every ending on a real machine is refused.
@@ -14273,6 +14281,28 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'processes.ReadUnlisted(entries.Select(entry => entry.ServiceName))'
         To = 'processes.ReadUnlisted(entries.Skip(1).Select(entry => entry.ServiceName))'
         Test = 'UnlistedNeighbourTests.The_question_carries_every_name_of_the_listing_the_plan_was_built_from'
+    }
+    @{
+        # The review of #94: the two decisions of the real reader, on their values.
+        Name = 'unlisted: only the shared bit lets a type live beside another'
+        File = 'src\Bws.Core\WindowsEndingFactsReader.Unlisted.cs'
+        From = 'int bits => (bits & SharesAProcess) != 0,'
+        To = 'int bits => bits != 0,'
+        Test = 'UnlistedNeighbourTests.Only_a_type_with_the_shared_bit_can_live_beside_another'
+    }
+    @{
+        Name = 'unlisted: a key with no type is no entry'
+        File = 'src\Bws.Core\WindowsEndingFactsReader.Unlisted.cs'
+        From = '        null => false,'
+        To = '        null => true,'
+        Test = 'UnlistedNeighbourTests.A_key_with_no_type_is_no_entry_and_a_type_of_another_shape_is_asked_about'
+    }
+    @{
+        Name = 'unlisted: a name the manager does not hold is not withheld'
+        File = 'src\Bws.Core\WindowsEndingFactsReader.Unlisted.cs'
+        From = 'code is not ((int)WIN32_ERROR.ERROR_SERVICE_DOES_NOT_EXIST or (int)WIN32_ERROR.ERROR_INVALID_NAME);'
+        To = 'code is not (int)WIN32_ERROR.ERROR_INVALID_NAME;'
+        Test = 'UnlistedNeighbourTests.Only_a_name_the_manager_holds_and_refuses_is_withheld'
     }
     @{
         Name = 'forced stop: the plan asks the reader it was given'

@@ -129,6 +129,22 @@ public sealed class SecondLookTests
     }
 
     [Fact]
+    public void A_recovery_list_the_manager_refuses_just_before_is_said_unread_with_its_number()
+    {
+        // Not "changed": the list could not be read, and the manager's own number comes with it, as for the
+        // criticality above (the review of #94).
+        var facts = new FakeEndingFacts().RefusingRecovery(Name, errorCode: 5);
+        var control = new FakeScmControl();
+
+        var result = Assert.Single(Run(control, Ending(Frozen(Name, RecoveryAction.RestartService)), facts).Results);
+
+        Assert.Equal(StepOutcome.Failed, result.Outcome);
+        Assert.Equal(5, result.ErrorCode);
+        Assert.Contains("could not be read", result.Error, StringComparison.Ordinal);
+        Assert.Empty(control.Ended);
+    }
+
+    [Fact]
     public void A_neighbour_whose_recovery_list_changed_holds_the_ending_and_is_named()
     {
         var facts = new FakeEndingFacts().Recovering("Housemate", RecoveryAction.RestartComputer);

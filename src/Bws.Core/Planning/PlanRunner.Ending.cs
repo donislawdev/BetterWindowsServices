@@ -155,12 +155,24 @@ public sealed partial class PlanRunner
             return ControlAnswer.Refused(0, BecameCritical);
         }
 
-        List<string> changed =
-        [
-            .. (step.Recovery ?? [])
-                .Where(frozen => !RecoveryList.Same(frozen.Actions, processes.ReadRecovery(frozen.ServiceName)))
-                .Select(frozen => frozen.ServiceName)
-        ];
+        List<string> changed = [];
+
+        foreach (var frozen in step.Recovery ?? [])
+        {
+            var now = processes.ReadRecovery(frozen.ServiceName);
+
+            // A refused answer is not a list that changed - it is the one thing not known, and it says so with the
+            // manager's number, as the critical check above does (the review of #94).
+            if (now.Outcome == ReadOutcome.Denied)
+            {
+                return ControlAnswer.Refused(now.ErrorCode, string.Concat(frozen.ServiceName, RecoveryUnchecked));
+            }
+
+            if (!RecoveryList.Same(frozen.Actions, now))
+            {
+                changed.Add(frozen.ServiceName);
+            }
+        }
 
         return changed.Count > 0 ? ControlAnswer.Refused(0, string.Concat(Listed(changed), RecoveryChanged)) : null;
     }
@@ -193,6 +205,10 @@ public sealed partial class PlanRunner
     private const string RecoveryChanged =
         " - what Windows does when their process dies changed after the plan was built, so nothing was ended. Ask "
         + "again to see what ending it would set off now.";
+
+    private const string RecoveryUnchecked =
+        " - what Windows does when its process dies could not be read just before ending it, so nothing was ended. "
+        + "Ask again.";
 
     /// <summary>
     /// Said when the entry was seen in another process before it was seen stopped - the manager started it

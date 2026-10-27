@@ -91,28 +91,36 @@ public sealed partial class WindowsEndingFactsReader
     {
         using var key = services.OpenSubKey(name);
 
-        return key?.GetValue("Type") switch
-        {
-            null => false,
-            int type => (type & SharesAProcess) != 0,
-            _ => true
-        };
+        return CouldShare(key?.GetValue("Type"));
     }
+
+    /// <summary>
+    /// The decision <see cref="MayShare"/> makes, on the value alone - out on its own since the review of #94,
+    /// because a machine shows a test no key of the shape it needs, and a decision only reachable through the
+    /// registry is a decision no test can turn red.
+    /// </summary>
+    internal static bool CouldShare(object? type) => type switch
+    {
+        null => false,
+        int bits => (bits & SharesAProcess) != 0,
+        _ => true
+    };
 
     /// <summary>Whether the manager knows this name and will not let this account query it.</summary>
     private static bool Withheld(SafeHandle manager, string name)
     {
         using var service = PInvoke.OpenService(manager, name, PInvoke.SERVICE_QUERY_STATUS);
 
-        if (!service.IsInvalid)
-        {
-            return false;
-        }
-
-        var code = Marshal.GetLastWin32Error();
-
-        return code is not ((int)WIN32_ERROR.ERROR_SERVICE_DOES_NOT_EXIST or (int)WIN32_ERROR.ERROR_INVALID_NAME);
+        return service.IsInvalid && Withholds(Marshal.GetLastWin32Error());
     }
+
+    /// <summary>
+    /// What a refused open of a name from the registry means: not an entry (1060, or a name the manager cannot
+    /// hold, 123), or an entry this account is not shown - every other number. Out on its own for the reason
+    /// <see cref="CouldShare"/> gives.
+    /// </summary>
+    internal static bool Withholds(int code) =>
+        code is not ((int)WIN32_ERROR.ERROR_SERVICE_DOES_NOT_EXIST or (int)WIN32_ERROR.ERROR_INVALID_NAME);
 
     private static Reading<T> Unreadable<T>(int code) => Reading<T>.Denied(code, new Win32Exception(code).Message);
 

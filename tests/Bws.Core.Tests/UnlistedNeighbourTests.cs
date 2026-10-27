@@ -87,6 +87,38 @@ public sealed class UnlistedNeighbourTests
         Assert.True(plan.IsRunnable);
     }
 
+    [Theory]
+    [InlineData(0x20, true)]
+    [InlineData(0x60, true)]
+    [InlineData(0x10, false)]
+    [InlineData(0x50, false)]
+    [InlineData(0x1, false)]
+    public void Only_a_type_with_the_shared_bit_can_live_beside_another(int type, bool shares)
+    {
+        // The real reader's decision on the registry's Type value (the review of #94): 0x60 is a per-user
+        // template sharing a process, 0x50 one with its own, 0x1 a driver.
+        Assert.Equal(shares, WindowsEndingFactsReader.CouldShare(type));
+    }
+
+    [Fact]
+    public void A_key_with_no_type_is_no_entry_and_a_type_of_another_shape_is_asked_about()
+    {
+        Assert.False(WindowsEndingFactsReader.CouldShare(null));
+        Assert.True(WindowsEndingFactsReader.CouldShare("0x20"));
+    }
+
+    [Theory]
+    [InlineData(5, true)]
+    [InlineData(1060, false)]
+    [InlineData(123, false)]
+    [InlineData(6, true)]
+    public void Only_a_name_the_manager_holds_and_refuses_is_withheld(int code, bool withheld)
+    {
+        // 1060 and 123 say the name is no entry. Any other refusal - 5 above all - is an entry this account is
+        // not shown, the shape the enumeration leaves out without a word.
+        Assert.Equal(withheld, WindowsEndingFactsReader.Withholds(code));
+    }
+
     private static OperationPlan Forced(FakeScmCatalog catalog, FakeEndingFacts facts) =>
         new PlanBuilder(catalog.ReadAll(), catalog, facts).Build(new ServiceAction(ActionKind.ForceStop, "Netlogon"));
 

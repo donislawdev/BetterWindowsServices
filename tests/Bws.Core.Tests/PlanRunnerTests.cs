@@ -343,27 +343,27 @@ public sealed class PlanRunnerTests
         // reaches for is killing the process - and a killed process says nothing at all
         // about the half of a cascade it left switched off. Observed on a virtual machine
         // on 2026-08-01, where exactly that left a service stopped with no report.
+        //
+        // Both asks land once the manager has taken the first stop, through the linked source. Pressed
+        // before the request, as this test did until 2026-10-27, nothing was sent at all since R09 - and it
+        // stayed green while no longer abandoning anything the run had done.
         using var interruption = new CancellationTokenSource();
-        using var abandonment = new CancellationTokenSource();
+        using var abandonment = CancellationTokenSource.CreateLinkedTokenSource(interruption.Token);
 
         var control = Running("SessionEnv", "Netlogon", "LanmanWorkstation", "MRxSmb20");
 
-        var run = new PlanRunner(control, new FakeClock()).Run(
+        var run = new PlanRunner(new Interrupting(control, interruption), new FakeClock()).Run(
             Plan(ActionKind.Restart, "MRxSmb20"),
             Minute,
             interruption.Token,
-            abandonment.Token,
-            starting: (_, number) =>
-            {
-                if (number == 1)
-                {
-                    interruption.Cancel();
-                    abandonment.Cancel();
-                }
-            });
+            abandonment.Token);
 
         Assert.True(run.Cancelled);
         Assert.False(run.Completed);
+
+        // The first stop was sent and taken, and nothing else was sent - not even the start putting it back.
+        Assert.Equal(StepOutcome.Succeeded, run.Results[0].Outcome);
+        Assert.Equal([run.Results[0].Step.ServiceName], control.Requested);
 
         // Everything after the first step, the steps that put things back included.
         Assert.All(

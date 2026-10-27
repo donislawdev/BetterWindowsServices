@@ -132,12 +132,14 @@ is not part of this repository.
   the process dies (its recovery actions). When the process became critical, when either could not be
   read, or when any of those recovery actions differ from what the plan showed, the process is not
   ended and the step says why. It used to go ahead on what the plan had read, however long before.
-- `bws kill`, and Force stop and Force restart in the window, refuse to end a process that several
-  services share while Windows does not show this account every service that could live in it.
-  Windows leaves such a service out of the list without an error, so the plan could name fewer
-  services than the ending would take down. The refusal names the services Windows did not show. Where
-  an account is shown every service - as an administrator was on the machine this was measured on -
-  nothing changes.
+- `bws kill`, and Force stop and Force restart in the window, refuse to end the process of a service
+  that can share its process while Windows does not show this account every service that could share
+  one. Windows leaves such a service out of the list without an error, so the plan could name fewer
+  services than the ending would take down. The list does not say which process a hidden service
+  lives in, so on such a machine every shared process is refused, even one holding a single service.
+  The refusal names the services Windows did not show, or says that the list of them could not be
+  read. Where an account is shown every service - as an administrator was on the machine this was
+  measured on - nothing changes.
 - `bws kill`, and Force stop and Force restart in the window, now ask the other services living in the
   same process to stop in an order Windows accepts: a service another of them needs is asked after
   it. They used to be asked in the order of the list, so a service another one still needed was

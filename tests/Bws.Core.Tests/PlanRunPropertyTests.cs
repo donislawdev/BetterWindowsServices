@@ -49,6 +49,12 @@ public sealed class PlanRunPropertyTests
     /// trouble table turns this into a replay of something else, silently - which is why the shape is
     /// also written out by hand in PlanRunProgressTests, where no generator stands between it and the
     /// code.
+    ///
+    /// <b>Checked when the table grew dice 9 and 10 on 2026-10-26 (logic report R02, R03)</b>, by printing
+    /// what the seed draws: dice 9 6 6 14 8 0 2. The 9, behaving until then, now falls on Alpha - stopped and
+    /// in no step of the plan, so never asked and never read after a request, which is the only thing that
+    /// trouble changes. The housemates on dice 6 are still watched and given up on, and nothing is put back.
+    /// Grow the table again and this has to be printed again.
     /// </summary>
     [Fact]
     public void The_run_the_first_minute_long_search_found_puts_back_nothing_it_never_asked_to_stop()
