@@ -31,7 +31,7 @@ public sealed partial class WindowsBinaryInspector
     /// </summary>
     private Reading<BinarySignature> ThroughCatalogue(string file, SafeFileHandle handle, HANDLE raw)
     {
-        if (ThroughCatalogue(file, handle, raw, "SHA256") is { } bySha256)
+        if (ThroughCatalogue(file, handle, raw, "SHA256", out _) is { } bySha256)
         {
             return bySha256;
         }
@@ -45,13 +45,27 @@ public sealed partial class WindowsBinaryInspector
         // catalogue under either. It costs one more hash per file no SHA-256 catalogue lists - one
         // file there.
         //
-        // Only a verdict counts. A machine that will not hash with SHA-1, or a catalogue that cannot
-        // be read once found, gets the answer this gave before that day rather than a refusal for
-        // every unsigned file: the question that decides was answered above, this one only rescues.
-        return ThroughCatalogue(file, handle, raw, "SHA1") is { Outcome: ReadOutcome.Present } bySha1
-            ? bySha1
-            : Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
+        // WHETHER A CATALOGUE WAS FOUND DECIDES, since 2026-10-27 - logic report C03, owner's decision
+        // "two cases apart". A machine that will not hash with SHA-1, or no catalogue listing the file
+        // under it, still gets the answer this gave before 2026-10-05 rather than a refusal for every
+        // unsigned file: that question was answered above, and this one only rescues. But a catalogue
+        // that lists the file and then cannot be read or verified is not "nobody signed this" - the
+        // file is somebody's member, and a refusal with Windows' number is what is known. Until that day
+        // it came back as NotSigned too, a confident answer about a file that may well be signed.
+        var bySha1 = ThroughCatalogue(file, handle, raw, "SHA1", out var listed);
+
+        return AfterSha1(bySha1, listed);
     }
+
+    /// <summary>
+    /// The rule above on its own, so a test can hold it without a catalogue that fails on demand - no
+    /// machine here has one (C03). What the verification said when a catalogue was found, and "not signed"
+    /// when none was, or the question could not be asked at all.
+    /// </summary>
+    internal static Reading<BinarySignature> AfterSha1(Reading<BinarySignature>? answer, bool listed) =>
+        listed && answer is { } found
+            ? found
+            : Reading<BinarySignature>.Present(new BinarySignature(SignatureStatus.NotSigned, NoSignature, Publisher: null));
 
     /// <summary>
     /// One catalogue question asked with one hash algorithm. Null when no catalogue lists the file
@@ -60,9 +74,15 @@ public sealed partial class WindowsBinaryInspector
     /// The member hash comes from the same handle as everything else, and measured 2026-10-06 it
     /// does not depend on where the handle's file pointer stands (one-handle.ps1, P6).
     /// </summary>
+    /// <param name="listed">
+    /// Whether a catalogue listing the file was found - true for every answer from the verification
+    /// against it, refusals included, and false for a refusal that came before anybody looked (C03).
+    /// </param>
     private unsafe Reading<BinarySignature>? ThroughCatalogue(
-        string file, SafeFileHandle handle, HANDLE raw, string algorithm)
+        string file, SafeFileHandle handle, HANDLE raw, string algorithm, out bool listed)
     {
+        listed = false;
+
         // One context per file, and a context held per worker instead was measured on 2026-09-29
         // (tools/signature-probe/auto-cache.ps1, variant "held"). Acquiring and releasing is almost
         // free - what a fresh context costs is its FIRST catalogue lookup, about 1 ms per file on
@@ -120,6 +140,8 @@ public sealed partial class WindowsBinaryInspector
                 // own. "Nobody signed this" is the honest answer only once both have been asked.
                 return null;
             }
+
+            listed = true;
 
             try
             {

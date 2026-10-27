@@ -34,6 +34,13 @@ internal static class HistoryText
             lines.Add(Texts.Of("cli.history.log.full"));
         }
 
+        // An archived log keeps its past in other files whatever its size is now, so this is said every
+        // time rather than at the limit - H02, 2026-10-27.
+        if (history.Log.Mode == LogMode.AutoBackup)
+        {
+            lines.Add(Texts.Of("cli.history.log.autoBackup"));
+        }
+
         if (serviceName is null && history.HasInstallations)
         {
             lines.Add(Texts.Of("cli.history.installedUnderDisplayName"));
@@ -107,8 +114,11 @@ internal static class HistoryText
     }
 
     /// <summary>
-    /// How far back the log reaches, as the first sentence. Three shapes and one for an empty log, so
-    /// that "has lost nothing since" is said only when nothing says otherwise.
+    /// How far back the log reaches, as the first sentence - and only that.
+    ///
+    /// <b>"And has lost nothing since" went on 2026-10-27</b> (logic report H02): it was said whenever the
+    /// log was neither at its limit nor full, and neither says the log was written to without a gap - a
+    /// stopped log service, a log that stood full until somebody made it larger, an archived one.
     /// </summary>
     private static string Reach(LogCoverage log)
     {
@@ -124,9 +134,7 @@ internal static class HistoryText
                 : Texts.Of("cli.history.log.cleared", When(oldest), Who(cleared.By));
         }
 
-        return log.Overwritten || log.Full
-            ? Texts.Of("cli.history.log.reaches", When(oldest))
-            : Texts.Of("cli.history.log.since", When(oldest));
+        return Texts.Of("cli.history.log.reaches", When(oldest));
     }
 
     /// <summary>

@@ -260,12 +260,17 @@ public sealed class HistoryFilter : Observable, IRowChoices
     /// <summary>
     /// Whose and what, after every change: the changes SYSTEM did not make, installations, startup type
     /// changes. Which of them are offered is <see cref="RowChoiceSet{TRow}"/>'s rule, the comparison's too.
+    ///
+    /// <b>"Not by SYSTEM" takes only a change whose account the log names</b> - since 2026-10-27, logic
+    /// report H03. A change the log records without an account may have been SYSTEM's, so leaving it in
+    /// would make a missing name read as a finding about who did it. It stays under every change, and the
+    /// line over the table says the choice left changes out.
     /// </summary>
     private List<RowChoice> WhoseOf(IReadOnlyList<ServiceChange> all) => _whose.Offered(
         all,
         Texts.Of("gui.history.show.all"),
         [
-            (Texts.Of("gui.history.show.notSystem"), change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)),
+            (Texts.Of("gui.history.show.notSystem"), change => change.By is { } by && !string.Equals(by.Sid, SystemSid, StringComparison.Ordinal)),
             (Texts.Of("gui.history.show.installed"), change => change.Kind == ChangeKind.Installed),
             (Texts.Of("gui.history.show.startType"), change => change.Kind == ChangeKind.StartTypeChanged)
         ]);

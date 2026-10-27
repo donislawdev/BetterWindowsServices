@@ -13,7 +13,7 @@ public partial class HistoryTable : UserControl
         InitializeComponent();
 
         // Newest first, with the mark on When saying so (AS-d).
-        FirstSort.Keep(Lines, nameof(HistoryRow.When), ListSortDirection.Descending);
+        FirstSort.Keep(Lines, nameof(HistoryRow.At), ListSortDirection.Descending);
     }
 
     /// <summary>

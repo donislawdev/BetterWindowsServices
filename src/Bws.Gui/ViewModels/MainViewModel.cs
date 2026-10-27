@@ -131,7 +131,7 @@ public sealed partial class MainViewModel : Checked
         _index = new RowIndex(clock);
         _catalog = catalog;
         _processes = processes;
-        History = HistoryOf(history);
+        History = HistoryOf(history, clock);
 
         // Says is fetched rather than handed over, because a caller may replace it after this
         // constructor has run - see the argument on Readings._look. The last argument is fetched
@@ -345,8 +345,17 @@ public sealed partial class MainViewModel : Checked
     /// <b>The owner's S-1 decision, 2026-09-28, recorded in `ADR-13`.</b> A plan writes no file and
     /// no path, so verifying every signature again afterwards could not give a new answer and cost
     /// seconds on a small machine. F5 stays <see cref="LoadAsync()"/> and verifies everything.
+    ///
+    /// <b>And the change history again, once the log has had time to hold the plan's change</b> - logic
+    /// report H01, 2026-10-27. Not part of the task returned: the end of a run does not wait the seconds the
+    /// log takes, and the reading says it is reading meanwhile (<see cref="HistoryReading.AfterOwnChange"/>).
     /// </summary>
-    public Task LoadKeepingAsync() => ReadMachineAsync(Relisting.Keeping);
+    public Task LoadKeepingAsync()
+    {
+        History.AfterOwnChange();
+
+        return ReadMachineAsync(Relisting.Keeping);
+    }
 
     private async Task ReadMachineAsync(Relisting how)
     {

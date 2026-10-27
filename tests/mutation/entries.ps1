@@ -10011,8 +10011,8 @@ $mutations = @(
     @{
         Name = 'kept files: the reading after a plan keeps what is known'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.cs'
-        From = 'public Task LoadKeepingAsync() => ReadMachineAsync(Relisting.Keeping);'
-        To = 'public Task LoadKeepingAsync() => ReadMachineAsync(Relisting.Afresh);'
+        From = '        return ReadMachineAsync(Relisting.Keeping);'
+        To = '        return ReadMachineAsync(Relisting.Afresh);'
         Test = 'KeptFileAnswersTests.A_plan_keeps_what_the_window_knows_about_files'
     },
     @{
@@ -13082,7 +13082,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'history: a full log is not called overwritten'
         File = 'src\Bws.Core\History\ChangeHistory.cs'
-        From = 'Overwritten = !facts.Full && facts.AtSizeLimit,'
+        From = 'Overwritten = facts.Mode == LogMode.Circular && facts.AtSizeLimit,'
         To = 'Overwritten = facts.AtSizeLimit,'
         Test = 'ChangeHistoryTests.A_full_log_is_not_called_overwritten'
     }
@@ -13124,11 +13124,12 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'ChangeEventsTests.The_time_is_the_instant_windows_wrote_in_utc_to_the_full_precision'
     }
     @{
-        Name = 'history text: a log that lost something never says it lost nothing'
+        # H02, 2026-10-27: the promise "has lost nothing since" went, and an archived log says where its past is.
+        Name = 'history text: an archived log says older events may be in archive files'
         File = 'src\Bws.Cli\HistoryText.cs'
-        From = 'return log.Overwritten || log.Full'
-        To = 'return log.Full'
-        Test = 'HistoryOutputTests.A_log_that_lost_nothing_says_so_and_one_that_did_does_not'
+        From = 'if (history.Log.Mode == LogMode.AutoBackup)'
+        To = 'if (history.Log.Mode == LogMode.Retain)'
+        Test = 'HistoryOutputTests.An_archived_log_says_older_events_may_be_in_files_bws_does_not_read'
     }
     @{
         # A misspelt name must not read as "nobody touched it".
@@ -13649,9 +13650,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window history: not by SYSTEM leaves SYSTEM out'
         File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
-        From = 'change => !string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)'
-        To = 'change => string.Equals(change.By?.Sid, SystemSid, StringComparison.Ordinal)'
+        From = 'change => change.By is { } by && !string.Equals(by.Sid, SystemSid, StringComparison.Ordinal)'
+        To = 'change => change.By is { } by && string.Equals(by.Sid, SystemSid, StringComparison.Ordinal)'
         Test = 'HistoryTests.The_second_group_counts_each_choice_and_not_by_system_says_how_many_of_how_many'
+    }
+    @{
+        # Logic report H03, 2026-10-27: a change with no account recorded may have been SYSTEM's.
+        Name = 'window history: not by SYSTEM leaves out a change with no account'
+        File = 'src\Bws.Gui\ViewModels\HistoryFilter.cs'
+        From = 'change => change.By is { } by && !string.Equals'
+        To = 'change => change.By is not { } by || !string.Equals'
+        Test = 'HistoryClaimsTests.A_change_with_no_account_recorded_is_not_counted_as_not_by_system'
     }
     @{
         # GUI rule 3: a refresh keeps the tick somebody set.
@@ -13962,16 +13971,16 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # A spreadsheet sums numbers, and a blank is not one.
         Name = 'window history export: times is a number on every line'
         File = 'src\Bws.Gui\ViewModels\HistoryExporting.cs'
-        From = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
-        To = '                [row.When, row.Times, row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
+        From = '                    row.Count.ToString(CultureInfo.InvariantCulture),'
+        To = '                    row.Times,'
         Test = 'HistoryExportingTests.A_line_carries_its_count_as_a_number_and_the_account_by_sid'
     }
     @{
         # AS-c and rule 3: the account in the file is its SID beside its name.
         Name = 'window history export: the account goes in by sid'
         File = 'src\Bws.Gui\ViewModels\HistoryExporting.cs'
-        From = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, row.Group.Latest.By?.Sid ?? string.Empty],'
-        To = '                [row.When, row.Count.ToString(CultureInfo.InvariantCulture), row.Since, row.Entry, row.Change, row.By, string.Empty],'
+        From = '                    row.Group.Latest.By?.Sid ?? string.Empty'
+        To = '                    string.Empty'
         Test = 'HistoryExportingTests.A_line_carries_its_count_as_a_number_and_the_account_by_sid'
     }
     @{
@@ -14591,6 +14600,137 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'if (turn == _turn)'
         To = 'if (turn <= _turn)'
         Test = 'SnapshottingTests.A_form_opened_afresh_while_a_snapshot_was_read_is_left_open_when_it_is_written'
+    }
+
+    # ---- Logic report, package L3 (window, queries, history), 2026-10-27 - docs/ANALIZA-RAPORTU-LOGIKI-20261026.md ----
+    # H03 is above, beside the entry it re-anchored.
+    @{
+        # H04: the history table sorts by the moment, not by the local text.
+        Name = 'window history: the table opens sorted by the moment'
+        File = 'src\Bws.Gui\HistoryTable.xaml.cs'
+        From = 'FirstSort.Keep(Lines, nameof(HistoryRow.At), ListSortDirection.Descending);'
+        To = 'FirstSort.Keep(Lines, nameof(HistoryRow.When), ListSortDirection.Descending);'
+        Test = 'HistoryWindowGuards.The_history_opens_newest_first_with_the_mark_on_when_and_again_on_the_next_opening'
+    }
+    @{
+        # H04: a line of a group sorts by its LAST change, the time it shows.
+        Name = 'window history: a line sorts by the last change it stands for'
+        File = 'src\Bws.Gui\ViewModels\HistoryRow.cs'
+        From = 'At = group.Last ?? group.Latest.At;'
+        To = 'At = group.First ?? group.Latest.At;'
+        Test = 'HistoryWindowGuards.Pressing_a_heading_sorts_the_history_and_pressing_it_again_turns_the_order_round'
+    }
+    @{
+        # H04: the file names one moment, offset included.
+        Name = 'window history export: times carry their offset'
+        File = 'src\Bws.Gui\ViewModels\HistoryWords.cs'
+        From = '"yyyy-MM-dd HH:mm:ss zzz"'
+        To = '"yyyy-MM-dd HH:mm:ss"'
+        Test = 'HistoryExportingTests.A_line_carries_its_count_as_a_number_and_the_account_by_sid'
+    }
+    @{
+        # C03: a catalogue not found, or no way to ask, is not signed as before.
+        Name = 'signature: the SHA-1 rescue refuses only when a catalogue was found'
+        File = 'src\Bws.Core\WindowsBinaryInspector.Catalogue.cs'
+        From = 'listed && answer is { } found'
+        To = 'answer is { } found'
+        Test = 'CatalogueRescueTests.A_machine_that_will_not_ask_with_sha1_is_not_signed_as_before'
+    }
+    @{
+        # H02: only a circular log overwrites.
+        Name = 'history: an archived log at its limit is not overwriting'
+        File = 'src\Bws.Core\History\ChangeHistory.cs'
+        From = 'Overwritten = facts.Mode == LogMode.Circular && facts.AtSizeLimit,'
+        To = 'Overwritten = !facts.Full && facts.AtSizeLimit,'
+        Test = 'ChangeHistoryTests.An_archived_log_at_its_limit_is_not_called_overwritten'
+    }
+    @{
+        # H02: the window says where an archived log keeps its past.
+        Name = 'window history: an archived log says older events may be in archive files'
+        File = 'src\Bws.Gui\ViewModels\HistoryWords.cs'
+        From = 'if (history.Log.Mode == LogMode.AutoBackup)'
+        To = 'if (history.Log.Mode == LogMode.Retain)'
+        Test = 'HistoryClaimsTests.No_log_is_promised_to_have_lost_nothing_and_an_archived_one_says_where_its_past_is'
+    }
+    @{
+        # H01: the window's own plan reads the history again.
+        Name = 'window history: a plan reads the history again'
+        File = 'src\Bws.Gui\ViewModels\MainViewModel.cs'
+        From = '        History.AfterOwnChange();'
+        To = '        // the history is left as it was'
+        Test = 'HistoryAfterPlanTests.The_windows_own_plan_reads_the_history_again_once_the_log_has_had_time_to_hold_it'
+    }
+    @{
+        # H01: and waits for the log to hold the change first - measured, about a second.
+        Name = 'window history: the reading after a plan waits for the log'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.AfterPlan.cs'
+        From = '_clock.Wait(LogWrites);'
+        To = '_clock.Wait(TimeSpan.Zero);'
+        Test = 'HistoryAfterPlanTests.The_windows_own_plan_reads_the_history_again_once_the_log_has_had_time_to_hold_it'
+    }
+    @{
+        # H01: a reading out when the plan ended began too early, so another follows.
+        Name = 'window history: a reading begun before the plan is followed by another'
+        File = 'src\Bws.Gui\ViewModels\HistoryReading.AfterPlan.cs'
+        From = '        while (_owed);'
+        To = '        while (_owed && !_asked);'
+        Test = 'HistoryAfterPlanTests.A_reading_out_when_the_plan_ends_is_followed_by_one_that_holds_the_change'
+    }
+    @{
+        # R07: another process's memory is not read yet.
+        Name = 'window row: memory does not pass to another process'
+        File = 'src\Bws.Gui\ViewModels\EntryRow.cs'
+        From = 'memory.Outcome == ReadOutcome.NotRead ? memory'
+        To = 'memory.Outcome != ReadOutcome.NotRead ? memory'
+        Test = 'RowMemoryTests.Another_process_has_memory_nobody_has_read'
+    }
+    @{
+        # R07: no process, no memory - what MemoryPass says.
+        Name = 'window row: a stopped entry has no process to use memory'
+        File = 'src\Bws.Gui\ViewModels\EntryRow.cs'
+        From = ': process.IsPresent ? Reading<ProcessMemory>.NotRead()'
+        To = ': !process.IsPresent ? Reading<ProcessMemory>.NotRead()'
+        Test = 'RowMemoryTests.A_stopped_entry_has_no_process_to_use_memory'
+    }
+    @{
+        # R07: a claim on one process's memory is no claim on the next one's.
+        Name = 'window panel: a claim on memory belongs to its process'
+        File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
+        From = '? claimed & ~ExtraRead.Memory'
+        To = '? claimed'
+        Test = 'PanelReadingTests.Memory_goes_with_its_process_and_the_panel_reads_the_next_ones'
+    }
+    @{
+        # R07: with memory held for every row, a moved row is read at once.
+        Name = 'window list: a row moved to another process has its memory read again'
+        File = 'src\Bws.Gui\ViewModels\Readings.OneEntry.cs'
+        From = 'if (!_have.HasFlag(ExtraRead.Memory) || _reader is null)'
+        To = 'if (_have.HasFlag(ExtraRead.Memory) || _reader is null)'
+        Test = 'PanelReadingTests.A_list_holding_every_rows_memory_reads_a_restarted_one_at_once'
+    }
+    @{
+        # R10: a spent budget tries nothing more.
+        Name = 'query budget: a spent walk tries no more costly matches'
+        File = 'src\Bws.Core\Querying\QueryBudget.cs'
+        From = 'if (_spent >= _whole)'
+        To = 'if (_spent > _whole)'
+        Test = 'QueryBudgetTests.Once_the_walk_has_spent_its_budget_a_costly_pattern_is_not_tried_and_says_it_ran_out'
+    }
+    @{
+        # R10: a costly pattern pays out of the walk.
+        Name = 'query budget: the backtracking engine is charged'
+        File = 'src\Bws.Core\Querying\QueryValues.cs'
+        From = 'return _costly ? budget.Match(pattern!, value) : Verdict.Of(pattern!.IsMatch(value));'
+        To = 'return _costly ? Verdict.Of(pattern!.IsMatch(value)) : budget.Match(pattern!, value);'
+        Test = 'QueryBudgetTests.Once_the_walk_has_spent_its_budget_a_costly_pattern_is_not_tried_and_says_it_ran_out'
+    }
+    @{
+        # R10: the terminal's filter is one walk with one budget.
+        Name = 'query budget: a listing filtered at once shares one budget'
+        File = 'src\Bws.Core\Querying\Query.cs'
+        From = '        var pass = Pass();'
+        To = '        var pass = new QueryPass(this, new QueryBudget(() => TimeSpan.Zero, QueryBudget.Whole));'
+        Test = 'QueryBudgetTests.A_listing_filtered_at_once_shares_one_budget_rather_than_one_per_entry'
     }
 )
 

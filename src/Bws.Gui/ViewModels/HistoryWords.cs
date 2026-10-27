@@ -32,6 +32,15 @@ internal static class HistoryWords
             ? time.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             : Texts.Of("gui.history.notRecorded");
 
+    /// <summary>
+    /// The time with its offset from UTC, for a file - <see cref="When"/> and then the offset, so a person
+    /// reads the same time the screen shows and a spreadsheet can still place it (H04, 2026-10-27).
+    /// </summary>
+    internal static string Exact(DateTimeOffset? at) =>
+        at is { } time
+            ? time.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture)
+            : Texts.Of("gui.history.notRecorded");
+
     /// <summary>The account's name when this machine could give one, and the SID itself otherwise.</summary>
     internal static string Who(Actor? by) => Printable.Of(by?.Name ?? by?.Sid ?? Texts.Of("gui.history.notRecorded"));
 
@@ -79,6 +88,12 @@ internal static class HistoryWords
             lines.Add(Texts.Of("gui.history.log.full"));
         }
 
+        // An archived log keeps its past in other files whatever its size is now - H02, the command line's rule.
+        if (history.Log.Mode == LogMode.AutoBackup)
+        {
+            lines.Add(Texts.Of("gui.history.log.autoBackup"));
+        }
+
         if (!oneEntry && history.HasInstallations)
         {
             lines.Add(Texts.Of("gui.history.installedUnderDisplayName"));
@@ -110,8 +125,8 @@ internal static class HistoryWords
     }
 
     /// <summary>
-    /// How far back the log reaches. "Has lost nothing since" only when nothing says otherwise - the
-    /// command line's rule, and the reason it is a sentence of its own.
+    /// How far back the log reaches, and only that - the command line's rule. "And has lost nothing since"
+    /// went on 2026-10-27 (H02): nothing about a log says it was written to without a gap.
     /// </summary>
     private static string Reach(LogCoverage log)
     {
@@ -127,9 +142,7 @@ internal static class HistoryWords
                 : Texts.Of("gui.history.log.cleared", When(oldest), Who(cleared.By));
         }
 
-        return log.Overwritten || log.Full
-            ? Texts.Of("gui.history.log.reaches", When(oldest))
-            : Texts.Of("gui.history.log.since", When(oldest));
+        return Texts.Of("gui.history.log.reaches", When(oldest));
     }
 
     /// <summary>

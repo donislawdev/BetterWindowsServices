@@ -46,6 +46,14 @@ internal sealed partial class Readings : IEntryReads
     private readonly Dictionary<string, ExtraRead> _claimed = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Which process each claim on memory was made for - since 2026-10-27, logic report R07. A claim on
+    /// one process's memory is no claim on the next one's: the tick moves a row to a new process and
+    /// leaves its memory unread (<see cref="EntryRow.Absorb(ScmStatus, DateTimeOffset)"/>), and a claim
+    /// that still stood would keep the panel from asking for it until the next whole listing.
+    /// </summary>
+    private readonly Dictionary<string, Reading<int>> _memoryFor = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Why the panel's reading of an entry failed, per entry, for as long as its claim stands.
     ///
     /// <b>Beside the claims and cleared with them, since the review of PR #16.</b> The failure was
@@ -71,7 +79,7 @@ internal sealed partial class Readings : IEntryReads
         ArgumentNullException.ThrowIfNull(row);
 
         var entry = row.Entry;
-        var claimed = _claimed.GetValueOrDefault(row.ServiceName);
+        var claimed = Claimed(row);
 
         var missing =
             (entry.Signature.Outcome == ReadOutcome.NotRead ? ExtraRead.Signatures : ExtraRead.None)
@@ -82,10 +90,64 @@ internal sealed partial class Readings : IEntryReads
 
         if (owed != ExtraRead.None)
         {
-            _claimed[row.ServiceName] = claimed | owed;
+            Stake(row, claimed | owed);
         }
 
         return owed;
+    }
+
+    /// <summary>
+    /// The list holds every row's memory, and the tick has just moved rows to another process - read
+    /// theirs now rather than leaving "not read" in a column somebody turned on until F5 (R07, 2026-10-27).
+    /// The panel's own path, one row at a time: a tick moves a handful of rows at most, and a pass over
+    /// the listing costs 5-8 ms (MemoryPass). A row whose memory is already being read is not asked twice.
+    ///
+    /// <b>Inside the tick, awaited, the way the second phase runs inside a reading</b> - so the list is
+    /// narrowed once, with the new figures, and no read is started and walked away from.
+    /// </summary>
+    private Task MemoryAgainForMovedAsync()
+    {
+        if (!_have.HasFlag(ExtraRead.Memory) || _reader is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var reads = new List<Task>();
+
+        foreach (var row in _index.Ordered)
+        {
+            var claimed = Claimed(row);
+
+            if (row.Entry.Memory.Outcome == ReadOutcome.NotRead && !claimed.HasFlag(ExtraRead.Memory))
+            {
+                Stake(row, claimed | ExtraRead.Memory);
+                reads.Add(ReadAsync(row, ExtraRead.Memory));
+            }
+        }
+
+        return Task.WhenAll(reads);
+    }
+
+    /// <summary>What has been claimed for this row - less a claim on memory made for another process (R07).</summary>
+    private ExtraRead Claimed(EntryRow row)
+    {
+        var claimed = _claimed.GetValueOrDefault(row.ServiceName);
+
+        return claimed.HasFlag(ExtraRead.Memory)
+               && _memoryFor.TryGetValue(row.ServiceName, out var process)
+               && !(process.Outcome == row.Entry.ProcessId.Outcome && process.Value == row.Entry.ProcessId.Value)
+            ? claimed & ~ExtraRead.Memory
+            : claimed;
+    }
+
+    private void Stake(EntryRow row, ExtraRead claimed)
+    {
+        _claimed[row.ServiceName] = claimed;
+
+        if (claimed.HasFlag(ExtraRead.Memory))
+        {
+            _memoryFor[row.ServiceName] = row.Entry.ProcessId;
+        }
     }
 
     /// <inheritdoc />
@@ -154,6 +216,7 @@ internal sealed partial class Readings : IEntryReads
     {
         _listing++;
         _claimed.Clear();
+        _memoryFor.Clear();
         _failures.Clear();
     }
 

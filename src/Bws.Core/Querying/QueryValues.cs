@@ -57,7 +57,8 @@ internal readonly record struct Verdict(bool Matched, bool Unreadable, bool TooC
 /// <summary>One value inside a member, already compiled and ready to be asked about entries.</summary>
 internal interface IQueryValue
 {
-    Verdict Test(QueryField field, ScmEntry entry);
+    /// <param name="budget">The walk this question is part of, which a costly pattern pays out of (R10).</param>
+    Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget);
 
     /// <summary>
     /// Whether this value only bounds a quantity from one side - <c>&gt;</c>, <c>&gt;=</c>,
@@ -106,7 +107,7 @@ internal static class QueryValue
 /// </summary>
 internal sealed class OutcomeValue(ReadOutcome wanted) : IQueryValue
 {
-    public Verdict Test(QueryField field, ScmEntry entry) =>
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget) =>
         QueryValue.Unanswerable(field, entry)
             ? Verdict.CouldNotRead
             : Verdict.Of(field.OutcomeOf(entry) == wanted);
@@ -127,7 +128,7 @@ internal sealed class OutcomeValue(ReadOutcome wanted) : IQueryValue
 /// </summary>
 internal sealed class UnansweredValue : IQueryValue
 {
-    public Verdict Test(QueryField field, ScmEntry entry) =>
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget) =>
         Verdict.Of(QueryValue.Unanswerable(field, entry));
 }
 
@@ -148,7 +149,13 @@ internal enum TextOperator
 /// </summary>
 internal sealed class TextValue(TextOperator operation, string text, Regex? pattern) : IQueryValue
 {
-    public Verdict Test(QueryField field, ScmEntry entry)
+    /// <summary>
+    /// Whether the pattern runs on the engine that can run away - the only one a walk's budget is charged
+    /// for (R10). A wildcard and most patterns get the linear engine (<see cref="QueryPatterns"/>).
+    /// </summary>
+    private readonly bool _costly = pattern is not null && !pattern.Options.HasFlag(RegexOptions.NonBacktracking);
+
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget)
     {
         if (QueryValue.Unanswerable(field, entry))
         {
@@ -164,10 +171,10 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
 
         if (field.TextsOf is not null)
         {
-            return Across(field.TextsOf(entry));
+            return Across(field.TextsOf(entry), budget);
         }
 
-        return Against(field.TextOf!(entry));
+        return Against(field.TextOf!(entry), budget);
     }
 
     /// <summary>
@@ -175,7 +182,7 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
     /// running out of time is carried out whole rather than being turned into a no - the
     /// same rule the alternatives inside a member follow.
     /// </summary>
-    private Verdict Across(IReadOnlyList<string>? values)
+    private Verdict Across(IReadOnlyList<string>? values, QueryBudget budget)
     {
         if (values is null)
         {
@@ -186,13 +193,13 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
 
         foreach (var value in values)
         {
-            verdict = verdict.Or(Against(value));
+            verdict = verdict.Or(Against(value, budget));
         }
 
         return verdict;
     }
 
-    private Verdict Against(string? value)
+    private Verdict Against(string? value, QueryBudget budget)
     {
         if (value is null)
         {
@@ -212,18 +219,8 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
             return Verdict.Of(value.Equals(text, StringComparison.OrdinalIgnoreCase));
         }
 
-        try
-        {
-            return Verdict.Of(pattern!.IsMatch(value));
-        }
-        catch (RegexMatchTimeoutException)
-        {
-            // Only reachable for expressions the linear engine would not take, where the
-            // time limit is the net. Letting this escape would end the run with a stack
-            // trace, and a quiet no would be worse still: an expression that ran out of
-            // time has not answered, and saying so is the whole point of having a limit.
-            return Verdict.RanOutOfTime;
-        }
+        // The linear engine needs no budget and cannot time out - no limit was set on it, at QueryPatterns.
+        return _costly ? budget.Match(pattern!, value) : Verdict.Of(pattern!.IsMatch(value));
     }
 }
 
@@ -233,7 +230,7 @@ internal sealed class TextValue(TextOperator operation, string text, Regex? patt
 /// </summary>
 internal sealed class SymbolValue(IReadOnlyList<string> wanted) : IQueryValue
 {
-    public Verdict Test(QueryField field, ScmEntry entry)
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget)
     {
         var present = field.SymbolsOf!(entry);
 
@@ -287,7 +284,7 @@ internal sealed class NumberValue(NumberOperator operation, int low, int high) :
 {
     public bool IsOpenComparison => NumberOperators.IsOpen(operation);
 
-    public Verdict Test(QueryField field, ScmEntry entry)
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget)
     {
         if (QueryValue.Unanswerable(field, entry))
         {
@@ -327,7 +324,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
 {
     public bool IsOpenComparison => NumberOperators.IsOpen(operation);
 
-    public Verdict Test(QueryField field, ScmEntry entry)
+    public Verdict Test(QueryField field, ScmEntry entry, QueryBudget budget)
     {
         if (QueryValue.Unanswerable(field, entry))
         {

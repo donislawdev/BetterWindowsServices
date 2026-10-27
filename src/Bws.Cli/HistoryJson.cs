@@ -33,7 +33,7 @@ internal static class HistoryJson
         ArgumentNullException.ThrowIfNull(changes);
 
         var document = new HistoryDocument(
-            new LogDocument(log.Name, log.ReachesBack, log.Overwritten, log.Full, Cleared(log.Cleared)),
+            new LogDocument(log.Name, log.ReachesBack, log.Overwritten, log.Full, Cleared(log.Cleared), log.Mode.ToString()),
             [.. changes.Select(Change)]);
 
         return AsciiJson.Serialize(document, Options);
@@ -61,7 +61,12 @@ internal static class HistoryJson
     // The order of the members below IS the order of the keys in the document.
     private sealed record HistoryDocument(LogDocument Log, IReadOnlyList<ChangeDocument> Changes);
 
-    private sealed record LogDocument(string Name, DateTimeOffset? ReachesBack, bool Overwritten, bool Full, ClearedDocument? Cleared);
+    /// <param name="Mode">
+    /// What Windows does at the size limit, spelled as <see cref="LogMode"/> spells it - added 2026-10-27
+    /// (logic report H02) and LAST, so the document only grew at its end.
+    /// </param>
+    private sealed record LogDocument(
+        string Name, DateTimeOffset? ReachesBack, bool Overwritten, bool Full, ClearedDocument? Cleared, string Mode);
 
     private sealed record ClearedDocument(DateTimeOffset? At, ActorDocument? By);
 

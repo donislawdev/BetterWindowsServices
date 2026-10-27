@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Xml;
+using Bws.Core;
 using Bws.Core.History;
 using Bws.Core.Snapshots;
 
@@ -50,9 +51,10 @@ internal interface IEntryHistory
 /// <b>ONE READING AT A TIME.</b> A second ask while one is out waits for that one, rather than reading the
 /// log twice for one question - the rule Snapshotting.Busy keeps for the same reason.
 /// </summary>
-public sealed class HistoryReading : Observable, IEntryHistory
+public sealed partial class HistoryReading : Observable, IEntryHistory
 {
     private readonly IChangeHistoryReader? _reader;
+    private readonly IClock _clock;
     private readonly Func<Says>? _says;
     private ChangeHistory? _latest;
     private string _failure = string.Empty;
@@ -67,10 +69,12 @@ public sealed class HistoryReading : Observable, IEntryHistory
     private (ChangeHistory History, string Name, DetailSection Section)? _made;
 
     /// <param name="reader">The log, or nothing for a model built without one - a test's state, which says so.</param>
+    /// <param name="clock">What the wait for the log is measured on, so a test does not wait it (<see cref="LogWrites"/>).</param>
     /// <param name="says">The line under the window, for what an export did - Snapshotting is handed the same.</param>
-    internal HistoryReading(IChangeHistoryReader? reader, Func<Says>? says = null)
+    internal HistoryReading(IChangeHistoryReader? reader, IClock clock, Func<Says>? says = null)
     {
         _reader = reader;
+        _clock = clock;
         _says = says;
     }
 
@@ -239,7 +243,8 @@ public sealed class HistoryReading : Observable, IEntryHistory
     /// fault nobody foresaw, and it goes where those go - Mishaps - rather than into a sentence that
     /// would pretend to know what happened.
     /// </summary>
-    private async Task ReadAsync()
+    /// <param name="owed">Wait <see cref="LogWrites"/> first, off the window's thread, for a change the window just made.</param>
+    private async Task ReadOnceAsync(bool owed)
     {
         // A NEW READING IS NOT THE LAST ONE'S FAILURE - since a review of 2026-10-20 (#81). Kept, the panel
         // went on saying the log could not be read while the view beside it said it was reading. Cleared
@@ -252,7 +257,7 @@ public sealed class HistoryReading : Observable, IEntryHistory
         try
         {
             _latest = _reader is { } reader
-                ? await Task.Run(reader.Read).ConfigureAwait(true)
+                ? await Task.Run(() => Read(reader, owed)).ConfigureAwait(true)
                 : throw new InvalidDataException(Texts.Of("gui.history.noReader"));
         }
         catch (Win32Exception failure)

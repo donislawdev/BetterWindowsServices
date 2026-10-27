@@ -47,7 +47,10 @@ public sealed class SilentCatchGuards
         // own on 2026-10-05 (stability report R-3), taking its one catch with it.
         ["src/Bws.Core/ManagerEnvironment.cs"] = 1,
         ["src/Bws.Core/Querying/QueryPatterns.cs"] = 1,
-        ["src/Bws.Core/Querying/QueryValues.cs"] = 1,
+
+        // 2026-10-27, logic report R10: the catch of a pattern running out of time moved, unchanged, from
+        // QueryValues.cs into the walk's budget, which now asks the pattern. Ran out of time is the answer.
+        ["src/Bws.Core/Querying/QueryBudget.cs"] = 1,
         ["src/Bws.Core/Snapshots/AtomicFile.cs"] = 2,
 
         // 2026-09-30, stability report D-5, owner's decision that day: the monthly update number

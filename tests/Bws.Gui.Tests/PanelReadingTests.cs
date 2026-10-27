@@ -177,6 +177,64 @@ public sealed class PanelReadingTests
     }
 
     /// <summary>
+    /// The figure belongs to the process it was read for - logic report R07, 2026-10-27. The tick moved
+    /// the status and the process and left the megabytes, so a stopped service went on "using" what its
+    /// old process used, and the panel did not ask again because its claim still stood.
+    /// </summary>
+    [Fact]
+    public async Task Memory_goes_with_its_process_and_the_panel_reads_the_next_ones()
+    {
+        var memory = new Memory();
+        var machine = new LiveMachine(Entry());
+        var model = new MainViewModel(machine, new SteppedClock(), new Inspector(), memory);
+        await model.LoadAsync();
+        var row = model.Rows.Single();
+
+        await Open(model, row);
+        Assert.Equal(Memory.Of(1234), row.Entry.Memory.Value!.WorkingSet);
+
+        machine.Stop("Spooler");
+        await model.RefreshAsync();
+
+        Assert.Equal(ReadOutcome.Absent, row.Entry.Memory.Outcome);
+
+        machine.Start("Spooler", 4321);
+        await model.RefreshAsync();
+
+        Assert.Equal(ReadOutcome.NotRead, row.Entry.Memory.Outcome);
+
+        await Open(model, row);
+
+        Assert.Equal(Memory.Of(4321), row.Entry.Memory.Value!.WorkingSet);
+        Assert.Equal(2, memory.Asked);
+    }
+
+    /// <summary>
+    /// With memory held for every row - a column, or a question - a row moved to another process is read
+    /// again at once, rather than saying "not read" in a column somebody turned on until F5 (R07).
+    /// </summary>
+    [Fact]
+    public async Task A_list_holding_every_rows_memory_reads_a_restarted_one_at_once()
+    {
+        var memory = new Memory();
+        var machine = new LiveMachine(Entry());
+        var model = new MainViewModel(machine, new SteppedClock(), new Inspector(), memory);
+        await model.LoadAsync();
+        model.QueryText = "memory:>1MB";
+        await model.RefreshAsync();
+        var row = model.Rows.Single();
+
+        Assert.True(row.Entry.Memory.IsPresent, "The memory pass never ran, so the rest of this proves nothing.");
+
+        machine.Start("Spooler", 4321);
+        await model.RefreshAsync();
+
+        Assert.True(
+            SpinWait.SpinUntil(() => row.Entry.Memory is { IsPresent: true } read && read.Value!.WorkingSet == Memory.Of(4321), TimeSpan.FromSeconds(10)),
+            "The new process's memory was never read.");
+    }
+
+    /// <summary>
     /// A failure belongs to the entry that failed. Opening another entry while that reading is out
     /// must not dress the new one in it (review of PR #16, case one).
     /// </summary>

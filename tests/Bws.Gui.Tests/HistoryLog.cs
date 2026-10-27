@@ -59,7 +59,7 @@ internal sealed class HistoryLog : IChangeHistoryReader
 
     internal static LogCoverage Log() => ChangeHistory.Cover(
         "System",
-        new LogFacts(2_166_784UL, 20_971_520UL, Full: false),
+        new LogFacts(2_166_784UL, 20_971_520UL, Full: false, LogMode.Circular),
         Day(11, 16),
         new Clearing(Day(11, 16), new Actor(PersonSid, @"PC\someone")));
 

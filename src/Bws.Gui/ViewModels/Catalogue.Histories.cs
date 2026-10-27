@@ -86,7 +86,7 @@ public static partial class Catalogue
 
         private static LogCoverage Log(bool cleared, bool overwritten) => ChangeHistory.Cover(
             "System",
-            new LogFacts(overwritten ? 21_000_000UL : 2_166_784UL, 20_971_520UL, Full: false),
+            new LogFacts(overwritten ? 21_000_000UL : 2_166_784UL, 20_971_520UL, Full: false, LogMode.Circular),
             At(11, 16, 58),
             cleared ? new Clearing(At(11, 16, 58), new Actor(PersonSid, @"CATALOGUE\admin")) : null);
 

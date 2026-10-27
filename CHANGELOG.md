@@ -172,6 +172,29 @@ is not part of this repository.
   new snapshot or put the comparison away no longer takes the middle of the window back - the line at
   the foot says it finished and was not shown. Saving a snapshot no longer closes a form for a new
   snapshot opened while the first one was being read.
+- A query with a pattern that only the slower regular expression engine can run - a lookahead or a
+  backreference - now spends about a fifth of a second in it over the whole list, and the entries
+  left after that are reported as never checked. Each entry used to have fifty milliseconds of its
+  own, so such a pattern could hold `bws list` and the window still for over half a minute.
+- In the window, a service that stops or starts again in another process no longer shows the memory
+  of the process it had before. A stopped service shows no memory in use, and the panel reads the new
+  process's figure, as does the memory column when it is shown.
+- After a plan run from the window, the change history - the view and the section in the panel - is
+  read again once the System log has had time to record the change, about two seconds later. It used
+  to stay as it was until F5, without the change the plan had just made.
+- The change history no longer says the System log "has lost nothing since" its oldest record: nothing
+  about a log shows it was written without a gap. A log set to be archived when full now says that
+  older events may be in archive files, which are not read, instead of being said to overwrite its
+  oldest events. `bws history --json` names the log's mode in a new `mode` field at the end of `log`:
+  `Circular`, `AutoBackup` or `Retain`, as `Get-WinEvent -ListLog` names it.
+- *Not by SYSTEM* in the window's change history no longer includes changes the log recorded without
+  an account, which may have been made by SYSTEM. They stay under *All changes*.
+- The window's change history sorts by when a change happened rather than by the time as written on
+  this machine, so the hour the clocks go back is in order. The exported file writes each time with its
+  offset from UTC, so two changes in that hour no longer look like one moment.
+- A file whose signature is in an SHA-1 catalogue that Windows finds but cannot verify is now reported
+  as a signature that could not be read, with Windows' error number. It used to be reported as not
+  signed. A file in no catalogue, or a machine that cannot check SHA-1 catalogues, is still not signed.
 - `bws kill`, and Force stop and Force restart in the window, now ask the other services living in the
   same process to stop in an order Windows accepts: a service another of them needs is asked after
   it. They used to be asked in the order of the list, so a service another one still needed was

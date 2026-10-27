@@ -47,9 +47,16 @@ public sealed class HistoryExportingTests : IDisposable
 
         var lines = Lines(HistoryExporting.AsCsv(sheet, [spooler, bits], ","));
 
-        Assert.Equal(Line(spooler.When, "1", string.Empty, "Spooler", spooler.Change, spooler.By, HistoryLog.PersonSid), lines[^3]);
-        Assert.Equal(Line(bits.When, "2", bits.Since, "BITS", bits.Change, bits.By, HistoryLog.SystemSid), lines[^2]);
+        Assert.Equal(Line(Exact(spooler.When, spooler.At), "1", string.Empty, "Spooler", spooler.Change, spooler.By, HistoryLog.PersonSid), lines[^3]);
+        Assert.Equal(Line(Exact(bits.When, bits.At), "2", Exact(bits.Since, bits.FirstAt), "BITS", bits.Change, bits.By, HistoryLog.SystemSid), lines[^2]);
     }
+
+    /// <summary>
+    /// The time the screen shows and then its offset from UTC - H04, so a file names one moment even in the
+    /// hour the clocks go back. Built from the screen's own text, so this does not restate the format.
+    /// </summary>
+    private static string Exact(string shown, DateTimeOffset? at) =>
+        shown + " " + at!.Value.ToLocalTime().ToString("zzz", System.Globalization.CultureInfo.InvariantCulture);
 
     [Fact]
     public void A_search_is_said_in_the_file_and_only_the_lines_it_leaves_go_in()

@@ -415,6 +415,7 @@ internal sealed partial class Readings
                 break;
 
             case Freshening.Moved:
+                await MemoryAgainForMovedAsync().ConfigureAwait(true);
                 _settled();
                 break;
 

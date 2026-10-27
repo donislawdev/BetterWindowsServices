@@ -74,6 +74,16 @@ public sealed class HistoryContractTests
             change => Assert.False(string.IsNullOrEmpty(change.GetProperty("serviceName").GetString())));
     }
 
+    [Fact]
+    public void The_mode_of_the_log_is_the_one_get_winevent_names()
+    {
+        // H02, 2026-10-27: read from the channel's configuration, so the second opinion is the column
+        // Get-WinEvent prints - which is also where the names come from (Circular, AutoBackup, Retain).
+        var theirs = CommandLineTool.PowerShell("(Get-WinEvent -ListLog System).LogMode.ToString()");
+
+        Assert.Equal(theirs.Trim(), Document().GetProperty("log").GetProperty("mode").GetString());
+    }
+
     private static JsonElement Document()
     {
         var run = CommandLineTool.Run("history", "--json");
