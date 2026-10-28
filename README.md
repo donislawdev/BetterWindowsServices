@@ -510,11 +510,9 @@ A tool that quietly fails to cover something is worse than one that says what it
   Both halves say so at the top, and a snapshot records it, because comparing an elevated snapshot
   against one taken without rights would otherwise report entries as removed that nobody removed.
 
-**Measured, so you know what to expect** - on one machine with 810 services, and your figures
-will differ: `bws list` reads them in about a quarter of a second, the window shows the list in
-about eight tenths, and the window uses about 100 MB, half of which is the Windows user interface
-framework before any of this tool's own code runs. The command line over the same machine uses
-about 16 MB.
+**Measured, so you know what to expect** - on one machine with 804 services, and your figures
+will differ: `bws list` reads them in about a fifth of a second, and the command line over the
+same machine uses about 19 MB.
 
 ---
 
