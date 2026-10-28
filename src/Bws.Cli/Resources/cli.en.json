@@ -310,6 +310,7 @@
   "cli.cell.trigger.networkEndpoint": "Network endpoint",
   "cli.cell.trigger.custom": "Custom",
   "cli.cell.trigger.systemState": "System state",
+  "cli.cell.trigger.aggregate": "Aggregate",
   "cli.cell.startDelayed": "{0} (delayed)",
   "cli.cell.startDelayedUnknown": "{0} (delay unknown)",
   "cli.cell.startTrigger": "{0}, on trigger",

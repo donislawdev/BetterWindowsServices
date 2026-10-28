@@ -165,6 +165,41 @@ public sealed class TriggerChangeTests
         Assert.Equal(new TriggerDocument("CustomSystemStateChange", "Start", null, null), Assert.Single(change.Added));
     }
 
+    /// <summary>
+    /// Kind thirty was named Aggregate inside schema seven (backlog 627), and every file older than seven
+    /// holds it as Unknown - so against such a file the name is folded back, and a machine where nothing
+    /// changed shows nothing.
+    /// </summary>
+    [Fact]
+    public void Against_an_older_file_an_aggregate_trigger_held_there_as_unknown_is_the_same_trigger()
+    {
+        var before = Tree(Six);
+        Entry(before, "sppsvc")["triggers"]![1]!["kind"] = "Unknown";
+        var after = Tree(Seven);
+        Trigger(after, "sppsvc", 1)["kind"] = "Aggregate";
+
+        Assert.Empty(Diff(before, after).Changed);
+    }
+
+    /// <summary>
+    /// The fold is for a file older than seven alone. Two files of schema seven compare the kind as written,
+    /// so a file a build before backlog 627 wrote shows the change once - the price the owner accepted on
+    /// 2026-10-28 for naming it without a schema eight.
+    /// </summary>
+    [Fact]
+    public void Between_two_files_of_schema_seven_unknown_and_aggregate_are_two_kinds()
+    {
+        var before = Tree(Seven);
+        Trigger(before, "sppsvc", 1)["kind"] = "Unknown";
+        var after = Tree(Seven);
+        Trigger(after, "sppsvc", 1)["kind"] = "Aggregate";
+
+        var change = Assert.Single(Assert.Single(Diff(before, after).Changed).Differences).Triggers!;
+
+        Assert.Equal("Unknown", Assert.Single(change.Removed).Kind);
+        Assert.Equal("Aggregate", Assert.Single(change.Added).Kind);
+    }
+
     /// <summary>Only the triggers field carries the lines - every other difference is its two values.</summary>
     [Fact]
     public void Only_the_triggers_field_carries_a_trigger_change()

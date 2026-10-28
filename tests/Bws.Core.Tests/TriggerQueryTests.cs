@@ -80,6 +80,24 @@ public sealed class TriggerQueryTests
         Assert.Contains("sppsvc", Match("trigger:state"));
     }
 
+    /// <summary>
+    /// Kind thirty, named on 2026-10-28 (backlog 627) after the name winsvc.h gives it. Until that day it
+    /// answered to <c>trigger:unknown</c> - now it answers to its own word, and no longer to that one.
+    /// </summary>
+    [Fact]
+    public void An_aggregate_trigger_is_asked_for_by_its_own_word()
+    {
+        var entry = Specimens.DelayedAutomaticNotRunning with
+        {
+            ServiceName = "CDPSvc",
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                [new ServiceTrigger(TriggerKind.Aggregate, TriggerAction.Start, new Guid("a086ff1e-d6dc-45f7-b3e4-6cd5c9fdd6d7"), [])])
+        };
+
+        Assert.True(QueryParser.Parse("trigger:aggregate").Query!.Match(entry).Matched);
+        Assert.False(QueryParser.Parse("trigger:unknown").Query!.Match(entry).Matched);
+    }
+
     [Fact]
     public void The_action_is_askable_next_to_the_kind()
     {

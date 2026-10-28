@@ -747,6 +747,7 @@
   "gui.cell.trigger.networkEndpoint": "Network endpoint",
   "gui.cell.trigger.custom": "Custom",
   "gui.cell.trigger.systemState": "System state",
+  "gui.cell.trigger.aggregate": "Aggregate",
   "gui.trigger.head": "{0}/{1}",
   "gui.trigger.withSubtype": "{0}  {1}",
   "gui.trigger.withData": "{0}  {1}",

@@ -132,6 +132,11 @@ is not part of this repository.
   about three thousand characters. `--json` is unchanged and still carries both whole lists. A snapshot
   edited by hand into a trigger this program never writes - an empty one, or data without its type or
   values - still shows the two whole lists for that entry.
+- A trigger of the kind the Windows SDK calls an aggregate trigger is named *Aggregate*, in
+  `bws show`, the window, a snapshot and `--json`. It used to be *Unknown* - `sc qtriggerinfo` names no
+  kind for it either - so a change from it to another kind nobody could name went unseen.
+  `trigger:aggregate` asks for it, and `trigger:unknown` no longer finds it. Compared with a snapshot
+  taken by an earlier version, where it is still *Unknown*, it does not show as a change.
 
 ### Fixed
 

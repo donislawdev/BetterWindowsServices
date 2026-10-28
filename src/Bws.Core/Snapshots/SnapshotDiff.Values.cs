@@ -101,11 +101,22 @@ public sealed partial record SnapshotDiff
                 ? null
                 : new JsonObject
                 {
-                    ["kind"] = trigger["kind"]?.DeepClone(),
+                    ["kind"] = KindBeforeSeven(trigger["kind"]),
                     ["action"] = trigger["action"]?.DeepClone()
                 })
         ]);
     }
+
+    /// <summary>
+    /// A kind as a file older than schema seven holds it. Kind thirty was named Aggregate on 2026-10-28
+    /// (backlog 627), inside schema seven and before it was released, and every build until then wrote it
+    /// Unknown - so against an older file the new name would read as a change on a machine where nothing
+    /// changed. Both sides are folded, which costs nothing on the older one: it cannot hold the name.
+    /// </summary>
+    private static JsonNode? KindBeforeSeven(JsonNode? kind) =>
+        kind is JsonValue value && value.TryGetValue<string>(out var text) && text == nameof(TriggerKind.Aggregate)
+            ? JsonValue.Create(nameof(TriggerKind.Unknown))
+            : kind?.DeepClone();
 
     /// <summary>
     /// The triggers each side holds and the other does not, for the triggers field - null for any other.

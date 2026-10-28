@@ -72,6 +72,31 @@ public sealed class CellFaceTests
         }
     }
 
+    public static TheoryData<TriggerKind> NamedTriggerKinds()
+    {
+        var named = new TheoryData<TriggerKind>();
+
+        foreach (var kind in Enum.GetValues<TriggerKind>().Where(kind => kind != TriggerKind.Unknown))
+        {
+            named.Add(kind);
+        }
+
+        return named;
+    }
+
+    /// <summary>
+    /// Every trigger kind the core names has a word of its own in the window. Written 2026-10-28 for
+    /// backlog 627, when the core named Aggregate: the label is a switch with a fallback, so a kind
+    /// forgotten here reads "Unknown" in the column and the panel. TriggerWordsTests asks the same of the
+    /// terminal.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(NamedTriggerKinds))]
+    public void Every_trigger_kind_the_core_names_has_a_word_of_its_own(TriggerKind kind)
+    {
+        Assert.NotEqual(Bws.Gui.Texts.Of("gui.cell.unknown"), CellFaces.TriggerKindLabel(kind));
+    }
+
     [Fact]
     public void The_start_type_carries_what_changes_its_meaning()
     {
