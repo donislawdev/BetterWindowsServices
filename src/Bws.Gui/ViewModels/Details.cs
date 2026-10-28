@@ -1,5 +1,6 @@
 using Bws.Core;
 using Bws.Core.Querying;
+using Bws.Core.Snapshots;
 
 namespace Bws.Gui.ViewModels;
 
@@ -20,8 +21,8 @@ public sealed class DetailLine
     /// time (J2-c, 2026-10-20). Plain text, read in full: nothing here is a column, so nothing has a
     /// mark, a reading or a cell to agree with.
     /// </summary>
-    internal static DetailLine Written(string label, string value) =>
-        new(string.Empty, value, "text", ReadOutcome.Present) { _written = label };
+    internal static DetailLine Written(string label, string value, string wears = "text") =>
+        new(string.Empty, value, wears, ReadOutcome.Present) { _written = label };
 
     internal DetailLine(
         string labelKey, string value, string wears, ReadOutcome outcome, string mark = "", string? reading = null)
@@ -234,8 +235,33 @@ internal static class Details
             sections.Add(new DetailSection(heading, [.. columns.Select(column => Line(column, entry, reading))], note));
         }
 
-        return sections;
+        return Triggers(entry) is { } triggers ? [.. sections, triggers] : sections;
     }
+
+    /// <summary>
+    /// <b>Every trigger with its subtype and its data, as a section of its own after the fields</b> - backlog
+    /// 625, 2026-10-27. Not inside the "Triggers" line of the advanced section, which says the column's own
+    /// words like every line of this panel (the summary of this class): the kinds, once each.
+    ///
+    /// <b>One line per trigger</b>, the kind and the action as its label, the subtype and each data item
+    /// under it - drawn at the full width of the panel, because a GUID and the 73 characters of the longest
+    /// value on the owner's machine break mid-word in the value column. <b>Only when the entry has
+    /// triggers</b>: none is the ordinary case and says so in the advanced line, and so does a reading that
+    /// was refused - a section here would repeat the line above it.
+    /// </summary>
+    private static DetailSection? Triggers(ScmEntry entry) =>
+        entry.Triggers is { IsPresent: true, Value: { Count: > 0 } triggers }
+            ? new DetailSection(
+                TriggersHeading,
+                [.. triggers.Select(TriggerDocument.Of).Select(trigger => DetailLine.Written(
+                    TriggerLines.KindAndAction(trigger), TriggerLines.Detail(trigger), TriggerFace))])
+            : null;
+
+    /// <summary>The heading of the triggers section. A constant for the reason <see cref="NetworkNote"/> gives.</summary>
+    private const string TriggersHeading = "gui.details.section.triggers";
+
+    /// <summary>How a trigger's line is drawn - see <see cref="Triggers"/>.</summary>
+    private const string TriggerFace = "prose";
 
     /// <summary>
     /// Whether the entry's file is on another machine, which the window does not reach for - the

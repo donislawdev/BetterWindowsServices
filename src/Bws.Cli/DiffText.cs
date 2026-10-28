@@ -143,15 +143,9 @@ internal static class DiffText
         {
             text.AppendLine(Texts.Of("cli.diff.entry", entry.ServiceName, entry.DisplayName));
 
-            foreach (var difference in entry.Differences)
+            foreach (var line in entry.Differences.SelectMany(Lines))
             {
-                text.AppendLine(Texts.Of(
-                    difference.Group == DifferenceGroup.RunningState
-                        ? "cli.diff.field.state"
-                        : "cli.diff.field.configuration",
-                    difference.Field,
-                    Value(difference.Before),
-                    Value(difference.After)));
+                text.AppendLine(line);
             }
 
             // Named, never counted as a change. A field one side could not read says nothing
@@ -211,6 +205,31 @@ internal static class DiffText
                     : Texts.Of("cli.diff.incomplete.seenByOne.many", seenByOne));
             }
         }
+    }
+
+    /// <summary>
+    /// One difference as the lines it reads in: "field: before -> after", and for the triggers one such
+    /// line per trigger only one side holds, the other side "nothing" (backlog 625, owner's decision "a
+    /// line per trigger", 2026-10-27). Until then the triggers were the two whole lists as JSON - about
+    /// three thousand characters on one line for an entry losing one of thirteen.
+    ///
+    /// <b>The whole lists are still the answer when there are no trigger lines to give</b> - a field that
+    /// differs only as "none" against an empty list, which no real reading writes but a file can hold.
+    /// A difference reported with nothing under it would be the silence rule 8 forbids. And when a side
+    /// holds a trigger that is not one to say, which the core answers with no lines at all (since the
+    /// review of PR #98 - a null trigger read as "/", and a data item of nulls ended the run with code 1).
+    /// </summary>
+    private static IEnumerable<string> Lines(FieldDifference difference)
+    {
+        var key = difference.Group == DifferenceGroup.RunningState ? "cli.diff.field.state" : "cli.diff.field.configuration";
+
+        if (difference.Triggers is not { } change || change.Removed.Count + change.Added.Count == 0)
+        {
+            return [Texts.Of(key, difference.Field, Value(difference.Before), Value(difference.After))];
+        }
+
+        return change.Removed.Select(trigger => Texts.Of(key, difference.Field, TriggerWords.Line(trigger), Value(null)))
+            .Concat(change.Added.Select(trigger => Texts.Of(key, difference.Field, Value(null), TriggerWords.Line(trigger))));
     }
 
     /// <summary>

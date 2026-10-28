@@ -41,17 +41,24 @@ internal static partial class ManagerBlocks
     /// very block the call filled, so an array that moved between that call and the fixed statement
     /// below would leave an offset nowhere near the buffer - refused here rather than followed.
     ///
-    /// <b>A block that does not describe itself comes back as nothing read rather than as no
-    /// triggers.</b> An empty list would be a claim about the service - that it declares none -
-    /// and that claim is exactly what could not be established.
+    /// <b>ONE RULE FOR A BLOCK THAT DOES NOT DESCRIBE ITSELF, SINCE 2026-10-27 - the field is refused
+    /// with ERROR_INVALID_DATA</b> (backlog 626, owner's decision "refuse everywhere"), the way a
+    /// configuration field outside its block is refused since R-4. A block too short for its header, a
+    /// record array that does not fit inside the block, a subtype or a data item outside it: each one.
     ///
-    /// <b>What a record points at is refused rather than held down, unlike the record count</b>
-    /// (2026-10-27). A count of records larger than the block keeps the records that fit, as it has
-    /// since 2026-08-26. A subtype or a data item outside the block refuses the whole field with
-    /// ERROR_INVALID_DATA, the way a configuration field outside its block is refused since R-4 -
-    /// because a trigger with one of its data items quietly dropped is a different trigger: a device
-    /// trigger fires on any of its hardware IDs and an ETW trigger on its filters, so one item fewer
-    /// widens or narrows what the entry waits for, and the reading would say so as fact.
+    /// <b>Until that day there were three rules for one fault.</b> A short block or a record pointer
+    /// to nowhere came back Absent - "declares no triggers", while this header claimed "nothing read" -
+    /// and a record count larger than the block was held down to the records that fit, from 2026-08-26.
+    /// Both were the silence rule 8 forbids: a list that looks complete or looks empty, about a block
+    /// nobody could read. And since schema seven a subtype or a data item outside the block refused the
+    /// whole field, because a trigger with one of its data items quietly dropped is a different trigger -
+    /// a device trigger fires on any of its hardware IDs and an ETW trigger on its filters. A record
+    /// quietly dropped is the same fault one level up, so it is answered the same way.
+    ///
+    /// <b>The ordinary case is untouched, and that is measured rather than hoped:</b> an entry with no
+    /// triggers comes back with a whole header holding a count of nought, which is still Absent, and
+    /// <c>tools/scm-probe/probe-sizes.ps1</c> never saw a size of nought or a sizing call that succeeded
+    /// on any of 799 entries (2026-09-02). None of the refused shapes has been seen on a real machine.
     /// </summary>
     internal static unsafe Reading<IReadOnlyList<ServiceTrigger>> ReadTriggerBuffer(byte[] buffer)
     {
@@ -59,7 +66,7 @@ internal static partial class ManagerBlocks
 
         if (buffer.Length < sizeof(SERVICE_TRIGGER_INFO))
         {
-            return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
+            return OutsideTheBlock<IReadOnlyList<ServiceTrigger>>();
         }
 
         fixed (byte* start = buffer)
@@ -72,19 +79,14 @@ internal static partial class ManagerBlocks
                 return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
             }
 
-            var offset = (byte*)info.pTriggers - start;
+            // The whole record array inside the block before any of it is read - a pointer to nowhere
+            // lands below the block, and a count the block cannot hold runs past its end. One count,
+            // checked once and walked once, so the two can never be different numbers again.
+            var count = info.cTriggers;
 
-            if (info.pTriggers is null || offset < 0 || offset >= buffer.Length)
+            if (Within(info.pTriggers, (long)count * sizeof(SERVICE_TRIGGER), start, buffer.Length) is not { } at)
             {
-                return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
-            }
-
-            var room = (uint)((buffer.Length - offset) / sizeof(SERVICE_TRIGGER));
-            var count = Math.Min(info.cTriggers, room);
-
-            if (count == 0)
-            {
-                return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
+                return OutsideTheBlock<IReadOnlyList<ServiceTrigger>>();
             }
 
             var triggers = new List<ServiceTrigger>((int)count);
@@ -95,7 +97,7 @@ internal static partial class ManagerBlocks
             // so in the one case the check exists for, a pointer landing in range by accident, it
             // validated one address and dereferenced another. A guard that looks like a guard and
             // is not is worse than no guard, because the next reader stops looking. Backlog 297.
-            var records = (SERVICE_TRIGGER*)(start + offset);
+            var records = (SERVICE_TRIGGER*)(start + at);
 
             return Records(records, count, start, buffer.Length, triggers)
                 ? Reading<IReadOnlyList<ServiceTrigger>>.Present(triggers)

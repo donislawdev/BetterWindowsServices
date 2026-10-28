@@ -5935,20 +5935,42 @@ $mutations = @(
         # and a block claiming nothing at address zero is where the program ends.
         Name = 'blocks: a trigger pointer that lands nowhere is not followed'
         # MOVED 2026-10-27 with the whole trigger walk, into a file of its own (logic report C01).
+        # RE-ANCHORED the same day (backlog 626): the pointer and the count are one check now, so the
+        # mutation trusts the pointer by aiming at the first record after the header instead - the
+        # test's block has a real record there, and only the pointer is wrong.
         File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
-        From = 'if (info.pTriggers is null || offset < 0 || offset >= buffer.Length)'
-        To = 'if ((info.pTriggers is null || offset < 0 || offset >= buffer.Length) && false)'
+        From = 'if (Within(info.pTriggers, (long)count * sizeof(SERVICE_TRIGGER), start, buffer.Length) is not { } at)'
+        To = 'if (Within(start + sizeof(SERVICE_TRIGGER_INFO), (long)count * sizeof(SERVICE_TRIGGER), start, buffer.Length) is not { } at)'
         Test = 'ManagerBlockTests.A_count_with_a_pointer_to_nowhere_is_refused_rather_than_followed'
     },
     @{
-        # The count half. Max rather than a plain removal, so that `room` is still used and the
-        # tree still compiles - the "mutate a value, not a proof" advice from the header.
-        Name = 'blocks: a trigger count is held down to what the block holds'
-        # MOVED 2026-10-27 with the whole trigger walk, into a file of its own (logic report C01).
+        # The count half, and since 2026-10-27 (backlog 626, owner's decision "refuse everywhere") it
+        # guards the REFUSAL: the mutation puts back the clamp to what the block holds, which was the
+        # rule from 2026-08-26 until that day. A plain removal of the check would walk past the block
+        # in the test and pass or fail on whatever memory lies there - this one stays inside it.
+        Name = 'blocks: a trigger count larger than the block refuses the field'
         File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
-        From = 'var count = Math.Min(info.cTriggers, room);'
-        To = 'var count = Math.Max(info.cTriggers, room);'
-        Test = 'ManagerBlockTests.A_count_larger_than_the_block_is_held_down_to_what_the_block_holds'
+        From = 'var count = info.cTriggers;'
+        To = 'var count = Math.Min(info.cTriggers, (uint)((buffer.Length - sizeof(SERVICE_TRIGGER_INFO)) / sizeof(SERVICE_TRIGGER)));'
+        Test = 'ManagerBlockTests.A_count_larger_than_the_block_refuses_the_field_rather_than_keeping_what_fits'
+    },
+    @{
+        # A block too short for its own header said "no triggers" until 2026-10-27 (backlog 626).
+        Name = 'blocks: a trigger block too short for its header is refused'
+        File = 'src\Bws.Core\ManagerBlocks.Triggers.cs'
+        From = @'
+        if (buffer.Length < sizeof(SERVICE_TRIGGER_INFO))
+        {
+            return OutsideTheBlock<IReadOnlyList<ServiceTrigger>>();
+        }
+'@
+        To = @'
+        if (buffer.Length < sizeof(SERVICE_TRIGGER_INFO))
+        {
+            return Reading<IReadOnlyList<ServiceTrigger>>.Absent();
+        }
+'@
+        Test = 'ManagerBlockTests.A_block_too_short_to_hold_its_own_header_is_refused'
     },
     @{
         # Sends the list fields back through the plain text comparison, which is order for order
@@ -6535,9 +6557,11 @@ $mutations = @(
         # deliberately NOT part of this - its three members are already single words, measured
         # 2026-09-01, and TriggerWords carries that note.
         Name = 'report: the trigger kind says a word for a person rather than the name of a value'
-        File = 'src\Bws.Cli\EntryReport.cs'
-        From = '            TriggerWords.Of(trigger.Kind),'
-        To = '            trigger.Kind.ToString(),'
+        # RE-ANCHORED 2026-10-27 (backlog 625): the report reads a trigger through its document form now,
+        # and the word for its kind is chosen in TriggerWords.
+        File = 'src\Bws.Cli\TriggerWords.cs'
+        From = '? Of(Enum.Parse<TriggerKind>(kind))'
+        To = '? kind'
         Test = 'EntryReportTests.A_trigger_kind_of_two_words_is_printed_as_two_words_and_its_action_is_left_alone'
     },
     @{
@@ -14865,6 +14889,181 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'Values.SequenceEqual(other.Values, StringComparer.Ordinal)'
         To = 'Values.SequenceEqual(other.Values, StringComparer.OrdinalIgnoreCase)'
         Test = 'ServiceTriggerTests.A_trigger_whose_data_differs_only_in_case_is_a_different_trigger'
+    }
+    @{
+        # Backlog 625: the documentation names each GUID for one kind, so the kind is part of the key.
+        Name = 'triggers: a documented subtype is named only under its own kind'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '&& Documented.TryGetValue((trigger.Kind, subtype), out var name)'
+        To = '&& Documented.TryGetValue(Documented.Keys.FirstOrDefault(key => key.Subtype == subtype), out var name)'
+        Test = 'TriggerPartsTests.A_subtype_is_named_only_where_the_documentation_names_it'
+    }
+    @{
+        # Backlog 625: bytes read the way sc qtriggerinfo prints them.
+        Name = 'triggers: bytes are read in pairs'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = "private static string Pairs(string hex) => string.Join(' ', hex.Chunk(2).Select(pair => new string(pair)));"
+        To = 'private static string Pairs(string hex) => hex;'
+        Test = 'TriggerPartsTests.Bytes_are_read_in_pairs'
+    }
+    @{
+        # Backlog 625: a multiset - a set would report a difference with no line under it. Re-anchored in
+        # the review of PR #98, when the search became a count: a set is "any copy matches".
+        Name = 'diff: the triggers on one side only are counted as a multiset'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'if (matched.GetValueOrDefault(key) < copies.GetValueOrDefault(key))'
+        To = 'if (copies.ContainsKey(key))'
+        Test = 'TriggerChangeTests.A_trigger_held_twice_on_one_side_and_once_on_the_other_leaves_one'
+    }
+    @{
+        # Backlog 625, and the half that matters: only the triggers - lines of this tool's own making -
+        # are split. A value from outside split at its line breaks can print a line that looks like a
+        # field (stability report C-4). The first version of the layout did exactly this.
+        Name = 'show: a line break inside a value from outside is never a line of the report'
+        File = 'src\Bws.Cli\EntryReport.cs'
+        From = "var parts = lines ? value.Split('\n') : [value];"
+        To = "var parts = value.Split('\n');"
+        Test = 'EntryReportTests.A_line_break_inside_a_value_stays_written_out_and_only_the_triggers_are_several_lines'
+    }
+    @{
+        # Backlog 625, owner's decision "B": the data items stand on lines under the trigger.
+        Name = 'show: a trigger and its data items are lines under the label'
+        File = 'src\Bws.Cli\EntryReport.cs'
+        From = "var parts = lines ? value.Split('\n') : [value];"
+        To = 'string[] parts = [value];'
+        Test = 'EntryReportTests.Each_trigger_is_a_line_with_its_subtype_and_each_data_item_a_line_under_it'
+    }
+    @{
+        # Backlog 625, owner's decision "D2" in the command line.
+        Name = 'diff text: a trigger change is a line per trigger'
+        File = 'src\Bws.Cli\DiffText.cs'
+        From = 'change.Removed.Count + change.Added.Count == 0'
+        To = 'change.Removed.Count + change.Added.Count >= 0'
+        Test = 'DiffOutputTests.A_trigger_change_is_a_line_per_trigger_and_the_json_keeps_the_two_lists'
+    }
+    @{
+        # Backlog 625, owner's decision "D2" in the window.
+        Name = 'diff window: a trigger change is a row per trigger'
+        File = 'src\Bws.Gui\ViewModels\DiffLines.cs'
+        From = 'change.Removed.Count + change.Added.Count == 0'
+        To = 'change.Removed.Count + change.Added.Count >= 0'
+        Test = 'DiffSheetTests.A_trigger_change_is_a_row_per_trigger_and_a_foreign_value_in_it_is_written_out'
+    }
+    @{
+        # Backlog 625: the window's texts do not escape, so a trigger's values from a file must be.
+        Name = 'diff window: a trigger value from a file is written out'
+        File = 'src\Bws.Gui\ViewModels\TriggerLines.cs'
+        From = 'private static string Values(TriggerDataDocument item) => Printable.Of(TriggerParts.Values(item));'
+        To = 'private static string Values(TriggerDataDocument item) => TriggerParts.Values(item);'
+        Test = 'DiffSheetTests.A_trigger_change_is_a_row_per_trigger_and_a_foreign_value_in_it_is_written_out'
+    }
+    @{
+        # Backlog 625, owner's decision "after Advanced, before History".
+        Name = 'details: the triggers are a section of their own'
+        File = 'src\Bws.Gui\ViewModels\Details.cs'
+        From = 'return Triggers(entry) is { } triggers ? [.. sections, triggers] : sections;'
+        To = 'return Triggers(entry) is { } triggers && false ? [.. sections, triggers] : sections;'
+        Test = 'DetailsGuards.Every_trigger_is_a_line_of_its_own_section_after_the_fields_drawn_at_full_width'
+    }
+    @{
+        # Backlog 625, owner's decision "V1 - full width".
+        Name = 'details: a trigger line is drawn at full width'
+        File = 'src\Bws.Gui\ViewModels\Details.cs'
+        From = 'private const string TriggerFace = "prose";'
+        To = 'private const string TriggerFace = "text";'
+        Test = 'DetailsGuards.Every_trigger_is_a_line_of_its_own_section_after_the_fields_drawn_at_full_width'
+    }
+    @{
+        # Backlog 625, found by measuring the drawn panel: a prose label in the shared label column
+        # widened it for the whole panel, 7 device pixels on the owner's machine.
+        Name = 'details: a prose label does not widen the label column'
+        File = 'src\Bws.Gui\DetailsView.xaml'
+        From = '<Setter TargetName="Label" Property="Grid.ColumnSpan" Value="3" />'
+        To = '<!-- the label left in the shared column -->'
+        Test = 'DetailsViewGuards.A_trigger_label_does_not_move_the_column_the_values_start_at'
+    }
+    @{
+        # Review of PR #98: counting replaced a quadratic search, and the lines must come out in the order
+        # the search gave - the first copies on the later side matched, the rest in their places.
+        Name = 'diff: what arrived keeps the order of the later side'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'added.Add(trigger!);'
+        To = 'added.Insert(0, trigger!);'
+        Test = 'TriggerChangeTests.The_copies_matched_are_the_first_so_what_arrived_keeps_its_order'
+    }
+    @{
+        # Review of PR #98: a trigger held as nothing came out as a line reading "/".
+        Name = 'diff: a trigger held as nothing gives no lines'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'if (earlier.Concat(later).Any(item => item.Trigger is not { } trigger || !Sayable(trigger)))'
+        To = 'if (earlier.Concat(later).Any(item => item.Trigger is { } trigger && !Sayable(trigger)))'
+        Test = 'TriggerChangeTests.A_trigger_held_as_nothing_gives_no_lines_and_the_whole_lists_stay'
+    }
+    @{
+        # Review of PR #98: a data item without its type or values, in a file older than seven, ended the
+        # comparison with an exception and code 1. Weakened to "present", which is the half-check.
+        Name = 'diff: a data item that is not whole gives no lines'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'private static bool Sayable(TriggerDocument trigger) => trigger.Data?.All(TriggerDataDocument.IsWhole) ?? true;'
+        To = 'private static bool Sayable(TriggerDocument trigger) => trigger.Data?.All(item => item is not null) ?? true;'
+        Test = 'TriggerChangeTests.An_older_file_whose_data_item_is_not_whole_gives_no_lines'
+    }
+    @{
+        # Review of PR #98: narrowing to kind and action turned a trigger held as nothing into one of no
+        # kind, which the comparison then said as a line. The mutation is that old behaviour.
+        Name = 'diff: narrowing keeps a trigger held as nothing'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = '? null'
+        To = '? new JsonObject { ["kind"] = null, ["action"] = null }'
+        Test = 'TriggerChangeTests.A_trigger_held_as_nothing_gives_no_lines_and_the_whole_lists_stay'
+    }
+    @{
+        # Review of PR #98: a value holding a comma read like two values, and one holding the bar like two items.
+        Name = 'triggers: a value holding a separator is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| value.AsSpan().ContainsAny(Mistakable)'
+        To = '|| value.AsSpan().ContainsAny(Mistakable) && false'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: white space at the start of a value is invisible on a line.
+        Name = 'triggers: a value starting with white space is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| char.IsWhiteSpace(value[0])'
+        To = '|| char.IsWhiteSpace(value[0]) && false'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: and at the end of one.
+        Name = 'triggers: a value ending in white space is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| char.IsWhiteSpace(value[^1]);'
+        To = '|| char.IsWhiteSpace(value[^1]) && false;'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: a quotation mark inside a quoted value is doubled, or the quoting is ambiguous itself.
+        Name = 'triggers: a quotation mark inside a value is doubled'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'value.Replace("\"", "\"\"", StringComparison.Ordinal)'
+        To = 'value'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: pairs only where there are bytes - so no pair is cut out of a comma.
+        Name = 'triggers: a binary value that is not bytes is text'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'bytes && IsHex(value) ? Pairs(value) : Shown(value)'
+        To = 'bytes ? Pairs(value) : Shown(value)'
+        Test = 'TriggerPartsTests.A_binary_value_that_is_not_bytes_is_shown_as_text'
+    }
+    @{
+        # Review of PR #98: the bar joins the items of one trigger, in one place for both interfaces.
+        Name = 'triggers: the items of one trigger are joined by a bar'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'private const string ItemSeparator = " | ";'
+        To = 'private const string ItemSeparator = " / ";'
+        Test = 'TriggerPartsTests.The_items_of_one_trigger_are_joined_by_a_bar'
     }
 )
 

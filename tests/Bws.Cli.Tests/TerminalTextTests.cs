@@ -72,7 +72,12 @@ public sealed class TerminalTextTests
         {
             DisplayName = Hostile,
             Description = Reading<string>.Present(Hostile),
-            BinaryPath = Reading<string>.Present(@"C:\Vendor\" + Hostile)
+            BinaryPath = Reading<string>.Present(@"C:\Vendor\" + Hostile),
+
+            // Since 2026-10-27 the triggers are several lines of the report, and their data is the
+            // manager's - an ETW trigger's strings are whatever the service registered.
+            Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Present(
+                [new ServiceTrigger(TriggerKind.Custom, TriggerAction.Start, Guid.Empty, [new TriggerData(TriggerDataType.String, [Hostile, Hostile])])])
         };
 
         var report = EntryReport.Render(entry, full: true);
@@ -86,7 +91,16 @@ public sealed class TerminalTextTests
     {
         var diff = new SnapshotDiff(
             [new EntryPresence("Aaa", Hostile)], [],
-            [new ChangedEntry("Bbb", Hostile, [new FieldDifference("account", DifferenceGroup.Configuration, Hostile, "LocalSystem")], [])],
+            [new ChangedEntry("Bbb", Hostile,
+            [
+                new FieldDifference("account", DifferenceGroup.Configuration, Hostile, "LocalSystem"),
+
+                // A trigger line per trigger since 2026-10-27, made of a file's strings.
+                new FieldDifference("triggers", DifferenceGroup.Configuration, Hostile, null)
+                {
+                    Triggers = new TriggerChange([new TriggerDocument(Hostile, Hostile, Hostile, [new TriggerDataDocument(Hostile, [Hostile])])], [])
+                }
+            ], [])],
             [], [Hostile], [new RefusedField(Hostile, [Hostile])], [new EntryPresence("Ccc", Hostile)],
             new ComparisonCaveats(false, false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0),

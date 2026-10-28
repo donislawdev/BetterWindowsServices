@@ -116,4 +116,72 @@ public sealed class DetailsViewGuards
 
         WpfHost.On(window.Close);
     }
+
+    /// <summary>
+    /// <b>A trigger's label does not move the column every value of the panel starts at</b> - backlog 625,
+    /// 2026-10-27. The label column is one width for the whole panel, and a trigger line's label
+    /// ("Network endpoint/Start", the longest a trigger has) took part in it until the template let a prose
+    /// line's label span the row: measured on the owner's machine, every value of every section moved
+    /// 7 device pixels on an entry with such a trigger. Asked of the drawn panel, because the view model is
+    /// the same in both cases and only the template decides.
+    /// </summary>
+    [Fact]
+    public void A_trigger_label_does_not_move_the_column_the_values_start_at()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        WpfHost.Settled();
+
+        var plain = ValueStart(window, model, Rows.Entry("Spooler"));
+        var triggered = ValueStart(window, model, Rows.Entry("Spooler") with
+        {
+            Triggers = Core.Reading<IReadOnlyList<Core.ServiceTrigger>>.Present(
+                [new Core.ServiceTrigger(Core.TriggerKind.NetworkEndpoint, Core.TriggerAction.Start)])
+        });
+
+        WpfHost.On(window.Close);
+
+        Assert.Equal(plain, triggered, precision: 1);
+    }
+
+    /// <summary>Where the value of the status line starts, inside the panel, with the panel shown on this entry.</summary>
+    private static double ValueStart(MainWindow window, MainViewModel model, Core.ScmEntry entry)
+    {
+        WpfHost.On(() => model.Chosen.Row = EntryRow.Of(entry));
+        WpfHost.On(() => model.Chosen.Show());
+        WpfHost.Settled();
+
+        return WpfHost.On(() =>
+        {
+            // Laid out by hand, the way CarryOutLabelGuards does it: the host's window is never drawn, so
+            // nothing realizes the panel's templates otherwise - a first run found no text in it at all.
+            window.DetailsPanel.Measure(new Size(400, 6000));
+            window.DetailsPanel.Arrange(new Rect(0, 0, 400, 6000));
+            window.DetailsPanel.UpdateLayout();
+
+            var label = Texts.Of(Columns.Of("status")!.LabelKey);
+            var line = Descendants(window.DetailsPanel).OfType<System.Windows.Controls.TextBlock>()
+                .Single(block => block.Name == "Label" && block.Text == label);
+            var value = Descendants((DependencyObject)line.Parent).OfType<System.Windows.Controls.TextBlock>()
+                .Single(block => block.Name == "Value");
+
+            return value.TranslatePoint(default, window.DetailsPanel).X;
+        });
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, index);
+
+            yield return child;
+
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
+        }
+    }
 }

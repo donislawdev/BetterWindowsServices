@@ -453,8 +453,6 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             : $"has trigger {gap + 1} without its whole data list, which a version {schema} snapshot always holds.";
     }
 
-    /// <summary>A data list, and every item in it with a type and at least one value, none of them missing.</summary>
-    private static bool Whole(TriggerDocument trigger) =>
-        trigger.Data is { } data
-        && data.All(item => item is { Type: not null, Values.Count: > 0 } && item.Values.All(value => value is not null));
+    /// <summary>A data list, and every item in it whole - see <see cref="TriggerDataDocument.IsWhole"/>.</summary>
+    private static bool Whole(TriggerDocument trigger) => trigger.Data is { } data && data.All(TriggerDataDocument.IsWhole);
 }

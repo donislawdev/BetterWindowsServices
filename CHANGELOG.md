@@ -115,8 +115,30 @@ is not part of this repository.
   and `bws show --json`, as `subtype` and a `data` list of items with a `type` and their `values`. In
   the JSON of a comparison the new caveat is `triggerDetailDiffers`, at the end of `caveats`. An older
   version of this tool refuses a version 7 snapshot by name.
+- `bws show` prints each trigger on a line of its own with what it waits for, and each of its data
+  items on a line under it - for example `Firewall port/Start  Port opened` and under it
+  `500, UDP, %windir%\system32\svchost.exe, IKEEXT`. The ten subtypes Microsoft documents are named in
+  words (RPC interface, named pipe, joined or left a domain, port opened or closed, machine or user
+  policy, first IP address arrived, last one removed), any other one is shown as its GUID, and bytes
+  are shown in pairs the way `sc qtriggerinfo` shows them. A value holding a comma, a `|` or a quotation
+  mark, or starting or ending in a space, is shown in quotation marks, so one value never reads like
+  two. It used to print the kinds and actions only, all on one line.
+- The details panel of the window has a *Triggers* section after the fields, one line per trigger with
+  its subtype and data drawn at the full width of the panel, and a copy of the entry carries it too.
+  The *Triggers* line among the advanced fields still names the kinds, once each.
+- A comparison shows a change of triggers as one line per trigger that only one side has, with
+  "nothing" on the other side - in the terminal and as rows of the window's table. It used to show the
+  two whole lists of triggers as JSON, which for an entry losing one of thirteen triggers was a line of
+  about three thousand characters. `--json` is unchanged and still carries both whole lists. A snapshot
+  edited by hand into a trigger this program never writes - an empty one, or data without its type or
+  values - still shows the two whole lists for that entry.
 
 ### Fixed
+
+- A list of triggers that Windows hands back damaged - too short for its own header, or counting more
+  triggers than it holds - is now reported as a field that could not be read. It used to come back as
+  no triggers at all, or as the triggers that fitted, as if the list were complete. Nothing like this
+  has been seen on a real machine.
 
 - A restart no longer starts, at its end, a service this run did not stop - one somebody else was
   already stopping when the step came, or one that was starting and then stopped by itself. The step

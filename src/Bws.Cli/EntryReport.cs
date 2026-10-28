@@ -1,5 +1,6 @@
 using System.Globalization;
 using Bws.Core;
+using Bws.Core.Snapshots;
 
 namespace Bws.Cli;
 
@@ -34,7 +35,12 @@ internal static class EntryReport
     /// </summary>
     private readonly record struct Told(ReadOutcome Outcome, string Text, int Code);
 
-    private sealed record Field(string Key, Func<ScmEntry, Told> Reads);
+    /// <param name="Lines">
+    /// Whether the value is several lines of this tool's own making, joined by a line feed - the triggers,
+    /// since 2026-10-27. Every piece of such a value has been through <see cref="Texts.Of(string, object[])"/>
+    /// already, so the only line feeds left in it are the joins.
+    /// </param>
+    private sealed record Field(string Key, Func<ScmEntry, Told> Reads, bool Lines = false);
 
     private const string Identity = "cli.show.group.basics";
     private const string About = "cli.show.group.about";
@@ -85,7 +91,7 @@ internal static class EntryReport
             new Field("cli.show.loadOrderGroup", entry => Say(entry.LoadOrderGroup, value => value)),
             new Field("cli.show.errorControl", entry => Say(entry.ErrorControl, value => value.ToString())),
             new Field("cli.show.dependsOn", entry => Say(entry.DependsOn, List)),
-            new Field("cli.show.triggers", entry => Say(entry.Triggers, Triggers)),
+            new Field("cli.show.triggers", entry => Say(entry.Triggers, Triggers), Lines: true),
             new Field("cli.show.requiredPrivileges", entry => Say(entry.RequiredPrivileges, List)),
             new Field("cli.show.securityDescriptor", entry => Say(entry.SecurityDescriptor, value => value))
         ])
@@ -112,7 +118,7 @@ internal static class EntryReport
         foreach (var (heading, fields) in Catalogue)
         {
             var shown = fields
-                .Select(field => (field.Key, Told: field.Reads(entry)))
+                .Select(field => (field.Key, Told: field.Reads(entry), field.Lines))
                 .Where(pair => full || pair.Told.Outcome != ReadOutcome.Absent)
                 .ToList();
 
@@ -134,13 +140,30 @@ internal static class EntryReport
             // what makes it scannable.
             var width = shown.Max(pair => Texts.Of(pair.Key).Length);
 
-            lines.AddRange(shown.Select(pair => Texts.Of(
-                "cli.show.line",
-                Texts.Of(pair.Key).PadRight(width),
-                Spell(pair.Told))));
+            lines.AddRange(shown.SelectMany(pair => Aligned(Texts.Of(pair.Key).PadRight(width), Spell(pair.Told), pair.Lines)));
         }
 
         return string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>
+    /// One field as the lines it prints: the label and the value, and for a value of several lines of this
+    /// tool's own making - the triggers, since 2026-10-27 (backlog 625) - every further line under the
+    /// first one's value rather than at the left edge.
+    ///
+    /// <b>ONLY those values are split, and that is the half that matters.</b> A line break inside a value
+    /// that came from outside - a description, a path, a name out of a snapshot - is written out as
+    /// <c>&lt;U+000A&gt;</c> by <see cref="Texts.Of(string, object[])"/> since stability report C-4, because a
+    /// value free to break the line can print a line that looks like a field of this report. The first
+    /// version of this method split every value and <c>TerminalTextTests</c> went red on it.
+    /// </summary>
+    private static IEnumerable<string> Aligned(string label, string value, bool lines)
+    {
+        var parts = lines ? value.Split('\n') : [value];
+        var first = Texts.Of("cli.show.line", label, parts[0]);
+        var under = new string(' ', first.Length - Printable.Of(parts[0]).Length);
+
+        return parts.Skip(1).Select(part => under + part).Prepend(first);
     }
 
     /// <summary>
@@ -212,12 +235,13 @@ internal static class EntryReport
     // - Unknown, Start and Stop - so its value name and the word for a person are the same string
     // and there is nothing to disagree about. Turning it into a lookup would buy one more file and
     // three more keys to say what it already says.
+    //
+    // A TRIGGER PER LINE WITH ITS SUBTYPE AND DATA SINCE 2026-10-27 (backlog 625), where it used to be
+    // the kinds and actions joined by commas - through the document form, so a live entry reads the
+    // way a comparison reads the same trigger.
     private static string Triggers(IReadOnlyList<ServiceTrigger> triggers) => string.Join(
-        ", ",
-        triggers.Select(trigger => Texts.Of(
-            "cli.show.trigger",
-            TriggerWords.Of(trigger.Kind),
-            trigger.Action.ToString())));
+        '\n',
+        triggers.SelectMany(trigger => TriggerWords.Lines(TriggerDocument.Of(trigger))));
 
     /// <summary>
     /// Megabytes with one decimal, the same as the listing, so the two agree about one entry.

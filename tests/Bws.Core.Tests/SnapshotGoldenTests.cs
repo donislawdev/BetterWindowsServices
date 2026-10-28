@@ -294,8 +294,10 @@ public sealed class SnapshotGoldenTests
     /// order mark: a mark that crept into the kept copy is a difference in the file a person
     /// would get, so it has to fail here rather than be skipped over quietly. The line endings
     /// survive a checkout because .gitattributes marks the folder as not text.
+    ///
+    /// Internal since 2026-10-27, so the trigger comparison tests read the same copies.
     /// </summary>
-    private static string KeptText(string name)
+    internal static string KeptText(string name)
     {
         using var stream = typeof(SnapshotGoldenTests).Assembly.GetManifestResourceStream(name)
             ?? throw new InvalidOperationException($"{name} is not embedded in the test assembly.");

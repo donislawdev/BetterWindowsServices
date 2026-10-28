@@ -13,8 +13,10 @@ namespace Bws.Core.Tests;
 /// <b>What each of these is worth is worth saying, because it is not "the manager does this".</b>
 /// Nothing below claims Windows ever writes a count of five into a block with room for one. The
 /// claim is narrower and it is the one that matters at three in the morning: if it did, this reads
-/// one record and stops. Before 2026-08-26 it read five, out of a fifty six byte array, which on an
-/// elevated process is a memory fault that ends the program with no report at all.
+/// nothing past the block and says the field could not be read. Before 2026-08-26 it read five, out of
+/// a fifty six byte array, which on an elevated process is a memory fault that ends the program with no
+/// report at all - and from then until 2026-10-27 it read the one that fitted and called the list whole
+/// (backlog 626).
 /// </summary>
 public sealed class ManagerBlockTests
 {
@@ -113,10 +115,17 @@ public sealed class ManagerBlockTests
         }
     }
 
+    /// <summary>
+    /// Refused rather than Absent since 2026-10-27 (backlog 626) - Absent says the entry declares no
+    /// triggers, which is exactly what a block this short cannot say.
+    /// </summary>
     [Fact]
-    public void A_block_too_short_to_hold_its_own_header_is_nothing_read()
+    public void A_block_too_short_to_hold_its_own_header_is_refused()
     {
-        Assert.False(ManagerBlocks.ReadTriggerBuffer(new byte[4]).IsPresent);
+        var reading = ManagerBlocks.ReadTriggerBuffer(new byte[4]);
+
+        Assert.Equal(ReadOutcome.Denied, reading.Outcome);
+        Assert.Equal(13, reading.ErrorCode);
     }
 
     [Fact]
@@ -133,20 +142,31 @@ public sealed class ManagerBlockTests
     [Fact]
     public void A_count_with_a_pointer_to_nowhere_is_refused_rather_than_followed()
     {
-        // The block says there are a thousand records and does not say where. Following that
-        // dereferences nothing at address zero, which is where a program ends.
-        var buffer = new byte[HeaderLength];
+        // The block says there is one record and does not say where - with room for that record right
+        // behind the header, so the pointer is the only thing wrong. Following it dereferences nothing
+        // at address zero, which is where a program ends.
+        var buffer = new byte[HeaderLength + RecordLength];
 
-        BitConverter.TryWriteBytes(buffer.AsSpan(TriggerCount), 1000u);
+        BitConverter.TryWriteBytes(buffer.AsSpan(TriggerCount), 1u);
 
-        Assert.False(ManagerBlocks.ReadTriggerBuffer(buffer).IsPresent);
+        // Refused, not Absent, since 2026-10-27 (backlog 626) - until then this came back as "no
+        // triggers", which is a claim about the service the block never made.
+        var reading = ManagerBlocks.ReadTriggerBuffer(buffer);
+
+        Assert.Equal(ReadOutcome.Denied, reading.Outcome);
+        Assert.Equal(13, reading.ErrorCode);
     }
 
+    /// <summary>
+    /// <b>Held down to what fitted from 2026-08-26 to 2026-10-27, refused since</b> (backlog 626, owner's
+    /// decision "refuse everywhere"). The one record that fitted read as the entry's whole list - four
+    /// triggers gone with nothing to say so, the silence a data item outside the block was already
+    /// refused for. The record that fits is a real one, so the refusal is about the count alone.
+    /// </summary>
     [Fact]
-    public void A_count_larger_than_the_block_is_held_down_to_what_the_block_holds()
+    public void A_count_larger_than_the_block_refuses_the_field_rather_than_keeping_what_fits()
     {
-        // Room for one record and a header that claims five. The one that fits is read and the
-        // four that do not are not gone looking for.
+        // Room for one record and a header that claims five.
         var buffer = new byte[HeaderLength + RecordLength];
         var pinned = GCHandle.Alloc(buffer, GCHandleType.Pinned);
 
@@ -162,6 +182,12 @@ public sealed class ManagerBlockTests
             // Device arrival, and the action is a start. The two words a record begins with.
             BitConverter.TryWriteBytes(buffer.AsSpan(HeaderLength), 1u);
             BitConverter.TryWriteBytes(buffer.AsSpan(HeaderLength + 4), 1u);
+
+            Assert.Equal(ReadOutcome.Denied, ManagerBlocks.ReadTriggerBuffer(buffer).Outcome);
+
+            // The canary: the same block telling the truth about its one record is read, so the
+            // refusal above is the count and nothing else about this block.
+            BitConverter.TryWriteBytes(buffer.AsSpan(TriggerCount), 1u);
 
             var reading = ManagerBlocks.ReadTriggerBuffer(buffer);
 

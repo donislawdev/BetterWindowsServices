@@ -453,7 +453,7 @@ internal static class CellFaces
     public static string TriggerList(Reading<IReadOnlyList<ServiceTrigger>> reading) =>
         Say(reading, triggers => Join(triggers.Select(trigger => TriggerKindLabel(trigger.Kind)).Distinct(StringComparer.Ordinal)));
 
-    private static string TriggerKindLabel(TriggerKind kind) => kind switch
+    internal static string TriggerKindLabel(TriggerKind kind) => kind switch
     {
         TriggerKind.DeviceArrival => Texts.Of("gui.cell.trigger.deviceArrival"),
         TriggerKind.IpAddress => Texts.Of("gui.cell.trigger.ipAddress"),
