@@ -15113,6 +15113,22 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = ''
         Test = 'CellFaceTests.Every_trigger_kind_the_core_names_has_a_word_of_its_own'
     }
+    @{
+        # Review of PR #99: a kind pointed at another kind's word is caught, not only a kind with no word.
+        Name = "cli words: aggregate does not borrow custom's word"
+        File = 'src\Bws.Cli\TriggerWords.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.aggregate"),'
+        To = 'TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.custom"),'
+        Test = 'TriggerWordsTests.Every_kind_the_core_names_has_a_word_of_its_own'
+    }
+    @{
+        # Review of PR #99: the same in the window.
+        Name = "cell faces: aggregate does not borrow custom's word"
+        File = 'src\Bws.Gui\ViewModels\CellFaces.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.aggregate"),'
+        To = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.custom"),'
+        Test = 'CellFaceTests.Every_trigger_kind_the_core_names_has_a_word_of_its_own'
+    }
 )
 
 $mutations

@@ -72,29 +72,40 @@ public sealed class CellFaceTests
         }
     }
 
-    public static TheoryData<TriggerKind> NamedTriggerKinds()
+    /// <summary>
+    /// Each trigger kind reads as its own word in the window. Written 2026-10-28 for backlog 627, when the
+    /// core named Aggregate: the label is a switch with a fallback, so a kind forgotten here reads "Unknown"
+    /// in the column and the panel, and the review of PR #99 caught that a first version asking only that
+    /// would have let Aggregate point at the word for Custom. TriggerWordsTests asks the same of the terminal.
+    /// </summary>
+    [Theory]
+    [InlineData(TriggerKind.DeviceArrival, "gui.cell.trigger.deviceArrival")]
+    [InlineData(TriggerKind.IpAddress, "gui.cell.trigger.ipAddress")]
+    [InlineData(TriggerKind.DomainJoin, "gui.cell.trigger.domainJoin")]
+    [InlineData(TriggerKind.FirewallPort, "gui.cell.trigger.firewallPort")]
+    [InlineData(TriggerKind.GroupPolicy, "gui.cell.trigger.groupPolicy")]
+    [InlineData(TriggerKind.NetworkEndpoint, "gui.cell.trigger.networkEndpoint")]
+    [InlineData(TriggerKind.Custom, "gui.cell.trigger.custom")]
+    [InlineData(TriggerKind.CustomSystemStateChange, "gui.cell.trigger.systemState")]
+    [InlineData(TriggerKind.Aggregate, "gui.cell.trigger.aggregate")]
+    [InlineData(TriggerKind.Unknown, "gui.cell.unknown")]
+    public void Each_trigger_kind_reads_as_its_word(TriggerKind kind, string key)
     {
-        var named = new TheoryData<TriggerKind>();
-
-        foreach (var kind in Enum.GetValues<TriggerKind>().Where(kind => kind != TriggerKind.Unknown))
-        {
-            named.Add(kind);
-        }
-
-        return named;
+        Assert.Equal(Bws.Gui.Texts.Of(key), CellFaces.TriggerKindLabel(kind));
     }
 
     /// <summary>
-    /// Every trigger kind the core names has a word of its own in the window. Written 2026-10-28 for
-    /// backlog 627, when the core named Aggregate: the label is a switch with a fallback, so a kind
-    /// forgotten here reads "Unknown" in the column and the panel. TriggerWordsTests asks the same of the
-    /// terminal.
+    /// The guard for a kind added to the core later and missing from the table above: none reads as the
+    /// word for an unnamed kind, and no two share a word.
     /// </summary>
-    [Theory]
-    [MemberData(nameof(NamedTriggerKinds))]
-    public void Every_trigger_kind_the_core_names_has_a_word_of_its_own(TriggerKind kind)
+    [Fact]
+    public void Every_trigger_kind_the_core_names_has_a_word_of_its_own()
     {
-        Assert.NotEqual(Bws.Gui.Texts.Of("gui.cell.unknown"), CellFaces.TriggerKindLabel(kind));
+        var named = Enum.GetValues<TriggerKind>().Where(kind => kind != TriggerKind.Unknown).ToList();
+        var words = named.Select(CellFaces.TriggerKindLabel).ToList();
+
+        Assert.DoesNotContain(Bws.Gui.Texts.Of("gui.cell.unknown"), words);
+        Assert.Equal(named.Count, words.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
