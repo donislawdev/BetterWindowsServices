@@ -55,9 +55,15 @@ internal static class ManagerTerms
         // Value seven, which this interop metadata does not name. Identified from the
         // machine rather than from memory: sc qtriggerinfo calls every trigger that landed
         // here "CUSTOM SYSTEM STATE CHANGE EVENT", and mapping it took the count of kinds
-        // we could not name from 89 to 1 on a machine with 810 entries. The one left is a
-        // kind sc.exe cannot name either - it prints the action and no type line at all.
+        // we could not name from 89 to 1 on a machine with 810 entries.
         (SERVICE_TRIGGER_TYPE)7 => TriggerKind.CustomSystemStateChange,
+
+        // Value thirty, the one that was left. sc.exe cannot name it either - it prints the
+        // action and no type line at all - but winsvc.h of the Windows SDK 10.0.28000.0 does,
+        // as SERVICE_TRIGGER_TYPE_AGGREGATE, on the line after SERVICE_TRIGGER_TYPE_CUSTOM.
+        // Measured on 2026-10-28: CDPSvc's one trigger, and after it no kind on that machine
+        // comes back Unknown.
+        (SERVICE_TRIGGER_TYPE)30 => TriggerKind.Aggregate,
 
         _ => TriggerKind.Unknown
     };

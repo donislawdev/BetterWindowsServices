@@ -463,6 +463,7 @@ internal static class CellFaces
         TriggerKind.NetworkEndpoint => Texts.Of("gui.cell.trigger.networkEndpoint"),
         TriggerKind.Custom => Texts.Of("gui.cell.trigger.custom"),
         TriggerKind.CustomSystemStateChange => Texts.Of("gui.cell.trigger.systemState"),
+        TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.aggregate"),
         _ => Texts.Of("gui.cell.unknown")
     };
 

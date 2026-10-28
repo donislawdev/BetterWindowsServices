@@ -9,7 +9,8 @@ namespace Bws.Cli;
 ///
 /// <b>WRITTEN 2026-09-01 FOR BACKLOG 260</b>, the third and last family with this fault - the
 /// argument for all three is in <see cref="StatusWords"/> and is not repeated here. Seven of the
-/// nine members read as two or three words jammed together: <c>DeviceArrival</c>,
+/// nine members of that day read as two or three words jammed together (<c>Aggregate</c>, the
+/// tenth, came on 2026-10-28 for backlog 627 and is one word): <c>DeviceArrival</c>,
 /// <c>IpAddress</c>, <c>DomainJoin</c>, <c>FirewallPort</c>, <c>GroupPolicy</c>,
 /// <c>NetworkEndpoint</c> and <c>CustomSystemStateChange</c>.
 ///
@@ -110,6 +111,7 @@ internal static class TriggerWords
         TriggerKind.NetworkEndpoint => Texts.Of("cli.cell.trigger.networkEndpoint"),
         TriggerKind.Custom => Texts.Of("cli.cell.trigger.custom"),
         TriggerKind.CustomSystemStateChange => Texts.Of("cli.cell.trigger.systemState"),
+        TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.aggregate"),
         _ => Texts.Of("cli.cell.unknown")
     };
 }

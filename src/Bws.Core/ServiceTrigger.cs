@@ -44,7 +44,19 @@ public enum TriggerKind
     /// entries. Leaving it as Unknown would have made the second largest group on the
     /// machine indistinguishable from anything else we cannot name.
     /// </summary>
-    CustomSystemStateChange
+    CustomSystemStateChange,
+
+    /// <summary>
+    /// A trigger Windows assembles from others, identified by a subtype - kind thirty.
+    ///
+    /// The interop metadata has no name for this one either, and sc qtriggerinfo prints no kind for
+    /// it at all, but winsvc.h of the Windows SDK does: SERVICE_TRIGGER_TYPE_AGGREGATE. Measured on
+    /// 2026-10-28 it is one trigger on a machine with 252, the one CDPSvc has. Until then it was held
+    /// as Unknown, which made a change from it to some other kind nobody can name invisible to a
+    /// comparison. Named inside schema seven, before that schema was released, so a file older than
+    /// seven is the only one that can still say Unknown for it - see SnapshotDiff.
+    /// </summary>
+    Aggregate
 }
 
 /// <summary>What the trigger does when it fires.</summary>

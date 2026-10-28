@@ -111,6 +111,7 @@ internal static class QueryValueNames
         new QueryValueName("network", "networkendpoint"),
         new QueryValueName("custom", "custom"),
         new QueryValueName("state", "customsystemstatechange"),
+        new QueryValueName("aggregate", "aggregate"),
         new QueryValueName("unknown", "unknown"),
 
         // Not a kind but an action, and worth asking about on its own: a trigger

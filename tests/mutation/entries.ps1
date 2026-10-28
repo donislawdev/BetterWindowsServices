@@ -15065,6 +15065,70 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = 'private const string ItemSeparator = " / ";'
         Test = 'TriggerPartsTests.The_items_of_one_trigger_are_joined_by_a_bar'
     }
+    @{
+        # Backlog 627: kind thirty is read as Aggregate, the name winsvc.h gives it.
+        Name = 'triggers: kind thirty is read as aggregate'
+        File = 'src\Bws.Core\ManagerTerms.cs'
+        From = '(SERVICE_TRIGGER_TYPE)30 => TriggerKind.Aggregate,'
+        To = '(SERVICE_TRIGGER_TYPE)30 => TriggerKind.Unknown,'
+        Test = 'TriggerKindTests.A_kind_the_metadata_does_not_name_is_read_by_its_number'
+    }
+    @{
+        # Backlog 627: seven had no test of its own until the day thirty got one beside it.
+        Name = 'triggers: kind seven is read as a system state change'
+        File = 'src\Bws.Core\ManagerTerms.cs'
+        From = '(SERVICE_TRIGGER_TYPE)7 => TriggerKind.CustomSystemStateChange,'
+        To = '(SERVICE_TRIGGER_TYPE)7 => TriggerKind.Unknown,'
+        Test = 'TriggerKindTests.A_kind_the_metadata_does_not_name_is_read_by_its_number'
+    }
+    @{
+        # Backlog 627: against a file older than seven, Aggregate is folded back to the Unknown that file holds.
+        Name = 'diff: aggregate is folded to unknown against a file older than seven'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = '? JsonValue.Create(nameof(TriggerKind.Unknown))'
+        To = '? JsonValue.Create(nameof(TriggerKind.Aggregate))'
+        Test = 'TriggerChangeTests.Against_an_older_file_an_aggregate_trigger_held_there_as_unknown_is_the_same_trigger'
+    }
+    @{
+        # Backlog 627: trigger:aggregate is a word the query language accepts.
+        Name = 'query: trigger accepts aggregate'
+        File = 'src\Bws.Core\Querying\QueryValueNames.cs'
+        From = 'new QueryValueName("aggregate", "aggregate"),'
+        To = ''
+        Test = 'TriggerQueryTests.An_aggregate_trigger_is_asked_for_by_its_own_word'
+    }
+    @{
+        # Backlog 627: the terminal has a word for every kind the core names.
+        Name = 'cli words: aggregate has a word of its own'
+        File = 'src\Bws.Cli\TriggerWords.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.aggregate"),'
+        To = ''
+        Test = 'TriggerWordsTests.Every_kind_the_core_names_has_a_word_of_its_own'
+    }
+    @{
+        # Backlog 627: the window has a word for every kind the core names.
+        Name = 'cell faces: aggregate has a word of its own'
+        File = 'src\Bws.Gui\ViewModels\CellFaces.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.aggregate"),'
+        To = ''
+        Test = 'CellFaceTests.Every_trigger_kind_the_core_names_has_a_word_of_its_own'
+    }
+    @{
+        # Review of PR #99: a kind pointed at another kind's word is caught, not only a kind with no word.
+        Name = "cli words: aggregate does not borrow custom's word"
+        File = 'src\Bws.Cli\TriggerWords.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.aggregate"),'
+        To = 'TriggerKind.Aggregate => Texts.Of("cli.cell.trigger.custom"),'
+        Test = 'TriggerWordsTests.Every_kind_the_core_names_has_a_word_of_its_own'
+    }
+    @{
+        # Review of PR #99: the same in the window.
+        Name = "cell faces: aggregate does not borrow custom's word"
+        File = 'src\Bws.Gui\ViewModels\CellFaces.cs'
+        From = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.aggregate"),'
+        To = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.custom"),'
+        Test = 'CellFaceTests.Every_trigger_kind_the_core_names_has_a_word_of_its_own'
+    }
 )
 
 $mutations
